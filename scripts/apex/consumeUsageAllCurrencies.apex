@@ -14,6 +14,8 @@
 // Idempotency: re-running adds more usage. Clear TransactionJournal /
 // UsageSummary first if you want a clean comparison.
 
+public class UsageConsumeException extends Exception {}
+
 final Decimal COMPUTE_MINUTES = 500;   // UR-CPUTIME  -- crosses QB-DB's 300+ override tier
 final Decimal STORAGE_TB = 20;         // UR-DATASTORAGE
 final String ORCHESTRATION_FLOW = 'RLM_OrchestrateUsageManagement';
@@ -132,7 +134,7 @@ System.debug('CONSUME: uploaded ' + uploaded + ' journal(s) across '
 // send the user to validateRatedUsage.apex against a partial consume, where the
 // missing currency looks like a rating defect rather than a consume that never ran.
 if (!failures.isEmpty()) {
-    throw new IllegalStateException(
+    throw new UsageConsumeException(
         'consumeUsageAllCurrencies: ' + failures.size() + ' asset(s) failed to record usage -- '
         + String.join(failures, ' | ')
         + '. Orchestration NOT started; fix these and re-run, otherwise the rating '
