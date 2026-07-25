@@ -209,6 +209,36 @@ The CommitmentSpend product (`QB-MTY-CMT`) carries Usage-category PURs alongside
 
 Rather than reusing the QB-TOKEN-associated `-TKN` variants (whose `QB-TOKEN` association would trigger a TokenResourceId activation conflict on CommitmentSpend products), these use dedicated `-MTY` UsageResource variants whose `TokenResource.Code` points at `UR-USD` instead of `QB-TOKEN`. This keeps the monetary-commitment usage records activatable without the TokenResourceId edit conflict.
 
+> ⚠️ **Known gap — the `-MTY` resources are on no anchor, so the monetary discounts are unreachable.** A commitment discounts the *anchor's* consumption, and usage is only ever recorded against an anchor. The token model has a matching anchor — `QB-DB-TOKEN` carries `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` — but the monetary model has none: `QB-DB` carries the plain `UR-CPUTIME` / `UR-DATASTORAGE`. So QB-MTY-CMT's 5% / 10% tier adjustments are valid, currency-complete data that no usage can ever hit.
+>
+> Closing it is a demo-design decision, not a mechanical fix — give `QB-DB` the `-MTY` resources, add a currency-backed anchor, or drop the conversion and reuse the anchor's plain resources (what `QB-QTY-CMT` does). Deferred because **CommitmentSpend cannot be verified live today** (see the entitlement-processing note below). Recorded, not silently repointed: `tests/test_qb_multicurrency_data.py::check_addon_usage_resources_exist_on_anchor` allowlists exactly these two pairs, so any *other* unreachable resource still fails the suite.
+
+### CommitmentQuantity / CommitmentSpend entitlements never leave PENDING
+
+Live-verified 2026-07-24 on `pr308`. A `UsageModelType=Commit` (token) commitment
+assetizes cleanly — 3 `TransactionUsageEntitlement` rows all `PROCESSED`, its own
+`UsageEntitlementAccount`, 6 `UsageEntitlementBucket` rows. Under identical
+conditions (same selling model, same backdating, same `UsageCmtAssetRelatedObj`
+junction to an anchor), `CommitmentQuantity` (QB-QTY-CMT) and `CommitmentSpend`
+(QB-MTY-CMT) produce:
+
+| | Commit (token) | CommitmentQuantity / CommitmentSpend |
+|---|---|---|
+| `EntitlementProcessingStatus` | PROCESSED | **PENDING** |
+| commitment `UsageEntitlementAccount` | created | **none** |
+| `UsageEntitlementBucket` | 6 | **0** |
+
+Nothing errors — no `BatchJobPartFailedRecord`, no failed async job. Both
+documented remediations return `isSuccess: true` and change nothing:
+the `retriggerEntlCreaProc` invocable ("Retriggers entitlement creation process
+for unprocessed assets") and `refreshUsageEntitlementBucket` (the action behind
+the **Call Entitlement Refresh Service** flow that the help requires for
+backdated assets). The order items are field-identical across all three; the only
+difference is `Product2.UsageModelType`.
+
+Until this is resolved, only the three token `Commit` products are demonstrable
+end to end.
+
 ### Anchor Products Require Token PUR
 
 Products with `UsageModelType='Anchor'` (e.g., QB-DB) require a Token PUR (`QB-DB;QB-TOKEN`) to be active before their non-Token PURs can be activated. This was not required in API 258.
@@ -216,6 +246,37 @@ Products with `UsageModelType='Anchor'` (e.g., QB-DB) require a Token PUR (`QB-D
 ### Currency PUR Dependency
 
 CommitmentSpend products (QB-MTY-CMT) require their Currency-category PUR (`QB-MTY-CMT;UR-USD`) to be Active before any Usage-category PURs can be activated.
+
+### Record usage BEFORE orchestrating that period — a closed summary never reopens
+
+Live-verified 2026-07-24 on `pr308`, and the single most common way a usage demo
+silently produces zeroes.
+
+`Create Empty Summaries` runs at assetization and seeds one `UsageSummary` per
+resource per accumulation period in state `New`. **Only a `New` summary will
+absorb a `TransactionJournal`.** Once an orchestration pass advances it —
+`UsageSummaryInProgress`, `RatableSummaryComplete`, `LiableSummaryComplete` — a
+journal that arrives later for that period stays `Pending` **forever**: it is
+never aggregated, never rated, and nothing reports an error. The rated summary
+simply reads `TierQuantity = 0, TotalAmount = 0`.
+
+The proof: six accounts were given identical June-15 usage. Five had already had
+an orchestration pass run over June and every one of their journals stranded at
+`Pending`. The sixth (`Helvetia Cloud`) had been built *after* that pass, so its
+June summaries were still `New` — its journals aggregated and rated correctly on
+the first try. Re-consuming the five inside the *active* billing period did not
+help either: those summaries were already `UsageSummaryInProgress`.
+
+**The order is not negotiable:**
+
+```
+build asset  →  record usage  →  run orchestration   (repeat per period)
+```
+
+There is no supported way to reopen a closed period. Recovery is to consume in a
+period whose summaries are still `New`, or to rebuild on an account that has
+never been orchestrated. Note that `refreshUsageEntitlementBucket` does *not* do
+this — it refreshes entitlement buckets for backdated assets, not summaries.
 
 ### Period Ordering: Billing >= Rating > Accumulation
 

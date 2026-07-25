@@ -74,6 +74,24 @@ COMMITMENT_MODEL_TYPES = {"Commit", "CommitmentQuantity", "CommitmentSpend"}
 # discounts live on the -MTY usage resources instead. Deliberate, not a gap.
 ALLOWED_PUR_WITHOUT_RCE = {("QB-MTY-CMT", "UR-USD")}
 
+# Commitment/pack usage resources knowingly not present on any anchor.
+#
+# QB-MTY-CMT's UR-CPUTIME-MTY / UR-DATASTORAGE-MTY mirror the token pattern
+# (Category=Usage, TokenResourceId=UR-USD) so consumption can convert to
+# currency the way -TKN resources convert to tokens. But the token model has a
+# matching anchor (QB-DB-TOKEN carries the -TKN resources) and the monetary
+# model has none — QB-DB carries the plain UR-CPUTIME / UR-DATASTORAGE. So the
+# monetary commitment's 5%/10% discounts can never match consumed usage.
+#
+# Left as a recorded gap rather than silently repointed: closing it is a demo
+# design decision (give QB-DB the -MTY resources, add a currency-backed anchor,
+# or drop conversion and reuse the anchor's plain resources), and CommitmentSpend
+# cannot be verified live today — its entitlements never leave PENDING.
+ALLOWED_ADDON_RESOURCES_WITHOUT_ANCHOR = {
+    ("QB-MTY-CMT", "UR-CPUTIME-MTY"),
+    ("QB-MTY-CMT", "UR-DATASTORAGE-MTY"),
+}
+
 # Rates deliberately NOT derived from the base currency — e.g. a bespoke local
 # price rather than a conversion. Keyed (product, rate card, resource, currency).
 # Empty by design: every entry here is a rate that will not track a
@@ -217,6 +235,51 @@ def check_commitment_purp_has_no_periods(d):
     check("commitment_purp_has_no_periods", not bad,
           f"{len(bad)} row(s) the platform will reject: " + "; ".join(bad[:3]) if bad
           else f"no rating/accumulation on any PURP of the {len(commits)} commitment products")
+
+
+def check_addon_usage_resources_exist_on_anchor(d):
+    """A commitment or pack discounts/tops up the ANCHOR's consumption.
+
+    Usage is only ever recorded against an anchor asset, so a Category=Usage
+    resource on a commitment or pack can only ever match consumption if the same
+    resource also exists on some Anchor product. A resource that exists nowhere
+    else is unreachable: its rate adjustments are live, valid, currency-complete
+    data that no usage can ever hit.
+
+    QB-MTY-CMT shipped with its own UR-CPUTIME-MTY / UR-DATASTORAGE-MTY clones
+    while every anchor consumes UR-CPUTIME / UR-DATASTORAGE, so its 5%/10%
+    monetary-commitment discounts were unreachable in principle.
+
+    Wallet resources are exempt: Category=Token (the token balance) and
+    Category=Currency (the monetary-commitment spend wallet, UR-USD) are held by
+    the commitment itself and are not consumed directly.
+    """
+    category = {r["Code"]: r["Category"] for r in d["resource"]}
+    model = {r["StockKeepingUnit"]: r["UsageModelType"] for r in d["product"]
+             if r.get("UsageModelType")}
+
+    by_sku = {}
+    for r in d["pur"]:
+        by_sku.setdefault(r["Product.StockKeepingUnit"], set()).add(r["UsageResource.Code"])
+    anchor_res = set()
+    for sku, m in model.items():
+        if m == "Anchor":
+            anchor_res |= by_sku.get(sku, set())
+
+    orphans = []
+    for sku, m in sorted(model.items()):
+        if m not in COMMITMENT_MODEL_TYPES and m != "Pack":
+            continue
+        for res in sorted(by_sku.get(sku, set())):
+            if (category.get(res) == "Usage" and res not in anchor_res
+                    and (sku, res) not in ALLOWED_ADDON_RESOURCES_WITHOUT_ANCHOR):
+                orphans.append(f"{sku}/{res}")
+    known = len(ALLOWED_ADDON_RESOURCES_WITHOUT_ANCHOR)
+    check("addon_usage_resources_exist_on_anchor", not orphans,
+          f"{len(orphans)} unreachable resource(s) — no anchor consumes them: "
+          + ", ".join(orphans) if orphans
+          else f"every commitment/pack usage resource is consumed by an anchor "
+               f"({known} recorded gap(s) allowed)")
 
 
 def check_every_pur_has_rate_card_entry(d):
@@ -474,6 +537,7 @@ def main():
                check_no_orphan_rabt,
                check_pack_products_have_no_purp,
                check_commitment_purp_has_no_periods,
+               check_addon_usage_resources_exist_on_anchor,
                check_every_pur_has_rate_card_entry,
                check_currency_coverage_uniform,
                check_token_entries_not_expanded,
