@@ -239,7 +239,7 @@ for (Product2 pr : [SELECT Id, StockKeepingUnit FROM Product2
 // a selling model. A product can expose several (QB-DAT-THPT has Evergreen,
 // Term Monthly and Term Annual) and the selling model dictates which line fields
 // are legal, so choose deliberately rather than taking the first entry back.
-String wanted = '{selling_model}';
+String wanted = '{esc(selling_model)}';
 
 // Bulkified on purpose: --with-sku is repeatable, so a per-SKU query here would be
 // SOQL inside a loop and a large enough quote would hit the 100-query governor.
@@ -343,7 +343,7 @@ if (treatments.isEmpty()) {{
 // Arrear` (a typo for Arrears) produced an Advance quote that looked successful.
 BillingTreatment treatment = null;
 for (BillingTreatment t : treatments) {{
-    if (t.Name.containsIgnoreCase('{billing_timing}')) {{ treatment = t; break; }}
+    if (t.Name.containsIgnoreCase('{esc(billing_timing)}')) {{ treatment = t; break; }}
 }}
 if (treatment == null) {{
     List<String> names = new List<String>();
@@ -366,7 +366,7 @@ insert opp;
 // activating an unbound Pack line fails with "the usage product is missing a
 // binding instance". QuoteLineItem.BindingInstanceTargetId points the Pack at
 // the anchor Asset that already exists on this account.
-String anchorSku = '{anchor_sku}';
+String anchorSku = '{esc(anchor_sku)}';
 if (anchorSku != '') {{
     List<Asset> anchors = [SELECT Id FROM Asset
                            WHERE AccountId = :acct.Id
