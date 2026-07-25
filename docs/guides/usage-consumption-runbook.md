@@ -20,7 +20,7 @@ given billing period.
 
 | Requirement | Check |
 |-------------|-------|
-| Org built with rating/rates data | `prepare_rlm_org` completed, or at least `prepare_rating` |
+| Org built with the **full** QB catalog | `prepare_rlm_org` completed. `prepare_rating` alone is NOT enough — building an asset also needs products and selling models (qb-pcm), per-currency pricebook entries (qb-pricing) and billing treatments (qb-billing) |
 | An account that can transact | Needs a shipping address **and** a bill-to contact, or activation fails with `FAILED_ACTIVATION` |
 | `sf` CLI authenticated | `sf org list` shows your alias |
 

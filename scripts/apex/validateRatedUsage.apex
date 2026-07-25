@@ -218,10 +218,15 @@ if (inScope.isEmpty()) {
     // What must still be true is that the usage went SOMEWHERE: a settled summary
     // with no overage and no bucket consumption means nothing drew down at all.
     if (withQty.isEmpty() && !settled.isEmpty()) {
+        // Scoped to the assets whose summaries actually settled in THIS run. Summing
+        // across every QB asset let a bucket consumed by an earlier demo -- or by a
+        // different asset entirely -- vouch for usage that never drew down.
+        Set<Id> settledAssetIds = new Set<Id>();
+        for (UsageRatableSummary r : settled) { settledAssetIds.add(r.AssetId); }
         Decimal totalConsumed = 0;
         for (AggregateResult ar : [SELECT SUM(ConsumedEntitlement) c
                                    FROM UsageEntitlementBucket
-                                   WHERE TransactionUsageEntitlement.AssetId IN :qbAssetIds]) {
+                                   WHERE TransactionUsageEntitlement.AssetId IN :settledAssetIds]) {
             Decimal c = (Decimal) ar.get('c');
             if (c != null) totalConsumed += c;
         }

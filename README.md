@@ -1123,7 +1123,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
 | [Usage & Consumption Runbook](docs/guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
-| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine verified usage/consumption demo scenarios with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 verified live; 6 pending re-verification, 9 platform-blocked) with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
 | [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
 | [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
 | [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |

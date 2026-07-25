@@ -432,6 +432,22 @@ if (!arces.isEmpty()) {
         tueSkuByAsset.put(t.AssetId, t.Asset.Product2.StockKeepingUnit);
         tueCcyByAsset.put(t.AssetId, t.Asset.CurrencyIsoCode);
     }
+    // An asset with ZERO entitlements never enters tueByAsset, so the shape
+    // comparison below would silently run on the healthy assets only and report
+    // success -- the same partial-failure blind spot as the ARCE check above.
+    List<String> noEntitlements = new List<String>();
+    for (Id assetId : qbAssets.keySet()) {
+        if (!tueByAsset.containsKey(assetId)) {
+            Asset a = qbAssets.get(assetId);
+            noEntitlements.add(a.Account.Name + '/' + a.Product2.StockKeepingUnit
+                + ' (' + a.CurrencyIsoCode + ')');
+        }
+    }
+    if (!noEntitlements.isEmpty()) {
+        problems.add(noEntitlements.size() + ' of ' + qbAssets.size() + ' asset(s) have NO '
+            + 'TransactionUsageEntitlement rows: ' + String.join(noEntitlements, ', ')
+            + ' -- entitlement creation did not run or failed for them.');
+    }
     Map<String, Map<String, List<String>>> tueShapeBySku =
         new Map<String, Map<String, List<String>>>();
     for (Id assetId : tueByAsset.keySet()) {

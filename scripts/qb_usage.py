@@ -144,6 +144,13 @@ def cmd_audit(args):
     if not products:
         print("No usage products found — is qb-rating loaded?")
         return 1
+    # Completeness, not merely non-empty. If one SKU loads and another does not,
+    # a bare emptiness check passes and the audit silently says nothing about the
+    # missing product -- the failure this PR exists to catch.
+    missing = sorted(set(QB_USAGE_SKUS) - {p["StockKeepingUnit"] for p in products})
+    if missing:
+        print(f"  MISSING usage product(s): {', '.join(missing)} — the catalog is "
+              "incomplete, so nothing below reports on them.")
 
     pur_active, pur_draft = defaultdict(set), defaultdict(set)
     for r in sf_query(org, "SELECT Product.StockKeepingUnit, UsageResource.Code, Status "
