@@ -62,6 +62,12 @@ RATES = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rates")
 PRICING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-pricing")
 
 BASE_CURRENCY = "USD"
+# The currencies this dataset is REQUIRED to cover. Declared explicitly rather
+# than derived from the loaded CURRENCY UnitOfMeasure rows: deriving it makes a
+# COORDINATED omission invisible -- drop one currency's UoM *and* all of its rate
+# rows together and a derived expectation shrinks to match, so coverage passes
+# while the currency is silently absent.
+EXPECTED_CURRENCIES = {"USD", "GBP", "EUR", "AUD", "CAD", "CHF", "JPY"}
 TOKEN_UOM = "TOKEN-UOM"
 
 # Product2.UsageModelType values the platform treats as "commitment" — their
@@ -285,19 +291,30 @@ def check_every_pur_has_rate_card_entry(d):
 
 
 def check_currency_coverage_uniform(d):
-    """Each currency-denominated entry must exist in every target currency."""
+    """Each currency-denominated entry must exist in every target currency.
+
+    Compared against EXPECTED_CURRENCIES, not the loaded UoM rows, so dropping a
+    currency's UnitOfMeasure and its rate rows together still fails.
+    """
     units = currency_units(d["uom"])
+    absent_units = EXPECTED_CURRENCIES - units
     by_key = {}
     for r in d["rce"]:
         uom = r["RateUnitOfMeasure.UnitCode"]
         if uom == TOKEN_UOM:
             continue
         by_key.setdefault(rce_key(r), set()).add(uom)
-    gaps = {k: sorted(units - v) for k, v in by_key.items() if units - v}
-    check("currency_coverage_uniform", not gaps,
-          f"{len(gaps)} entry/entries missing currencies, e.g. "
-          f"{list(gaps.items())[:2]}" if gaps
-          else f"all {len(by_key)} currency-denominated entries cover all {len(units)} currencies")
+    gaps = {k: sorted(EXPECTED_CURRENCIES - v)
+            for k, v in by_key.items() if EXPECTED_CURRENCIES - v}
+    problems = []
+    if absent_units:
+        problems.append(f"CURRENCY UnitOfMeasure missing for {sorted(absent_units)}")
+    if gaps:
+        problems.append(f"{len(gaps)} entry/entries missing currencies, e.g. "
+                        f"{list(gaps.items())[:2]}")
+    check("currency_coverage_uniform", not problems, "; ".join(problems) if problems
+          else f"all {len(by_key)} currency-denominated entries cover all "
+               f"{len(EXPECTED_CURRENCIES)} expected currencies")
 
 
 def check_token_entries_not_expanded(d):
@@ -496,29 +513,38 @@ def check_period_ordering_descending(d):
 
 
 def check_counts_match_readme(d):
-    """Row counts are the numbers the plan READMEs advertise."""
-    actual = {"RateCardEntry": len(d["rce"]), "RateAdjustmentByTier": len(d["rabt"]),
-              "UnitOfMeasure": len(d["uom"]), "ProductUsageResourcePolicy": len(d["purp"]),
-              "ProductUsageResource": len(d["pur"])}
+    """Row counts are the numbers the plan READMEs advertise.
+
+    Enumerates EVERY csv in each plan directory rather than a hard-coded list.
+    A hard-coded list silently exempts any file it forgets -- ProductUsageGrant
+    and UsageResource were both uncovered, and ProductUsageGrant's count was
+    stale in the README while this check reported green.
+    """
     problems = []
-    for plan, names in ((RATES, ("RateCardEntry", "RateAdjustmentByTier")),
-                        (RATING, ("UnitOfMeasure", "ProductUsageResourcePolicy",
-                                  "ProductUsageResource"))):
+    checked = 0
+    for plan in (RATES, RATING):
         readme = os.path.join(plan, "README.md")
         if not os.path.isfile(readme):
             continue
         text = open(readme, encoding="utf-8").read()
-        for n in names:
-            token = f"{n}.csv"
+        for fname in sorted(os.listdir(plan)):
+            if not fname.endswith(".csv"):
+                continue
+            path = os.path.join(plan, fname)
+            with open(path, newline="", encoding="utf-8-sig") as fh:
+                actual = sum(1 for _ in csv.DictReader(fh))
             for line in text.splitlines():
-                if token in line and "#" in line:
+                if fname in line and "#" in line:
                     digits = "".join(c if c.isdigit() else " " for c in line.split("#", 1)[1])
                     nums = [int(x) for x in digits.split()]
-                    if nums and actual[n] not in nums:
-                        problems.append(f"{n}: README says {nums[0]}, CSV has {actual[n]}")
+                    if nums:
+                        checked += 1
+                        if actual not in nums:
+                            problems.append(
+                                f"{fname}: README says {nums[0]}, CSV has {actual}")
                     break
     check("counts_match_readme", not problems, "; ".join(problems) if problems
-          else "plan README file-tree counts match the CSVs")
+          else f"all {checked} plan README file-tree counts match the CSVs")
 
 
 # ----------------------------------------------------------------------

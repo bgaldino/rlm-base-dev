@@ -1,9 +1,13 @@
 # QuantumBit Consumption Demo Scenarios
 
 Every consumption permutation QuantumBit can demonstrate, what to sell, what to
-record, and the exact number that must come out. All nine scenarios below were
-verified live on a 262 scratch org; the arithmetic is what the platform actually
-produced, not what the design intends.
+record, and the exact number that must come out. **Scenarios 1–8 were verified
+live** on a 262 scratch org — the arithmetic is what the platform actually
+produced, not what the design intends. **Scenario 9 is a blocked path**: it
+documents a platform issue and has no valid arithmetic to demo.
+
+⚠ Scenario 6's drawdown figure predates the current pack grant sizes and is flagged
+inline for re-verification. Everything else reflects the shipped data.
 
 Ground records in `docs/enablement/master/qb-scenario-reference.md`. Design-time
 data lives in `datasets/sfdmu/qb/en-US/{qb-rating,qb-rates}` — their READMEs carry
@@ -160,8 +164,17 @@ a single bucket draw (24,230 total).
 `BindingInstanceTargetId` set to the anchor asset.
 
 A pack **cannot be sold standalone** — activation fails with "the usage product is
-missing a binding instance". Drawdown is visible: throughput overage came out
-**45 GB not 50**, because the pack's grant was consumed first.
+missing a binding instance". The pack's grant is consumed **before** the anchor's,
+so recorded usage up to the grant size produces no overage at all.
+
+Shipped grant sizes (`qb-rating/ProductUsageGrant.csv`): `QB-TOKENS-PACK` = **5,000
+tokens**, `QB-DAT-THPT` = **100 GB**.
+
+> ⚠ **Re-verify this scenario's numbers before demoing.** The drawdown figure
+> recorded here (`45 GB` overage from 50 GB recorded) was observed when the
+> throughput grant was **5 GB**; the shipped grant is now **100 GB**, which would
+> absorb a 50 GB recording entirely and yield **zero** overage. To demo partial
+> drawdown, record more than the grant — or reduce the grant.
 
 ### 7 — Commitment exhaustion → overage, discount SURVIVES
 

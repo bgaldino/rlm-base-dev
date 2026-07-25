@@ -33,9 +33,15 @@ public class RLM_AccountUtilities {
     // (a ratable summary can be held by a usage summary and vice versa), so the
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
-    // spin. The batch cap keeps each round's DML within limits.
+    // spin.
+    //
+    // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
+    // transaction. The 10,000-row DML limit is per transaction and this loop
+    // issues nine deletes per round, so the real guard is the remaining-budget
+    // clamp inside deleteQuietly(), which degrades to a reported partial
+    // teardown instead of a LimitException.
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
-    private static final Integer TEARDOWN_BATCH = 10000;
+    private static final Integer TEARDOWN_BATCH = 2000;
     /**
      * Input variables for the account cleanup process.
      * These variables control which types of objects should be deleted.
@@ -1073,7 +1079,7 @@ public class RLM_AccountUtilities {
         // Find TUEs that might be associated with Assets (try different possible field names)
         if(!assetIds.isEmpty()) {
             String[] possibleAssetQueries = new String[]{
-            'SELECT Id FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
+            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
         };
             
             for(String queryString : possibleAssetQueries) {
@@ -1528,9 +1534,17 @@ public class RLM_AccountUtilities {
 
             removed += progress;
             System.debug('deleteUsageSummaryGraph: round ' + round + ' removed ' + progress);
-            if (progress == 0) { break; }
+            if (progress == 0 || dmlBudgetExhausted) { break; }
         }
-        System.debug('deleteUsageSummaryGraph: removed ' + removed + ' usage record(s)');
+        System.debug('deleteUsageSummaryGraph: removed ' + removed + ' usage record(s)'
+            + ' (DML rows used ' + Limits.getDmlRows() + '/' + Limits.getLimitDmlRows() + ')');
+        if (dmlBudgetExhausted) {
+            // Not an exception: the rows deleted so far are real progress, and
+            // throwing here would roll them back and hide it.
+            System.debug(LoggingLevel.WARN, 'deleteUsageSummaryGraph: STOPPED EARLY -- the '
+                + 'transaction\'s DML row budget was exhausted. Usage records remain for this '
+                + 'account; run the reset again until it reports a clean pass.');
+        }
         return true;
     }
 
@@ -1554,13 +1568,35 @@ public class RLM_AccountUtilities {
         return true;
     }
 
+    /** Set when a delete had to be trimmed because the transaction's DML row
+     *  budget ran out. Callers report it so a partial teardown is never mistaken
+     *  for a complete one. */
+    private static Boolean dmlBudgetExhausted = false;
+
     /**
      * Best-effort delete that reports how many rows actually went, so a
      * convergence loop can tell progress from a no-op round. Failures are
      * expected here (a row still held by a parent) and are logged, not thrown.
+     *
+     * The 10,000-row DML limit is per TRANSACTION, not per statement. The
+     * teardown loop issues nine deletes per round over several rounds, so the
+     * list is clamped to the REMAINING budget here -- one clamp covers every
+     * call site, and running out degrades to a reported partial teardown rather
+     * than a LimitException that rolls back all the progress made.
      */
     private static Integer deleteQuietly(List<SObject> records) {
         if (records == null || records.isEmpty()) { return 0; }
+        Integer headroom = Limits.getLimitDmlRows() - Limits.getDmlRows();
+        if (headroom <= 0) {
+            dmlBudgetExhausted = true;
+            return 0;
+        }
+        if (records.size() > headroom) {
+            dmlBudgetExhausted = true;
+            List<SObject> trimmed = new List<SObject>();
+            for (Integer i = 0; i < headroom; i++) { trimmed.add(records[i]); }
+            records = trimmed;
+        }
         Integer removed = 0;
         for (Database.DeleteResult r : Database.delete(records, false)) {
             if (r.isSuccess()) {
@@ -1813,7 +1849,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting TUEs that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds) OR (SourceAssetId IN :assetIds)'
+            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds) OR (SourceAssetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {
@@ -1867,7 +1903,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting UEAs that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id FROM UsageEntitlementAccount WHERE (AssetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
+            'SELECT Id, Name FROM UsageEntitlementAccount WHERE (AssetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {

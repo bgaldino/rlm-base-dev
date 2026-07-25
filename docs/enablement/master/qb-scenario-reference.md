@@ -160,12 +160,12 @@ The standing pricing data wires each Salesforce Pricing **adjustment type** to s
 | ISO Code | Conversion to USD | Decimal Places | Corporate |
 |---|---|---|---|
 | **USD** | 1 | 2 | ✅ Yes |
-| EUR | 0.862388 | 2 | |
-| GBP | 0.751313 | 2 | |
-| CAD | 1.388244 | 2 | |
-| AUD | 1.442894 | 2 | |
-| CHF | 0.793889 | 2 | |
-| JPY | 158.650911 | 0 | |
+| EUR | 0.876364 | 2 |  |
+| GBP | 0.74772 | 2 |  |
+| CAD | 1.408989 | 2 |  |
+| AUD | 1.430143 | 2 |  |
+| CHF | 0.813755 | 2 |  |
+| JPY | 163.08664 | 0 |  |
 
 Source: `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv`
 

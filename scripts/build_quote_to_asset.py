@@ -196,7 +196,7 @@ def esc(s):
 # ----------------------------------------------------------------------
 # Steps
 # ----------------------------------------------------------------------
-def create_opportunity(org, account, skus, term, start, end, billing_timing,
+def create_opportunity(org, account, skus, start, end, billing_timing,
                        selling_model, anchor_sku):
     """Create the Opportunity, mirroring RLM_QuickQuote's mapping.
 
@@ -227,28 +227,60 @@ for (Product2 pr : [SELECT Id, StockKeepingUnit FROM Product2
 // Term Monthly and Term Annual) and the selling model dictates which line fields
 // are legal, so choose deliberately rather than taking the first entry back.
 String wanted = '{selling_model}';
+
+// Bulkified on purpose: --with-sku is repeatable, so a per-SKU query here would be
+// SOQL inside a loop and a large enough quote would hit the 100-query governor.
+Set<Id> productIds = new Set<Id>();
+for (Product2 pr : prodBySku.values()) {{ productIds.add(pr.Id); }}
+Map<Id, List<PricebookEntry>> pbesByProduct = new Map<Id, List<PricebookEntry>>();
+for (PricebookEntry e : [SELECT Id, UnitPrice, Product2Id,
+                                ProductSellingModel.SellingModelType,
+                                ProductSellingModel.Name
+                         FROM PricebookEntry
+                         WHERE Product2Id IN :productIds AND Pricebook2Id = :standard.Id
+                           AND CurrencyIsoCode = :acct.CurrencyIsoCode
+                           AND IsActive = true
+                         ORDER BY ProductSellingModel.Name]) {{
+    if (!pbesByProduct.containsKey(e.Product2Id)) {{
+        pbesByProduct.put(e.Product2Id, new List<PricebookEntry>());
+    }}
+    pbesByProduct.get(e.Product2Id).add(e);
+}}
+
 for (Integer i = 0; i < SKUS.size(); i++) {{
     String sku = SKUS[i];
     Product2 prod = prodBySku.get(sku);
     if (prod == null) {{
         throw new QuoteBuildException('No product with SKU ' + sku);
     }}
-    List<PricebookEntry> pbes = [SELECT Id, UnitPrice, ProductSellingModel.SellingModelType,
-                                        ProductSellingModel.Name
-                                 FROM PricebookEntry
-                                 WHERE Product2Id = :prod.Id AND Pricebook2Id = :standard.Id
-                                   AND CurrencyIsoCode = :acct.CurrencyIsoCode
-                                   AND IsActive = true
-                                 ORDER BY ProductSellingModel.Name];
+    List<PricebookEntry> pbes = pbesByProduct.containsKey(prod.Id)
+        ? pbesByProduct.get(prod.Id) : new List<PricebookEntry>();
     if (pbes.isEmpty()) {{
         throw new QuoteBuildException('No active ' + acct.CurrencyIsoCode
             + ' PricebookEntry for ' + sku);
     }}
     PricebookEntry pbe = pbes[0];
     if (wanted != '') {{
+        Boolean matched = false;
         for (PricebookEntry e : pbes) {{
             if (e.ProductSellingModel != null
-                && e.ProductSellingModel.SellingModelType == wanted) {{ pbe = e; break; }}
+                && e.ProductSellingModel.SellingModelType == wanted) {{
+                pbe = e; matched = true; break;
+            }}
+        }}
+        // Fail loudly. Falling back to pbes[0] would silently build the quote on a
+        // DIFFERENT selling model than the caller asked for, and the selling model
+        // dictates which line fields are legal -- so the eventual error surfaces as
+        // an unrelated field validation much later.
+        if (!matched) {{
+            List<String> available = new List<String>();
+            for (PricebookEntry e : pbes) {{
+                available.add(e.ProductSellingModel == null
+                    ? 'unknown' : e.ProductSellingModel.SellingModelType);
+            }}
+            throw new QuoteBuildException('No active ' + acct.CurrencyIsoCode
+                + ' PricebookEntry for ' + sku + ' with selling model ' + wanted
+                + '. Available: ' + String.join(available, ', '));
         }}
     }}
     System.debug('SKU' + i + '_PRODUCT_ID=' + prod.Id);
@@ -661,7 +693,7 @@ def build_one(org, account, args):
     print(f"\n{'=' * 74}\n{account}\n{'=' * 74}")
 
     skus = [args.sku] + list(args.with_sku or [])
-    ids = create_opportunity(org, account, skus, args.term, args.start,
+    ids = create_opportunity(org, account, skus, args.start,
                              args.end, args.billing_timing, args.selling_model,
                              args.anchor_sku)
     print(f"  opportunity  {ids['OPP_ID']}  ({ids['CURRENCY']}, "
@@ -727,7 +759,6 @@ def main():
     ap.add_argument("--end", default=DEFAULT_END,
                     help=f"line end date (default: {DEFAULT_END})")
     ap.add_argument("--quantity", type=int, default=1)
-    ap.add_argument("--term", type=int, default=12, help="term months (default: 12)")
     ap.add_argument("--with-sku", action="append", metavar="SKU",
                     help="additional product on the SAME quote, bound to the first "
                          "line via BindingInstanceTargetId. Repeatable. This is how "

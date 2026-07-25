@@ -20,6 +20,13 @@ final Decimal COMPUTE_MINUTES = 500;   // UR-CPUTIME  -- crosses QB-DB's 300+ ov
 final Decimal STORAGE_TB = 20;         // UR-DATASTORAGE
 final String ORCHESTRATION_FLOW = 'RLM_OrchestrateUsageManagement';
 
+// MUST be a date inside a PAST, COMPLETED billing period. Drawdown and final
+// rating only settle once a period completes, and the current billing period
+// stays open indefinitely -- usage booked into it sits at InProgress with the
+// buckets untouched, which reads as "full discount, no drawdown" and is not a
+// real result. Date.today() was used here originally and is exactly that trap.
+final Date USAGE_DATE = Date.newInstance(2026, 6, 15);
+
 // The seven currencies this test claims to cover. Checked explicitly: a
 // non-empty result is NOT proof of coverage -- a single USD asset would
 // otherwise let the run report success while exercising one currency.
@@ -93,7 +100,7 @@ for (Asset a : assets) {
         e.usageResourceId = w.resourceId;
         e.usageResourceName = w.resourceName;
         e.quantity = qty;
-        e.transactionDate = Date.today();
+        e.transactionDate = USAGE_DATE;
         entries.add(e);
     }
 
@@ -105,7 +112,7 @@ for (Asset a : assets) {
             e.usageResourceId = resourceIdByCode.get(code);
             e.usageResourceName = code;
             e.quantity = qtyByResource.get(code);
-            e.transactionDate = Date.today();
+            e.transactionDate = USAGE_DATE;
             entries.add(e);
         }
     }

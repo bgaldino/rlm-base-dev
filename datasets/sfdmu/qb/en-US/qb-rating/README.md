@@ -2,7 +2,7 @@
 
 SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
 
-> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (9 of this dataset's 11 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
+> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (10 of this dataset's 12 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
 
 ## CCI Integration
 
@@ -135,17 +135,17 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 | Code               | Category | UoM Class       | Default UoM | Billing Policy    |
 |--------------------|----------|-----------------|-------------|-------------------|
-| QB-TOKEN           | Token    | Token_UoM_Class | TOKEN-UOM   | monthlytotal      |
-| UR-CPUTIME         | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE     | Usage    | DATAVOL         | TB          | monthlypeak       |
-| UR-DATAXFR         | Usage    | DATAVOL         | GB          | monthlytotal      |
-| UR-USD             | Currency | CURRENCY        | USD         | monthlytotal      |
-| UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | monthlypeak       |
+| QB-TOKEN           | Token    | Token_UoM_Class | TOKEN-UOM   | dailytotal |
+| UR-CPUTIME         | Usage    | TIME            | m (Minutes) | dailytotal |
+| UR-DATASTORAGE     | Usage    | DATAVOL         | TB          | dailypeak |
+| UR-DATAXFR         | Usage    | DATAVOL         | GB          | dailytotal |
+| UR-USD             | Currency | CURRENCY        | USD         | dailytotal |
+| UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | dailytotal |
+| UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | dailypeak |
 
 ## ProductUsageResource (PUR) Mapping
 
-22 records mapping products to their usage resources:
+25 records mapping products to their usage resources:
 
 | Product          | Resource            | Notes                                       |
 |------------------|---------------------|---------------------------------------------|
@@ -499,7 +499,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=22, PURP=20, PUG=11. No duplicate risk.
+The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=25, PURP=23, PUG=12. No duplicate risk.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 

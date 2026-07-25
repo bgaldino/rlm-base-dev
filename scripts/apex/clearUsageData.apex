@@ -25,9 +25,16 @@
 // Scope: set ACCOUNT_NAME to limit to one account, or leave blank for the whole
 // org (the usual case on a scratch org being reset between demo runs).
 
+// The 10,000-row DML limit is per TRANSACTION, not per statement. This script
+// issues up to 26 deletes (4 per round x 6 rounds, plus 2 tail deletes), so a
+// fixed per-statement cap of 10,000 would blow the limit in the first round.
+// Each delete is therefore capped by the REMAINING budget, and the script stops
+// cleanly and asks to be re-run when the budget is spent -- a partial drain that
+// reports itself beats a LimitException that rolls the whole thing back.
 final String ACCOUNT_NAME = '';        // '' = every account
 final Integer MAX_ROUNDS = 6;
-final Integer BATCH = 10000;
+final Integer BATCH = 2000;            // per-statement ceiling, further clamped below
+Boolean budgetSpent = false;
 
 Set<Id> assetIds = new Set<Id>();
 Id accountId = null;
@@ -44,13 +51,17 @@ Boolean scoped = (accountId != null);
 Integer q0 = Limits.getQueries();
 Integer uee = 0, ubpi = 0, us = 0, urs = 0;
 
-for (Integer round = 1; round <= MAX_ROUNDS; round++) {
+Integer take = 0;
+
+for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
     Integer progress = 0;
 
+    take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+    if (take <= 0) { budgetSpent = true; break; }
     List<UsageEntitlementEntry> entries = scoped
         ? [SELECT Id FROM UsageEntitlementEntry
-           WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :BATCH]
-        : [SELECT Id FROM UsageEntitlementEntry LIMIT :BATCH];
+           WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :take]
+        : [SELECT Id FROM UsageEntitlementEntry LIMIT :take];
     for (Database.DeleteResult r : Database.delete(entries, false)) {
         if (r.isSuccess()) { uee++; progress++; }
     }
@@ -58,26 +69,32 @@ for (Integer round = 1; round <= MAX_ROUNDS; round++) {
     // Inside the loop on purpose: UBPI is blocked by its summaries too, so
     // deleting it once up front strands rows behind summaries that only become
     // deletable on a later round.
+    take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+    if (take <= 0) { budgetSpent = true; break; }
     List<UsageBillingPeriodItem> items = scoped
         ? [SELECT Id FROM UsageBillingPeriodItem
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :BATCH]
-        : [SELECT Id FROM UsageBillingPeriodItem LIMIT :BATCH];
+           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        : [SELECT Id FROM UsageBillingPeriodItem LIMIT :take];
     for (Database.DeleteResult r : Database.delete(items, false)) {
         if (r.isSuccess()) { ubpi++; progress++; }
     }
 
+    take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+    if (take <= 0) { budgetSpent = true; break; }
     List<UsageSummary> summaries = scoped
         ? [SELECT Id FROM UsageSummary
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :BATCH]
-        : [SELECT Id FROM UsageSummary LIMIT :BATCH];
+           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        : [SELECT Id FROM UsageSummary LIMIT :take];
     for (Database.DeleteResult r : Database.delete(summaries, false)) {
         if (r.isSuccess()) { us++; progress++; }
     }
 
+    take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+    if (take <= 0) { budgetSpent = true; break; }
     List<UsageRatableSummary> ratable = scoped
         ? [SELECT Id FROM UsageRatableSummary
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :BATCH]
-        : [SELECT Id FROM UsageRatableSummary LIMIT :BATCH];
+           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        : [SELECT Id FROM UsageRatableSummary LIMIT :take];
     for (Database.DeleteResult r : Database.delete(ratable, false)) {
         if (r.isSuccess()) { urs++; progress++; }
     }
@@ -87,16 +104,22 @@ for (Integer round = 1; round <= MAX_ROUNDS; round++) {
 }
 
 Integer arce = 0;
-List<AssetRateCardEntry> arces = scoped
-    ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :BATCH]
-    : [SELECT Id FROM AssetRateCardEntry LIMIT :BATCH];
-for (Database.DeleteResult r : Database.delete(arces, false)) { if (r.isSuccess()) arce++; }
+take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+if (take > 0) {
+    List<AssetRateCardEntry> arces = scoped
+        ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :take]
+        : [SELECT Id FROM AssetRateCardEntry LIMIT :take];
+    for (Database.DeleteResult r : Database.delete(arces, false)) { if (r.isSuccess()) arce++; }
+} else { budgetSpent = true; }
 
 Integer tj = 0;
-List<TransactionJournal> journals = scoped
-    ? [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :BATCH]
-    : [SELECT Id FROM TransactionJournal LIMIT :BATCH];
-for (Database.DeleteResult r : Database.delete(journals, false)) { if (r.isSuccess()) tj++; }
+take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+if (take > 0) {
+    List<TransactionJournal> journals = scoped
+        ? [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :take]
+        : [SELECT Id FROM TransactionJournal LIMIT :take];
+    for (Database.DeleteResult r : Database.delete(journals, false)) { if (r.isSuccess()) tj++; }
+} else { budgetSpent = true; }
 
 System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi
     + ' summaries=' + us + ' ratable=' + urs + ' assetRateCardEntries=' + arce
@@ -106,4 +129,10 @@ System.debug('CLEAR: remaining -- entries=' + [SELECT COUNT() FROM UsageEntitlem
     + ' ratable=' + [SELECT COUNT() FROM UsageRatableSummary]
     + ' arce=' + [SELECT COUNT() FROM AssetRateCardEntry]
     + ' journals=' + [SELECT COUNT() FROM TransactionJournal]);
-System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100');
+System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100'
+    + ', DML rows used = ' + Limits.getDmlRows() + ' of ' + Limits.getLimitDmlRows());
+if (budgetSpent) {
+    System.debug('CLEAR: ⚠ STOPPED EARLY -- the transaction\'s DML row budget was spent. '
+        + 'Records remain (see the counts above). RE-RUN this script until every remaining '
+        + 'count reads 0.');
+}

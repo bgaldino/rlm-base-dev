@@ -26,11 +26,19 @@ account closes every past period empty -- so record usage BEFORE orchestrating
 that period, and book it into a PAST period, because drawdown and final rating
 only settle once a period completes. See
 datasets/sfdmu/qb/en-US/qb-rating/README.md.
+
+Exit codes (orchestrate):
+    0  every journal was processed
+    1  journals still pending after the requested number of passes
+    2  orchestration stalled with journals still pending -- usually stranded
+       behind a period that closed before the usage was recorded
+A failed Apex run raises ApexRunError rather than being reported as success.
 """
 import argparse
 import json
 import os
 import subprocess
+import tempfile
 import sys
 import time
 from collections import defaultdict
@@ -69,12 +77,31 @@ def sf_query(org, soql):
     return data["result"]["records"]
 
 
+class ApexRunError(RuntimeError):
+    """Anonymous Apex failed to compile or threw. Raised so a failed orchestration
+    pass can never be mistaken for a successful one."""
+
+
 def sf_apex(org, path):
     proc = subprocess.run(
         ["sf", "apex", "run", "--file", path, "--target-org", org],
         capture_output=True, text=True,
         env={**os.environ, "SF_TEMP_SHOW_SECRETS": "true"})
     blob = proc.stdout + proc.stderr
+    # Check BOTH signals. `sf apex run` can exit non-zero on a compile failure, and
+    # can also exit zero while the anonymous block threw -- in which case the log
+    # carries the failure instead. Silently returning [] on either makes a broken
+    # orchestration pass look like a clean one.
+    failed = proc.returncode != 0 or "EXECUTION_FAILED" in blob or (
+        "Error (execute" in blob)
+    if failed:
+        detail = "\n".join(
+            l for l in blob.splitlines()
+            if "Error" in l or "EXCEPTION_THROWN" in l or "FATAL_ERROR" in l
+        )[:2000]
+        raise ApexRunError(
+            f"apex run failed for {path} (exit {proc.returncode}):\n"
+            f"{detail or blob[-2000:]}")
     # A log line is ...|USER_DEBUG|[1]|DEBUG|MESSAGE -- split from the RIGHT, because
     # "USER_DEBUG|" itself contains "DEBUG|" and a left split returns the wrong half.
     return [l.rsplit("|DEBUG|", 1)[-1].strip()
@@ -326,8 +353,11 @@ System.debug('ORCH: ' + status);
 
 def cmd_orchestrate(args):
     org = args.org
-    tmp = os.path.join(REPO_ROOT, ".qb_start_orch.apex")
-    with open(tmp, "w") as fh:
+    # Written to the system temp dir, NOT the repo. A scratch file inside the
+    # working tree gets swept into commits by `git add -A` (it was, once), and
+    # every later run then deletes a tracked file out from under the user.
+    fd, tmp = tempfile.mkstemp(prefix="qb_start_orch_", suffix=".apex")
+    with os.fdopen(fd, "w") as fh:
         fh.write(START_ORCH)
 
     def pending():
@@ -349,10 +379,14 @@ def cmd_orchestrate(args):
                 print("  all journals processed")
                 return 0
             if after == before and p >= 3:
-                print("  no progress for a full pass — either rating is complete for every "
-                      "open period,\n  or these journals are stranded behind a period that "
-                      "already closed (unrecoverable).")
-                return 0
+                # Exit 2, NOT 0. Journals still Pending means the run did not do
+                # what this command promises; reporting success would let
+                # automation treat a stranded orchestration as a good build.
+                print(f"  no progress for a full pass and {after} journal(s) still pending "
+                      "— either rating is\n  complete for every open period, or these "
+                      "journals are stranded behind a period that\n  already closed "
+                      "(unrecoverable: record usage BEFORE orchestrating that period).")
+                return 2
         print(f"  still {pending()} pending after {args.passes} passes")
         return 1
     finally:

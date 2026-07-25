@@ -52,7 +52,7 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `UsageEntitlementBucket` | Entitlement balance tracking | BucketBalanceUomId, ParentId |
 | `UsageEntitlementEntry` | Individual entries against buckets | ParentEntitlementBucketId, TransactionUsageEntitlementId, TransactionalBucketId |
 | `UsageEntitlementAccount` | Account-level entitlement tracking | — |
-| `TransactionUsageEntitlement` | Entitlement context for transactions | UsageCommitmentPolicyId, UsageOveragePolicyId, `Status` |
+| `TransactionUsageEntitlement` | Entitlement context for transactions | UsageCommitmentPolicyId, UsageOveragePolicyId, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`) |
 | `UsageBillingPeriodItem` | Usage billing period tracking | — |
 | `UsageRatableSummary` | Ratable usage summary | `TierQuantity`, `OverageQuantity` — see caveat below |
 | `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, UsageResourceId |

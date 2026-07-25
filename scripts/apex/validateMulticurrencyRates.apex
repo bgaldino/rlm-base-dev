@@ -20,17 +20,46 @@ public class MulticurrencyValidationException extends Exception {}
 List<String> problems = new List<String>();
 List<String> passed = new List<String>();
 
+// The QuantumBit products this validator owns. Declared up front because the
+// design-time queries below MUST be scoped to them: an unscoped RateCardEntry
+// query pulls in unrelated datasets (q3, mfg, ...) and then applies the
+// seven-currency coverage rule to data that was never meant to satisfy it.
+Set<String> QB_USAGE_SKUS = new Set<String>{
+    'QB-DB', 'QB-DB-TOKEN', 'QB-CMT-TKN-FLAT', 'QB-CMT-TKN-BND',
+    'QB-CMT-TKN-EACH', 'QB-CMT-TKN-TIER', 'QB-QTY-CMT', 'QB-MTY-CMT',
+    'QB-TOKENS-PACK', 'QB-DAT-THPT'
+};
+
+// The currencies this configuration is REQUIRED to cover. Declared explicitly,
+// not derived from whichever CURRENCY units happen to exist in the org: deriving
+// it makes a coordinated omission invisible -- a partial load that leaves only
+// USD would satisfy "every entry covers all currencies" vacuously.
+Set<String> EXPECTED_CURRENCIES = new Set<String>{
+    'USD', 'GBP', 'EUR', 'AUD', 'CAD', 'CHF', 'JPY'
+};
+
 // ---------------------------------------------------------------- design-time
-// Currency units available to denominate a rate.
+// Currency units available to denominate a rate. Used to CLASSIFY an entry as
+// currency- vs token-denominated; coverage is asserted against EXPECTED_CURRENCIES.
 Set<String> currencyUnits = new Set<String>();
 for (UnitOfMeasure u : [SELECT UnitCode FROM UnitOfMeasure WHERE UnitOfMeasureClass.Code = 'CURRENCY']) {
     currencyUnits.add(u.UnitCode);
+}
+Set<String> absentCurrencyUnits = new Set<String>(EXPECTED_CURRENCIES);
+absentCurrencyUnits.removeAll(currencyUnits);
+if (!absentCurrencyUnits.isEmpty()) {
+    problems.add('CURRENCY unit(s) missing from the org: ' + absentCurrencyUnits
+        + ' -- the currency data load is incomplete, so every coverage check below '
+        + 'would otherwise pass vacuously.');
+} else {
+    passed.add('all ' + EXPECTED_CURRENCIES.size() + ' expected CURRENCY units exist');
 }
 
 List<RateCardEntry> rces = [
     SELECT Id, Product.StockKeepingUnit, UsageResource.Code, RateCard.Name, RateCard.Type,
            RateUnitOfMeasure.UnitCode, Status
     FROM RateCardEntry
+    WHERE Product.StockKeepingUnit IN :QB_USAGE_SKUS
 ];
 
 // 1. Every currency used as a rate UoM must exist as a CURRENCY-class unit.
@@ -133,7 +162,10 @@ for (RateCardEntry r : rces) {
 }
 List<String> gaps = new List<String>();
 for (String key : coverage.keySet()) {
-    Set<String> missing = new Set<String>(currencyUnits);
+    // Compare against the EXPECTED set, not the org's own units: if one currency's
+    // UoM and all of its rate rows are absent together, deriving the expectation
+    // from the org would make that coordinated omission invisible.
+    Set<String> missing = new Set<String>(EXPECTED_CURRENCIES);
     missing.removeAll(coverage.get(key));
     if (!missing.isEmpty()) gaps.add(key + ' missing ' + String.join(new List<String>(missing), '/'));
 }
@@ -141,18 +173,13 @@ if (!gaps.isEmpty()) {
     problems.add('Rate card entries not covering every currency: ' + String.join(gaps, '; '));
 } else {
     passed.add('all ' + coverage.size() + ' currency-denominated entries cover all '
-        + currencyUnits.size() + ' currencies');
+        + EXPECTED_CURRENCIES.size() + ' expected currencies');
 }
 
 // ------------------------------------------------------------------- runtime
 // Only meaningful once an order-to-asset run has produced entitlements.
-// Scoped to the QuantumBit products under test: an unrelated product's entries
+// Scoped to QB_USAGE_SKUS (declared at the top): an unrelated product's entries
 // would otherwise be pulled into the per-asset shape comparison below.
-Set<String> QB_USAGE_SKUS = new Set<String>{
-    'QB-DB', 'QB-DB-TOKEN', 'QB-CMT-TKN-FLAT', 'QB-CMT-TKN-BND',
-    'QB-CMT-TKN-EACH', 'QB-CMT-TKN-TIER', 'QB-QTY-CMT', 'QB-MTY-CMT',
-    'QB-TOKENS-PACK', 'QB-DAT-THPT'
-};
 List<AssetRateCardEntry> arces = [
     SELECT AssetId, Asset.CurrencyIsoCode, Asset.Account.Name,
            Asset.Product2.StockKeepingUnit, CurrencyIsoCode,
