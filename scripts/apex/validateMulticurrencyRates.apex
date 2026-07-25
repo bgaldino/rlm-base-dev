@@ -117,7 +117,8 @@ for (ProductUsageResourcePolicy p : [
         SELECT ProductUsageResource.Product.StockKeepingUnit,
                ProductUsageResource.Product.UsageModelType
         FROM ProductUsageResourcePolicy
-        WHERE ProductUsageResource.Product.UsageModelType = 'Pack']) {
+        WHERE ProductUsageResource.Product.UsageModelType = 'Pack'
+          AND ProductUsageResource.Product.StockKeepingUnit IN :QB_USAGE_SKUS]) {
     packWithPolicy.add(p.ProductUsageResource.Product.StockKeepingUnit);
 }
 if (!packWithPolicy.isEmpty()) {
@@ -135,9 +136,13 @@ for (RateCardEntry r : rces) {
     ratedPairs.add(r.Product.StockKeepingUnit + '|' + r.UsageResource.Code);
 }
 List<String> unrated = new List<String>();
+// Scoped to QB_USAGE_SKUS to match `rces` above. Unscoped, every non-QuantumBit
+// PUR would be reported unrated purely because ratedPairs only holds QB entries.
 for (ProductUsageResource pur : [SELECT Product.StockKeepingUnit, UsageResource.Code,
                                         UsageResource.Category
-                                 FROM ProductUsageResource WHERE Status = 'Active']) {
+                                 FROM ProductUsageResource
+                                 WHERE Status = 'Active'
+                                   AND Product.StockKeepingUnit IN :QB_USAGE_SKUS]) {
     String key = pur.Product.StockKeepingUnit + '|' + pur.UsageResource.Code;
     if (!ratedPairs.contains(key) && pur.UsageResource.Category != 'Currency') {
         unrated.add(key);

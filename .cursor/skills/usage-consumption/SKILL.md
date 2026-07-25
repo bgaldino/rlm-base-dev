@@ -194,9 +194,21 @@ Then `python scripts/qb_usage.py report --org <alias>` to see what actually land
 
 ### Example 3 — "Reset the demo org and start over"
 
-`clearUsageData.apex` org-wide, then rebuild assets. If a per-account reset fails
-with a delete error, do not add another ordered delete step — confirm the teardown
-is a convergent loop and that no savepoint is discarding its progress.
+Pick the tool by what must survive:
+
+- **Clearing usage but keeping the assets** (re-running a different period):
+  `clearUsageData.apex` alone.
+- **Rebuilding assets from scratch**: `clearUsageData.apex` is **not enough** — it
+  drains the usage graph but does **not** delete `Asset` records, and
+  `build_quote_to_asset.py` matches on account + product, so a leftover asset for
+  the same SKU makes the next build ambiguous. Use the full per-account reset
+  (`RLM_AccountUtilities`, or Account Utilities in the org) first.
+
+Re-run either until the reported remaining counts read 0.
+
+If a reset fails with a delete error, do not add another ordered delete step —
+confirm the teardown is a convergent loop and that no savepoint is discarding its
+progress.
 
 ---
 

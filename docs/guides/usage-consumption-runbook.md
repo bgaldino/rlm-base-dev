@@ -139,8 +139,20 @@ only on `tso` builds because it is destructive.
 sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
 ```
 
-Reset before rebuilding: assets are matched on account + product, so a leftover asset
-for the same SKU makes the next build ambiguous.
+> ⚠ **`clearUsageData.apex` drains the usage graph — it does NOT delete assets.**
+> That is deliberate (it is the usage-only tool), but it means a usage-only clear is
+> *not* enough before rebuilding: `build_quote_to_asset.py` matches on **account +
+> product**, so a leftover asset for the same SKU makes the next build ambiguous.
+
+To rebuild from clean, the asset must go too:
+
+| Goal | Do this |
+|------|---------|
+| Clear usage, keep assets (re-run a different usage period) | `clearUsageData.apex` alone |
+| Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org (removes assets, orders, quotes **and** the usage graph), then rebuild |
+
+Re-run whichever you use until the reported remaining counts read **0** — a partial
+teardown is expected on a large graph and is real progress, not a failure.
 
 ---
 
