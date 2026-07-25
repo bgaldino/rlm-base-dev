@@ -109,7 +109,17 @@ python scripts/qb_usage.py orchestrate --org <alias> [--passes N] [--interval SE
 ```
 
 Rating is asynchronous and multi-stage. The command loops until journals stop
-moving. Watch for batch failures rather than assuming success —
+moving — which means **aggregated, not rated**. Rating continues afterwards in
+Data Processing Engine jobs (`Create_Liable_Summary_v3`, `Create Ratable Summary
+For …`), so "all journals processed" is not a completion signal for step 4.
+Wait for those before validating, or you will see `New`/`InProgress` summaries
+and read a healthy run as a failure:
+
+```bash
+sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
+```
+
+Watch for batch failures rather than assuming success —
 `troubleshooting/SKILL.md` → *Async rating/entitlement batch failed*.
 
 ### 4. Verify — [verification.md](verification.md)

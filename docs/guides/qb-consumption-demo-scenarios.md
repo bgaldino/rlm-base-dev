@@ -259,8 +259,9 @@ python3 scripts/build_quote_to_asset.py --org <alias> --accounts "<account>" \
     --sku QB-CMT-TKN-FLAT --link-commitment QB-DB-TOKEN
 ```
 
-Then record usage into a past period, orchestrate until journals stop moving, and
-assert:
+Then record usage into a past period, orchestrate until journals stop moving, wait
+for the Data Processing Engine rating jobs to finish (journals stopping means
+aggregated, not rated — see the runbook), and assert:
 
 ```bash
 sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>

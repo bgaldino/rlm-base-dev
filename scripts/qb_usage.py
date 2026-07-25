@@ -6,7 +6,8 @@ demo misbehaves:
 
     audit        is the DESIGN-TIME data right?      (products, policies, rates)
     report       what did the RUNTIME actually do?   (buckets, drawdown, rating)
-    orchestrate  drive rating to completion          (loop until journals settle)
+    orchestrate  drive aggregation to completion     (loop until journals settle;
+                 rating then finishes in DPE batch jobs -- see below)
 
 Auth is delegated to the sf CLI -- pass an sf alias or username with --org. No
 access token is handled here.
