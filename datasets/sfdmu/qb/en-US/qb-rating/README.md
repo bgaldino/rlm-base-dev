@@ -269,12 +269,35 @@ Three rules fall out, and each one breaks a demo if assumed away:
    *discounted* quantity; the grant decrements by the *raw* quantity. A grant is an
    included allowance, not a discount — usage it absorbs is never discounted at all,
    which is why the storage line above shows `OverageUnits = 0` and no discount.
-3. **The commitment discount survives into overage.** Every QB commit product uses
-   `UsageCommitmentPolicy = 'Lowest Rate'` (`CommitmentRate = Lowest Commitment
-   Rate`), so the excess past the commitment still rates at the discounted price.
-   The dataset also ships **`Bounded Object Rate`**, which no product references —
-   that is the contrasting behaviour (revert to the standard anchor rate on
-   overage) and is currently unexercised.
+3. **`UsageCommitmentPolicy` decides whether the discount survives into overage.**
+   Live A/B, same product and same 76,500-token spike, one field apart:
+
+   | | `Lowest Commitment Rate` | `Bounded Object Rate` |
+   |---|---|---|
+   | debited to buckets | 36,277.78 | 36,277.78 *(identical)* |
+   | overage tokens | **34,850** (38,722.22 × 0.90) | **38,722.22** (raw) |
+   | billed @ 0.5 | **17,425 USD** | **19,361.11 USD** |
+
+   The drawdown is unaffected — both exhaust the 25,000 commitment and the 10,000
+   grant identically. Only the overage differs: `Lowest Commitment Rate` carries the
+   discount past the commitment boundary, `Bounded Object Rate` stops it there and
+   reverts to the standard anchor rate. Worth exactly 1,936.11 USD here, the 10% the
+   customer forfeits. Every QB commit product ships with `'Lowest Rate'`; the
+   `'Bounded Object Rate'` record exists but is referenced by nothing.
+
+> ⚠️ **The commitment rate policy is a GLOBAL design-time switch, not a per-deal
+> term.** No runtime object snapshots it — not `TransactionUsageEntitlement`,
+> `UsageEntitlementAccount`, `UsageEntitlementBucket`, `UsageRatableSummary`, nor
+> `AssetRateCardEntry`. It is read from `ProductUsageResourcePolicy` at rating time,
+> so changing it alters every deal on that product, including anything that re-rates
+> later, and **no record shows which policy produced a given result**. Completed
+> periods are safe (their rated values are frozen), which is the only reason the A/B
+> above is stable. Unlike `Product2.UsageModelType`, the policy *can* be swapped
+> while the PUR is Active.
+>
+> To demo both overage behaviours **simultaneously and durably**, QB needs a fourth
+> token commit product (e.g. `QB-CMT-TKN-BND`) carrying `Bounded Object Rate` —
+> otherwise it is a "flip one field between demos" story that breaks in a shared org.
 
 Read `UsageSummary.ConsumptionUnits` / `DebitedUnits` / `OverageUnits` to decompose a
 period; `UsageEntitlementBucket.ConsumedEntitlement` gives the per-bucket totals.
