@@ -210,6 +210,10 @@ that allowlist as a conscious, documented choice.
 | QB-CMT-TKN-TIER | QB-TOKEN        | USD       | Term Annual   |
 | QB-CMT-TKN-TIER | UR-CPUTIME-TKN     | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-TIER | UR-DATASTORAGE-TKN | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-BND  | QB-TOKEN        | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-BND  | QB-TOKEN        | USD       | Term Annual   |
+| QB-CMT-TKN-BND  | UR-CPUTIME-TKN     | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-BND  | UR-DATASTORAGE-TKN | TOKEN-UOM | Term Annual   |
 | QB-MTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-MTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |

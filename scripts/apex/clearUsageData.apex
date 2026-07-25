@@ -164,9 +164,13 @@ if (DELETE_ASSET_RATE_CARD_ENTRIES) {
 Integer tj = 0;
 take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
 if (take > 0) {
+    // UsageType is 'UsageManagement' or 'Billing'. This script drains the USAGE
+    // graph only -- an unscoped delete would take the account's billing journals
+    // with it, which no caller of a usage teardown is asking for.
     List<TransactionJournal> journals = scoped
-        ? [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :take]
-        : [SELECT Id FROM TransactionJournal LIMIT :take];
+        ? [SELECT Id FROM TransactionJournal
+           WHERE AccountId = :accountId AND UsageType = 'UsageManagement' LIMIT :take]
+        : [SELECT Id FROM TransactionJournal WHERE UsageType = 'UsageManagement' LIMIT :take];
     tj = drain.run(journals, 'TransactionJournal');
 } else { budgetSpent = true; }
 
@@ -191,14 +195,15 @@ if (scoped) {
     remRatable   = [SELECT COUNT() FROM UsageRatableSummary
                     WHERE AccountId = :accountId OR AssetId IN :assetIds];
     remArce      = [SELECT COUNT() FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId];
-    remJournals  = [SELECT COUNT() FROM TransactionJournal WHERE AccountId = :accountId];
+    remJournals  = [SELECT COUNT() FROM TransactionJournal
+                    WHERE AccountId = :accountId AND UsageType = 'UsageManagement'];
 } else {
     remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry];
     remUbpi      = [SELECT COUNT() FROM UsageBillingPeriodItem];
     remSummaries = [SELECT COUNT() FROM UsageSummary];
     remRatable   = [SELECT COUNT() FROM UsageRatableSummary];
     remArce      = [SELECT COUNT() FROM AssetRateCardEntry];
-    remJournals  = [SELECT COUNT() FROM TransactionJournal];
+    remJournals  = [SELECT COUNT() FROM TransactionJournal WHERE UsageType = 'UsageManagement'];
 }
 // arce is labelled "preserved" when the flag is off, so it is not read as an
 // outstanding row the rerun-until-zero check below must drive to zero.

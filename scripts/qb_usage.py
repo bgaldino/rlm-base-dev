@@ -147,9 +147,9 @@ def cmd_audit(args):
     # Completeness, not merely non-empty. If one SKU loads and another does not,
     # a bare emptiness check passes and the audit silently says nothing about the
     # missing product -- the failure this PR exists to catch.
-    missing = sorted(set(QB_USAGE_SKUS) - {p["StockKeepingUnit"] for p in products})
-    if missing:
-        print(f"  MISSING usage product(s): {', '.join(missing)} — the catalog is "
+    missing_skus = sorted(set(QB_USAGE_SKUS) - {p["StockKeepingUnit"] for p in products})
+    if missing_skus:
+        print(f"  MISSING usage product(s): {', '.join(missing_skus)} — the catalog is "
               "incomplete, so nothing below reports on them.")
 
     pur_active, pur_draft = defaultdict(set), defaultdict(set)
@@ -207,7 +207,11 @@ def cmd_audit(args):
     print("QUANTUMBIT USAGE — DESIGN-TIME AUDIT")
     print("=" * 96)
 
-    total = 0
+    # Seeded with the missing SKUs. They are absent from `products`, so the loop
+    # below can never account for them -- leaving the audit to print "the catalog
+    # is incomplete" and then exit 0, which is the exact silent pass this audit
+    # exists to prevent.
+    total = len(missing_skus)
     for p in products:
         sku = p["StockKeepingUnit"]
         print(f"\n{sku}  [{p['UsageModelType']}]  {p['Name']}")
@@ -285,7 +289,10 @@ def cmd_audit(args):
             print("  OK")
 
     print("\n" + "=" * 96)
-    print(f"{total} issue(s) across {len(products)} product(s)")
+    scope = f"{len(products)} product(s)"
+    if missing_skus:
+        scope += f"; {len(missing_skus)} expected product(s) MISSING from the org"
+    print(f"{total} issue(s) across {scope}")
     return 1 if total else 0
 
 
@@ -360,7 +367,11 @@ def cmd_report(args):
 
     # A stranded journal is the signature of a period that closed before the usage
     # was recorded. It never recovers, so surface it prominently.
-    pending = sf_query(org, "SELECT COUNT(Id) c FROM TransactionJournal WHERE Status = 'Pending'")
+    # Scoped to UsageManagement: the other UsageType is Billing, and a pending
+    # billing journal has nothing to do with usage rating -- counting it here
+    # reports a healthy usage run as stranded.
+    pending = sf_query(org, "SELECT COUNT(Id) c FROM TransactionJournal "
+                            "WHERE Status = 'Pending' AND UsageType = 'UsageManagement'")
     n = pending[0].get("c") if pending else 0
     if n:
         print(f"\n  ⚠ {n} TransactionJournal row(s) still Pending. If orchestration has "
@@ -388,7 +399,10 @@ def cmd_orchestrate(args):
         fh.write(START_ORCH)
 
     def pending():
-        rows = sf_query(org, "SELECT COUNT(Id) c FROM TransactionJournal WHERE Status = 'Pending'")
+        # UsageManagement only -- an unrelated pending Billing journal would
+        # otherwise hold this loop open and exit 2 on a healthy usage run.
+        rows = sf_query(org, "SELECT COUNT(Id) c FROM TransactionJournal "
+                             "WHERE Status = 'Pending' AND UsageType = 'UsageManagement'")
         # An aggregate COUNT always returns exactly one row, even when the count is
         # zero -- so an EMPTY result means the query itself failed (auth, session,
         # malformed SOQL). Treating that as "0 pending" made an auth failure print

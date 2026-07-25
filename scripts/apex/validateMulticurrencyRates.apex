@@ -189,6 +189,7 @@ Set<String> COMMITMENT_MODELS = new Set<String>{
 };
 List<String> commitWithPeriods = new List<String>();
 Set<String> commitSkusWithPurp = new Set<String>();
+Set<String> commitPurpKeys = new Set<String>();   // sku|resource
 for (ProductUsageResourcePolicy p : [
         SELECT ProductUsageResource.Product.StockKeepingUnit,
                ProductUsageResource.UsageResource.Code,
@@ -199,6 +200,7 @@ for (ProductUsageResourcePolicy p : [
     String sku = p.ProductUsageResource.Product.StockKeepingUnit;
     String res = p.ProductUsageResource.UsageResource.Code;
     commitSkusWithPurp.add(sku);
+    commitPurpKeys.add(sku + '|' + res);
     List<String> carried = new List<String>();
     if (p.RatingFrequencyPolicyId != null) { carried.add('rating'); }
     if (p.UsageAggregationPolicyId != null) { carried.add('accumulation'); }
@@ -215,23 +217,34 @@ if (!commitWithPeriods.isEmpty()) {
     passed.add('every commitment PURP across ' + commitSkusWithPurp.size()
         + ' product(s) carries a commitment policy and no period fields');
 }
-// Presence, not just shape: a silently-dropped row leaves the product with NO PURP
-// at all, which the shape check above cannot see.
+// Presence PER RESOURCE, not per product. A per-SKU check only catches a product
+// that lost EVERY PURP row; a partial load -- three active resources, one PURP --
+// leaves that SKU present and passes, while the two uncovered resources silently
+// go undiscounted. Diff the EXPECTED set (every active commitment PUR) against
+// what actually carries a policy.
 Set<String> commitSkus = new Set<String>();
-for (Product2 p : [SELECT StockKeepingUnit FROM Product2
-                   WHERE StockKeepingUnit IN :QB_USAGE_SKUS
-                     AND UsageModelType IN :COMMITMENT_MODELS]) {
-    commitSkus.add(p.StockKeepingUnit);
+List<String> commitResMissingPurp = new List<String>();
+for (ProductUsageResource r : [
+        SELECT Product.StockKeepingUnit, UsageResource.Code
+        FROM ProductUsageResource
+        WHERE Product.StockKeepingUnit IN :QB_USAGE_SKUS
+          AND Product.UsageModelType IN :COMMITMENT_MODELS
+          AND Status = 'Active']) {
+    String sku = r.Product.StockKeepingUnit;
+    commitSkus.add(sku);
+    if (!commitPurpKeys.contains(sku + '|' + r.UsageResource.Code)) {
+        commitResMissingPurp.add(sku + '/' + r.UsageResource.Code);
+    }
 }
-Set<String> commitSkusMissingPurp = new Set<String>(commitSkus);
-commitSkusMissingPurp.removeAll(commitSkusWithPurp);
-if (!commitSkusMissingPurp.isEmpty()) {
-    problems.add('Commitment product(s) with NO ProductUsageResourcePolicy at all: '
-        + commitSkusMissingPurp + ' -- the rows were almost certainly dropped during '
-        + 'the data load (the classic silent failure); the commitment cannot discount '
-        + 'anything without them.');
+if (!commitResMissingPurp.isEmpty()) {
+    commitResMissingPurp.sort();
+    problems.add('Commitment resource(s) with NO ProductUsageResourcePolicy ('
+        + commitResMissingPurp.size() + '): ' + String.join(commitResMissingPurp, ', ')
+        + ' -- the rows were almost certainly dropped during the data load (the classic '
+        + 'silent failure); the commitment cannot discount those resources without them.');
 } else if (!commitSkus.isEmpty()) {
-    passed.add('all ' + commitSkus.size() + ' commitment product(s) have PURP rows loaded');
+    passed.add('every active commitment resource across ' + commitSkus.size()
+        + ' product(s) has a PURP row loaded');
 }
 
 if (!packWithPolicy.isEmpty()) {
