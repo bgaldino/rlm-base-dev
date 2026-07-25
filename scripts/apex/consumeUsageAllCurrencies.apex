@@ -18,6 +18,13 @@ final Decimal COMPUTE_MINUTES = 500;   // UR-CPUTIME  -- crosses QB-DB's 300+ ov
 final Decimal STORAGE_TB = 20;         // UR-DATASTORAGE
 final String ORCHESTRATION_FLOW = 'RLM_OrchestrateUsageManagement';
 
+// The seven currencies this test claims to cover. Checked explicitly: a
+// non-empty result is NOT proof of coverage -- a single USD asset would
+// otherwise let the run report success while exercising one currency.
+final Set<String> EXPECTED_CURRENCIES = new Set<String>{
+    'USD', 'GBP', 'EUR', 'AUD', 'CAD', 'CHF', 'JPY'
+};
+
 Map<String, Decimal> qtyByResource = new Map<String, Decimal>{
     'UR-CPUTIME' => COMPUTE_MINUTES,
     'UR-DATASTORAGE' => STORAGE_TB
@@ -31,6 +38,20 @@ List<Asset> assets = [
 ];
 if (assets.isEmpty()) {
     throw new System.NoDataFoundException();
+}
+
+Set<String> foundCurrencies = new Set<String>();
+for (Asset a : assets) {
+    foundCurrencies.add(a.CurrencyIsoCode);
+}
+Set<String> missingCurrencies = new Set<String>(EXPECTED_CURRENCIES);
+missingCurrencies.removeAll(foundCurrencies);
+if (!missingCurrencies.isEmpty()) {
+    throw new IllegalArgumentException(
+        'consumeUsageAllCurrencies covers ' + EXPECTED_CURRENCIES.size()
+        + ' currencies but no QB-DB asset exists for: ' + missingCurrencies
+        + '. Build the missing regional asset(s) first -- running against a subset'
+        + ' would report success without exercising those currencies.');
 }
 
 Integer uploaded = 0;
@@ -91,7 +112,11 @@ for (Asset a : assets) {
         + res.successCount + ' journal(s), ' + res.errorCount + ' error(s)');
 }
 
-System.debug('CONSUME: uploaded ' + uploaded + ' journal(s) across ' + assets.size() + ' currency asset(s).');
+// Report the distinct currencies actually exercised, not the asset count: two
+// assets in the same currency are not two currencies covered.
+System.debug('CONSUME: uploaded ' + uploaded + ' journal(s) across '
+    + foundCurrencies.size() + ' currenc' + (foundCurrencies.size() == 1 ? 'y' : 'ies')
+    + ' (' + foundCurrencies + ') over ' + assets.size() + ' asset(s).');
 if (!failures.isEmpty()) {
     System.debug('CONSUME: WARNINGS -- ' + String.join(failures, ' | '));
 }

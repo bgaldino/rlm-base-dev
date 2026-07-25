@@ -27,10 +27,14 @@ Conversion rules
   rates such as ``0.004`` keep their precision. A non-zero rate never rounds
   down to zero.
 
-Existing non-base rows are **preserved** by default: the script only fills in
-missing (product, rate card, usage resource, currency) combinations, so
-hand-tuned or live-verified rates are never overwritten. Pass ``--regenerate``
-to rebuild every non-base row from the base instead.
+Every non-base row is **rebuilt from the base** by default. This dataset is
+fully derived — ``tests/test_qb_multicurrency_data.py`` requires each non-base
+rate to equal the derived value exactly, with an empty deviation allowlist — so
+preserving old rows silently ships stale rates the moment
+``CurrencyType.ConversionRate`` changes. Pass ``--preserve`` to fill in only the
+missing (product, rate card, usage resource, currency) combinations and leave
+existing rows untouched; anything preserved that way must then be added to
+``ALLOWED_RATE_DEVIATIONS`` or the suite fails.
 """
 
 import argparse
@@ -201,8 +205,11 @@ def main(argv=None):
                     help=f"Base currency to expand from (default: {DEFAULT_BASE})")
     ap.add_argument("--currencies", default=DEFAULT_CURRENCIES,
                     help=f"Comma-separated target currencies (default: {DEFAULT_CURRENCIES})")
+    ap.add_argument("--preserve", action="store_true",
+                    help="Fill in only missing rows, leaving existing non-base rows untouched "
+                         "(default: rebuild every non-base row from the base)")
     ap.add_argument("--regenerate", action="store_true",
-                    help="Rebuild every non-base row from the base instead of preserving existing ones")
+                    help=argparse.SUPPRESS)  # back-compat no-op; regeneration is now the default
     ap.add_argument("--apply", action="store_true", help="Write changes (default: dry-run)")
     args = ap.parse_args(argv)
 
@@ -231,20 +238,27 @@ def main(argv=None):
     print(f"Plan: {args.plan}")
     print("Rates: " + ", ".join(
         f"{c}={rates[c]}{' [whole]' if decimals[c] == 0 else ''}" for c in targets))
-    mode = "REGENERATE" if args.regenerate else "PRESERVE existing"
+    mode = "PRESERVE existing" if args.preserve else "REGENERATE"
     print(f"{'APPLYING' if args.apply else 'DRY-RUN'} (base={base}, {mode}):")
 
-    if not args.apply:
-        # Work on copies so a dry-run never touches the tree.
-        import shutil, tempfile
-        tmp = tempfile.mkdtemp()
-        work = os.path.join(tmp, "plan")
-        shutil.copytree(args.plan, work)
-    else:
-        work = args.plan
+    # Work on copies so a dry-run never touches the tree. mkdtemp() would leak a
+    # full copy of the plan under /tmp on every run, so the copy is scoped to an
+    # ExitStack that cleans up however main() exits.
+    import contextlib, shutil, tempfile
+    with contextlib.ExitStack() as stack:
+        if not args.apply:
+            tmp = stack.enter_context(tempfile.TemporaryDirectory())
+            work = os.path.join(tmp, "plan")
+            shutil.copytree(args.plan, work)
+        else:
+            work = args.plan
+        return _run(args, work, base, targets, rates, decimals)
+
+
+def _run(args, work, base, targets, rates, decimals):
 
     n_base, rce_added, rce_total = expand_rate_card_entries(
-        work, base, targets, rates, decimals, args.regenerate)
+        work, base, targets, rates, decimals, not args.preserve)
     print(f"  {RCE_FILE:28s} base={n_base:3d}  +{len(rce_added):3d} -> {rce_total:4d} total")
     for a in rce_added[:4]:
         print(f"      e.g. {a[list(a)[0]]}  rate={a['Rate'] or '(tier-driven)'}")
@@ -252,7 +266,7 @@ def main(argv=None):
         print(f"      … {len(rce_added) - 4} more")
 
     n_base, rabt_added, rabt_total = expand_rate_adjustments(
-        work, base, targets, rates, decimals, args.regenerate)
+        work, base, targets, rates, decimals, not args.preserve)
     print(f"  {RABT_FILE:28s} base={n_base:3d}  +{len(rabt_added):3d} -> {rabt_total:4d} total")
     ovr = [a for a in rabt_added if a["AdjustmentType"] == "Override"]
     for a in ovr[:3]:

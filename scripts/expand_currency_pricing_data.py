@@ -194,8 +194,11 @@ def process(plan, fname, money_col, pred, base, targets, rates, whole, step, app
     if apply:
         open(path, "w", newline="").write("\n".join(out) + "\n")
     added = base_count * len(targets)
+    # Count the actual output rows: with a --currencies subset, non-target rows are
+    # preserved in `out` and a base*(targets+1) formula silently undercounts them.
+    total = len(out) - 1  # out[0] is the header
     tag = f"   e.g. {sample}" if sample else ("   (currency-only copy)" if money_col is None else "")
-    print(f"  {fname:34s} base={base_count:4d}  +{added:4d} -> {base_count * (len(targets) + 1):5d} total{tag}")
+    print(f"  {fname:34s} base={base_count:4d}  +{added:4d} -> {total:5d} total{tag}")
     return added
 
 

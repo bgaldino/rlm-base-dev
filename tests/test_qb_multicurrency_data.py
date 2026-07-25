@@ -70,8 +70,9 @@ TOKEN_UOM = "TOKEN-UOM"
 COMMITMENT_MODEL_TYPES = {"Commit", "CommitmentQuantity", "CommitmentSpend"}
 
 # ProductUsageResources intentionally shipped without a rate card entry.
-# UR-USD is Category=Currency (the monetary-commitment wallet); its commit
-# discounts live on the -MTY usage resources instead. Deliberate, not a gap.
+# UR-USD is Category=Currency (the monetary-commitment wallet) — it holds the
+# committed amount rather than being consumed, so it is rated through the
+# anchor's UR-CPUTIME / UR-DATASTORAGE instead. Deliberate, not a gap.
 ALLOWED_PUR_WITHOUT_RCE = {("QB-MTY-CMT", "UR-USD")}
 
 # Commitment/pack usage resources knowingly not present on any anchor.
@@ -440,7 +441,7 @@ def check_rates_derived_from_base(d):
             problems.append(f"{'/'.join(rce_key(r))} {uom}: {r['Rate']} != derived {expect}")
 
     check("rates_derived_from_base", not problems,
-          f"{len(problems)} undrived rate(s): " + "; ".join(problems[:3]) if problems
+          f"{len(problems)} underived rate(s): " + "; ".join(problems[:3]) if problems
           else "every non-base rate matches its derived value")
 
 

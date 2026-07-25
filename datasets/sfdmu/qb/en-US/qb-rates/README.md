@@ -160,13 +160,20 @@ Conversion rules it applies:
   distinct. Whole-unit currencies (JPY) round to a whole yen **only at or above ¥1** — a sub-yen rate
   keeps 2 decimals, because rounding ¥0.65/¥0.73/¥0.82/¥0.98 to a whole yen would flatten every tier
   of a tiered rate onto the same value.
-- Existing non-USD rows are **preserved**, not regenerated (`--regenerate` overrides). This protects
-  hand-tuned rates.
+- Every non-USD row is **regenerated from the base**. That is the default because this dataset is
+  fully derived: `check_rates_derived_from_base` requires each non-base rate to equal the derived
+  value exactly with an **empty** deviation allowlist, so preserving old rows would silently ship
+  stale rates the moment `CurrencyType.ConversionRate` changes — the canonical `--apply` above would
+  write nothing and the suite would then fail. Pass **`--preserve`** to fill in only the missing
+  (product, rate card, usage resource, currency) combinations; anything kept that way must be added
+  to `ALLOWED_RATE_DEVIATIONS` as a conscious, documented choice.
 
-⚠️ **QB-DB's Base GBP and JPY rates are hand-set and live-verified, not generated.** GBP currently
-mirrors USD exactly (0.004 / 10 / 0.10 rather than the converted 0.003 / 7.48 / 0.0748) and JPY uses
-round demo values (1 / 1500 / 15 rather than 1 / 1631 / 16). Confirm whether those are the intended
-demo figures before merge.
+✅ **Every non-base rate is generator-derived — no hand-set values remain.** QB-DB's GBP rates are
+the converted `0.003 / 7.48 / 0.0748` and JPY the converted `0.65 / 1631 / 16`; the six hand-seeded
+placeholders that previously mirrored USD were corrected. `tests/test_qb_multicurrency_data.py::`
+`check_rates_derived_from_base` now enforces exact derivation with an **empty**
+`ALLOWED_RATE_DEVIATIONS`, so reintroducing a hand-tuned rate fails the suite until it is added to
+that allowlist as a conscious, documented choice.
 
 ## Rate Card Entries (116 records)
 
