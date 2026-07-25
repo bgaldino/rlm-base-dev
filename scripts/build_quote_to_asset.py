@@ -171,7 +171,7 @@ def esc(s):
 # ----------------------------------------------------------------------
 # Steps
 # ----------------------------------------------------------------------
-def create_opportunity(org, account, sku, term, start, end, billing_timing,
+def create_opportunity(org, account, skus, term, start, end, billing_timing,
                        selling_model, anchor_sku):
     """Create the Opportunity, mirroring RLM_QuickQuote's mapping.
 
@@ -180,52 +180,58 @@ def create_opportunity(org, account, sku, term, start, end, billing_timing,
     record-triggered, so this insert fires the same behaviour (notably the
     account-currency defaulting added for multicurrency).
     """
+    sku_list = ", ".join(f"'{esc(k)}'" for k in skus)
     apex = f"""
 public class QuoteBuildException extends Exception {{}}
 
 final String ACCOUNT_NAME = '{esc(account)}';
-final String SKU = '{esc(sku)}';
+final List<String> SKUS = new List<String>{{{sku_list}}};
 final Date END_DATE = Date.valueOf('{end}');
 
 Account acct = [SELECT Id, Name, CurrencyIsoCode FROM Account
                 WHERE Name = :ACCOUNT_NAME LIMIT 1];
 Pricebook2 standard = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-Product2 prod = [SELECT Id FROM Product2 WHERE StockKeepingUnit = :SKU LIMIT 1];
-
-// A product can expose several selling models (QB-DAT-THPT has Evergreen,
-// Term Monthly and Term Annual), and the PricebookEntry is what pins the line to
-// one. The selling model then dictates which line fields are legal, so choose it
-// deliberately rather than taking whichever entry comes back first.
-List<PricebookEntry> pbes = [SELECT Id, UnitPrice, ProductSellingModel.SellingModelType,
-                                    ProductSellingModel.Name
-                             FROM PricebookEntry
-                             WHERE Product2Id = :prod.Id AND Pricebook2Id = :standard.Id
-                               AND CurrencyIsoCode = :acct.CurrencyIsoCode
-                               AND IsActive = true
-                             ORDER BY ProductSellingModel.Name];
-if (pbes.isEmpty()) {{
-    throw new QuoteBuildException('No active ' + acct.CurrencyIsoCode
-        + ' PricebookEntry for ' + SKU + ' — qb-pricing may not cover this currency.');
+Map<String, Product2> prodBySku = new Map<String, Product2>();
+for (Product2 pr : [SELECT Id, StockKeepingUnit FROM Product2
+                    WHERE StockKeepingUnit IN :SKUS]) {{
+    prodBySku.put(pr.StockKeepingUnit, pr);
 }}
-PricebookEntry pbe = pbes[0];
+
+// Resolve, for EVERY sku on the quote, the PricebookEntry that pins the line to
+// a selling model. A product can expose several (QB-DAT-THPT has Evergreen,
+// Term Monthly and Term Annual) and the selling model dictates which line fields
+// are legal, so choose deliberately rather than taking the first entry back.
 String wanted = '{selling_model}';
-if (wanted != '') {{
-    Boolean found = false;
-    for (PricebookEntry e : pbes) {{
-        if (e.ProductSellingModel != null
-            && e.ProductSellingModel.SellingModelType == wanted) {{
-            pbe = e; found = true; break;
-        }}
+for (Integer i = 0; i < SKUS.size(); i++) {{
+    String sku = SKUS[i];
+    Product2 prod = prodBySku.get(sku);
+    if (prod == null) {{
+        throw new QuoteBuildException('No product with SKU ' + sku);
     }}
-    if (!found) {{
-        List<String> avail = new List<String>();
+    List<PricebookEntry> pbes = [SELECT Id, UnitPrice, ProductSellingModel.SellingModelType,
+                                        ProductSellingModel.Name
+                                 FROM PricebookEntry
+                                 WHERE Product2Id = :prod.Id AND Pricebook2Id = :standard.Id
+                                   AND CurrencyIsoCode = :acct.CurrencyIsoCode
+                                   AND IsActive = true
+                                 ORDER BY ProductSellingModel.Name];
+    if (pbes.isEmpty()) {{
+        throw new QuoteBuildException('No active ' + acct.CurrencyIsoCode
+            + ' PricebookEntry for ' + sku);
+    }}
+    PricebookEntry pbe = pbes[0];
+    if (wanted != '') {{
         for (PricebookEntry e : pbes) {{
-            avail.add(e.ProductSellingModel == null ? 'null'
-                      : e.ProductSellingModel.SellingModelType);
+            if (e.ProductSellingModel != null
+                && e.ProductSellingModel.SellingModelType == wanted) {{ pbe = e; break; }}
         }}
-        throw new QuoteBuildException(SKU + ' has no ' + wanted
-            + ' selling model; available: ' + String.join(avail, ', '));
     }}
+    System.debug('SKU' + i + '_PRODUCT_ID=' + prod.Id);
+    System.debug('SKU' + i + '_PBE_ID=' + pbe.Id);
+    System.debug('SKU' + i + '_UNIT_PRICE=' + pbe.UnitPrice);
+    System.debug('SKU' + i + '_SELLING_MODEL=' + (pbe.ProductSellingModel == null
+        ? 'unknown' : pbe.ProductSellingModel.SellingModelType));
+    System.debug('SKU' + i + '_NAME=' + sku);
 }}
 
 // The line needs an explicit BillingTreatment: BillingFrequency is mandatory for
@@ -277,13 +283,6 @@ System.debug('ACCOUNT_ID=' + acct.Id);
 System.debug('CURRENCY=' + acct.CurrencyIsoCode);
 System.debug('OPP_ID=' + opp.Id);
 System.debug('PRICEBOOK_ID=' + standard.Id);
-System.debug('PRODUCT_ID=' + prod.Id);
-System.debug('PBE_ID=' + pbe.Id);
-System.debug('UNIT_PRICE=' + pbe.UnitPrice);
-System.debug('SELLING_MODEL=' + (pbe.ProductSellingModel == null ? 'unknown'
-    : pbe.ProductSellingModel.SellingModelType));
-System.debug('SELLING_MODEL_NAME=' + (pbe.ProductSellingModel == null ? '-'
-    : pbe.ProductSellingModel.Name));
 System.debug('TREATMENT_ID=' + treatment.Id);
 System.debug('TREATMENT_CANCHANGE=' + treatment.CanChangeBillingFrequency);
 """
@@ -292,14 +291,14 @@ System.debug('TREATMENT_CANCHANGE=' + treatment.CanChangeBillingFrequency);
         if "=" in line and line.split("=", 1)[0].isupper():
             k, v = line.split("=", 1)
             vals[k] = v
-    missing = {"ACCOUNT_ID", "OPP_ID", "PBE_ID", "SELLING_MODEL"} - set(vals)
+    missing = {"ACCOUNT_ID", "OPP_ID", "SKU0_PBE_ID"} - set(vals)
     if missing:
         raise StepError(f"opportunity step did not report {sorted(missing)}")
     return vals
 
 
 def place_quote(org, ids, account, start, end, quantity, period_boundary,
-                billing_frequency):
+                billing_frequency, bind_extra=False):
     """Create the Quote + line via Place Sales Transaction.
 
     Direct QuoteLineItem DML is NOT viable for a TermDefined product here: the
@@ -311,33 +310,61 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
     a line to a quote.
     """
     # Which line fields are legal depends on the SELLING MODEL, not the product:
-    #   OneTime     -> "When the SellingModelType is One Time, BillingFrequency must
-    #                   be null or milestone plan"
-    #   Evergreen   -> "You can't specify EndDate for evergreen order products"
+    #   OneTime     -> BillingFrequency must be null; EndDate rejected
+    #   Evergreen   -> EndDate rejected
     #   TermDefined -> BillingFrequency required, EndDate allowed
-    # Assuming TermDefined silently breaks the Pack products, which is how
-    # QB-TOKENS-PACK (OneTime) and QB-DAT-THPT (Evergreen) failed.
-    model = ids.get("SELLING_MODEL", "TermDefined")
-    line = {
-        "attributes": {"type": "QuoteLineItem", "method": "POST"},
-        "QuoteId": "@{refQuote.id}",
-        "Product2Id": ids["PRODUCT_ID"],
-        "PricebookEntryId": ids["PBE_ID"],
-        "UnitPrice": float(ids["UNIT_PRICE"]),
-        "Quantity": quantity,
-        "StartDate": start,
-    }
-    # EndDate is rejected for BOTH Evergreen and OneTime:
-    #   "You can't specify EndDate for evergreen order products"
-    #   "You can't specify EndDate for one-time order products"
-    if model not in ("Evergreen", "OneTime"):
-        line["EndDate"] = end
-    if model != "OneTime":
-        line["PeriodBoundary"] = period_boundary
-        line["BillingTreatmentId"] = ids["TREATMENT_ID"]
-        line["BillingFrequency"] = billing_frequency
-    if ids.get("ANCHOR_ASSET_ID"):
-        line["BindingInstanceTargetId"] = ids["ANCHOR_ASSET_ID"]
+    #
+    # Every sku after the first becomes an additional line on the SAME quote,
+    # bound to the first line. That is what a Commit product requires: it is a
+    # rate modifier on an anchor line, and pointing its BindingInstanceTargetId
+    # at an existing Asset is rejected ("Check that you've selected the correct
+    # usage product for the associated quote or order").
+    records = [
+        {
+            "referenceId": "refQuote",
+            "record": {
+                "attributes": {"type": "Quote", "method": "POST"},
+                "Name": f"New Quote For {account}",
+                "QuoteAccountId": ids["ACCOUNT_ID"],
+                "OpportunityId": ids["OPP_ID"],
+                "Pricebook2Id": ids["PRICEBOOK_ID"],
+                "CurrencyIsoCode": ids["CURRENCY"],
+                "Status": "Draft",
+                "StartDate": start,
+            },
+        }
+    ]
+
+    n = sum(1 for k in ids if k.endswith("_PBE_ID"))
+    for i in range(n):
+        model = ids.get(f"SKU{i}_SELLING_MODEL", "TermDefined")
+        line = {
+            "attributes": {"type": "QuoteLineItem", "method": "POST"},
+            "QuoteId": "@{refQuote.id}",
+            "Product2Id": ids[f"SKU{i}_PRODUCT_ID"],
+            "PricebookEntryId": ids[f"SKU{i}_PBE_ID"],
+            "UnitPrice": float(ids[f"SKU{i}_UNIT_PRICE"]),
+            "Quantity": quantity,
+            "StartDate": start,
+        }
+        if model not in ("Evergreen", "OneTime"):
+            line["EndDate"] = end
+        if model != "OneTime":
+            line["PeriodBoundary"] = period_boundary
+            line["BillingTreatmentId"] = ids["TREATMENT_ID"]
+            line["BillingFrequency"] = billing_frequency
+        if i == 0:
+            # Only the primary line may bind to a pre-existing anchor ASSET
+            # (that is the Pack case).
+            if ids.get("ANCHOR_ASSET_ID"):
+                line["BindingInstanceTargetId"] = ids["ANCHOR_ASSET_ID"]
+        elif bind_extra:
+            # Opt-in only. A Commit product rejects BindingInstanceTargetId
+            # entirely — pointed at an anchor Asset *or* at the anchor line in
+            # the same quote it returns "We couldn't bind the usage resource".
+            # Co-selling on one quote is the construct; the binding is implicit.
+            line["BindingInstanceTargetId"] = "@{refLine0.id}"
+        records.append({"referenceId": f"refLine{i}", "record": line})
 
     payload = {
         "pricingPref": "system",
@@ -350,28 +377,7 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
                 "addDefaultConfiguration": False,
             },
         },
-        "graph": {
-            "graphId": "buildQuoteToAsset",
-            "records": [
-                {
-                    "referenceId": "refQuote",
-                    "record": {
-                        "attributes": {"type": "Quote", "method": "POST"},
-                        "Name": f"New Quote For {account}",
-                        "QuoteAccountId": ids["ACCOUNT_ID"],
-                        "OpportunityId": ids["OPP_ID"],
-                        "Pricebook2Id": ids["PRICEBOOK_ID"],
-                        "CurrencyIsoCode": ids["CURRENCY"],
-                        "Status": "Draft",
-                        "StartDate": start,
-                    },
-                },
-                {
-                    "referenceId": "refQuoteLineItem",
-                    "record": line,
-                },
-            ],
-        },
+        "graph": {"graphId": "buildQuoteToAsset", "records": records},
     }
     resp = sf_rest(org, f"/services/data/{API}/connect/rev/sales-transaction/actions/place",
                    "POST", payload)
@@ -553,14 +559,16 @@ def verify_usage_buckets(org, asset_ids):
 def build_one(org, account, args):
     print(f"\n{'=' * 74}\n{account}\n{'=' * 74}")
 
-    ids = create_opportunity(org, account, args.sku, args.term, args.start,
+    skus = [args.sku] + list(args.with_sku or [])
+    ids = create_opportunity(org, account, skus, args.term, args.start,
                              args.end, args.billing_timing, args.selling_model,
                              args.anchor_sku)
     print(f"  opportunity  {ids['OPP_ID']}  ({ids['CURRENCY']}, "
-          f"{ids.get('SELLING_MODEL')}/{ids.get('SELLING_MODEL_NAME')})")
+          f"{ids.get('SKU0_SELLING_MODEL')})")
 
     quote_id = place_quote(org, ids, account, args.start, args.end,
-                           args.quantity, args.period_boundary, args.billing_frequency)
+                           args.quantity, args.period_boundary, args.billing_frequency,
+                           args.bind_extra_lines)
     print(f"  quote        {quote_id}  (starts {args.start})")
 
     order_id = create_order(org, quote_id, args.timeout, args.interval)
@@ -612,6 +620,16 @@ def main():
                     help=f"line end date (default: {DEFAULT_END})")
     ap.add_argument("--quantity", type=int, default=1)
     ap.add_argument("--term", type=int, default=12, help="term months (default: 12)")
+    ap.add_argument("--with-sku", action="append", metavar="SKU",
+                    help="additional product on the SAME quote, bound to the first "
+                         "line via BindingInstanceTargetId. Repeatable. This is how "
+                         "a Commit product must be sold: it is a rate modifier on an "
+                         "anchor line, and binding it to an existing ASSET is "
+                         "rejected ('selected the correct usage product for the "
+                         "associated quote or order')")
+    ap.add_argument("--bind-extra-lines", action="store_true",
+                    help="bind --with-sku lines to the first line. Off by default: "
+                         "Commit products reject BindingInstanceTargetId entirely")
     ap.add_argument("--anchor-sku", default="",
                     help="bind the line to this product's existing asset on the "
                          "account (required for Pack products, which draw down "
