@@ -70,8 +70,11 @@ Set<Id> qbAssetIds = qbAssets.keySet();
 // stranded permanently with no error reported anywhere.
 // Bounded by the DECLARED window, not by whatever history exists. TransactionJournal
 // .StartDate is a Datetime, so the bounds are expanded to cover the whole end day.
-Datetime windowFrom = Datetime.newInstance(USAGE_PERIOD_START, Time.newInstance(0, 0, 0, 0));
-Datetime windowTo   = Datetime.newInstance(USAGE_PERIOD_END.addDays(1), Time.newInstance(0, 0, 0, 0));
+// GMT, not newInstance(): billing-period boundaries are stored as UTC midnights, while
+// newInstance() builds in the RUNNING USER's timezone. On a GMT-7 org that shifts the
+// window 7h and it selects the NEXT period instead of the declared one.
+Datetime windowFrom = Datetime.newInstanceGmt(USAGE_PERIOD_START, Time.newInstance(0, 0, 0, 0));
+Datetime windowTo   = Datetime.newInstanceGmt(USAGE_PERIOD_END.addDays(1), Time.newInstance(0, 0, 0, 0));
 
 List<TransactionJournal> journals = [
     SELECT Id, Status, StartDate, EndDate, UsageResourceId, UsageResource.Code,
@@ -115,20 +118,19 @@ if (!stranded.isEmpty()) {
 }
 
 // ------------------------------------------------------------------- summaries
-// Consumption that reached a summary must actually carry a rated amount. Scoped
-// to the SAME declared window as the journals, widened a day at each end so a
-// summary whose period boundary sits just outside it is still in scope.
-Datetime summaryFrom = windowFrom.addDays(-1);
-Datetime summaryTo   = windowTo.addDays(1);
-
+// Consumption that reached a summary must actually carry a rated amount. The
+// summary must START INSIDE the declared window -- the same predicate the
+// journals use above. Testing for mere overlap (even unpadded) always admits the
+// ADJACENT OPEN period, which sits at InProgress by definition and never settles,
+// so a correct run would be reported as "orchestration has not settled".
 List<UsageRatableSummary> rated = [
     SELECT Id, Account.Name, AccountId, AssetId, UsageResourceId, UsageResource.Code,
            StartDateTime, EndDateTime, TierQuantity, OverageQuantity,
            NetUnitRate, TotalAmount, Status
     FROM UsageRatableSummary
     WHERE Asset.Product2.StockKeepingUnit IN :QB_USAGE_SKUS
-      AND (StartDateTime = null OR StartDateTime <= :summaryTo)
-      AND (EndDateTime = null OR EndDateTime >= :summaryFrom)
+      AND StartDateTime >= :windowFrom
+      AND StartDateTime < :windowTo
 ];
 
 // Keep only rows belonging to an asset+resource this run actually produced.

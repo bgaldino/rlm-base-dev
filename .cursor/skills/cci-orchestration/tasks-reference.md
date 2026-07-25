@@ -3143,7 +3143,7 @@
 
 **Description:** Validate the multicurrency usage-rating configuration, scoped to the QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy, every ProductUsageResource is rated, every currency-denominated entry covers all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment, and per-asset entitlement shape compared across assets of the same product) which self-skip when no assets exist. Offline equivalent: python tests/test_qb_multicurrency_data.py
 
-**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
 
 **Options:**
 

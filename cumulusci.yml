@@ -2370,7 +2370,7 @@ tasks:
       and per-asset entitlement shape compared across assets of the same product)
       which self-skip when no assets exist. Offline equivalent:
       python tests/test_qb_multicurrency_data.py
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
     options:
       path: scripts/apex/validateMulticurrencyRates.apex
 
