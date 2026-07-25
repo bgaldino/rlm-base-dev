@@ -270,6 +270,20 @@ public class RLM_AccountUtilities {
         // still reference it -- so tearing down buckets before the summaries
         // (the previous order) fails on any account whose usage was ever rated.
         deleteUsageSummaryGraph(accountId);
+        // The clamp in deleteQuietly() stops at the DML-row ceiling instead of
+        // throwing, precisely so a partial teardown survives as progress. Falling
+        // through to the transactional cleanup below would spend what little budget
+        // remains and hit an UNCATCHABLE LimitException -- which rolls back the whole
+        // transaction, including everything removed above, defeating the clamp. Stop
+        // here instead; the next run starts from a smaller graph and converges.
+        if (dmlBudgetExhausted) {
+            System.debug(LoggingLevel.WARN, 'delAccountRelatedObjects: STOPPED after the '
+                + 'usage teardown -- the transaction\'s DML row budget was exhausted. The '
+                + 'usage records removed so far are kept. Transactional cleanup (orders, '
+                + 'assets, quotes, invoices) has NOT run. Re-run the reset until it '
+                + 'completes without this warning.');
+            return;
+        }
         // Gated on deleteAssets, like the asset deletion itself further down.
         // AssetRateCardEntry rows are generated when the asset is created and are
         // NOT recreated for an existing asset, so removing them while KEEPING the
