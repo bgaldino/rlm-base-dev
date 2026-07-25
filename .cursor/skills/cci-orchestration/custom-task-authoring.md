@@ -5,7 +5,9 @@ live in `tasks/` and are registered in `cumulusci.yml`.
 
 ## Quick Rules
 
-1. Use `BaseTask` unless you need `sf` CLI (then `SFDXBaseTask`).
+1. Use `BaseTask` unless you need `sf` CLI. For `sf` CLI **against an org** use
+   `SFDXOrgTask` (or `SFDXBaseTask` **plus `salesforce_task = True`**); bare
+   `SFDXBaseTask` is the **no-org** variant and silently drops `--org`.
 2. Use `org_config.username` for CLI calls, `access_token` for REST only.
 3. Every task needs `task_options` dict + `_run_task()` method.
 4. Register in `cumulusci.yml` with `group:` and `description:`.

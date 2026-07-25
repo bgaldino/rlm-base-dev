@@ -463,6 +463,23 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
             ApexException: If the Apex code threw a runtime exception
             CommandException: If the sf command failed
         """
+        # The execution payload moves depending on outcome, and this is the whole
+        # reason a failing run used to print nothing:
+        #
+        #   success -> {"status": 0, "result": {compiled, success, logs, ...}}
+        #   failure -> {"status": 1, "name": "executeRuntimeFailure",
+        #               "data":   {compiled, success, exceptionMessage, logs, ...}}
+        #
+        # On failure `result` is absent entirely and the debug log -- including every
+        # check that passed before the script gave up -- lives under `data`. Reading
+        # only `result` therefore discarded the diagnostic context on exactly the path
+        # that needs it. Verified against sf apex run on a scratch org, 2026-07-25.
+        apex_result = result.get("result") or result.get("data") or {}
+
+        # Surface it BEFORE any raise below, for the same reason: the exception
+        # carries only the final message, the log carries how the script got there.
+        self._log_script_output(apex_result.get("logs"))
+
         # Check for command-level errors (status != 0)
         # The sf CLI returns status=0 for success, non-zero for failures
         # Status can be None if the JSON structure is unexpected
@@ -471,18 +488,25 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
             message = result.get("message", "Unknown error")
             self.logger.error(f"sf apex run command failed with status {status}: {message}")
 
-            # Check if it's a compilation error in the message
-            if "compiled successfully: false" in message.lower():
-                apex_result = result.get("result", {})
+            # Compile failures are reported either in the message or, on the failure
+            # shape, as a populated compileProblem with compiled == False.
+            if "compiled successfully: false" in message.lower() or (
+                apex_result and not apex_result.get("compiled", True)
+            ):
                 line = apex_result.get("line", 0)
-                problem = apex_result.get("compileProblem", message)
+                problem = apex_result.get("compileProblem") or message
                 raise ApexCompilationException(line, problem)
+
+            # A runtime exception also arrives here (status 1), and the failure shape
+            # carries the Apex-level detail -- prefer it over the generic CLI message.
+            exception_message = apex_result.get("exceptionMessage")
+            if exception_message:
+                raise ApexException(
+                    exception_message, apex_result.get("exceptionStackTrace", "")
+                )
 
             # Otherwise it's a general command error
             raise CommandException(f"sf apex run failed: {message}")
-
-        # Get the Apex execution result
-        apex_result = result.get("result", {})
 
         if not apex_result:
             raise CommandException(
@@ -515,9 +539,6 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
                 self.logger.error(f"Stack trace:\n{exception_trace}")
 
             raise ApexException(exception_message, exception_trace)
-
-        # Surface what the script itself printed.
-        self._log_script_output(apex_result.get("logs"))
 
     def _extract_script_output(self, logs: str) -> List[str]:
         """

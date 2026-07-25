@@ -178,6 +178,118 @@ def check_empty_and_missing_logs_are_safe(_):
     check("empty_log_safe", ok, "empty log must yield no output, not raise")
 
 
+class _StubLogger:
+    """Records what was logged, in order, so ordering can be asserted."""
+
+    def __init__(self):
+        self.lines = []
+
+    def info(self, msg):
+        self.lines.append(("info", str(msg)))
+
+    def debug(self, msg):
+        self.lines.append(("debug", str(msg)))
+
+    def warning(self, msg):
+        self.lines.append(("warning", str(msg)))
+
+    def error(self, msg):
+        self.lines.append(("error", str(msg)))
+
+
+class _StubTask:
+    """
+    Minimal stand-in for the task: _check_result only ever touches self.logger and
+    the two output helpers, so borrowing them as plain functions exercises the real
+    code without needing a constructed CumulusCI task.
+    """
+
+    _extract_script_output = FileBasedAnonymousApexTask._extract_script_output
+    _log_script_output = FileBasedAnonymousApexTask._log_script_output
+    _check_result = FileBasedAnonymousApexTask._check_result
+
+    def __init__(self):
+        self.logger = _StubLogger()
+
+
+def check_output_is_logged_before_a_failure_raises(_):
+    """
+    The regression this locks: _log_script_output used to sit AFTER the compile and
+    success checks, so on a failing run it never executed. That is the exact path
+    where the output matters most -- the exception carries only the final message,
+    while the debug log holds every check that passed before the script gave up.
+    It also left the FATAL_ERROR/EXCEPTION_THROWN branch of the extractor
+    unreachable, i.e. covered by a test but dead in production.
+    """
+    # THE REAL FAILURE SHAPE, captured from sf apex run on a scratch org: on a
+    # runtime exception the CLI returns status 1, OMITS "result" entirely, and puts
+    # the payload -- including the log -- under "data". A reader that only looks at
+    # "result" sees nothing at all, which is why this must be asserted with the
+    # authentic shape and not a hand-made {"result": ...} that would pass either way.
+    task = _StubTask()
+    failing_payload = {
+        "status": 1,
+        "name": "executeRuntimeFailure",
+        "message": "Execution failed at this code:\n\nSystem.IllegalArgumentException: boom",
+        "data": {
+            "compiled": True,
+            "success": False,
+            "compileProblem": "",
+            "exceptionMessage": "System.IllegalArgumentException: boom",
+            "exceptionStackTrace": "AnonymousBlock: line 2, column 1",
+            "logs": "\n".join(
+                [
+                    "67.0 APEX_CODE,DEBUG;APEX_PROFILING,INFO",
+                    "Execute Anonymous: System.debug('x');",
+                    "16:03:23.39 (1)|USER_DEBUG|[1]|DEBUG|PASS: first check",
+                    "16:03:23.39 (2)|USER_DEBUG|[2]|DEBUG|PASS: second check",
+                ]
+            ),
+        },
+    }
+
+    raised = False
+    try:
+        task._check_result(failing_payload)
+    except Exception:
+        raised = True
+
+    logged = [msg for _, msg in task.logger.lines]
+    passes_logged = [m for m in logged if "PASS:" in m]
+
+    check(
+        "failure_still_raises",
+        raised,
+        "a failing script must still raise" if not raised else "raised",
+    )
+    check(
+        "script_output_logged_on_failure",
+        len(passes_logged) == 2,
+        f"expected both PASS lines before the raise, got {len(passes_logged)}",
+    )
+
+
+def check_success_payload_still_read_from_result(_):
+    """The failure-shape fallback must not break the success shape."""
+    task = _StubTask()
+    task._check_result(
+        {
+            "status": 0,
+            "result": {
+                "compiled": True,
+                "success": True,
+                "logs": "16:03:23.39 (1)|USER_DEBUG|[1]|DEBUG|PASSED -- 11 check(s).",
+            },
+        }
+    )
+    logged = [msg for _, msg in task.logger.lines]
+    check(
+        "success_output_still_logged",
+        any("PASSED -- 11 check(s)." in m for m in logged),
+        "a passing run must still surface its output from the result key",
+    )
+
+
 def check_overflow_is_reported_not_silent(_):
     """
     REVIEW.md: no silent caps. Verify the cap exists and that the extractor
@@ -207,6 +319,8 @@ def main():
         check_errors_are_surfaced,
         check_event_regex_needs_the_timestamp,
         check_empty_and_missing_logs_are_safe,
+        check_output_is_logged_before_a_failure_raises,
+        check_success_payload_still_read_from_result,
         check_overflow_is_reported_not_silent,
     )
     for fn in checks:

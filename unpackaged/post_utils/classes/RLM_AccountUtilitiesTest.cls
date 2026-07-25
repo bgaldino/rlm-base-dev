@@ -43,7 +43,15 @@
  * real rated asset with AssetRateCardEntry rows.
  */
 @IsTest
-private class RLM_AccountUtilitiesTest {
+private without sharing class RLM_AccountUtilitiesTest {
+    // `without sharing` per .cursor/rules/apex-classes.mdc, which requires an explicit
+    // keyword on every class. It is the behaviour-preserving choice here, not a
+    // convenience: RLM_AccountUtilities declares no sharing keyword, so when it is
+    // entered directly -- as it is from its Flow invocable -- it runs in system mode.
+    // A test entry point declared `with sharing` (or `inherited sharing`, which
+    // defaults to `with sharing` at an entry point) would push the utility into a
+    // sharing context it never runs in, so the tests would exercise behaviour the
+    // demo reset does not have.
 
     private static Account newAccount() {
         Account a = new Account(Name = 'RLM Utilities Test Account');
