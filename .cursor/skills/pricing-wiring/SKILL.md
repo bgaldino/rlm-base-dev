@@ -329,9 +329,17 @@ lookups alike. Missing it on the tier step alone still yields wrong discounts.
 
 Currency must also *reach* the record for the step to filter on it. Records created
 by quick actions and flows default to the **running user's** currency, not the
-account's, so wire currency inheritance explicitly — see
-`RLM_Default_Opportunity_Currency` and `RLM_Default_AssetRateCard_Currency`
-(`force-app/main/default/flows/`) for the pattern.
+account's, so wire currency inheritance explicitly. Two before-save flows show the
+pattern — note their **placement differs by scope**:
+
+| Flow | Lives in | Why |
+|------|----------|-----|
+| `RLM_Default_AssetRateCard_Currency` | `force-app/main/default/flows/` | Foundational. An `AssetRateCardEntry` whose currency differs from its Asset is *always* wrong; the platform defaults it to USD and never inherits (262, no config remedy). Every multicurrency build needs this. |
+| `RLM_Default_Opportunity_Currency` | `unpackaged/post_quantumbit/flows/` | Feature-specific. It **enforces** account currency, so a deliberately cross-currency Opportunity cannot be created while it is active — acceptable for the QB demo, not something to impose on every build. Gated behind the `quantumbit` flag. |
+
+The distinction generalises: a flow that corrects an always-wrong platform default is
+foundational; one that removes a legitimate user choice to suit a demo belongs in
+that demo's feature bundle.
 
 Offline guard: `python tests/test_qb_multicurrency_data.py`.
 Live guard: `cci task run validate_multicurrency_rates`.

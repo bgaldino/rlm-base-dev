@@ -168,6 +168,66 @@ for (ProductUsageResourcePolicy p : [
           AND ProductUsageResource.Product.StockKeepingUnit IN :QB_USAGE_SKUS]) {
     packWithPolicy.add(p.ProductUsageResource.Product.StockKeepingUnit);
 }
+// 3b. A COMMITMENT product's PURP may carry ONLY a UsageCommitmentPolicy. Setting
+//     either period field fails with INVALID_INPUT ("This field must be empty when
+//     the product associated with the product usage resource is one of the
+//     commitment usage model types"), and SFDMU drops the row silently -- this is
+//     the exact defect this PR was opened to fix, where 10 PURP rows failed to load
+//     on every build and nothing reported it.
+//
+//     The offline CSV invariant proves the SHIPPED DATA is shaped correctly; it
+//     cannot prove the rows actually landed. Only a live query can, which is why
+//     this check has to exist here as well.
+Set<String> COMMITMENT_MODELS = new Set<String>{
+    'Commit', 'CommitmentQuantity', 'CommitmentSpend'
+};
+List<String> commitWithPeriods = new List<String>();
+Set<String> commitSkusWithPurp = new Set<String>();
+for (ProductUsageResourcePolicy p : [
+        SELECT ProductUsageResource.Product.StockKeepingUnit,
+               ProductUsageResource.UsageResource.Code,
+               RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId
+        FROM ProductUsageResourcePolicy
+        WHERE ProductUsageResource.Product.UsageModelType IN :COMMITMENT_MODELS
+          AND ProductUsageResource.Product.StockKeepingUnit IN :QB_USAGE_SKUS]) {
+    String sku = p.ProductUsageResource.Product.StockKeepingUnit;
+    String res = p.ProductUsageResource.UsageResource.Code;
+    commitSkusWithPurp.add(sku);
+    List<String> carried = new List<String>();
+    if (p.RatingFrequencyPolicyId != null) { carried.add('rating'); }
+    if (p.UsageAggregationPolicyId != null) { carried.add('accumulation'); }
+    if (p.UsageCommitmentPolicyId == null) { carried.add('NO commitment policy'); }
+    if (!carried.isEmpty()) {
+        commitWithPeriods.add(sku + '/' + res + ' carries ' + String.join(carried, '+'));
+    }
+}
+if (!commitWithPeriods.isEmpty()) {
+    problems.add('Commitment PURP rows with an illegal shape (' + commitWithPeriods.size()
+        + '): ' + String.join(commitWithPeriods, '; ')
+        + ' -- a commitment PURP may carry ONLY a UsageCommitmentPolicy.');
+} else if (!commitSkusWithPurp.isEmpty()) {
+    passed.add('every commitment PURP across ' + commitSkusWithPurp.size()
+        + ' product(s) carries a commitment policy and no period fields');
+}
+// Presence, not just shape: a silently-dropped row leaves the product with NO PURP
+// at all, which the shape check above cannot see.
+Set<String> commitSkus = new Set<String>();
+for (Product2 p : [SELECT StockKeepingUnit FROM Product2
+                   WHERE StockKeepingUnit IN :QB_USAGE_SKUS
+                     AND UsageModelType IN :COMMITMENT_MODELS]) {
+    commitSkus.add(p.StockKeepingUnit);
+}
+Set<String> commitSkusMissingPurp = new Set<String>(commitSkus);
+commitSkusMissingPurp.removeAll(commitSkusWithPurp);
+if (!commitSkusMissingPurp.isEmpty()) {
+    problems.add('Commitment product(s) with NO ProductUsageResourcePolicy at all: '
+        + commitSkusMissingPurp + ' -- the rows were almost certainly dropped during '
+        + 'the data load (the classic silent failure); the commitment cannot discount '
+        + 'anything without them.');
+} else if (!commitSkus.isEmpty()) {
+    passed.add('all ' + commitSkus.size() + ' commitment product(s) have PURP rows loaded');
+}
+
 if (!packWithPolicy.isEmpty()) {
     problems.add('Pack products carrying a ProductUsageResourcePolicy (platform rejects these): '
         + String.join(packWithPolicy, ', '));

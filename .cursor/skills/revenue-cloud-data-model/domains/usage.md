@@ -138,19 +138,26 @@ behaviour applied; you must read the policy.
 
 ### ⛔ Three ways to silently get zeros
 
-These fail with **no error** — the rated summary simply reads zero:
+Each item below is a **mistake**, not an instruction. All three fail with **no
+error** — the rated summary simply reads zero:
 
-1. **Record usage BEFORE orchestrating that period.** A `UsageSummary` that reaches
-   `RatableSummaryComplete` / `LiableSummaryComplete` **never reopens**. Journals
-   arriving afterwards stay `Pending` forever.
-2. **The first orchestration pass on an account closes every past period EMPTY.**
-   Order matters more than it looks.
-3. **Book into a PAST period.** Drawdown and final rating only settle when a period
-   *completes*; the current billing period stays open indefinitely, so usage booked
-   into it sits at `InProgress` with buckets untouched — which reads as "full
-   discount, no drawdown" and is not a real result.
+1. **Recording usage AFTER that period was orchestrated.** A `UsageSummary` that
+   has reached `RatableSummaryComplete` / `LiableSummaryComplete` **never reopens**,
+   so journals arriving afterwards stay `Pending` forever.
+   → *Record usage BEFORE orchestrating the period.*
+2. **Orchestrating an account for the first time before consuming.** The first pass
+   closes every past period EMPTY, and you get one attempt per account.
+   → *Consume first, then orchestrate.*
+3. **Booking into the CURRENT period.** It stays open indefinitely, so the usage
+   sits at `InProgress` with buckets untouched — which reads as "full discount, no
+   drawdown" and is not a real result.
+   → *Book into a PAST, completed period.*
 
-Orchestration also needs **several passes** to fully settle; one run is not enough.
+A fourth, less severe: orchestration needs **several passes** to settle; one run is
+not enough, and stopping early looks like zero.
+
+The corresponding *rules* (stated positively, with worked arithmetic) are in
+`docs/guides/qb-consumption-demo-scenarios.md`.
 
 ### Entitlement bucket tree
 
