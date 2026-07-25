@@ -70,10 +70,19 @@ if (anchors.isEmpty()) {
 
 Integer uploaded = 0;
 List<String> failures = new List<String>();
+// ONLY_ACCOUNTS is applied per-asset below, AFTER the anchors.isEmpty() guard has
+// already run against the unfiltered query. Without tracking, a typo'd name -- or
+// an account that simply has no anchor asset -- skips every asset, reports
+// "0 journal(s)" and exits SUCCESSFULLY. That silent no-op is the same failure
+// class this script's ordering rules exist to prevent, so record what matched.
+Set<String> matchedAccounts = new Set<String>();
+Integer processedAnchors = 0;
 
 for (Asset a : anchors) {
     String sku = a.Product2.StockKeepingUnit;
     if (!ONLY_ACCOUNTS.isEmpty() && !ONLY_ACCOUNTS.contains(a.Account.Name)) { continue; }
+    matchedAccounts.add(a.Account.Name);
+    processedAnchors++;
 
     List<RLM_UsageUploaderController.UsageEntry> entries =
         new List<RLM_UsageUploaderController.UsageEntry>();
@@ -107,7 +116,29 @@ for (Asset a : anchors) {
 }
 
 System.debug('CONSUME: ' + uploaded + ' journal(s) at x' + MULTIPLIER
-    + ' on ' + String.valueOf(USAGE_DATE));
+    + ' on ' + String.valueOf(USAGE_DATE) + ' across ' + processedAnchors + ' anchor(s)');
+
+// A requested account that matched nothing is a mistake, not a filter. Report it
+// before the generic failure check so the message names the actual cause.
+if (!ONLY_ACCOUNTS.isEmpty()) {
+    Set<String> unmatched = new Set<String>(ONLY_ACCOUNTS);
+    unmatched.removeAll(matchedAccounts);
+    if (!unmatched.isEmpty()) {
+        throw new UsageConsumeException(
+            'ONLY_ACCOUNTS names ' + unmatched + ' but no anchor asset exists for '
+            + 'them (checked ' + anchors.size() + ' anchor asset(s) for '
+            + profile.keySet() + '). Check the spelling, or build the anchor first '
+            + 'with scripts/build_quote_to_asset.py -- otherwise this run silently '
+            + 'records nothing for those accounts.');
+    }
+}
+if (processedAnchors == 0) {
+    throw new UsageConsumeException(
+        'No anchor asset was processed, so no usage was recorded. '
+        + anchors.size() + ' anchor asset(s) exist'
+        + (ONLY_ACCOUNTS.isEmpty() ? '' : ' but none matched ONLY_ACCOUNTS ' + ONLY_ACCOUNTS)
+        + '.');
+}
 
 // Fail loudly rather than leaving a partial consume to be discovered later as an
 // apparent rating defect.
