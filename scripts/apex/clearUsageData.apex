@@ -44,6 +44,31 @@ final Integer MAX_ROUNDS = 6;
 final Integer BATCH = 2000;            // per-statement ceiling, further clamped below
 Boolean budgetSpent = false;
 
+// Deletes and REPORTS. A discarded DeleteResult is the reason a stalled round is
+// undiagnosable: the row that refused is exactly the relationship still holding
+// the graph, and it later resurfaces as an unexplained failure on the asset.
+// Logged at the default level on purpose -- LoggingLevel.FINE is hidden by the
+// default log level, which is how these stayed invisible before.
+// Mirrors RLM_AccountUtilities.deleteQuietly(); see .cursor/rules/apex-scripts.mdc.
+// NB: instance method, not static -- anonymous Apex treats a declared class as an
+// inner type and rejects "static can only be used on methods of a top level type".
+public class Drain {
+    public Integer run(List<SObject> records, String label) {
+        if (records == null || records.isEmpty()) { return 0; }
+        Integer removed = 0;
+        for (Database.DeleteResult r : Database.delete(records, false)) {
+            if (r.isSuccess()) {
+                removed++;
+            } else {
+                for (Database.Error e : r.getErrors()) {
+                    System.debug('CLEAR blocked (' + label + '): ' + e.getMessage());
+                }
+            }
+        }
+        return removed;
+    }
+}
+
 Set<Id> assetIds = new Set<Id>();
 Id accountId = null;
 if (String.isNotBlank(ACCOUNT_NAME)) {
@@ -55,6 +80,7 @@ if (String.isNotBlank(ACCOUNT_NAME)) {
     for (Asset a : [SELECT Id FROM Asset WHERE AccountId = :accountId]) { assetIds.add(a.Id); }
 }
 Boolean scoped = (accountId != null);
+Drain drain = new Drain();
 
 Integer q0 = Limits.getQueries();
 Integer uee = 0, ubpi = 0, us = 0, urs = 0;
@@ -70,9 +96,8 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
         ? [SELECT Id FROM UsageEntitlementEntry
            WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :take]
         : [SELECT Id FROM UsageEntitlementEntry LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(entries, false)) {
-        if (r.isSuccess()) { uee++; progress++; }
-    }
+    Integer nEntries = drain.run(entries, 'UsageEntitlementEntry');
+    uee += nEntries; progress += nEntries;
 
     // Inside the loop on purpose: UBPI is blocked by its summaries too, so
     // deleting it once up front strands rows behind summaries that only become
@@ -83,9 +108,8 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
         ? [SELECT Id FROM UsageBillingPeriodItem
            WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
         : [SELECT Id FROM UsageBillingPeriodItem LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(items, false)) {
-        if (r.isSuccess()) { ubpi++; progress++; }
-    }
+    Integer nItems = drain.run(items, 'UsageBillingPeriodItem');
+    ubpi += nItems; progress += nItems;
 
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
     if (take <= 0) { budgetSpent = true; break; }
@@ -93,9 +117,8 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
         ? [SELECT Id FROM UsageSummary
            WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
         : [SELECT Id FROM UsageSummary LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(summaries, false)) {
-        if (r.isSuccess()) { us++; progress++; }
-    }
+    Integer nSum = drain.run(summaries, 'UsageSummary');
+    us += nSum; progress += nSum;
 
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
     if (take <= 0) { budgetSpent = true; break; }
@@ -103,9 +126,8 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
         ? [SELECT Id FROM UsageRatableSummary
            WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
         : [SELECT Id FROM UsageRatableSummary LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(ratable, false)) {
-        if (r.isSuccess()) { urs++; progress++; }
-    }
+    Integer nRat = drain.run(ratable, 'UsageRatableSummary');
+    urs += nRat; progress += nRat;
 
     System.debug('CLEAR: round ' + round + ' removed ' + progress + ' record(s)');
     if (progress == 0) { break; }
@@ -117,7 +139,7 @@ if (take > 0) {
     List<AssetRateCardEntry> arces = scoped
         ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :take]
         : [SELECT Id FROM AssetRateCardEntry LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(arces, false)) { if (r.isSuccess()) arce++; }
+    arce = drain.run(arces, 'AssetRateCardEntry');
 } else { budgetSpent = true; }
 
 Integer tj = 0;
@@ -126,7 +148,7 @@ if (take > 0) {
     List<TransactionJournal> journals = scoped
         ? [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :take]
         : [SELECT Id FROM TransactionJournal LIMIT :take];
-    for (Database.DeleteResult r : Database.delete(journals, false)) { if (r.isSuccess()) tj++; }
+    tj = drain.run(journals, 'TransactionJournal');
 } else { budgetSpent = true; }
 
 System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi

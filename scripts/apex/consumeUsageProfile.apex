@@ -60,7 +60,12 @@ List<Asset> anchors = [SELECT Id, Account.Name, Product2.StockKeepingUnit FROM A
                        WHERE Product2.StockKeepingUnit IN :profile.keySet()
                        ORDER BY Account.Name];
 if (anchors.isEmpty()) {
-    throw new System.NoDataFoundException();
+    // NoDataFoundException can only be thrown from a VisualForce/Aura
+    // context -- from anonymous Apex it fails with a confusing platform
+    // error instead of this message.
+    throw new UsageConsumeException(
+        'No anchor asset exists for ' + profile.keySet() + '. Build one first with '
+        + 'scripts/build_quote_to_asset.py.');
 }
 
 Integer uploaded = 0;

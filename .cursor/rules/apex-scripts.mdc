@@ -64,9 +64,20 @@ Set<Id> assetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE ...]).keySet()
 ```
 
 ## Apex Gotchas in Anonymous Scripts
+
+These only surface at compile/run time in an org — **always run a script against a
+scratch org before committing it**, even when you expect it to no-op.
+
 - `IllegalStateException` **does not exist**; the built-in `Exception` is abstract —
   declare `public class MyException extends Exception {}` to throw
-- `System.IllegalArgumentException` and `System.NoDataFoundException` are valid
+- `IllegalArgumentException` works. **`System.NoDataFoundException` does not** —
+  throwing it gives `Can only throw this exception type from VisualForce or Aura
+  context`. Use your own exception subclass
+- A class declared in anonymous Apex is an **inner** type, so its methods cannot be
+  `static` (`static can only be used on methods of a top level type`). Declare
+  instance methods and `new` the class up front
+- Bind a `Datetime` field to a `Datetime`, not a `Date` — e.g.
+  `TransactionJournal.StartDate` is a Datetime
 
 ## Naming Convention
 - Activation: `activate{Feature}Records.apex`

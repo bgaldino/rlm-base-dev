@@ -188,8 +188,19 @@ List<AssetRateCardEntry> arces = [
     FROM AssetRateCardEntry
     WHERE Asset.Product2.StockKeepingUnit IN :QB_USAGE_SKUS
 ];
-if (arces.isEmpty()) {
-    passed.add('runtime checks skipped -- no AssetRateCardEntry records yet');
+// Skip only when there are genuinely no QuantumBit assets. Zero AssetRateCardEntry
+// rows while assets DO exist is itself the failure -- the order-to-asset run
+// produced an asset that resolved no rates at all -- so treating "no ARCEs" as
+// "nothing to check" would report a pass over exactly that broken state.
+Integer qbAssetCount = [
+    SELECT COUNT() FROM Asset WHERE Product2.StockKeepingUnit IN :QB_USAGE_SKUS
+];
+if (arces.isEmpty() && qbAssetCount == 0) {
+    passed.add('runtime checks skipped -- no QuantumBit usage assets exist yet');
+} else if (arces.isEmpty()) {
+    problems.add('No AssetRateCardEntry rows exist despite ' + qbAssetCount
+        + ' QuantumBit usage asset(s). The asset resolved no rates at all -- check the '
+        + 'order-to-asset run and that the product\'s rate card entries are Active.');
 } else {
     // 6. asset currency == ARCE currency == ARCE rate UoM == resolved entry's UoM.
     //    A divergence means the asset resolved a rate denominated in another

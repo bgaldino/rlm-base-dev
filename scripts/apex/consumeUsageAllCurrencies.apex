@@ -46,7 +46,12 @@ List<Asset> assets = [
     ORDER BY CurrencyIsoCode
 ];
 if (assets.isEmpty()) {
-    throw new System.NoDataFoundException();
+    // NoDataFoundException can only be thrown from a VisualForce/Aura
+    // context -- from anonymous Apex it fails with a confusing platform
+    // error instead of this message.
+    throw new UsageConsumeException(
+        'No QB-DB asset exists. Build the regional assets first with '
+        + 'scripts/build_quote_to_asset.py.');
 }
 
 Set<String> foundCurrencies = new Set<String>();
@@ -104,12 +109,17 @@ for (Asset a : assets) {
         entries.add(e);
     }
 
-    if (entries.isEmpty()) {
-        // Resource labels did not match the codes above -- fall back to the
-        // pre-resolved code mapping (no query inside the loop).
-        for (String code : resourceIdByCode.keySet()) {
+    // Rebuild from the code map whenever the wrapper result is INCOMPLETE, not
+    // merely empty. A partial match previously uploaded one of the two required
+    // resources and still started orchestration, so the missing resource surfaced
+    // later as an apparent rating defect rather than a consume that never ran.
+    if (entries.size() != qtyByResource.size()) {
+        entries.clear();
+        for (String code : qtyByResource.keySet()) {
+            Id resourceId = resourceIdByCode.get(code);
+            if (resourceId == null) { continue; }
             RLM_UsageUploaderController.UsageEntry e = new RLM_UsageUploaderController.UsageEntry();
-            e.usageResourceId = resourceIdByCode.get(code);
+            e.usageResourceId = resourceId;
             e.usageResourceName = code;
             e.quantity = qtyByResource.get(code);
             e.transactionDate = USAGE_DATE;
@@ -117,8 +127,13 @@ for (Asset a : assets) {
         }
     }
 
-    if (entries.isEmpty()) {
-        failures.add(a.CurrencyIsoCode + ': no usage resources resolved for the asset');
+    // Require the full declared set. Anything less is a partial consume, and the
+    // whole point of this script is that every currency records identical usage.
+    if (entries.size() != qtyByResource.size()) {
+        failures.add(a.CurrencyIsoCode + ': resolved ' + entries.size() + ' of '
+            + qtyByResource.size() + ' required usage resources ('
+            + qtyByResource.keySet() + ') -- check for an inactive or missing '
+            + 'ProductUsageResource on QB-DB');
         continue;
     }
 
