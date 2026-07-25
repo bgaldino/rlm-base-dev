@@ -69,7 +69,7 @@ Worked example (scenario 7): 76,500 raw tokens against a 25,000 commitment at
 ```
 commitment   27,777.78 raw x 0.90 = 25,000 exactly   (exhausted)
 anchor grant  8,500 compute + 1,500 storage = 10,000 (exhausted, raw)
-overage      75,000 - 36,277.78 = 38,722.22 raw x 0.90 = 34,850 tokens
+overage      76,500 - 37,777.78 = 38,722.22 raw x 0.90 = 34,850 tokens
 ```
 
 > ⚠️ `UsageRatableSummary.OverageQuantity` **mirrors `TierQuantity` on ordinary
@@ -100,8 +100,8 @@ blow through the commitment.
 
 ## The nine scenarios
 
-All verified live. Currencies differ per scenario deliberately — it costs nothing
-and proves multicurrency at the same time.
+1–8 verified live (see the caveat on 6); 9 is a blocked path. Currencies differ per
+scenario deliberately — it costs nothing and proves multicurrency at the same time.
 
 ### 1 — Direct-currency tiered rating (the baseline)
 

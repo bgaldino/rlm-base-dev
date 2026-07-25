@@ -270,7 +270,13 @@ public class RLM_AccountUtilities {
         // still reference it -- so tearing down buckets before the summaries
         // (the previous order) fails on any account whose usage was ever rated.
         deleteUsageSummaryGraph(accountId);
-        deleteAssetRateCardEntries(accountId);
+        // Gated on deleteAssets, like the asset deletion itself further down.
+        // AssetRateCardEntry rows are generated when the asset is created and are
+        // NOT recreated for an existing asset, so removing them while KEEPING the
+        // asset leaves a usage asset that can never rate again.
+        if (deleteAssets) {
+            deleteAssetRateCardEntries(accountId);
+        }
 
         Savepoint sp = Database.setSavepoint();
         try {
