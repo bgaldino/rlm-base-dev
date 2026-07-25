@@ -63,6 +63,36 @@ The following CSVs are included for SFDMU lookup resolution only (they are not l
 | UnitOfMeasureClass.csv | UoM class references for default/rate UoM classes      |
 | UsageResource.csv      | Usage resource references for RateCardEntry            |
 
+## Reloading rates outside a full build — refresh the decision tables
+
+Rate resolution at runtime goes through decision tables
+(`Rate_Card_Entry_Resolution*`, `Asset_Rate_Decision_Table*`, …), which cache the
+rate data. **Loading rates does not refresh them.** A full `prepare_rlm_org` is
+safe because `refresh_all_decision_tables` runs near the end, after
+`prepare_rating` — but `prepare_rating` on its own stops at `activate_rates`, so
+an ad-hoc reload leaves the tables holding the *previous* rates and rating keeps
+using the old values with no error anywhere.
+
+After reloading this plan by itself, run:
+
+```bash
+cci task run refresh_dt_rating
+cci task run refresh_dt_rating_discovery
+```
+
+Note these tasks take **no `--org` flag** (like `activate_rates`, they are plain
+`BaseTask`s without `salesforce_task = True`) — they run against the CCI *default*
+org, so set the default org before running them.
+
+Two more ordering rules for an ad-hoc reload:
+
+1. **Reset the accounts first.** `AssetRateCardEntry` records reference the active
+   `RateCardEntry` rows, so the load cannot delete them and instead inserts a
+   second, `Draft` copy of every entry — leaving duplicate Draft + Active pairs
+   with different rates.
+2. **Activate after loading** (`cci task run activate_rates`); entries load as
+   `Draft` and a Draft entry is invisible to rating.
+
 ## Apex Activation Script
 
 **File:** `scripts/apex/activateRateCardEntries.apex`
