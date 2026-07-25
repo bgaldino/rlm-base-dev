@@ -9,7 +9,12 @@ prerequisite — see [Optional accelerators](#optional-accelerators).
 
 **For AI reviewers:** this file is read automatically alongside `AGENTS.md`. `AGENTS.md`
 is the canonical source for *what the code must do*; this file governs *how review is
-conducted*. Do not restate `AGENTS.md` rules here.
+conducted*.
+
+The two overlap on three points by design — verifying a finding, sweeping a class, and
+push discipline. `AGENTS.md` carries the short operational form of each inside its
+step-by-step PR protocol; this file carries the reasoning behind it. Keep those three in
+sync when either file changes, and do not add duplication beyond them.
 
 ---
 
@@ -34,7 +39,7 @@ check.
 
 | Severity | Meaning | Expected action |
 |----------|---------|-----------------|
-| **Critical** | Data loss, security hole, or a documented `AGENTS.md` DO NOT violated | Fix before merge, no exceptions |
+| **Critical** | Data loss, a security hole, or a violation of a documented `AGENTS.md` DO NOT | Fix before merge, no exceptions |
 | **Important** | Wrong behaviour under a reachable condition | Fix before merge, or state explicitly why not |
 | **Nit** | Real but minor; correctness unaffected | Author's discretion |
 | **Pre-existing** | Already on `main`, surfaced by this diff | Do not block; file follow-up work |

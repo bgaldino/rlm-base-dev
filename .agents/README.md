@@ -20,7 +20,9 @@ content is intentionally reusable across agents.
      the severity rubric, what a reviewer should look for, the defect classes
      this repository actually produces, and push discipline.
    - Division of labour: `AGENTS.md` governs *what the code must do*; `REVIEW.md`
-     governs *how review is conducted*. They are kept non-overlapping.
+     governs *how review is conducted*. They overlap on three points by design —
+     verifying a finding, sweeping a class, and push discipline — where `AGENTS.md`
+     carries the short operational form and `REVIEW.md` carries the reasoning.
    - Applies to human and AI reviewers alike, and to PR authors for the
      one-push-per-review-round rule.
 

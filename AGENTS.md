@@ -498,6 +498,8 @@ This repository provides multiple entry points for different AI tools:
 `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
 same content — edit `AGENTS.md` only. `REVIEW.md` is a **separate** document with its
 own content: this file governs *what the code must do*, `REVIEW.md` governs *how review
-is conducted*. Keep them non-overlapping — do not restate `AGENTS.md` rules in
-`REVIEW.md`. The `.agents/` tree is a separate routing and context layer that points
-back to `AGENTS.md` and never overrides it.
+is conducted*. They overlap on three points by design — verifying a finding, sweeping a
+class, and push discipline — where this file carries the short operational form and
+`REVIEW.md` carries the reasoning. Keep those three in sync when either changes, and do
+not add duplication beyond them. The `.agents/` tree is a separate routing and context
+layer that points back to `AGENTS.md` and never overrides it.
