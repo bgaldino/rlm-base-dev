@@ -55,7 +55,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
 | 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 22      |
-| 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
+| 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 4       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
 | 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 20      |
 | 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 11      |
@@ -268,7 +268,7 @@ qb-rating/
 ├── UsageOveragePolicy.csv               # 2 records
 ├── UsageCommitmentPolicy.csv            # 2 records
 ├── ProductUsageResource.csv             # 22 records
-├── UsagePrdGrantBindingPolicy.csv       # 1 record
+├── UsagePrdGrantBindingPolicy.csv       # 4 records
 ├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
 ├── ProductUsageResourcePolicy.csv       # 20 records
 ├── ProductUsageGrant.csv                # 11 records
