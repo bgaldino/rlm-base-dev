@@ -158,10 +158,15 @@ System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi
 // after a per-account run, other accounts' rows make a complete cleanup look
 // unfinished -- and the rerun-until-zero guidance below would then never be
 // satisfiable.
-Integer remEntries, remSummaries, remRatable, remArce, remJournals;
+// EVERY object this script deletes must appear here. An omitted one can survive
+// blocked while all printed counts read zero, so the rerun-until-zero check below
+// would report a false clean state -- UsageBillingPeriodItem was exactly that.
+Integer remEntries, remUbpi, remSummaries, remRatable, remArce, remJournals;
 if (scoped) {
     remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry
                     WHERE TransactionUsageEntitlement.Account.Id = :accountId];
+    remUbpi      = [SELECT COUNT() FROM UsageBillingPeriodItem
+                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
     remSummaries = [SELECT COUNT() FROM UsageSummary
                     WHERE AccountId = :accountId OR AssetId IN :assetIds];
     remRatable   = [SELECT COUNT() FROM UsageRatableSummary
@@ -170,14 +175,16 @@ if (scoped) {
     remJournals  = [SELECT COUNT() FROM TransactionJournal WHERE AccountId = :accountId];
 } else {
     remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry];
+    remUbpi      = [SELECT COUNT() FROM UsageBillingPeriodItem];
     remSummaries = [SELECT COUNT() FROM UsageSummary];
     remRatable   = [SELECT COUNT() FROM UsageRatableSummary];
     remArce      = [SELECT COUNT() FROM AssetRateCardEntry];
     remJournals  = [SELECT COUNT() FROM TransactionJournal];
 }
 System.debug('CLEAR: remaining (' + (scoped ? 'account ' + ACCOUNT_NAME : 'org-wide')
-    + ') -- entries=' + remEntries + ' summaries=' + remSummaries
-    + ' ratable=' + remRatable + ' arce=' + remArce + ' journals=' + remJournals);
+    + ') -- entries=' + remEntries + ' billingPeriodItems=' + remUbpi
+    + ' summaries=' + remSummaries + ' ratable=' + remRatable
+    + ' arce=' + remArce + ' journals=' + remJournals);
 System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100'
     + ', DML rows used = ' + Limits.getDmlRows() + ' of ' + Limits.getLimitDmlRows());
 if (budgetSpent) {

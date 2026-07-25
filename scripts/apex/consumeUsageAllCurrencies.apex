@@ -11,8 +11,16 @@
 // differ only by each currency's rate, which is exactly the property under test.
 // Any per-currency divergence beyond the rate is a bug.
 //
-// Idempotency: re-running adds more usage. Clear TransactionJournal /
-// UsageSummary first if you want a clean comparison.
+// ⛔ NOT RERUNNABLE WITHOUT A CLEAR FIRST. This script starts the orchestration,
+// which CLOSES the period it just recorded into -- and a UsageSummary that has
+// reached RatableSummaryComplete never reopens. Journals uploaded by a second run
+// therefore stay Pending forever: never aggregated, never rated, and nothing
+// reports an error. The result reads as a rating defect when it is really a
+// second consume that could never land.
+//
+// To run again, clear the usage graph first:
+//     sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
+// then re-run this. (Re-running is NOT merely additive.)
 
 public class UsageConsumeException extends Exception {}
 
