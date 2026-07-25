@@ -47,7 +47,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 |---|------------------------------|-----------|------------------------------------------------------|---------|
 | 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 18      |
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
-| 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 3       |
+| 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
 | 4 | UsageResource                | Upsert    | `Code`                                               | 9       |
 | 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 9       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
@@ -211,6 +211,45 @@ Products with `UsageModelType='Anchor'` (e.g., QB-DB) require a Token PUR (`QB-D
 
 CommitmentSpend products (QB-MTY-CMT) require their Currency-category PUR (`QB-MTY-CMT;UR-USD`) to be Active before any Usage-category PURs can be activated.
 
+### Period Ordering: Billing >= Rating > Accumulation
+
+The platform requires the three usage periods **in descending order**, and
+*equal is not descending*. With all three set to `Monthly` the **Create Empty
+Summaries** batch fails every `UsageEntitlementAccount`:
+
+```
+Summary Creation Exception: Specify values for the Billing Period, Rating Period
+and Usage Accumulation Period parameters in descending order for the usage
+resource related to the usage entitlement account ID: ...
+```
+
+That failure blocks the whole pipeline — no `UsageSummary`, so no rating, no
+billing. The three periods come from three different places:
+
+| Period | Source | QB value |
+|--------|--------|----------|
+| Billing | `UsageEntitlementAccount.BillingPeriodUnit/Term` (runtime) | Monthly |
+| Rating | `RatingFrequencyPolicy.RatingPeriod` | Monthly |
+| Accumulation | `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
+
+Accumulation must be **strictly shorter** than rating, which is why the
+`dailytotal` / `dailypeak` policies exist and why every QB usage resource points
+at one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
+for a future model that bills quarterly or annually — pointing a monthly-billed
+resource at them reintroduces the failure.
+
+**Two references, one authority.** The accumulation policy is named in *both*
+`UsageResource.UsageResourceBillingPolicy.Code` and
+`ProductUsageResourcePolicy.UsageAggregationPolicy.Code`. Runtime snapshots the
+**`UsageResource`** value onto the `TransactionUsageEntitlement`, so fixing only
+the PURP reference leaves the resource default broken while looking correct.
+Keep both aligned; `tests/test_qb_multicurrency_data.py::period_ordering_descending`
+checks both paths.
+
+`TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
+existing entitlements cannot be repointed — a design-time change reaches runtime
+only via the policy record itself or a newly created asset.
+
 ## File Structure
 
 ```
@@ -221,7 +260,7 @@ qb-rating/
 │  Source CSVs (Pass 1 - Draft status)
 ├── UnitOfMeasure.csv                    # 18 records
 ├── UnitOfMeasureClass.csv               # 5 records
-├── UsageResourceBillingPolicy.csv       # 3 records
+├── UsageResourceBillingPolicy.csv       # 5 records
 ├── UsageResource.csv                    # 9 records
 ├── Product2.csv                         # 9 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record

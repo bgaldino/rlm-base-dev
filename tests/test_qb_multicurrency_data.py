@@ -34,11 +34,21 @@ restatement of the data:
 * ``money_conversion_sane`` — converted money must track
   CurrencyType.ConversionRate, and tiered rates must stay distinct after
   rounding (whole-yen rounding once flattened four JPY tiers onto ¥1).
+* ``rates_derived_from_base`` — every non-base rate must equal the generator's
+  derived value exactly. ``money_conversion_sane`` deliberately tolerates
+  0.2x–5x for hand-tuned demo rates, which let six hand-seeded GBP/JPY
+  placeholders (e.g. GBP storage at the unconverted USD 10 instead of 7.48)
+  survive an expansion and rate wrong in a live org.
+* ``period_ordering_descending`` — the platform requires Billing >= Rating >
+  Accumulation. Three equal Monthly periods fail the "Create Empty Summaries"
+  batch with "Specify values for the Billing Period, Rating Period and Usage
+  Accumulation Period parameters in descending order", which blocks the entire
+  usage-rating pipeline: no UsageSummary, no rating, no billing.
 """
 import csv
 import os
 import sys
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -53,6 +63,21 @@ TOKEN_UOM = "TOKEN-UOM"
 # UR-USD is Category=Currency (the monetary-commitment wallet); its commit
 # discounts live on the -MTY usage resources instead. Deliberate, not a gap.
 ALLOWED_PUR_WITHOUT_RCE = {("QB-MTY-CMT", "UR-USD")}
+
+# Rates deliberately NOT derived from the base currency — e.g. a bespoke local
+# price rather than a conversion. Keyed (product, rate card, resource, currency).
+# Empty by design: every entry here is a rate that will not track a
+# CurrencyType.ConversionRate change, so adding one should be a conscious choice.
+ALLOWED_RATE_DEVIATIONS = set()
+
+# The billing period is a RUNTIME value (UsageEntitlementAccount.BillingPeriodUnit),
+# not design-time data, so it cannot be read from a CSV. Every QB selling model
+# bills monthly; if a quarterly/annual model is added this must become per-product.
+BILLING_PERIOD = "Monthly"
+
+# Ordering rank for period comparison. Higher = longer period.
+PERIOD_RANK = {"Daily": 1, "Weekly": 2, "Monthly": 3, "Quarterly": 4,
+               "Yearly": 5, "Annual": 5}
 
 RESULTS = []
 
@@ -81,6 +106,9 @@ def load():
         "rce": read(RATES, "RateCardEntry.csv"),
         "rabt": read(RATES, "RateAdjustmentByTier.csv"),
         "currency": read(PRICING, "CurrencyType.csv"),
+        "urbp": read(RATING, "UsageResourceBillingPolicy.csv"),
+        "rfp": read(RATING, "RatingFrequencyPolicy.csv"),
+        "resource": read(RATING, "UsageResource.csv"),
     }
     missing = [k for k, v in d.items() if v is None]
     if missing:
@@ -272,6 +300,102 @@ def check_money_conversion_sane(d):
           else "converted rates track ConversionRate and tiers stay distinct")
 
 
+def _derive(usd_value, ccy, rates, decimals):
+    """Mirror scripts/expand_currency_rates_data.py rounding exactly."""
+    converted = Decimal(str(usd_value)) * rates[ccy] / rates[BASE_CURRENCY]
+    if decimals[ccy] == 0:
+        # Whole-unit currencies (JPY) round to a whole unit, but a *rate* is often
+        # sub-unit; rounding those up would flatten tiers, so keep 2dp below 1.
+        step = Decimal("1") if abs(converted) >= 1 else Decimal("0.01")
+    else:
+        step = Decimal("0.01") if abs(converted) >= 1 else Decimal("0.0001")
+    q = converted.quantize(step, rounding=ROUND_HALF_UP)
+    return step if q == 0 else q
+
+
+def check_rates_derived_from_base(d):
+    """Every non-base rate must equal its derived value exactly.
+
+    money_conversion_sane tolerates 0.2x-5x for hand-tuned rates; that window let
+    an unconverted GBP copy of a USD rate (1.34x) ship and rate wrong in a live
+    org. Nothing here is hand-tuned today, so require exact derivation and make
+    any exception explicit via ALLOWED_RATE_DEVIATIONS.
+    """
+    rates = {r["IsoCode"]: Decimal(r["ConversionRate"]) for r in d["currency"]}
+    decimals = {r["IsoCode"]: int(r["DecimalPlaces"]) for r in d["currency"]}
+    base_rows = {rce_key(r): r for r in d["rce"]
+                 if r["RateUnitOfMeasure.UnitCode"] == BASE_CURRENCY and r["Rate"].strip()}
+
+    problems = []
+    for r in d["rce"]:
+        uom = r["RateUnitOfMeasure.UnitCode"]
+        if uom in (BASE_CURRENCY, TOKEN_UOM) or uom not in rates or not r["Rate"].strip():
+            continue
+        src = base_rows.get(rce_key(r))
+        if not src:
+            continue
+        key = rce_key(r) + (uom,)
+        if key in ALLOWED_RATE_DEVIATIONS:
+            continue
+        expect = _derive(src["Rate"], uom, rates, decimals)
+        if Decimal(r["Rate"]) != expect:
+            problems.append(f"{'/'.join(rce_key(r))} {uom}: {r['Rate']} != derived {expect}")
+
+    check("rates_derived_from_base", not problems,
+          f"{len(problems)} undrived rate(s): " + "; ".join(problems[:3]) if problems
+          else "every non-base rate matches its derived value")
+
+
+def check_period_ordering_descending(d):
+    """Billing >= Rating > Accumulation, or the summary batch rejects the record.
+
+    The platform demands the three periods "in descending order". Three equal
+    Monthly values do NOT satisfy it: with all three Monthly the Create Empty
+    Summaries batch fails every UsageEntitlementAccount and no usage is ever
+    summarised or rated. Accumulation must be strictly shorter than rating.
+
+    Runtime reads the accumulation policy from UsageResource, NOT from the
+    ProductUsageResourcePolicy row, so both paths are checked -- fixing only the
+    PURP reference leaves the resource default broken while looking correct.
+    """
+    accum_period = {r["Code"]: r["UsageAccumulationPeriod"] for r in d["urbp"]}
+    rating_period = {r["Name"]: r["RatingPeriod"] for r in d["rfp"]}
+    resource_policy = {r["Code"]: (r.get("UsageResourceBillingPolicy.Code") or "").strip()
+                       for r in d["resource"]}
+
+    billing_rank = PERIOD_RANK[BILLING_PERIOD]
+    problems = []
+
+    for row in d["purp"]:
+        rating = (row.get("RatingFrequencyPolicy.RatingPeriod") or "").strip()
+        agg = (row.get("UsageAggregationPolicy.Code") or "").strip()
+        if not rating and not agg:
+            continue  # commitment-only row: carries no periods to order
+        sku = row["ProductUsageResource.Product.StockKeepingUnit"]
+        res = row["ProductUsageResource.UsageResource.Code"]
+
+        # Both accumulation sources must satisfy the rule.
+        for label, code in (("purp", agg), ("resource", resource_policy.get(res, ""))):
+            if not code:
+                continue
+            period = accum_period.get(code)
+            if period is None:
+                problems.append(f"{sku}/{res} [{label}]: unknown policy {code!r}")
+                continue
+            if not rating:
+                problems.append(f"{sku}/{res} [{label}]: accumulation {period} but no rating period")
+                continue
+            r_rank, a_rank = PERIOD_RANK.get(rating, 0), PERIOD_RANK.get(period, 0)
+            if not (billing_rank >= r_rank > a_rank):
+                problems.append(
+                    f"{sku}/{res} [{label}]: billing={BILLING_PERIOD} rating={rating} "
+                    f"accumulation={period} ({code}) — not descending")
+
+    check("period_ordering_descending", not problems,
+          f"{len(problems)} violation(s): " + "; ".join(problems[:3]) if problems
+          else "billing >= rating > accumulation for every policy row")
+
+
 def check_counts_match_readme(d):
     """Row counts are the numbers the plan READMEs advertise."""
     actual = {"RateCardEntry": len(d["rce"]), "RateAdjustmentByTier": len(d["rabt"]),
@@ -311,6 +435,8 @@ def main():
                check_percentages_currency_neutral,
                check_bounds_not_converted,
                check_money_conversion_sane,
+               check_rates_derived_from_base,
+               check_period_ordering_descending,
                check_counts_match_readme):
         try:
             fn(d)

@@ -1,10 +1,10 @@
 Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
-Token,QB-TOKEN,TOKEN-UOM,Quantum Tokens,Quantum Tokens,Draft,,Token_UoM_Class,QB-TOKEN-DEF,monthlytotal
-Usage,UR-CPUTIME,m,,Compute Time,Draft,,TIME,QB-CPU-BLNG,monthlytotal
-Usage,UR-DATASTORAGE,TB,,Data Storage,Draft,,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
-Usage,UR-DATAXFR,GB,,Data Throughput,Draft,,DATAVOL,QB-DATA-THPT-BLNG,monthlytotal
-Currency,UR-USD,USD,,USD Resource,Draft,,CURRENCY,RES-USD-DEF,monthlytotal
-Usage,UR-CPUTIME-TKN,m,,Compute Time (Token),Draft,QB-TOKEN,TIME,QB-CPU-BLNG,monthlytotal
-Usage,UR-DATASTORAGE-TKN,TB,,Data Storage (Token),Draft,QB-TOKEN,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
-Usage,UR-CPUTIME-MTY,m,,Compute Time (Monetary),Draft,UR-USD,TIME,QB-CPU-BLNG,monthlytotal
-Usage,UR-DATASTORAGE-MTY,TB,,Data Storage (Monetary),Draft,UR-USD,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
+Token,QB-TOKEN,TOKEN-UOM,Quantum Tokens,Quantum Tokens,Draft,,Token_UoM_Class,QB-TOKEN-DEF,dailytotal
+Usage,UR-CPUTIME,m,,Compute Time,Draft,,TIME,QB-CPU-BLNG,dailytotal
+Usage,UR-DATASTORAGE,TB,,Data Storage,Draft,,DATAVOL,QB-DATA-STORAGE-BLNG,dailypeak
+Usage,UR-DATAXFR,GB,,Data Throughput,Draft,,DATAVOL,QB-DATA-THPT-BLNG,dailytotal
+Currency,UR-USD,USD,,USD Resource,Draft,,CURRENCY,RES-USD-DEF,dailytotal
+Usage,UR-CPUTIME-TKN,m,,Compute Time (Token),Draft,QB-TOKEN,TIME,QB-CPU-BLNG,dailytotal
+Usage,UR-DATASTORAGE-TKN,TB,,Data Storage (Token),Draft,QB-TOKEN,DATAVOL,QB-DATA-STORAGE-BLNG,dailypeak
+Usage,UR-CPUTIME-MTY,m,,Compute Time (Monetary),Draft,UR-USD,TIME,QB-CPU-BLNG,dailytotal
+Usage,UR-DATASTORAGE-MTY,TB,,Data Storage (Monetary),Draft,UR-USD,DATAVOL,QB-DATA-STORAGE-BLNG,dailypeak

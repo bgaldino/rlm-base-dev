@@ -49,22 +49,22 @@ QB-DB;Base Rate Card;UR-CPUTIME;AUD,Minutes,Time,2023-01-01T20:00:00.000+0000,,Q
 QB-DB;Base Rate Card;UR-CPUTIME;CAD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0056,Base Rate Card;Base,Negotiable,CAD,CAD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Base Rate Card;UR-CPUTIME;CHF,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0033,Base Rate Card;Base,Negotiable,CHF,CHF,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Base Rate Card;UR-CPUTIME;EUR,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0035,Base Rate Card;Base,Negotiable,EUR,EUR,Currency,Draft,UR-CPUTIME,Compute Time
-QB-DB;Base Rate Card;UR-CPUTIME;GBP,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.004,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-CPUTIME,Compute Time
-QB-DB;Base Rate Card;UR-CPUTIME;JPY,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,1,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-CPUTIME,Compute Time
+QB-DB;Base Rate Card;UR-CPUTIME;GBP,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.003,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-CPUTIME,Compute Time
+QB-DB;Base Rate Card;UR-CPUTIME;JPY,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.65,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Base Rate Card;UR-CPUTIME;USD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.004,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Base Rate Card;UR-DATASTORAGE;AUD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,14.3,Base Rate Card;Base,Negotiable,AUD,AUD,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Base Rate Card;UR-DATASTORAGE;CAD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,14.09,Base Rate Card;Base,Negotiable,CAD,CAD,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Base Rate Card;UR-DATASTORAGE;CHF,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,8.14,Base Rate Card;Base,Negotiable,CHF,CHF,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Base Rate Card;UR-DATASTORAGE;EUR,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,8.76,Base Rate Card;Base,Negotiable,EUR,EUR,Currency,Draft,UR-DATASTORAGE,Data Storage
-QB-DB;Base Rate Card;UR-DATASTORAGE;GBP,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,10,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-DATASTORAGE,Data Storage
-QB-DB;Base Rate Card;UR-DATASTORAGE;JPY,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,1500,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-DB;Base Rate Card;UR-DATASTORAGE;GBP,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,7.48,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-DB;Base Rate Card;UR-DATASTORAGE;JPY,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,1631,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Base Rate Card;UR-DATASTORAGE;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,10,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Base Rate Card;UR-DATAXFR;AUD,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.143,Base Rate Card;Base,Negotiable,AUD,AUD,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Base Rate Card;UR-DATAXFR;CAD,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.1409,Base Rate Card;Base,Negotiable,CAD,CAD,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Base Rate Card;UR-DATAXFR;CHF,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0814,Base Rate Card;Base,Negotiable,CHF,CHF,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Base Rate Card;UR-DATAXFR;EUR,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0876,Base Rate Card;Base,Negotiable,EUR,EUR,Currency,Draft,UR-DATAXFR,Data Throughput
-QB-DB;Base Rate Card;UR-DATAXFR;GBP,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.10,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-DATAXFR,Data Throughput
-QB-DB;Base Rate Card;UR-DATAXFR;JPY,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,15,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-DATAXFR,Data Throughput
+QB-DB;Base Rate Card;UR-DATAXFR;GBP,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.0748,Base Rate Card;Base,Negotiable,GBP,GBP,Currency,Draft,UR-DATAXFR,Data Throughput
+QB-DB;Base Rate Card;UR-DATAXFR;JPY,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,16,Base Rate Card;Base,Negotiable,JPY,JPY,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Base Rate Card;UR-DATAXFR;USD,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.10,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Tier Rate Card;UR-CPUTIME;AUD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Tier Rate Card;UR-CPUTIME;CAD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-CPUTIME,Compute Time
