@@ -405,8 +405,11 @@ resource at them reintroduces the failure.
 `ProductUsageResourcePolicy.UsageAggregationPolicy.Code`. Runtime snapshots the
 **`UsageResource`** value onto the `TransactionUsageEntitlement`, so fixing only
 the PURP reference leaves the resource default broken while looking correct.
-Keep both aligned; `tests/test_qb_multicurrency_data.py::period_ordering_descending`
-checks both paths.
+Keep both aligned. `tests/test_qb_multicurrency_data.py::accumulation_refs_aligned`
+enforces it. Note that `period_ordering_descending` does **not**: it checks each
+reference against billing ≥ rating > accumulation *independently*, and `dailypeak`
+and `dailytotal` are both Daily, so a mismatched pair satisfies it — which is how
+storage sat at resource=`dailypeak` / purp=`dailytotal` while the suite read green.
 
 `TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
 existing entitlements cannot be repointed — a design-time change reaches runtime

@@ -557,6 +557,39 @@ def check_period_ordering_descending(d):
           else "billing >= rating > accumulation for every policy row")
 
 
+def check_accumulation_refs_aligned(d):
+    """The accumulation policy is named TWICE and both names must agree.
+
+    UsageResource.UsageResourceBillingPolicy.Code and
+    ProductUsageResourcePolicy.UsageAggregationPolicy.Code point at the same
+    UsageResourceBillingPolicy record (the PURP lookup's relationship name just
+    differs from its target object). Runtime snapshots the UsageResource value
+    onto TransactionUsageEntitlement, so a PURP that disagrees is silently
+    ignored while reading as though it were in effect.
+
+    period_ordering_descending does NOT cover this: it checks each reference
+    against billing >= rating > accumulation independently, and dailypeak and
+    dailytotal are both Daily, so a mismatched pair satisfies it. Storage sat at
+    resource=dailypeak / purp=dailytotal and passed.
+    """
+    resource_policy = {r["Code"]: (r.get("UsageResourceBillingPolicy.Code") or "").strip()
+                       for r in d["resource"]}
+    problems = []
+    for row in d["purp"]:
+        agg = (row.get("UsageAggregationPolicy.Code") or "").strip()
+        if not agg:
+            continue  # commitment-only row: carries no accumulation reference
+        res = row["ProductUsageResource.UsageResource.Code"]
+        expected = resource_policy.get(res, "")
+        if expected and expected != agg:
+            problems.append(
+                f"{row['ProductUsageResource.Product.StockKeepingUnit']}/{res}: "
+                f"resource={expected} but purp={agg}")
+    check("accumulation_refs_aligned", not problems,
+          f"{len(problems)} mismatch(es): " + "; ".join(problems[:3]) if problems
+          else "UsageResource and PURP name the same accumulation policy")
+
+
 def check_counts_match_readme(d):
     """Row counts are the numbers the plan READMEs advertise.
 
@@ -610,6 +643,7 @@ def main():
                check_rates_derived_from_base,
                check_overrides_derived_from_base,
                check_period_ordering_descending,
+               check_accumulation_refs_aligned,
                check_counts_match_readme):
         try:
             fn(d)

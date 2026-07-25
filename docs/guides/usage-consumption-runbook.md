@@ -95,6 +95,17 @@ python scripts/qb_usage.py orchestrate --org <alias>
 Rating is asynchronous and multi-stage, so this loops until the journals stop moving.
 A single pass is not enough.
 
+> ⚠ **"All journals processed" is not "rating finished."** This command returns when
+> the pending journal count reaches zero — that means the journals were *aggregated*,
+> not *rated*. Rating continues afterwards in Data Processing Engine batch jobs
+> (`Create_Liable_Summary_v3`, `Create Ratable Summary For …`). Validate too soon and
+> you will see summaries at `New`/`InProgress` and think the run failed. Wait for those
+> jobs before step 4 — **Setup → Data Processing Engine → job runs**, or:
+>
+> ```bash
+> sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
+> ```
+
 > ⛔ **Do not run this before step 2 for the period you care about.** The first
 > orchestration pass on an account closes every past period **empty**, and a closed
 > summary never reopens. Usage recorded afterwards is stranded permanently.

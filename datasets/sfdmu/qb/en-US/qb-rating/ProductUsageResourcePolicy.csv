@@ -1,11 +1,11 @@
 ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,RatingFrequencyPolicy.RatingPeriod,UsageAggregationPolicy.Code,UsageCommitmentPolicy.Name,UsageOveragePolicy.Name
-QB-DB,UR-DATASTORAGE,Monthly,dailytotal,,Default Usage Overage Policy
+QB-DB,UR-DATASTORAGE,Monthly,dailypeak,,Default Usage Overage Policy
 QB-DB,UR-CPUTIME,Monthly,dailytotal,,Default Usage Overage Policy
 QB-DB,UR-DATAXFR,Monthly,dailytotal,,Default Usage Overage Policy
 QB-CMT-TKN-TIER,UR-DATASTORAGE-TKN,,,Lowest Rate,
 QB-CMT-TKN-EACH,UR-DATASTORAGE-TKN,,,Lowest Rate,
 QB-CMT-TKN-EACH,UR-CPUTIME-TKN,,,Lowest Rate,
-QB-DB-TOKEN,UR-DATASTORAGE-TKN,Monthly,dailytotal,,Default Usage Overage Policy
+QB-DB-TOKEN,UR-DATASTORAGE-TKN,Monthly,dailypeak,,Default Usage Overage Policy
 QB-CMT-TKN-FLAT,UR-CPUTIME-TKN,,,Lowest Rate,
 QB-CMT-TKN-FLAT,UR-DATASTORAGE-TKN,,,Lowest Rate,
 QB-CMT-TKN-TIER,UR-CPUTIME-TKN,,,Lowest Rate,
