@@ -275,7 +275,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
-| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 6 | SObject access for CALM Delete operations |
+| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
@@ -363,7 +363,8 @@ The following table shows the sequence of all permission-related steps across th
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
 | 7.5 | `prepare_quantumbit` | `RLM_ExpressionSetManager` | `quantumbit` |
-| 7.6 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 7.6 | `prepare_quantumbit` | `RLM_UtilitiesPermset` | `quantumbit` |
+| 7.7 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
 | 18.4 | `prepare_tso` | TSO permission sets (5) | `tso` |

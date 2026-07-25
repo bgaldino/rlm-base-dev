@@ -133,14 +133,17 @@ failure mode differs by operation. Check before re-running:
 
 | Operation | Re-run into a used org |
 |-----------|------------------------|
-| `Upsert` / `Update` | ✅ Safe — matches on externalId (qb-pcm, qb-billing, qb-tax) |
+| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects) skip matched rows entirely, so a **correction** to existing data silently does not land. |
 | `Insert`, **no** `deleteOldData` | ⛔ **Duplicates every row.** No matching happens at all. |
 | `Insert` + `deleteOldData: true` | ⛔ Blocked when live records reference the design-time rows it must delete first |
 
 Two concrete traps in the QB plans:
 
-- **`qb-pricing` inserts `PricebookEntry` with no `deleteOldData`** — re-running it
-  duplicates every entry. There is no cleanup step to save you.
+- **`qb-pricing` inserts `PricebookEntry` with no `deleteOldData`** — re-running the
+  **task** (`insert_quantumbit_pricing_data`) on its own duplicates every entry. The
+  **flow** is safe: `prepare_pricing_data` runs `delete_quantumbit_pricing_data`
+  first, which clears every Insert-operation object in the plan. So reach for the
+  flow, or run the delete task yourself before the insert.
 - **`qb-rating` / `qb-rates` use `Insert` + `deleteOldData`** — which cannot clear
   design-time rows (PUR/PUG/RateCardEntry, and `AssetRateCardEntry` referencing
   `RateCardEntry`) while live entitlements point at them. The delete silently leaves
