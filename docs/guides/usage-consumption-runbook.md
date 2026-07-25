@@ -108,9 +108,15 @@ python scripts/qb_usage.py report --org <alias> --accounts "Infinitech"
 sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>
 ```
 
+> ⚠ **Set `USAGE_PERIOD_START` / `USAGE_PERIOD_END` at the top of
+> `validateRatedUsage.apex` to the period you recorded into in step 2.** Without a
+> declared window the validator picks up every historical journal for these assets:
+> an old pending journal fails a clean run, and old rated summaries satisfy the
+> arithmetic while the usage you just uploaded never rated at all.
+
 The report shows what the runtime actually did — buckets, drawdown, rating. The
-validator asserts it: `amount = qty × rate`, and that the commitment drained before
-the grant.
+validator asserts it: `TotalAmount = OverageQuantity × NetUnitRate`, that rating
+actually reached `RatingComplete`, and that the commitment drained before the grant.
 
 Expected drawdown order, and the bases each uses:
 
@@ -139,16 +145,22 @@ only on `tso` builds because it is destructive.
 sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
 ```
 
-> ⚠ **`clearUsageData.apex` drains the usage graph — it does NOT delete assets.**
-> That is deliberate (it is the usage-only tool), but it means a usage-only clear is
-> *not* enough before rebuilding: `build_quote_to_asset.py` matches on **account +
-> product**, so a leftover asset for the same SKU makes the next build ambiguous.
+> ⚠ **`clearUsageData.apex` drains the usage graph — it does NOT delete assets,**
+> and by default it preserves their `AssetRateCardEntry` rows too, so the assets keep
+> their rates and can be re-used for another usage period. (Those rows are created
+> with the asset and are **not** recreated for an existing one, so deleting them
+> would leave a rate-less asset that can never rate again.)
+>
+> It also means a usage-only clear is *not* enough before rebuilding:
+> `build_quote_to_asset.py` matches on **account + product**, so a leftover asset for
+> the same SKU makes the next build ambiguous.
 
 To rebuild from clean, the asset must go too:
 
 | Goal | Do this |
 |------|---------|
-| Clear usage, keep assets (re-run a different usage period) | `clearUsageData.apex` alone |
+| Clear usage, keep assets (re-run a different usage period) | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
+| Reload `qb-rates` design-time data | `clearUsageData.apex` with `DELETE_ASSET_RATE_CARD_ENTRIES = true` — ARCEs reference the RateCardEntry rows and block their replacement |
 | Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org (removes assets, orders, quotes **and** the usage graph), then rebuild |
 
 Re-run whichever you use until the reported remaining counts read **0** — a partial

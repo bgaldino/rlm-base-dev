@@ -29,6 +29,17 @@ Set<String> QB_USAGE_SKUS = new Set<String>{
     'QB-TOKENS-PACK', 'QB-DAT-THPT'
 };
 
+// ⚠ THE RUN UNDER TEST. Set these to the period the consume script recorded into
+// (consumeUsageProfile.apex USAGE_DATE / consumeUsageAllCurrencies.apex USAGE_DATE).
+//
+// Without an explicit window this validator picks up EVERY historical journal for
+// the QuantumBit assets: a pending journal left by an earlier demo fails a clean
+// run, and old rated summaries satisfy the arithmetic while the usage just
+// uploaded never rated at all. Deriving the window from the journals themselves
+// does not help -- it then spans all prior runs by construction.
+final Date USAGE_PERIOD_START = Date.newInstance(2026, 6, 1);
+final Date USAGE_PERIOD_END   = Date.newInstance(2026, 6, 30);
+
 // UsageRatableSummary.Status values (262 dev guide). Only RatingComplete means
 // the row is settled; the rest are either in flight or failed.
 final String RATING_COMPLETE = 'RatingComplete';
@@ -57,32 +68,34 @@ Set<Id> qbAssetIds = qbAssets.keySet();
 // is the signature of the most common failure: its period's UsageSummary had
 // already reached RatableSummaryComplete, which NEVER reopens, so the usage is
 // stranded permanently with no error reported anywhere.
+// Bounded by the DECLARED window, not by whatever history exists. TransactionJournal
+// .StartDate is a Datetime, so the bounds are expanded to cover the whole end day.
+Datetime windowFrom = Datetime.newInstance(USAGE_PERIOD_START, Time.newInstance(0, 0, 0, 0));
+Datetime windowTo   = Datetime.newInstance(USAGE_PERIOD_END.addDays(1), Time.newInstance(0, 0, 0, 0));
+
 List<TransactionJournal> journals = [
     SELECT Id, Status, StartDate, EndDate, UsageResourceId, UsageResource.Code,
            AccountId, Account.Name, Quantity
     FROM TransactionJournal
     WHERE UsageType = 'UsageManagement'
       AND ReferenceRecordId IN :qbAssetIds
+      AND StartDate >= :windowFrom
+      AND StartDate < :windowTo
 ];
 if (journals.isEmpty()) {
     throw new RatedUsageValidationException(
-        'No TransactionJournal records against QuantumBit usage assets -- run '
-        + 'scripts/apex/consumeUsageProfile.apex first.');
+        'No TransactionJournal records against QuantumBit usage assets between '
+        + String.valueOf(USAGE_PERIOD_START) + ' and ' + String.valueOf(USAGE_PERIOD_END)
+        + ' -- run scripts/apex/consumeUsageProfile.apex first, or correct '
+        + 'USAGE_PERIOD_START/END to the period it recorded into.');
 }
 
-// Correlate the summaries to THIS run: the account+resource pairs the journals
-// touched, and the date window they cover. Without this, a rated row from an
-// earlier demo can satisfy the arithmetic section while the usage just uploaded
-// never rated at all.
+// Correlate the summaries to THIS run by the account+resource pairs the journals
+// touched, within the declared window above.
 Set<String> journalKeys = new Set<String>();   // accountId|usageResourceId
-Datetime windowStart, windowEnd;               // TransactionJournal.StartDate is a Datetime
 List<String> stranded = new List<String>();
 for (TransactionJournal j : journals) {
     journalKeys.add(j.AccountId + '|' + j.UsageResourceId);
-    if (j.StartDate != null) {
-        if (windowStart == null || j.StartDate < windowStart) windowStart = j.StartDate;
-        if (windowEnd == null || j.StartDate > windowEnd) windowEnd = j.StartDate;
-    }
     if (j.Status != 'Processed') {
         stranded.add(j.Account.Name + '/' + j.UsageResource.Code + ' ('
             + String.valueOf(j.StartDate).left(10) + ', ' + j.Status + ')');
@@ -98,11 +111,11 @@ if (!stranded.isEmpty()) {
 }
 
 // ------------------------------------------------------------------- summaries
-// Consumption that reached a summary must actually carry a rated amount.
-// Widen the window by a day at each end so a summary whose period boundary sits
-// either side of the journal timestamps is still considered in scope.
-Datetime windowFrom = windowStart == null ? null : windowStart.addDays(-1);
-Datetime windowTo   = windowEnd   == null ? null : windowEnd.addDays(1);
+// Consumption that reached a summary must actually carry a rated amount. Scoped
+// to the SAME declared window as the journals, widened a day at each end so a
+// summary whose period boundary sits just outside it is still in scope.
+Datetime summaryFrom = windowFrom.addDays(-1);
+Datetime summaryTo   = windowTo.addDays(1);
 
 List<UsageRatableSummary> rated = [
     SELECT Id, Account.Name, AccountId, UsageResourceId, UsageResource.Code,
@@ -110,8 +123,8 @@ List<UsageRatableSummary> rated = [
            NetUnitRate, TotalAmount, Status
     FROM UsageRatableSummary
     WHERE Asset.Product2.StockKeepingUnit IN :QB_USAGE_SKUS
-      AND (StartDateTime = null OR StartDateTime <= :windowTo)
-      AND (EndDateTime = null OR EndDateTime >= :windowFrom)
+      AND (StartDateTime = null OR StartDateTime <= :summaryTo)
+      AND (EndDateTime = null OR EndDateTime >= :summaryFrom)
 ];
 
 // Keep only rows belonging to an account+resource this run actually produced.

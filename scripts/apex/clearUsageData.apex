@@ -44,6 +44,19 @@ final Integer MAX_ROUNDS = 6;
 final Integer BATCH = 2000;            // per-statement ceiling, further clamped below
 Boolean budgetSpent = false;
 
+// ⚠ OFF BY DEFAULT. AssetRateCardEntry rows are created when the asset is created,
+// and the entitlement process does NOT recreate them for an asset that already
+// exists. Deleting them therefore leaves a rate-less asset that can never be rated
+// again -- which breaks the documented "clear usage, keep the assets" path and is
+// reported as a failure by validateMulticurrencyRates (an asset with no ARCE rows
+// resolved no rates at all).
+//
+// Turn this ON only for a rate reload or a full reset where the assets are going
+// away too: ARCEs reference the design-time RateCardEntry rows, so leaving them
+// behind is why reloading qb-rates against an org with live assets inserts a
+// second Draft copy of every entry instead of replacing the Active ones.
+final Boolean DELETE_ASSET_RATE_CARD_ENTRIES = false;
+
 // Deletes and REPORTS. A discarded DeleteResult is the reason a stalled round is
 // undiagnosable: the row that refused is exactly the relationship still holding
 // the graph, and it later resurfaces as an unexplained failure on the asset.
@@ -134,13 +147,19 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
 }
 
 Integer arce = 0;
-take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
-if (take > 0) {
-    List<AssetRateCardEntry> arces = scoped
-        ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :take]
-        : [SELECT Id FROM AssetRateCardEntry LIMIT :take];
-    arce = drain.run(arces, 'AssetRateCardEntry');
-} else { budgetSpent = true; }
+if (DELETE_ASSET_RATE_CARD_ENTRIES) {
+    take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
+    if (take > 0) {
+        List<AssetRateCardEntry> arces = scoped
+            ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :take]
+            : [SELECT Id FROM AssetRateCardEntry LIMIT :take];
+        arce = drain.run(arces, 'AssetRateCardEntry');
+    } else { budgetSpent = true; }
+} else {
+    System.debug('CLEAR: AssetRateCardEntry PRESERVED (DELETE_ASSET_RATE_CARD_ENTRIES=false) '
+        + '-- the assets keep their rates. Set it true only for a rate reload or a '
+        + 'full reset where the assets are being removed too.');
+}
 
 Integer tj = 0;
 take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
@@ -181,14 +200,19 @@ if (scoped) {
     remArce      = [SELECT COUNT() FROM AssetRateCardEntry];
     remJournals  = [SELECT COUNT() FROM TransactionJournal];
 }
+// arce is labelled "preserved" when the flag is off, so it is not read as an
+// outstanding row the rerun-until-zero check below must drive to zero.
 System.debug('CLEAR: remaining (' + (scoped ? 'account ' + ACCOUNT_NAME : 'org-wide')
     + ') -- entries=' + remEntries + ' billingPeriodItems=' + remUbpi
     + ' summaries=' + remSummaries + ' ratable=' + remRatable
-    + ' arce=' + remArce + ' journals=' + remJournals);
+    + ' journals=' + remJournals
+    + ' | arce=' + remArce
+    + (DELETE_ASSET_RATE_CARD_ENTRIES ? '' : ' (preserved by design, not counted)'));
 System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100'
     + ', DML rows used = ' + Limits.getDmlRows() + ' of ' + Limits.getLimitDmlRows());
 if (budgetSpent) {
     System.debug('CLEAR: ⚠ STOPPED EARLY -- the transaction\'s DML row budget was spent. '
         + 'Records remain (see the counts above). RE-RUN this script until every remaining '
-        + 'count reads 0.');
+        + 'count reads 0'
+        + (DELETE_ASSET_RATE_CARD_ENTRIES ? '.' : ' (arce excluded -- preserved by design).'));
 }

@@ -197,7 +197,11 @@ Then `python scripts/qb_usage.py report --org <alias>` to see what actually land
 Pick the tool by what must survive:
 
 - **Clearing usage but keeping the assets** (re-running a different period):
-  `clearUsageData.apex` alone.
+  `clearUsageData.apex` alone. It preserves `AssetRateCardEntry` by default —
+  those rows are created with the asset and are **not** recreated for an existing
+  one, so deleting them strands a rate-less asset. Set
+  `DELETE_ASSET_RATE_CARD_ENTRIES = true` only when reloading `qb-rates` or when
+  the assets are going away too.
 - **Rebuilding assets from scratch**: `clearUsageData.apex` is **not enough** — it
   drains the usage graph but does **not** delete `Asset` records, and
   `build_quote_to_asset.py` matches on account + product, so a leftover asset for

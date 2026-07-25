@@ -362,7 +362,16 @@ def cmd_orchestrate(args):
 
     def pending():
         rows = sf_query(org, "SELECT COUNT(Id) c FROM TransactionJournal WHERE Status = 'Pending'")
-        return rows[0].get("c") if rows else 0
+        # An aggregate COUNT always returns exactly one row, even when the count is
+        # zero -- so an EMPTY result means the query itself failed (auth, session,
+        # malformed SOQL). Treating that as "0 pending" made an auth failure print
+        # "all journals processed" and exit 0.
+        if not rows:
+            raise ApexRunError(
+                "pending-journal query returned no rows. An aggregate COUNT always "
+                "returns one row, so this means the query failed (auth/session/SOQL) "
+                f"-- see the error above. Refusing to report progress for org {org}.")
+        return rows[0].get("c")
 
     try:
         print(f"driving orchestration on {org} "
