@@ -197,16 +197,39 @@ List<AssetRateCardEntry> arces = [
 // rows while assets DO exist is itself the failure -- the order-to-asset run
 // produced an asset that resolved no rates at all -- so treating "no ARCEs" as
 // "nothing to check" would report a pass over exactly that broken state.
-Integer qbAssetCount = [
-    SELECT COUNT() FROM Asset WHERE Product2.StockKeepingUnit IN :QB_USAGE_SKUS
-];
-if (arces.isEmpty() && qbAssetCount == 0) {
+Map<Id, Asset> qbAssets = new Map<Id, Asset>([
+    SELECT Id, Account.Name, CurrencyIsoCode, Product2.StockKeepingUnit
+    FROM Asset WHERE Product2.StockKeepingUnit IN :QB_USAGE_SKUS
+]);
+if (qbAssets.isEmpty()) {
     passed.add('runtime checks skipped -- no QuantumBit usage assets exist yet');
-} else if (arces.isEmpty()) {
-    problems.add('No AssetRateCardEntry rows exist despite ' + qbAssetCount
-        + ' QuantumBit usage asset(s). The asset resolved no rates at all -- check the '
-        + 'order-to-asset run and that the product\'s rate card entries are Active.');
 } else {
+    // Compare PER ASSET, not in aggregate. Checking only `arces.isEmpty()` catches
+    // just the all-assets-broken case: one regional asset with zero ARCE rows is
+    // simply absent from the per-asset maps below, so every subsequent runtime
+    // check passes over it silently -- which is exactly the defect this validator
+    // exists to find (a per-currency entry missing for one region).
+    Set<Id> assetsWithRates = new Set<Id>();
+    for (AssetRateCardEntry a : arces) { assetsWithRates.add(a.AssetId); }
+    List<String> rateless = new List<String>();
+    for (Id assetId : qbAssets.keySet()) {
+        if (!assetsWithRates.contains(assetId)) {
+            Asset a = qbAssets.get(assetId);
+            rateless.add(a.Account.Name + '/' + a.Product2.StockKeepingUnit
+                + ' (' + a.CurrencyIsoCode + ')');
+        }
+    }
+    if (!rateless.isEmpty()) {
+        problems.add(rateless.size() + ' of ' + qbAssets.size() + ' QuantumBit usage '
+            + 'asset(s) have NO AssetRateCardEntry rows -- they resolved no rates at '
+            + 'all: ' + String.join(rateless, ', ')
+            + '. Check the order-to-asset run and that a rate card entry exists and is '
+            + 'Active for that product in that currency.');
+    } else {
+        passed.add('all ' + qbAssets.size() + ' QuantumBit usage asset(s) resolved rates');
+    }
+}
+if (!arces.isEmpty()) {
     // 6. asset currency == ARCE currency == ARCE rate UoM == resolved entry's UoM.
     //    A divergence means the asset resolved a rate denominated in another
     //    currency (usually a missing per-currency entry falling back to USD).
