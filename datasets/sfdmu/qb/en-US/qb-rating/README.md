@@ -174,21 +174,22 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## ProductUsageGrant (PUG) Summary
 
-11 grant records across 5 usage definition products:
+12 grant records across 5 usage definition products:
 
-| Usage Definition Product | Type   | Resource          | Quantity | Validity       |
-|--------------------------|--------|-------------------|----------|----------------|
-| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME            | 0     | 1 Month |
-| QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       | 1000  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        | 5     | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   | 1000  | 1 Month |
-| QB-DATA-THPT-BLNG        | Grant  | QB-DAT-THPT;UR-DATAXFR      | 5     | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        | 100000| None    |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Grant  | QB-TOKENS-PACK;QB-TOKEN     | 500   | 1 Month |
-| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           | 5000  | 1 Month |
+| Usage Definition Product | Type   | Resource                    | Quantity | Validity |
+|--------------------------|--------|-----------------------------|----------|----------|
+| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME            |        0 | 1 Month  |
+| QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       |    5,000 | 1 Month  |
+| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        |       10 | 1 Month  |
+| QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   |       50 | 1 Month  |
+| QB-DATA-THPT-BLNG        | Grant  | QB-DAT-THPT;UR-DATAXFR      |      100 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-BND;QB-TOKEN     |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        |   10,000 | 1 Month  |
+| QB-TOKEN-DEF             | Grant  | QB-TOKENS-PACK;QB-TOKEN     |    5,000 | 1 Month  |
+| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           |      500 | 1 Month  |
 
 ## API 260 Known Issues
 

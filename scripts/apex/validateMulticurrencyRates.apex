@@ -146,11 +146,20 @@ if (!gaps.isEmpty()) {
 
 // ------------------------------------------------------------------- runtime
 // Only meaningful once an order-to-asset run has produced entitlements.
+// Scoped to the QuantumBit products under test: an unrelated product's entries
+// would otherwise be pulled into the per-asset shape comparison below.
+Set<String> QB_USAGE_SKUS = new Set<String>{
+    'QB-DB', 'QB-DB-TOKEN', 'QB-CMT-TKN-FLAT', 'QB-CMT-TKN-BND',
+    'QB-CMT-TKN-EACH', 'QB-CMT-TKN-TIER', 'QB-QTY-CMT', 'QB-MTY-CMT',
+    'QB-TOKENS-PACK', 'QB-DAT-THPT'
+};
 List<AssetRateCardEntry> arces = [
-    SELECT Asset.CurrencyIsoCode, Asset.Account.Name, CurrencyIsoCode,
+    SELECT AssetId, Asset.CurrencyIsoCode, Asset.Account.Name,
+           Asset.Product2.StockKeepingUnit, CurrencyIsoCode,
            UsageResource.Code, RateUnitOfMeasure.UnitCode,
            RateCardEntry.RateUnitOfMeasure.UnitCode
     FROM AssetRateCardEntry
+    WHERE Asset.Product2.StockKeepingUnit IN :QB_USAGE_SKUS
 ];
 if (arces.isEmpty()) {
     passed.add('runtime checks skipped -- no AssetRateCardEntry records yet');
@@ -188,43 +197,97 @@ if (arces.isEmpty()) {
             + arceByCurrency.size() + ' currencies');
     }
 
-    // 7. Every currency's asset should produce the same number of rate entries.
-    Set<Integer> arceCounts = new Set<Integer>(arceByCurrency.values());
-    if (arceCounts.size() > 1) {
-        List<String> detail = new List<String>();
-        for (String c : arceByCurrency.keySet()) detail.add(c + '=' + arceByCurrency.get(c));
-        problems.add('AssetRateCardEntry count differs by currency: ' + String.join(detail, ', '));
+    // 7. Compare rate-entry shape PER ASSET, grouped by product -- not per currency.
+    //    A per-currency total is meaningless once accounts hold different products:
+    //    two USD assets vs one GBP asset fails even when each asset is correct, and
+    //    one 6-entry USD asset vs two 3-entry GBP assets wrongly passes. The real
+    //    invariant is that the same product yields the same entries in any currency.
+    Map<Id, Integer> arceCountByAsset = new Map<Id, Integer>();
+    Map<Id, String> skuByAsset = new Map<Id, String>();
+    Map<Id, String> ccyByAsset = new Map<Id, String>();
+    for (AssetRateCardEntry a : arces) {
+        Integer n = arceCountByAsset.get(a.AssetId);
+        arceCountByAsset.put(a.AssetId, n == null ? 1 : n + 1);
+        skuByAsset.put(a.AssetId, a.Asset.Product2.StockKeepingUnit);
+        ccyByAsset.put(a.AssetId, a.Asset.CurrencyIsoCode);
+    }
+    Map<String, Map<Integer, List<String>>> countsBySku =
+        new Map<String, Map<Integer, List<String>>>();
+    for (Id assetId : arceCountByAsset.keySet()) {
+        String sku = skuByAsset.get(assetId);
+        if (!countsBySku.containsKey(sku)) countsBySku.put(sku, new Map<Integer, List<String>>());
+        Integer n = arceCountByAsset.get(assetId);
+        if (!countsBySku.get(sku).containsKey(n)) countsBySku.get(sku).put(n, new List<String>());
+        countsBySku.get(sku).get(n).add(ccyByAsset.get(assetId));
+    }
+    List<String> shapeGaps = new List<String>();
+    for (String sku : countsBySku.keySet()) {
+        if (countsBySku.get(sku).size() > 1) {
+            List<String> detail = new List<String>();
+            for (Integer n : countsBySku.get(sku).keySet()) {
+                detail.add(n + ' entries in ' + countsBySku.get(sku).get(n));
+            }
+            shapeGaps.add(sku + ': ' + String.join(detail, ' vs '));
+        }
+    }
+    if (!shapeGaps.isEmpty()) {
+        problems.add('Same product yields a different number of AssetRateCardEntry rows '
+            + 'depending on currency: ' + String.join(shapeGaps, '; '));
     } else {
-        passed.add('AssetRateCardEntry count identical across currencies');
+        passed.add('every product yields a consistent AssetRateCardEntry shape across the '
+            + arceCountByAsset.size() + ' asset(s) built, in '
+            + (new Set<String>(ccyByAsset.values())).size() + ' currencies');
     }
 
-    // 8. Transaction usage entitlements must be shaped identically per currency.
-    Map<String, Set<String>> tueByCurrency = new Map<String, Set<String>>();
+    // 8. The SAME product must yield the same entitlement shape in any currency.
+    //    Grouped per asset and keyed by product, not lumped per currency: accounts
+    //    deliberately hold different consumption products now, so a per-currency
+    //    union compares a token commitment against a quantity commitment and always
+    //    differs. Entitlement quantities are currency-neutral (grants are counts of
+    //    tokens/minutes/TB), so the shape genuinely must match across currencies.
+    Map<Id, String> tueSkuByAsset = new Map<Id, String>();
+    Map<Id, String> tueCcyByAsset = new Map<Id, String>();
+    Map<Id, Set<String>> tueByAsset = new Map<Id, Set<String>>();
     for (TransactionUsageEntitlement t : [
-            SELECT Asset.CurrencyIsoCode, UsageResource.Code, EntitlementQuantity
-            FROM TransactionUsageEntitlement WHERE AssetId != null]) {
-        String c = t.Asset.CurrencyIsoCode;
-        if (!tueByCurrency.containsKey(c)) tueByCurrency.put(c, new Set<String>());
-        tueByCurrency.get(c).add(t.UsageResource.Code + '=' + t.EntitlementQuantity);
+            SELECT AssetId, Asset.CurrencyIsoCode, Asset.Product2.StockKeepingUnit,
+                   UsageResource.Code, EntitlementQuantity
+            FROM TransactionUsageEntitlement
+            WHERE AssetId != null
+              AND Asset.Product2.StockKeepingUnit IN :QB_USAGE_SKUS]) {
+        if (!tueByAsset.containsKey(t.AssetId)) tueByAsset.put(t.AssetId, new Set<String>());
+        tueByAsset.get(t.AssetId).add(t.UsageResource.Code + '=' + t.EntitlementQuantity);
+        tueSkuByAsset.put(t.AssetId, t.Asset.Product2.StockKeepingUnit);
+        tueCcyByAsset.put(t.AssetId, t.Asset.CurrencyIsoCode);
     }
-    Set<String> tueShapes = new Set<String>();
-    for (String c : tueByCurrency.keySet()) {
-        List<String> s = new List<String>(tueByCurrency.get(c));
-        s.sort();
-        tueShapes.add(String.join(s, ','));
-    }
-    if (tueShapes.size() > 1) {
-        List<String> detail = new List<String>();
-        for (String c : tueByCurrency.keySet()) {
-            List<String> s = new List<String>(tueByCurrency.get(c));
-            s.sort();
-            detail.add(c + ': [' + String.join(s, ', ') + ']');
+    Map<String, Map<String, List<String>>> tueShapeBySku =
+        new Map<String, Map<String, List<String>>>();
+    for (Id assetId : tueByAsset.keySet()) {
+        List<String> shapeList = new List<String>(tueByAsset.get(assetId));
+        shapeList.sort();
+        String shape = String.join(shapeList, ', ');
+        String sku = tueSkuByAsset.get(assetId);
+        if (!tueShapeBySku.containsKey(sku)) tueShapeBySku.put(sku, new Map<String, List<String>>());
+        if (!tueShapeBySku.get(sku).containsKey(shape)) {
+            tueShapeBySku.get(sku).put(shape, new List<String>());
         }
-        problems.add('TransactionUsageEntitlement shape differs by currency -- '
-            + String.join(detail, ' | '));
-    } else if (!tueByCurrency.isEmpty()) {
-        passed.add('TransactionUsageEntitlement shape identical across '
-            + tueByCurrency.size() + ' currencies');
+        tueShapeBySku.get(sku).get(shape).add(tueCcyByAsset.get(assetId));
+    }
+    List<String> tueGaps = new List<String>();
+    for (String sku : tueShapeBySku.keySet()) {
+        if (tueShapeBySku.get(sku).size() > 1) {
+            List<String> detail = new List<String>();
+            for (String shape : tueShapeBySku.get(sku).keySet()) {
+                detail.add(tueShapeBySku.get(sku).get(shape) + ': [' + shape + ']');
+            }
+            tueGaps.add(sku + ' -- ' + String.join(detail, ' | '));
+        }
+    }
+    if (!tueGaps.isEmpty()) {
+        problems.add('Same product yields a different TransactionUsageEntitlement shape '
+            + 'depending on currency: ' + String.join(tueGaps, '; '));
+    } else if (!tueByAsset.isEmpty()) {
+        passed.add('every product yields a consistent TransactionUsageEntitlement shape across '
+            + tueByAsset.size() + ' asset(s)');
     }
 }
 
