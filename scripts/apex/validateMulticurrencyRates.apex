@@ -220,30 +220,46 @@ if (!commitWithPeriods.isEmpty()) {
 // Presence PER RESOURCE, not per product. A per-SKU check only catches a product
 // that lost EVERY PURP row; a partial load -- three active resources, one PURP --
 // leaves that SKU present and passes, while the two uncovered resources silently
-// go undiscounted. Diff the EXPECTED set (every active commitment PUR) against
-// what actually carries a policy.
-Set<String> commitSkus = new Set<String>();
-List<String> commitResMissingPurp = new List<String>();
+// go undiscounted. Diff the EXPECTED set against what actually carries a policy.
+//
+// Covers ANCHOR as well as commitment products. The PURP Anchor load failure this
+// PR fixed (a missing required RatingFrequencyPolicy.Name rejected the Anchor rows)
+// is exactly this shape, and a commitment-only check cannot see the very bug it
+// shipped alongside. Pack is excluded deliberately: the platform REJECTS a PURP on a
+// Pack, so absence there is correct -- check 3 above asserts the opposite.
+Set<String> RATED_MODELS = new Set<String>(COMMITMENT_MODELS);
+RATED_MODELS.add('Anchor');
+Set<String> allPurpKeys = new Set<String>();
+for (ProductUsageResourcePolicy p : [
+        SELECT ProductUsageResource.Product.StockKeepingUnit,
+               ProductUsageResource.UsageResource.Code
+        FROM ProductUsageResourcePolicy
+        WHERE ProductUsageResource.Product.StockKeepingUnit IN :QB_USAGE_SKUS]) {
+    allPurpKeys.add(p.ProductUsageResource.Product.StockKeepingUnit + '|'
+        + p.ProductUsageResource.UsageResource.Code);
+}
+Set<String> ratedSkus = new Set<String>();
+List<String> resMissingPurp = new List<String>();
 for (ProductUsageResource r : [
         SELECT Product.StockKeepingUnit, UsageResource.Code
         FROM ProductUsageResource
         WHERE Product.StockKeepingUnit IN :QB_USAGE_SKUS
-          AND Product.UsageModelType IN :COMMITMENT_MODELS
+          AND Product.UsageModelType IN :RATED_MODELS
           AND Status = 'Active']) {
     String sku = r.Product.StockKeepingUnit;
-    commitSkus.add(sku);
-    if (!commitPurpKeys.contains(sku + '|' + r.UsageResource.Code)) {
-        commitResMissingPurp.add(sku + '/' + r.UsageResource.Code);
+    ratedSkus.add(sku);
+    if (!allPurpKeys.contains(sku + '|' + r.UsageResource.Code)) {
+        resMissingPurp.add(sku + '/' + r.UsageResource.Code);
     }
 }
-if (!commitResMissingPurp.isEmpty()) {
-    commitResMissingPurp.sort();
-    problems.add('Commitment resource(s) with NO ProductUsageResourcePolicy ('
-        + commitResMissingPurp.size() + '): ' + String.join(commitResMissingPurp, ', ')
+if (!resMissingPurp.isEmpty()) {
+    resMissingPurp.sort();
+    problems.add('Active usage resource(s) with NO ProductUsageResourcePolicy ('
+        + resMissingPurp.size() + '): ' + String.join(resMissingPurp, ', ')
         + ' -- the rows were almost certainly dropped during the data load (the classic '
-        + 'silent failure); the commitment cannot discount those resources without them.');
-} else if (!commitSkus.isEmpty()) {
-    passed.add('every active commitment resource across ' + commitSkus.size()
+        + 'silent failure); nothing rates or discounts those resources without them.');
+} else if (!ratedSkus.isEmpty()) {
+    passed.add('every active Anchor/commitment resource across ' + ratedSkus.size()
         + ' product(s) has a PURP row loaded');
 }
 

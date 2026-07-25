@@ -224,15 +224,23 @@ def check_commitment_purp_has_no_periods(d):
         sku = row["ProductUsageResource.Product.StockKeepingUnit"]
         if sku not in commits:
             continue
-        carried = [f for f, col in (("rating", "RatingFrequencyPolicy.RatingPeriod"),
-                                    ("accumulation", "UsageAggregationPolicy.Code"))
-                   if (row.get(col) or "").strip()]
-        if carried:
-            res = row["ProductUsageResource.UsageResource.Code"]
-            bad.append(f"{sku}/{res} carries {'+'.join(carried)}")
+        res = row["ProductUsageResource.UsageResource.Code"]
+        wrong = [f"carries {f}" for f, col in
+                 (("rating", "RatingFrequencyPolicy.RatingPeriod"),
+                  ("accumulation", "UsageAggregationPolicy.Code"))
+                 if (row.get(col) or "").strip()]
+        # The rule is "ONLY a UsageCommitmentPolicy" -- both halves. Checking only that
+        # the period fields are absent passes a row with NO policy at all, which cannot
+        # discount anything. The live validator already asserts this; the offline check
+        # was the weaker of the two.
+        if not (row.get("UsageCommitmentPolicy.Name") or "").strip():
+            wrong.append("has NO commitment policy")
+        if wrong:
+            bad.append(f"{sku}/{res} " + " and ".join(wrong))
     check("commitment_purp_has_no_periods", not bad,
           f"{len(bad)} row(s) the platform will reject: " + "; ".join(bad[:3]) if bad
-          else f"no rating/accumulation on any PURP of the {len(commits)} commitment products")
+          else f"every PURP of the {len(commits)} commitment products carries a commitment "
+               "policy and no periods")
 
 
 def check_addon_usage_resources_exist_on_anchor(d):
@@ -581,10 +589,13 @@ def check_accumulation_refs_aligned(d):
             continue  # commitment-only row: carries no accumulation reference
         res = row["ProductUsageResource.UsageResource.Code"]
         expected = resource_policy.get(res, "")
-        if expected and expected != agg:
+        # `if expected and ...` would suppress the case where the PURP names a policy and
+        # the resource names none -- a real disagreement, and the one runtime resolves in
+        # favour of the (absent) resource value. Absent counts as a mismatch.
+        if expected != agg:
             problems.append(
                 f"{row['ProductUsageResource.Product.StockKeepingUnit']}/{res}: "
-                f"resource={expected} but purp={agg}")
+                f"resource={expected or '(none)'} but purp={agg}")
     check("accumulation_refs_aligned", not problems,
           f"{len(problems)} mismatch(es): " + "; ".join(problems[:3]) if problems
           else "UsageResource and PURP name the same accumulation policy")

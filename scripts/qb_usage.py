@@ -257,6 +257,13 @@ def cmd_audit(args):
         unpolicied = [r for r in active if r not in seen]
         if unpolicied:
             print(f"  no policy for      : {', '.join(unpolicied)}")
+            # Printing without counting let an Anchor that lost its PURP report OK and
+            # the audit exit 0 -- the exact silent load failure this audit exists to
+            # catch. Pack is exempt: the platform REJECTS a PURP on a Pack product, so
+            # absence there is correct, not a gap.
+            if p["UsageModelType"] != "Pack":
+                issues.append(f"{', '.join(unpolicied)}: active resource(s) with no "
+                              f"ProductUsageResourcePolicy — nothing rates them")
         if grant_by.get(sku):
             print(f"  grants             : {', '.join(sorted(grant_by[sku]))}")
 
