@@ -47,6 +47,11 @@ Term Annual — so `--selling-model` picks which `PricebookEntry` to use. Choosi
 wrong one produces a validation error that names the *field*, not the model, which
 sends you looking in the wrong place.
 
+⚠ **Type is not unique.** `Term Monthly` and `Term Annual` are both `TermDefined`, so
+pass the model **name** to disambiguate. A type matching more than one entry is
+rejected outright — pairing a monthly billing frequency with the annual entry is
+exactly the silent mismatch this avoids.
+
 ## Commitment products: sold separately, linked afterwards
 
 A commitment and its anchor are sold as **separate quotes**, assetized
@@ -86,9 +91,12 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
 
 ## Prerequisites and gotchas
 
-- **Reset the account first.** `Asset` carries no lookup back to the Order or Quote
-  it came from, so the script matches on **account + product** — a pre-existing asset
-  for the same SKU makes the result ambiguous.
+- **Reset the account first**, and the script now enforces it. `Asset` carries no
+  lookup back to the Order or Quote it came from, so matching is on **account +
+  product** — a pre-existing asset for the same SKU would otherwise satisfy the
+  post-activation poll instantly and be verified (or commitment-linked) as though it
+  were the new one. A preflight refuses to run; `--allow-existing-asset` proceeds but
+  requires a genuinely **new** asset id.
 - **Not every account can transact.** Several scratch accounts ship with no shipping
   address or bill-to contact and fail with `FAILED_ACTIVATION`. The QuantumBit demo
   accounts (Infinitech, Kingsbridge Digital, Coralbay Technologies, Helvetia Cloud,
@@ -101,11 +109,12 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
 | Option | Purpose |
 |--------|---------|
 | `--sku` / `--accounts` / `--org` | What to sell, to whom, where |
-| `--start` / `--end` / `--term` | Backdating and term (default start `2026-06-01`) |
-| `--selling-model` | Pick the PricebookEntry when a product exposes several |
+| `--start` / `--end` | Backdating and line period (default start `2026-06-01`) |
+| `--selling-model` | Pick the PricebookEntry by model **NAME** (e.g. `Term Monthly`) or TYPE. A type matching several entries is **rejected as ambiguous** rather than guessed |
 | `--link-commitment ANCHOR_SKU` | Post-assetization `UsageCmtAssetRelatedObj` link — **required** for a commitment to affect rating |
 | `--anchor-sku ANCHOR_SKU` | Bind to an existing anchor asset (required for Pack) |
-| `--with-sku SKU` | Additional product on the **same** quote |
+| `--allow-existing-asset` | Proceed when the account already has an asset for the SKU; the poll then requires a **new** asset id |
+| `--with-sku SKU` | Additional product on the **same** quote. **Not** for Commit products — those need a separate sale plus `--link-commitment` |
 | `--billing-frequency` | Mandatory for TermDefined/Evergreen (default `Monthly`) |
 | `--billing-timing` | Substring picking among a currency's BillingTreatments (default `Advance`) |
 | `--period-boundary` | Default `Anniversary` |

@@ -75,7 +75,7 @@ Datetime windowTo   = Datetime.newInstance(USAGE_PERIOD_END.addDays(1), Time.new
 
 List<TransactionJournal> journals = [
     SELECT Id, Status, StartDate, EndDate, UsageResourceId, UsageResource.Code,
-           AccountId, Account.Name, Quantity
+           AccountId, Account.Name, Quantity, ReferenceRecordId
     FROM TransactionJournal
     WHERE UsageType = 'UsageManagement'
       AND ReferenceRecordId IN :qbAssetIds
@@ -90,12 +90,16 @@ if (journals.isEmpty()) {
         + 'USAGE_PERIOD_START/END to the period it recorded into.');
 }
 
-// Correlate the summaries to THIS run by the account+resource pairs the journals
+// Correlate the summaries to THIS run by the asset+resource pairs the journals
 // touched, within the declared window above.
-Set<String> journalKeys = new Set<String>();   // accountId|usageResourceId
+// Keyed by ASSET, not account. An account can hold more than one asset for the
+// same SKU/resource -- reachable via --allow-existing-asset in
+// build_quote_to_asset.py -- and an account-level key lets a summary from one
+// asset mark an unrated journal on another asset as covered.
+Set<String> journalKeys = new Set<String>();   // assetId|usageResourceId
 List<String> stranded = new List<String>();
 for (TransactionJournal j : journals) {
-    journalKeys.add(j.AccountId + '|' + j.UsageResourceId);
+    journalKeys.add(j.ReferenceRecordId + '|' + j.UsageResourceId);
     if (j.Status != 'Processed') {
         stranded.add(j.Account.Name + '/' + j.UsageResource.Code + ' ('
             + String.valueOf(j.StartDate).left(10) + ', ' + j.Status + ')');
@@ -118,7 +122,7 @@ Datetime summaryFrom = windowFrom.addDays(-1);
 Datetime summaryTo   = windowTo.addDays(1);
 
 List<UsageRatableSummary> rated = [
-    SELECT Id, Account.Name, AccountId, UsageResourceId, UsageResource.Code,
+    SELECT Id, Account.Name, AccountId, AssetId, UsageResourceId, UsageResource.Code,
            StartDateTime, EndDateTime, TierQuantity, OverageQuantity,
            NetUnitRate, TotalAmount, Status
     FROM UsageRatableSummary
@@ -127,18 +131,18 @@ List<UsageRatableSummary> rated = [
       AND (EndDateTime = null OR EndDateTime >= :summaryFrom)
 ];
 
-// Keep only rows belonging to an account+resource this run actually produced.
+// Keep only rows belonging to an asset+resource this run actually produced.
 List<UsageRatableSummary> inScope = new List<UsageRatableSummary>();
 for (UsageRatableSummary r : rated) {
-    if (journalKeys.contains(r.AccountId + '|' + r.UsageResourceId)) inScope.add(r);
+    if (journalKeys.contains(r.AssetId + '|' + r.UsageResourceId)) inScope.add(r);
 }
 // Per-KEY coverage, not merely "some summary exists". Checking only
-// inScope.isEmpty() means one account/resource stream (say one of seven
+// inScope.isEmpty() means one asset/resource stream (say one of seven
 // currencies) can produce no summary at all while the others do, and the missing
 // one passes unnoticed -- which is exactly the multicurrency failure mode.
 Set<String> representedKeys = new Set<String>();
 for (UsageRatableSummary r : inScope) {
-    representedKeys.add(r.AccountId + '|' + r.UsageResourceId);
+    representedKeys.add(r.AssetId + '|' + r.UsageResourceId);
 }
 Set<String> uncoveredKeys = new Set<String>(journalKeys);
 uncoveredKeys.removeAll(representedKeys);
@@ -146,8 +150,9 @@ if (!uncoveredKeys.isEmpty()) {
     // Resolve the ids to something readable.
     Map<String, String> labelByKey = new Map<String, String>();
     for (TransactionJournal j : journals) {
-        labelByKey.put(j.AccountId + '|' + j.UsageResourceId,
-                       j.Account.Name + '/' + j.UsageResource.Code);
+        labelByKey.put(j.ReferenceRecordId + '|' + j.UsageResourceId,
+                       j.Account.Name + '/' + j.UsageResource.Code
+                       + ' [asset ' + j.ReferenceRecordId + ']');
     }
     List<String> uncovered = new List<String>();
     for (String k : uncoveredKeys) {

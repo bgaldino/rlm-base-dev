@@ -83,7 +83,10 @@ Prerequisite
 ------------
 Each target account must be reset first (no existing asset for the SKU) — the
 asset is matched on account + product because ``Asset`` carries no lookup back
-to the Order or Quote it came from.
+to the Order or Quote it came from. This is now **enforced**: a preflight check
+refuses to run when a matching asset already exists. Pass
+``--allow-existing-asset`` to proceed anyway, in which case the post-activation
+poll requires a genuinely NEW asset id rather than accepting the old one.
 
 Usage
 -----
@@ -398,13 +401,15 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
                 billing_frequency, bind_extra=False):
     """Create the Quote + line via Place Sales Transaction.
 
-    Direct QuoteLineItem DML is NOT viable for a TermDefined product here: the
-    platform demands BillingFrequency ("When the SellingModelType is Evergreen or
-    Term-Defined, BillingFrequency can't be null") but refuses to let you set it
-    unless the line's BillingTreatment has CanChangeBillingFrequency = true, which
-    is false on every QB treatment. The transaction API resolves the frequency
-    from the treatment itself, which is why it is the supported path for adding
-    a line to a quote.
+    Direct QuoteLineItem DML is NOT viable for a TermDefined product: the platform
+    demands BillingFrequency ("When the SellingModelType is Evergreen or
+    Term-Defined, BillingFrequency can't be null") and refuses to let you set it
+    unless the line's BillingTreatment has CanChangeBillingFrequency = true. That
+    flag was false on every QB treatment originally, which is what made the
+    transaction API the only workable path; this branch sets it true on all 15 QB
+    treatments so the frequency CAN be supplied, and this function sends
+    BillingFrequency explicitly in the payload. The transaction API remains the
+    supported path for adding a line to a quote.
     """
     # Which line fields are legal depends on the SELLING MODEL, not the product:
     #   OneTime     -> BillingFrequency must be null; EndDate rejected
@@ -818,12 +823,11 @@ def main():
                     help=f"line end date (default: {DEFAULT_END})")
     ap.add_argument("--quantity", type=int, default=1)
     ap.add_argument("--with-sku", action="append", metavar="SKU",
-                    help="additional product on the SAME quote, bound to the first "
-                         "line via BindingInstanceTargetId. Repeatable. This is how "
-                         "a Commit product must be sold: it is a rate modifier on an "
-                         "anchor line, and binding it to an existing ASSET is "
-                         "rejected ('selected the correct usage product for the "
-                         "associated quote or order')")
+                    help="additional product on the SAME quote. Repeatable. NOT for "
+                         "Commit products -- they reject BindingInstanceTargetId and "
+                         "must be sold as a SEPARATE quote, then joined to the anchor "
+                         "asset with --link-commitment (see --bind-extra-lines below, "
+                         "which is off by default for that reason)")
     ap.add_argument("--bind-extra-lines", action="store_true",
                     help="bind --with-sku lines to the first line. Off by default: "
                          "Commit products reject BindingInstanceTargetId entirely")

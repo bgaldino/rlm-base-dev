@@ -80,18 +80,26 @@ if (!withoutPur.isEmpty()) {
 
 // Currency units available to denominate a rate. Used to CLASSIFY an entry as
 // currency- vs token-denominated; coverage is asserted against EXPECTED_CURRENCIES.
+// ACTIVE only. UnitOfMeasure.Status is Active/Draft/Inactive, and this one set
+// does double duty -- it satisfies the completeness check AND classifies a rate
+// as currency- vs token-denominated. Unfiltered, a Draft or Inactive currency
+// unit makes an unusable setup look complete and gets its rates treated as
+// currency-denominated, so the validator passes on a configuration that cannot
+// rate at runtime.
 Set<String> currencyUnits = new Set<String>();
-for (UnitOfMeasure u : [SELECT UnitCode FROM UnitOfMeasure WHERE UnitOfMeasureClass.Code = 'CURRENCY']) {
+for (UnitOfMeasure u : [SELECT UnitCode FROM UnitOfMeasure
+                        WHERE UnitOfMeasureClass.Code = 'CURRENCY'
+                          AND Status = 'Active']) {
     currencyUnits.add(u.UnitCode);
 }
 Set<String> absentCurrencyUnits = new Set<String>(EXPECTED_CURRENCIES);
 absentCurrencyUnits.removeAll(currencyUnits);
 if (!absentCurrencyUnits.isEmpty()) {
-    problems.add('CURRENCY unit(s) missing from the org: ' + absentCurrencyUnits
-        + ' -- the currency data load is incomplete, so every coverage check below '
-        + 'would otherwise pass vacuously.');
+    problems.add('Active CURRENCY unit(s) missing from the org: ' + absentCurrencyUnits
+        + ' -- the unit is absent, Draft or Inactive, so it cannot denominate a rate at '
+        + 'runtime and every coverage check below would otherwise pass vacuously.');
 } else {
-    passed.add('all ' + EXPECTED_CURRENCIES.size() + ' expected CURRENCY units exist');
+    passed.add('all ' + EXPECTED_CURRENCIES.size() + ' expected CURRENCY units exist and are Active');
 }
 
 List<RateCardEntry> rces = [
