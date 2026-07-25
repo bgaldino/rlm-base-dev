@@ -462,6 +462,51 @@ def check_rates_derived_from_base(d):
           else "every non-base rate matches its derived value")
 
 
+def check_overrides_derived_from_base(d):
+    """Every non-base Override tier value must equal its derived value exactly.
+
+    An Override AdjustmentValue IS money and IS converted by
+    scripts/expand_currency_rates_data.py, but nothing asserted the result:
+    check_rates_derived_from_base walks only RateCardEntry.Rate, and the
+    percentage/bounds checks deliberately skip Override values. A stale or
+    wrongly converted override therefore passed every offline check and would
+    rate incorrectly in a live org -- the same defect class that
+    check_rates_derived_from_base exists to catch for base rates.
+    """
+    rates = {r["IsoCode"]: Decimal(r["ConversionRate"]) for r in d["currency"]}
+    decimals = {r["IsoCode"]: int(r["DecimalPlaces"]) for r in d["currency"]}
+
+    def key(r):
+        # Identity ignoring currency: product + resource + the tier's bounds.
+        return (r["Product.StockKeepingUnit"], r["UsageResource.Name"],
+                r["LowerBound"], r["UpperBound"])
+
+    base_rows = {key(r): r for r in d["rabt"]
+                 if r["AdjustmentType"] == "Override"
+                 and r["RateUnitOfMeasure.Name"] == BASE_CURRENCY
+                 and r["AdjustmentValue"].strip()}
+
+    problems = []
+    checked = 0
+    for r in d["rabt"]:
+        uom = r["RateUnitOfMeasure.Name"]
+        if (r["AdjustmentType"] != "Override" or uom == BASE_CURRENCY
+                or uom not in rates or not r["AdjustmentValue"].strip()):
+            continue
+        src = base_rows.get(key(r))
+        if not src:
+            continue
+        checked += 1
+        expect = _derive(src["AdjustmentValue"], uom, rates, decimals)
+        if Decimal(r["AdjustmentValue"]) != expect:
+            problems.append(f"{'/'.join(key(r))} {uom}: "
+                            f"{r['AdjustmentValue']} != derived {expect}")
+
+    check("overrides_derived_from_base", not problems,
+          f"{len(problems)} underived override(s): " + "; ".join(problems[:3]) if problems
+          else f"all {checked} non-base override tiers match their derived value")
+
+
 def check_period_ordering_descending(d):
     """Billing >= Rating > Accumulation, or the summary batch rejects the record.
 
@@ -563,6 +608,7 @@ def main():
                check_bounds_not_converted,
                check_money_conversion_sane,
                check_rates_derived_from_base,
+               check_overrides_derived_from_base,
                check_period_ordering_descending,
                check_counts_match_readme):
         try:

@@ -13,7 +13,7 @@ polish. Treat "the numbers look right" as unverified.
 |-------|---------|---------------|---------|
 | Offline invariants | `python tests/test_qb_multicurrency_data.py` | No | Design-time data that the platform will reject or that rates wrongly |
 | Live design + runtime | `cci task run validate_multicurrency_rates --org <cci-alias>` | Yes | Same design-time checks against the org, plus asset/entitlement shape. Runtime checks self-skip when no assets exist |
-| Rated results | `sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <sf-alias>` | Yes, with rated usage | `amount = qty × rate` (0.01 tolerance) and commitment-drains-before-grant |
+| Rated results | `sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <sf-alias>` | Yes, with rated usage | `TotalAmount = OverageQuantity × NetUnitRate` (0.01 tolerance), rating actually settled, and commitment-drains-before-grant |
 
 Plus the plan-level checks that apply to any dataset change:
 
@@ -28,7 +28,7 @@ python scripts/ai/check_plan_readme_consistency.py       # README ↔ export.jso
 
 ## Offline invariants — the fast gate
 
-15 checks, no org needed, runs in under a second. Run it before every commit that
+16 checks, no org needed, runs in under a second. Run it before every commit that
 touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 
 | Invariant | Guards against |
@@ -46,6 +46,7 @@ touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 | `bounds_not_converted` | Tier *bounds* converted — they must stay identical across currencies |
 | `money_conversion_sane` | Converted rates that drift from `ConversionRate`, or tiers that collapse into each other |
 | `rates_derived_from_base` | A non-base rate that does not match its derived value |
+| `overrides_derived_from_base` | A non-base **Override tier value** that does not match its derived value — these are money and are converted, but were unchecked by the two rules above |
 | `period_ordering_descending` | `billing >= rating > accumulation` violated |
 | `counts_match_readme` | Plan README file-tree counts drifting from the CSVs |
 
@@ -62,7 +63,7 @@ The suite is a flat set of `check_*(d)` functions over pre-loaded CSV data.
    (`"no PURP on any of the 2 Pack products"`), not just `"ok"`.
 3. **Register it in the tuple inside `main()`** — a function that is not listed
    never runs, and nothing warns you.
-4. Confirm the count in the summary line went up (`15/15` → `16/16`).
+4. Confirm the count in the summary line went up (e.g. `16/16` → `17/17`).
 
 A check that raises is reported as a failure rather than crashing the run, so a
 malformed CSV surfaces as one red line instead of a traceback.
@@ -73,10 +74,11 @@ malformed CSV surfaces as one red line instead of a traceback.
 cci task run validate_multicurrency_rates --org <cci-alias>
 ```
 
-Design-time checks mirror the offline suite against the org. Runtime checks
-(`AssetRateCardEntry` currency alignment, `TransactionUsageEntitlement` shape
-identical per currency) **self-skip when no assets exist**, so a clean run on an
-empty org is not evidence — build assets first.
+Design-time checks mirror the offline suite against the org, scoped to the
+QuantumBit SKUs. Runtime checks (`AssetRateCardEntry` currency alignment, and
+per-asset entitlement shape compared across assets of the same product)
+**self-skip when no assets exist**, so a clean run on an empty org is not
+evidence — build assets first.
 
 ```bash
 python scripts/qb_usage.py audit  --org <sf-alias>   # design-time: products, policies, rates
