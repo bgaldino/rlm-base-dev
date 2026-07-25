@@ -121,6 +121,38 @@ Both scripts are idempotent — all queries filter on non-Active status.
 - **`excludeIdsFromCSVFiles: "true"`** — Portable, no raw Salesforce IDs in CSVs
 - **`useSeparatedCSVFiles: true`** — SFDMU uses `objectset_source/` subdirectories for pass-specific CSV overrides
 - **`skipExistingRecords: true`** on billing objects — prevents overwriting existing billing config
+- **`BillingTreatment.CanChangeBillingFrequency: true`** on all 15 treatments — see below
+
+### `CanChangeBillingFrequency` gates quote-line creation
+
+`BillingFrequency` is **mandatory** on any quote or order line whose selling model
+is `TermDefined` or `Evergreen`:
+
+```
+When the SellingModelType is Evergreen or Term-Defined, BillingFrequency can't be null
+```
+
+…but the platform only lets you set it when the line's `BillingTreatment` has
+`CanChangeBillingFrequency = true`:
+
+```
+Update the Billing Treatment "<name>" to make sure that you can change the
+Billing Frequency of its related Quote Line Item, and try again.
+```
+
+With the flag `false` these two rules deadlock: the frequency cannot be left
+null and cannot be set, so **no line can be created for a TermDefined product**
+by any route — direct DML *or* the Place Sales Transaction API. Nothing supplies
+a default: neither `BillingPolicy` nor `BillingTreatmentItem` carries a billing
+frequency to fall back on.
+
+The line also needs an explicit `BillingTreatmentId`; the reference **and** the
+flag are both required. Omitting the reference produces the *"Add a Billing
+Treatment…"* variant of the same error.
+
+This is why every treatment ships with the flag enabled. It is exercised by
+`scripts/build_quote_to_asset.py`, which builds a backdated quote → order →
+asset chain for usage-rating tests.
 
 ## Key Object Groups
 
