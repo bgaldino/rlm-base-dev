@@ -15,7 +15,18 @@ content is intentionally reusable across agents.
    - Tool-specific entry points (`CLAUDE.md`, `.github/copilot-instructions.md`)
      are symlinks or pointers to this file — edit `AGENTS.md` only.
 
-2. **`.cursor/skills/` — tool-neutral skill markdown**
+2. **`REVIEW.md` — how pull requests get reviewed**
+   - Root-level companion to `AGENTS.md`, read by Claude and by Copilot. Defines
+     the severity rubric, what a reviewer should look for, the defect classes
+     this repository actually produces, and push discipline.
+   - Division of labour: `AGENTS.md` governs *what the code must do*; `REVIEW.md`
+     governs *how review is conducted*. They overlap on three points by design —
+     verifying a finding, sweeping a class, and push discipline — where `AGENTS.md`
+     carries the short operational form and `REVIEW.md` carries the reasoning.
+   - Applies to human and AI reviewers alike, and to PR authors for the
+     one-push-per-review-round rule.
+
+3. **`.cursor/skills/` — tool-neutral skill markdown**
    - Contains detailed task guides such as CCI orchestration, SFDMU data plans,
      Robot testing, UX assembly (under `repo-integration`), schema validation,
      and release enablement.
@@ -24,21 +35,21 @@ content is intentionally reusable across agents.
    - Use the Skill Index in `AGENTS.md` or `.cursor/skills/README.md` to choose
      the relevant entry point.
 
-3. **`.cursor/rules/` — Cursor-specific rule files with reusable guidance**
+4. **`.cursor/rules/` — Cursor-specific rule files with reusable guidance**
    - Contains `.mdc` files that Cursor can auto-inject based on edited file
      patterns.
    - Non-Cursor tools can still read these files manually when working on the
      same file types; the guidance is reusable, but the auto-injection mechanism
      is Cursor-specific.
 
-4. **`.claude/skill-manifest.yml` — cross-repo skill manifest**
+5. **`.claude/skill-manifest.yml` — cross-repo skill manifest**
    - Advertises Foundations skills, grounding artifacts, and cross-repo paths so
      agents can resolve shared guidance between this repo and related repos such
      as PMOS.
    - Use it with `scripts/ai/skill_manifest.py` when cross-repo discovery or
      validation is needed.
 
-5. **`.github/copilot-instructions.md` — Copilot pointer**
+6. **`.github/copilot-instructions.md` — Copilot pointer**
    - Directs GitHub Copilot to `AGENTS.md` and summarizes the shared entry
      points.
    - It is an adapter for Copilot, not a replacement for the root contract.
@@ -51,6 +62,10 @@ content is intentionally reusable across agents.
 4. Relevant `.cursor/rules/` files for file-pattern-specific guidance.
 5. Tool adapter files, including `.github/copilot-instructions.md` and the files
    in `.agents/adapters/`, for mapping a tool to the shared instruction stack.
+
+`REVIEW.md` sits outside this ranking rather than inside it: it governs a different
+subject (how review is conducted) and so does not compete with `AGENTS.md`. When you are
+reviewing a pull request, it is authoritative for that activity.
 
 If guidance appears to conflict, prefer the higher-authority source and document
 any important assumption in your response or PR notes.
