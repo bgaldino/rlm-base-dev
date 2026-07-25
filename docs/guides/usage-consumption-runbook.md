@@ -136,8 +136,9 @@ discounted at all. That asymmetry is intentional and is the most common source o
 
 **In the org (for demo users).** The Account Utilities action clears an account's
 orders, assets, contracts, invoices, quotes, opportunities **and its entire usage
-graph**. It requires the `RLM_UtilitiesPermset` permission set, which is assigned
-only on `tso` builds because it is destructive.
+graph**. It requires the `RLM_UtilitiesPermset` permission set, assigned on both
+`quantumbit` and `tso` builds. It is destructive and has no confirmation step —
+it resets the account you invoke it on.
 
 **From the CLI (whole org).**
 

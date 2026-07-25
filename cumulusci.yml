@@ -328,6 +328,17 @@ project:
       # destructive access this component does not need.
       - RLM_ExpressionSetManager
 
+    ps_account_utilities: &ps_account_utilities
+      # Account Utilities reset (post_utils, deployed via deploy_post_utils in
+      # BOTH the quantumbit and tso flows). deploy_post_utils ships the whole
+      # surface — RLM_AccountUtilities, the Account.RLM_Reset_Account quick
+      # action and its flows — so a quantumbit build (tso=false) that never
+      # assigns this set leaves a visible reset button no non-admin can run.
+      # Assigned here for that path; the tso flow assigns it via
+      # rlm_tso_ps_api_names. Kept separate from ps_expression_set_manager so
+      # that component keeps its least-privilege grant.
+      - RLM_UtilitiesPermset
+
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
       - OmniStudioAdmin
@@ -3883,6 +3894,14 @@ flows:
         options:
           api_names: *ps_expression_set_manager
       6:
+        # Same reasoning for the other component deploy_post_utils ships: the
+        # Account Utilities reset. Without this the quick action deploys on a
+        # quantumbit build but no persona user can invoke it.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_account_utilities
+      7:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:

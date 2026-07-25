@@ -126,8 +126,8 @@ sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>   # org
 ```
 
 Per-account, the in-org utility is `RLM_AccountUtilities.delAccountRelatedObjects`
-(permission set `RLM_UtilitiesPermset`, `tso` only — destructive: it clears the
-account's transactional records **and** its usage graph).
+(permission set `RLM_UtilitiesPermset`, assigned on `quantumbit` and `tso` —
+destructive: it clears the account's transactional records **and** its usage graph).
 
 Both use a **convergent loop** — attempt every object each round, stop when a round
 makes no progress — and both clamp each delete to the transaction's remaining DML
