@@ -58,7 +58,7 @@ to Product2
 | 6  | BillingPolicy                | Upsert    | `Name`                                     | 3       |
 | 7  | BillingTreatment             | Upsert    | `Name`                                     | 15      |
 | 8  | BillingTreatmentItem         | Upsert    | `Name;BillingTreatment.Name`               | 18      |
-| 9  | Product2                     | Update    | `StockKeepingUnit`                         | 315     |
+| 9  | Product2                     | Update    | `StockKeepingUnit`                         | 316     |
 | 10 | GeneralLedgerAccount         | Upsert    | `AccountingCode`                           | 51      |
 | 11 | GeneralLedgerAcctAsgntRule   | Upsert    | `Name`                                     | 8       |
 | 12 | PaymentRetryRuleSet          | Upsert    | `Name`                                     | 1       |
@@ -236,7 +236,7 @@ qb-billing/
 ├── BillingPolicy.csv                    # 3 records
 ├── BillingTreatment.csv                 # 15 records (7 regions × Advance/Arrears + Milestone)
 ├── BillingTreatmentItem.csv             # 18 records (one per treatment)
-├── Product2.csv                         # 315 records (Update only)
+├── Product2.csv                         # 316 records (Update only)
 ├── GeneralLedgerAccount.csv             # 51 records
 ├── GeneralLedgerAcctAsgntRule.csv       # 8 records
 ├── PaymentRetryRuleSet.csv

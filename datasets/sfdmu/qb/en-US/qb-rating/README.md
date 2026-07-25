@@ -49,16 +49,16 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
 | 4 | UsageResource                | Upsert    | `Code`                                               | 7       |
-| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 9       |
+| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 10       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
-| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 22      |
+| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 25      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 4       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 20      |
-| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 11      |
+| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 23      |
+| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 12      |
 
 ¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
 
@@ -123,6 +123,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-TOKENS-PACK     | TokenPack          | Token pack (one-time purchase)           |
 | QB-CMT-TKN-EACH    | CommitmentToken    | Commit token — each-based pricing        |
 | QB-CMT-TKN-FLAT    | CommitmentToken    | Commit token — flat-rate pricing         |
+| QB-CMT-TKN-BND     | CommitmentToken    | Commit token — flat rate, **bounded** overage |
 | QB-CMT-TKN-TIER    | CommitmentToken    | Commit token — tier-based pricing        |
 | QB-QTY-CMT         | CommitmentQuantity | Quantity commitment (CPU/Storage)        |
 | QB-MTY-CMT         | CommitmentSpend    | Monetary commitment (USD currency)       |
@@ -159,6 +160,9 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-CMT-TKN-FLAT  | QB-TOKEN            | Token PUR                                    |
 | QB-CMT-TKN-FLAT  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
 | QB-CMT-TKN-FLAT  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-BND   | QB-TOKEN            | Token PUR — Bounded Object Rate              |
+| QB-CMT-TKN-BND   | UR-CPUTIME-TKN      | Usage PUR — Bounded Object Rate              |
+| QB-CMT-TKN-BND   | UR-DATASTORAGE-TKN  | Usage PUR — Bounded Object Rate              |
 | QB-CMT-TKN-TIER  | QB-TOKEN            | Token PUR                                    |
 | QB-CMT-TKN-TIER  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
 | QB-CMT-TKN-TIER  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
@@ -295,9 +299,16 @@ Three rules fall out, and each one breaks a demo if assumed away:
 > above is stable. Unlike `Product2.UsageModelType`, the policy *can* be swapped
 > while the PUR is Active.
 >
-> To demo both overage behaviours **simultaneously and durably**, QB needs a fourth
-> token commit product (e.g. `QB-CMT-TKN-BND`) carrying `Bounded Object Rate` —
-> otherwise it is a "flip one field between demos" story that breaks in a shared org.
+> **`QB-CMT-TKN-BND` exists for exactly this reason.** It is a byte-for-byte clone of
+> `QB-CMT-TKN-FLAT` — same 25,000-token grant, same 10% discount on both token
+> resources, same Term Annual selling model, same prices in all 7 currencies — except
+> its three `ProductUsageResourcePolicy` rows carry `Bounded Object Rate`. Sell FLAT
+> and BND side by side and the identical spike bills 17,425 vs 19,361.11 USD. Without
+> a second product this is a "flip one field between demos" story that breaks the
+> moment two people demo in the same org.
+>
+> Both sit in the **Consumption** component group (`QB-PCG-USAGE`) of the QuantumBit
+> Complete Solution bundle — FLAT at sequence 20, BND at 25.
 
 Read `UsageSummary.ConsumptionUnits` / `DebitedUnits` / `OverageUnits` to decompose a
 period; `UsageEntitlementBucket.ConsumedEntitlement` gives the per-bucket totals.
@@ -397,16 +408,16 @@ qb-rating/
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 5 records
 ├── UsageResource.csv                    # 7 records
-├── Product2.csv                         # 9 records (Update only)
+├── Product2.csv                         # 10 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records
 ├── UsageCommitmentPolicy.csv            # 2 records
-├── ProductUsageResource.csv             # 22 records
+├── ProductUsageResource.csv             # 25 records
 ├── UsagePrdGrantBindingPolicy.csv       # 4 records
 ├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
-├── ProductUsageResourcePolicy.csv       # 20 records
-├── ProductUsageGrant.csv                # 11 records
+├── ProductUsageResourcePolicy.csv       # 23 records
+├── ProductUsageGrant.csv                # 12 records
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/

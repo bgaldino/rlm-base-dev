@@ -43,6 +43,7 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/RLM_quantumBit_logo_sq,L5-20 Input Power Cable 8',QB-CMPC-5892
 /resource/database,QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH
 /resource/database,QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT
+/resource/database,QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND
 /resource/database,QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER
 /resource/complete_solution,QuantumBit Complete Solution,QB-COMPLETE
 /resource/RLM_quantumBit_logo_sq,Compute Time,QB-CPU-BLNG

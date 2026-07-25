@@ -56,7 +56,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
 | 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
-| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 315     |
+| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 316     |
 | 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentSchedule      | Upsert    |              | `Name`                                                                                                 | 3        |
@@ -65,9 +65,9 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 11 | AttributeAdjustmentCondition | Insert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
-| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1855     |
+| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 14 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 609      |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 616      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
@@ -189,11 +189,11 @@ qb-pricing/
 │  Source CSVs — Readonly Parents (lookup context)
 ├── ProductSellingModel.csv              # 9 records (Readonly)
 ├── AttributeDefinition.csv              # 39 records (Readonly)
-├── Product2.csv                         # 315 records (Readonly)
+├── Product2.csv                         # 316 records (Readonly)
 │
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
-├── PricebookEntry.csv                   # 1855 records
+├── PricebookEntry.csv                   # 1862 records
 ├── PricebookEntryDerivedPrice.csv       # 14 records
 │
 │  Source CSVs — Price Adjustments
@@ -210,7 +210,7 @@ qb-pricing/
 │
 │  Source CSVs — Cost Books
 ├── CostBook.csv                         # 1 record
-├── CostBookEntry.csv                    # 609 records
+├── CostBookEntry.csv                    # 616 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots

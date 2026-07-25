@@ -43,11 +43,11 @@ PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 
 | # | Object               | Operation | External ID                                                                          | Records |
 |---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
-| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 9       |
+| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 10       |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
 | 3 | PriceBookRateCard    | Upsert (+deleteOldData) | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
-| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 116    |
-| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 118 |
+| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 126    |
+| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 128 |
 
 **Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier keys on `RateCardEntry.RateCard.Name` (traversing the parent RateCardEntry to its RateCard's portable `Name`) instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
 
@@ -324,11 +324,11 @@ qb-rates/
 ├── README.md                  # This file
 │
 │  Source CSVs (data to load)
-├── Product2.csv               # 9 records (Update UsageModelType only)
+├── Product2.csv               # 10 records (Update UsageModelType only)
 ├── RateCard.csv               # 3 records
 ├── PriceBookRateCard.csv      # 2 records
-├── RateCardEntry.csv          # 116 records (Draft status — 15 per currency x 7 + 11 token-denominated)
-├── RateAdjustmentByTier.csv   # 118 records
+├── RateCardEntry.csv          # 126 records (Draft status — 15 per currency x 7 + 11 token-denominated)
+├── RateAdjustmentByTier.csv   # 128 records
 │
 │  Lookup Reference CSVs (for SFDMU resolution)
 ├── Pricebook2.csv             # Standard Price Book

@@ -15,6 +15,9 @@ QB-DB-TOKEN,QB-TOKEN,,,,Default Usage Overage Policy
 QB-DB-TOKEN,UR-CPUTIME-TKN,Monthly,dailytotal,,Default Usage Overage Policy
 QB-CMT-TKN-TIER,QB-TOKEN,,,Lowest Rate,
 QB-CMT-TKN-FLAT,QB-TOKEN,,,Lowest Rate,
+QB-CMT-TKN-BND,UR-CPUTIME-TKN,,,Bounded Object Rate,
+QB-CMT-TKN-BND,UR-DATASTORAGE-TKN,,,Bounded Object Rate,
+QB-CMT-TKN-BND,QB-TOKEN,,,Bounded Object Rate,
 QB-CMT-TKN-EACH,QB-TOKEN,,,Lowest Rate,
 QB-MTY-CMT,UR-USD,,,Lowest Rate,
 QB-MTY-CMT,UR-CPUTIME,,,Lowest Rate,

@@ -46,7 +46,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
 | 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
 | 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
-| 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
+| 6 | Product2         | Update    | `StockKeepingUnit`                 | 316     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
 
@@ -130,7 +130,7 @@ qb-tax/
 ├── TaxEngine.csv                        # 1 record
 ├── TaxTreatment.csv                     # 2 records
 ├── TaxPolicy.csv                        # 2 records
-├── Product2.csv                         # 315 records (Update only)
+├── Product2.csv                         # 316 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
 │
 │  Source CSVs (Pass 2 - Activate)
