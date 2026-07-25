@@ -52,6 +52,24 @@ OneTime      must be null/MilestonePlan  rejected
 A product may expose several (QB-DAT-THPT has Evergreen, Term Monthly and Term
 Annual), so ``--selling-model`` picks which PricebookEntry to use.
 
+Commitment products need a post-assetization link
+-------------------------------------------------
+A commitment and its anchor are sold as SEPARATE quotes and assetized
+independently, then tied together through the ``UsageCmtAssetRelatedObj``
+junction (help: *Sell Commitment-Based Usage Products*, step 3)::
+
+    --sku QB-CMT-TKN-TIER --link-commitment QB-DB-TOKEN
+
+Nothing in the catalog can express this pairing: ``UsagePrdGrantBindingPolicy``
+rejects commit products ("Select a Product with the Usage Model Type as Anchor
+or Pack") and *"You can't bind a commitment-based usage product to a target."*
+Without the junction the commitment is inert — consumption drains the anchor's
+grant and rates at the anchor's rate. With it, consumption draws from the
+committed amount first, at the discounted commit rate.
+
+Because the junction joins two **Assets**, it is transactional data and can
+never live in a design-time SFDMU plan.
+
 Pack products need an anchor
 ----------------------------
 A ``UsageModelType = Pack`` product draws down against an anchor's wallet and
@@ -93,6 +111,13 @@ API = "v67.0"
 # CalculationStatus values that mean "done, stop polling". Anything else is
 # either still in flight or a failure we surface verbatim.
 CALC_READY = {"CompletedWithPricing", "CompletedWithTax", "CompletedWithoutPricing"}
+# Quote-side statuses. Creating the order too early fails with "the calculation
+# status of the quote is invalid", so the quote must settle first.
+# NB: the org returns CompletedWithTax even though the describe's picklist for
+# Quote.CalculationStatus lists TaxCalculationSuccess — accept both.
+QUOTE_READY = {"CompletedWithPricing", "CompletedWithTax", "TaxCalculationSuccess",
+               "CompletedWithoutPricing"}
+QUOTE_FAILED = {"PriceCalculationFailed", "TaxCalculationFailed", "SaveFailedOrIncomplete"}
 CALC_FAILED = {
     "PriceCalculationFailed", "TaxCalculationFailed", "SaveFailedOrIncomplete",
     "OrderRequestFailed", "ConfigurationFailed", "ReconciliationFailed",
@@ -420,6 +445,30 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
     return quote_id
 
 
+def wait_for_quote(org, quote_id, timeout, interval):
+    """Let the quote finish pricing before ordering.
+
+    Place Sales Transaction returns as soon as the graph is accepted, but pricing
+    and tax continue asynchronously. Calling createOrdersFromQuote while that is
+    in flight fails with "We couldn't create an order for this quote because the
+    calculation status of the quote is invalid".
+    """
+    deadline = time.time() + timeout
+    last = None
+    while time.time() < deadline:
+        rows = sf_query(org, f"SELECT CalculationStatus FROM Quote WHERE Id = '{quote_id}'")
+        if not rows:
+            raise StepError("quote disappeared while polling")
+        last = rows[0]["CalculationStatus"]
+        if last in QUOTE_FAILED:
+            raise StepError(f"quote calculation failed: {last}")
+        if last in QUOTE_READY:
+            return last
+        time.sleep(interval)
+    raise StepError(f"timed out after {timeout}s waiting for quote calculation "
+                    f"(last status: {last})")
+
+
 def create_order(org, quote_id, timeout, interval):
     """Invoke the SAME action the Create Order quick action runs.
 
@@ -507,6 +556,58 @@ System.debug('SBMS=' + after.OrchestrationSbmsStatus);
     return vals
 
 
+def link_commitment(org, account_id, commit_sku, anchor_sku):
+    """Step 3 of "Sell Commitment-Based Usage Products" — the junction.
+
+    A commitment and its anchor are sold as SEPARATE quotes and assetized
+    independently. Nothing in the catalog ties them together: a commit product is
+    rejected by UsagePrdGrantBindingPolicy ("Select a Product with the Usage Model
+    Type as Anchor or Pack") and cannot be given a binding target at all. The link
+    is made AFTER both assets exist, through UsageCmtAssetRelatedObj:
+
+        AssetId         = the COMMITMENT asset
+        RelatedObjectId = the ANCHOR asset (Account/Contract/custom also allowed)
+
+    Without it the commitment is inert — consumption drains the anchor's grant and
+    rates at the anchor's rate. With it, consumption draws from the committed
+    tokens first at the discounted commit rate.
+
+    NB: this is transactional data (it joins two Assets), so it can never live in a
+    design-time SFDMU plan.
+    """
+    apex = f"""
+Asset anchor = [SELECT Id, LifecycleStartDate, LifecycleEndDate FROM Asset
+                WHERE AccountId = '{account_id}'
+                  AND Product2.StockKeepingUnit = '{esc(anchor_sku)}'
+                ORDER BY CreatedDate DESC LIMIT 1];
+Asset cmtAsset = [SELECT Id FROM Asset
+                  WHERE AccountId = '{account_id}'
+                    AND Product2.StockKeepingUnit = '{esc(commit_sku)}'
+                  ORDER BY CreatedDate DESC LIMIT 1];
+
+// Re-linking the same pair would violate "You can't link multiple commitment
+// products to the same anchor that have the same validity period".
+List<UsageCmtAssetRelatedObj> existing = [
+    SELECT Id FROM UsageCmtAssetRelatedObj
+    WHERE AssetId = :cmtAsset.Id AND RelatedObjectId = :anchor.Id];
+if (!existing.isEmpty()) {{
+    System.debug('LINK=existing ' + existing[0].Id);
+}} else {{
+    UsageCmtAssetRelatedObj lnk = new UsageCmtAssetRelatedObj(
+        AssetId = cmtAsset.Id,
+        RelatedObjectId = anchor.Id,
+        EffectiveStartDateTime = anchor.LifecycleStartDate,
+        EffectiveEndDateTime = anchor.LifecycleEndDate);
+    insert lnk;
+    System.debug('LINK=' + lnk.Id);
+}}
+"""
+    for line in sf_apex(org, apex):
+        if line.startswith("LINK="):
+            return line.split("=", 1)[1]
+    raise StepError("commitment link was not created")
+
+
 def wait_for_assets(org, account_id, sku, timeout, interval):
     """Assetization is async — poll until the asset appears.
 
@@ -571,6 +672,9 @@ def build_one(org, account, args):
                            args.bind_extra_lines)
     print(f"  quote        {quote_id}  (starts {args.start})")
 
+    qcalc = wait_for_quote(org, quote_id, args.timeout, args.interval)
+    print(f"  quote calc   {qcalc}")
+
     order_id = create_order(org, quote_id, args.timeout, args.interval)
     print(f"  order        {order_id}")
 
@@ -587,6 +691,10 @@ def build_one(org, account, args):
     for a in assets:
         print(f"  asset        {a['Name']} ({a['CurrencyIsoCode']}) "
               f"{str(a['LifecycleStartDate'])[:10]} -> {str(a['LifecycleEndDate'])[:10]}")
+
+    if args.link_commitment:
+        link_id = link_commitment(org, ids["ACCOUNT_ID"], args.sku, args.link_commitment)
+        print(f"  commitment   linked to {args.link_commitment} anchor ({link_id})")
 
     counts = verify_usage_buckets(org, [a["Id"] for a in assets])
     for k, v in counts.items():
@@ -630,6 +738,11 @@ def main():
     ap.add_argument("--bind-extra-lines", action="store_true",
                     help="bind --with-sku lines to the first line. Off by default: "
                          "Commit products reject BindingInstanceTargetId entirely")
+    ap.add_argument("--link-commitment", default="", metavar="ANCHOR_SKU",
+                    help="after assetizing a COMMITMENT product, link it to this "
+                         "anchor's asset via UsageCmtAssetRelatedObj. Required for "
+                         "the commitment to affect rating at all - without it the "
+                         "commitment is inert")
     ap.add_argument("--anchor-sku", default="",
                     help="bind the line to this product's existing asset on the "
                          "account (required for Pack products, which draw down "
