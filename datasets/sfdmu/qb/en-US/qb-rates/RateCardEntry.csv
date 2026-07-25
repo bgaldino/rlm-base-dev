@@ -80,20 +80,20 @@ QB-DB;Tier Rate Card;UR-DATASTORAGE;EUR,Terabyte,Data Volume,2023-01-01T20:00:00
 QB-DB;Tier Rate Card;UR-DATASTORAGE;GBP,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,GBP,GBP,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Tier Rate Card;UR-DATASTORAGE;JPY,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,JPY,JPY,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE,Data Storage
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;AUD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;CAD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;CHF,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CHF,CHF,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;EUR,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,EUR,EUR,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;GBP,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,GBP,GBP,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;JPY,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,JPY,JPY,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;USD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-CPUTIME-MTY,Compute Time (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;AUD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;CAD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;CHF,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CHF,CHF,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;EUR,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,EUR,EUR,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;GBP,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,GBP,GBP,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;JPY,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,JPY,JPY,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
-QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE-MTY,Data Storage (Monetary)
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;AUD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;CAD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;CHF,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CHF,CHF,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;EUR,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,EUR,EUR,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;GBP,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,GBP,GBP,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;JPY,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,JPY,JPY,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-CPUTIME,Compute Time
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;AUD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;CAD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;CHF,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CHF,CHF,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;EUR,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,EUR,EUR,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;GBP,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,GBP,GBP,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;JPY,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,JPY,JPY,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-MTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;AUD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-QTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,AUD,AUD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;CAD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-QTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CAD,CAD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;CHF,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-QTY-CMT,Term Annual,,Tier Rate Card;Tier,Negotiable,CHF,CHF,Currency,Draft,UR-CPUTIME,Compute Time

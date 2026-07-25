@@ -48,7 +48,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 18      |
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
-| 4 | UsageResource                | Upsert    | `Code`                                               | 9       |
+| 4 | UsageResource                | Upsert    | `Code`                                               | 7       |
 | 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 9       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
@@ -138,8 +138,6 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | UR-USD             | Currency | CURRENCY        | USD         | monthlytotal      |
 | UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | monthlytotal      |
 | UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | monthlypeak       |
-| UR-CPUTIME-MTY     | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE-MTY | Usage    | DATAVOL         | TB          | monthlypeak       |
 
 ## ProductUsageResource (PUR) Mapping
 
@@ -167,8 +165,8 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-QTY-CMT       | UR-DATASTORAGE      | Commitment qty (no token allowed)           |
 | QB-QTY-CMT       | UR-CPUTIME          | Commitment qty (no token allowed)           |
 | QB-MTY-CMT       | UR-USD              | Monetary commitment (currency)              |
-| QB-MTY-CMT       | UR-CPUTIME-MTY      | Usage PUR — dedicated monetary resource     |
-| QB-MTY-CMT       | UR-DATASTORAGE-MTY  | Usage PUR — dedicated monetary resource     |
+| QB-MTY-CMT       | UR-CPUTIME          | Usage PUR — the anchor's resource, discounted |
+| QB-MTY-CMT       | UR-DATASTORAGE      | Usage PUR — the anchor's resource, discounted |
 
 ## ProductUsageGrant (PUG) Summary
 
@@ -192,7 +190,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ### TokenResourceId Auto-Population
 
-The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: the token/monetary variants `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` (`TokenResource.Code = QB-TOKEN`) and `UR-CPUTIME-MTY` / `UR-DATASTORAGE-MTY` (`TokenResource.Code = UR-USD`); the base `UR-CPUTIME` / `UR-DATASTORAGE` resources carry no token association.
+The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: the token variants `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` (`TokenResource.Code = QB-TOKEN`); the base `UR-CPUTIME` / `UR-DATASTORAGE` resources carry no token association.
 
 ### Activation Conflict and Clear+Activate Workaround
 
@@ -200,18 +198,20 @@ When activating a PUR (`Status='Active'`), the platform auto-populates `TokenRes
 
 **Critical nuance:** The clear+activate only works when `TokenResourceId` changes from a **non-null** value to null. A null-to-null "clear" is a no-op and does NOT prevent auto-population. This is why Step 3 of the Apex script pre-populates `TokenResourceId` on Draft PURs where it is missing -- ensuring Step 4's clear is a real field change.
 
-### Monetary Commitment Usage PURs (Dedicated `-MTY` Resources)
+### Monetary Commitment Usage PURs — the anchor's own resources
 
 The CommitmentSpend product (`QB-MTY-CMT`) carries Usage-category PURs alongside its Currency PUR (`QB-MTY-CMT;UR-USD`):
 
-- `QB-MTY-CMT;UR-CPUTIME-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
-- `QB-MTY-CMT;UR-DATASTORAGE-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
+- `QB-MTY-CMT;UR-CPUTIME` — the anchor's compute resource, discounted 5%
+- `QB-MTY-CMT;UR-DATASTORAGE` — the anchor's storage resource, discounted 10%
 
-Rather than reusing the QB-TOKEN-associated `-TKN` variants (whose `QB-TOKEN` association would trigger a TokenResourceId activation conflict on CommitmentSpend products), these use dedicated `-MTY` UsageResource variants whose `TokenResource.Code` points at `UR-USD` instead of `QB-TOKEN`. This keeps the monetary-commitment usage records activatable without the TokenResourceId edit conflict.
+**A commitment must name the resources its anchor actually consumes.** Usage is only ever recorded against an anchor, so a discount attached to a resource no anchor holds can never match anything. `QB-QTY-CMT` has always reused `QB-DB`'s `UR-CPUTIME` / `UR-DATASTORAGE`; the spend commitment now does the same. What makes it a *spend* commitment is its wallet — the `UR-USD` Currency PUR holding the committed amount — not the resource it discounts.
 
-> ⚠️ **Known gap — the `-MTY` resources are on no anchor, so the monetary discounts are unreachable.** A commitment discounts the *anchor's* consumption, and usage is only ever recorded against an anchor. The token model has a matching anchor — `QB-DB-TOKEN` carries `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` — but the monetary model has none: `QB-DB` carries the plain `UR-CPUTIME` / `UR-DATASTORAGE`. So QB-MTY-CMT's 5% / 10% tier adjustments are valid, currency-complete data that no usage can ever hit.
+> **History (2026-07-25).** This product previously carried dedicated `UR-CPUTIME-MTY` / `UR-DATASTORAGE-MTY` resources (`Category=Usage`, `TokenResource.Code = UR-USD`), mirroring how the `-TKN` variants are backed by `QB-TOKEN`. The token model works because a matching anchor exists — `QB-DB-TOKEN` carries the `-TKN` resources — but no anchor ever carried the `-MTY` ones, so QB-MTY-CMT's tier adjustments were valid, currency-complete data that no usage could reach. The two resources are retired (UsageResource 9 → 7) and 28 rate rows repointed. The original rationale — that reusing the `-TKN` variants would trigger a `TokenResourceId` activation conflict — still holds and is why the plain, token-free `UR-CPUTIME` / `UR-DATASTORAGE` are the right target rather than the `-TKN` pair.
 >
-> Closing it is a demo-design decision, not a mechanical fix — give `QB-DB` the `-MTY` resources, add a currency-backed anchor, or drop the conversion and reuse the anchor's plain resources (what `QB-QTY-CMT` does). Deferred because **CommitmentSpend cannot be verified live today** (see the entitlement-processing note below). Recorded, not silently repointed: `tests/test_qb_multicurrency_data.py::check_addon_usage_resources_exist_on_anchor` allowlists exactly these two pairs, so any *other* unreachable resource still fails the suite.
+> Guarded by `tests/test_qb_multicurrency_data.py::check_addon_usage_resources_exist_on_anchor`, whose allowlist is now empty: any commitment or pack resource that no anchor consumes fails the suite.
+>
+> ⚠️ Still unverifiable end to end — CommitmentSpend entitlements never leave PENDING (see below), so this repoint is correct by construction but has not been proven live.
 
 ### CommitmentQuantity / CommitmentSpend entitlements never leave PENDING
 
@@ -329,7 +329,7 @@ qb-rating/
 ├── UnitOfMeasure.csv                    # 18 records
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 5 records
-├── UsageResource.csv                    # 9 records
+├── UsageResource.csv                    # 7 records
 ├── Product2.csv                         # 9 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record

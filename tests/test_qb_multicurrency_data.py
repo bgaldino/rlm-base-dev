@@ -76,21 +76,12 @@ ALLOWED_PUR_WITHOUT_RCE = {("QB-MTY-CMT", "UR-USD")}
 
 # Commitment/pack usage resources knowingly not present on any anchor.
 #
-# QB-MTY-CMT's UR-CPUTIME-MTY / UR-DATASTORAGE-MTY mirror the token pattern
-# (Category=Usage, TokenResourceId=UR-USD) so consumption can convert to
-# currency the way -TKN resources convert to tokens. But the token model has a
-# matching anchor (QB-DB-TOKEN carries the -TKN resources) and the monetary
-# model has none — QB-DB carries the plain UR-CPUTIME / UR-DATASTORAGE. So the
-# monetary commitment's 5%/10% discounts can never match consumed usage.
-#
-# Left as a recorded gap rather than silently repointed: closing it is a demo
-# design decision (give QB-DB the -MTY resources, add a currency-backed anchor,
-# or drop conversion and reuse the anchor's plain resources), and CommitmentSpend
-# cannot be verified live today — its entitlements never leave PENDING.
-ALLOWED_ADDON_RESOURCES_WITHOUT_ANCHOR = {
-    ("QB-MTY-CMT", "UR-CPUTIME-MTY"),
-    ("QB-MTY-CMT", "UR-DATASTORAGE-MTY"),
-}
+# Empty by design. QB-MTY-CMT once carried dedicated UR-CPUTIME-MTY /
+# UR-DATASTORAGE-MTY resources that existed on no anchor, making its discounts
+# unreachable; it now reuses the anchor's UR-CPUTIME / UR-DATASTORAGE the way
+# QB-QTY-CMT always has. Adding an entry here means shipping rate data that no
+# usage can ever hit, so it should be a conscious, documented choice.
+ALLOWED_ADDON_RESOURCES_WITHOUT_ANCHOR = set()
 
 # Rates deliberately NOT derived from the base currency — e.g. a bespoke local
 # price rather than a conversion. Keyed (product, rate card, resource, currency).
