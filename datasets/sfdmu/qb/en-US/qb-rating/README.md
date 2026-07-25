@@ -72,6 +72,12 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 
 ⚠️ **Placeholder to confirm:** the throughput rate (**0.10 USD/GB**, used by both the QB-DB and QB-DAT-THPT Base entries). Both packs have never been sold (0 assets); wire-up needs a live sell→consume→rate pass to verify before relying on it. QB-DB intentionally has **no** base `ProductUsageGrant` for `UR-DATAXFR` — the anchor includes 0 GB and the pack funds all throughput.
 
+> ⛔ **A commitment product's `ProductUsageResourcePolicy` may carry ONLY a `UsageCommitmentPolicy` — platform-enforced.** Setting either period field on a PURP whose product is `UsageModelType` **Commit / CommitmentQuantity / CommitmentSpend** fails with `INVALID_INPUT: "This field must be empty when the product associated with the product usage resource is one of the commitment usage model types.: [RatingFrequencyPolicyId]"` — and the identical message for `[UsageAggregationPolicyId]`. Live-verified 2026-07-24 on `pr308` by inserting all 10 rows three ways: rating+agg+commit rejected, agg+commit rejected, **commit-only accepted 10/10**.
+>
+> **A commitment does not rate anything itself — it discounts the *anchor's* rating**, so rating frequency and accumulation belong on the anchor's resources (`QB-DB`, `QB-DB-TOKEN`). This is the same shape as the Pack rule above: the policy lives on the product that actually consumes.
+>
+> Ten commit PURP rows briefly shipped with `rating=Monthly` + accumulation and were **silently dropped on every load**, leaving the org with 10 of the 20 rows this plan declares — while the CSV, the validator and the plan-consistency check all looked clean. Guarded offline now by `tests/test_qb_multicurrency_data.py::check_commitment_purp_has_no_periods`.
+
 ### Pass 2 — Activate UnitOfMeasureClass and UsageResource
 
 | # | Object             | Operation | External ID | Records |

@@ -2,20 +2,20 @@ ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource
 QB-DB,UR-DATASTORAGE,Monthly,dailytotal,,Default Usage Overage Policy
 QB-DB,UR-CPUTIME,Monthly,dailytotal,,Default Usage Overage Policy
 QB-DB,UR-DATAXFR,Monthly,dailytotal,,Default Usage Overage Policy
-QB-CMT-TKN-TIER,UR-DATASTORAGE-TKN,Monthly,dailypeak,Lowest Rate,
-QB-CMT-TKN-EACH,UR-DATASTORAGE-TKN,Monthly,dailypeak,Lowest Rate,
-QB-CMT-TKN-EACH,UR-CPUTIME-TKN,Monthly,dailytotal,Lowest Rate,
+QB-CMT-TKN-TIER,UR-DATASTORAGE-TKN,,,Lowest Rate,
+QB-CMT-TKN-EACH,UR-DATASTORAGE-TKN,,,Lowest Rate,
+QB-CMT-TKN-EACH,UR-CPUTIME-TKN,,,Lowest Rate,
 QB-DB-TOKEN,UR-DATASTORAGE-TKN,Monthly,dailytotal,,Default Usage Overage Policy
-QB-CMT-TKN-FLAT,UR-CPUTIME-TKN,Monthly,dailytotal,Lowest Rate,
-QB-CMT-TKN-FLAT,UR-DATASTORAGE-TKN,Monthly,dailypeak,Lowest Rate,
-QB-CMT-TKN-TIER,UR-CPUTIME-TKN,Monthly,dailytotal,Lowest Rate,
-QB-QTY-CMT,UR-DATASTORAGE,Monthly,dailypeak,Lowest Rate,
-QB-QTY-CMT,UR-CPUTIME,Monthly,dailytotal,Lowest Rate,
+QB-CMT-TKN-FLAT,UR-CPUTIME-TKN,,,Lowest Rate,
+QB-CMT-TKN-FLAT,UR-DATASTORAGE-TKN,,,Lowest Rate,
+QB-CMT-TKN-TIER,UR-CPUTIME-TKN,,,Lowest Rate,
+QB-QTY-CMT,UR-DATASTORAGE,,,Lowest Rate,
+QB-QTY-CMT,UR-CPUTIME,,,Lowest Rate,
 QB-DB-TOKEN,QB-TOKEN,,,,Default Usage Overage Policy
 QB-DB-TOKEN,UR-CPUTIME-TKN,Monthly,dailytotal,,Default Usage Overage Policy
 QB-CMT-TKN-TIER,QB-TOKEN,,,Lowest Rate,
 QB-CMT-TKN-FLAT,QB-TOKEN,,,Lowest Rate,
 QB-CMT-TKN-EACH,QB-TOKEN,,,Lowest Rate,
 QB-MTY-CMT,UR-USD,,,Lowest Rate,
-QB-MTY-CMT,UR-CPUTIME-MTY,Monthly,dailytotal,Lowest Rate,
-QB-MTY-CMT,UR-DATASTORAGE-MTY,Monthly,dailypeak,Lowest Rate,
+QB-MTY-CMT,UR-CPUTIME-MTY,,,Lowest Rate,
+QB-MTY-CMT,UR-DATASTORAGE-MTY,,,Lowest Rate,

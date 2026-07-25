@@ -21,6 +21,11 @@ restatement of the data:
 * ``pack_products_have_no_purp`` — the platform REJECTS a
   ProductUsageResourcePolicy on a ``UsageModelType=Pack`` product
   (INVALID_INPUT). Two such rows silently failed to load on every build.
+* ``commitment_purp_has_no_periods`` — the platform REJECTS a rating frequency
+  or aggregation policy on the PURP of a commitment product; a commitment
+  discounts the anchor's rating rather than rating anything itself. Ten such
+  rows shipped and silently failed to load, leaving the org with 10 of the 20
+  PURP rows the plan declares.
 * ``every_pur_has_rate_card_entry`` — a ProductUsageResource with no rate card
   entry raises "No effective rate card entry available" in the Usage Product
   Validator (QB-CMT-TKN-FLAT shipped this way).
@@ -58,6 +63,11 @@ PRICING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-pricing")
 
 BASE_CURRENCY = "USD"
 TOKEN_UOM = "TOKEN-UOM"
+
+# Product2.UsageModelType values the platform treats as "commitment" — their
+# ProductUsageResourcePolicy rows may carry a UsageCommitmentPolicy and nothing
+# else (no rating frequency, no aggregation).
+COMMITMENT_MODEL_TYPES = {"Commit", "CommitmentQuantity", "CommitmentSpend"}
 
 # ProductUsageResources intentionally shipped without a rate card entry.
 # UR-USD is Category=Currency (the monetary-commitment wallet); its commit
@@ -173,6 +183,40 @@ def check_pack_products_have_no_purp(d):
     check("pack_products_have_no_purp", not bad,
           f"Pack product(s) carrying a PURP (platform will reject): {bad}" if bad
           else f"no PURP on any of the {len(packs)} Pack products")
+
+
+def check_commitment_purp_has_no_periods(d):
+    """A commitment product's PURP may carry ONLY a UsageCommitmentPolicy.
+
+    The platform rejects both period fields on any PURP whose product is a
+    commitment usage model type:
+
+        INVALID_INPUT, This field must be empty when the product associated
+        with the product usage resource is one of the commitment usage model
+        types.: [RatingFrequencyPolicyId]
+
+    ...and the same message for [UsageAggregationPolicyId]. A commitment does
+    not rate anything itself; it discounts the ANCHOR's rating, so the anchor's
+    resources own the rating and accumulation periods. Ten such rows shipped
+    with rating=Monthly + accumulation and silently failed to load on every
+    build, leaving the org with half the PURP rows the plan declares.
+    """
+    commits = {r["StockKeepingUnit"] for r in d["product"]
+               if r["UsageModelType"] in COMMITMENT_MODEL_TYPES}
+    bad = []
+    for row in d["purp"]:
+        sku = row["ProductUsageResource.Product.StockKeepingUnit"]
+        if sku not in commits:
+            continue
+        carried = [f for f, col in (("rating", "RatingFrequencyPolicy.RatingPeriod"),
+                                    ("accumulation", "UsageAggregationPolicy.Code"))
+                   if (row.get(col) or "").strip()]
+        if carried:
+            res = row["ProductUsageResource.UsageResource.Code"]
+            bad.append(f"{sku}/{res} carries {'+'.join(carried)}")
+    check("commitment_purp_has_no_periods", not bad,
+          f"{len(bad)} row(s) the platform will reject: " + "; ".join(bad[:3]) if bad
+          else f"no rating/accumulation on any PURP of the {len(commits)} commitment products")
 
 
 def check_every_pur_has_rate_card_entry(d):
@@ -429,6 +473,7 @@ def main():
                check_tier_rce_has_adjustment,
                check_no_orphan_rabt,
                check_pack_products_have_no_purp,
+               check_commitment_purp_has_no_periods,
                check_every_pur_has_rate_card_entry,
                check_currency_coverage_uniform,
                check_token_entries_not_expanded,
