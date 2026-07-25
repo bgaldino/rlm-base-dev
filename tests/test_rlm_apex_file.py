@@ -31,10 +31,21 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tasks.rlm_apex_file import (  # noqa: E402
+    ApexCompilationException,
+    ApexException,
     FileBasedAnonymousApexTask,
     LOG_EVENT_LINE,
     MAX_SCRIPT_OUTPUT_LINES,
 )
+
+# NOTE ON THE EXCEPTION-TYPE CHECKS BELOW
+# When CumulusCI is not installed the task module's import guard aliases every
+# exception to bare `Exception`, so an isinstance() assertion degrades to
+# "something was raised" -- true, but weak. Run this file with the CumulusCI
+# interpreter to make those assertions meaningful:
+#   ~/.local/pipx/venvs/cumulusci/bin/python tests/test_rlm_apex_file.py
+# The message-content assertions alongside them discriminate the branches under
+# either interpreter, which is why both are asserted rather than the type alone.
 
 RESULTS = []
 
@@ -292,19 +303,118 @@ def check_success_payload_still_read_from_result(_):
 
 def check_overflow_is_reported_not_silent(_):
     """
-    REVIEW.md: no silent caps. Verify the cap exists and that the extractor
-    itself does not truncate -- the caller reports the overflow, so the count
-    it reports has to be the true one.
+    REVIEW.md: no silent caps. This has to exercise the LOGGER, not just the
+    extractor -- checking only that the extractor returns every line proves
+    nothing about whether the caller drops the surplus quietly.
     """
+    overflow = 25
     big = "\n".join(
         f"16:03:23.39 (4038272{i})|USER_DEBUG|[{i}]|DEBUG|line {i}"
-        for i in range(MAX_SCRIPT_OUTPUT_LINES + 25)
+        for i in range(MAX_SCRIPT_OUTPUT_LINES + overflow)
     )
-    out = extract(big)
+
     check(
         "extractor_does_not_truncate",
-        len(out) == MAX_SCRIPT_OUTPUT_LINES + 25,
-        f"extractor returned {len(out)}; caller must be the one that caps and reports",
+        len(extract(big)) == MAX_SCRIPT_OUTPUT_LINES + overflow,
+        "the extractor must return everything so the caller can report a true count",
+    )
+
+    task = _StubTask()
+    task._log_script_output(big)
+    infos = [msg for level, msg in task.logger.lines if level == "info"]
+    warnings = [msg for level, msg in task.logger.lines if level == "warning"]
+
+    check(
+        "logger_caps_at_the_limit",
+        len(infos) == MAX_SCRIPT_OUTPUT_LINES,
+        f"expected {MAX_SCRIPT_OUTPUT_LINES} lines logged, got {len(infos)}",
+    )
+    check(
+        "overflow_warning_states_the_count",
+        len(warnings) == 1 and str(overflow) in warnings[0],
+        f"a truncated report must say how much it dropped; warnings={warnings}",
+    )
+
+
+def check_runtime_failure_reports_the_apex_error(_):
+    """
+    A bare `except Exception` would stay green if this branch regressed to the
+    generic CommandException, so assert on WHICH error surfaces: the Apex-level
+    message from the failure payload, not the CLI's wrapper text.
+    """
+    task = _StubTask()
+    raised = None
+    try:
+        task._check_result(
+            {
+                "status": 1,
+                "name": "executeRuntimeFailure",
+                "message": "Execution failed at this code:",
+                "data": {
+                    "compiled": True,
+                    "success": False,
+                    "exceptionMessage": "System.IllegalArgumentException: boom",
+                    "exceptionStackTrace": "AnonymousBlock: line 2, column 1",
+                    "logs": "",
+                },
+            }
+        )
+    except Exception as exc:
+        raised = exc
+
+    rendered = str(raised)
+    check(
+        "runtime_failure_surfaces_apex_message",
+        raised is not None
+        and "System.IllegalArgumentException: boom" in rendered
+        and "sf apex run failed" not in rendered,
+        # flattened: these exceptions render multi-line and would break the report
+        "expected the Apex error, not the generic CLI wrapper. Got: "
+        + " ".join(rendered.split())[:110],
+    )
+    check(
+        "runtime_failure_raises_apex_exception_type",
+        isinstance(raised, ApexException),
+        f"expected ApexException, got {type(raised).__name__}",
+    )
+
+
+def check_compile_failure_in_the_failure_shape(_):
+    """
+    The `compiled == False` branch added for the failure payload. Previously
+    compile errors were detected only by matching text in the CLI message, so
+    this shape fell through to a generic CommandException.
+    """
+    task = _StubTask()
+    raised = None
+    try:
+        task._check_result(
+            {
+                "status": 1,
+                "name": "executeCompileFailure",
+                "message": "compile failed",
+                "data": {
+                    "compiled": False,
+                    "success": False,
+                    "compileProblem": "Unexpected token '('.",
+                    "line": 12,
+                    "column": 3,
+                    "logs": "",
+                },
+            }
+        )
+    except Exception as exc:
+        raised = exc
+
+    check(
+        "compile_failure_surfaces_the_problem",
+        raised is not None and "Unexpected token" in str(raised),
+        f"expected the compileProblem in the error. Got: {str(raised)[:120]}",
+    )
+    check(
+        "compile_failure_raises_compilation_type",
+        isinstance(raised, ApexCompilationException),
+        f"expected ApexCompilationException, got {type(raised).__name__}",
     )
 
 
@@ -321,6 +431,8 @@ def main():
         check_empty_and_missing_logs_are_safe,
         check_output_is_logged_before_a_failure_raises,
         check_success_payload_still_read_from_result,
+        check_runtime_failure_reports_the_apex_error,
+        check_compile_failure_in_the_failure_shape,
         check_overflow_is_reported_not_silent,
     )
     for fn in checks:

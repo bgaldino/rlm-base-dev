@@ -20,8 +20,13 @@
  *
  * COVERAGE: 34.6% (346/1001 lines), measured on a scratch org 2026-07-25.
  * ----------------------------------------------------------------------------
- * That is BELOW the 75% Salesforce requires for a production deploy. Stated
- * plainly so nobody reads a green run as deploy-readiness.
+ * To be precise about what that does and does not mean: Salesforce enforces 75%
+ * across ALL Apex in the org for a production deploy, plus at least some
+ * coverage on every trigger. It is not a per-class gate, so 34.6% here does not
+ * by itself block a deploy. What it does mean is that this class is
+ * under-tested and drags the org-wide figure down by roughly 655 uncovered
+ * lines -- a real cost in an org that has to clear the aggregate. Stated
+ * plainly so nobody reads a green run as "this class is well covered".
  *
  * The uncovered ~655 lines are the usage-graph and fulfillment teardown --
  * deleteUsageEntitlementBucketsHierarchy/BottomUp, deleteUsageEntitlements,
