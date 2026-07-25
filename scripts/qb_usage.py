@@ -29,8 +29,10 @@ only settle once a period completes. See
 datasets/sfdmu/qb/en-US/qb-rating/README.md.
 
 Exit codes (orchestrate):
-    0  every journal was processed
-    1  journals still pending after the requested number of passes
+    0  journals aggregated AND the rating jobs have settled -- safe to validate
+    1  journals still pending, or aggregation finished while Data Processing Engine
+       rating jobs are still running. Zero pending journals is NOT "rated"; validating
+       on that signal reads a healthy run as a failure.
     2  orchestration stalled with journals still pending -- usually stranded
        behind a period that closed before the usage was recorded
 A failed Apex run raises ApexRunError rather than being reported as success.
@@ -422,6 +424,27 @@ def cmd_orchestrate(args):
                 f"-- see the error above. Refusing to report progress for org {org}.")
         return rows[0].get("c")
 
+    def rating_jobs_running():
+        """Data Processing Engine jobs still working, after journals go quiet.
+
+        Zero pending journals means AGGREGATED, not RATED -- rating finishes in DPE
+        jobs (Create_Liable_Summary_v3, Create Ratable Summary For ...). Returning 0
+        while those run tells automation the pipeline is settled when it is not, and
+        anything that validates on that signal reads a half-rated org as a failure.
+
+        Deliberately broad -- any non-terminal BatchJob from today, not a name match.
+        Over-matching costs an extra wait; under-matching would restore the lie.
+
+        Excludes the TERMINAL states rather than listing the running ones, so a status
+        this predates is treated as still-running (an extra wait) instead of as done.
+        Note 'Canceled' is spelled with ONE l in the picklist, and
+        'CompletedWithFailures' is terminal -- verified against the org, not assumed.
+        """
+        rows = sf_query(org, "SELECT COUNT(Id) c FROM BatchJob WHERE CreatedDate = TODAY "
+                             "AND Status NOT IN ('Completed','Failed','Canceled',"
+                             "'CompletedWithFailures')")
+        return rows[0].get("c") if rows else 0
+
     try:
         print(f"driving orchestration on {org} "
               f"(up to {args.passes} passes, {args.interval}s apart)")
@@ -434,8 +457,19 @@ def cmd_orchestrate(args):
             after = pending()
             print(f"  pass {p}: pending journals {before} -> {after}")
             if after == 0:
-                print("  all journals processed")
-                return 0
+                jobs = rating_jobs_running()
+                if not jobs:
+                    print("  all journals processed and rating jobs settled")
+                    return 0
+                print(f"  journals aggregated; {jobs} rating job(s) still running")
+                if p == args.passes:
+                    # Exit 1, NOT 0. Aggregation finished but rating did not, so the
+                    # org is not ready to validate. Reporting success here is what
+                    # makes a healthy run look like a failed one downstream.
+                    print("  rating still in flight after the last pass — wait for the "
+                          "Data Processing Engine jobs\n  to finish before validating.")
+                    return 1
+                continue
             if after == before and p >= 3:
                 # Exit 2, NOT 0. Journals still Pending means the run did not do
                 # what this command promises; reporting success would let
