@@ -115,18 +115,21 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## Products and Usage Model Types
 
-| Product SKU        | Usage Model Type   | Description                              |
-|--------------------|--------------------|------------------------------------------|
-| QB-DB              | Anchor             | QuantumDB — anchor product with token    |
-| QB-DB-TOKEN        | Token              | QuantumDB Token product                  |
-| QB-DAT-THPT        | (standard)         | Data Throughput — standalone usage        |
-| QB-TOKENS-PACK     | TokenPack          | Token pack (one-time purchase)           |
-| QB-CMT-TKN-EACH    | CommitmentToken    | Commit token — each-based pricing        |
-| QB-CMT-TKN-FLAT    | CommitmentToken    | Commit token — flat-rate pricing         |
-| QB-CMT-TKN-BND     | CommitmentToken    | Commit token — flat rate, **bounded** overage |
-| QB-CMT-TKN-TIER    | CommitmentToken    | Commit token — tier-based pricing        |
-| QB-QTY-CMT         | CommitmentQuantity | Quantity commitment (CPU/Storage)        |
-| QB-MTY-CMT         | CommitmentSpend    | Monetary commitment (USD currency)       |
+`Product2.UsageModelType` values, taken from `qb-rates/Product2.csv`. The picklist is
+**Anchor / Pack / Commit / CommitmentQuantity / CommitmentSpend** — nothing else is valid.
+
+| Product SKU        | Usage Model Type   | Description                                       |
+|--------------------|--------------------|---------------------------------------------------|
+| QB-DB              | Anchor             | Anchor product — direct-currency rating           |
+| QB-DB-TOKEN        | Anchor             | Anchor product — token two-step rating            |
+| QB-DAT-THPT        | Pack               | Pack add-on — tops up an anchor's throughput      |
+| QB-TOKENS-PACK     | Pack               | Pack add-on — tops up an anchor's token wallet    |
+| QB-CMT-TKN-BND     | Commit             | Token commitment — flat 10%, discount STOPS at the commitment |
+| QB-CMT-TKN-EACH    | Commit             | Token commitment — per-resource discount (5% / 4%) |
+| QB-CMT-TKN-FLAT    | Commit             | Token commitment — flat 10%, discount SURVIVES overage |
+| QB-CMT-TKN-TIER    | Commit             | Token commitment — tiered 10 / 20 / 30%           |
+| QB-QTY-CMT         | CommitmentQuantity | Quantity commitment (CPU minutes + storage)       |
+| QB-MTY-CMT         | CommitmentSpend    | Monetary commitment (UR-USD spend wallet)         |
 
 ## Usage Resources
 
