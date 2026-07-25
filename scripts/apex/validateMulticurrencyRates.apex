@@ -107,6 +107,12 @@ List<RateCardEntry> rces = [
            RateUnitOfMeasure.UnitCode, Status
     FROM RateCardEntry
     WHERE Product.StockKeepingUnit IN :QB_USAGE_SKUS
+      // ACTIVE only, for the same reason as the CURRENCY units above: a Draft or
+      // Inactive entry cannot rate at runtime, so letting one satisfy the coverage,
+      // UoM and tier checks means a FAILED activate_rates still passes this
+      // validator. Restricting the set makes the existing coverage checks report
+      // the missing *active* combinations instead.
+      AND Status = 'Active'
 ];
 
 // 1. Every currency used as a rate UoM must exist as a CURRENCY-class unit.
