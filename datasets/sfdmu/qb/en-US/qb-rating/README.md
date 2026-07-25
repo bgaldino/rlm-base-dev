@@ -253,29 +253,30 @@ Live-verified 2026-07-24 on `pr308`, and the single most common way a usage demo
 silently produces zeroes.
 
 `Create Empty Summaries` runs at assetization and seeds one `UsageSummary` per
-resource per accumulation period in state `New`. **Only a `New` summary will
-absorb a `TransactionJournal`.** Once an orchestration pass advances it —
-`UsageSummaryInProgress`, `RatableSummaryComplete`, `LiableSummaryComplete` — a
-journal that arrives later for that period stays `Pending` **forever**: it is
-never aggregated, never rated, and nothing reports an error. The rated summary
-simply reads `TierQuantity = 0, TotalAmount = 0`.
+resource per accumulation period in state `New`. A journal is absorbed only
+while its period's summary is still open — `New` or `UsageSummaryInProgress`.
+**Once the period reaches `RatableSummaryComplete` / `LiableSummaryComplete` it
+never reopens**, and a journal that arrives afterwards stays `Pending`
+*forever*: never aggregated, never rated, and nothing reports an error. The
+rated summary just reads `TierQuantity = 0, TotalAmount = 0`.
 
 The proof: six accounts were given identical June-15 usage. Five had already had
-an orchestration pass run over June and every one of their journals stranded at
-`Pending`. The sixth (`Helvetia Cloud`) had been built *after* that pass, so its
-June summaries were still `New` — its journals aggregated and rated correctly on
-the first try. Re-consuming the five inside the *active* billing period did not
-help either: those summaries were already `UsageSummaryInProgress`.
+an orchestration pass close out June, and every one of their journals stranded
+at `Pending` permanently. The sixth (`Helvetia Cloud`) had been built *after*
+that pass, so its June summaries were still open — its journals aggregated and
+rated correctly. Re-consuming the five inside the still-open July period then
+worked for all of them, confirming the gate is period **completion**, not the
+first orchestration pass.
 
-**The order is not negotiable:**
+**So the order is per period, and it matters:**
 
 ```
 build asset  →  record usage  →  run orchestration   (repeat per period)
 ```
 
-There is no supported way to reopen a closed period. Recovery is to consume in a
-period whose summaries are still `New`, or to rebuild on an account that has
-never been orchestrated. Note that `refreshUsageEntitlementBucket` does *not* do
+There is no supported way to reopen a completed period. Recovery is to consume
+in a period that is still open, or to rebuild on an account whose periods have
+never been closed out. Note that `refreshUsageEntitlementBucket` does *not* do
 this — it refreshes entitlement buckets for backdated assets, not summaries.
 
 ### Period Ordering: Billing >= Rating > Accumulation
