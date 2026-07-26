@@ -259,11 +259,38 @@
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Commitment_based_Rate_Adjustment</targetReference>
+        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Binding_Object_Volume_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <description>Selling a commitment creates its AssetRateAdjustment rows, but nothing
+else re-syncs Commitment_based_Rate_Adjustment -- it is only refreshed by the org build.
+Every other rate table on the same source objects is refreshed above, which is what makes
+the omission easy to miss: a commitment sold after the build is invisible to the
+commitment-rate lookup, so usage rates at the undiscounted anchor rate with no error
+anywhere.</description>
+        <name>Refresh_Commitment_based_Rate_Adjustment</name>
+        <label>Refresh Commitment based Rate Adjustment</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Commitment_based_Rate_Adjustment</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>

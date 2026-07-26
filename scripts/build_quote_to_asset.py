@@ -790,14 +790,15 @@ def build_one(org, account, args):
     if args.link_commitment:
         link_id = link_commitment(org, ids["ACCOUNT_ID"], args.sku, args.link_commitment)
         print(f"  commitment   linked to {args.link_commitment} anchor ({link_id})")
-        # Selling the commitment created its AssetRateAdjustment rows, but
-        # Commitment_based_Rate_Adjustment is only refreshed by prepare_rlm_org --
-        # nothing re-syncs it for a sale made after the build, and its siblings on the
-        # same source object DO stay current, so the staleness is easy to miss.
-        print("  ⚠ ACTION      refresh the commitment decision table BEFORE recording "
-              "usage, or the commit rate will not be found:")
-        print("                  cci org default <cci_alias>   # refresh_dt_* take no --org")
-        print("                  cci task run refresh_dt_asset")
+        # Activating the order fires CreateAssetOrderEvent, and
+        # RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info refreshes the
+        # rate decision tables -- including Commitment_based_Rate_Adjustment, which was
+        # missing from that chain until it was added. On an org built before that fix the
+        # commitment rate is looked up against a stale table and consumption rates at the
+        # undiscounted anchor rate, so the table has to be refreshed by hand there.
+        print("  note         commitment rate table refreshes via CreateAssetOrderEvent; on an "
+              "org built\n               before that was wired up, run `cci task run "
+              "refresh_dt_asset` before usage")
 
     counts = verify_usage_buckets(org, [a["Id"] for a in assets])
     for k, v in counts.items():

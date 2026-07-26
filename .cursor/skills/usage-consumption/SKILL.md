@@ -42,10 +42,12 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
   summaries but the period state survives, so re-recording into the **same** period
   strands the journals exactly as above. Re-testing one period needs a full account
   reset and an asset rebuild
-- **DO NOT** record usage against a freshly sold commitment without refreshing
-  `Commitment_based_Rate_Adjustment` — it is refreshed during `prepare_rlm_org` but
-  **not** when a commitment is sold later, so it is stale by default for any
-  post-build sale
+- **DO NOT** assume a freshly sold commitment's rate is live on an org built before
+  `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
+  chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). It now
+  refreshes on order activation like every other rate table, but on an older org
+  nothing re-syncs it and consumption rates at the undiscounted anchor rate with no
+  error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows
 - **DO NOT** read a non-zero `UsageRatableSummary.OverageQuantity` as commitment
   exhaustion — on ordinary rows it mirrors `TierQuantity` and means "beyond the
   included allowance"

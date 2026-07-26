@@ -55,21 +55,25 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "Infinitech" \
 Without `--link-commitment`, the commitment sits there looking correct while
 consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 
-> **After selling a commitment, refresh the commitment decision table before
-> recording usage.** Selling a commitment creates its `AssetRateAdjustment` rows, but
-> `Commitment_based_Rate_Adjustment` is only refreshed during `prepare_rlm_org` — it is
-> **not** re-synced when a commitment is sold afterwards, which for a demo org built
-> once and then transacted against is the normal case. Its sibling tables on the same
-> source object (`Asset_Tier_based_Rate_Adjustment_V2`, `Asset_Rate_Decision_Table_V2`)
-> do stay current, so the staleness is easy to miss.
+> **The commitment rate table refreshes itself — but only on orgs built after that was
+> wired up.** Selling a commitment creates its `AssetRateAdjustment` rows, and activating
+> the order fires `CreateAssetOrderEvent`, which
+> `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` handles by refreshing
+> the rate decision tables. `Commitment_based_Rate_Adjustment` was **missing from that
+> chain** — every other rate table on the same source objects was in it, which is what made
+> the gap easy to miss. It has been added, and a live check shows it refreshing 6 seconds
+> after the asset rows are created.
+>
+> **On an org built before that fix**, nothing re-syncs it and a commitment sold after the
+> build is invisible to the commitment-rate lookup — consumption rates at the undiscounted
+> anchor rate with no error anywhere. Refresh by hand there:
 >
 > ```bash
 > cci org default <cci_alias>   # refresh_dt_* take no --org flag
 > cci task run refresh_dt_asset
 > ```
 >
-> Confirm it actually caught up — `LastSyncDate` must be **after** the asset rows were
-> created:
+> Either way, confirm — `LastSyncDate` must be **after** the asset rows were created:
 >
 > ```bash
 > sf data query --use-tooling-api --target-org <sf_alias_or_username> \
