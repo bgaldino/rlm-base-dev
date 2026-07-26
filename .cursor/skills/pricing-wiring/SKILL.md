@@ -288,17 +288,27 @@ cci task run refresh_dt_default_pricing
 
 (`refresh_dt_*` tasks reject `--org`; they run against the CCI **default** org.)
 
-To tell whether a table is stale, compare it against its newest source row — the sync
-timestamp alone cannot establish freshness:
+To tell whether a table is stale, compare **each** table against **its own** source object's
+newest `LastModifiedDate`. Two things make this easy to get wrong:
+
+- The three tables do **not** share one source, so a single source query proves nothing about
+  the other two: `Contract_Pricing_Entries_Decision_Table` ← `ContractItemPrice`, while
+  `Contract_Pricing_Adjustment_Tiers` and `Contract_Pricing_Volume_Tiers` ←
+  `ContractItemPriceAdjTier`.
+- Use `LastModifiedDate`, not `CreatedDate`. An **edited** price row invalidates the table
+  exactly as a new one does, and `CreatedDate` cannot see it.
 
 ```bash
-sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%'" --target-org <sf_alias>
-sf data query -q "SELECT Id, CreatedDate FROM ContractItemPrice ORDER BY CreatedDate DESC LIMIT 1" --target-org <sf_alias>
+sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
+sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
+sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier" --target-org <sf_alias>
 ```
 
-If the newest `ContractItemPrice.CreatedDate` is later than `LastSyncDate`, the contract's
-negotiated price is not being applied. The same reasoning applies to any other lookup
-source that gains rows at runtime.
+A table whose `LastSyncDate` is **earlier** than its own source's `newest` is stale, and the
+contract's negotiated price is not being applied. A `null` `newest` means that source has no
+rows at all, so its tables cannot be stale. The same table-by-table reasoning applies to every
+other lookup source that changes at runtime — never generalise one source's timestamp to a
+sibling table.
 
 ---
 
