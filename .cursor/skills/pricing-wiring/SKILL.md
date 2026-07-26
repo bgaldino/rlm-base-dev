@@ -299,22 +299,30 @@ cci task run refresh_dt_default_pricing
 
 (`refresh_dt_*` tasks reject `--org`; they run against the CCI **default** org.)
 
-If a refresh does not happen, the platform records it on the table itself — check
-`DecisionTable.RefreshStatus` (observed cycling `Initiated` → `Completed`) and
-`RefreshFailureReason`, not the flow. The decisive signal is still `LastSyncDate`: it only
-advances on a refresh that ran, so the staleness comparison above catches a failure whether
-or not anything else reports it.
+**Use `LastSyncDate` to decide whether a refresh happened.** It only advances on a refresh
+that actually ran, so the staleness comparison above is the one check that holds for every
+failure shape. Do not rely on `DecisionTable.RefreshStatus` / `RefreshFailureReason` as the
+detector: they live *on a table record*, so they only tell you anything once a refresh has
+been accepted for a table that exists.
 
-Two failure shapes, measured against a live org — worth knowing before you add error
-handling to a flow that calls `refreshDecisionTable`:
+Two failure shapes, measured against a live org — the difference matters before you add
+error handling to a flow that calls `refreshDecisionTable`:
 
-- **An invalid or inactive `DecisionTableApiName` throws a Flow fault**, not a `Failed`
-  status (*"The decision table API Name is invalid…"*). A flow calling this action needs a
-  `faultConnector`, and in a **record-triggered after-save** flow it needs one urgently: an
-  unhandled fault rolls back the triggering DML, so a refresh problem would block the very
-  save that should have caused the refresh.
+| Shape | What you get | Where it shows |
+|---|---|---|
+| Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
+| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed cycling `Initiated` → `Completed`) and `RefreshFailureReason` |
+
+Consequences:
+
+- A flow calling this action needs a `faultConnector`, and in a **record-triggered
+  after-save** flow it needs one urgently: an unhandled fault rolls back the triggering DML,
+  so a refresh problem would block the very save that should have caused the refresh.
 - The documented `status = Failed` output could not be provoked — a valid table returned
   `Queued` on every attempt, including five back-to-back refreshes of the same table.
+- Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
+  `LastSyncDate` as the *only* evidence. That is by design, but it means the staleness check
+  above is the monitoring story, not an afterthought.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
 newest `LastModifiedDate`. Two things make this easy to get wrong:
