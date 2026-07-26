@@ -88,7 +88,7 @@ sources, in the order you should consult them:
 
 ```bash
 # every constraint model and its active state
-sf data query --target-org <alias> -q "
+sf data query --target-org <sf_alias_or_username> -q "
   SELECT ExpressionSet.ApiName, ApiName, VersionNumber, IsActive
   FROM ExpressionSetVersion
   WHERE ExpressionSet.UsageType = 'Constraint'
@@ -97,6 +97,11 @@ sf data query --target-org <alias> -q "
 
 `ExpressionSet.UsageType = 'Constraint'` is the discriminator — that, not the name, is what
 makes something a constraint model.
+
+> **Two registries, two placeholders.** CCI and the `sf` CLI keep *separate* alias lists —
+> a CCI alias `beta` is `rlm-base__beta` to `sf`. Recipes below use `<cci_alias>` with
+> `cci … --org` and `<sf_alias_or_username>` with `sf … --target-org`; they are not
+> interchangeable. See `AGENTS.md` → *Org Identity: CCI vs SF CLI*.
 
 **2. What the repo ships** — authoritative for a fresh build, and the inventory a build
 will import:
@@ -283,7 +288,7 @@ keeps running the old one — and the import reports success.
 ```bash
 # manage_expression_sets does NOT accept --org (see Known gaps) -- it uses the DEFAULT org.
 # Set the default first so all three steps hit the same org.
-cci org default <alias>
+cci org default <cci_alias>
 
 # <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
 # <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
@@ -292,7 +297,7 @@ cci org default <alias>
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "<Version>"
 
-cci task run import_cml --org <alias> \
+cci task run import_cml --org <cci_alias> \
     -o data_dir <DataDir> \
     -o dataset_dirs "<PlanDir>"
 
@@ -305,7 +310,7 @@ cci task run manage_expression_sets -o operation activate_versions \
 ```bash
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
-cci task run import_cml --org <alias> \
+cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
 cci task run manage_expression_sets -o operation activate_versions \
@@ -354,7 +359,7 @@ where versions are created inactive.
 way to ship a model change, so cycle the version yourself afterwards:
 
 ```bash
-cci org default <alias>   # manage_expression_sets does not accept --org, see Known gaps
+cci org default <cci_alias>   # manage_expression_sets does not accept --org, see Known gaps
 
 # <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
 # Server2_V1, or whatever the org actually reports as active for the model you changed.
@@ -411,11 +416,11 @@ cp datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxbl
 ### Read the deployed model back out of an org
 
 ```bash
-URL=$(sf data query --use-tooling-api --target-org <alias> \
+URL=$(sf data query --use-tooling-api --target-org <sf_alias_or_username> \
   -q "SELECT ConstraintModel FROM ExpressionSetDefinitionVersion WHERE DeveloperName='QuantumBitBundle_V1'" \
   --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['records'][0]['ConstraintModel'])")
-INST=$(sf org display --target-org <alias> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['instanceUrl'])")
-TOK=$(sf org display --target-org <alias> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['accessToken'])")
+INST=$(sf org display --target-org <sf_alias_or_username> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['instanceUrl'])")
+TOK=$(sf org display --target-org <sf_alias_or_username> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['accessToken'])")
 curl -s -H "Authorization: Bearer $TOK" "$INST$URL" | grep "TokenCommitBounded"
 ```
 
@@ -442,7 +447,7 @@ Before calling a constraint-model change done:
    (Bundle is a graft of Complete plus PCM), so an unscoped query lets a tag missing from
    one model be masked by another model's row:
    ```bash
-   sf data query --target-org <alias> -q "
+   sf data query --target-org <sf_alias_or_username> -q "
      SELECT ConstraintModelTag, ConstraintModelTagType
      FROM ExpressionSetConstraintObj
      WHERE ExpressionSet.ApiName = '<Model>'"

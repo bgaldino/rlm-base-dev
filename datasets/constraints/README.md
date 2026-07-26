@@ -185,7 +185,7 @@ The version must be **deactivated and reactivated** so the model redeploys:
 
 ```bash
 # NOTE: manage_expression_sets does not currently accept --org and runs against the
-# CCI DEFAULT org. Set the default first (`cci org default <alias>`) so all three
+# CCI DEFAULT org. Set the default first (`cci org default <cci_alias>`) so all three
 # steps hit the same org. import_cml does accept --org.
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
@@ -214,7 +214,7 @@ It is still worth doing as a sanity check — just do not mistake it for proof t
 rebuilt. **Only selecting the product in the configurator proves that.**
 
 ```bash
-sf data query --use-tooling-api --target-org <alias> \
+sf data query --use-tooling-api --target-org <sf_alias_or_username> \
   -q "SELECT ConstraintModel FROM ExpressionSetDefinitionVersion WHERE DeveloperName = 'QuantumBitBundle_V1'"
 # then GET that URL with your access token and grep for the type you added
 ```
@@ -322,7 +322,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 >
 > **Switching the active QuantumBit model** (e.g. back to PCM for comparison) —
 > `manage_expression_sets` extends `BaseTask`, so it has **no `--org` flag**; it
-> targets the **default** CCI org. Set the default org first (`cci org default <alias>`),
+> targets the **default** CCI org. Set the default org first (`cci org default <cci_alias>`),
 > then:
 > ```bash
 > cci task run manage_expression_sets -o operation deactivate_versions -o version_full_names QuantumBitBundle_V1
@@ -440,15 +440,19 @@ recommend Token Commit Flat), which is irreconcilable with the bundle.
 The data plan resolves entirely against the `qb-pcm` catalog, so:
 
 ```bash
-cci task run import_cml --org <alias> \
+cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
 ```
 
-To edit the model: change `scripts/cml/QuantumBitBundle.cml`, copy it over
-`datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob`
-(the blob **is** the plain-text CML), deactivate the version, re-import, then
-re-activate (see the [switching note](#prepare_constraints-flow) above).
+To edit the model: change
+`datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob` —
+the blob **is** the plain-text CML and is the artifact that ships — then `cp` it over
+the sibling `scripts/cml/QuantumBitBundle.cml` to keep the reference copy in sync.
+Deactivate the version, re-import, then re-activate (see the
+[switching note](#prepare_constraints-flow) above). Editing only the `.cml` changes
+nothing in any org, and copying the `.cml` over the blob would overwrite the shipped
+artifact from a reference copy.
 
 ### Validating the combined model (headless)
 
