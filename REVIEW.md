@@ -158,6 +158,12 @@ Not required, and not available to every contributor. Use them where you have th
   more passes from one — a model reviewing its own output carries the same blind spots
   it had while writing. If you have two, run the cheaper one first and reserve the other
   as a final sweep on an already-clean diff.
+  **Fetch before you review.** A reviewer working from a stale clone compares the diff
+  against an old base, which produces confident *false negatives* — the quiet kind you
+  never notice. A cross-workstation review here reported a test file as "not present on
+  any branch" when it had merged to `main` hours earlier; it was retracted, but only
+  because someone checked. If tooling is misbehaving (`gh` auth, TLS), assume `git fetch`
+  may be affected too, and confirm your base before trusting the pass.
 - **Salesforce-internal reviewers** (PRizm, CodeGenie and similar) operate on internal
   Git hosts, not on this public repository. They are the internal-repo playbook, not an
   option here.
