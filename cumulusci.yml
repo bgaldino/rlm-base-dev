@@ -4655,6 +4655,31 @@ flows:
           api_names: *ps_large_stx
           user_alias: salesrep
       8:
+        # The Account Reset quick action is deployed by deploy_post_utils onto
+        # RLM_Account_Record_Page, and there is no persona-specific Account page — so the
+        # salesrep persona SEES the button. Without RLM_UtilitiesPermset it cannot invoke
+        # it: SetupEntityAccess on RLM_AccountUtilities comes only from the System
+        # Administrator profile or this permission set. The steps above assign to the
+        # RUNNING user; only a user_alias assignment reaches the persona.
+        #
+        # Granted deliberately. RLM_UtilitiesPermset is destructive (it deletes an
+        # account's orders, assets, contracts and invoices), but resetting between demos
+        # is exactly what the persona is for, and a visible button that errors is worse
+        # than the grant. The alternative — hiding the action from the persona — was
+        # rejected because the reset is a persona workflow, not an admin one.
+        #
+        # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
+        # keeps its least-privilege grant (see ps_expression_set_manager).
+        #
+        # Gated on quantumbit OR tso because deploy_post_utils (and therefore the
+        # permission set) only exists on those builds; assigning it on a
+        # personas-only build would fail on a PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_account_utilities
+          user_alias: salesrep
+      9:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

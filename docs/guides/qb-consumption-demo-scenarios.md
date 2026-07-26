@@ -261,7 +261,7 @@ python3 scripts/build_quote_to_asset.py --org <alias> --accounts "<account>" \
 
 Then record usage into a past period, orchestrate until journals stop moving, wait
 for the Data Processing Engine rating jobs to finish (journals stopping means
-aggregated, not rated — see the runbook), and assert:
+aggregated, not rated — see [the runbook](usage-consumption-runbook.md)), and assert:
 
 ```bash
 sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>
@@ -274,18 +274,39 @@ Systems, Rheintech Solutions, Sakura Systems, Global Media) all have both.
 
 ---
 
-## Not yet built
+## Coverage beyond the nine scenarios
 
-Permutations with no scenario. None are blocked by the platform except where noted.
+**"No scenario written" is not the same as "not built."** Several of these are configured
+and shipping today — you can demo them now, they simply have no walkthrough above and no
+asserted result. Others need real work. They are separated here so you can tell at a
+glance which is which.
+
+### Built and demoable today — no scenario written
+
+| Permutation | Where the setup already is |
+|---|---|
+| **Binding to a target other than `Self`** | Already built **and verified** — scenario 6 (Pack top-up) *is* this. `QB-TOKENS-PACK` and `QB-DAT-THPT` both use `GrantBindingType = Target` with `GrantBindingTargetType = Product` (`qb-rating/UsagePrdGrantBindingPolicy.csv`). Only the **`Account` / `Contract` / `Custom`** target types are unbuilt — see the "not built" table |
+| **Multicurrency commitments** | All 6 commit SKUs (`QB-CMT-TKN-FLAT/EACH/TIER/BND`, `QB-QTY-CMT`, `QB-MTY-CMT`) carry `PricebookEntry` rows in **7/7** currencies. Build is complete; only USD/GBP/AUD have been exercised at runtime |
+| **One commitment → multiple anchors** | Reachable with shipped tooling — `UsageCmtAssetRelatedObj` has no uniqueness on either FK, so `build_quote_to_asset.py --link-commitment` can simply be run twice. Never tried; how the platform pools across anchors is the actual unknown |
+
+### Built and silently active — never isolated or asserted
+
+| Permutation | State |
+|---|---|
+| **Rollover and renewal policies** | Not merely present — **wired to all 12 `ProductUsageGrant` rows**, in the data and in the org (`QB-DB-ROLLOVER`: rollover allowed, no max count; `QB-DB-REFRESH`: renewal every 1 month). They were attached during **every one of the nine scenarios**. Nothing asserts them, so whether rollover or renewal actually *fired* is unknown |
+| **Invoicing rated usage** | **Already exercised** end-to-end: `UsageBillingPeriodItem` → posted invoice. It produces a line with correct quantities and a **zero amount**, because the usage-definition products carry no `PricebookEntry` and no `RateCardEntry`. Tracked as a defect, not a gap |
+
+### Not built — needs new data or lifecycle work
 
 | Permutation | Note |
 |---|---|
-| One commitment → multiple anchors | Account-level pooling, with documented end-date ordering and highest-rate-first tiebreak |
-| Binding targets other than `Self` | Account / Contract / Custom pooling |
-| Rollover and renewal policies | Records exist in `qb-rating`; behaviour never exercised |
+| Binding target types `Account` / `Contract` / `Custom` | No `UsagePrdGrantBindingPolicy` row uses them, and `Custom` additionally needs `BindingObjectCustomExt` records, of which the build seeds **none**. The quote-line UI offers all four target types regardless of the product's design-time policy, so this is a trap as well as a gap — under investigation |
 | Proration | Mid-period amendment cutting a bucket's validity |
-| Multicurrency commitments | Only USD/GBP/AUD proven on commit paths |
 | Amend / renew / cancel | Lifecycle against a live commitment |
-| Invoicing rated usage | `UsageBillingPeriodItem` → Invoice |
-| Monetary minimum-spend billing | Bill the committed minimum when usage falls short — needs scenario 9 unblocked |
 | Commitment expiry mid-term | Distinct from exhaustion; policy-driven |
+
+### Blocked
+
+| Permutation | Note |
+|---|---|
+| Monetary minimum-spend billing | Bill the committed minimum when usage falls short — needs scenario 9 unblocked (`CommitmentQuantity`/`CommitmentSpend` entitlements never leave `PENDING`) |
