@@ -4675,11 +4675,24 @@ flows:
         # Administrator profile or this permission set. The steps above assign to the
         # RUNNING user; only a user_alias assignment reaches the persona.
         #
-        # Granted deliberately. RLM_UtilitiesPermset is destructive (it deletes an
-        # account's orders, assets, contracts and invoices), but resetting between demos
-        # is exactly what the persona is for, and a visible button that errors is worse
-        # than the grant. The alternative — hiding the action from the persona — was
-        # rejected because the reset is a persona workflow, not an admin one.
+        # Granted deliberately, and the grant is broader than "the button now works".
+        # RLM_AccountUtilities declares NO sharing keyword (RLM_AccountUtilities.cls:28),
+        # so when it is entered directly — as it is from this invocable — it runs in
+        # SYSTEM MODE. Granting this set therefore hands a non-admin persona a
+        # system-mode destructive entry point: the reset deletes an account's orders,
+        # assets, contracts, invoices and usage graph regardless of what that user can
+        # see. It is not bounded by their sharing.
+        #
+        # Accepted for a demo org, where resetting between demos is precisely the
+        # persona's job and a visible button that errors is worse than the grant.
+        # It would NOT be acceptable in an org holding real data. Hiding the action from
+        # the persona was the alternative and was rejected because the reset is a persona
+        # workflow, not an admin one.
+        #
+        # The clean fix is to give RLM_AccountUtilities an explicit sharing declaration
+        # and decide its enforcement deliberately — tracked separately. Until then this
+        # grant is the widest non-admin privilege the build hands out, and the permission
+        # reference records it as such.
         #
         # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
         # keeps its least-privilege grant (see ps_expression_set_manager).

@@ -275,11 +275,15 @@ These are assigned via `assign_permission_sets` in their respective flows — to
 persona user instead. See the persona rows in the flow inventory below.
 
 > ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
-> running admin.** It grants `RLM_AccountUtilities`, whose invocable deletes an account's
-> orders, assets, contracts, invoices and usage graph. That makes a **non-admin principal
-> capable of destructive deletion** — intentional (resetting between demos is the
-> persona's job, and the reset quick action is on the Account page it sees), but it must
-> be visible to any permission audit.
+> running admin — and it runs in SYSTEM MODE.** It grants `RLM_AccountUtilities`, which
+> declares no sharing keyword, so when entered directly from its invocable the class runs
+> unrestricted by sharing. The persona can therefore delete an account's orders, assets,
+> contracts, invoices and usage graph **regardless of what that user can see**.
+>
+> This is the widest non-admin privilege the build grants. It is intentional for a demo
+> org — resetting between demos is the persona's job and the quick action sits on the
+> Account page it sees — but it would not be appropriate in an org holding real data.
+> Giving the class an explicit sharing declaration is tracked separately.
 
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|

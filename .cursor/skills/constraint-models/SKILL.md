@@ -117,7 +117,7 @@ activate/deactivate lists — see `datasets/constraints/README.md` → *Adding N
 ## The file layout
 
 ```
-datasets/constraints/qb/<Model>/
+datasets/constraints/<vertical>/<Model>/     # e.g. qb/QuantumBitBundle, mfg/fuelCell
 ├── ExpressionSet.csv                        # the Expression Set (UsageType=Constraint)
 ├── ExpressionSetConstraintObj.csv           # ESC: Type + Port associations  <- the wiring
 ├── ExpressionSetDefinitionContextDefinition.csv
@@ -129,6 +129,7 @@ datasets/constraints/qb/<Model>/
     └── ESDV_<Model>_V1.ffxblob              # THE MODEL. Plain text CML.
 
 scripts/cml/<Model>.cml                      # reference copy, byte-identical to the blob
+                                             # (optional — QuantumBitPCM ships without one)
 ```
 
 Ids in these CSVs are from the **authoring** org and are placeholders. `import_cml` remaps
@@ -358,15 +359,26 @@ Before calling a constraint-model change done:
 5. `ConstraintModel` reads back with your change in it (recipe above). Note what this
    does **not** prove: `import_cml` writes that same field, so it confirms the upload was
    stored and nothing more. It cannot distinguish "stored" from "deployed".
-6. Diff the **expected** set against the org rather than listing what is there:
+6. Diff the **expected** set against the org rather than listing what is there — and
+   **scope the query to the model you changed**. Models deliberately share most tags
+   (Bundle is a graft of Complete plus PCM), so an unscoped query lets a tag missing from
+   one model be masked by another model's row:
    ```bash
-   sf data query --target-org <alias> \
-     -q "SELECT ConstraintModelTag, ConstraintModelTagType FROM ExpressionSetConstraintObj"
+   sf data query --target-org <alias> -q "
+     SELECT ConstraintModelTag, ConstraintModelTagType
+     FROM ExpressionSetConstraintObj
+     WHERE ExpressionSet.ApiName = '<Model>'"
    ```
    then assert every product you expect has **both** a `Type` and a `Port` row.
-7. **Select the product in the configurator UI.** This is the only check that proves the
-   runtime model was rebuilt. Nothing above distinguishes a deployed model from a stored
-   one, so this step is not optional — it is the verification.
+7. **Exercise the configuration rules.** This is what proves the runtime model was
+   rebuilt — nothing above distinguishes a deployed model from a stored one. It does
+   **not** require the UI: activation only flips `IsActive`, and the model is compiled
+   when config rules run, so POSTing the Product Configurator `configure` action with
+   `executeConfigurationRules: true` against a quote line that uses the model exercises
+   the same path headlessly. A valid model returns `success: true`,
+   `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
+   Full recipe: `datasets/constraints/README.md` → *Validating the combined model
+   (headless)*.
 
 ---
 
