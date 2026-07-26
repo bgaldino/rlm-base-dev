@@ -47,15 +47,28 @@ Release 262 dev-guide/Help snapshots:
 | **QualificationProcedure** | Product qualification/disqualification — eligibility gating in Product Discovery. | `ProductQualification` | `RLM_ProductDiscoveryQualificationProcedure` | Step graph (this skill) |
 | **Constraint** ⚠ | Product Configurator constraint rules — compatibility/recommendation logic (GA 262 "Product Discovery with Constraint Rules"). | `Constraint` | *(shipped as constraint models, not `expressionSetDefinition` step XML)* | **CML** — see note |
 
-> ⚠ **Constraint is CML-based, not a step graph.** Unlike the other five,
-> Constraint expression sets are authored in **CML** (Constraint Modeling
-> Language) via the Configurator Constraint Builder / CML editor, not as a flat
-> `steps[]` graph. The Connect-overlay tooling and `steps[]`/`parentStep` model
-> in this skill **do not apply** to Constraint sets. They surface in the same
-> `ExpressionSet`/`interfaceSourceType` enum, so they
-> are listed here for completeness; deep CML authoring guidance is **deferred to
-> future work** (see the CML docs under `docs/salesforce/262/dev-guide/` —
-> `cml_*` articles — and the Configurator Help suite).
+> ⚠ **Constraint is CML-based, not a step graph — use
+> [`.cursor/skills/constraint-models/SKILL.md`](../constraint-models/SKILL.md), not this
+> skill.** Constraint expression sets are authored in **CML** (Constraint Modeling
+> Language) and shipped as a plain-text `.ffxblob`, not as a flat `steps[]` graph. The
+> Connect-overlay tooling, the `steps[]`/`parentStep` model, and the script routing in
+> this skill **do not apply** to Constraint sets. They surface in the same
+> `ExpressionSet`/`interfaceSourceType` enum, so they are listed here for completeness.
+>
+> **Two rules in this skill are actively misleading for Constraint sets:**
+>
+> 1. **Quick Rule 7 / DO NOT (“PATCH on an active version is rejected”).** Constraint
+>    models fail the *opposite* way: `import_cml` against an **active** version
+>    **succeeds** and simply does not redeploy — no error, stale model still running.
+>    You get no signal, so verify against the deployed blob rather than the import result.
+> 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
+>    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
+>    Constraint models go through `manage_expression_sets` + `import_cml`, and there is an
+>    open question about whether the API toggle is equivalent to activating in the CML
+>    Editor UI — see the constraint-models skill.
+>
+> Source material: `docs/salesforce/262/dev-guide/` (`cml_*` articles) and the
+> Configurator Help suite.
 
 ### <a name="the-full-enum"></a>The full enum vs. Revenue Cloud
 

@@ -16,6 +16,7 @@ repo root.
 | Work with CCI tasks, flows, or CLI | CCI Orchestration | `cci-orchestration/SKILL.md` |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
+| Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | `constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions; inspect/validate context plans | Context Service | `context-service/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
