@@ -60,7 +60,10 @@ Release 262 dev-guide/Help snapshots:
 > 1. **Quick Rule 7 / DO NOT (“PATCH on an active version is rejected”).** Constraint
 >    models fail the *opposite* way: `import_cml` against an **active** version
 >    **succeeds** and simply does not redeploy — no error, stale model still running.
->    You get no signal, so verify against the deployed blob rather than the import result.
+>    You get no signal from the import, and there is no separately readable
+>    "deployed" artifact either: `ExpressionSetDefinitionVersion.ConstraintModel` is the
+>    field `import_cml` writes, so reading it back only confirms the upload. Verify by
+>    exercising the configurator.
 > 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
 >    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
 >    Constraint models go through `manage_expression_sets` + `import_cml`. Note
