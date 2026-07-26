@@ -208,7 +208,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-billing/LegalEntity.csv` + `BillingTreatment
 
 **Plus a sub-resource:** `UR-DATASTORAGE-TKN` and `UR-CPUTIME-TKN` (token-rated variants tied to `QB-TOKEN`)
 
-### Usage-Rated Products (9)
+### Usage-Rated Products (10)
 
 | SKU | Description |
 |---|---|
@@ -219,10 +219,18 @@ Source: `datasets/sfdmu/qb/en-US/qb-billing/LegalEntity.csv` + `BillingTreatment
 | `QB-CMT-TKN-EACH` | Commitment Tokens (per-token rated) |
 | `QB-CMT-TKN-FLAT` | Commitment Tokens (flat-rate) |
 | `QB-CMT-TKN-TIER` | Commitment Tokens (tiered) |
+| `QB-CMT-TKN-BND` | Commitment Tokens (bounded — discount stops at the committed amount) |
 | `QB-MTY-CMT` | Monetary Commitment |
 | `QB-QTY-CMT` | Quantity Commitment |
 
-All 9 usage products participate in the QB-COMPLETE bundle's `QB-PCG-USAGE` component group.
+**8 of the 10 participate in the QB-COMPLETE bundle's `QB-PCG-USAGE` component group.**
+`QB-DAT-THPT` and `QB-TOKENS-PACK` are deliberately **not** bundle components — they are
+target-bound top-ups (`GrantBindingType = Target`) sold against an anchor asset, and a pack
+cannot be sold standalone. Verify with:
+
+```bash
+awk -F, 'NR>1 && $0 ~ /QB-PCG-USAGE/' datasets/sfdmu/qb/en-US/qb-pcm/ProductRelatedComponent.csv | wc -l
+```
 
 ### Supporting Records
 
@@ -244,15 +252,15 @@ Source: `datasets/sfdmu/qb/en-US/qb-rating/`
 
 `prepare_constraints` imports four CML constraint models and activates two against the QB catalog — **Server2** (hardware) and **QuantumBitBundle** (software). Only one QuantumBit *software* model can be active at a time, so **QuantumBitComplete** and **QuantumBitPCM** are imported but left **inactive** for A/B/C comparison. See `datasets/constraints/README.md` → "QuantumBitBundle (combined model)".
 
-### QuantumBitBundle (59 ESC records = 32 Type + 27 Port, 32 products) — ACTIVE software model
+### QuantumBitBundle (61 ESC records = 33 Type + 28 Port, 33 products) — ACTIVE software model
 
 A LineItem-primary union of QuantumBitComplete's configurable bundle and QuantumBitPCM's virtual-quote cart-level rules. It **preserves QuantumBitComplete's full bundle behavior** (same ports / attributes / constraints — see Type/Port semantics below) and **adds** PCM's cart-level `require` / `recommend` cross-item rules (require QuantumBit Database with API Access Requests; recommend Essentials / Fundamentals Training). Targeted products = the QuantumBitComplete set (below) plus Gold Hardware Maintenance, QuantumBit Collaboration Suite, Additional API Flex (100M), and Additional API Gov.
 
-### QuantumBitComplete (55 ESC records = 28 Type + 27 Port, 28 products) — imported, INACTIVE
+### QuantumBitComplete (57 ESC records = 29 Type + 28 Port, 29 products) — imported, INACTIVE
 
 Software-focused constraints; the bundle/configuration source grafted into QuantumBitBundle. Targeted products include:
 - Additional API, API Access Requests (AEH), Additional Automation QB Credits
-- QuantumBit Services Project, QuantumBit Database (5 variants: base, token-based, token-commit-each/flat/tier, monetary commit, quantity commit)
+- QuantumBit Services Project, QuantumBit Database (8 variants: base, token-based, token-commit each/flat/tier/bounded, monetary commit, quantity commit)
 - Professional Services Daily Rate, Professional Services Scope of Work, Software Maintenance
 - API Management Solution, Additional Flows/Messages
 
@@ -279,12 +287,12 @@ ESC records use two `ConstraintModelTagType` values that drive how the Constrain
 
 | Tag Type | QuantumBitBundle | QuantumBitComplete | Server2 | Meaning |
 |---|---|---|---|---|
-| **Type** | 32 | 28 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
-| **Port** | 27 | 27 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
+| **Type** | 33 | 29 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
+| **Port** | 28 | 28 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
 
-(QuantumBitBundle's 27 Ports are inherited verbatim from QuantumBitComplete's bundle; its 32 Types = QuantumBitComplete's 28 plus 4 PCM-unique products. QuantumBitPCM contributes 12 Type tags and 0 Ports.)
+(QuantumBitBundle's 28 Ports are inherited verbatim from QuantumBitComplete's bundle; its 33 Types = QuantumBitComplete's 29 plus 4 PCM-unique products. QuantumBitPCM contributes 12 Type tags and 0 Ports.)
 
-**Port-type semantics in plain terms:** the Constraint Builder treats Ports as connection points. A Type tag identifies what kind of component a product is; a Port tag identifies the slot it fills. The constraint logic in the binary CML blob enforces compatibility — e.g., a `gold22ghz` CPU port can only accept Type tags compatible with that CPU socket; a `ram64` port only accepts 64GB RAM Type tags.
+**Port-type semantics in plain terms:** the Constraint Builder treats Ports as connection points. A Type tag identifies what kind of component a product is; a Port tag identifies the slot it fills. The constraint logic in the CML blob — plain text, not a compiled binary — enforces compatibility — e.g., a `gold22ghz` CPU port can only accept Type tags compatible with that CPU socket; a `ram64` port only accepts 64GB RAM Type tags.
 
 This is the model that powers the Spring '26 Configurator features (Compact Layout, Sticky Errors, Inline Attribute Configuration, Enhanced Instance Selection) — they all run against the constraint engine that interprets these Type/Port relationships.
 
@@ -456,7 +464,7 @@ The QB org is rich and well-constructed for workshops. With customers in `scratc
 - ✅ Nested component groups (QB-QRack-750: Computing → Cooling, Storage → Hard Drives, PCIe → GPUs / I/O / Networking)
 - ✅ Pricing-feature wiring on QB-COMPLETE — Bundle (QB-API 5%), Attribute (QB-API environment override), Volume (QB-MSG-STRT tiered), Derived (2 entries)
 - ✅ All 9 SellingModel records (One-Time + 4 Term-Defined frequencies + 4 Evergreen frequencies)
-- ✅ All 9 usage-product variants (multi-resource, token, monetary, quantity, commitment + tiered)
+- ✅ All 10 usage-product variants (multi-resource, token, monetary, quantity, commitment flat/each/tiered/bounded, target-bound packs)
 - ✅ DRO fulfillment scenarios for QB products
 - ✅ Tax engine + treatments per LE
 - ✅ DocGen template foundation

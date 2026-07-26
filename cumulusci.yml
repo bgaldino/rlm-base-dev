@@ -4414,7 +4414,20 @@ flows:
           # so activating Bundle without this would leave Complete/PCM active alongside it.
           # No-op on a fresh build (Complete/PCM are imported inactive); the task safely
           # skips versions that are already inactive or absent.
-          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1"
+          #
+          # QuantumBitBundle_V1 is in this list DELIBERATELY, even though step 12
+          # reactivates it immediately. Steps 7-10 import while Bundle may already be
+          # ACTIVE, and uploading a ConstraintModel into an active version stores the blob
+          # WITHOUT redeploying the runtime model. Without this entry step 12's "activate"
+          # is a no-op on an already-active version, the flow reports success, and the org
+          # keeps running the OLD model — so the configurator rejects whatever the new
+          # model added. Deactivating here and reactivating in step 12 is the
+          # deactivate/reactivate cycle Salesforce documents as the way to pick up a
+          # rebuilt model. Server2_V1 is listed for the same reason: step 8 imports it
+          # and step 12 activates it, so on a rerun against an already-active Server2 it
+          # would hit the identical stale-runtime path. Every version step 12 activates
+          # must be deactivated here. See .cursor/skills/constraint-models/SKILL.md.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1"
       12:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -4655,6 +4668,52 @@ flows:
           api_names: *ps_large_stx
           user_alias: salesrep
       8:
+        # The Account Reset quick action is deployed by deploy_post_utils onto
+        # RLM_Account_Record_Page, and there is no persona-specific Account page — so the
+        # salesrep persona SEES the button. Without RLM_UtilitiesPermset it cannot invoke
+        # it: SetupEntityAccess on RLM_AccountUtilities comes only from the System
+        # Administrator profile or this permission set. The steps above assign to the
+        # RUNNING user; only a user_alias assignment reaches the persona.
+        #
+        # Granted deliberately, and the grant is broader than "the button now works".
+        # RLM_AccountUtilities declares NO sharing keyword (RLM_AccountUtilities.cls:28),
+        # so when it is entered directly — as it is from this invocable — it runs in
+        # SYSTEM MODE. Granting this set therefore hands a non-admin persona a
+        # system-mode destructive entry point: the reset deletes an account's orders,
+        # assets, contracts, invoices and usage graph regardless of what that user can
+        # see. It is not bounded by their sharing.
+        #
+        # Accepted for a demo org, where resetting between demos is precisely the
+        # persona's job and a visible button that errors is worse than the grant.
+        # It would NOT be acceptable in an org holding real data. Hiding the action from
+        # the persona was the alternative and was rejected because the reset is a persona
+        # workflow, not an admin one.
+        #
+        # The clean fix is to give RLM_AccountUtilities an explicit sharing declaration
+        # and decide its enforcement deliberately — tracked separately. Until then this
+        # grant is the widest non-admin privilege the build hands out, and the permission
+        # reference records it as such.
+        #
+        # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
+        # keeps its least-privilege grant (see ps_expression_set_manager).
+        #
+        # Gated on quantumbit OR tso because deploy_post_utils (and therefore the
+        # permission set) only exists on those builds; assigning it on a
+        # personas-only build would fail on a PermissionSet that was never deployed.
+        #
+        # The guard is on the FLAGS, not on whether the metadata actually landed, so
+        # running prepare_personas STANDALONE against an org where post_utils was never
+        # deployed — but quantumbit/tso are on — will fail here. That is the same
+        # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
+        # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
+        # at step 19, both of which deploy_post_utils, well before prepare_personas at
+        # step 28. If you run this flow on its own, deploy post_utils first.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_account_utilities
+          user_alias: salesrep
+      9:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

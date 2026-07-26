@@ -148,6 +148,15 @@ foundations:
       caveats:
         - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
 
+    - id: constraint-models
+      path: .cursor/skills/constraint-models/SKILL.md
+      purpose: "CML constraint models for the Product Configurator: .ffxblob as the shipped plain-text artifact, the four records a bundle member needs, Sequence in the PRC composite key, and why importing into an ACTIVE version does not redeploy"
+      consumed_by_pmos: []
+      provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
+      caveats:
+        - "Pinned to Release 262 / API v67.0"
+        - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
+
     - id: context-service
       path: .cursor/skills/context-service/SKILL.md
       purpose: "Context Definition read/extend/apply/deploy/upgrade lifecycle: version-centric model, Connect-vs-SObject-REST mapping split, three mapping types, plan-file format, guardrail limits, activation/Sync gotchas"

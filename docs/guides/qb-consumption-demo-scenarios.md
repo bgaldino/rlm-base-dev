@@ -261,7 +261,7 @@ python3 scripts/build_quote_to_asset.py --org <alias> --accounts "<account>" \
 
 Then record usage into a past period, orchestrate until journals stop moving, wait
 for the Data Processing Engine rating jobs to finish (journals stopping means
-aggregated, not rated — see the runbook), and assert:
+aggregated, not rated — see [the runbook](usage-consumption-runbook.md)), and assert:
 
 ```bash
 sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>
@@ -274,18 +274,50 @@ Systems, Rheintech Solutions, Sakura Systems, Global Media) all have both.
 
 ---
 
-## Not yet built
+## Coverage beyond the nine scenarios
 
-Permutations with no scenario. None are blocked by the platform except where noted.
+**"No scenario written" is not the same as "not built."** Several of these are configured
+and shipping today — you can demo them now; what they lack is a walkthrough above, an
+asserted result, or both. Others need real work. They are separated here so you can tell
+at a glance which is which.
+
+**Already covered, listed only because it reads like a gap:** *binding to a target other
+than `Self`* has a scenario — scenario 6 (Pack top-up) **is** this, built and verified.
+`QB-TOKENS-PACK` and `QB-DAT-THPT` both use `GrantBindingType = Target` with
+`GrantBindingTargetType = Product` (`qb-rating/UsagePrdGrantBindingPolicy.csv`). Only the
+**`Account` / `Contract` / `Custom`** target *types* are unbuilt, and those are in the
+"not built" table below.
+
+### Built and demoable today — no scenario written
+
+| Permutation | Where the setup already is |
+|---|---|
+| **Multicurrency commitments** | All 6 commit SKUs (`QB-CMT-TKN-FLAT/EACH/TIER/BND`, `QB-QTY-CMT`, `QB-MTY-CMT`) carry `PricebookEntry` rows in **7/7** currencies. Build is complete; only USD/GBP/AUD have been exercised at runtime |
+
+### Built and silently active — never isolated or asserted
+
+| Permutation | State |
+|---|---|
+| **Rollover and renewal policies** | Not merely present — **wired to all 12 `ProductUsageGrant` rows**, in the data and in the org (`QB-DB-ROLLOVER`: rollover allowed, no max count; `QB-DB-REFRESH`: renewal every 1 month). They were attached during **every one of the nine scenarios**. Nothing asserts them, so whether rollover or renewal actually *fired* is unknown |
+
+### Exercised end-to-end, with a known-wrong result
+
+| Permutation | State |
+|---|---|
+| **Invoicing rated usage** | Runs to a posted invoice: `UsageBillingPeriodItem` → invoice line carrying the correct quantities and a **zero amount**, because the usage-definition products carry no `PricebookEntry` and no `RateCardEntry`. Demoable — but do not demo the amount. Tracked as a defect, not a coverage gap |
+
+### Not built — needs new data or lifecycle work
 
 | Permutation | Note |
 |---|---|
-| One commitment → multiple anchors | Account-level pooling, with documented end-date ordering and highest-rate-first tiebreak |
-| Binding targets other than `Self` | Account / Contract / Custom pooling |
-| Rollover and renewal policies | Records exist in `qb-rating`; behaviour never exercised |
+| Binding target types `Account` / `Contract` / `Custom` | No **QuantumBit** `UsagePrdGrantBindingPolicy` row uses them. The `q3` plan does ship one `Custom` example (`API Access Premium` / `CLOUD001-2`), so there is a shape to copy — but it is not a QB capability, and `Custom` additionally needs `BindingObjectCustomExt` records, which **no plan in this repo seeds**. The quote-line UI offers all four target types regardless of the product's design-time policy, so this is a trap as well as a gap — under investigation |
+| One commitment → multiple anchors | The object model allows it — `UsageCmtAssetRelatedObj` has no uniqueness on either FK — but **the shipped CLI cannot produce it**: every `build_quote_to_asset.py` run sells and assetizes a *new* commitment before `link_commitment()` binds it, so running it twice yields two commitments with one anchor each. Needs either a second `UsageCmtAssetRelatedObj` row inserted directly or a `--link-existing-commitment` mode. How the platform pools across anchors is the real unknown |
 | Proration | Mid-period amendment cutting a bucket's validity |
-| Multicurrency commitments | Only USD/GBP/AUD proven on commit paths |
 | Amend / renew / cancel | Lifecycle against a live commitment |
-| Invoicing rated usage | `UsageBillingPeriodItem` → Invoice |
-| Monetary minimum-spend billing | Bill the committed minimum when usage falls short — needs scenario 9 unblocked |
 | Commitment expiry mid-term | Distinct from exhaustion; policy-driven |
+
+### Blocked
+
+| Permutation | Note |
+|---|---|
+| Monetary minimum-spend billing | Bill the committed minimum when usage falls short — needs scenario 9 unblocked (`CommitmentQuantity`/`CommitmentSpend` entitlements never leave `PENDING`) |

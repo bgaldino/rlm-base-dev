@@ -270,7 +270,20 @@ Individual permission sets defined in project metadata (for example under `force
 
 ### Explicitly Assigned Permission Sets
 
-These are assigned to the running user via `assign_permission_sets` in their respective flows.
+These are assigned via `assign_permission_sets` in their respective flows — to the
+**running user** unless the step passes `user_alias`, in which case they land on that
+persona user instead. See the persona rows in the flow inventory below.
+
+> ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
+> running admin — and it runs in SYSTEM MODE.** It grants `RLM_AccountUtilities`, which
+> declares no sharing keyword, so when entered directly from its invocable the class runs
+> unrestricted by sharing. The persona can therefore delete an account's orders, assets,
+> contracts, invoices and usage graph **regardless of what that user can see**.
+>
+> This is the widest non-admin privilege the build grants. It is intentional for a demo
+> org — resetting between demos is the persona's job and the quick action sits on the
+> Account page it sees — but it would not be appropriate in an org holding real data.
+> Giving the class an explicit sharing declaration is tracked separately.
 
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
@@ -283,7 +296,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 11 | Agent access to `Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Billing_Employee_Assistance` |
-| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
+| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
@@ -377,6 +390,7 @@ The following table shows the sequence of all permission-related steps across th
 | 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
+| 28.8 | `prepare_personas` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
 
 ---
 
@@ -434,3 +448,4 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+7. **Persona assignments are not admin assignments** -- steps 28.6-28.8 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

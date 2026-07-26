@@ -1096,13 +1096,17 @@ Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference.
 
 ### Constraint Model Data Plans
 
-Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and the ConstraintModel blobs — which are **plain-text CML**, uploaded verbatim, not compiled binaries.
 
-| Model | Directory | ESC Records | Documentation |
-|-------|-----------|-------------|---------------|
-| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Model | Directory | ESC Records | Active after `prepare_constraints`? |
+|-------|-----------|-------------|-------------------------------------|
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the active QuantumBit model |
+| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 57 | no — imported inactive, kept for A/B |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | no — imported inactive, kept for A/B |
+| Server2 | `datasets/constraints/qb/Server2/` | 81 | **yes** — hardware model, not part of the QuantumBit family |
+
+Exactly one QuantumBit model may be active at a time; `Server2` is a separate model and
+is active alongside it.
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1263,6 +1267,7 @@ rlm-base-dev/
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
+│   │   │   ├── QuantumBitBundle/
 │   │   │   ├── QuantumBitComplete/
 │   │   │   ├── Server2/
 │   │   │   └── QuantumBitPCM/
@@ -1367,7 +1372,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
