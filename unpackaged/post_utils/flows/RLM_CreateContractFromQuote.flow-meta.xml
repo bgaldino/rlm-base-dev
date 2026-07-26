@@ -31,72 +31,6 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <actionCalls>
-        <description>Second of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier.</description>
-        <name>Refresh_Contract_Pricing_Adjustment_Tiers</name>
-        <label>Refresh Contract Pricing Adjustment Tiers</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Refresh_Contract_Pricing_Volume_Tiers</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Contract_Pricing_Adjustment_Tiers</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <description>First of three contract pricing table refreshes; publishes the prices this flow just created into the pricing lookup. Without it the tables keep their org-build contents, so the new contract is invisible to pricing and its negotiated price silently never applies. Runs on every price option, including CONTRACT_HEADER_ONLY: whether that option can write price rows is a property of the managed createContract action, and gating on it would make this depend on that action not changing between releases. Sourced from ContractItemPrice.</description>
-        <name>Refresh_Contract_Pricing_Entries</name>
-        <label>Refresh Contract Pricing Entries</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Refresh_Contract_Pricing_Adjustment_Tiers</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Contract_Pricing_Entries_Decision_Table</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <description>Last of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier.</description>
-        <name>Refresh_Contract_Pricing_Volume_Tiers</name>
-        <label>Refresh Contract Pricing Volume Tiers</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>DidAnyPricingRefreshFail</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Contract_Pricing_Volume_Tiers</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
@@ -251,43 +185,6 @@
         </value>
     </choices>
     <decisions>
-        <description>refreshDecisionTable returns status Queued or Failed as a normal output, not a fault, so a rejected refresh would otherwise pass silently and leave the table stale — the exact failure this flow exists to prevent. The contract itself is already created and correct at this point, so a failed refresh must not set isSuccess false or the caller would report a successful contract as an error; it is surfaced on its own screen instead.</description>
-        <name>DidAnyPricingRefreshFail</name>
-        <label>Did Any Pricing Refresh Fail</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnectorLabel>All Queued</defaultConnectorLabel>
-        <rules>
-            <name>APricingRefreshFailed</name>
-            <conditionLogic>1 OR 2 OR 3</conditionLogic>
-            <conditions>
-                <leftValueReference>Refresh_Contract_Pricing_Entries.status</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>Failed</stringValue>
-                </rightValue>
-            </conditions>
-            <conditions>
-                <leftValueReference>Refresh_Contract_Pricing_Adjustment_Tiers.status</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>Failed</stringValue>
-                </rightValue>
-            </conditions>
-            <conditions>
-                <leftValueReference>Refresh_Contract_Pricing_Volume_Tiers.status</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>Failed</stringValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>PricingRefreshWarningScreen</targetReference>
-            </connector>
-            <label>A Pricing Refresh Failed</label>
-        </rules>
-    </decisions>
-    <decisions>
         <description>Determines whether any quote line items matched the selected pricing option.</description>
         <name>HowManyQuoteLineItemsWereReturned</name>
         <label>How Many Quote Line Items Were Returned</label>
@@ -354,7 +251,7 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Sets the Contract fields for renewal term, renewal term unit, and price source, then refreshes the three contract pricing decision tables so the new contract prices are visible to pricing. Contracts created outside this flow (API, Apex, another flow) still need a manual refresh_dt_default_pricing.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for renewal term, renewal term unit, and price source.</description>
     <environments>Default</environments>
     <interviewLabel>RLM_CreateContractFromQuote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM CreateContractFromQuote</label>
@@ -486,9 +383,6 @@
         <label>UpdateContract</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <connector>
-            <targetReference>Refresh_Contract_Pricing_Entries</targetReference>
-        </connector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -725,24 +619,6 @@
         <nextOrFinishButtonLabel>Create</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
-    </screens>
-    <screens>
-        <description>Shown only when a contract pricing table refresh was rejected. The contract exists and is correct; what failed is publishing its prices into the pricing lookup, which a user cannot infer from anything else on screen.</description>
-        <name>PricingRefreshWarningScreen</name>
-        <label>Contract Created — Pricing Refresh Failed</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <allowBack>false</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>false</allowPause>
-        <fields>
-            <name>PricingRefreshWarningText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The contract was created successfully.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;However, at least one contract pricing decision table could not be queued for refresh, so these contract prices are &lt;strong&gt;not yet visible to pricing&lt;/strong&gt; and will not be applied on a quote until the tables are refreshed.&lt;/p&gt;&lt;p&gt;Ask your admin to run &lt;strong&gt;refresh_dt_default_pricing&lt;/strong&gt;, or refresh the Contract Pricing decision tables from Setup.&lt;/p&gt;&lt;p&gt;Entries: {!Refresh_Contract_Pricing_Entries.status} {!Refresh_Contract_Pricing_Entries.errorMessage}&lt;br /&gt;Adjustment Tiers: {!Refresh_Contract_Pricing_Adjustment_Tiers.status} {!Refresh_Contract_Pricing_Adjustment_Tiers.errorMessage}&lt;br /&gt;Volume Tiers: {!Refresh_Contract_Pricing_Volume_Tiers.status} {!Refresh_Contract_Pricing_Volume_Tiers.errorMessage}&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-        </fields>
-        <nextOrFinishButtonLabel>Done</nextOrFinishButtonLabel>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
     </screens>
     <screens>
         <description>Collects the user&apos;s contract creation option before creating the contract.</description>

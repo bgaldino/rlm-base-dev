@@ -276,17 +276,31 @@ pricing sources in this repo are loaded once at org build and never touched agai
 practice the tables stay correct. The ones that bite are the sources normal selling
 writes to *after* the build.
 
-`ContractItemPrice` / `ContractItemPriceAdjTier` are the case that bites: creating a
-contract with contract prices writes rows that the three `Contract_Pricing_*` tables have
-not seen. `RLM_CreateContractFromQuote` therefore refreshes those three tables itself, at
-the end of the flow. **Contracts created any other way — REST/SOAP API, Apex, another
-flow — do not get that refresh** and need it run by hand:
+`ContractItemPrice` / `ContractItemPriceAdjTier` are the case that bites: selling a contract
+with contract prices writes rows that the three `Contract_Pricing_*` tables have not seen.
+`RLM_Contract_Activation_Refresh_Pricing_Tables` (record-triggered on `Contract`) refreshes
+all three when a contract becomes **Activated**, which covers every path — the UI Activate
+button, REST/SOAP, Apex, another flow — because they all end in the same status change.
+
+**Refresh on activation, not on creation.** The two tier tables filter their source on
+`ContractItemPriceId.ContractId.StatusCode = 'Activated'` (inspect any table's filter via
+`DecisionTableSourceCriteria`). A contract is created **Draft**, so a refresh fired at
+creation time excludes that contract's tier rows and *still* stamps `LastSyncDate` — leaving
+a table that reads fresh while holding nothing, which is worse than leaving it visibly stale.
+`Contract_Pricing_Entries_Decision_Table` has no such filter, so only two of the three tables
+show the symptom, which makes it easy to half-test and conclude the wrong thing.
+
+A refresh is still needed by hand after a **bulk data load** of contract prices that does not
+end in an activation:
 
 ```bash
 cci task run refresh_dt_default_pricing
 ```
 
 (`refresh_dt_*` tasks reject `--org`; they run against the CCI **default** org.)
+
+If a refresh is rejected the platform records it on the table itself — check
+`DecisionTable.RefreshStatus` and `RefreshFailureReason`, not the flow.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
 newest `LastModifiedDate`. Two things make this easy to get wrong:

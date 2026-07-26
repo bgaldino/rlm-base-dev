@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Second of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier, for Slab adjustments.</description>
+        <name>Refresh_Contract_Pricing_Adjustment_Tiers</name>
+        <label>Refresh Contract Pricing Adjustment Tiers</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Volume_Tiers</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Adjustment_Tiers</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <description>First of three contract pricing table refreshes; publishes this contract&apos;s prices into the pricing lookup. Sourced from ContractItemPrice, which unlike the two tier tables carries no Activated filter.</description>
+        <name>Refresh_Contract_Pricing_Entries</name>
+        <label>Refresh Contract Pricing Entries</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Adjustment_Tiers</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Entries_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <description>Last of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier, for Range adjustments.</description>
+        <name>Refresh_Contract_Pricing_Volume_Tiers</name>
+        <label>Refresh Contract Pricing Volume Tiers</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Volume_Tiers</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>67.0</apiVersion>
+    <description>Refreshes the three contract pricing decision tables when a contract becomes Activated, so its contract prices are visible to pricing. Those tables are otherwise only built at org build time, and a contract created afterwards is silently invisible to pricing — its negotiated price never applies, with no error. Triggered on ACTIVATION rather than creation because Contract_Pricing_Adjustment_Tiers and Contract_Pricing_Volume_Tiers both filter their source on ContractItemPriceId.ContractId.StatusCode = Activated: refreshing while the contract is still Draft excludes its rows and stamps LastSyncDate anyway, which reads as fresh while holding nothing. A refresh that is rejected sets DecisionTable.RefreshStatus and RefreshFailureReason on the table itself, which is where a failure is observable.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Contract Activation Refresh Pricing Tables {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Contract Activation Refresh Pricing Tables</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Entries</targetReference>
+        </connector>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <object>Contract</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>
