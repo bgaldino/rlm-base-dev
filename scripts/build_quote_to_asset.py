@@ -790,6 +790,21 @@ def build_one(org, account, args):
     if args.link_commitment:
         link_id = link_commitment(org, ids["ACCOUNT_ID"], args.sku, args.link_commitment)
         print(f"  commitment   linked to {args.link_commitment} anchor ({link_id})")
+        # Activating the order fires CreateAssetOrderEvent, and
+        # RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info refreshes the
+        # rate decision tables -- including Commitment_based_Rate_Adjustment, which was
+        # missing from that chain until it was added. On an org built before that fix the
+        # commitment rate is looked up against a stale table and consumption rates at the
+        # undiscounted anchor rate, so the table has to be refreshed by hand there.
+        # refresh_dt_asset extends SFDXBaseTask, so cci offers it no --org flag -- it runs
+        # against the CCI DEFAULT org. This script was given an SF CLI alias, a different
+        # registry entirely, so spell out the default-org step or the refresh silently lands
+        # on whatever org happened to be default.
+        print("  note         commitment rate table refreshes via CreateAssetOrderEvent; on an "
+              "org built\n               before that was wired up, refresh it before recording "
+              "usage:\n"
+              "                 cci org default <cci_alias>   # refresh_dt_asset takes no --org\n"
+              "                 cci task run refresh_dt_asset")
 
     counts = verify_usage_buckets(org, [a["Id"] for a in assets])
     for k, v in counts.items():

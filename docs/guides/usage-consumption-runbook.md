@@ -55,6 +55,41 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "Infinitech" \
 Without `--link-commitment`, the commitment sits there looking correct while
 consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 
+> **The commitment rate table refreshes itself — but only on orgs built after that was
+> wired up.** Selling a commitment creates its `AssetRateAdjustment` rows, and activating
+> the order fires `CreateAssetOrderEvent`, which
+> `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` handles by refreshing
+> the rate decision tables. `Commitment_based_Rate_Adjustment` was **missing from that
+> chain** — every other rate table on the same source objects was in it, which is what made
+> the gap easy to miss. It has been added, and a live check shows it refreshing 6 seconds
+> after the asset rows are created.
+>
+> **On an org built before that fix**, nothing re-syncs it and a commitment sold after the
+> build is invisible to the commitment-rate lookup — consumption rates at the undiscounted
+> anchor rate with no error anywhere. Refresh by hand there:
+>
+> ```bash
+> cci org default <cci_alias>   # refresh_dt_* take no --org flag
+> cci task run refresh_dt_asset
+> ```
+>
+> Either way, confirm — and confirm it against the **source rows**, not on its own. A
+> `Completed` refresh from before the sale looks identical to one that captured it, so read
+> both timestamps and check `LastSyncDate` is the later:
+>
+> ```bash
+> # 1. newest AssetRateAdjustment for the commitment you just sold
+> sf data query --target-org <sf_alias_or_username> \
+>   -q "SELECT CreatedDate FROM AssetRateAdjustment
+>       WHERE AssetRateCardEntry.Asset.Product2.StockKeepingUnit = '<COMMIT_SKU>'
+>       ORDER BY CreatedDate DESC LIMIT 1"
+>
+> # 2. the table — LastSyncDate must be LATER than the value above
+> sf data query --use-tooling-api --target-org <sf_alias_or_username> \
+>   -q "SELECT DeveloperName, RefreshStatus, LastSyncDate FROM DecisionTable
+>       WHERE DeveloperName = 'Commitment_based_Rate_Adjustment'"
+> ```
+
 **A Pack product needs an anchor** it can draw against:
 
 ```bash
@@ -167,11 +202,32 @@ sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
 > `build_quote_to_asset.py` matches on **account + product**, so a leftover asset for
 > the same SKU makes the next build ambiguous.
 
+> ⛔ **A clear does NOT reopen the period. Re-testing the *same* period needs a full
+> asset rebuild.**
+>
+> `clearUsageData.apex` drains the summaries, but the period state on the
+> `UsageEntitlementAccount` / buckets survives, and a closed period never reopens. So
+> the "re-run a different usage period" in the table below is the literal constraint,
+> not a suggestion: record usage into the *same* period after a clear and the journals
+> are stranded exactly as if you had orchestrated before recording them —
+>
+> ```
+> no progress for a full pass and 2 journal(s) still pending — either rating is
+> complete for every open period, or these journals are stranded behind a period
+> that already closed
+> ```
+>
+> and the graph reads `UsageSummary 0 / UsageRatableSummary 0 / UsageBillingPeriodItem 0`
+> while `TransactionJournal` sits at whatever you recorded. Nothing errors; the rated
+> summary just reads zero. To re-run the same period, reset the account (Account
+> Utilities) and rebuild the asset.
+
 To rebuild from clean, the asset must go too:
 
 | Goal | Do this |
 |------|---------|
-| Clear usage, keep assets (re-run a different usage period) | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
+| Clear usage, then use a **different** period | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
+| Re-test the **same** period | Full per-account reset via **Account Utilities**, then rebuild the asset — a usage clear is not enough (see above) |
 | Reload `qb-rates` design-time data | `clearUsageData.apex` with `DELETE_ASSET_RATE_CARD_ENTRIES = true` — ARCEs reference the RateCardEntry rows and block their replacement |
 | Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org (removes assets, orders, quotes **and** the usage graph), then rebuild |
 
@@ -187,7 +243,7 @@ teardown is expected on a large graph and is real progress, not a failure.
 | Rated usage is **zero**, no error | Ordering. Usage recorded after orchestrating that period, or booked into the current (still open) period |
 | Zero on a brand-new account | The first orchestration pass closed all past periods empty |
 | Journals stuck at `Pending` | Uploaded to the commitment asset instead of the anchor |
-| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor |
+| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor — **or** a stale `Commitment_based_Rate_Adjustment`: check its `LastSyncDate` is later than the newest `AssetRateAdjustment.CreatedDate` for that commitment (only bites on orgs built before it joined the `CreateAssetOrderEvent` refresh chain) |
 | Discount applied where you expected full price (or vice versa) past the commitment | `Lowest Commitment Rate` vs `Bounded Object Rate` on the commitment policy — design-time only, not visible in runtime data |
 | `OverageQuantity` non-zero, commitment not exhausted | Expected. It means "beyond the included allowance", not "beyond the commitment" |
 | Activation fails `FAILED_ACTIVATION` | Account has no shipping address or bill-to contact |

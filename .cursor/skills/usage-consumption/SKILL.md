@@ -38,6 +38,16 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 - **DO NOT** record usage after orchestrating that period — a `UsageSummary` at
   `RatableSummaryComplete` / `LiableSummaryComplete` **never reopens**, and the
   journals stay `Pending` forever with no error
+- **DO NOT** expect `clearUsageData.apex` to reopen a closed period. It drains the
+  summaries but the period state survives, so re-recording into the **same** period
+  strands the journals exactly as above. Re-testing one period needs a full account
+  reset and an asset rebuild
+- **DO NOT** assume a freshly sold commitment's rate is live on an org built before
+  `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
+  chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). It now
+  refreshes on order activation like every other rate table, but on an older org
+  nothing re-syncs it and consumption rates at the undiscounted anchor rate with no
+  error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows
 - **DO NOT** read a non-zero `UsageRatableSummary.OverageQuantity` as commitment
   exhaustion — on ordinary rows it mirrors `TierQuantity` and means "beyond the
   included allowance"
@@ -206,12 +216,17 @@ Then `python scripts/qb_usage.py report --org <alias>` to see what actually land
 
 Pick the tool by what must survive:
 
-- **Clearing usage but keeping the assets** (re-running a different period):
+- **Clearing usage but keeping the assets** — only for **a different period**:
   `clearUsageData.apex` alone. It preserves `AssetRateCardEntry` by default —
   those rows are created with the asset and are **not** recreated for an existing
   one, so deleting them strands a rate-less asset. Set
   `DELETE_ASSET_RATE_CARD_ENTRIES = true` only when reloading `qb-rates` or when
   the assets are going away too.
+- **Re-testing the SAME period**: a usage clear is **not enough**. The clear drains
+  the summaries but leaves the period closed, so the next journals strand with
+  *"stranded behind a period that already closed"* and the graph reads zero while
+  `TransactionJournal` holds what you recorded. Reset the account and rebuild the
+  asset.
 - **Rebuilding assets from scratch**: `clearUsageData.apex` is **not enough** — it
   drains the usage graph but does **not** delete `Asset` records, and
   `build_quote_to_asset.py` matches on account + product, so a leftover asset for

@@ -159,6 +159,29 @@ not enough, and stopping early looks like zero.
 The corresponding *rules* (stated positively, with worked arithmetic) are in
 `docs/guides/qb-consumption-demo-scenarios.md`.
 
+### ⛔ Two more silent-zero traps (established live 2026-07-26)
+
+4. **A usage clear does NOT reopen a closed period.** `clearUsageData.apex` drains
+   the summaries, but the period state on `UsageEntitlementAccount` / the buckets
+   survives, and a closed period never reopens. Re-recording into the **same**
+   period after a clear therefore reproduces trap 1 exactly: the journals strand
+   (`"stranded behind a period that already closed"`), `UsageSummary` /
+   `UsageRatableSummary` / `UsageBillingPeriodItem` all read 0, and
+   `TransactionJournal` holds what you recorded.
+   → *Re-testing one period needs a full account reset and an asset rebuild, not a
+   usage clear. A clear only frees you to use a DIFFERENT period.*
+5. **A commitment sold after the org was built can rate at the undiscounted anchor
+   rate.** Selling a commitment creates its `AssetRateAdjustment` rows, and the
+   commitment rate is looked up through the `Commitment_based_Rate_Adjustment`
+   decision table. That table was missing from the `CreateAssetOrderEvent` refresh
+   chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`) —
+   every sibling rate table on the same source objects was in it, so only the
+   commitment lookup went stale. Fixed by adding it to the chain; it now refreshes
+   on order activation, measured at ~6s after the rows are created.
+   → *On an org built BEFORE that fix, refresh by hand before recording usage, and
+   confirm `DecisionTable.LastSyncDate` is later than the newest
+   `AssetRateAdjustment.CreatedDate`.*
+
 ### Entitlement bucket tree
 
 The bucket tree is **3 levels deep and NO bucket has a null `ParentId`** — the
