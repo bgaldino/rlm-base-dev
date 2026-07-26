@@ -49,9 +49,11 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
   because `ConstraintModel` reads back with your change in it. `import_cml` writes that
   exact field, so reading it back only proves the upload was stored. Deployment is proved
   by selecting the product in the configurator.
-- **DO NOT** add a `type` without also adding its ESC `Type` **and** `Port` associations.
-  A product with a PRC row but no type association appears in the bundle and then fails
-  Product Validation — the failure looks like a product problem, not a model problem.
+- **DO NOT** add a **bundle member** without both its ESC `Type` **and** `Port`
+  associations. A product with a PRC row but no `Type` association appears in the bundle
+  and then fails Product Validation — the failure looks like a product problem, not a
+  model problem. (`Port` is per bundle **relation**, not per type — a cart-level or
+  virtual-quote type has no port. See below.)
 - **DO NOT** invent a `Sequence` for a new PRC row. Copy the one the SFDMU plan already
   uses for that product.
 - **DO NOT** activate a second QuantumBit model without deactivating the current one.
@@ -186,6 +188,30 @@ no type for it. Nothing points at the constraint model.
 
 `Type` associations reference a **Product2** (`01t` prefix); `Port` associations reference
 a **ProductRelatedComponent** (`0dS` prefix).
+
+### Ports are per bundle relation, not per type
+
+Only types reachable as **bundle members** get a `Port`. The counts make the rule visible —
+Port count tracks `relation` count, not `type` count:
+
+| Model | Type | Port | `relation`s in the CML |
+|---|---:|---:|---:|
+| `QuantumBitComplete` | 29 | 28 | 28 |
+| `Server2` | 41 | 40 | 40 |
+| `QuantumBitBundle` | 33 | 28 | 29 |
+| `QuantumBitPCM` | 12 | **0** | — |
+
+`QuantumBitPCM` is the case that disproves any "every type needs a Port" rule: it is a
+virtual-quote model whose types are cart line items, not bundle components, so it has
+**zero** Ports and is correct that way.
+
+Bundle's 29 relations against 28 Ports is the same distinction in miniature — the odd one
+is `lineitems` on the `@(virtual = "true") Quote` container, a cart-level relation rather
+than a bundle component, so it has no Port either.
+
+**So the four-record rule above applies to bundle members.** For a cart-level or
+virtual-quote type, records 1 and 4 (the PRC row and the `Port` association) do not
+apply.
 
 ### Sequence is part of the composite key
 
