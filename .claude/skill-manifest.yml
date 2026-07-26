@@ -155,7 +155,7 @@ foundations:
       provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
       caveats:
         - "Pinned to Release 262 / API v67.0"
-        - "prepare_constraints imports before it deactivates, so a rerun against an org with an already-active model leaves the runtime stale — cycle the version by hand afterwards"
+        - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
 
     - id: context-service
       path: .cursor/skills/context-service/SKILL.md

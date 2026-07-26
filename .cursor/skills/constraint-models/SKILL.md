@@ -18,10 +18,10 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    verbatim. Edit the blob.
 2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Keep
    it byte-identical to the blob (`cp` from the blob).
-3. **Importing into an ACTIVE version does not redeploy the model.** Deactivate → import →
-   activate. `manage_expression_sets` does this correctly, but **`prepare_constraints`
-   deactivates AFTER it imports**, so a rerun on an org with an active model leaves it
-   stale. See [Making a change reach an org](#making-a-change-reach-an-org).
+3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
+   cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
+   (step 11 deactivates, step 12 reactivates). **A standalone `import_cml` does not**, so
+   cycle it yourself. See [Making a change reach an org](#making-a-change-reach-an-org).
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
    runtime rebuilt.
@@ -151,56 +151,55 @@ cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
-**Do not assume a full `prepare_constraints` run covers this** — it orders the steps the
-other way round. See below.
+`prepare_constraints` does this for you at steps 11-12; a standalone `import_cml` does
+not. See below.
 
-### ⚠️ `prepare_constraints` deactivates AFTER it imports
+### How the flow handles it, and why step 11 looks redundant
 
-`manage_expression_sets` is correct: `_update_version_status` queries `ExpressionSetVersion`
-by `ApiName` and PATCHes `IsActive` on it
+`manage_expression_sets` is the right tool: `_update_version_status` queries
+`ExpressionSetVersion` by `ApiName` and PATCHes `IsActive`
 (`tasks/rlm_manage_expression_sets.py:527-591`) — the same record and field the Constraint
-Builder UI toggles. Running deactivate → import → activate by hand works.
+Builder UI toggles.
 
-**The flow does it in the wrong order.** `prepare_constraints`:
+`prepare_constraints` orders it like this:
 
 ```
- 7. import_cml  QuantumBitComplete
- 8. import_cml  Server2
- 9. import_cml  QuantumBitPCM
-10. import_cml  QuantumBitBundle          <- imported while possibly ACTIVE
-11. manage_expression_sets deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1
-12. manage_expression_sets activate    -> Server2_V1, QuantumBitBundle_V1
+ 7-10. import_cml  Complete, Server2, PCM, Bundle
+11.    deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1, QuantumBitBundle_V1
+12.    activate    -> Server2_V1, QuantumBitBundle_V1
 ```
 
-On a **fresh** org this is fine: the versions are created inactive, so step 10 imports into
-an inactive Bundle and step 12 activates it once.
+**Bundle appears in both step 11 and step 12 deliberately.** Steps 7–10 upload into a
+version that may already be active, which stores the blob without redeploying the runtime
+model; step 11 then deactivates Bundle and step 12 reactivates it, giving the
+deactivate/reactivate cycle that makes the platform pick the new model up. Removing Bundle
+from step 11 would make step 12 a no-op on an already-active version and the flow would
+report success while the org kept running the old model. It is a no-op on a fresh build,
+where versions are created inactive.
 
-On an **existing** org where `QuantumBitBundle_V1` is already active, step 10 uploads into
-an active version and **step 11 never deactivates Bundle** — it only names Complete and
-PCM. Step 12 then "activates" a version that is already active, which is a no-op. The
-model is never cycled, so the org keeps running the old one and the flow reports success.
+> Verified at step level on a scratch org: Bundle `true` → deactivated → `true`, with
+> Complete and PCM left `false`. **Not yet verified end-to-end** — that a full flow run
+> against an org with an already-active model carries a change through to the configurator
+> still needs a real build, and is tracked separately.
 
-This is the most likely explanation for a model change that ships, imports cleanly, and
-still fails in the configurator until someone deactivates/reactivates by hand.
-
-**Until the flow is fixed, after any rerun against an existing org:**
+**A standalone `import_cml` gets none of this** — it uploads and stops. That is the normal
+way to ship a model change, so cycle the version yourself afterwards:
 
 ```bash
 cci org default <alias>   # manage_expression_sets does not accept --org, see Known gaps
+
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
-or do the same from the UI: the Constraint Model record is the `ExpressionSet` record page
+or do the same in the UI: the Constraint Model record is the `ExpressionSet` record page
 (`/lightning/r/ExpressionSet/<9QL…>/view`), its **Constraint Model Versions** related list
-is `ExpressionSetVersion`, and opening a version launches **Constraint Builder**
-(`constraintBuilder.app`) whose toolbar carries **Sync**, **Deactivate** and **Save**. The
-builder's URL names its targets: `constraintId` = `ExpressionSet` (`9QL`), `versionId` =
-`ExpressionSetVersion` (`9QM`).
+is `ExpressionSetVersion`, and opening a version launches **Constraint Builder**, whose
+toolbar carries **Sync**, **Deactivate** and **Save**.
 
-Salesforce documents the requirement itself:
+Salesforce documents the requirement:
 
 > "If the table data is deployed when the constraint model is activated, and you add
 > records to the table after constraint model activation, to fetch the new table data at
@@ -280,10 +279,10 @@ Before calling a constraint-model change done:
 - **`validate_cml` emits ~1,779 warnings** on the QuantumBit models, nearly all
   pre-existing "missing type association for leaf type". Errors are the usable signal;
   the warning stream is not yet clean enough to gate on.
-- **`prepare_constraints` deactivates after it imports** (steps 7-10 import, 11
-  deactivates Complete/PCM only, 12 activates), so a rerun against an org with an active
-  `QuantumBitBundle_V1` leaves the runtime model stale. Fix the ordering, or add Bundle to
-  the deactivate step and move it ahead of the imports.
+- **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
+  this at steps 11-12, but shipping a model change usually means running `import_cml` on
+  its own — where the upload lands and nothing redeploys. There is no single task that
+  does import-and-cycle.
 - **No signal distinguishes "stored" from "deployed".** `ConstraintModel` is the upload
   field, so only the configurator can confirm a rebuild. A deployment-specific signal
   would make this verifiable without a click.

@@ -39,7 +39,7 @@ The utility is implemented as a single Python module (`tasks/rlm_cml.py`) with f
 - **Dry run mode** -- log all operations without executing (import only)
 - **Idempotent imports** -- old ESC records are deleted only after all new ones succeed
 - **Composite key matching for PRC** -- uses ParentProduct.Name, ChildProduct.Name, ChildProductClassification.Name, ProductRelationshipType.Name, and Sequence to portably resolve ProductRelatedComponent records across orgs
-- **Binary blob handling** -- downloads and uploads ConstraintModel blobs via REST API
+- **ConstraintModel blob handling** -- downloads and uploads the blob via REST API. The blob is **plain-text CML**, not a compiled binary (see [CML Source Files](#cml-source-files))
 
 ## Directory Structure
 
@@ -83,7 +83,7 @@ datasets/constraints/qb/
 | `Product2.csv` | Product records referenced by ESC (Id + Name for portable resolution) |
 | `ProductClassification.csv` | Classification records referenced by ESC |
 | `ProductRelatedComponent.csv` | PRC records with traversal fields for composite key resolution |
-| `blobs/ESDV_<Model>_V<N>.ffxblob` | Binary ConstraintModel blob |
+| `blobs/ESDV_<Model>_V<N>.ffxblob` | The ConstraintModel itself — **plain-text CML**, uploaded verbatim |
 
 ## Export Workflow
 
@@ -116,7 +116,7 @@ cci task run export_cml --org <source_org> \
 5. **Product2** -- products referenced by ESC (filtered by `01t` ID prefix)
 6. **ProductClassification** -- classifications referenced by ESC (filtered by `11B` ID prefix)
 7. **ProductRelatedComponent** -- PRC records referenced by ESC (filtered by `0dS` ID prefix), with traversal fields for portable resolution
-8. **ConstraintModel blob** -- binary blob downloaded to `blobs/` subdirectory
+8. **ConstraintModel blob** -- the plain-text CML blob, downloaded to the `blobs/` subdirectory
 
 ### Example
 
@@ -198,16 +198,15 @@ cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
-`prepare_constraints` runs these in the wrong order — imports at steps 7-10, deactivate at
-step 11 (Complete and PCM only), activate at step 12 — so it does **not** cycle an
-already-active Bundle.
+`prepare_constraints` runs the equivalent at steps 11-12 (both naming
+`QuantumBitBundle_V1`), so a full flow run cycles the version. A standalone `import_cml`
+does not.
 
-> ⚠️ **A full `prepare_constraints` rerun does NOT cover this.** The flow imports at
-> steps 7-10 and only deactivates at step 11 — and step 11 names Complete and PCM, not
-> Bundle. So on an org where `QuantumBitBundle_V1` is already active, Bundle is imported
-> while active and never cycled; step 12's "activate" is a no-op on an already-active
-> version. Run the deactivate/activate above by hand after such a rerun, or fix the flow
-> ordering. See `.cursor/skills/constraint-models/SKILL.md`.
+> **`prepare_constraints` covers this**, which is why `QuantumBitBundle_V1` appears in
+> both step 11 (deactivate) and step 12 (activate) — steps 7-10 upload into a possibly
+> active version, and the 11/12 pair supplies the cycle. **A standalone `import_cml` does
+> not**, so run the deactivate/activate above yourself after one. See
+> `.cursor/skills/constraint-models/SKILL.md`.
 
 **Reading the model back proves the upload, not the deployment.** `import_cml` writes this
 exact `ConstraintModel` field, so a successful read-back only confirms the blob was stored.

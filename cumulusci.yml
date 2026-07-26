@@ -4684,6 +4684,14 @@ flows:
         # Gated on quantumbit OR tso because deploy_post_utils (and therefore the
         # permission set) only exists on those builds; assigning it on a
         # personas-only build would fail on a PermissionSet that was never deployed.
+        #
+        # The guard is on the FLAGS, not on whether the metadata actually landed, so
+        # running prepare_personas STANDALONE against an org where post_utils was never
+        # deployed — but quantumbit/tso are on — will fail here. That is the same
+        # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
+        # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
+        # at step 19, both of which deploy_post_utils, well before prepare_personas at
+        # step 28. If you run this flow on its own, deploy post_utils first.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:
