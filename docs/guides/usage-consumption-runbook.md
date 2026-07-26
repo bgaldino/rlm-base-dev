@@ -55,6 +55,28 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "Infinitech" \
 Without `--link-commitment`, the commitment sits there looking correct while
 consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 
+> **After selling a commitment, refresh the commitment decision table before
+> recording usage.** Selling a commitment creates its `AssetRateAdjustment` rows, but
+> `Commitment_based_Rate_Adjustment` is only refreshed during `prepare_rlm_org` — it is
+> **not** re-synced when a commitment is sold afterwards, which for a demo org built
+> once and then transacted against is the normal case. Its sibling tables on the same
+> source object (`Asset_Tier_based_Rate_Adjustment_V2`, `Asset_Rate_Decision_Table_V2`)
+> do stay current, so the staleness is easy to miss.
+>
+> ```bash
+> cci org default <cci_alias>   # refresh_dt_* take no --org flag
+> cci task run refresh_dt_asset
+> ```
+>
+> Confirm it actually caught up — `LastSyncDate` must be **after** the asset rows were
+> created:
+>
+> ```bash
+> sf data query --use-tooling-api --target-org <sf_alias_or_username> \
+>   -q "SELECT DeveloperName, RefreshStatus, LastSyncDate FROM DecisionTable
+>       WHERE DeveloperName = 'Commitment_based_Rate_Adjustment'"
+> ```
+
 **A Pack product needs an anchor** it can draw against:
 
 ```bash
@@ -167,11 +189,32 @@ sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
 > `build_quote_to_asset.py` matches on **account + product**, so a leftover asset for
 > the same SKU makes the next build ambiguous.
 
+> ⛔ **A clear does NOT reopen the period. Re-testing the *same* period needs a full
+> asset rebuild.**
+>
+> `clearUsageData.apex` drains the summaries, but the period state on the
+> `UsageEntitlementAccount` / buckets survives, and a closed period never reopens. So
+> the "re-run a different usage period" in the table below is the literal constraint,
+> not a suggestion: record usage into the *same* period after a clear and the journals
+> are stranded exactly as if you had orchestrated before recording them —
+>
+> ```
+> no progress for a full pass and 2 journal(s) still pending — either rating is
+> complete for every open period, or these journals are stranded behind a period
+> that already closed
+> ```
+>
+> and the graph reads `UsageSummary 0 / UsageRatableSummary 0 / UsageBillingPeriodItem 0`
+> while `TransactionJournal` sits at whatever you recorded. Nothing errors; the rated
+> summary just reads zero. To re-run the same period, reset the account (Account
+> Utilities) and rebuild the asset.
+
 To rebuild from clean, the asset must go too:
 
 | Goal | Do this |
 |------|---------|
-| Clear usage, keep assets (re-run a different usage period) | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
+| Clear usage, then use a **different** period | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
+| Re-test the **same** period | Full per-account reset via **Account Utilities**, then rebuild the asset — a usage clear is not enough (see above) |
 | Reload `qb-rates` design-time data | `clearUsageData.apex` with `DELETE_ASSET_RATE_CARD_ENTRIES = true` — ARCEs reference the RateCardEntry rows and block their replacement |
 | Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org (removes assets, orders, quotes **and** the usage graph), then rebuild |
 

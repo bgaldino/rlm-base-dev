@@ -790,6 +790,14 @@ def build_one(org, account, args):
     if args.link_commitment:
         link_id = link_commitment(org, ids["ACCOUNT_ID"], args.sku, args.link_commitment)
         print(f"  commitment   linked to {args.link_commitment} anchor ({link_id})")
+        # Selling the commitment created its AssetRateAdjustment rows, but
+        # Commitment_based_Rate_Adjustment is only refreshed by prepare_rlm_org --
+        # nothing re-syncs it for a sale made after the build, and its siblings on the
+        # same source object DO stay current, so the staleness is easy to miss.
+        print("  ⚠ ACTION      refresh the commitment decision table BEFORE recording "
+              "usage, or the commit rate will not be found:")
+        print("                  cci org default <cci_alias>   # refresh_dt_* take no --org")
+        print("                  cci task run refresh_dt_asset")
 
     counts = verify_usage_buckets(org, [a["Id"] for a in assets])
     for k, v in counts.items():
