@@ -1096,7 +1096,7 @@ Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference.
 
 ### Constraint Model Data Plans
 
-Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and the ConstraintModel blobs — which are **plain-text CML**, uploaded verbatim, not compiled binaries.
 
 | Model | Directory | ESC Records | Documentation |
 |-------|-----------|-------------|---------------|
