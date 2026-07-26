@@ -417,7 +417,17 @@ Before calling a constraint-model change done:
   this at steps 11-12, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that
   does import-and-cycle.
-- **No signal distinguishes "stored" from "deployed".** `ConstraintModel` is the upload
-  field, so only the configurator can confirm a rebuild. A deployment-specific signal
-  would make this verifiable without a click.
+- **No *passive* signal distinguishes "stored" from "deployed".** `ConstraintModel` is the
+  upload field, so no query tells you the runtime rebuilt — you have to make the engine
+  run. The configurator `configure` POST does that headlessly (see Validation check 7), so
+  this is a gap in observability, not in automation: there is no status field to watch,
+  but there is no need for a browser either.
+- **`import_cml` half-applies on failure, and one path exits 0.** `create_record()` runs
+  inline per row, so a failure leaves the rows that already resolved in place while the
+  delete-old-rows step is skipped — "a mix of old and new constraints", in the task's own
+  words. Worse, when `create_record()` fails but every reference *resolved*, no exception
+  is raised at all: the blob still uploads and the task returns success. A rerun does not
+  self-correct, because the delete only runs on a clean pass. See
+  [The four records a bundle member needs](#the-four-records-a-bundle-member-needs) →
+  *Sequence is part of the composite key* for the full table.
 - **The builder's `Sync` button is uninvestigated.**
