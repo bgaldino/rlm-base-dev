@@ -270,7 +270,16 @@ Individual permission sets defined in project metadata (for example under `force
 
 ### Explicitly Assigned Permission Sets
 
-These are assigned to the running user via `assign_permission_sets` in their respective flows.
+These are assigned via `assign_permission_sets` in their respective flows — to the
+**running user** unless the step passes `user_alias`, in which case they land on that
+persona user instead. See the persona rows in the flow inventory below.
+
+> ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
+> running admin.** It grants `RLM_AccountUtilities`, whose invocable deletes an account's
+> orders, assets, contracts, invoices and usage graph. That makes a **non-admin principal
+> capable of destructive deletion** — intentional (resetting between demos is the
+> persona's job, and the reset quick action is on the Account page it sees), but it must
+> be visible to any permission audit.
 
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
@@ -377,6 +386,7 @@ The following table shows the sequence of all permission-related steps across th
 | 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
+| 28.8 | `prepare_personas` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
 
 ---
 
@@ -434,3 +444,4 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+7. **Persona assignments are not admin assignments** -- steps 28.6-28.8 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

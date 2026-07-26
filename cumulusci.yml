@@ -4414,7 +4414,17 @@ flows:
           # so activating Bundle without this would leave Complete/PCM active alongside it.
           # No-op on a fresh build (Complete/PCM are imported inactive); the task safely
           # skips versions that are already inactive or absent.
-          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1"
+          #
+          # QuantumBitBundle_V1 is in this list DELIBERATELY, even though step 12
+          # reactivates it immediately. Steps 7-10 import while Bundle may already be
+          # ACTIVE, and uploading a ConstraintModel into an active version stores the blob
+          # WITHOUT redeploying the runtime model. Without this entry step 12's "activate"
+          # is a no-op on an already-active version, the flow reports success, and the org
+          # keeps running the OLD model — so the configurator rejects whatever the new
+          # model added. Deactivating here and reactivating in step 12 is the
+          # deactivate/reactivate cycle Salesforce documents as the way to pick up a
+          # rebuilt model. See .cursor/skills/constraint-models/SKILL.md.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1"
       12:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb

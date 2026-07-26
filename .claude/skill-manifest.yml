@@ -155,7 +155,7 @@ foundations:
       provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
       caveats:
         - "Pinned to Release 262 / API v67.0"
-        - "OPEN: whether the manage_expression_sets API toggle is equivalent to Activate in the CML Editor UI — a live change only took effect after a manual UI deactivate/reactivate"
+        - "prepare_constraints imports before it deactivates, so a rerun against an org with an already-active model leaves the runtime stale — cycle the version by hand afterwards"
 
     - id: context-service
       path: .cursor/skills/context-service/SKILL.md

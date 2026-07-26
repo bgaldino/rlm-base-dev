@@ -18,17 +18,18 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    verbatim. Edit the blob.
 2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Keep
    it byte-identical to the blob (`cp` from the blob).
-3. **Importing into an ACTIVE version does not redeploy the model** — and
-   `manage_expression_sets` alone does **not** fix that. It toggles
-   `ExpressionSetDefinitionVersion.Status` (`9QB`); the surface that actually redeploys is
-   `ExpressionSetVersion.IsActive` (`9QM`), reachable today only from the Constraint
-   Builder UI. See [Making a change reach an org](#making-a-change-reach-an-org).
-4. **Verify against the deployed blob, never the import output.** A successful import
-   proves the upload, not the deployment.
+3. **Importing into an ACTIVE version does not redeploy the model.** Deactivate → import →
+   activate. `manage_expression_sets` does this correctly, but **`prepare_constraints`
+   deactivates AFTER it imports**, so a rerun on an org with an active model leaves it
+   stale. See [Making a change reach an org](#making-a-change-reach-an-org).
+4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
+   blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
+   runtime rebuilt.
 5. **A bundle member needs FOUR records, not one.** PRC row, `type` + `relation` in the
    model, an ESC `Type` association, and an ESC `Port` association.
 6. **`Sequence` is part of the PRC composite key.** A Port association whose sequence
-   disagrees with the SFDMU plan silently fails to resolve.
+   disagrees with the SFDMU plan fails to resolve — loudly: `import_cml` warns per row,
+   collects the unresolved tags and raises, so the import fails rather than half-applying.
 7. **Only one QuantumBit model may be active at a time.** `QuantumBitBundle_V1` is the
    active one; Complete and PCM are imported inactive for A/B comparison.
 
@@ -39,8 +40,10 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 - **DO NOT** edit `scripts/cml/*.cml` and expect an org to change. It is documentation.
 - **DO NOT** treat `.ffxblob` as binary. It is ASCII CML source (`file` reports it as
   "c program text").
-- **DO NOT** report a model change as verified because `import_cml` succeeded. Read the
-  deployed `ConstraintModel` back out of the org and grep it.
+- **DO NOT** report a model change as verified because `import_cml` succeeded, **or**
+  because `ConstraintModel` reads back with your change in it. `import_cml` writes that
+  exact field, so reading it back only proves the upload was stored. Deployment is proved
+  by selecting the product in the configurator.
 - **DO NOT** add a `type` without also adding its ESC `Type` **and** `Port` associations.
   A product with a PRC row but no type association appears in the bundle and then fails
   Product Validation — the failure looks like a product problem, not a model problem.
@@ -116,8 +119,13 @@ a **ProductRelatedComponent** (`0dS` prefix).
 `import_cml` resolves a Port association's PRC by
 `ParentProduct.Name | ChildProduct.Name | ChildProductClassification.Name |
 ProductRelationshipType.Name | Sequence`, matched against the SFDMU plan in
-`dataset_dirs`. **If the sequence in the constraint dir disagrees with the qb-pcm plan,
-the Port association resolves to nothing.** Copy the sequence from the plan.
+`dataset_dirs`. **If the sequence in the constraint dir disagrees with the qb-pcm plan the
+Port association will not resolve** — copy the sequence from the plan.
+
+This fails loudly, not silently: `ImportCML` logs `Could not resolve ReferenceObjectId`
+per row, accumulates `unresolved_tags`, sets `import_failed`, and raises rather than
+half-applying (`tasks/rlm_cml.py:679-690`). A dry run surfaces the same warnings, which is
+why the dry run is worth reading rather than just checking its exit code.
 
 ---
 
@@ -143,63 +151,64 @@ cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
-`prepare_constraints` already does this — imports are steps 7–10, deactivate is 11,
-activate is 12 — **so a full flow run is safe. The trap is running `import_cml` standalone
-against an existing org**, which is the normal way to ship a model change.
+**Do not assume a full `prepare_constraints` run covers this** — it orders the steps the
+other way round. See below.
 
-### ⚠️ `manage_expression_sets` toggles a DIFFERENT object than the UI
+### ⚠️ `prepare_constraints` deactivates AFTER it imports
 
-This is the trap that cost a live debugging cycle on 2026-07-25. There are **two**
-activation surfaces on **two different objects**, and only one of them redeploys the model:
+`manage_expression_sets` is correct: `_update_version_status` queries `ExpressionSetVersion`
+by `ApiName` and PATCHes `IsActive` on it
+(`tasks/rlm_manage_expression_sets.py:527-591`) — the same record and field the Constraint
+Builder UI toggles. Running deactivate → import → activate by hand works.
 
-| Object | keyPrefix | Field | Toggled by |
-|--------|-----------|-------|-----------|
-| `ExpressionSetDefinitionVersion` | `9QB` | `Status` (`Active`/`Inactive`) | `manage_expression_sets` |
-| **`ExpressionSetVersion`** | **`9QM`** | **`IsActive`** (boolean) | **the Constraint Builder UI** |
-
-Proven from the Constraint Builder's own URL:
+**The flow does it in the wrong order.** `prepare_constraints`:
 
 ```
-/builder_industries_constraints/constraintBuilder.app
-    ?constraintId=9QLe6000001k57NGAQ      <- ExpressionSet          (9QL)
-    &versionId=9QMe60000000ikDGAQ         <- ExpressionSetVersion   (9QM)  <-- what Deactivate acts on
-    &versionName=QuantumBit%20Bundle%20V1
-    &contextId=11Oe60000000NnpEAE
+ 7. import_cml  QuantumBitComplete
+ 8. import_cml  Server2
+ 9. import_cml  QuantumBitPCM
+10. import_cml  QuantumBitBundle          <- imported while possibly ACTIVE
+11. manage_expression_sets deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1
+12. manage_expression_sets activate    -> Server2_V1, QuantumBitBundle_V1
 ```
 
-Key prefixes confirmed by describe on the org: `ExpressionSet` = `9QL`,
-`ExpressionSetVersion` = `9QM`, `ExpressionSetDefinitionVersion` = `9QB`. The builder never
-touches `9QB`.
+On a **fresh** org this is fine: the versions are created inactive, so step 10 imports into
+an inactive Bundle and step 12 activates it once.
 
-**So `manage_expression_sets` alone does not redeploy a constraint model.** It flips
-`ExpressionSetDefinitionVersion.Status`; the runtime picks up a rebuilt model when
-`ExpressionSetVersion.IsActive` is cycled. Both read `Active` afterwards, so a post-hoc
-status query cannot tell you whether the model actually redeployed — only the deployed blob
-and the configurator can.
+On an **existing** org where `QuantumBitBundle_V1` is already active, step 10 uploads into
+an active version and **step 11 never deactivates Bundle** — it only names Complete and
+PCM. Step 12 then "activates" a version that is already active, which is a no-op. The
+model is never cycled, so the org keeps running the old one and the flow reports success.
 
-**Until a task exists for the `ExpressionSetVersion` toggle, finish in the UI:**
+This is the most likely explanation for a model change that ships, imports cleanly, and
+still fails in the configurator until someone deactivates/reactivates by hand.
 
-1. Open the Constraint Model record — it is the `ExpressionSet` record page
-   (`/lightning/r/ExpressionSet/<9QL…>/view`), titled **Constraint Model**, with a
-   **Constraint Model Versions** related list (`ExpressionSetVersion` rows: Version Name,
-   Active, Rank, Start/End Date Time).
-2. Click the version to open **Constraint Builder** (`constraintBuilder.app`). Its toolbar
-   has **Sync**, **Deactivate**, **Save**, and the CML Editor shows the blob text — this is
-   where you can confirm your edit landed, type-by-type, in the left **Types** panel.
-3. **Deactivate**, then activate again.
+**Until the flow is fixed, after any rerun against an existing org:**
 
-Salesforce documents the requirement, without naming the object:
+```bash
+cci org default <alias>   # manage_expression_sets does not accept --org, see Known gaps
+cci task run manage_expression_sets -o operation deactivate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+cci task run manage_expression_sets -o operation activate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+```
+
+or do the same from the UI: the Constraint Model record is the `ExpressionSet` record page
+(`/lightning/r/ExpressionSet/<9QL…>/view`), its **Constraint Model Versions** related list
+is `ExpressionSetVersion`, and opening a version launches **Constraint Builder**
+(`constraintBuilder.app`) whose toolbar carries **Sync**, **Deactivate** and **Save**. The
+builder's URL names its targets: `constraintId` = `ExpressionSet` (`9QL`), `versionId` =
+`ExpressionSetVersion` (`9QM`).
+
+Salesforce documents the requirement itself:
 
 > "If the table data is deployed when the constraint model is activated, and you add
 > records to the table after constraint model activation, to fetch the new table data at
 > runtime you must deactivate and reactivate the constraint model."
 > — Help, *Import Object Data* (262)
 
-and *"To make the constraint model available for use, select Activate."* — Help,
-*Use the CML Editor*.
-
-> **Not yet investigated:** the builder's **Sync** button. It is distinct from
-> activate/deactivate and its effect is unknown — do not assume it is a no-op.
+> **Not yet investigated:** the builder's **Sync** button, which is distinct from
+> activate/deactivate. Its effect is unknown — do not assume it is a no-op.
 
 ---
 
@@ -248,16 +257,18 @@ Before calling a constraint-model change done:
 3. Dry-run import resolves your new rows to **real org Ids**, and you queried those Ids
    back to confirm they are the records you meant — not just that something resolved.
 4. Deactivate → import → activate actually run, in that order.
-5. **The deployed blob contains your change** (recipe above). This is the check that
-   distinguishes "uploaded" from "deployed".
+5. `ConstraintModel` reads back with your change in it (recipe above). Note what this
+   does **not** prove: `import_cml` writes that same field, so it confirms the upload was
+   stored and nothing more. It cannot distinguish "stored" from "deployed".
 6. Diff the **expected** set against the org rather than listing what is there:
    ```bash
    sf data query --target-org <alias> \
      -q "SELECT ConstraintModelTag, ConstraintModelTagType FROM ExpressionSetConstraintObj"
    ```
    then assert every product you expect has **both** a `Type` and a `Port` row.
-7. Select the product in the configurator UI. Nothing above proves Product Validation
-   passes — that needs a click.
+7. **Select the product in the configurator UI.** This is the only check that proves the
+   runtime model was rebuilt. Nothing above distinguishes a deployed model from a stored
+   one, so this step is not optional — it is the verification.
 
 ---
 
@@ -269,8 +280,11 @@ Before calling a constraint-model change done:
 - **`validate_cml` emits ~1,779 warnings** on the QuantumBit models, nearly all
   pre-existing "missing type association for leaf type". Errors are the usable signal;
   the warning stream is not yet clean enough to gate on.
-- **No CCI task toggles `ExpressionSetVersion.IsActive`**, which is the surface that
-  actually redeploys a constraint model. `manage_expression_sets` only reaches
-  `ExpressionSetDefinitionVersion.Status`, so shipping a model change currently requires
-  a manual Deactivate/Activate in Constraint Builder. Worth a task.
+- **`prepare_constraints` deactivates after it imports** (steps 7-10 import, 11
+  deactivates Complete/PCM only, 12 activates), so a rerun against an org with an active
+  `QuantumBitBundle_V1` leaves the runtime model stale. Fix the ordering, or add Bundle to
+  the deactivate step and move it ahead of the imports.
+- **No signal distinguishes "stored" from "deployed".** `ConstraintModel` is the upload
+  field, so only the configurator can confirm a rebuild. A deployment-specific signal
+  would make this verifiable without a click.
 - **The builder's `Sync` button is uninvestigated.**

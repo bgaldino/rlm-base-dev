@@ -198,20 +198,21 @@ cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
-`prepare_constraints` already does this: the imports are steps 7-10, then step 11
-deactivates and step 12 activates. **So a full flow run is safe — the trap is running
-`import_cml` on its own against an existing org**, which is the normal way to ship a
-model change.
+`prepare_constraints` runs these in the wrong order — imports at steps 7-10, deactivate at
+step 11 (Complete and PCM only), activate at step 12 — so it does **not** cycle an
+already-active Bundle.
 
-> ⚠️ **`manage_expression_sets` is not sufficient on its own.** It toggles
-> `ExpressionSetDefinitionVersion.Status` (`9QB`), while the Constraint Builder UI — the
-> thing that actually redeploys the model — toggles `ExpressionSetVersion.IsActive`
-> (`9QM`). Different objects. After the cycle above, if the configurator still fails,
-> open the Constraint Model record and Deactivate/Activate the version in Constraint
-> Builder. See `.cursor/skills/constraint-models/SKILL.md`.
+> ⚠️ **A full `prepare_constraints` rerun does NOT cover this.** The flow imports at
+> steps 7-10 and only deactivates at step 11 — and step 11 names Complete and PCM, not
+> Bundle. So on an org where `QuantumBitBundle_V1` is already active, Bundle is imported
+> while active and never cycled; step 12's "activate" is a no-op on an already-active
+> version. Run the deactivate/activate above by hand after such a rerun, or fix the flow
+> ordering. See `.cursor/skills/constraint-models/SKILL.md`.
 
-**Verify against the deployed blob, not the upload.** Read the model back out of the org
-and confirm your change is in it:
+**Reading the model back proves the upload, not the deployment.** `import_cml` writes this
+exact `ConstraintModel` field, so a successful read-back only confirms the blob was stored.
+It is still worth doing as a sanity check — just do not mistake it for proof the runtime
+rebuilt. **Only selecting the product in the configurator proves that.**
 
 ```bash
 sf data query --use-tooling-api --target-org <alias> \

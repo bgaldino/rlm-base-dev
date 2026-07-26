@@ -287,7 +287,7 @@ glance which is which.
 |---|---|
 | **Binding to a target other than `Self`** | Already built **and verified** — scenario 6 (Pack top-up) *is* this. `QB-TOKENS-PACK` and `QB-DAT-THPT` both use `GrantBindingType = Target` with `GrantBindingTargetType = Product` (`qb-rating/UsagePrdGrantBindingPolicy.csv`). Only the **`Account` / `Contract` / `Custom`** target types are unbuilt — see the "not built" table |
 | **Multicurrency commitments** | All 6 commit SKUs (`QB-CMT-TKN-FLAT/EACH/TIER/BND`, `QB-QTY-CMT`, `QB-MTY-CMT`) carry `PricebookEntry` rows in **7/7** currencies. Build is complete; only USD/GBP/AUD have been exercised at runtime |
-| **One commitment → multiple anchors** | Reachable with shipped tooling — `UsageCmtAssetRelatedObj` has no uniqueness on either FK, so `build_quote_to_asset.py --link-commitment` can simply be run twice. Never tried; how the platform pools across anchors is the actual unknown |
+| **One commitment → multiple anchors** | The object model allows it — `UsageCmtAssetRelatedObj` has no uniqueness on either FK — but **the shipped CLI cannot produce it**: every `build_quote_to_asset.py` run sells and assetizes a *new* commitment before `link_commitment()` binds it, so running it twice yields two commitments with one anchor each. Needs either a second `UsageCmtAssetRelatedObj` row inserted directly or a `--link-existing-commitment` mode. How the platform pools across anchors is the real unknown |
 
 ### Built and silently active — never isolated or asserted
 

@@ -63,9 +63,11 @@ Release 262 dev-guide/Help snapshots:
 >    You get no signal, so verify against the deployed blob rather than the import result.
 > 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
 >    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
->    Constraint models go through `manage_expression_sets` + `import_cml`, and there is an
->    open question about whether the API toggle is equivalent to activating in the CML
->    Editor UI — see the constraint-models skill.
+>    Constraint models go through `manage_expression_sets` + `import_cml`. Note
+>    `manage_expression_sets` PATCHes `ExpressionSetVersion.IsActive`, the same record the
+>    Constraint Builder UI toggles — so it *is* the right tool; what differs is that
+>    `prepare_constraints` deactivates only AFTER importing. See the constraint-models
+>    skill.
 >
 > Source material: `docs/salesforce/262/dev-guide/` (`cml_*` articles) and the
 > Configurator Help suite.
