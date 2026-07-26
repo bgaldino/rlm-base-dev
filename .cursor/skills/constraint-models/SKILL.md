@@ -20,8 +20,8 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    it byte-identical to the blob (`cp` from the blob).
 3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
    cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
-   (step 11 deactivates, step 12 reactivates). **A standalone `import_cml` does not**, so
-   cycle it yourself. See [Making a change reach an org](#making-a-change-reach-an-org).
+   for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
+   See [Making a change reach an org](#making-a-change-reach-an-org).
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
    runtime rebuilt.
@@ -30,8 +30,11 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 6. **`Sequence` is part of the PRC composite key.** A Port association whose sequence
    disagrees with the SFDMU plan fails to resolve — loudly: `import_cml` warns per row,
    collects the unresolved tags and raises, so the import fails rather than half-applying.
-7. **Only one QuantumBit model may be active at a time.** `QuantumBitBundle_V1` is the
-   active one; Complete and PCM are imported inactive for A/B comparison.
+7. **Exactly one model per family may be active** — for QuantumBit that means
+   `QuantumBitBundle` *or* `Complete` *or* `PCM`, currently Bundle. Unrelated models
+   (`Server2`, and the mfg models when they land) are active alongside it, so **discover
+   what is active before deactivating anything** rather than reading a name out of a
+   document. See [Discovering what you are working with](#discovering-what-you-are-working-with).
 
 ---
 
@@ -68,6 +71,49 @@ Use this skill when you are:
 
 ---
 
+## <a name="discovering-what-you-are-working-with"></a>Discovering what you are working with
+
+**Do not hardcode a model name from this or any other document.** The set of constraint
+models differs per org and per feature flag, and grows as verticals are added. Three
+sources, in the order you should consult them:
+
+**1. What the org actually has** — authoritative for anything you are about to change:
+
+```bash
+# every constraint model and its active state
+sf data query --target-org <alias> -q "
+  SELECT ExpressionSet.ApiName, ApiName, VersionNumber, IsActive
+  FROM ExpressionSetVersion
+  WHERE ExpressionSet.UsageType = 'Constraint'
+  ORDER BY ExpressionSet.ApiName"
+```
+
+`ExpressionSet.UsageType = 'Constraint'` is the discriminator — that, not the name, is what
+makes something a constraint model.
+
+**2. What the repo ships** — authoritative for a fresh build, and the inventory a build
+will import:
+
+```bash
+ls -d datasets/constraints/*/*/          # one directory per model, grouped by vertical
+find datasets/constraints -name '*.ffxblob'
+```
+
+The **blob** set is the real inventory. A model can ship a blob with no matching
+`scripts/cml/<Model>.cml` reference copy.
+
+**3. What the flow imports and activates** — authoritative for what a build will end up
+with, and the list to edit when adding a model:
+
+```bash
+cci flow info prepare_constraints    # import_cml steps, then the deactivate/activate lists
+```
+
+Adding a model means adding it to the data dir, the import steps, **and** the
+activate/deactivate lists — see `datasets/constraints/README.md` → *Adding New Models*.
+
+---
+
 ## The file layout
 
 ```
@@ -92,6 +138,30 @@ placeholder Id only has to be internally consistent, and mnemonic ones are conve
 
 ⚠️ `QuantumBitPCM` has a blob and **no** reference `.cml`, so the blob set — not the
 `.cml` set — is the authoritative inventory of shipped models.
+
+### What this repo ships today
+
+Concrete instances, correct as of Release 262 — **verify with the queries above rather
+than trusting this table**, which is a snapshot and will age:
+
+| Model | Data dir | Reference `.cml` | Activated by `prepare_constraints`? |
+|---|---|---|---|
+| `QuantumBitBundle` | `datasets/constraints/qb/QuantumBitBundle` | yes | **yes** — the active QB model |
+| `QuantumBitComplete` | `datasets/constraints/qb/QuantumBitComplete` | yes | no — imported inactive, kept for A/B |
+| `QuantumBitPCM` | `datasets/constraints/qb/QuantumBitPCM` | **no** | no — imported inactive, kept for A/B |
+| `Server2` | `datasets/constraints/qb/Server2` | yes | **yes** — a separate model, not part of the QuantumBit family |
+
+Two models are active at once, and that is correct: **`Server2` is not a QuantumBit
+model.** The one-active-model rule is scoped to a family — exactly one of
+`QuantumBitBundle` / `QuantumBitComplete` / `QuantumBitPCM` may be active — and says
+nothing about unrelated models alongside it. Read "active" per family, not per org, before
+deactivating anything.
+
+(`Server2` lives under `datasets/constraints/qb/` for historical reasons; the directory it
+sits in does not make it a QuantumBit model.)
+
+Manufacturing adds `datasets/constraints/mfg/…` when that series lands, which is exactly
+why the discovery queries matter more than this table.
 
 ---
 
@@ -169,7 +239,10 @@ Builder UI toggles.
 12.    activate    -> Server2_V1, QuantumBitBundle_V1
 ```
 
-**Bundle appears in both step 11 and step 12 deliberately.** Steps 7–10 upload into a
+Those names are the flow's current configuration, not a rule — read them from
+`cci flow info prepare_constraints` rather than from here.
+
+**`QuantumBitBundle_V1` appears in both step 11 and step 12 deliberately.** Steps 7–10 upload into a
 version that may already be active, which stores the blob without redeploying the runtime
 model; step 11 then deactivates Bundle and step 12 reactivates it, giving the
 deactivate/reactivate cycle that makes the platform pick the new model up. Removing Bundle
@@ -188,11 +261,16 @@ way to ship a model change, so cycle the version yourself afterwards:
 ```bash
 cci org default <alias>   # manage_expression_sets does not accept --org, see Known gaps
 
+# <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
+# Server2_V1, or whatever the org actually reports as active for the model you changed.
 cci task run manage_expression_sets -o operation deactivate_versions \
-    -o version_full_names "QuantumBitBundle_V1"
+    -o version_full_names "<Version>"
 cci task run manage_expression_sets -o operation activate_versions \
-    -o version_full_names "QuantumBitBundle_V1"
+    -o version_full_names "<Version>"
 ```
+
+Cycle **the version you imported into**. If several models are active, cycling an
+unrelated one proves nothing and briefly deactivates a model something else may depend on.
 
 or do the same in the UI: the Constraint Model record is the `ExpressionSet` record page
 (`/lightning/r/ExpressionSet/<9QL…>/view`), its **Constraint Model Versions** related list
@@ -215,7 +293,9 @@ Salesforce documents the requirement:
 
 ### Add a product to a configurable bundle
 
-Adding `QB-CMT-TKN-BND` to `QB-COMPLETE`, mirroring its siblings:
+Worked example — adding `QB-CMT-TKN-BND` to `QB-COMPLETE` in the `QuantumBitBundle` and
+`QuantumBitComplete` models. Substitute your own model and product; the shape is the same
+for any vertical.
 
 ```bash
 # 1. Confirm the PRC row exists and note its Sequence (here: 25)
@@ -276,9 +356,10 @@ Before calling a constraint-model change done:
 - **`manage_expression_sets` rejects `--org`** and runs against the default org. One
   instance of a repo-wide problem (102 of 193 custom tasks). `import_cml`, `export_cml`
   and `validate_cml`'s siblings do accept it.
-- **`validate_cml` emits ~1,779 warnings** on the QuantumBit models, nearly all
-  pre-existing "missing type association for leaf type". Errors are the usable signal;
-  the warning stream is not yet clean enough to gate on.
+- **`validate_cml`'s warning stream is not clean enough to gate on** — it emitted ~1,779
+  warnings against the QuantumBit models at the time of writing, nearly all pre-existing
+  "missing type association for leaf type". Treat the **error** count as the signal and
+  check the warning count against a known-good baseline for the models you are touching.
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
   this at steps 11-12, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that
