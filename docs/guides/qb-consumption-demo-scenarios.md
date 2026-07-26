@@ -277,30 +277,41 @@ Systems, Rheintech Solutions, Sakura Systems, Global Media) all have both.
 ## Coverage beyond the nine scenarios
 
 **"No scenario written" is not the same as "not built."** Several of these are configured
-and shipping today — you can demo them now, they simply have no walkthrough above and no
-asserted result. Others need real work. They are separated here so you can tell at a
-glance which is which.
+and shipping today — you can demo them now; what they lack is a walkthrough above, an
+asserted result, or both. Others need real work. They are separated here so you can tell
+at a glance which is which.
+
+**Already covered, listed only because it reads like a gap:** *binding to a target other
+than `Self`* has a scenario — scenario 6 (Pack top-up) **is** this, built and verified.
+`QB-TOKENS-PACK` and `QB-DAT-THPT` both use `GrantBindingType = Target` with
+`GrantBindingTargetType = Product` (`qb-rating/UsagePrdGrantBindingPolicy.csv`). Only the
+**`Account` / `Contract` / `Custom`** target *types* are unbuilt, and those are in the
+"not built" table below.
 
 ### Built and demoable today — no scenario written
 
 | Permutation | Where the setup already is |
 |---|---|
-| **Binding to a target other than `Self`** | Already built **and verified** — scenario 6 (Pack top-up) *is* this. `QB-TOKENS-PACK` and `QB-DAT-THPT` both use `GrantBindingType = Target` with `GrantBindingTargetType = Product` (`qb-rating/UsagePrdGrantBindingPolicy.csv`). Only the **`Account` / `Contract` / `Custom`** target types are unbuilt — see the "not built" table |
 | **Multicurrency commitments** | All 6 commit SKUs (`QB-CMT-TKN-FLAT/EACH/TIER/BND`, `QB-QTY-CMT`, `QB-MTY-CMT`) carry `PricebookEntry` rows in **7/7** currencies. Build is complete; only USD/GBP/AUD have been exercised at runtime |
-| **One commitment → multiple anchors** | The object model allows it — `UsageCmtAssetRelatedObj` has no uniqueness on either FK — but **the shipped CLI cannot produce it**: every `build_quote_to_asset.py` run sells and assetizes a *new* commitment before `link_commitment()` binds it, so running it twice yields two commitments with one anchor each. Needs either a second `UsageCmtAssetRelatedObj` row inserted directly or a `--link-existing-commitment` mode. How the platform pools across anchors is the real unknown |
 
 ### Built and silently active — never isolated or asserted
 
 | Permutation | State |
 |---|---|
 | **Rollover and renewal policies** | Not merely present — **wired to all 12 `ProductUsageGrant` rows**, in the data and in the org (`QB-DB-ROLLOVER`: rollover allowed, no max count; `QB-DB-REFRESH`: renewal every 1 month). They were attached during **every one of the nine scenarios**. Nothing asserts them, so whether rollover or renewal actually *fired* is unknown |
-| **Invoicing rated usage** | **Already exercised** end-to-end: `UsageBillingPeriodItem` → posted invoice. It produces a line with correct quantities and a **zero amount**, because the usage-definition products carry no `PricebookEntry` and no `RateCardEntry`. Tracked as a defect, not a gap |
+
+### Exercised end-to-end, with a known-wrong result
+
+| Permutation | State |
+|---|---|
+| **Invoicing rated usage** | Runs to a posted invoice: `UsageBillingPeriodItem` → invoice line carrying the correct quantities and a **zero amount**, because the usage-definition products carry no `PricebookEntry` and no `RateCardEntry`. Demoable — but do not demo the amount. Tracked as a defect, not a coverage gap |
 
 ### Not built — needs new data or lifecycle work
 
 | Permutation | Note |
 |---|---|
-| Binding target types `Account` / `Contract` / `Custom` | No `UsagePrdGrantBindingPolicy` row uses them, and `Custom` additionally needs `BindingObjectCustomExt` records, of which the build seeds **none**. The quote-line UI offers all four target types regardless of the product's design-time policy, so this is a trap as well as a gap — under investigation |
+| Binding target types `Account` / `Contract` / `Custom` | No **QuantumBit** `UsagePrdGrantBindingPolicy` row uses them. The `q3` plan does ship one `Custom` example (`API Access Premium` / `CLOUD001-2`), so there is a shape to copy — but it is not a QB capability, and `Custom` additionally needs `BindingObjectCustomExt` records, which **no plan in this repo seeds**. The quote-line UI offers all four target types regardless of the product's design-time policy, so this is a trap as well as a gap — under investigation |
+| One commitment → multiple anchors | The object model allows it — `UsageCmtAssetRelatedObj` has no uniqueness on either FK — but **the shipped CLI cannot produce it**: every `build_quote_to_asset.py` run sells and assetizes a *new* commitment before `link_commitment()` binds it, so running it twice yields two commitments with one anchor each. Needs either a second `UsageCmtAssetRelatedObj` row inserted directly or a `--link-existing-commitment` mode. How the platform pools across anchors is the real unknown |
 | Proration | Mid-period amendment cutting a bucket's validity |
 | Amend / renew / cancel | Lifecycle against a live commitment |
 | Commitment expiry mid-term | Distinct from exhaustion; policy-driven |

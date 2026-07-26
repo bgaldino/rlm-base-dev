@@ -16,8 +16,9 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 
 1. **The `.ffxblob` is plain text and it IS the artifact.** `import_cml` uploads it
    verbatim. Edit the blob.
-2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Keep
-   it byte-identical to the blob (`cp` from the blob).
+2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Where
+   a model ships one, keep it byte-identical to the blob (`cp` from the blob) — not every
+   model does.
 3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
    cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
    for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
@@ -400,7 +401,10 @@ Before calling a constraint-model change done:
 
 1. `cci task run validate_cml -o cml_dir scripts/cml -o data_dir <dir>` → **0 errors**
    (warnings are noisy and largely pre-existing; the error count is the signal).
-2. Blob and reference `.cml` byte-identical: `diff -q <blob> scripts/cml/<Model>.cml`.
+2. Blob and reference `.cml` byte-identical — **only for a model that ships one**
+   (`QuantumBitPCM` does not): `diff -q <blob> scripts/cml/<Model>.cml`. A model with no
+   reference copy skips this check; the blob is the artifact, so its absence is not a
+   failure.
 3. Dry-run import resolves your new rows to **real org Ids**, and you queried those Ids
    back to confirm they are the records you meant — not just that something resolved.
 4. Deactivate → import → activate actually run, in that order.
