@@ -203,6 +203,13 @@ deactivates and step 12 activates. **So a full flow run is safe — the trap is 
 `import_cml` on its own against an existing org**, which is the normal way to ship a
 model change.
 
+> ⚠️ **`manage_expression_sets` is not sufficient on its own.** It toggles
+> `ExpressionSetDefinitionVersion.Status` (`9QB`), while the Constraint Builder UI — the
+> thing that actually redeploys the model — toggles `ExpressionSetVersion.IsActive`
+> (`9QM`). Different objects. After the cycle above, if the configurator still fails,
+> open the Constraint Model record and Deactivate/Activate the version in Constraint
+> Builder. See `.cursor/skills/constraint-models/SKILL.md`.
+
 **Verify against the deployed blob, not the upload.** Read the model back out of the org
 and confirm your change is in it:
 

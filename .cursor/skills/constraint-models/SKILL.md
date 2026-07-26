@@ -18,8 +18,11 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    verbatim. Edit the blob.
 2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Keep
    it byte-identical to the blob (`cp` from the blob).
-3. **Importing into an ACTIVE version does not redeploy the model.** Deactivate first,
-   import, then reactivate — see [Making a change reach an org](#making-a-change-reach-an-org).
+3. **Importing into an ACTIVE version does not redeploy the model** — and
+   `manage_expression_sets` alone does **not** fix that. It toggles
+   `ExpressionSetDefinitionVersion.Status` (`9QB`); the surface that actually redeploys is
+   `ExpressionSetVersion.IsActive` (`9QM`), reachable today only from the Constraint
+   Builder UI. See [Making a change reach an org](#making-a-change-reach-an-org).
 4. **Verify against the deployed blob, never the import output.** A successful import
    proves the upload, not the deployment.
 5. **A bundle member needs FOUR records, not one.** PRC row, `type` + `relation` in the
@@ -144,31 +147,59 @@ cci task run manage_expression_sets -o operation activate_versions \
 activate is 12 — **so a full flow run is safe. The trap is running `import_cml` standalone
 against an existing org**, which is the normal way to ship a model change.
 
-### ⚠️ The API toggle may not be equivalent to the UI Activate — UNVERIFIED
+### ⚠️ `manage_expression_sets` toggles a DIFFERENT object than the UI
 
-Salesforce documents deactivate/reactivate as the way to pick up changes:
+This is the trap that cost a live debugging cycle on 2026-07-25. There are **two**
+activation surfaces on **two different objects**, and only one of them redeploys the model:
+
+| Object | keyPrefix | Field | Toggled by |
+|--------|-----------|-------|-----------|
+| `ExpressionSetDefinitionVersion` | `9QB` | `Status` (`Active`/`Inactive`) | `manage_expression_sets` |
+| **`ExpressionSetVersion`** | **`9QM`** | **`IsActive`** (boolean) | **the Constraint Builder UI** |
+
+Proven from the Constraint Builder's own URL:
+
+```
+/builder_industries_constraints/constraintBuilder.app
+    ?constraintId=9QLe6000001k57NGAQ      <- ExpressionSet          (9QL)
+    &versionId=9QMe60000000ikDGAQ         <- ExpressionSetVersion   (9QM)  <-- what Deactivate acts on
+    &versionName=QuantumBit%20Bundle%20V1
+    &contextId=11Oe60000000NnpEAE
+```
+
+Key prefixes confirmed by describe on the org: `ExpressionSet` = `9QL`,
+`ExpressionSetVersion` = `9QM`, `ExpressionSetDefinitionVersion` = `9QB`. The builder never
+touches `9QB`.
+
+**So `manage_expression_sets` alone does not redeploy a constraint model.** It flips
+`ExpressionSetDefinitionVersion.Status`; the runtime picks up a rebuilt model when
+`ExpressionSetVersion.IsActive` is cycled. Both read `Active` afterwards, so a post-hoc
+status query cannot tell you whether the model actually redeployed — only the deployed blob
+and the configurator can.
+
+**Until a task exists for the `ExpressionSetVersion` toggle, finish in the UI:**
+
+1. Open the Constraint Model record — it is the `ExpressionSet` record page
+   (`/lightning/r/ExpressionSet/<9QL…>/view`), titled **Constraint Model**, with a
+   **Constraint Model Versions** related list (`ExpressionSetVersion` rows: Version Name,
+   Active, Rank, Start/End Date Time).
+2. Click the version to open **Constraint Builder** (`constraintBuilder.app`). Its toolbar
+   has **Sync**, **Deactivate**, **Save**, and the CML Editor shows the blob text — this is
+   where you can confirm your edit landed, type-by-type, in the left **Types** panel.
+3. **Deactivate**, then activate again.
+
+Salesforce documents the requirement, without naming the object:
 
 > "If the table data is deployed when the constraint model is activated, and you add
 > records to the table after constraint model activation, to fetch the new table data at
 > runtime you must deactivate and reactivate the constraint model."
 > — Help, *Import Object Data* (262)
 
-and the CML Editor is where activation happens: *"To make the constraint model available
-for use, select Activate."*
+and *"To make the constraint model available for use, select Activate."* — Help,
+*Use the CML Editor*.
 
-There are **two** activation surfaces, and they are different objects:
-
-| Object | Field | Toggled by |
-|--------|-------|-----------|
-| `ExpressionSetDefinitionVersion` | `Status` (`Active`/`Inactive`) | `manage_expression_sets` |
-| `ExpressionSetVersion` | `IsActive` (boolean) | ? |
-
-**Open question:** on 2026-07-25 a model change did not take effect after the
-`manage_expression_sets` cycle, and only took effect after a **manual deactivate/reactivate
-in the Constraint Model UI**. Both surfaces read consistent afterwards, so state alone does
-not reveal what the UI did extra. Until this is pinned down, **after an automated cycle,
-confirm the deployed blob and — if the configurator still misbehaves — repeat the toggle
-in the CML Editor UI.** Do not assume the task alone is sufficient.
+> **Not yet investigated:** the builder's **Sync** button. It is distinct from
+> activate/deactivate and its effect is unknown — do not assume it is a no-op.
 
 ---
 
@@ -238,4 +269,8 @@ Before calling a constraint-model change done:
 - **`validate_cml` emits ~1,779 warnings** on the QuantumBit models, nearly all
   pre-existing "missing type association for leaf type". Errors are the usable signal;
   the warning stream is not yet clean enough to gate on.
-- **The UI-vs-API activation question above is open.**
+- **No CCI task toggles `ExpressionSetVersion.IsActive`**, which is the surface that
+  actually redeploys a constraint model. `manage_expression_sets` only reaches
+  `ExpressionSetDefinitionVersion.Status`, so shipping a model change currently requires
+  a manual Deactivate/Activate in Constraint Builder. Worth a task.
+- **The builder's `Sync` button is uninvestigated.**
