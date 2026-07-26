@@ -73,9 +73,18 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 > cci task run refresh_dt_asset
 > ```
 >
-> Either way, confirm — `LastSyncDate` must be **after** the asset rows were created:
+> Either way, confirm — and confirm it against the **source rows**, not on its own. A
+> `Completed` refresh from before the sale looks identical to one that captured it, so read
+> both timestamps and check `LastSyncDate` is the later:
 >
 > ```bash
+> # 1. newest AssetRateAdjustment for the commitment you just sold
+> sf data query --target-org <sf_alias_or_username> \
+>   -q "SELECT CreatedDate FROM AssetRateAdjustment
+>       WHERE AssetRateCardEntry.Asset.Product2.StockKeepingUnit = '<COMMIT_SKU>'
+>       ORDER BY CreatedDate DESC LIMIT 1"
+>
+> # 2. the table — LastSyncDate must be LATER than the value above
 > sf data query --use-tooling-api --target-org <sf_alias_or_username> \
 >   -q "SELECT DeveloperName, RefreshStatus, LastSyncDate FROM DecisionTable
 >       WHERE DeveloperName = 'Commitment_based_Rate_Adjustment'"
@@ -234,7 +243,7 @@ teardown is expected on a large graph and is real progress, not a failure.
 | Rated usage is **zero**, no error | Ordering. Usage recorded after orchestrating that period, or booked into the current (still open) period |
 | Zero on a brand-new account | The first orchestration pass closed all past periods empty |
 | Journals stuck at `Pending` | Uploaded to the commitment asset instead of the anchor |
-| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor |
+| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor — **or** a stale `Commitment_based_Rate_Adjustment`: check its `LastSyncDate` is later than the newest `AssetRateAdjustment.CreatedDate` for that commitment (only bites on orgs built before it joined the `CreateAssetOrderEvent` refresh chain) |
 | Discount applied where you expected full price (or vice versa) past the commitment | `Lowest Commitment Rate` vs `Bounded Object Rate` on the commitment policy — design-time only, not visible in runtime data |
 | `OverageQuantity` non-zero, commitment not exhausted | Expected. It means "beyond the included allowance", not "beyond the commitment" |
 | Activation fails `FAILED_ACTIVATION` | Account has no shipping address or bill-to contact |
