@@ -21,7 +21,7 @@
             </value>
         </inputParameters>
         <inputParameters>
-            <name>IsIncremental</name>
+            <name>isDecisionTableIncremental</name>
             <value>
                 <elementReference>var_isIncremental</elementReference>
             </value>
@@ -51,7 +51,7 @@
             </value>
         </inputParameters>
         <inputParameters>
-            <name>IsIncremental</name>
+            <name>isDecisionTableIncremental</name>
             <value>
                 <elementReference>var_isIncremental</elementReference>
             </value>
@@ -81,7 +81,7 @@
             </value>
         </inputParameters>
         <inputParameters>
-            <name>IsIncremental</name>
+            <name>isDecisionTableIncremental</name>
             <value>
                 <elementReference>var_isIncremental</elementReference>
             </value>
@@ -855,7 +855,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <allowBack>true</allowBack>
-        <allowFinish>false</allowFinish>
+        <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
             <targetReference>Loop_Type</targetReference>
