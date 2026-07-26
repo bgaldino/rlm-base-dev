@@ -32,6 +32,10 @@ pattern as PRM pricing without redesigning setup order each time.
 - **DO NOT** deploy pricing procedures whose lookup/PAS placeholders cannot resolve in target org.
 - **DO NOT** mutate active procedure-plan versions without a controlled deactivate/reactivate sequence.
 - **DO NOT** assume decision table existence implies recipe compatibility (mapping can still be missing).
+- **DO NOT** assume a pricing row created at runtime is visible to pricing. Decision
+  tables are point-in-time snapshots of their source object, so a row written after the
+  last refresh is invisible to lookups until that table re-syncs — and the miss is
+  silent, not an error. See *Runtime-created pricing rows* below.
 - **DO NOT** reorder `prepare_rlm_org` or subflow steps without dependency analysis.
 - **DO NOT** insert a procedure-plan section into an occupied sequence before moving the existing section out of that sequence.
 - **DO NOT** duplicate `LookUpId` parameters within a single expression-set step;
@@ -261,6 +265,40 @@ In this repo today:
   procedure deploy.
 
 Future feature packs should mirror this split.
+
+---
+
+## Runtime-created pricing rows
+
+A decision table goes stale the moment its source object gains or changes a row, and
+pricing then silently prices as if that row did not exist — no error, no warning. Most
+pricing sources in this repo are loaded once at org build and never touched again, so in
+practice the tables stay correct. The ones that bite are the sources normal selling
+writes to *after* the build.
+
+`ContractItemPrice` / `ContractItemPriceAdjTier` are the case that bites: creating a
+contract with contract prices writes rows that the three `Contract_Pricing_*` tables have
+not seen. `RLM_CreateContractFromQuote` therefore refreshes those three tables itself, at
+the end of the flow. **Contracts created any other way — REST/SOAP API, Apex, another
+flow — do not get that refresh** and need it run by hand:
+
+```bash
+cci task run refresh_dt_default_pricing
+```
+
+(`refresh_dt_*` tasks reject `--org`; they run against the CCI **default** org.)
+
+To tell whether a table is stale, compare it against its newest source row — the sync
+timestamp alone cannot establish freshness:
+
+```bash
+sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%'" --target-org <sf_alias>
+sf data query -q "SELECT Id, CreatedDate FROM ContractItemPrice ORDER BY CreatedDate DESC LIMIT 1" --target-org <sf_alias>
+```
+
+If the newest `ContractItemPrice.CreatedDate` is later than `LastSyncDate`, the contract's
+negotiated price is not being applied. The same reasoning applies to any other lookup
+source that gains rows at runtime.
 
 ---
 

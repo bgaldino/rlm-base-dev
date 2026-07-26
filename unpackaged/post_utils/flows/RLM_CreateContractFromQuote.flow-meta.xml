@@ -31,6 +31,69 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
+    <actionCalls>
+        <description>Second of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier.</description>
+        <name>Refresh_Contract_Pricing_Adjustment_Tiers</name>
+        <label>Refresh Contract Pricing Adjustment Tiers</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Volume_Tiers</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Adjustment_Tiers</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <description>First of three contract pricing table refreshes; publishes the prices this flow just created into the pricing lookup. Without it the tables keep their org-build contents, so the new contract is invisible to pricing and its negotiated price silently never applies. Runs on every price option, including CONTRACT_HEADER_ONLY: whether that option can write price rows is a property of the managed createContract action, and gating on it would make this depend on that action not changing between releases. Sourced from ContractItemPrice.</description>
+        <name>Refresh_Contract_Pricing_Entries</name>
+        <label>Refresh Contract Pricing Entries</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Adjustment_Tiers</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Entries_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <description>Last of three contract pricing table refreshes. Sourced from ContractItemPriceAdjTier.</description>
+        <name>Refresh_Contract_Pricing_Volume_Tiers</name>
+        <label>Refresh Contract Pricing Volume Tiers</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Contract_Pricing_Volume_Tiers</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
@@ -251,7 +314,7 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for renewal term, renewal term unit, and price source.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Sets the Contract fields for renewal term, renewal term unit, and price source, then refreshes the three contract pricing decision tables so the new contract prices are visible to pricing. Contracts created outside this flow (API, Apex, another flow) still need a manual refresh_dt_default_pricing.</description>
     <environments>Default</environments>
     <interviewLabel>RLM_CreateContractFromQuote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM CreateContractFromQuote</label>
@@ -383,6 +446,9 @@
         <label>UpdateContract</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <connector>
+            <targetReference>Refresh_Contract_Pricing_Entries</targetReference>
+        </connector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
