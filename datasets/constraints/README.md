@@ -134,11 +134,11 @@ Exporting CML model 'QuantumBitComplete' v1 to datasets/constraints/qb/QuantumBi
 Exporting ExpressionSetDefinitionVersion.csv...
   1 records fetched
 Exporting ExpressionSetConstraintObj.csv...
-  43 records fetched
+  57 records fetched
 Exporting Product2.csv...
-  22 records fetched
+  29 records fetched
 Exporting ProductRelatedComponent.csv...
-  21 records fetched
+  28 records fetched
 Downloaded blob to .../blobs/ESDV_QuantumBitComplete_V1.ffxblob
 Export complete
 ```
@@ -234,7 +234,7 @@ cci task run import_cml --org dev-sb0 \
 
 ```
 Importing CML data from datasets/constraints/qb/QuantumBitComplete (dry_run=False)
-Loaded 43 ESC records
+Loaded 57 ESC records
 Updated ExpressionSet 'QuantumBitComplete' -> 9QLWs000007UVaDOAW
 Resolved ESDV 'QuantumBitComplete_V1' -> 9QBWs000000SPptOAG
 Updated ESDCD -> 9QYWs000000RBVdOAO
@@ -242,7 +242,7 @@ Resolution maps: Product2=158, Classification=16, PRC_composite=37, PRC_name=21
 Found 0 existing ESC records to replace
 Created ExpressionSetConstraintObj -> 1JEWs00000045abOAA
 ...
-43 ESC records created
+57 ESC records created
 Uploaded blob to ExpressionSetDefinitionVersion/9QBWs000000SPptOAG.ConstraintModel
 Import complete
 ```

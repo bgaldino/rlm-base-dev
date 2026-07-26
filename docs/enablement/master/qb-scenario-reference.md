@@ -208,7 +208,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-billing/LegalEntity.csv` + `BillingTreatment
 
 **Plus a sub-resource:** `UR-DATASTORAGE-TKN` and `UR-CPUTIME-TKN` (token-rated variants tied to `QB-TOKEN`)
 
-### Usage-Rated Products (9)
+### Usage-Rated Products (10)
 
 | SKU | Description |
 |---|---|
@@ -219,10 +219,18 @@ Source: `datasets/sfdmu/qb/en-US/qb-billing/LegalEntity.csv` + `BillingTreatment
 | `QB-CMT-TKN-EACH` | Commitment Tokens (per-token rated) |
 | `QB-CMT-TKN-FLAT` | Commitment Tokens (flat-rate) |
 | `QB-CMT-TKN-TIER` | Commitment Tokens (tiered) |
+| `QB-CMT-TKN-BND` | Commitment Tokens (bounded — discount stops at the committed amount) |
 | `QB-MTY-CMT` | Monetary Commitment |
 | `QB-QTY-CMT` | Quantity Commitment |
 
-All 9 usage products participate in the QB-COMPLETE bundle's `QB-PCG-USAGE` component group.
+**8 of the 10 participate in the QB-COMPLETE bundle's `QB-PCG-USAGE` component group.**
+`QB-DAT-THPT` and `QB-TOKENS-PACK` are deliberately **not** bundle components — they are
+target-bound top-ups (`GrantBindingType = Target`) sold against an anchor asset, and a pack
+cannot be sold standalone. Verify with:
+
+```bash
+awk -F, 'NR>1 && $0 ~ /QB-PCG-USAGE/' datasets/sfdmu/qb/en-US/qb-pcm/ProductRelatedComponent.csv | wc -l
+```
 
 ### Supporting Records
 
@@ -252,7 +260,7 @@ A LineItem-primary union of QuantumBitComplete's configurable bundle and Quantum
 
 Software-focused constraints; the bundle/configuration source grafted into QuantumBitBundle. Targeted products include:
 - Additional API, API Access Requests (AEH), Additional Automation QB Credits
-- QuantumBit Services Project, QuantumBit Database (5 variants: base, token-based, token-commit-each/flat/tier, monetary commit, quantity commit)
+- QuantumBit Services Project, QuantumBit Database (8 variants: base, token-based, token-commit each/flat/tier/bounded, monetary commit, quantity commit)
 - Professional Services Daily Rate, Professional Services Scope of Work, Software Maintenance
 - API Management Solution, Additional Flows/Messages
 
@@ -456,7 +464,7 @@ The QB org is rich and well-constructed for workshops. With customers in `scratc
 - ✅ Nested component groups (QB-QRack-750: Computing → Cooling, Storage → Hard Drives, PCIe → GPUs / I/O / Networking)
 - ✅ Pricing-feature wiring on QB-COMPLETE — Bundle (QB-API 5%), Attribute (QB-API environment override), Volume (QB-MSG-STRT tiered), Derived (2 entries)
 - ✅ All 9 SellingModel records (One-Time + 4 Term-Defined frequencies + 4 Evergreen frequencies)
-- ✅ All 9 usage-product variants (multi-resource, token, monetary, quantity, commitment + tiered)
+- ✅ All 10 usage-product variants (multi-resource, token, monetary, quantity, commitment flat/each/tiered/bounded, target-bound packs)
 - ✅ DRO fulfillment scenarios for QB products
 - ✅ Tax engine + treatments per LE
 - ✅ DocGen template foundation

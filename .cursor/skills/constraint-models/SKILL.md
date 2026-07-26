@@ -256,9 +256,18 @@ contain a mix of old and new constraints."*
 | A reference will not resolve (bad `Sequence`, missing product) | **yes**, at `:704` | new rows for whatever resolved **plus** all the old rows; blob **not** uploaded |
 | `create_record()` fails but every reference resolved | **no** — `unresolved_tags` is empty | mixed ESC set, blob **uploaded**, `Import complete` logged, **exit 0** |
 
-The second is the dangerous one: a partial import that reports success. If an import errors
-at all, **query the ESC set and compare it against the plan before retrying** — a rerun on
-a mixed set is not self-correcting, because the delete step only runs on a clean pass.
+The second is the dangerous one: a partial import that reports success.
+
+**A clean rerun does clean up after either failure.** The existing-ESC snapshot is taken
+fresh at the top of every run (`tasks/rlm_cml.py:636-639`, `WHERE ExpressionSetId = …`,
+unfiltered otherwise), so it captures the old generation *and* the partial rows left by
+the failed run; a pass that resolves and creates everything then deletes the whole
+snapshot. Fix the cause and rerun — you do not have to clear the mix by hand.
+
+What does not self-correct is a rerun that *also* fails: the delete is skipped again and
+another partial generation layers on. And in the second failure mode you may never learn
+to rerun at all, because it exits 0. So **check the ESC set rather than the exit code**,
+and if the import errored, rerun until one pass is clean.
 
 A dry run surfaces the resolution warnings without touching the org, which is why it is
 worth reading rather than just checking its exit code.
@@ -473,8 +482,10 @@ Before calling a constraint-model change done:
   inline per row, so a failure leaves the rows that already resolved in place while the
   delete-old-rows step is skipped — "a mix of old and new constraints", in the task's own
   words. Worse, when `create_record()` fails but every reference *resolved*, no exception
-  is raised at all: the blob still uploads and the task returns success. A rerun does not
-  self-correct, because the delete only runs on a clean pass. See
+  is raised at all: the blob still uploads and the task returns success. A **clean** rerun
+  does clear the mix — the snapshot is retaken each run, so the delete on a clean pass
+  removes the partial rows too — but a rerun that fails again just layers another partial
+  generation, and the exit-0 path means you may never know to rerun. See
   [The four records a bundle member needs](#the-four-records-a-bundle-member-needs) →
   *Sequence is part of the composite key* for the full table.
 - **The builder's `Sync` button is uninvestigated.**
