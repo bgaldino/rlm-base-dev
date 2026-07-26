@@ -10,6 +10,9 @@
         <connector>
             <targetReference>isResetSuccessful</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Scr_ResetFailed</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>accountId</name>
@@ -65,6 +68,9 @@
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
+            <connector>
+                <targetReference>Scr_ResetFailed</targetReference>
+            </connector>
             <label>False</label>
         </rules>
     </decisions>
@@ -161,6 +167,42 @@
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
+    <screens>
+        <description>Terminal screen for the success path. Without it the interview ended on the subflow and Lightning rendered an empty shell with only navigation, which is the reported bug. Reports the subflow&apos;s real counts rather than asserting success: zero refreshed AND zero failed means no decision table carries the PricingDiscovery usage type, which previously looked identical to a completed refresh.</description>
+        <name>Scr_ResetComplete</name>
+        <label>Reset Complete</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>ResetCompleteText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Account reset complete.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Pricing Discovery decision tables queued for refresh: &lt;strong&gt;{!Refresh_Pricing_Discovery_Decision_Tables.refreshedCount}&lt;/strong&gt;&lt;br /&gt;Failed to queue: &lt;strong&gt;{!Refresh_Pricing_Discovery_Decision_Tables.failedCount}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;A refresh is queued asynchronously. To confirm it actually ran, check that each table&apos;s LastSyncDate is later than the newest change to its source object.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <nextOrFinishButtonLabel>Done</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <description>Terminal screen for the failure path. Two routes reach it: the Reset_Account fault connector, which catches an exception thrown by the RLM_AccountUtilities Apex, and the isResetSuccessful False outcome, whose rule previously matched and then connected to nothing — a matched outcome with no connector ends the interview abruptly, which is the navigation error users hit.</description>
+        <name>Scr_ResetFailed</name>
+        <label>Reset Failed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>ResetFailedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The account reset did not complete.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Nothing was refreshed, so any decision tables for this account are unchanged.&lt;/p&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;The usage graph has circular delete constraints and converges over repeated runs, so re-running the reset is safe and often clears a partial failure.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <nextOrFinishButtonLabel>Done</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -174,6 +216,9 @@
         <label>Refresh Pricing Discovery Decision Tables</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <connector>
+            <targetReference>Scr_ResetComplete</targetReference>
+        </connector>
         <flowName>RLM_Refresh_Decision_Tables_By_Usage_Type</flowName>
         <inputAssignments>
             <name>decisionTableUsageType</name>
