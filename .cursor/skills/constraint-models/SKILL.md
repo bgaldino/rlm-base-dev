@@ -255,15 +255,20 @@ of old ESC records. Target org may contain a mix of old and new constraints."*
 
 **Two failure modes. Both now fail loudly** — they did not always:
 
-| Failure | Raises? | Org left as |
+| Failure | Raises? | Org left holding |
 |---|---|---|
-| A reference will not resolve (bad `Sequence`, missing product) | **yes** | new rows for whatever resolved **plus** all the old rows; blob **not** uploaded |
-| `create_record()` fails but every reference resolved | **yes** | same — mixed ESC set, blob **not** uploaded |
+| A reference will not resolve (bad `Sequence`, missing product) | **yes** (not in `dry_run`) | every pre-existing ESC row, plus whatever was created before the failure; blob **not** uploaded |
+| `create_record()` fails but every reference resolved | **yes** (not in `dry_run`) | same |
 
-Both converge on `describe_esc_import_failure()` in `tasks/rlm_cml.py`; the raise happens
-*after* the "skipping deletion of old ESC records" warning and *before* the blob upload, so
-the message always tells you the org was left mixed and the model is never uploaded over a
-partial ESC set.
+Usually that means a *mix* of old and new — but not always: if every create failed there
+are no new rows, and on a model with no prior rows there is no old generation to mix with.
+Query the ESC set rather than assuming.
+
+Both converge on `describe_esc_import_failure()` in `tasks/rlm_cml.py`, and steps 6-7 run
+through `_finalize_esc_import()`. The raise happens *after* the "skipping deletion of old
+ESC records" warning and *before* the blob upload, so the model is never uploaded over a
+partial ESC set. **A `dry_run` logs the same diagnosis at error level and does not raise** —
+it wrote nothing, so nothing is left behind.
 
 > ⚠️ **Before this fix, the second mode exited 0.** `unresolved_tags` was empty so the raise
 > never fired: the blob uploaded, `Import complete` logged, and the task returned success
@@ -493,8 +498,9 @@ Before calling a constraint-model change done:
 - **`import_cml` still half-applies on failure** — but it no longer hides it.
   `create_record()` runs inline per row, so a failure leaves the rows that already resolved
   in place while the delete-old-rows step is skipped — "a mix of old and new constraints",
-  in the task's own words. Both failure modes now raise, and neither uploads the blob, so a
-  partial ESC set can no longer ship under a model that references rows which never landed.
+  in the task's own words. Both failure modes now raise (outside `dry_run`), and neither
+  uploads the blob, so a partial ESC set can no longer ship under a model that references
+  rows which never landed.
   A **clean** rerun clears the mix (the snapshot is retaken each run, so the delete on a
   clean pass removes the partial rows too); a rerun that fails again layers another partial
   generation. What remains unfixed is the half-apply itself: the writes are not staged, so a

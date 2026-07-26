@@ -748,11 +748,45 @@ class ImportCML(CMLBaseTask):
 
         self.logger.info(f"{new_count} ESC records {'would be ' if dry_run else ''}created")
 
+        self._finalize_esc_import(
+            import_failed=import_failed,
+            unresolved_tags=unresolved_tags,
+            esc_total=len(esc_list),
+            created_count=new_count,
+            existing_esc_ids=existing_esc_ids,
+            dry_run=dry_run,
+            esdv=esdv,
+            devname=devname,
+            blob_dir=blob_dir,
+            esdv_id=esdv_id,
+        )
+
+    def _finalize_esc_import(
+        self,
+        *,
+        import_failed: bool,
+        unresolved_tags: List[str],
+        esc_total: int,
+        created_count: int,
+        existing_esc_ids: List[str],
+        dry_run: bool,
+        esdv: dict,
+        devname: str,
+        blob_dir: str,
+        esdv_id: str,
+    ) -> None:
+        """Steps 6-7: delete the old ESC rows, then upload the blob -- or fail.
+
+        Split out of ``_run_task`` so the safety behaviour is directly testable:
+        that a failed import raises, deletes nothing, and above all does NOT
+        upload the blob. Testing only the message formatter would still pass if
+        this ordering regressed, which is the whole defect this guards.
+        """
         # Diagnose the failure, but do NOT raise yet -- both failure modes must reach
         # step 6 so the operator is always told the org was left holding a mix. The
         # raise happens after, before the blob upload.
         failure_detail, overflow_tags = describe_esc_import_failure(
-            import_failed, unresolved_tags, len(esc_list), new_count
+            import_failed, unresolved_tags, esc_total, created_count
         )
         if overflow_tags:
             self.logger.error("Full unresolved tag list: %s", ", ".join(overflow_tags))
@@ -776,19 +810,19 @@ class ImportCML(CMLBaseTask):
         # old generation AND the partial rows from this one.
         if import_failed:
             if dry_run:
-                # A dry run wrote nothing, so do not claim the org was left mixed.
+                # A dry run wrote nothing, so do not claim the org was left changed.
                 self.logger.error(
                     f"{failure_detail} This is a dry run, so nothing was written -- "
-                    f"the same failure against a real org would leave a mix of old and "
-                    f"new constraints."
+                    f"the same failure against a real org would leave the previous ESC "
+                    f"rows in place alongside any that were created before the failure."
                 )
-            else:
-                raise CumulusCIFailure(
-                    f"{failure_detail} The ConstraintModel blob was NOT uploaded, and the "
-                    f"old ESC records were NOT deleted, so the org holds a mix of old and "
-                    f"new constraints. Fix the cause and re-run: a clean pass clears the "
-                    f"mix by itself."
-                )
+                return
+            raise CumulusCIFailure(
+                f"{failure_detail} The ConstraintModel blob was NOT uploaded, and the old "
+                f"ESC records were NOT deleted, so the org still holds the previous "
+                f"generation alongside whatever was created before the failure. Fix the "
+                f"cause and re-run: a clean pass clears it by itself."
+            )
 
         # Step 7: Upload blob
         version_num = esdv.get("VersionNumber", "1")
