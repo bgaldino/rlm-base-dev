@@ -244,11 +244,11 @@ Source: `datasets/sfdmu/qb/en-US/qb-rating/`
 
 `prepare_constraints` imports four CML constraint models and activates two against the QB catalog — **Server2** (hardware) and **QuantumBitBundle** (software). Only one QuantumBit *software* model can be active at a time, so **QuantumBitComplete** and **QuantumBitPCM** are imported but left **inactive** for A/B/C comparison. See `datasets/constraints/README.md` → "QuantumBitBundle (combined model)".
 
-### QuantumBitBundle (59 ESC records = 32 Type + 27 Port, 32 products) — ACTIVE software model
+### QuantumBitBundle (61 ESC records = 33 Type + 28 Port, 33 products) — ACTIVE software model
 
 A LineItem-primary union of QuantumBitComplete's configurable bundle and QuantumBitPCM's virtual-quote cart-level rules. It **preserves QuantumBitComplete's full bundle behavior** (same ports / attributes / constraints — see Type/Port semantics below) and **adds** PCM's cart-level `require` / `recommend` cross-item rules (require QuantumBit Database with API Access Requests; recommend Essentials / Fundamentals Training). Targeted products = the QuantumBitComplete set (below) plus Gold Hardware Maintenance, QuantumBit Collaboration Suite, Additional API Flex (100M), and Additional API Gov.
 
-### QuantumBitComplete (55 ESC records = 28 Type + 27 Port, 28 products) — imported, INACTIVE
+### QuantumBitComplete (57 ESC records = 29 Type + 28 Port, 29 products) — imported, INACTIVE
 
 Software-focused constraints; the bundle/configuration source grafted into QuantumBitBundle. Targeted products include:
 - Additional API, API Access Requests (AEH), Additional Automation QB Credits

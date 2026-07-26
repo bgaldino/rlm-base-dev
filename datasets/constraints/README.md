@@ -352,10 +352,27 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 
 | Model | ESC Records | Product2 | PRC | Blob |
 |-------|------------|----------|-----|------|
-| QuantumBitComplete | 55 (28 Type + 27 Port) | 28 (Type) | 27 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
-| Server2 | 81 | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
-| QuantumBitPCM | 12 | 12 (Type) | 0 | ESDV_QuantumBitPCM_V1.ffxblob |
-| QuantumBitBundle | 59 (32 Type + 27 Port) | 32 (Type) | 27 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
+| QuantumBitComplete | 57 (29 Type + 28 Port) | 29 (Type) | 28 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
+| Server2 | 81 (41 Type + 40 Port) | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
+| QuantumBitPCM | 12 | 12 (Type) | 0 (Port) | ESDV_QuantumBitPCM_V1.ffxblob |
+| QuantumBitBundle | 61 (33 Type + 28 Port) | 33 (Type) | 28 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
+
+> **These counts are computed, not curated.** Regenerate after changing any constraint
+> data plan — nothing validates them automatically
+> (`scripts/ai/check_plan_readme_consistency.py` covers SFDMU plans, not
+> `datasets/constraints/`):
+>
+> ```bash
+> for M in QuantumBitComplete Server2 QuantumBitPCM QuantumBitBundle; do
+>   D=datasets/constraints/qb/$M
+>   printf '%-20s ESC=%-3s Type=%-3s Port=%-3s Product2=%-3s PRC=%s\n' "$M" \
+>     $(( $(wc -l < "$D/ExpressionSetConstraintObj.csv") - 1 )) \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Type$') \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Port$') \
+>     $(( $(wc -l < "$D/Product2.csv") - 1 )) \
+>     $(( $(wc -l < "$D/ProductRelatedComponent.csv") - 1 ))
+> done
+> ```
 
 ### Source Org
 
