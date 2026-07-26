@@ -29,7 +29,7 @@ These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`)
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
 | 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model (QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules) |
-| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1`, `QuantumBitPCM_V1` **and `QuantumBitBundle_V1`** — the first two so re-running switches cleanly to Bundle, Bundle itself so step 12 re-activates it instead of no-opping on an already-active version (steps 7-10 may have uploaded into an active version, which stores the blob without redeploying). No-op on a fresh build |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1`, `QuantumBitPCM_V1` **`QuantumBitBundle_V1` and `Server2_V1`** — Complete/PCM so re-running switches cleanly to Bundle; Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (steps 7-10 may have uploaded into an active version, which stores the blob without redeploying). No-op on a fresh build |
 | 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
@@ -64,7 +64,7 @@ datasets/constraints/qb/
 
 Each directory contains:
 - CSV files for ExpressionSet, ExpressionSetDefinitionVersion, ExpressionSetDefinitionContextDefinition, ExpressionSetConstraintObj, Product2, ProductClassification, ProductRelatedComponent
-- A `blobs/` subdirectory with the compiled ConstraintModel binary blob
+- A `blobs/` subdirectory with the ConstraintModel blob — **plain-text CML**, uploaded verbatim (not compiled)
 
 For detailed information on the data plan format, export/import workflows, and polymorphic resolution, see the [Constraints Utility Guide](../datasets/constraints/README.md).
 

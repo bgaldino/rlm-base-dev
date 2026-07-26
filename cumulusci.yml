@@ -4423,8 +4423,11 @@ flows:
           # keeps running the OLD model — so the configurator rejects whatever the new
           # model added. Deactivating here and reactivating in step 12 is the
           # deactivate/reactivate cycle Salesforce documents as the way to pick up a
-          # rebuilt model. See .cursor/skills/constraint-models/SKILL.md.
-          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1"
+          # rebuilt model. Server2_V1 is listed for the same reason: step 8 imports it
+          # and step 12 activates it, so on a rerun against an already-active Server2 it
+          # would hit the identical stale-runtime path. Every version step 12 activates
+          # must be deactivated here. See .cursor/skills/constraint-models/SKILL.md.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1"
       12:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb

@@ -279,12 +279,12 @@ ESC records use two `ConstraintModelTagType` values that drive how the Constrain
 
 | Tag Type | QuantumBitBundle | QuantumBitComplete | Server2 | Meaning |
 |---|---|---|---|---|
-| **Type** | 32 | 28 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
-| **Port** | 27 | 27 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
+| **Type** | 33 | 29 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
+| **Port** | 28 | 28 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
 
-(QuantumBitBundle's 27 Ports are inherited verbatim from QuantumBitComplete's bundle; its 32 Types = QuantumBitComplete's 28 plus 4 PCM-unique products. QuantumBitPCM contributes 12 Type tags and 0 Ports.)
+(QuantumBitBundle's 28 Ports are inherited verbatim from QuantumBitComplete's bundle; its 33 Types = QuantumBitComplete's 29 plus 4 PCM-unique products. QuantumBitPCM contributes 12 Type tags and 0 Ports.)
 
-**Port-type semantics in plain terms:** the Constraint Builder treats Ports as connection points. A Type tag identifies what kind of component a product is; a Port tag identifies the slot it fills. The constraint logic in the binary CML blob enforces compatibility — e.g., a `gold22ghz` CPU port can only accept Type tags compatible with that CPU socket; a `ram64` port only accepts 64GB RAM Type tags.
+**Port-type semantics in plain terms:** the Constraint Builder treats Ports as connection points. A Type tag identifies what kind of component a product is; a Port tag identifies the slot it fills. The constraint logic in the CML blob — plain text, not a compiled binary — enforces compatibility — e.g., a `gold22ghz` CPU port can only accept Type tags compatible with that CPU socket; a `ram64` port only accepts 64GB RAM Type tags.
 
 This is the model that powers the Spring '26 Configurator features (Compact Layout, Sticky Errors, Inline Attribute Configuration, Enhanced Instance Selection) — they all run against the constraint engine that interprets these Type/Port relationships.
 

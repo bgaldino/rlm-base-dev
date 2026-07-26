@@ -296,7 +296,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model (imported but left **inactive** — see note below) |
 | 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model |
-| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` + **`QuantumBitBundle_V1`** — the first two so re-running switches cleanly, Bundle so step 12 actually re-activates it rather than no-opping on an already-active version (all no-ops on a fresh build) |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` + **`QuantumBitBundle_V1` + `Server2_V1`** — Complete/PCM so re-running switches cleanly, Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (all no-ops on a fresh build) |
 | 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** |
 
 > **QuantumBitBundle is the active QuantumBit model; QuantumBitComplete and
@@ -311,7 +311,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 > a platform side-effect of creating an `ExpressionSet` with `UsageType=Constraint` (no
 > ESD metadata is deployed); `import_cml` then resolves that ESDV and uploads the blob +
 > ESC (see [Import Steps](#import-steps)). Step 11 explicitly deactivates
-> `QuantumBitComplete_V1`, `QuantumBitPCM_V1` **and `QuantumBitBundle_V1`**
+> `QuantumBitComplete_V1`, `QuantumBitPCM_V1`, **`QuantumBitBundle_V1` and `Server2_V1`**
 > (all no-ops on a fresh build, but they make re-running on an existing org idempotent —
 > `manage_expression_sets` only toggles the versions it is given), and step 12 then
 > sets `ExpressionSetVersion.IsActive=true` only for `Server2_V1` + `QuantumBitBundle_V1`.

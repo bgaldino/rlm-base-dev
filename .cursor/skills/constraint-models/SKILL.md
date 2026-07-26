@@ -210,16 +210,33 @@ keeps running the old one — and the import reports success.
 # Set the default first so all three steps hit the same org.
 cci org default <alias>
 
+# <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
+# <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
+# <PlanDir>   = the SFDMU plan whose Product2/PRC rows the ESC references
+cci task run manage_expression_sets -o operation deactivate_versions \
+    -o version_full_names "<Version>"
+
+cci task run import_cml --org <alias> \
+    -o data_dir <DataDir> \
+    -o dataset_dirs "<PlanDir>"
+
+cci task run manage_expression_sets -o operation activate_versions \
+    -o version_full_names "<Version>"
+```
+
+<details><summary>Filled in for the QuantumBit bundle, as an example</summary>
+
+```bash
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
-
 cci task run import_cml --org <alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-
 cci task run manage_expression_sets -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
+
+</details>
 
 `prepare_constraints` does this for you at steps 11-12; a standalone `import_cml` does
 not. See below.
@@ -235,14 +252,16 @@ Builder UI toggles.
 
 ```
  7-10. import_cml  Complete, Server2, PCM, Bundle
-11.    deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1, QuantumBitBundle_V1
+11.    deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1, QuantumBitBundle_V1, Server2_V1
 12.    activate    -> Server2_V1, QuantumBitBundle_V1
 ```
 
 Those names are the flow's current configuration, not a rule — read them from
 `cci flow info prepare_constraints` rather than from here.
 
-**`QuantumBitBundle_V1` appears in both step 11 and step 12 deliberately.** Steps 7–10 upload into a
+**Every version step 12 activates also appears in step 11 — deliberately.**
+That is the invariant to preserve: `QuantumBitBundle_V1` and `Server2_V1` are both
+activated, so both must be deactivated first. Steps 7–10 upload into a
 version that may already be active, which stores the blob without redeploying the runtime
 model; step 11 then deactivates Bundle and step 12 reactivates it, giving the
 deactivate/reactivate cycle that makes the platform pick the new model up. Removing Bundle
