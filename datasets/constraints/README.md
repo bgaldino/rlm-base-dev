@@ -172,7 +172,13 @@ cci task run import_cml --org <target_org> \
 4. **Build polymorphic lookup maps** -- reads exported CSVs to build legacy ID-to-name mappings, queries target org to resolve names to target IDs
 5. **Create ExpressionSetConstraintObj records** -- resolves each polymorphic ReferenceObjectId
 6. **Delete old ESC records** -- only if all new records were created successfully
-7. **Upload ConstraintModel blob** via REST PATCH
+7. **Upload ConstraintModel blob** via REST PATCH -- **only on a clean pass**
+
+> **A failed import (outside `dry_run`) raises and does not upload the blob**, so a partial
+> ESC set can never ship under a model referencing rows that never landed. Step 5 writes
+> records inline, so a failure part-way still leaves the org changed.
+> **Failure modes, what the org is left holding, and how to recover:**
+> `.cursor/skills/constraint-models/SKILL.md` → *Sequence is part of the composite key*.
 
 ### ⚠ Importing into an ACTIVE version does not redeploy the model
 

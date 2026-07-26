@@ -32,8 +32,8 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    disagrees with the PRC row **in the target org** fails to resolve — the SFDMU plan
    matters only because it is what loads that row. `import_cml` warns per row and raises —
    but **it half-applies first**: rows that did resolve are already created and the old
-   ESC rows are not deleted. After any failed import, check for a mixed ESC set before
-   retrying.
+   ESC rows are not deleted. The blob is not uploaded, and a clean rerun clears the mix,
+   so fix the cause and run it again.
 7. **Exactly one model per family may be active** — for QuantumBit that means
    `QuantumBitBundle` *or* `Complete` *or* `PCM`, currently Bundle. Unrelated models
    (`Server2`, and the mfg models when they land) are active alongside it, so **discover
@@ -248,31 +248,43 @@ ReferenceObjectId` per row and accumulates `unresolved_tags` — but **it does n
 atomically**, and the distinction matters when you are recovering.
 
 `create_record()` is called inline for every row as the loop walks the ESC list, so by the
-time an unresolved row triggers the raise at `tasks/rlm_cml.py:704`, the rows that *did*
-resolve are already in the org. Step 6 (delete the old ESC records) sits **after** that
-raise and never runs, so the previous generation of rows is still there too. The task says
-so itself: *"Import had errors -- skipping deletion of old ESC records. Target org may
-contain a mix of old and new constraints."*
+time a failure is diagnosed the rows that *did* resolve are already in the org. Step 6
+(delete the old ESC records) is skipped on a failed import, so the previous generation of
+rows is still there too. The task says so itself: *"Import had errors -- skipping deletion
+of old ESC records. Target org may contain a mix of old and new constraints."*
 
-**Two failure modes, and they behave differently:**
+**Two failure modes. Both now fail loudly** — they did not always:
 
-| Failure | Raises? | Org left as |
+| Failure | Raises? | Org left holding |
 |---|---|---|
-| A reference will not resolve (bad `Sequence`, missing product) | **yes**, at `:704` | new rows for whatever resolved **plus** all the old rows; blob **not** uploaded |
-| `create_record()` fails but every reference resolved | **no** — `unresolved_tags` is empty | mixed ESC set, blob **uploaded**, `Import complete` logged, **exit 0** |
+| A reference will not resolve (bad `Sequence`, missing product) | **yes** (not in `dry_run`) | every pre-existing ESC row, plus whatever was created before the failure; blob **not** uploaded |
+| `create_record()` fails but every reference resolved | **yes** (not in `dry_run`) | same |
 
-The second is the dangerous one: a partial import that reports success.
+Usually that means a *mix* of old and new — but not always: if every create failed there
+are no new rows, and on a model with no prior rows there is no old generation to mix with.
+Query the ESC set rather than assuming.
 
-**A clean rerun does clean up after either failure.** The existing-ESC snapshot is taken
-fresh at the top of every run (`tasks/rlm_cml.py:636-639`, `WHERE ExpressionSetId = …`,
-unfiltered otherwise), so it captures the old generation *and* the partial rows left by
-the failed run; a pass that resolves and creates everything then deletes the whole
-snapshot. Fix the cause and rerun — you do not have to clear the mix by hand.
+Both converge on `describe_esc_import_failure()` in `tasks/rlm_cml.py`, and steps 6-7 run
+through `_finalize_esc_import()`. The raise happens *after* the "skipping deletion of old
+ESC records" warning and *before* the blob upload, so the model is never uploaded over a
+partial ESC set. **A `dry_run` logs the same diagnosis at error level and does not raise** —
+it wrote nothing, so nothing is left behind.
+
+> ⚠️ **Before this fix, the second mode exited 0.** `unresolved_tags` was empty so the raise
+> never fired: the blob uploaded, `Import complete` logged, and the task returned success
+> over a partial set. `prepare_constraints` runs `import_cml`, so a build could go green
+> carrying a partial constraint model. If you are reading logs from an older build, an
+> `Import complete` there does **not** mean every ESC row landed.
+
+**A clean rerun cleans up after either failure.** The existing-ESC snapshot is taken fresh
+at the top of every run (`WHERE ExpressionSetId = …`, unfiltered otherwise), so it captures
+the old generation *and* the partial rows left by the failed run; a pass that resolves and
+creates everything then deletes the whole snapshot. Fix the cause and rerun — you do not
+have to clear the mix by hand.
 
 What does not self-correct is a rerun that *also* fails: the delete is skipped again and
-another partial generation layers on. And in the second failure mode you may never learn
-to rerun at all, because it exits 0. So **check the ESC set rather than the exit code**,
-and if the import errored, rerun until one pass is clean.
+another partial generation layers on. So if the import errored, rerun until one pass is
+clean.
 
 A dry run surfaces the resolution warnings without touching the org, which is why it is
 worth reading rather than just checking its exit code.
@@ -483,14 +495,17 @@ Before calling a constraint-model change done:
   run. The configurator `configure` POST does that headlessly (see Validation check 7), so
   this is a gap in observability, not in automation: there is no status field to watch,
   but there is no need for a browser either.
-- **`import_cml` half-applies on failure, and one path exits 0.** `create_record()` runs
-  inline per row, so a failure leaves the rows that already resolved in place while the
-  delete-old-rows step is skipped — "a mix of old and new constraints", in the task's own
-  words. Worse, when `create_record()` fails but every reference *resolved*, no exception
-  is raised at all: the blob still uploads and the task returns success. A **clean** rerun
-  does clear the mix — the snapshot is retaken each run, so the delete on a clean pass
-  removes the partial rows too — but a rerun that fails again just layers another partial
-  generation, and the exit-0 path means you may never know to rerun. See
+- **`import_cml` still half-applies on failure** — but it no longer hides it.
+  `create_record()` runs inline per row, so a failure leaves the rows that already resolved
+  in place while the delete-old-rows step is skipped — "a mix of old and new constraints",
+  in the task's own words. Both failure modes now raise (outside `dry_run`), and neither
+  uploads the blob, so a partial ESC set can no longer ship under a model that references
+  rows which never landed.
+  A **clean** rerun clears the mix (the snapshot is retaken each run, so the delete on a
+  clean pass removes the partial rows too); a rerun that fails again layers another partial
+  generation. What remains unfixed is the half-apply itself: the writes are not staged, so a
+  failure still leaves the org changed. Staging them (collect payloads, insert at the end,
+  or roll back what was created) is the real fix. See
   [The four records a bundle member needs](#the-four-records-a-bundle-member-needs) →
   *Sequence is part of the composite key* for the full table.
 - **The builder's `Sync` button is uninvestigated.**
