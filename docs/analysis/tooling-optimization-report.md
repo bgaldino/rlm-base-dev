@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **54** Markdown files under `.cursor/skills/`
-- Cursor rules inventoried: **11** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **44** checked, **0** missing
+- Skills inventoried: **62** Markdown files under `.cursor/skills/`
+- Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
+- AGENTS.md skill references: **52** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -35,6 +35,11 @@
 - `.cursor/skills/cci-orchestration/feature-flags.md`
 - `.cursor/skills/cci-orchestration/flows-reference.md`
 - `.cursor/skills/cci-orchestration/tasks-reference.md`
+- `.cursor/skills/constraint-models/SKILL.md`
+- `.cursor/skills/context-service/SKILL.md`
+- `.cursor/skills/context-service/authoring-and-lifecycle.md`
+- `.cursor/skills/context-service/data-model-and-api.md`
+- `.cursor/skills/context-service/runtime-and-persistence.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
 - `.cursor/skills/document-generation/SKILL.md`
 - `.cursor/skills/document-generation/data-mapper-authoring.md`
@@ -80,6 +85,9 @@
 - `.cursor/skills/troubleshooting/SKILL.md`
 - `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - `.cursor/skills/txn-data-harness/SKILL.md`
+- `.cursor/skills/usage-consumption/SKILL.md`
+- `.cursor/skills/usage-consumption/building-usage-assets.md`
+- `.cursor/skills/usage-consumption/verification.md`
 
 ## Cursor Rule Inventory
 
@@ -88,6 +96,7 @@
 - `.cursor/rules/apex-scripts.mdc`
 - `.cursor/rules/cci-python-tasks.mdc`
 - `.cursor/rules/cci-task-definitions.mdc`
+- `.cursor/rules/context-plans.mdc`
 - `.cursor/rules/doc-review.mdc`
 - `.cursor/rules/lwc-components.mdc`
 - `.cursor/rules/robot-tests.mdc`
@@ -105,6 +114,11 @@
 - ✅ `.cursor/skills/cci-orchestration/feature-flags.md`
 - ✅ `.cursor/skills/cci-orchestration/flows-reference.md`
 - ✅ `.cursor/skills/cci-orchestration/tasks-reference.md`
+- ✅ `.cursor/skills/constraint-models/SKILL.md`
+- ✅ `.cursor/skills/context-service/SKILL.md`
+- ✅ `.cursor/skills/context-service/authoring-and-lifecycle.md`
+- ✅ `.cursor/skills/context-service/data-model-and-api.md`
+- ✅ `.cursor/skills/context-service/runtime-and-persistence.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `.cursor/skills/document-generation/SKILL.md`
 - ✅ `.cursor/skills/document-generation/data-mapper-authoring.md`
@@ -141,6 +155,9 @@
 - ✅ `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - ✅ `.cursor/skills/txn-data-harness/SKILL.md`
+- ✅ `.cursor/skills/usage-consumption/SKILL.md`
+- ✅ `.cursor/skills/usage-consumption/building-usage-assets.md`
+- ✅ `.cursor/skills/usage-consumption/verification.md`
 
 ## Cursor Rule Coverage
 
@@ -151,6 +168,7 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 - ✅ `apex-scripts.mdc` — mapped to `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `cci-python-tasks.mdc` — mapped to `.cursor/skills/cci-orchestration/custom-task-authoring.md`
 - ✅ `cci-task-definitions.mdc` — mapped to `.cursor/skills/cci-orchestration/SKILL.md`
+- ✅ `context-plans.mdc` — mapped to `.cursor/skills/context-service/SKILL.md`
 - ✅ `doc-review.mdc` — mapped to `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `lwc-components.mdc` — explicit stand-alone note
 - ✅ `robot-tests.mdc` — mapped to `.cursor/skills/robot-testing/SKILL.md`
@@ -170,10 +188,12 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 - Manifest version: `2`
 - Last verified: `2026-05-23`
 - Active Salesforce release: `262`
-- Manifest skill count: **22**
+- Manifest skill count: **25**
   - `apex-security-hardening`
   - `audit-review`
   - `cci-orchestration`
+  - `constraint-models`
+  - `context-service`
   - `doc-consistency`
   - `document-generation`
   - `expression-sets`
@@ -193,6 +213,7 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
   - `skill-authoring`
   - `troubleshooting`
   - `txn-data-harness`
+  - `usage-consumption`
 
 ## Findings
 
