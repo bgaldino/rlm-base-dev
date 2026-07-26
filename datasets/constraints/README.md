@@ -174,6 +174,44 @@ cci task run import_cml --org <target_org> \
 6. **Delete old ESC records** -- only if all new records were created successfully
 7. **Upload ConstraintModel blob** via REST PATCH
 
+### ⚠ Importing into an ACTIVE version does not redeploy the model
+
+**`import_cml` uploads the blob but does not redeploy it. If the target
+`ExpressionSetDefinitionVersion` is already `Active`, the new model is stored and the org
+keeps running the OLD one** -- the configurator still fails on whatever you just added,
+with no error from the import to say so.
+
+The version must be **deactivated and reactivated** so the model redeploys:
+
+```bash
+# NOTE: manage_expression_sets does not currently accept --org and runs against the
+# CCI DEFAULT org. Set the default first (`cci org default <alias>`) so all three
+# steps hit the same org. import_cml does accept --org.
+cci task run manage_expression_sets -o operation deactivate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+
+cci task run import_cml --org <target_org> \
+    -o data_dir datasets/constraints/qb/QuantumBitBundle \
+    -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
+
+cci task run manage_expression_sets -o operation activate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+```
+
+`prepare_constraints` already does this: the imports are steps 7-10, then step 11
+deactivates and step 12 activates. **So a full flow run is safe — the trap is running
+`import_cml` on its own against an existing org**, which is the normal way to ship a
+model change.
+
+**Verify against the deployed blob, not the upload.** Read the model back out of the org
+and confirm your change is in it:
+
+```bash
+sf data query --use-tooling-api --target-org <alias> \
+  -q "SELECT ConstraintModel FROM ExpressionSetDefinitionVersion WHERE DeveloperName = 'QuantumBitBundle_V1'"
+# then GET that URL with your access token and grep for the type you added
+```
+
 ### Dry Run
 
 Use `dry_run` to preview what the import would do without making changes:
