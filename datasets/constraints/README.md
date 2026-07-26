@@ -172,7 +172,22 @@ cci task run import_cml --org <target_org> \
 4. **Build polymorphic lookup maps** -- reads exported CSVs to build legacy ID-to-name mappings, queries target org to resolve names to target IDs
 5. **Create ExpressionSetConstraintObj records** -- resolves each polymorphic ReferenceObjectId
 6. **Delete old ESC records** -- only if all new records were created successfully
-7. **Upload ConstraintModel blob** via REST PATCH
+7. **Upload ConstraintModel blob** via REST PATCH -- **only on a clean pass**
+
+> **A failed import raises and does not upload the blob.** Step 5 writes each ESC record
+> inline as it walks the list, so a failure part-way leaves the rows that already succeeded
+> plus the whole previous generation (step 6 is skipped). That mixed state is reported, the
+> blob is **not** uploaded, and the task exits non-zero — so a partial ESC set can never
+> ship under a model referencing rows that never landed. Fix the cause and re-run: the
+> existing-ESC snapshot is retaken at the top of every run, so a clean pass deletes the old
+> generation *and* the partial rows. A re-run that fails again just layers another partial
+> generation, so re-run until one pass is clean.
+>
+> Two failure modes reach this: a reference that will not resolve (usually the qb-pcm
+> catalog is not loaded, or names do not match), and a `create_record()` API/validation/limit
+> failure with every reference resolved. **The second used to exit 0** with the blob
+> uploaded and `Import complete` logged — if you are reading logs from an older build, treat
+> `Import complete` there as "no exception", not "every row landed".
 
 ### ⚠ Importing into an ACTIVE version does not redeploy the model
 
