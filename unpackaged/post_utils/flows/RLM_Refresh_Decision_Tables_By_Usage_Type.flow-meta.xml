@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Queues a refresh for one decision table. A table whose refresh throws must not abandon the tables after it, so the fault path counts the failure and returns to the loop instead of ending the flow.</description>
         <name>Refresh_Decision_Table_Action</name>
         <label>Refresh Decision Table Action</label>
         <locationX>0</locationX>
@@ -8,8 +9,11 @@
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Loop_Through_Decision_Tables</targetReference>
+            <targetReference>Count_Refreshed</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Count_Failed</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -23,9 +27,43 @@
     </actionCalls>
     <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Counts a table whose refresh threw. Kept separate from refreshedCount so a caller can tell &quot;no table carries this usage type&quot; apart from &quot;tables matched but did not refresh&quot;.</description>
+        <name>Count_Failed</name>
+        <label>Count Failed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>failedCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Decision_Tables</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Counts a table successfully queued for refresh, so a caller can report a real number rather than assuming the run did something.</description>
+        <name>Count_Refreshed</name>
+        <label>Count Refreshed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>refreshedCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Decision_Tables</targetReference>
+        </connector>
+    </assignments>
+    <description>Queues a refresh for every decision table with the given UsageType. Autolaunched by design — it is called as a subflow by RLM_Account_Utilities and is invocable via the actions REST API — so it deliberately has no screens, and a caller that needs to report the outcome must supply its own. Returns refreshedCount and failedCount: both zero means no decision table carries that UsageType, which is otherwise indistinguishable from a successful run.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Refresh Decision Tables By Usage Type {!$Flow.CurrentDateTime}</interviewLabel>
-    <isTemplate>true</isTemplate>
     <label>RLM Refresh Decision Tables By Usage Type</label>
     <loops>
         <name>Loop_Through_Decision_Tables</name>
@@ -58,6 +96,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
+        <description>Finds the decision tables carrying the requested UsageType. An unmatched usage type yields an empty collection rather than an error, which is why the caller is handed refreshedCount to check.</description>
         <name>Get_Decision_Tables_to_Refresh</name>
         <label>Get Decision Tables to Refresh</label>
         <locationX>0</locationX>
@@ -87,6 +126,7 @@
     </start>
     <status>Active</status>
     <variables>
+        <description>UsageType to match against DecisionTable.UsageType.</description>
         <name>decisionTableUsageType</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -94,6 +134,30 @@
         <isOutput>true</isOutput>
         <value>
             <stringValue>PricingDiscovery</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Number of tables whose refresh threw. Zero refreshed AND zero failed means the usage type matched no decision table at all.</description>
+        <name>failedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Number of tables successfully queued for refresh.</description>
+        <name>refreshedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
         </value>
     </variables>
 </Flow>
