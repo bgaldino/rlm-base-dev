@@ -11,6 +11,9 @@
         <connector>
             <targetReference>Refresh_Contract_Pricing_Volume_Tiers</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Contract_Pricing_Volume_Tiers</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -33,6 +36,9 @@
         <connector>
             <targetReference>Refresh_Contract_Pricing_Adjustment_Tiers</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Contract_Pricing_Adjustment_Tiers</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -52,6 +58,9 @@
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
+        <faultConnector>
+            <targetReference>Absorb_Refresh_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -64,6 +73,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <apiVersion>67.0</apiVersion>
+    <assignments>
+        <description>Terminal fault sink. This flow runs after save on the record being activated, so an unhandled fault would roll back the activation itself — blocking a user from activating a contract because a decision table could not be refreshed, which is far worse than the stale table this flow exists to prevent. Capturing the message here ends the flow quietly instead. The durable record of a failed refresh is DecisionTable.RefreshStatus / RefreshFailureReason on the table, not this variable.</description>
+        <name>Absorb_Refresh_Fault</name>
+        <label>Absorb Refresh Fault</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>refreshFaultMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
     <description>Refreshes the three contract pricing decision tables when a contract becomes Activated, so its contract prices are visible to pricing. Those tables are otherwise only built at org build time, and a contract created afterwards is silently invisible to pricing — its negotiated price never applies, with no error. Triggered on ACTIVATION rather than creation because Contract_Pricing_Adjustment_Tiers and Contract_Pricing_Volume_Tiers both filter their source on ContractItemPriceId.ContractId.StatusCode = Activated: refreshing while the contract is still Draft excludes its rows and stamps LastSyncDate anyway, which reads as fresh while holding nothing. A refresh that is rejected sets DecisionTable.RefreshStatus and RefreshFailureReason on the table itself, which is where a failure is observable.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Contract Activation Refresh Pricing Tables {!$Flow.CurrentDateTime}</interviewLabel>
@@ -101,4 +124,12 @@
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
+    <variables>
+        <description>Holds the fault message from a refresh that threw, so the fault is handled and the contract activation is not rolled back. Not an output; read DecisionTable.RefreshStatus / RefreshFailureReason to see which table failed and why.</description>
+        <name>refreshFaultMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>
