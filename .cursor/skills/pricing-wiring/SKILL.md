@@ -299,8 +299,22 @@ cci task run refresh_dt_default_pricing
 
 (`refresh_dt_*` tasks reject `--org`; they run against the CCI **default** org.)
 
-If a refresh is rejected the platform records it on the table itself — check
-`DecisionTable.RefreshStatus` and `RefreshFailureReason`, not the flow.
+If a refresh does not happen, the platform records it on the table itself — check
+`DecisionTable.RefreshStatus` (observed cycling `Initiated` → `Completed`) and
+`RefreshFailureReason`, not the flow. The decisive signal is still `LastSyncDate`: it only
+advances on a refresh that ran, so the staleness comparison above catches a failure whether
+or not anything else reports it.
+
+Two failure shapes, measured against a live org — worth knowing before you add error
+handling to a flow that calls `refreshDecisionTable`:
+
+- **An invalid or inactive `DecisionTableApiName` throws a Flow fault**, not a `Failed`
+  status (*"The decision table API Name is invalid…"*). A flow calling this action needs a
+  `faultConnector`, and in a **record-triggered after-save** flow it needs one urgently: an
+  unhandled fault rolls back the triggering DML, so a refresh problem would block the very
+  save that should have caused the refresh.
+- The documented `status = Failed` output could not be provoked — a valid table returned
+  `Queued` on every attempt, including five back-to-back refreshes of the same table.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
 newest `LastModifiedDate`. Two things make this easy to get wrong:
