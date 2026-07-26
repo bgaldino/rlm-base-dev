@@ -326,17 +326,34 @@ newest `LastModifiedDate`. Two things make this easy to get wrong:
 - Use `LastModifiedDate`, not `CreatedDate`. An **edited** price row invalidates the table
   exactly as a new one does, and `CreatedDate` cannot see it.
 
+The source query must also **reproduce the table's own source criteria**, or it reports rows
+the table deliberately excludes. The tier tables only admit rows whose contract is Activated,
+so an unfiltered `MAX` over a Draft contract's tiers would report them stale forever:
+
 ```bash
 sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
+
+# Entries <- ContractItemPrice, which has NO source criteria: no filter here.
 sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
-sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier" --target-org <sf_alias>
+
+# Both tier tables <- ContractItemPriceAdjTier, filtered to activated contracts.
+# Note the SOQL relationship names differ from the criteria field path stored in
+# DecisionTableSourceCriteria: ContractItemPriceId.ContractId -> ContractItemPrice.Contract
+sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier WHERE ContractItemPrice.Contract.StatusCode = 'Activated'" --target-org <sf_alias>
 ```
 
 A table whose `LastSyncDate` is **earlier** than its own source's `newest` is stale, and the
 contract's negotiated price is not being applied. A `null` `newest` means that source has no
-rows at all, so its tables cannot be stale. The same table-by-table reasoning applies to every
-other lookup source that changes at runtime — never generalise one source's timestamp to a
-sibling table.
+qualifying rows, so its tables cannot be stale.
+
+Generalising: read the table's real filter out of the org rather than assuming it has none —
+
+```bash
+sf data query -q "SELECT DecisionTable.DeveloperName, SourceFieldName, Operator, Value FROM DecisionTableSourceCriteria WHERE DecisionTable.DeveloperName = '<table>'" --target-org <sf_alias>
+```
+
+Never generalise one source's timestamp to a sibling table, and never compare against rows the
+table would have excluded anyway.
 
 ---
 

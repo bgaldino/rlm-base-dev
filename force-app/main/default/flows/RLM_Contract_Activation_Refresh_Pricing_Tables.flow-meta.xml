@@ -87,7 +87,7 @@
             </value>
         </assignmentItems>
     </assignments>
-    <description>Refreshes the three contract pricing decision tables when a contract becomes Activated, so its contract prices are visible to pricing. Those tables are otherwise only built at org build time, and a contract created afterwards is silently invisible to pricing — its negotiated price never applies, with no error. Triggered on ACTIVATION rather than creation because Contract_Pricing_Adjustment_Tiers and Contract_Pricing_Volume_Tiers both filter their source on ContractItemPriceId.ContractId.StatusCode = Activated: refreshing while the contract is still Draft excludes its rows and stamps LastSyncDate anyway, which reads as fresh while holding nothing. A refresh that is rejected sets DecisionTable.RefreshStatus and RefreshFailureReason on the table itself, which is where a failure is observable.</description>
+    <description>Refreshes the three contract pricing decision tables when a contract becomes Activated, so its contract prices are visible to pricing. Those tables are otherwise only built at org build time, and a contract sold afterwards is silently invisible to pricing — its negotiated price never applies, with no error. Triggered on ACTIVATION rather than creation because Contract_Pricing_Adjustment_Tiers and Contract_Pricing_Volume_Tiers both filter their source on ContractItemPriceId.ContractId.StatusCode = Activated: refreshing while the contract is still Draft excludes its rows and stamps LastSyncDate anyway, which reads as fresh while holding nothing. The entry condition matches on StatusCode, not Status, for the same reason — Status is a customizable picklist whose values map onto a StatusCode, so an org that activates into a custom value such as Signed would satisfy the tables&apos; criteria while never matching a literal Status of Activated. A refresh failure is observable on the table itself: LastSyncDate does not advance, and DecisionTable.RefreshStatus / RefreshFailureReason record the async result.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Contract Activation Refresh Pricing Tables {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Contract Activation Refresh Pricing Tables</label>
@@ -113,7 +113,7 @@
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Status</field>
+            <field>StatusCode</field>
             <operator>EqualTo</operator>
             <value>
                 <stringValue>Activated</stringValue>
