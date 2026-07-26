@@ -28,8 +28,10 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 5. **A bundle member needs FOUR records, not one.** PRC row, `type` + `relation` in the
    model, an ESC `Type` association, and an ESC `Port` association.
 6. **`Sequence` is part of the PRC composite key.** A Port association whose sequence
-   disagrees with the SFDMU plan fails to resolve — loudly: `import_cml` warns per row,
-   collects the unresolved tags and raises, so the import fails rather than half-applying.
+   disagrees with the SFDMU plan fails to resolve. `import_cml` warns per row and raises —
+   but **it half-applies first**: rows that did resolve are already created and the old
+   ESC rows are not deleted. After any failed import, check for a mixed ESC set before
+   retrying.
 7. **Exactly one model per family may be active** — for QuantumBit that means
    `QuantumBitBundle` *or* `Complete` *or* `PCM`, currently Bundle. Unrelated models
    (`Server2`, and the mfg models when they land) are active alongside it, so **discover
@@ -193,10 +195,30 @@ ProductRelationshipType.Name | Sequence`, matched against the SFDMU plan in
 `dataset_dirs`. **If the sequence in the constraint dir disagrees with the qb-pcm plan the
 Port association will not resolve** — copy the sequence from the plan.
 
-This fails loudly, not silently: `ImportCML` logs `Could not resolve ReferenceObjectId`
-per row, accumulates `unresolved_tags`, sets `import_failed`, and raises rather than
-half-applying (`tasks/rlm_cml.py:679-690`). A dry run surfaces the same warnings, which is
-why the dry run is worth reading rather than just checking its exit code.
+It fails loudly rather than silently — `ImportCML` logs `Could not resolve
+ReferenceObjectId` per row and accumulates `unresolved_tags` — but **it does not fail
+atomically**, and the distinction matters when you are recovering.
+
+`create_record()` is called inline for every row as the loop walks the ESC list, so by the
+time an unresolved row triggers the raise at `tasks/rlm_cml.py:704`, the rows that *did*
+resolve are already in the org. Step 6 (delete the old ESC records) sits **after** that
+raise and never runs, so the previous generation of rows is still there too. The task says
+so itself: *"Import had errors -- skipping deletion of old ESC records. Target org may
+contain a mix of old and new constraints."*
+
+**Two failure modes, and they behave differently:**
+
+| Failure | Raises? | Org left as |
+|---|---|---|
+| A reference will not resolve (bad `Sequence`, missing product) | **yes**, at `:704` | new rows for whatever resolved **plus** all the old rows; blob **not** uploaded |
+| `create_record()` fails but every reference resolved | **no** — `unresolved_tags` is empty | mixed ESC set, blob **uploaded**, `Import complete` logged, **exit 0** |
+
+The second is the dangerous one: a partial import that reports success. If an import errors
+at all, **query the ESC set and compare it against the plan before retrying** — a rerun on
+a mixed set is not self-correcting, because the delete step only runs on a clean pass.
+
+A dry run surfaces the resolution warnings without touching the org, which is why it is
+worth reading rather than just checking its exit code.
 
 ---
 
