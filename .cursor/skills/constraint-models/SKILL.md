@@ -29,7 +29,8 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 5. **A bundle member needs FOUR records, not one.** PRC row, `type` + `relation` in the
    model, an ESC `Type` association, and an ESC `Port` association.
 6. **`Sequence` is part of the PRC composite key.** A Port association whose sequence
-   disagrees with the SFDMU plan fails to resolve. `import_cml` warns per row and raises —
+   disagrees with the PRC row **in the target org** fails to resolve — the SFDMU plan
+   matters only because it is what loads that row. `import_cml` warns per row and raises —
    but **it half-applies first**: rows that did resolve are already created and the old
    ESC rows are not deleted. After any failed import, check for a mixed ESC set before
    retrying.
@@ -56,7 +57,8 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
   model problem. (`Port` is per bundle **relation**, not per type — a cart-level or
   virtual-quote type has no port. See below.)
 - **DO NOT** invent a `Sequence` for a new PRC row. Copy the one the SFDMU plan already
-  uses for that product.
+  uses for that product — and if the Port still fails to resolve, check the **org**, which
+  is what `import_cml` matches against.
 - **DO NOT** activate a second QuantumBit model without deactivating the current one.
   `manage_expression_sets` toggles only the versions you name; it does not auto-deactivate
   others.
@@ -216,11 +218,25 @@ apply.
 
 ### Sequence is part of the composite key
 
-`import_cml` resolves a Port association's PRC by
-`ParentProduct.Name | ChildProduct.Name | ChildProductClassification.Name |
-ProductRelationshipType.Name | Sequence`, matched against the SFDMU plan in
-`dataset_dirs`. **If the sequence in the constraint dir disagrees with the qb-pcm plan the
-Port association will not resolve** — copy the sequence from the plan.
+`import_cml` resolves a Port association's PRC in two hops, and neither one reads the
+SFDMU plan's PRC rows:
+
+1. **Legacy Id → composite key**, built from the **constraint dir's own**
+   `ProductRelatedComponent.csv` (`tasks/rlm_cml.py:842-854`), as
+   `ParentProduct.Name | ChildProduct.Name | ChildProductClassification.Name |
+   ProductRelationshipType.Name | Sequence`.
+2. **Composite key → real Id**, matched against `ProductRelatedComponent` records
+   **queried from the target org** (`tasks/rlm_cml.py:868-892`).
+
+`dataset_dirs` contributes only candidate *names* — products, classifications and PRC
+parents — and those merely scope the org lookups, here as
+`WHERE ParentProduct.Name IN (…) OR Name IN (…)`. It never supplies a composite key.
+
+**So the sequence in the constraint dir has to match the PRC row the org actually holds.**
+The plan matters because it is what loads that row — which is why copying the sequence
+from the plan is the right authoring move. But when a Port fails to resolve, **query the
+org**; do not diff the two CSVs. An org whose plan was never loaded, or was loaded from a
+different revision, disagrees with the plan on disk.
 
 It fails loudly rather than silently — `ImportCML` logs `Could not resolve
 ReferenceObjectId` per row and accumulates `unresolved_tags` — but **it does not fail
@@ -262,7 +278,8 @@ cci org default <alias>
 
 # <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
 # <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
-# <PlanDir>   = the SFDMU plan whose Product2/PRC rows the ESC references
+# <PlanDir>   = the SFDMU plan that loaded the ESC's Product2/PRC rows into the org
+#               (it supplies the names that scope import_cml's lookup queries)
 cci task run manage_expression_sets -o operation deactivate_versions \
     -o version_full_names "<Version>"
 
