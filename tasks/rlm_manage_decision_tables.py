@@ -103,15 +103,30 @@ class ManageDecisionTables(BaseTask):
 
         ⚠ `salesforce_task = True` buys the `--org` option and the missing-org guard —
         it does NOT bring a token refresh. Only `BaseSalesforceTask` overrides
-        `BaseTask._update_credentials`, which is a bare `pass`. For a scratch org
-        `access_token` resolves through `sfdx_info` and is always fresh, which is why a
-        scratch run never shows this; for a keychain-connected non-scratch org the stored
-        token is used as-is and can be expired. This task hits the REST API directly, so
-        per `cci-orchestration/custom-task-authoring.md` it needs the refresh.
+        `BaseTask._update_credentials`, which is a bare `pass`, and this task hits the
+        REST API directly, so per `cci-orchestration/custom-task-authoring.md` it wants
+        the refresh.
+
+        ⚠ Scope the risk honestly. The stale-token failure this guards against needs a
+        plain `OrgConfig` — the `cci org connect` shape, where the stored token is used
+        as-is. **This project does not have that shape**: the sf CLI manages auth, so
+        every org is `ScratchOrgConfig` or `SfdxOrgConfig`, both of which resolve
+        `access_token` through `sfdx_info` and are always fresh. So the override is
+        correctness insurance for the class, not a fix for an incidence anyone here has
+        met — do not cite it as one.
         """
         # save_if_changed, matching BaseSalesforceTask. refresh_oauth_token also
         # reloads user and org info; without the wrapper that work is discarded at
         # process exit and the keychain-updated log line never appears.
+        #
+        # ⚠ Safe under this project's auth model, which is why there is no
+        # connected-app handling here: CCI wraps the sf CLI and leverages its auth.
+        # Every org is a ScratchOrgConfig or SfdxOrgConfig, and BOTH override refresh_oauth_token to
+        # shell `sf org display` rather than run an OAuth flow — no connected app is
+        # ever involved. Verified against the keychain 2026-07-27: zero plain OrgConfig.
+        # So this call costs a cached `sf org display` and cannot raise
+        # ServiceNotConfigured. It is kept because the flag genuinely does not bring a
+        # refresh (see above) and the class should not depend on the caller's org type.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
