@@ -27,6 +27,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
+#: Set before re-exec so a second pass cannot loop. See ensure_pyyaml.
+_REEXEC_SENTINEL = "_RLM_GATE_REEXECED"
+
+#: A git hook sets this so the venv bootstrap never runs mid-push. isatty() is
+#: NOT a reliable proxy for "am I in a hook": git hooks inherit the terminal, so
+#: an interactive `git push` DOES have a TTY and would have triggered a pip
+#: install in the middle of the push — the exact surprise the TTY check was
+#: meant to prevent. Explicit beats inferred.
+_NO_BOOTSTRAP = "RLM_GATE_NO_BOOTSTRAP"
+
 
 def _candidates():
     """Interpreters to try, in priority order, when the current one lacks PyYAML.
@@ -113,6 +123,8 @@ def _bootstrap_venv():
     (RLM_GATE_BOOTSTRAP=1). The pre-push hook sets neither, and instead fails
     fast with the exact command. The slow path only happens interactively.
     """
+    if os.environ.get(_NO_BOOTSTRAP) == "1":
+        return None
     if not (sys.stdout.isatty() or os.environ.get("RLM_GATE_BOOTSTRAP") == "1"):
         return None
     req = REPO_ROOT / "requirements-dev.txt"
@@ -154,6 +166,16 @@ def ensure_pyyaml(script_path):
     if _usable():
         return
 
+    # Precise loop protection: count re-execs rather than inferring from inodes.
+    # One hop is all a correct resolution ever needs.
+    if os.environ.get(_REEXEC_SENTINEL):
+        sys.stderr.write(
+            "FATAL: re-exec'd once and PyYAML is still missing.\n"
+            f"  interpreter: {sys.executable}\n"
+            "  Refusing to loop. Install PyYAML there, or set RLM_PYTHON.\n"
+        )
+        sys.exit(2)
+
     tried = []
     for cand in _candidates():
         if not cand:
@@ -162,14 +184,19 @@ def ensure_pyyaml(script_path):
         path = Path(cand)
         if not path.exists():
             continue
-        try:
-            # Never re-exec ourselves: that would loop forever.
-            if path.samefile(sys.executable):
-                continue
-        except OSError:
-            continue
+        # NOTE: do NOT skip on samefile(sys.executable). `.venv/bin/python` is a
+        # symlink to the base interpreter it was built from, so samefile() is
+        # True whenever the gate is started by that base python — which is the
+        # single most common case (a pyenv shim, which has no PyYAML). The guard
+        # meant to prevent an exec loop was instead refusing the project venv
+        # exactly when it was needed, silently falling through to pipx. Loop
+        # protection is the _REEXEC_SENTINEL below, which is precise: it counts
+        # actual re-execs instead of guessing from inodes. A venv python and its
+        # base are the same FILE but not the same ENVIRONMENT, which is the
+        # whole point of a venv.
         probe = subprocess.run([cand, "-c", _PROBE], capture_output=True)
         if probe.returncode == 0:
+            os.environ[_REEXEC_SENTINEL] = cand
             os.execv(cand, [cand, str(Path(script_path).resolve())] + sys.argv[1:])
 
     # Nothing on disk qualifies. If a human is watching, build the venv the

@@ -75,6 +75,32 @@ def _files_for(globs, exclude_globs=()):
 _WS_RE = re.compile(r"[ \t\r\n]+")
 
 
+def _blank_comments(text: str) -> str:
+    """Replace //, /* */ and <!-- --> comment BODIES with spaces, preserving
+    length and newlines so match offsets still map to the right line."""
+    out = list(text)
+    i, n = 0, len(text)
+    while i < n:
+        two = text[i:i + 2]
+        if two == "//":
+            j = text.find("\n", i)
+            j = n if j == -1 else j
+        elif two == "/*":
+            j = text.find("*/", i + 2)
+            j = n if j == -1 else j + 2
+        elif text[i:i + 4] == "<!--":
+            j = text.find("-->", i + 4)
+            j = n if j == -1 else j + 3
+        else:
+            i += 1
+            continue
+        for k in range(i, j):
+            if out[k] != "\n":
+                out[k] = " "
+        i = j
+    return "".join(out)
+
+
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -143,8 +169,14 @@ def scan_class(cls):
         # Prettier splits long queries. The flagship class was seeing 28% of its
         # own surface.
         if cls.get("multiline"):
+            # Comment filtering has to survive whole-file mode too, or a class
+            # about user-facing STRINGS starts firing on prose in comments —
+            # which is what forced ignore_comment_lines to exist. Blank the
+            # comment bodies rather than deleting them, so byte offsets (and
+            # therefore reported line numbers) stay correct.
+            scan_text = _blank_comments(text) if skip_comments else text
             for rx in compiled:
-                for m in rx.finditer(text):
+                for m in rx.finditer(scan_text):
                     if _key(rel, m.group(0)) in allowed:
                         continue
                     findings.append({
@@ -184,6 +216,10 @@ def main():
     ap.add_argument("--emit-baseline", action="store_true",
                     help="print allow_list YAML pinning current matches")
     ap.add_argument("--quiet", action="store_true", help="only print failures")
+    ap.add_argument("--ack", action="append", default=[], metavar="CLASS_ID",
+                    help="acknowledge a review-prompt class (repeatable). Without "
+                         "this, unacknowledged prompts exit 2 — they are checklist "
+                         "items that have not been done, not passes.")
     args = ap.parse_args()
 
     if not REGISTRY.exists():
@@ -202,7 +238,9 @@ def main():
             sys.stderr.write(f"FATAL: no class with id {args.only!r}\n")
             return 2
 
-    executed = skipped = prompts = 0
+    executed = skipped = prompts_acked = 0
+    prompts_open = []
+    acked = set(args.ack)
     total_findings = 0
     baseline_out = {}
 
@@ -211,9 +249,18 @@ def main():
         status, findings, error = scan_class(cls)
 
         if status == "prompt":
-            prompts += 1
-            if not args.quiet:
-                print(f"  REVIEW  {cid}  (manual checklist — not greppable)")
+            # A prompt that cannot affect the exit code is decoration. These were
+            # counted, printed and then ignored — including two severity:blocker
+            # classes — while three places in this repo stated they block until
+            # acknowledged. They do now.
+            if cid in acked:
+                prompts_acked += 1
+                if not args.quiet:
+                    print(f"  ok      {cid}  (review prompt acknowledged)")
+            else:
+                prompts_open.append(cid)
+                print(f"  PROMPT  {cid}  (manual checklist — not greppable, "
+                      f"severity={cls.get('severity', '?')})")
             continue
         if status == "skipped":
             skipped += 1
@@ -248,9 +295,18 @@ def main():
                 print('        reason: "TODO"')
         return 0
 
-    print(f"\nclasses: {executed} executed, {prompts} manual-review, {skipped} skipped")
+    print(f"\nclasses: {executed} executed, "
+          f"{prompts_acked + len(prompts_open)} manual-review "
+          f"({prompts_acked} acknowledged, {len(prompts_open)} open), "
+          f"{skipped} skipped")
     if skipped:
         print("SKIPPED CLASSES ARE FAILURES — a check that did not run is not a pass.")
+        return 2
+    if prompts_open:
+        print("\nUNACKNOWLEDGED REVIEW PROMPTS — these are checklist items that\n"
+              "have not been done. Confirm each, then re-run with:")
+        for cid in prompts_open:
+            print(f"    --ack {cid}")
         return 2
     if total_findings:
         print(f"{total_findings} finding(s).")

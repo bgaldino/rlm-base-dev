@@ -145,7 +145,20 @@ class Diff:
     uncommitted work when run by hand."""
 
     def __init__(self, since):
-        self.base = git("merge-base", since, "HEAD") or since
+        # An UNRESOLVABLE base is fatal, never "nothing changed". Falling back to
+        # the raw string made `git diff` fail, which yielded 0 changed files,
+        # which made every diff-scoped check n/a and printed "clean — safe to
+        # push" with exit 0. The hook passes --since main, so any single-branch
+        # clone, git worktree or CI checkout without a local `main` got a
+        # vacuous green — the single worst failure this gate can have.
+        self.base = git("merge-base", since, "HEAD")
+        self.base_ok = bool(self.base)
+        if not self.base_ok:
+            # Not a merge-base, but does the ref exist at all? A direct SHA or a
+            # detached checkout is legitimate; a typo or missing branch is not.
+            resolved = git("rev-parse", "--verify", f"{since}^{{commit}}")
+            self.base = resolved
+            self.base_ok = bool(resolved)
         self.since = since
         # Untracked files count as added. `git diff` cannot see them, so a brand
         # new file - exactly the shape of a stray analysis artifact - would slip
@@ -286,15 +299,35 @@ def tier_a(diff, args):
     es = [f for f in diff.match(["datasets/**/*.json", "**/expression_set*/**/*.json"])
           if Path(REPO_ROOT / f).exists()]
     if es:
-        bad = []
+        bad, broken = [], []
         for f in es:
             code, out = run([py, "scripts/ai/validate_expression_set.py", f])
             if code == 1:
                 bad.append(f)
-        add(Result("A", "expression-set schema", FAIL if bad else PASS,
-                   ", ".join(bad[:4]),
-                   "python scripts/ai/validate_expression_set.py <file>",
-                   f"{len(es)} changed JSON file(s) considered"))
+            elif code != 0:
+                # Exit 2 is "bad invocation / unreadable file" — malformed JSON
+                # lands here. Counting only code == 1 reported an unparseable
+                # file as considered-and-clean.
+                broken.append(f)
+        # Report BOTH buckets. An earlier version returned on `broken` and
+        # discarded `bad` entirely — one unreadable file would have hidden every
+        # genuine schema failure beside it. That is the registry's own
+        # `partial-outcome-bucket-dropped` class, and its review prompt is what
+        # caught it here. UNAVAILABLE still wins the status, because
+        # could-not-run outranks failed, but the failures stay visible.
+        detail = "; ".join(
+            p for p in (f"could not read: {', '.join(broken[:4])}" if broken else "",
+                        f"schema failures: {', '.join(bad[:4])}" if bad else "") if p)
+        if broken:
+            add(Result("A", "expression-set schema", UNAVAILABLE, detail,
+                       "Exit 2 means malformed JSON or a bad invocation. Run "
+                       "python scripts/ai/validate_expression_set.py <file> directly. "
+                       "Any schema failures listed above still need fixing too.",
+                       f"{len(es)} changed JSON file(s) considered"))
+        else:
+            add(Result("A", "expression-set schema", FAIL if bad else PASS, detail,
+                       "python scripts/ai/validate_expression_set.py <file>",
+                       f"{len(es)} changed JSON file(s) considered"))
     else:
         add(Result("A", "expression-set schema", NA, "no candidate JSON changed"))
 
@@ -392,9 +425,44 @@ def tier_a(diff, args):
 
 # ────────────────────────── Tiers B / C / D ──────────────────────────────────
 
+def _blank_comments(text):
+    """Blank //, /* */ and <!-- --> comment bodies, preserving length and
+    newlines so match offsets still map to the right line. Mirrors
+    defect_scan._blank_comments — comment filtering must survive whole-file
+    mode, or a rule about user-facing strings fires on prose in comments."""
+    out = list(text)
+    i, n = 0, len(text)
+    while i < n:
+        two = text[i:i + 2]
+        if two == "//":
+            j = text.find("\n", i)
+            j = n if j == -1 else j
+        elif two == "/*":
+            j = text.find("*/", i + 2)
+            j = n if j == -1 else j + 2
+        elif text[i:i + 4] == "<!--":
+            j = text.find("-->", i + 4)
+            j = n if j == -1 else j + 3
+        else:
+            i += 1
+            continue
+        for k in range(i, j):
+            if out[k] != "\n":
+                out[k] = " "
+        i = j
+    return "".join(out)
+
+
 def _norm(text):
-    """Collapse whitespace for allow-list keys, matching defect_scan's shape."""
-    return re.sub(r"\s+", " ", text).strip()
+    """Allow-list key. Must STRIP whitespace, not collapse it — identical to
+    defect_scan._key.
+
+    The round-1 fix (Prettier rewriting `WHERE Id =:x` to `WHERE Id = :x`
+    silently unpinning entries) landed in defect_scan only. This function
+    collapsed instead of stripping while its docstring claimed parity, so every
+    Tier B/C allow-list entry still carried the bug that was already fixed one
+    file over. Case stays significant: `null` and `NULL` must differ."""
+    return re.sub(r"[ \t\r\n]+", "", text)
 
 
 def _scan_files(files, patterns, ignore_comments, allow, multiline=False):
@@ -415,8 +483,9 @@ def _scan_files(files, patterns, ignore_comments, allow, multiline=False):
         # gate can do. apex-soql-in-loop is exactly that shape: real SOQL-in-loop
         # is virtually always written across several lines.
         if multiline:
+            scan_text = _blank_comments(text) if ignore_comments else text
             for rx in compiled:
-                for m in rx.finditer(text):
+                for m in rx.finditer(scan_text):
                     if f"{f}::{_norm(m.group(0))}" in allow:
                         continue
                     findings.append(f"{f}:{text.count(chr(10), 0, m.start()) + 1}")
@@ -572,19 +641,68 @@ def tier_bcd(diff, acked):
 
 # ─────────────────────────────── Tier E ──────────────────────────────────────
 
-def tier_e():
-    code, out = run([sys.executable, "scripts/ai/defect_scan.py", "--quiet"])
-    if code == 2 or _could_not_run(out):
-        return [Result("E", "defect-class registry", UNAVAILABLE,
+def tier_e(acked, diff):
+    # Tier E's own review-prompt classes flow through THIS script's prompt
+    # mechanism so every tier behaves identically. defect_scan is told to
+    # acknowledge them all, so its exit code reflects only MECHANICAL results
+    # and the human decision is surfaced here, once, in the same shape as
+    # Tiers B/C/D. Previously they were counted, printed, and then ignored —
+    # including two severity:blocker classes.
+    prompt_cls = []
+    try:
+        reg = yaml.safe_load(
+            (REPO_ROOT / "scripts" / "ai" / "defect_classes.yml").read_text(
+                encoding="utf-8"))
+        prompt_cls = [c for c in (reg.get("classes") or [])
+                      if c.get("detection") == "review-prompt" and c.get("id")]
+    except Exception:
+        pass
+
+    ack_args = []
+    for c in prompt_cls:
+        ack_args += ["--ack", c["id"]]
+
+    prompt_results = []
+    for c in prompt_cls:
+        pid = c["id"]
+        # SCOPE THE PROMPT TO THE DIFF. defect_scan returns "prompt" before it
+        # ever evaluates `paths`, so every prompt fired on every run regardless
+        # of what changed — 7 acks on every push, which is precisely the
+        # ack-fatigue that turns a control into a formality. A flow-logic prompt
+        # has nothing to say about a push that touched no flows.
+        in_scope = diff.match(c.get("paths") or [])
+        if not in_scope:
+            prompt_results.append(Result("E", pid, NA, "nothing in scope changed"))
+        elif pid in acked:
+            prompt_results.append(Result(
+                "E", pid, PASS, f"acknowledged (--ack {pid})",
+                "", f"{len(in_scope)} file(s) in scope"))
+        else:
+            prompt_results.append(Result(
+                "E", pid, PROMPT,
+                f"{len(in_scope)} file(s) in scope: " + ", ".join(in_scope[:2])
+                + (" ..." if len(in_scope) > 2 else ""),
+                " ".join((c.get("remediation") or
+                          "Confirm this class does not occur in the change.").split())
+                + f"  Then re-run with --ack {pid}.",
+                "not greppable"))
+
+    code, out = run([sys.executable, "scripts/ai/defect_scan.py", "--quiet", *ack_args])
+    # `code < 0` is run()'s own signal for not-found / timeout, and a negative
+    # returncode is also how a signal-killed child reports (SIGKILL == -9, with
+    # empty output). Every other call site guards it; this one did not, so a
+    # killed scanner returned neither 1 nor 2 and fell through to PASS.
+    if code < 0 or code == 2 or _could_not_run(out):
+        return prompt_results + [Result("E", "defect-class registry", UNAVAILABLE,
                        out.strip().splitlines()[-1][:160] if out.strip() else "",
                        "defect_scan.py could not run - see its own output.")]
     if code == 1:
         names = re.findall(r"^\s*FAIL\s+(\S+)", out, re.M)
-        return [Result("E", "defect-class registry", FAIL, ", ".join(names),
+        return prompt_results + [Result("E", "defect-class registry", FAIL, ", ".join(names),
                        "python scripts/ai/defect_scan.py  (shows file:line per class)",
                        "whole repo surface, not just the diff")]
     summary = re.search(r"classes: .*", out)
-    return [Result("E", "defect-class registry", PASS, "",
+    return prompt_results + [Result("E", "defect-class registry", PASS, "",
                    "", summary.group(0) if summary else "")]
 
 
@@ -613,6 +731,16 @@ def main():
     wanted = {t.strip().upper() for t in args.tier.split(",")} if args.tier else None
     diff = Diff(args.since)
 
+    if not diff.base_ok:
+        sys.stderr.write(
+            f"FATAL: cannot resolve a diff base from '{args.since}'.\n"
+            "  Every diff-scoped check would see zero files and report clean,\n"
+            "  which is a vacuous pass — refusing to run.\n"
+            f"  Pass an existing ref: --since <branch|sha>  (tried '{args.since}')\n"
+            "  A clone without a local 'main' needs e.g. --since origin/main.\n"
+        )
+        return 2
+
     print(f"pre-push audit — branch '{diff.branch}', {len(diff.changed)} file(s) changed "
           f"vs {args.since} ({diff.base[:9]})")
     if not diff.changed:
@@ -626,7 +754,7 @@ def main():
         results += [r for r in tier_bcd(diff, set(args.ack))
                     if not wanted or r.tier in wanted]
     if not wanted or "E" in wanted:
-        results += tier_e()
+        results += tier_e(set(args.ack), diff)
 
     cov = _tier_d_coverage()
     last_tier = None

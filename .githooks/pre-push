@@ -71,9 +71,16 @@ if [ ! -f "$AUDIT" ]; then
 fi
 
 # Any python will do: _gate_interpreter re-execs into one that qualifies
-# (PyYAML on >= 3.11). It will NOT build a venv here — that path requires a TTY
-# or RLM_GATE_BOOTSTRAP=1, precisely so a push never blocks on a silent pip
-# install. If nothing qualifies the gate exits 2 and prints the fix.
+# (PyYAML on >= 3.11).
+#
+# Suppress the venv bootstrap EXPLICITLY. It is gated on isatty(), and a git
+# hook INHERITS THE TERMINAL — an interactive `git push` has a TTY, so the
+# bootstrap would have run a pip install in the middle of a push, which is
+# exactly the surprise the TTY check was supposed to prevent. Inferring "am I
+# in a hook" from a tty was simply wrong; say so directly instead.
+# If nothing qualifies, the gate exits 2 and prints the fix.
+RLM_GATE_NO_BOOTSTRAP=1
+export RLM_GATE_NO_BOOTSTRAP
 PYTHON=""
 for candidate in "$REPO_ROOT/.venv/bin/python" python3 python; do
     if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then

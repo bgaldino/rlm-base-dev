@@ -32,8 +32,24 @@
 #   paths / exclude_paths   repo-root-relative globs
 #   patterns      list of Python regexes (single-quoted in YAML so backslashes
 #                 stay literal)
-#   ignore_comment_lines  skip //, #, *, <!-- lines — for rules about code, not prose
-#   allow_list    known-good matches; every entry needs a `reason`
+#   ignore_comment_lines  skip //, #, *, <!-- lines — for rules about code, not prose.
+#                 Honoured in multiline mode too: comment BODIES are blanked
+#                 (length-preserving) so line numbers stay correct.
+#   multiline     scan the WHOLE FILE instead of line by line. Required for any
+#                 construct that spans lines — a for-loop body, a wrapped SOQL
+#                 literal, a Prettier-split object property. Without it such a
+#                 rule reports `ok` while being structurally incapable of
+#                 matching, which is the worst failure a gate has. Do NOT anchor
+#                 patterns with ^ or $ when using it.
+#   only_added    (changed-path / paired-change) consider only NEWLY ADDED files.
+#                 Use for "register a new thing" rules so they stay quiet during
+#                 ordinary editing.
+#   content_filter (review-prompt) narrow the in-scope files to those whose text
+#                 matches one of these regexes. A prompt that fires on files it
+#                 has no evidence about gets --ack'd reflexively.
+#   allow_list    known-good matches; every entry needs a `reason`. The key is
+#                 `file::match` with ALL whitespace stripped and case preserved,
+#                 so a reformat cannot silently unpin the baseline.
 #   remediation   what to actually do about it
 #
 # A rule whose `detection` is mechanical but which defines no way to evaluate
@@ -64,20 +80,26 @@ tier_d_coverage:
   covered_as_prompt:
     - "tasks/*.py -> cumulusci.yml description, README Custom Tasks table"
     - "feature flag add/rename/default -> README flag tables, AGENTS.md, feature-flags.md"
+  # These are the six REAL remaining map rows, one-for-one with the table in
+  # doc-consistency/SKILL.md. An earlier version of this list invented an entry
+  # and omitted `.forceignore`, which still totalled six and therefore looked
+  # right — a self-declared coverage number is only worth anything if the list
+  # behind it is checkable against the source.
   uncovered:
     # Conditional — needs a content probe, not just a path pair.
     - "orgs/*.json -> README Quick Start, only if it names specific configs"
     - "scripts/apex/*.apex -> troubleshooting/SKILL.md, only if it references the script"
     - "new scripts/apex/*.apex -> troubleshooting/SKILL.md + apex-scripts.mdc"
+    - ".forceignore -> no doc update, but verify retrieve/deploy intent is consistent
+       (the map's own wording; there is no artifact to pair against)"
     # Real work, deliberately deferred — dataset-wide reasoning, not a path pair.
     - "product/SKU added -> EVERY plan CSV carrying that SKU, and each of their READMEs"
-    - "unpackaged/**/classes/*.cls behaviour change -> revenue-cloud-permissions.md
-       when the class is permission-gated, especially as its DESTRUCTIVE scope grows"
-    # Named explicitly in the todo pack as a Tier D trap: the permissions doc is
-    # hand-maintained, and a prose "(N)" count went stale while the name lists
+    # The todo pack names a specific trap inside this row: the permissions doc is
+    # hand-maintained, and a prose '(N)' count went stale while the name lists
     # beside it stayed correct. Counts in prose are machine-checked nowhere.
-    - "docs/references/revenue-cloud-permissions.md -> parse its (N) counts against
-       the cumulusci.yml anchors they describe"
+    - "unpackaged/**/classes/*.cls behaviour change -> revenue-cloud-permissions.md
+       when the class is permission-gated, especially as its DESTRUCTIVE scope grows;
+       includes parsing that doc's (N) counts against their cumulusci.yml anchors"
 
 rules:
   # ─────────────────────────── Tier B — AGENTS.md DO NOT ───────────────────────
@@ -235,6 +257,7 @@ rules:
     scope: changed-content
     paths: ["**/lwc/**/*.js"]
     ignore_comment_lines: true
+    multiline: true
     patterns:
       - 'JSON\.stringify\([^)]*\)[^;]*\b(message|title|body|toast|banner|label)\b'
       - '\b(message|title|body)\s*:\s*JSON\.stringify'
@@ -264,12 +287,11 @@ rules:
       the loop into a Map and look up inside it.
     allow_list:
       - file: "force-app/main/default/classes/RLM_QuoteModelUtility.cls"
-        match: "for (QuoteLineItem ql : qls) { SalesTransactionItemModel item = new SalesTransactionItemModel(); List<QuoteLineItemAttribute> qlAtts = [ SELECT QuoteLineItemId, AttributeName, AttributeValue FROM QuoteLineItemAttribute WHERE QuoteLineItemId = :ql.Id ]; List<QuoteLineRelationship> qlRs = [ SELECT"
+        match: "for(QuoteLineItemql:qls){SalesTransactionItemModelitem=newSalesTransactionItemModel();List<QuoteLineItemAttribute>qlAtts=[SELECTQuoteLineItemId,AttributeName,AttributeValueFROMQuoteLineItemAttributeWHEREQuoteLineItemId=:ql.Id];List<QuoteLineRelationship>qlRs=[SELECT"
         reason: "PRE-EXISTING REAL DEFECT, deliberately NOT fixed here. One SOQL per QuoteLineItem: a quote with >100 lines breaches the SOQL governor limit. Fixing it changes Apex behaviour and needs live-org verification, which does not belong on a formatting+tooling branch. Pinned so the gate blocks NEW instances; tracked separately for a real fix."
       - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
-        match: "for (Integer round = 1; round <= MAX_TEARDOWN_ROUNDS; round++) { Integer progress = 0; progress += deleteQuietly( [ SELECT Id FROM UsageEntitlementEntry WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageBillingPeriodItem WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageSummary WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageRatableSummary WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageEntitlementBucket WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT"
-        reason: "NOT a defect. Bounded teardown loop: iterations are capped by MAX_TEARDOWN_ROUNDS and each query carries LIMIT :TEARDOWN_BATCH, so SOQL cost is fixed per round rather than growing with org history — the comment above the loop states this intent. A batched delete of unbounded history has to re-query each round."
-
+        match: "for(Integerround=1;round<=MAX_TEARDOWN_ROUNDS;round++){Integerprogress=0;progress+=deleteQuietly([SELECTIdFROMUsageEntitlementEntryWHERETransactionUsageEntitlement.Account.Id=:accountIdLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMUsageBillingPeriodItemWHEREAccountId=:accountIdORAssetIdIN:assetIdsLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMUsageSummaryWHEREAccountId=:accountIdORAssetIdIN:assetIdsLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMUsageRatableSummaryWHEREAccountId=:accountIdORAssetIdIN:assetIdsLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMTransactionJournalWHEREAccountId=:accountIdLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMUsageEntitlementBucketWHERETransactionUsageEntitlement.Account.Id=:accountIdLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECTIdFROMTransactionUsageEntitlementWHEREAccountId=:accountIdLIMIT:TEARDOWN_BATCH]);progress+=deleteQuietly([SELECT"
+        reason: "NOT a defect. Bounded teardown loop: iterations are capped by MAX_TEARDOWN_ROUNDS and each query carries LIMIT :TEARDOWN_BATCH, so SOQL cost is fixed per round rather than growing with org history."
   - id: apex-unqualified-sharing
     tier: C
     source: ".cursor/rules/apex-classes.mdc"
@@ -329,6 +351,7 @@ rules:
     # gate itself shipped as three new scripts/ai/ files with no AGENTS.md entry,
     # and the gate stayed green. A tool that cannot catch its own omission is the
     # thing todo 080 exists to stop.
+    only_added: true
     when_changed: ["scripts/ai/*.py"]
     require_changed: ["AGENTS.md"]
     remediation: >
