@@ -256,6 +256,7 @@ project:
       - RLM_UtilitiesPermset
       - RLM_ExpressionSetManager
       - RLM_DecisionTableManager
+      - RLM_RebuildSearchIndex
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -339,6 +340,18 @@ project:
       # (DecisionTable, DecisionTableSourceCriteria, Organization) or already
       # granted by the standard Revenue Cloud sets (CalculationMatrix).
       - RLM_DecisionTableManager
+
+    ps_rebuild_search_index: &ps_rebuild_search_index
+      # Rebuild Search Index component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Third of the three
+      # sections on RLM_Home_Page_Default, and the last to get a grant — until
+      # this set existed the class was granted nowhere in the repo, so the
+      # section only worked for a profile that already carried it. Least
+      # privilege for the same reason as the two above: rebuilding an index does
+      # not need RLM_UtilitiesPermset's destructive invocable. Grants class
+      # access, the RLM_SessionId page and ApiEnabled — no object permissions,
+      # because the class runs no SOQL and no DML.
+      - RLM_RebuildSearchIndex
 
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
@@ -3939,6 +3952,16 @@ flows:
         options:
           api_names: *ps_decision_table_manager
       8:
+        # And the fourth: the Rebuild Search Index section, which shares the Home
+        # page accordion with the Decision Table Manager above. Same failure
+        # without it, and worse — until this grant existed the class was in no
+        # permission set at all, so nothing in any build ever granted it. The tso
+        # flow assigns it via rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_rebuild_search_index
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
@@ -4768,6 +4791,17 @@ flows:
         # Gated like step 8, and for the same reason: the permission set ships with
         # post_utils, so assigning it on a personas-only build would fail on a
         # PermissionSet that was never deployed.
+        #
+        # ⚠ The persona grant stops here, and does NOT extend to the other two
+        # sections of that same accordion — RLM_ExpressionSetManager and
+        # RLM_RebuildSearchIndex. Both are admin tools, and both carry ApiEnabled
+        # for the $Api.Session_ID loopback their controllers depend on: a broad
+        # system permission that enables ALL API access for the assignee. Handing
+        # that to a sales rep to tidy a default-open accordion section is a worse
+        # trade than the one this step makes, where the grant is class access to a
+        # controller that deletes nothing. The Decision Table Manager is the only
+        # one of the three narrow enough to justify the persona assignment; the
+        # persona sees the other two error, deliberately.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:
