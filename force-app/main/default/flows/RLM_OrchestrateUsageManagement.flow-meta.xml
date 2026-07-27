@@ -70,7 +70,7 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <runInMode>DefaultMode</runInMode>
+    <runInMode>SystemModeWithoutSharing</runInMode>
     <sourceTemplate>runtime_industries_usage__OrchUseMgmt</sourceTemplate>
     <start>
         <locationX>0</locationX>

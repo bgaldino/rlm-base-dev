@@ -74,6 +74,8 @@ type QuantumBitCompleteSolution : LineItem {
 
     relation quantumbitdatabasetokencommitflat : QuantumBitDatabaseTokenCommitFlat;
 
+    relation quantumbitdatabasetokencommitbounded : QuantumBitDatabaseTokenCommitBounded;
+
     relation quantumbitdatabasetokencommittier : QuantumBitDatabaseTokenCommitTier;
 
     relation quantumbitdatabasemonetarycommit : QuantumBitDatabaseMonetaryCommit;
@@ -131,6 +133,8 @@ type QuantumBitDatabaseTokenBased : LineItem;
 type QuantumBitDatabaseTokenCommitEach : LineItem;
 
 type QuantumBitDatabaseTokenCommitFlat : LineItem;
+
+type QuantumBitDatabaseTokenCommitBounded : LineItem;
 
 type QuantumBitDatabaseTokenCommitTier : LineItem;
 
