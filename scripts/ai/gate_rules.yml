@@ -51,18 +51,19 @@
 tier_d_coverage:
   map: ".cursor/skills/doc-consistency/SKILL.md — change-surface map"
   total_rows: 18
-  covered_rows: 3
-  uncovered:
-    # Plain paired-change; ~8 lines each, same shape as the rules below.
+  covered_rows: 12
+  # Two rows are enforced as blocking REVIEW PROMPTS rather than mechanically,
+  # and that is a deliberate call, not a shortcut. Both need diff-level content
+  # analysis: a feature flag is a `name: true|false` line that exists in every
+  # version of cumulusci.yml, so a whole-file rule cannot tell a CHANGE from mere
+  # presence; and the `tasks/*.py` row is scoped to a task's class/options/
+  # description, not its internals, so a path pair would fire on every refactor.
+  # A rule that fires on everything gets --ack'd without reading, which turns a
+  # control into a formality. They still block until acknowledged.
+  covered_as_prompt:
     - "tasks/*.py -> cumulusci.yml description, README Custom Tasks table"
-    - "robot/** -> robot-testing/SKILL.md task tables, patterns.md, README"
-    - "templates/ or UX assembly -> ux-assembly-retrieve.md, dynamic-ux-assembly.md"
-    - "new .cursor/skills/ file -> parent SKILL.md, AGENTS.md Sub-Files, skills README"
-    - "new scripts/*.py (top level) -> AGENTS.md Repository Layout"
-    - "new docs/guides/*.md -> README Primary Guides table"
-    - "scripts/build_harness/harness* -> build-harness SKILL + guide"
-    - "scripts/build_harness/tui or tui-cci -> tui README + build-harness SKILL"
     - "feature flag add/rename/default -> README flag tables, AGENTS.md, feature-flags.md"
+  uncovered:
     # Conditional — needs a content probe, not just a path pair.
     - "orgs/*.json -> README Quick Start, only if it names specific configs"
     - "scripts/apex/*.apex -> troubleshooting/SKILL.md, only if it references the script"
@@ -324,15 +325,168 @@ rules:
       will run. Edit AGENTS.md only; CLAUDE.md is a symlink to it. Private
       helpers (leading underscore) still count: say what they are for.
 
-  - id: task-renamed-without-doc-sweep
+  - id: cumulusci-yml-rename-or-flag-doc-sweep
     tier: D
-    source: "AGENTS.md pre-merge checklist - cumulusci.yml item 2"
+    source: "AGENTS.md pre-merge checklist item 2 + change-surface map rows 1 and 4"
     severity: important
     detection: review-prompt
     scope: changed-path
     paths: ["cumulusci.yml"]
+    # Covers BOTH map rows that hang off this file - task renames and feature-flag
+    # changes. Kept as one prompt rather than two: a single cumulusci.yml edit
+    # raising two separate prompts trains people to --ack without reading, which
+    # is how a prompt stops being a control.
+    #
+    # Not mechanical because both need DIFF-level content analysis. A flag is a
+    # `name: true|false` line among many, and every version of the file contains
+    # them, so a whole-file content rule cannot tell a flag CHANGE from a flag
+    # merely existing. Deliberately left as a blocking prompt rather than shipped
+    # as a rule that fires on every edit.
     remediation: >
-      If a task was RENAMED or its description changed, grep the repo for the OLD
-      task name and fix stale references in README.md and docs/. Use `git grep`
-      over all tracked files, not an extension-filtered grep - a prior sweep
-      missed a .py and a .md exactly that way.
+      Two sweeps on this file. (1) If a task was RENAMED or its description
+      changed, grep for the OLD name and fix stale references in README.md and
+      docs/ - use `git grep` over ALL tracked files, not an extension-filtered
+      grep, since a prior sweep missed a .py and a .md exactly that way.
+      (2) If a feature flag was added, renamed or had its default changed, update
+      the README Feature Flags tables, AGENTS.md edition-flag notes, and re-run
+      generate_cci_reference.py for feature-flags.md.
+
+  - id: task-py-changed-without-doc-check
+    tier: D
+    source: ".cursor/skills/doc-consistency/SKILL.md map row `tasks/*.py`"
+    severity: important
+    detection: review-prompt
+    scope: changed-path
+    paths: ["tasks/*.py"]
+    # The map row is scoped to "class, options, description" - NOT internals.
+    # A paired-change rule here would fire on every refactor and bugfix, which is
+    # most edits to this directory, so it would be --ack'd reflexively. A prompt
+    # states the actual question instead of guessing at the answer.
+    remediation: >
+      Only if this changed a task's CLASS, OPTIONS or DESCRIPTION (not internals):
+      update the matching `cumulusci.yml` description, the README Custom Tasks
+      table, and any docs/ guide that documents the task. Internal refactors need
+      no doc change - ack and move on.
+
+  # ── Tier D, mechanical: registering a NEW thing ──────────────────────────────
+  # These trigger on ADDED files only. The failure they catch is real and common:
+  # a new artifact that no index points at is invisible, so nobody finds it and it
+  # rots. Scoping to new files keeps them quiet during ordinary editing.
+
+  - id: skill-added-without-registration
+    tier: D
+    source: "map row `New .cursor/skills/ file`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    only_added: true
+    when_changed: [".cursor/skills/**/*.md"]
+    require_changed: ["AGENTS.md", ".cursor/skills/README.md"]
+    remediation: >
+      A new skill or sub-file must be registered or no agent will ever load it:
+      the parent SKILL.md, the AGENTS.md Skill Index (or Skill Sub-Files table for
+      a sub-file), and the .cursor/skills/README.md Skill Router. See
+      .cursor/skills/skill-authoring/SKILL.md.
+
+  - id: top-level-script-added-without-layout
+    tier: D
+    source: "map row `New scripts/*.py (top level)`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    only_added: true
+    # Top level ONLY - this glob's * does not cross `/`, unlike a git pathspec,
+    # so scripts/ai/** and scripts/build_harness/** are correctly excluded here
+    # (scripts/ai has its own rule).
+    when_changed: ["scripts/*.py"]
+    require_changed: ["AGENTS.md"]
+    remediation: >
+      Add it to the AGENTS.md Repository Layout block. The map flags this row
+      specifically because top-level utilities are easy to add and never
+      documented.
+
+  - id: guide-added-without-readme-index
+    tier: D
+    source: "map row `New docs/guides/*.md`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    only_added: true
+    when_changed: ["docs/guides/*.md"]
+    require_changed: ["README.md"]
+    remediation: >
+      Add the guide to the README "Primary Guides" table - an unindexed guide is
+      invisible, which is the map's own wording for this row.
+
+  - id: robot-suite-added-without-skill-update
+    tier: D
+    source: "map row `robot/**` (new suite, renamed keyword)"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    only_added: true
+    # NEW suites only. The map row says "new suite, renamed keyword"; a rename is
+    # not detectable from paths, and firing on every .robot edit would collide
+    # with normal test work.
+    when_changed: ["robot/**/*.robot"]
+    require_changed:
+      - ".cursor/skills/robot-testing/SKILL.md"
+      - ".cursor/skills/robot-testing/patterns.md"
+      - "README.md"
+    remediation: >
+      A new Robot suite needs its entry in the robot-testing SKILL.md task tables.
+      Separately, and not checkable here: a behavioural suite must run against a
+      LIVE scratch org before merge - `robot --dryrun` is not verification
+      (AGENTS.md DO NOT #9).
+
+  # ── Tier D, mechanical: code whose behaviour the docs describe ───────────────
+
+  - id: ux-assembly-logic-changed-without-docs
+    tier: D
+    source: "map row `templates/ or UX assembly logic`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    # Scoped to the ASSEMBLER CODE, not templates/ content. templates/ changes on
+    # every UX drift writeback, so triggering on it would fire constantly for
+    # changes that are data, not behaviour - and the docs describe the behaviour.
+    when_changed: ["tasks/rlm_ux_assembly.py", "tasks/rlm_writeback_ux.py",
+                   "tasks/rlm_retrieve_ux.py", "tasks/rlm_diff_ux.py"]
+    require_changed:
+      - ".cursor/skills/repo-integration/ux-assembly-retrieve.md"
+      - "docs/features/dynamic-ux-assembly.md"
+    remediation: >
+      UX assembly/retrieve behaviour changed, so the docs describing it must keep
+      up: ux-assembly-retrieve.md (assembler vs retrieve, post_ux rules, the drift
+      workflow) and docs/features/dynamic-ux-assembly.md.
+
+  - id: build-harness-changed-without-docs
+    tier: D
+    source: "map row `scripts/build_harness/harness/ or harness.py`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    when_changed: ["scripts/build_harness/harness.py",
+                   "scripts/build_harness/harness/**/*.py"]
+    require_changed:
+      - ".cursor/skills/build-harness/SKILL.md"
+      - "docs/guides/build-harness.md"
+    remediation: >
+      Update the build-harness SKILL.md and docs/guides/build-harness.md to match
+      the harness's behaviour.
+
+  - id: harness-tui-changed-without-docs
+    tier: D
+    source: "map row `scripts/build_harness/tui/ or tui-cci`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    when_changed: ["scripts/build_harness/tui/**", "tui-cci"]
+    exclude_paths: ["scripts/build_harness/tui/README.md"]
+    require_changed:
+      - "scripts/build_harness/tui/README.md"
+      - ".cursor/skills/build-harness/SKILL.md"
+    remediation: >
+      Update scripts/build_harness/tui/README.md and the build-harness SKILL.md.
+      Note the TUI wrapper builds .harness/tui-venv on first run - if that
+      contract changed, docs/guides/build-harness.md covers it too.

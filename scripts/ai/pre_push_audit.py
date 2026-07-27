@@ -515,9 +515,28 @@ def tier_bcd(diff, acked):
                  f"{len(files)} file(s) must contain the placeholder")
 
         elif scope == "paired-change":
-            trigger = diff.match(rule.get("when_changed"))
+            # only_added narrows the trigger to NEW files. Several map rows are
+            # about registering a new thing ("new docs/guides/*.md -> README
+            # Primary Guides"); firing them on every edit to an existing file
+            # would be noise, and a noisy rule gets ignored or deleted.
+            pool = diff.added if rule.get("only_added") else diff.changed
+            trigger = diff.match(rule.get("when_changed"), pool=pool)
+            trigger = [t for t in trigger
+                       if not any(_glob_re(g).match(t)
+                                  for g in rule.get("exclude_paths") or [])]
             if not trigger:
-                done(NA, "trigger files unchanged")
+                done(NA, "no trigger" +
+                     (" (new files only)" if rule.get("only_added") else ""))
+            elif not repo_files(rule.get("require_changed")):
+                # A companion glob matching nothing TRACKED is a registry bug,
+                # not a code defect: the rule could never be satisfied, so it
+                # would fail forever and get --ack'd or deleted. Surfacing it as
+                # could-not-execute points at the right thing - a renamed or
+                # moved doc - instead of blaming the change under audit.
+                done(UNAVAILABLE,
+                     f"require_changed matches no tracked file: "
+                     f"{rule.get('require_changed')}",
+                     "registry path is stale - the companion doc moved or was renamed")
             else:
                 partner = diff.match(rule.get("require_changed"))
                 done(PASS if partner else FAIL,
@@ -599,9 +618,12 @@ def main():
             # complete, which is how an unimplemented row let three
             # undocumented scripts through.
             if r.tier == "D" and cov:
+                n_prompt = len(cov.get("covered_as_prompt") or [])
                 print(f"   ⚠ PARTIAL: {cov['covered_rows']} of {cov['total_rows']} "
-                      f"change-surface map rows mechanised; "
-                      f"{len(cov.get('uncovered') or [])} still manual "
+                      f"change-surface map rows enforced"
+                      + (f" ({n_prompt} as blocking prompts, not greppable)"
+                         if n_prompt else "")
+                      + f"; {len(cov.get('uncovered') or [])} still unenforced "
                       f"(see gate_rules.yml → tier_d_coverage)")
             last_tier = r.tier
         line = f"{_ICON[r.status]} {r.name}"
