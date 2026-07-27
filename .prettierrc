@@ -11,7 +11,7 @@
             "options": { "parser": "html" }
         },
         {
-            "files": "*.{cls,trigger}",
+            "files": "*.{cls,trigger,apex}",
             "options": { "tabWidth": 4, "printWidth": 120 }
         }
     ]
