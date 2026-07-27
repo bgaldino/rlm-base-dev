@@ -110,7 +110,14 @@ echo "" >&2
 if [ "$STATUS" -eq 2 ]; then
     echo "pre-push BLOCKED: a check could not run, or a review prompt is" >&2
     echo "  unacknowledged. Neither is a pass — see the output above." >&2
-    echo "  Review prompts are cleared with:  --ack <rule-id>" >&2
+    echo "" >&2
+    echo "  A git hook takes no arguments, so acknowledge prompts through the" >&2
+    echo "  environment (comma-separated, no spaces):" >&2
+    echo "" >&2
+    echo "      RLM_GATE_ACK=<rule-id>,<rule-id> git push" >&2
+    echo "" >&2
+    echo "  Acknowledging means you checked the class and it does not occur —" >&2
+    echo "  it is a statement, not a mute button." >&2
 else
     echo "pre-push BLOCKED: the gate found failures (see above)." >&2
 fi

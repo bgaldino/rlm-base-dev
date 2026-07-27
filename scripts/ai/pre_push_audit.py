@@ -715,11 +715,20 @@ def main():
     ap.add_argument("--pr", type=int, help="also require 0 unresolved threads on this PR")
     ap.add_argument("--tier", help="comma-separated subset, e.g. B,C")
     ap.add_argument("--ack", action="append", default=[], metavar="RULE_ID",
-                    help="acknowledge a review-prompt rule (repeatable)")
+                    help="acknowledge a review-prompt rule (repeatable). Also "
+                         "readable from RLM_GATE_ACK as a comma-separated list, "
+                         "which is how the pre-push hook can pass acknowledgements "
+                         "(a git hook takes no arguments of its own).")
     ap.add_argument("--all-checks", action="store_true",
                     help="run scope-gated checks even when the diff does not touch them")
     ap.add_argument("--list", action="store_true", help="list rules and exit")
     args = ap.parse_args()
+
+    # A git hook cannot take arguments, so without an env channel every review
+    # prompt would be unanswerable from a push and the only way through would be
+    # --no-verify — which disables the whole gate to silence one prompt.
+    env_ack = os.environ.get("RLM_GATE_ACK", "")
+    args.ack = list(args.ack) + [a.strip() for a in env_ack.split(",") if a.strip()]
 
     if args.list:
         reg = yaml.safe_load(RULES_FILE.read_text(encoding="utf-8"))
