@@ -143,7 +143,18 @@ const COLUMNS = [
 export default class RlmDecisionTableManager extends LightningElement {
     @track rows = []
     @track selectedApiNames = []
-    @track detailRow
+
+    // ⚠ The open dialog is identified by API NAME, and its row is DERIVED — never
+    // captured. Both loadTables() and mergeStatuses() replace this.rows with freshly
+    // built objects, so a reference taken when the dialog opened freezes at that
+    // instant: sync timestamps, the verdict and refreshFailureReason would all stay
+    // at their open-time values while the list behind the dialog updates, and the
+    // loadTables() that runs when polling finishes would leave it stale for good —
+    // the one pane that explains a verdict, showing the verdict it no longer has.
+    // Deriving it means there is no rebind to forget at a future third assignment.
+    _detailApiName
+    // Only for a row the datatable knows about and this.rows does not; see handleRowAction.
+    _detailFallback
 
     columns = COLUMNS
     isLoading = true
@@ -397,18 +408,28 @@ export default class RlmDecisionTableManager extends LightningElement {
         this.selectedApiNames = event.detail.selectedRows.map((r) => r.apiName)
     }
 
+    // The row shown in the dialog, resolved from this.rows every time it is read, so
+    // it tracks whatever the poll loop and the reloads have merged in. The fallback
+    // covers only the case where the datatable hands back a row this.rows does not
+    // contain; it cannot go stale because that row is never rebuilt.
+    get detailRow() {
+        if (!this._detailApiName) {
+            return undefined
+        }
+        return this.rows.find((r) => r.apiName === this._detailApiName) || this._detailFallback
+    }
+
     handleRowAction(event) {
         if (event.detail.action.name === 'details') {
-            // Re-read from rows rather than trusting the event's row copy, so the
-            // panel reflects any status merged in by the poll loop since render.
-            const apiName = event.detail.row.apiName
-            this.detailRow = this.rows.find((r) => r.apiName === apiName) || event.detail.row
+            this._detailApiName = event.detail.row.apiName
+            this._detailFallback = event.detail.row
             this._focusDialogOnRender = true
         }
     }
 
     handleCloseDetail() {
-        this.detailRow = undefined
+        this._detailApiName = undefined
+        this._detailFallback = undefined
         // Send focus back where it came from. Without this, closing the dialog drops
         // the caret at the top of the document and a keyboard user has to tab all the
         // way back to the row they were reading.
