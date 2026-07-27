@@ -225,11 +225,21 @@ class _CapturingLogger:
 
     @staticmethod
     def _render(msg, args):
+        """
+        Render exactly as stdlib logging does — including RAISING on a bad format.
+
+        ⚠ Do NOT swallow the error. `LogRecord.getMessage()` is `msg % self.args` and raises
+        on a mismatch; verified: `LogRecord(..., "Refresh queued for %d", ("A_Table",))`
+        raises TypeError. Returning the raw template instead would let a malformed
+        production call PASS a substring assertion, because the literal half of the template
+        survives — `"Refresh queued for %d"` still contains "Refresh queued". A test double
+        that is more forgiving than production hides exactly the bug it should surface.
+
+        ⚠ Skipping interpolation when args is empty is stdlib behaviour, not a divergence:
+        `LogRecord(..., "100%% sure", ())` renders "100%% sure" unchanged. Verified.
+        """
         text = str(msg)
-        try:
-            return text % args if args else text
-        except (TypeError, ValueError):
-            return text
+        return text % args if args else text
 
     def info(self, msg, *a, **k):
         self.infos.append(self._render(msg, a))
@@ -396,13 +406,28 @@ for response, should_queue, label in STATUS_CASES:
     try:
         logs = refresh_logs_for(response)
         check(refresh_label, (not logs.errors) is should_queue, f"errors={logs.errors}")
-        # ⚠ Assert the ANNOUNCEMENT too, not just the verdict. Silence is indistinguishable
-        # from acceptance if only errors are read, and this line is the entire deliverable of
-        # the async-honesty work — it prints for every table of every build.
+
+        # ⚠ Assert the ANNOUNCEMENT for EVERY case, not only the queued ones. Silence is
+        # indistinguishable from acceptance if only errors are read — but so is noise:
+        # checking the announcement only when should_queue leaves a regression that logs
+        # "Refresh queued" unconditionally, or from the FAILURE branch, entirely green. Its
+        # error still satisfies the verdict check above and its contradictory success line is
+        # never inspected. That is the dangerous direction — a failed request claiming a queue.
+        announced = any("Refresh queued" in m for m in logs.infos)
+        check(
+            f"RefreshDecisionTable announces a queue for {label} ONLY when it queued",
+            announced is should_queue,
+            f"announced={announced} infos={logs.infos}",
+        )
+        # ⚠ Pin the CONTENT, not a literal prefix. "Refresh queued" is eight characters of
+        # boilerplate: a message naming the wrong table with the status interpolation deleted
+        # satisfies it. The expected status is the fixture's own value stripped — deriving it
+        # from the response rather than re-implementing the production fallback.
         if should_queue:
+            expected_status = ((response.get("outputValues") or {}).get("Status") or "").strip()
             check(
-                f"RefreshDecisionTable announces the queue for {label}",
-                any("Refresh queued" in m for m in logs.infos),
+                f"the {label} announcement names the table and the rendered status",
+                any("A_Table" in m and f"Status: {expected_status}" in m for m in logs.infos),
                 str(logs.infos),
             )
     except Exception as exc:
@@ -421,13 +446,47 @@ check(
 
 # ⚠ The two classes carry SEPARATE copies of the async guidance, and "the build path and the
 # manual path said different things" was round 2's top finding. A comment saying they must not
-# drift is prose; this holds them. Byte-identical clause, asserted in both sources.
-ASYNC_GUIDANCE = "AFTER the job completes — a queued refresh has not yet advanced"
-_refresh_src = (REPO / "tasks" / "rlm_refresh_decision_table.py").read_text()
+# drift is prose; this holds them.
+#
+# ⚠ Compare the WHOLE guidance clause on the RENDERED message, not a prefix in the source. A
+# prefix check stops before the part that was corrected twice — flip one class to say a
+# POST-refresh verdict and the shared opening survives in both files, so a check labelled
+# "byte-identical" stays green while the two messages contradict each other. Rendering also
+# sidesteps source line-wrapping, which is not a semantic difference.
+GUIDANCE_START = "Completion is asynchronous;"
+_QUEUED = {"isSuccess": True, "outputValues": {"Status": "Queued"}}
+
+
+def manage_logs_for(response):
+    """Drive ManageDecisionTables._refresh_decision_tables and return what it logged."""
+    task = object.__new__(ManageDecisionTables)
+    task.options = {"developer_names": "A_Table", "is_incremental": False}
+    logger = _CapturingLogger()
+    task.logger = logger
+    task.org_config = object()
+    task._sf_client = object()
+    task._refresh_single_decision_table = lambda sf, name, inc: response
+    try:
+        ManageDecisionTables._refresh_decision_tables(task)
+    except Exception as exc:
+        if QUEUE_FAILURE_MESSAGE not in str(exc):
+            raise
+    return logger
+
+
+def _guidance(logger):
+    for message in logger.infos:
+        if GUIDANCE_START in message:
+            return message[message.index(GUIDANCE_START):]
+    return None
+
+
+_manage_guidance = _guidance(manage_logs_for(_QUEUED))
+_refresh_guidance = _guidance(refresh_logs_for(_QUEUED))
 check(
-    "both classes give byte-identical async guidance",
-    ASYNC_GUIDANCE in _manage_src and ASYNC_GUIDANCE in _refresh_src,
-    f"manage={ASYNC_GUIDANCE in _manage_src} refresh={ASYNC_GUIDANCE in _refresh_src}",
+    "both classes render byte-identical async guidance",
+    _manage_guidance is not None and _manage_guidance == _refresh_guidance,
+    f"manage={_manage_guidance!r} refresh={_refresh_guidance!r}",
 )
 
 # ---------------------------------------------------------------------------
@@ -574,36 +633,60 @@ KNOWN_UNDECLARED = {
     ("assign_feature_permission_sets", 4, "psg_debug"),
 }
 
+# ⚠ Consume the WHOLE dotted run. `re.findall(r"(\w+)\.(\w+)", ...)` matches non-overlapping,
+# so `org_config.scratch.nonexistent` yields only ("org_config", "scratch") — an ALLOWED
+# reference — and the trailing segment is never examined. Jinja2 resolves that third hop to a
+# falsy Undefined and the guarded step is silently skipped, so the check passes while the name
+# it claims to validate does not resolve. Measured by both reviewers in round 6: zero failures.
+# A chain rooted at an UNKNOWN namespace was always caught; the hole was chains rooted at a
+# name the check recognises. Anything beyond <namespace>.<attribute> is now rejected outright.
 bad_refs = {}
+seen_undeclared = set()
 for flow_name, flow in (cci.get("flows") or {}).items():
     for key, step in ((flow or {}).get("steps") or {}).items():
         expr = (step or {}).get("when") or ""
         if not expr:
             continue
-        for namespace, attribute in re.findall(r"(\w+)\.(\w+)", expr):
-            reference = f"{namespace}.{attribute}"
+        for run in re.findall(r"\b\w+(?:\.\w+)+", expr):
+            segments = run.split(".")
+            if len(segments) > 2:
+                bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                    f"{run} (chained past <namespace>.<attribute>; the tail resolves to Undefined)"
+                )
+                continue
+            namespace, attribute = segments
             if namespace == "org_config":
-                if reference in ALLOWED_ORG_CONFIG_REFS:
+                if run in ALLOWED_ORG_CONFIG_REFS:
                     continue
-            elif attribute.startswith("project__custom__"):
+            # ⚠ Namespace must be exactly project_config. Matching on the attribute alone also
+            # accepted `other.project__custom__rating`, which fails loudly at runtime but should
+            # not pass a check whose whole job is catching names that will not resolve.
+            elif namespace == "project_config" and attribute.startswith("project__custom__"):
                 flag = attribute[len("project__custom__"):]
-                if flag in declared_flags or (flow_name, key, flag) in KNOWN_UNDECLARED:
+                if flag in declared_flags:
                     continue
-            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(reference)
+                if (flow_name, key, flag) in KNOWN_UNDECLARED:
+                    seen_undeclared.add((flow_name, key, flag))
+                    continue
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(run)
 
 check(
     f"every when: across all {len(cci.get('flows') or {})} flows resolves to a real name",
     not bad_refs,
-    f"bad references: {bad_refs}",
+    f"bad references: {bad_refs} — if one is a legitimate new org_config attribute, "
+    "add the complete reference to ALLOWED_ORG_CONFIG_REFS",
 )
 
-# ⚠ The removal contract has to be enforced in both directions. If issue #331 is closed by
-# DECLARING psg_debug, the `flag in declared_flags` branch short-circuits first, this allowlist
-# becomes dead code, and nothing ever says so. Measured: that edit broke zero checks.
+# ⚠ EQUALITY, not disjointness. The exemption set has to track the live references in both
+# directions, and there are more than two ways for it to rot: issue #331 closed by DECLARING
+# the flag, closed by DELETING both steps, or the steps RELOCATED. Each leaves a stale tuple
+# that silently forgives whatever later occupies that flow/step slot. A disjointness check
+# saw only the first. Measured: deleting the two dead references broke zero checks.
 check(
-    "KNOWN_UNDECLARED holds no flag that is now declared — delete the entry",
-    {flag for _, _, flag in KNOWN_UNDECLARED}.isdisjoint(declared_flags),
-    str({flag for _, _, flag in KNOWN_UNDECLARED} & declared_flags),
+    "KNOWN_UNDECLARED matches the live exemptions exactly — no stale or missing entry",
+    seen_undeclared == KNOWN_UNDECLARED,
+    f"stale, delete these: {sorted(KNOWN_UNDECLARED - seen_undeclared)}; "
+    f"unlisted: {sorted(seen_undeclared - KNOWN_UNDECLARED)}",
 )
 
 # ---------------------------------------------------------------------------
