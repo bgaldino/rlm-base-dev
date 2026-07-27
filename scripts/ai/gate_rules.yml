@@ -1,0 +1,283 @@
+# Pre-push gate rules — Tiers B, C and D (todo 080 Deliverable 1).
+#
+# SCOPE BOUNDARY. This file is repo POLICY: the AGENTS.md DO NOT list (Tier B),
+# the .cursor/rules/*.mdc rules (Tier C), and the doc-consistency change-surface
+# map (Tier D). It deliberately does NOT hold defect classes observed on PR
+# review rounds — those live in `defect_classes.yml` (Tier E) and are scanned by
+# `defect_scan.py`. Keeping them apart matters: Tier E sweeps the whole repo
+# surface because round-9 misses were in untouched files, whereas most rules
+# here are about what THIS change did.
+#
+# SCHEMA
+#   id            required, kebab-case, unique
+#   tier          B | C | D
+#   source        where the rule is written down, so a disagreement is settleable
+#   severity      blocker | important | minor
+#   detection     mechanical | review-prompt
+#                 mechanical   -> evaluated here; any match fails the gate
+#                 review-prompt-> NOT greppable without false positives; printed
+#                                 as a required manual confirmation. Never
+#                                 silently passes.
+#   scope         changed-path   FAIL if a changed file matches `paths`
+#                 added-path     FAIL if a NEWLY ADDED file matches `paths`
+#                 changed-content FAIL if a changed file under `paths` matches a
+#                                 pattern (whole file, not just the added hunk —
+#                                 a rule that only reads the diff misses the rest
+#                                 of the class in the same file)
+#                 repo-content   same, but over every matching file in the repo
+#                 exact-value    file under `paths` must contain `require`
+#                 paired-change  if anything under `when_changed` changed, then
+#                                 something under `require_changed` must have too
+#                 branch         evaluated against the current branch name
+#   paths / exclude_paths   repo-root-relative globs
+#   patterns      list of Python regexes (single-quoted in YAML so backslashes
+#                 stay literal)
+#   ignore_comment_lines  skip //, #, *, <!-- lines — for rules about code, not prose
+#   allow_list    known-good matches; every entry needs a `reason`
+#   remediation   what to actually do about it
+#
+# A rule whose `detection` is mechanical but which defines no way to evaluate
+# itself is reported SKIPPED, and a skipped rule fails the run. A check that did
+# not execute is not a pass.
+
+rules:
+  # ─────────────────────────── Tier B — AGENTS.md DO NOT ───────────────────────
+  - id: post-ux-edited-directly
+    tier: B
+    source: "AGENTS.md DO NOT #1"
+    severity: blocker
+    detection: mechanical
+    scope: changed-path
+    paths: ["unpackaged/post_ux/**"]
+    remediation: >
+      unpackaged/post_ux/ is auto-generated. Edit templates/ instead and re-run
+      `cci task run assemble_and_deploy_ux`, or use the UX drift flows. If this
+      change legitimately came from the assembler, it should have arrived with
+      the assembler's other output — check nothing was hand-edited afterwards.
+
+  - id: force-app-profile-non-class-access
+    tier: B
+    source: "AGENTS.md DO NOT #2 / PR review focus area 7"
+    severity: blocker
+    detection: mechanical
+    scope: changed-content
+    paths: ["force-app/**/profiles/*.profile-meta.xml"]
+    patterns:
+      - '<layoutAssignments>'
+      - '<applicationVisibilities>'
+    remediation: >
+      force-app profiles stay classAccesses-only. Move layoutAssignment and
+      applicationVisibilities entries to templates/profiles/ so the assembler
+      owns them.
+
+  - id: force-app-object-action-overrides
+    tier: B
+    source: "AGENTS.md DO NOT #3"
+    severity: blocker
+    detection: mechanical
+    scope: changed-content
+    paths: ["force-app/**/objects/**/*.object-meta.xml"]
+    patterns:
+      - '<actionOverrides>'
+    remediation: >
+      Object files carrying actionOverrides belong in templates/objects/, not
+      force-app/.
+
+  - id: sfdmu-delete-old-data-introduced
+    tier: B
+    source: "AGENTS.md DO NOT #4 / SFDMU CRITICAL rule"
+    severity: blocker
+    detection: mechanical
+    scope: changed-content
+    paths: ["datasets/**/export.json"]
+    patterns:
+      - '"deleteOldData"\s*:\s*true'
+    remediation: >
+      deleteOldData:true is DESTRUCTIVE - it deletes every existing record before
+      inserting. On the enforced SFDMU 5.6.4+ floor, Bugs 1/2/3/5 are fixed
+      upstream, so "Upsert does not match" is no longer a valid reason. If this is
+      intentional you need explicit user approval recorded in the PR, and then an
+      allow_list entry here naming the plan and the reason.
+    allow_list: []
+
+  - id: email-template-page-flexipage
+    tier: B
+    source: "AGENTS.md DO NOT #6"
+    severity: blocker
+    detection: mechanical
+    scope: changed-content
+    paths: ["templates/flexipages/**/*.flexipage-meta.xml"]
+    patterns:
+      - '<type>EmailTemplatePage</type>'
+    remediation: >
+      EmailTemplatePage flexipages cannot deploy via the Metadata API. Remove it
+      from templates/flexipages/.
+
+  - id: network-real-email-committed
+    tier: B
+    source: "AGENTS.md DO NOT #7 / PR review focus area 8"
+    severity: blocker
+    detection: exact-value
+    scope: exact-value
+    paths: ["unpackaged/post_prm/**/networks/rlm.network-meta.xml"]
+    require: '<emailSenderAddress>rlm-network-sender@example.com</emailSenderAddress>'
+    remediation: >
+      The repo commits the placeholder only; the patch/revert tasks substitute a
+      real address at deploy time. Restore
+      <emailSenderAddress>rlm-network-sender@example.com</emailSenderAddress>.
+
+  - id: committing-to-main
+    tier: B
+    source: "AGENTS.md DO NOT #8"
+    severity: blocker
+    detection: mechanical
+    scope: branch
+    forbid_branches: ["main", "master"]
+    remediation: >
+      All changes go through a feature branch and a PR. Move these commits onto a
+      branch: `git branch <feature>` then reset main back to origin/main.
+
+  - id: robot-behavioural-change-unverified
+    tier: B
+    source: "AGENTS.md DO NOT #9 / robot-testing SKILL Verification"
+    severity: blocker
+    detection: review-prompt
+    scope: changed-path
+    paths: ["robot/**/*.robot", "tasks/rlm_*.py"]
+    remediation: >
+      A behavioural Robot change must run against a LIVE scratch org before merge -
+      `robot --dryrun` resolves keywords and never opens a browser, so it is not
+      verification. Comment/[Documentation]-only edits are exempt. If it cannot be
+      verified before merge, say so in the PR and keep it blocked with the
+      `blocked: needs-live-verification` label.
+
+  - id: access-token-to-sf-cli
+    tier: B
+    source: "AGENTS.md DO NOT #5 / cci-python-tasks.mdc"
+    severity: blocker
+    detection: review-prompt
+    scope: changed-path
+    paths: ["tasks/**/*.py", "scripts/**/*.py"]
+    # Without this filter the prompt fires on every touched .py, including ones
+    # that never mention access_token - and a prompt that cries wolf gets --ack'd
+    # reflexively, which is worse than not having it.
+    content_filter: ['access_token']
+    remediation: >
+      Confirm no `sf` CLI invocation added here receives access_token. CLI calls
+      take `self.org_config.username` as --target-org; access_token is for the REST
+      API only, where it is correct. This is a review prompt, not a grep, because
+      access_token appears legitimately in ~28 files for REST use and a naive
+      pattern floods the gate with false positives.
+
+  # ─────────────────────────── Tier C — .cursor/rules/*.mdc ────────────────────
+  - id: analysis-artifact-in-public-repo
+    tier: C
+    source: ".cursor/rules/analysis-artifacts.mdc (alwaysApply)"
+    severity: blocker
+    detection: mechanical
+    scope: added-path
+    paths: ["docs/analysis/**/*.md"]
+    remediation: >
+      AI-generated analysis, investigation, audit, feature-gap, research and
+      handoff documents go to .agents/artifacts/ - a private nested repo -
+      NEVER the public rlm-base-dev repo. docs/analysis/ is reserved for curated,
+      human-authored product documentation. The rule's own tie-breaker: when
+      unsure which it is, treat it as a generated artifact.
+      Move it: cp docs/analysis/<f>.md .agents/artifacts/<f>.md && git rm -f docs/analysis/<f>.md
+      If this really is curated human-authored analysis, add an allow_list entry
+      naming the file and saying who authored it.
+    allow_list: []
+
+  - id: raw-debug-in-user-facing-output
+    tier: C
+    source: ".cursor/rules/lwc-components.mdc - PR #317 round 9"
+    severity: important
+    detection: mechanical
+    scope: changed-content
+    paths: ["**/lwc/**/*.js"]
+    ignore_comment_lines: true
+    patterns:
+      - 'JSON\.stringify\([^)]*\)[^;]*\b(message|title|body|toast|banner|label)\b'
+      - '\b(message|title|body)\s*:\s*JSON\.stringify'
+    remediation: >
+      Never put JSON.stringify output, raw error objects or char codes into a
+      toast, banner or any user-facing string. Use reduceErrorMessage() and show
+      a sentence a user can act on.
+
+  - id: apex-soql-in-loop
+    tier: C
+    source: ".cursor/rules/apex-classes.mdc / PR review focus area 3"
+    severity: important
+    detection: mechanical
+    scope: changed-content
+    paths: ["**/*.cls", "**/*.trigger"]
+    exclude_paths: ["**/*Test.cls"]
+    ignore_comment_lines: true
+    patterns:
+      - 'for\s*\([^)]*\)\s*\{[^}]*\[\s*SELECT\b'
+    remediation: >
+      SOQL inside a loop hits governor limits under bulk load. Query once before
+      the loop into a Map and look up inside it.
+    allow_list: []
+
+  - id: apex-unqualified-sharing
+    tier: C
+    source: ".cursor/rules/apex-classes.mdc"
+    severity: important
+    detection: review-prompt
+    scope: changed-path
+    paths: ["**/*.cls"]
+    exclude_paths: ["**/*Test.cls"]
+    # NEWLY ADDED classes only. Scoped to every changed .cls, a repo-wide
+    # reformat put 71 files in front of this prompt, none of which touched a
+    # sharing declaration. An existing class that already declares sharing is
+    # not re-litigated because Prettier moved its braces.
+    only_added: true
+    remediation: >
+      Every non-test Apex class declares `with sharing`, `without sharing` or
+      `inherited sharing` explicitly. Confirm each NEW class here does. Left as a
+      review prompt because the declaration can be split across lines and
+      annotated, which a single-line grep gets wrong in both directions.
+
+  # ─────────────────────────── Tier D — doc-consistency map ────────────────────
+  - id: cumulusci-yml-without-regenerated-reference
+    tier: D
+    source: ".cursor/skills/doc-consistency/SKILL.md change-surface map"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    when_changed: ["cumulusci.yml"]
+    require_changed:
+      - ".cursor/skills/cci-orchestration/tasks-reference.md"
+      - ".cursor/skills/cci-orchestration/flows-reference.md"
+      - ".cursor/skills/cci-orchestration/feature-flags.md"
+    remediation: >
+      Run `python scripts/ai/generate_cci_reference.py` and commit the regenerated
+      reference files. (Tier A also verifies the generator produces no diff, which
+      catches the case where they were regenerated from a stale tree.)
+
+  - id: sfdmu-plan-changed-without-readme
+    tier: D
+    source: ".cursor/skills/doc-consistency/SKILL.md + AGENTS.md pre-merge checklist"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    when_changed: ["datasets/sfdmu/**/export.json", "datasets/sfdmu/**/*.csv"]
+    require_changed: ["datasets/sfdmu/**/README.md"]
+    remediation: >
+      A plan's README must track its export.json and CSVs. Update it, then run
+      `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` - it must
+      report 0 errors. (Tier A runs that repo-wide too.)
+
+  - id: task-renamed-without-doc-sweep
+    tier: D
+    source: "AGENTS.md pre-merge checklist - cumulusci.yml item 2"
+    severity: important
+    detection: review-prompt
+    scope: changed-path
+    paths: ["cumulusci.yml"]
+    remediation: >
+      If a task was RENAMED or its description changed, grep the repo for the OLD
+      task name and fix stale references in README.md and docs/. Use `git grep`
+      over all tracked files, not an extension-filtered grep - a prior sweep
+      missed a .py and a .md exactly that way.

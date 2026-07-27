@@ -27,9 +27,7 @@ Usage:
 """
 
 import argparse
-import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -43,44 +41,15 @@ PRUNE = {
 }
 
 
-def _resolve_interpreter():
-    """Re-exec under an interpreter that has PyYAML, or fail loudly.
+# The interpreter guard lives in _gate_interpreter so this script and
+# pre_push_audit.py cannot drift apart on the one trap that matters most:
+# `python` here is a pyenv shim without PyYAML, and a scan that dies on
+# `import yaml` must never be read as "no findings".
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-    Returns only if the CURRENT interpreter already has yaml.
-    """
-    try:
-        import yaml  # noqa: F401
-        return
-    except ImportError:
-        pass
+from _gate_interpreter import ensure_pyyaml  # noqa: E402
 
-    candidates = []
-    if os.environ.get("RLM_PYTHON"):
-        candidates.append(os.environ["RLM_PYTHON"])
-    candidates += [
-        str(Path.home() / ".local/pipx/venvs/cumulusci/bin/python"),
-        "/usr/bin/python3",
-    ]
-
-    for cand in candidates:
-        if not cand or not Path(cand).exists() or Path(cand).samefile(sys.executable):
-            continue
-        probe = subprocess.run(
-            [cand, "-c", "import yaml"], capture_output=True
-        )
-        if probe.returncode == 0:
-            os.execv(cand, [cand, str(Path(__file__).resolve())] + sys.argv[1:])
-
-    sys.stderr.write(
-        "FATAL: no interpreter with PyYAML found.\n"
-        f"  tried: {', '.join(c for c in candidates if c)}\n"
-        "  Set RLM_PYTHON to a python that has PyYAML, or `pip install pyyaml`.\n"
-        "  Refusing to continue — a scan that cannot run must not report clean.\n"
-    )
-    sys.exit(2)
-
-
-_resolve_interpreter()
+ensure_pyyaml(__file__)
 import yaml  # noqa: E402  (import deferred until the interpreter is known good)
 
 
@@ -108,9 +77,19 @@ def _norm(text: str) -> str:
 
 
 def _key(rel_path: str, matched: str) -> str:
-    """Allow-list key. Deliberately NOT line-number based — line numbers churn on
-    every reformat, which would silently invalidate the whole baseline."""
-    return f"{rel_path}::{_norm(matched)}"
+    """Allow-list key.
+
+    Deliberately NOT line-number based — line numbers churn on every reformat,
+    which would silently invalidate the whole baseline.
+
+    Whitespace is stripped ENTIRELY rather than collapsed, because collapsing is
+    not enough: Prettier rewrites `WHERE Id =:productId` to `WHERE Id = :productId`,
+    so a baseline pinned before an Apex reformat stops matching afterwards and the
+    whole allow-list silently reopens as fresh findings. Caught by running the
+    todo-080 acceptance test against PR #317's head, where exactly this happened
+    to five pinned queries. Case is preserved — `null` vs `NULL` must stay
+    distinguishable."""
+    return f"{rel_path}::{re.sub(r'[ \t\r\n]+', '', matched)}"
 
 
 def scan_class(cls):
