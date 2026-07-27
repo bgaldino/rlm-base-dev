@@ -70,7 +70,15 @@
       depends on it. The scoped alternative is to replace the loopback with a
       Named Credential (+ External Credential) for the Composite callouts and
       drop both this permission and the RLM_SessionId page grant — a possible
-      future hardening, tracked in #305.
+      future hardening, which RLM_RebuildSearchIndex would need too since it
+      has the identical dependency.
+
+      ⚠ No issue tracks that hardening today, and #305 is NOT it. That issue
+      covers three other gaps in this component — procedure-plan cascade on
+      deactivation, exact-version restore on activation, and composite-chunk
+      atomicity — and says nothing about the session loopback. The #305
+      citations in RLM_ExpressionSetManagerController.cls are correct; this one
+      was not, and stood from PR #281 until 2026-07-27.
     -->
     <userPermissions>
         <enabled>true</enabled>

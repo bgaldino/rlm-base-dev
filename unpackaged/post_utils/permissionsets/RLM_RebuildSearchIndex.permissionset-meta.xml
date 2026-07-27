@@ -75,8 +75,14 @@
       assigned to the salesrep persona: see the note on the personas flow in
       cumulusci.yml. The scoped alternative is to replace the loopback with a
       Named Credential (+ External Credential) and drop both this permission and
-      the RLM_SessionId page grant — the same future hardening tracked for the
-      Expression Set Manager in #305.
+      the RLM_SessionId page grant — the same future hardening that would apply
+      to RLM_ExpressionSetManager, which has the identical dependency.
+
+      ⚠ No issue tracks that hardening today, and #305 is NOT it. That issue
+      covers three unrelated Expression Set Manager gaps — procedure-plan
+      cascade on deactivation, exact-version restore on activation, and
+      composite-chunk atomicity — and says nothing about the session loopback.
+      Both permission sets cited it here incorrectly until 2026-07-27.
     -->
     <userPermissions>
         <enabled>true</enabled>
