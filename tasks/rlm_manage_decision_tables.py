@@ -2,14 +2,23 @@
 Custom CumulusCI task for comprehensive Decision Table management.
 
 This task provides functionality to:
-- Query/list decision tables (similar to RLM_Refresh_Decision_Tables flow)
+- Query/list decision tables
 - Refresh decision tables (full or incremental)
 - Support other operations (activate, deactivate, etc.)
 
-Based on the RLM_Refresh_Decision_Tables flow which:
+Modelled on the behaviour the ``RLM_Refresh_Decision_Tables`` screen flow used to
+provide, which this task predates the removal of:
 - Queries DecisionTable records with Status = 'Active'
 - Uses refreshDecisionTable action
 - Supports All / ByUsageType / Individual modes with incremental refresh toggle
+
+⚠ That screen flow is GONE — do not go looking for it as a reference. In the org the
+equivalents are the **Decision Table Manager** component on the Home page
+(interactive, with a freshness verdict per table) and ``RLM_Refresh_Decision_Tables_Bulk``
+(autolaunched; the only route Apex has to the refresh action). Do not confuse either
+with ``RLM_Refresh_Decision_Tables_By_Usage_Type``, which is a different, live flow
+called by ``RLM_Account_Utilities``. For headless verdicts see the
+``check_decision_table_freshness`` task.
 """
 import json
 from typing import List, Dict, Optional, Set

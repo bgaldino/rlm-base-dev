@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**41 feature flags**, **85 configuration values**, **39 YAML anchors** under `project.custom`.
 
 ---
 
@@ -36,7 +36,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 9 flow step(s) |
+| `personas` | `True` | 11 flow step(s) |
 | `prm` | `True` | 25 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 16 flow step(s) |
@@ -45,14 +45,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 11 flow step(s) |
+| `quantumbit` | `True` | 15 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
+| `tso` | `False` | 17 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -135,7 +135,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 6 → `assign_permission_sets`
+- `prepare_quantumbit` step 8 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -260,7 +260,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
-- `prepare_personas` step 8 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
+- `prepare_personas` step 10 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -391,12 +393,16 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 4 → `assign_permission_sets`
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
 - `prepare_quantumbit` step 6 → `assign_permission_sets`
+- `prepare_quantumbit` step 7 → `assign_permission_sets`
+- `prepare_quantumbit` step 8 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
+- `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -473,6 +479,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 7 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
+- `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
 
 ### `ux` (default: `True`)
 
@@ -683,6 +691,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Rate_Adjustment_by_Tier_Resolution_Decision_Table`
 - `Rate_Card_Entry_Resolution_Entries_2`
 
+### `ps_account_utilities`
+
+*1 items:*
+
+- `RLM_UtilitiesPermset`
+
 ### `ps_aea`
 
 *3 items:*
@@ -708,6 +722,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_Constraints`
+
+### `ps_decision_table_manager`
+
+*1 items:*
+
+- `RLM_DecisionTableManager`
 
 ### `ps_docgen`
 
@@ -906,11 +926,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_tso_ps_api_names`
 
-*5 items:*
+*6 items:*
 
 - `ERIBasic`
 - `RLM_UtilitiesPermset`
 - `RLM_ExpressionSetManager`
+- `RLM_DecisionTableManager`
 - `OrchestrationProcessManagerPermissionSet`
 - `EventMonitoringPermSet`
 

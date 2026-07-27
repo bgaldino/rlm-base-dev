@@ -110,6 +110,24 @@ Ground OmniStudio / BRE / Context Service / Discovery Framework / Timeline claim
 
 **When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml_*.htm.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
 
+### ⚠ Where neither snapshot is authoritative: usage/consumption runtime semantics
+
+Usage Management is the known gap in both corpora. Splitting a claim by developer
+vs admin does **not** work here — check what each source actually gives you:
+
+| Claim type | Where it lives | Example |
+|-----------|----------------|---------|
+| Object/field shape, picklist values | Dev guide (reference only) | `sforce_api_objects_usagecommitmentpolicy.htm.md` names `CommitmentRate` and its two values |
+| What a configuration value *means* | Help (one-line definitions) | `ind.um_create_usage_commitment_policy.htm.md` defines `Bounded Object Rate` / `Lowest Commitment Rate` |
+| **Runtime behaviour** — drawdown order, what each bucket decrements by, why a rated summary is empty | **Neither.** Establish by live verification. | commitment drains before grant; commitment by *discounted* qty, grant by *raw* |
+
+**Do not infer runtime behaviour from a field description in either snapshot** — the
+descriptions are one-line and omit ordering and interaction entirely. When you
+establish such a rule live, record it in
+`.cursor/skills/revenue-cloud-data-model/domains/usage.md` (rules) and
+`docs/guides/qb-consumption-demo-scenarios.md` (worked arithmetic) so the next agent
+does not have to rediscover it.
+
 ## Common grounding workflows
 
 ### Finding the article that covers a topic

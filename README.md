@@ -684,8 +684,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### Decision Table Refresh Tasks
 
+See [Decision Tables](.cursor/skills/decision-tables/SKILL.md) for when a refresh is
+required, why a stale lookup shows up as wrong pricing, and what each freshness verdict
+means.
+
 | Task Name | Module | Description |
 |-----------|--------|-------------|
+| `check_decision_table_freshness` | `rlm_apex_file.py` | Report whether each decision table still reflects its source data, with a reason per table. No org changes. Add `-o param1 strict` to fail the build on any stale table |
 | `refresh_dt_rating` | `rlm_refresh_decision_table.py` | Refresh rating decision tables |
 | `refresh_dt_rating_discovery` | `rlm_refresh_decision_table.py` | Refresh rating discovery decision tables |
 | `refresh_dt_default_pricing` | `rlm_refresh_decision_table.py` | Refresh default pricing decision tables |
@@ -1096,13 +1101,17 @@ Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference.
 
 ### Constraint Model Data Plans
 
-Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and the ConstraintModel blobs — which are **plain-text CML**, uploaded verbatim, not compiled binaries.
 
-| Model | Directory | ESC Records | Documentation |
-|-------|-----------|-------------|---------------|
-| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Model | Directory | ESC Records | Active after `prepare_constraints`? |
+|-------|-----------|-------------|-------------------------------------|
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the active QuantumBit model |
+| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 57 | no — imported inactive, kept for A/B |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | no — imported inactive, kept for A/B |
+| Server2 | `datasets/constraints/qb/Server2/` | 81 | **yes** — hardware model, not part of the QuantumBit family |
+
+Exactly one QuantumBit model may be active at a time; `Server2` is a separate model and
+is active alongside it.
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1122,6 +1131,12 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
+| [Usage & Consumption Runbook](docs/guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 verified live; 6 pending re-verification, 9 platform-blocked) with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
+| [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [Build Harness](docs/guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ### Analysis & Planning
 
@@ -1257,6 +1272,7 @@ rlm-base-dev/
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
+│   │   │   ├── QuantumBitBundle/
 │   │   │   ├── QuantumBitComplete/
 │   │   │   ├── Server2/
 │   │   │   └── QuantumBitPCM/
@@ -1272,13 +1288,23 @@ rlm-base-dev/
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   ├── expand_currency_pricing_data.py # Regenerate per-currency qb-pricing rows
+│   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
+│   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
+│   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── guides/                 # How-to setup and build process docs
+│   │   ├── build-harness.md
+│   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
 │   │   ├── post-billing-portal.md
-│   │   └── prepare-rlm-org-build-guide.md
+│   │   ├── prepare-rlm-org-build-guide.md
+│   │   ├── qb-consumption-demo-scenarios.md
+│   │   ├── txn-data-harness.md
+│   │   └── usage-consumption-runbook.md
 │   ├── references/             # Technical references and task/CLI examples
 │   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
@@ -1351,7 +1377,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 

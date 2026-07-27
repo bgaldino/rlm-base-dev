@@ -21,6 +21,10 @@ Key Differences from AnonymousApexTask:
     - No URI length limitations (handles scripts >100KB)
     - Requires sf CLI to be installed and org to have a username
     - Slightly different error message format from sf CLI vs Tooling API
+    - Surfaces the script's own System.debug output at INFO. The Tooling API does
+      not return the debug log, so the built-in task has nothing to print; the sf
+      CLI does return it, and discarding it would mean a passing validator prints
+      nothing and the task communicates only by throwing.
 
 Security Notes:
     - All file paths are validated to be within the project repository
@@ -34,18 +38,30 @@ Performance Notes:
     - Scales better for large scripts (no network overhead from large URI params)
     - 5-minute timeout prevents hanging on infinite loops or long-running scripts
 """
+import html
 import json
 import os
+import re
 import shlex
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 # Constants
 APEX_EXECUTION_TIMEOUT_SECONDS = 300  # 5 minutes - sufficient for most scripts
 MAX_LOG_OUTPUT_CHARS = 1000  # Truncate log output to prevent log spam
-MAX_DEBUG_LOG_LINES = 50  # Limit debug log output lines
+MAX_SCRIPT_OUTPUT_LINES = 500  # Cap on surfaced script output; overflow is reported, never silent
+
+# A debug-log event line looks like:
+#   16:03:23.39 (40382722)|USER_DEBUG|[2]|DEBUG|the message
+# Anchoring on the timestamp+nanos prefix is what distinguishes a real event line
+# from a continuation line that merely happens to contain a "|" character.
+LOG_EVENT_LINE = re.compile(r"^\d{2}:\d{2}:\d{2}\.\d+ \(\d+\)\|")
+
+# Events worth surfacing besides USER_DEBUG. A script that blew up should say so
+# in the task output, not only in the raised exception.
+ERROR_EVENTS = ("FATAL_ERROR", "EXCEPTION_THROWN")
 
 try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -84,7 +100,8 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
         4. Write processed Apex to a secure temporary file
         5. Execute via sf apex run --file --json
         6. Parse JSON response and check for compilation/runtime errors
-        7. Clean up temporary file
+        7. Surface the script's own debug output at INFO
+        8. Clean up temporary file
 
     Task Options:
         path: The path to an Apex file to run.
@@ -103,6 +120,18 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
     """
 
     keychain_class = BaseProjectKeychain
+
+    # This task requires an org. SFDXBaseTask is documented as "call the sfdx cli with
+    # params and NO org" and leaves BaseTask.salesforce_task at False, which has three
+    # consequences: cci's CLI never adds the --org option (cli/task.py builds the option
+    # list from task_class.salesforce_task), so `--org <alias>` is rejected outright and
+    # the task can only ever run against the default org; __call__ skips the
+    # "this task requires a salesforce org" guard; and _log_begin omits the
+    # "As user / In org" lines, so the run does not record which org it hit.
+    # Declaring it here fixes all three without re-parenting to SFDXOrgTask -- we never
+    # call _get_command(), and the OAuth refresh BaseSalesforceTask would add is not
+    # needed because `sf apex run` authenticates itself from the username.
+    salesforce_task = True
 
     task_options: Dict[str, Dict[str, Any]] = {
         "path": {
@@ -434,6 +463,23 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
             ApexException: If the Apex code threw a runtime exception
             CommandException: If the sf command failed
         """
+        # The execution payload moves depending on outcome, and this is the whole
+        # reason a failing run used to print nothing:
+        #
+        #   success -> {"status": 0, "result": {compiled, success, logs, ...}}
+        #   failure -> {"status": 1, "name": "executeRuntimeFailure",
+        #               "data":   {compiled, success, exceptionMessage, logs, ...}}
+        #
+        # On failure `result` is absent entirely and the debug log -- including every
+        # check that passed before the script gave up -- lives under `data`. Reading
+        # only `result` therefore discarded the diagnostic context on exactly the path
+        # that needs it. Verified against sf apex run on a scratch org, 2026-07-25.
+        apex_result = result.get("result") or result.get("data") or {}
+
+        # Surface it BEFORE any raise below, for the same reason: the exception
+        # carries only the final message, the log carries how the script got there.
+        self._log_script_output(apex_result.get("logs"))
+
         # Check for command-level errors (status != 0)
         # The sf CLI returns status=0 for success, non-zero for failures
         # Status can be None if the JSON structure is unexpected
@@ -442,18 +488,25 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
             message = result.get("message", "Unknown error")
             self.logger.error(f"sf apex run command failed with status {status}: {message}")
 
-            # Check if it's a compilation error in the message
-            if "compiled successfully: false" in message.lower():
-                apex_result = result.get("result", {})
+            # Compile failures are reported either in the message or, on the failure
+            # shape, as a populated compileProblem with compiled == False.
+            if "compiled successfully: false" in message.lower() or (
+                apex_result and not apex_result.get("compiled", True)
+            ):
                 line = apex_result.get("line", 0)
-                problem = apex_result.get("compileProblem", message)
+                problem = apex_result.get("compileProblem") or message
                 raise ApexCompilationException(line, problem)
+
+            # A runtime exception also arrives here (status 1), and the failure shape
+            # carries the Apex-level detail -- prefer it over the generic CLI message.
+            exception_message = apex_result.get("exceptionMessage")
+            if exception_message:
+                raise ApexException(
+                    exception_message, apex_result.get("exceptionStackTrace", "")
+                )
 
             # Otherwise it's a general command error
             raise CommandException(f"sf apex run failed: {message}")
-
-        # Get the Apex execution result
-        apex_result = result.get("result", {})
 
         if not apex_result:
             raise CommandException(
@@ -487,13 +540,89 @@ class FileBasedAnonymousApexTask(SFDXBaseTask):
 
             raise ApexException(exception_message, exception_trace)
 
-        # Log success details at debug level
-        # Note: Apex execution logs from sf CLI contain System.debug output
-        # and platform debug information. These are useful for troubleshooting
-        # but can be verbose, so we log at debug level and truncate.
-        logs = apex_result.get("logs")
-        if logs:
-            log_lines = logs.split('\n')
-            self.logger.debug(f"Apex execution logs ({len(log_lines)} total lines, showing first {MAX_DEBUG_LOG_LINES}):")
-            for log_line in log_lines[:MAX_DEBUG_LOG_LINES]:
-                self.logger.debug(f"  {log_line}")
+    def _extract_script_output(self, logs: str) -> List[str]:
+        """
+        Reduce a raw Apex debug log to the lines the script actually emitted.
+
+        `sf apex run --json` returns the full debug log, whose head is the entire
+        script echoed back as "Execute Anonymous:" lines. For a 500-line validator
+        that echo is longer than any head-cap worth applying, so filtering by event
+        type is the only approach that works regardless of script size.
+
+        Continuation lines are the subtle part. A System.debug() containing newlines
+        emits its first line with the usual timestamp|USER_DEBUG|[n]|LEVEL| prefix and
+        every subsequent line BARE, with no prefix at all:
+
+            16:03:23.39 (40433892)|USER_DEBUG|[2]|DEBUG|multi
+            line
+            output
+
+        A filter that keeps only lines matching USER_DEBUG therefore drops the tail of
+        every multi-line message silently -- which would gut exactly the multi-line
+        failure reports these scripts exist to produce. So bare lines are kept while a
+        debug block is open, and any new event line closes it.
+
+        Args:
+            logs: Raw debug log text from sf apex run --json
+
+        Returns:
+            The script's own output lines, HTML-unescaped, prefixes stripped
+        """
+        kept: List[str] = []
+        in_debug_block = False
+
+        for raw_line in logs.split("\n"):
+            if LOG_EVENT_LINE.match(raw_line):
+                # Format: timestamp|EVENT|[line]|LEVEL|message -- split with maxsplit so
+                # that a message containing "|" survives intact.
+                parts = raw_line.split("|", 4)
+                event = parts[1] if len(parts) > 1 else ""
+
+                if event == "USER_DEBUG":
+                    kept.append(html.unescape(parts[4]) if len(parts) > 4 else "")
+                    in_debug_block = True
+                elif event in ERROR_EVENTS:
+                    detail = "|".join(parts[2:]) if len(parts) > 2 else event
+                    kept.append(html.unescape(f"{event}: {detail}"))
+                    in_debug_block = False
+                else:
+                    # Any other event (LIMIT_USAGE, CODE_UNIT_FINISHED, ...) ends the
+                    # block, so platform chatter is never mistaken for a continuation.
+                    in_debug_block = False
+            elif in_debug_block:
+                kept.append(html.unescape(raw_line))
+
+        return kept
+
+    def _log_script_output(self, logs: Optional[str]) -> None:
+        """
+        Log the script's own output at INFO so a passing run is legible.
+
+        Without this the task communicates only by throwing: a validator that passes
+        prints nothing, and there is no way to tell a real pass from a script that
+        checked nothing. The information was always present in the sf CLI response --
+        it was simply logged at debug level behind a 50-line cap that the source echo
+        consumed before reaching a single line of output.
+
+        Args:
+            logs: Raw debug log text from sf apex run --json, or None
+        """
+        if not logs:
+            return
+
+        output = self._extract_script_output(logs)
+        if not output:
+            self.logger.debug("Apex ran but produced no debug output.")
+            return
+
+        shown, dropped = output[:MAX_SCRIPT_OUTPUT_LINES], len(output) - MAX_SCRIPT_OUTPUT_LINES
+        for line in shown:
+            self.logger.info(f"  {line}")
+
+        # Never truncate silently -- a cut-off report must say it was cut off.
+        if dropped > 0:
+            self.logger.warning(
+                f"  ... {dropped} more line(s) of script output suppressed "
+                f"(cap: {MAX_SCRIPT_OUTPUT_LINES}). Re-run with "
+                f"`sf apex run --file <path> --target-org <alias>` to see all of it."
+            )
