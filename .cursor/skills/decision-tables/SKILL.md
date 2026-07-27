@@ -128,9 +128,17 @@ so it is not reintroduced:
    proves the caller sees every row. The Manager is on the shared Home page, so a
    restricted persona can run it and get a verdict scoped to their own view.
 
-The design deliberately trades coverage for never emitting a confident wrong answer: an
-unnecessary refresh is cheap, a false all-clear is not. Over-refusing into "Not
-comparable" is the intended failure direction. The same principle settles the boundary:
+Within what its probes can observe, the design deliberately trades coverage for not
+guessing: an unnecessary refresh is cheap, a false all-clear is not. Over-refusing into
+"Not comparable" is the intended failure direction.
+
+⚠ **That is a scoped claim, not a guarantee, and the two open limits above are exactly
+why.** A deleted source row and a row hidden from the caller by sharing are both invisible
+to a timestamp probe, so either can leave a genuinely stale table reported **Fresh**. No
+amount of refusing helps there — the check never sees the change to refuse over it. Treat
+a Fresh verdict as a readiness signal about what the caller can see, not as proof the
+table is current, and **do not present it as one**: it is not a substitute for refreshing
+after a known data load or a deletion. The same principle settles the boundary:
 a sync stamped at the **same instant** as the newest change reads **Stale**, because a
 tie establishes no ordering — nothing says whether the sync's read snapshot included
 that write. The reasoning behind each refusal is documented in the controller's class

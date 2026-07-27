@@ -737,7 +737,9 @@ export default class RlmDecisionTableManager extends LightningElement {
         const widened = 'A criterion this check cannot reproduce is dropped from the query ' +
             'rather than approximated, and the objects it reads are watched instead — so the ' +
             'comparison covers MORE rows than the table holds. That can over-report Stale for a ' +
-            'row the table excludes; it cannot produce a false all-clear.'
+            'row the table excludes. That widening cannot itself produce a false ' +
+            'all-clear — though a deleted row, or one hidden from you by sharing, ' +
+            'still can.'
         if (this.detailRow.criteriaApplied) {
             return this.unreproducedCount > 0
                 ? `${this.unreproducedCount} of these could not be reproduced. ${widened}`
