@@ -1,3 +1,22 @@
+---
+name: rlm-catalog-administration
+description: >-
+  Load or extend the RLM (Revenue Lifecycle Management) Product Catalog and
+  Pricing from external source materials — a vendor PDF price sheet, a public
+  product/pricing web page, a spec, or a free-form natural-language description.
+  Use when a user asks to load, seed, extend, or update Products, product
+  bundles, categories, attributes, PricebookEntry rows, ProductSellingModelOption
+  rows, or any catalog data from an external source. Triggers on mentions of
+  "load products", "load in this product", "product bundle", "product catalog",
+  "seed a catalog", "PDF price sheet", "vendor pricing", "PricebookEntry",
+  "ProductSellingModelOption", "PriceAdjustmentSchedule", "CostBookEntry",
+  "ProductCategory", "ProductComponentGroup", "ProductRelatedComponent". Prefer
+  this skill over any MCP-connector catalog skill (e.g. Quantum20 /
+  salesforce-product-catalog) when the goal is a repeatable, source-controlled
+  load in rlm-base-dev — MCP connectors write ad-hoc records; this skill
+  produces reviewable SFDMU plans.
+---
+
 # RLM Catalog Administration — Load Products and Pricing from Source Materials
 
 Use this skill when a user asks to load, seed, extend, or update **Products
