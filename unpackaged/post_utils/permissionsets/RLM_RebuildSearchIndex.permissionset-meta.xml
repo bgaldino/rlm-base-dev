@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Everything the rlmRebuildSearchIndex component needs, and nothing else.
+
+      Deliberately separate from RLM_UtilitiesPermset: that set also grants
+      RLM_AccountUtilities, whose invocable deletes account-related orders,
+      assets, contracts, invoices, quotes and opportunities. Rebuilding a search
+      index needs none of that, so this component gets its own least-privilege
+      set — the same reasoning that gave RLM_ExpressionSetManager and
+      RLM_DecisionTableManager theirs.
+
+      Until this set existed, RLM_RebuildSearchIndex was granted in NO permission
+      set anywhere in the repo, so its accordion section on RLM_Home_Page_Default
+      worked only for a user whose profile already carried the class — while the
+      two sections beside it (Decision Table Manager, Expression Set Manager)
+      were both wired. This closes that gap.
+    -->
+    <classAccesses>
+        <apexClass>RLM_RebuildSearchIndex</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!--
+      No objectPermissions, and that is the correct answer rather than an
+      omission: RLM_RebuildSearchIndex contains no SOQL and no DML. Its whole
+      surface is one HTTP callout to the Connect endpoint
+      /connect/pcm/index/deploy, so there is no sObject for a grant to cover.
+
+      No fieldPermissions either, for the same reason.
+
+      ⚠ The callout carries the RUNNING USER's session (see the page grant
+      below), so the endpoint applies that user's own catalog permissions. This
+      set deliberately does NOT grant those — re-granting PCM administration to
+      every assignee would be a far wider privilege than the component needs, and
+      builds already assign the standard Revenue Cloud PCM sets where they apply
+      (rlm_pcm_ps_api_names). A user without them degrades honestly rather than
+      silently: buildResultMap returns isSuccess=false with the endpoint's own
+      status code and body, which the component surfaces.
+    -->
+    <!--
+      No RunFlow and no flowAccesses, though post_utils also ships
+      RLM_Rebuild_Search_Index, a flow that calls this class's @InvocableMethod.
+      Checked rather than assumed, because the mirror question on
+      RLM_DecisionTableManager was raised in review:
+
+      - That flow is processType **Flow** — a screen flow, which genuinely IS
+        gated by flow access. So the usual refutation (autolaunched from Apex,
+        runs in system context) does NOT apply here.
+      - It is nevertheless not granted, because the flow is `status Draft` and
+        referenced by nothing in the repo: no quick action, no FlexiPage, no
+        LWC, no cumulusci.yml step. Nothing can launch it, so there is no access
+        to grant. The component reaches the class through the @AuraEnabled
+        deployIndex() entry point instead, which the class grant above covers.
+      - ⚠ If that flow is ever activated and surfaced, revisit this: the grant
+        would be per-flow `flowAccesses`, never org-wide RunFlow ("run ANY
+        active flow" is far wider than this component needs).
+    -->
+    <!-- getApiSessionId() renders the RLM_SessionId Visualforce page to obtain a
+         REST session id; a permission-set-only user needs page access or the
+         rebuild fails when Apex renders it. Same mechanism, and same grant, as
+         RLM_ExpressionSetManager. -->
+    <pageAccesses>
+        <apexPage>RLM_SessionId</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <!--
+      ApiEnabled is required for the $Api.Session_ID loopback: page access alone
+      does not make that session usable against the REST API, so without it the
+      Connect callout fails with a non-API session.
+
+      ⚠ This is a BROAD system permission (it enables all API access for the
+      assignee), granted here only because the component's session-id loopback
+      depends on it — carried over verbatim from RLM_ExpressionSetManager, which
+      has the identical dependency. It is also the reason this set is NOT
+      assigned to the salesrep persona: see the note on the personas flow in
+      cumulusci.yml. The scoped alternative is to replace the loopback with a
+      Named Credential (+ External Credential) and drop both this permission and
+      the RLM_SessionId page grant — the same future hardening tracked for the
+      Expression Set Manager in #305.
+    -->
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ApiEnabled</name>
+    </userPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Rebuild Search Index</label>
+</PermissionSet>
