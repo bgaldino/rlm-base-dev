@@ -175,6 +175,7 @@ cci flow run capture_ux_drift --org dev-sb0                          # retrieve 
 cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
 cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
 cci task run validate_setup                                          # no org needed
+cci task run check_decision_table_freshness --org beta               # readiness: is any lookup stale? (-o param1 strict to fail the build)
 python scripts/validate_sfdmu_v5_datasets.py
 python scripts/ai/generate_cci_reference.py                         # after cumulusci.yml edits
 ```

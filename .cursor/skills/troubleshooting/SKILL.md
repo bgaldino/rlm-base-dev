@@ -249,6 +249,31 @@ before the failing step.
 
 ## Decision Table Errors
 
+### Pricing is right in the data and wrong at runtime
+
+**Cause:** A decision table is a materialised cache with no invalidation. A
+refresh copies source rows in; nothing re-reads the source afterwards. So a
+correct catalog, rate or contracted price that never reached a table reads as a
+pricing bug — a tier that does not apply, a new SKU priced as if it did not
+exist.
+
+**Fix:** Check freshness before debugging anything else. A Stale verdict naming
+the object you just edited is the answer.
+```bash
+cci task run check_decision_table_freshness --org beta
+```
+Runs `scripts/apex/checkDecisionTableFreshness.apex` and reports every table with
+a verdict and a reason. Read-only. Add `-o param1 strict` to fail a build on any
+stale table — only where no data load follows the refresh.
+
+⚠ **"Not comparable" is not a failure.** It means the check declined to guess.
+Only **Stale** is a positive finding. Verdicts are scoped to the running user's
+visible rows, so run it as an operator with org-wide read.
+
+Full detail — what each verdict means, the timing rule for automatic refreshes,
+and why a lookup goes stale without its own row changing:
+[Decision Tables](../decision-tables/SKILL.md).
+
 ### Refresh timeout
 
 **Cause:** Decision table refresh can be slow, especially for large tables
