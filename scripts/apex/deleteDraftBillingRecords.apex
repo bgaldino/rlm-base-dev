@@ -20,12 +20,20 @@ for (BillingPolicy bp : draftPolicies) {
 
 // 2. Delete only DRAFT BillingTreatmentItem under BillingTreatments that reference a draft BillingPolicy
 //    (Active BTI cannot be deleted ever.)
-List<BillingTreatmentItem> draftItemsUnderDraftPolicy = [SELECT Id FROM BillingTreatmentItem WHERE Status = 'Draft' AND BillingTreatment.BillingPolicyId IN :draftPolicyIds];
+List<BillingTreatmentItem> draftItemsUnderDraftPolicy = [
+    SELECT Id
+    FROM BillingTreatmentItem
+    WHERE Status = 'Draft' AND BillingTreatment.BillingPolicyId IN :draftPolicyIds
+];
 delete draftItemsUnderDraftPolicy;
 
 // 3. Delete only DRAFT BillingTreatment that reference a draft BillingPolicy
 //    (Active BT cannot be deleted ever.)
-List<BillingTreatment> draftTreatmentsUnderDraftPolicy = [SELECT Id FROM BillingTreatment WHERE Status = 'Draft' AND BillingPolicyId IN :draftPolicyIds];
+List<BillingTreatment> draftTreatmentsUnderDraftPolicy = [
+    SELECT Id
+    FROM BillingTreatment
+    WHERE Status = 'Draft' AND BillingPolicyId IN :draftPolicyIds
+];
 delete draftTreatmentsUnderDraftPolicy;
 
 // 4. Delete any remaining draft BillingTreatmentItem and draft BillingTreatment (e.g. orphans)
@@ -61,4 +69,15 @@ delete termItemsToDelete;
 List<PaymentTerm> draftTerms = [SELECT Id FROM PaymentTerm WHERE Status = 'Draft'];
 delete draftTerms;
 
-System.debug('Deleted draft billing records: BillingTreatmentItem=' + (draftItemsUnderDraftPolicy.size() + draftItems.size()) + ', BillingTreatment=' + (draftTreatmentsUnderDraftPolicy.size() + draftTreatments.size()) + ', BillingPolicy=' + draftPoliciesToDelete.size() + ', PaymentTermItem=' + termItemsToDelete.size() + ', PaymentTerm=' + draftTerms.size());
+System.debug(
+    'Deleted draft billing records: BillingTreatmentItem=' +
+        (draftItemsUnderDraftPolicy.size() + draftItems.size()) +
+        ', BillingTreatment=' +
+        (draftTreatmentsUnderDraftPolicy.size() + draftTreatments.size()) +
+        ', BillingPolicy=' +
+        draftPoliciesToDelete.size() +
+        ', PaymentTermItem=' +
+        termItemsToDelete.size() +
+        ', PaymentTerm=' +
+        draftTerms.size()
+);

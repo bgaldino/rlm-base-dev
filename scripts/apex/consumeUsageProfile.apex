@@ -28,17 +28,19 @@
 //
 // Then: scripts/qb_usage.py orchestrate, then scripts/apex/validateRatedUsage.apex.
 
-public class UsageConsumeException extends Exception {}
+public class UsageConsumeException extends Exception {
+}
 
-final Integer MULTIPLIER = 1;                              // 3 = overage scenarios
-final Date USAGE_DATE = Date.newInstance(2026, 6, 15);     // must be a PAST period
-final Set<String> ONLY_ACCOUNTS = new Set<String>();       // empty = every anchor
+final Integer MULTIPLIER = 1; // 3 = overage scenarios
+final Date USAGE_DATE = Date.newInstance(2026, 6, 15); // must be a PAST period
+final Set<String> ONLY_ACCOUNTS = new Set<String>(); // empty = every anchor
 
 Map<String, Map<String, Decimal>> profile = new Map<String, Map<String, Decimal>>{
-    'QB-DB'       => new Map<String, Decimal>{
-        'UR-CPUTIME'     => 5000 * MULTIPLIER, 'UR-DATASTORAGE'     => 50 * MULTIPLIER},
+    'QB-DB' => new Map<String, Decimal>{ 'UR-CPUTIME' => 5000 * MULTIPLIER, 'UR-DATASTORAGE' => 50 * MULTIPLIER },
     'QB-DB-TOKEN' => new Map<String, Decimal>{
-        'UR-CPUTIME-TKN' => 5000 * MULTIPLIER, 'UR-DATASTORAGE-TKN' => 50 * MULTIPLIER}
+        'UR-CPUTIME-TKN' => 5000 * MULTIPLIER,
+        'UR-DATASTORAGE-TKN' => 50 * MULTIPLIER
+    }
 };
 
 // Resolve resources ONCE per anchor rather than per asset -- the set is identical
@@ -46,26 +48,33 @@ Map<String, Map<String, Decimal>> profile = new Map<String, Map<String, Decimal>
 // SOQL call apiece on top of the two getUsageResourcesForAsset calls that
 // bulkUploadUsage already makes.
 Map<String, Map<String, Id>> resByAnchor = new Map<String, Map<String, Id>>();
-for (ProductUsageResource pur : [SELECT UsageResourceId, UsageResource.Code,
-                                        Product.StockKeepingUnit
-                                 FROM ProductUsageResource
-                                 WHERE Product.StockKeepingUnit IN :profile.keySet()
-                                   AND Status = 'Active']) {
+for (ProductUsageResource pur : [
+    SELECT UsageResourceId, UsageResource.Code, Product.StockKeepingUnit
+    FROM ProductUsageResource
+    WHERE Product.StockKeepingUnit IN :profile.keySet() AND Status = 'Active'
+]) {
     String sku = pur.Product.StockKeepingUnit;
-    if (!resByAnchor.containsKey(sku)) resByAnchor.put(sku, new Map<String, Id>());
+    if (!resByAnchor.containsKey(sku))
+        resByAnchor.put(sku, new Map<String, Id>());
     resByAnchor.get(sku).put(pur.UsageResource.Code, pur.UsageResourceId);
 }
 
-List<Asset> anchors = [SELECT Id, Account.Name, Product2.StockKeepingUnit FROM Asset
-                       WHERE Product2.StockKeepingUnit IN :profile.keySet()
-                       ORDER BY Account.Name];
+List<Asset> anchors = [
+    SELECT Id, Account.Name, Product2.StockKeepingUnit
+    FROM Asset
+    WHERE Product2.StockKeepingUnit IN :profile.keySet()
+    ORDER BY Account.Name
+];
 if (anchors.isEmpty()) {
     // NoDataFoundException can only be thrown from a VisualForce/Aura
     // context -- from anonymous Apex it fails with a confusing platform
     // error instead of this message.
     throw new UsageConsumeException(
-        'No anchor asset exists for ' + profile.keySet() + '. Build one first with '
-        + 'scripts/build_quote_to_asset.py.');
+        'No anchor asset exists for ' +
+            profile.keySet() +
+            '. Build one first with ' +
+            'scripts/build_quote_to_asset.py.'
+    );
 }
 
 Integer uploaded = 0;
@@ -80,12 +89,13 @@ Integer processedAnchors = 0;
 
 for (Asset a : anchors) {
     String sku = a.Product2.StockKeepingUnit;
-    if (!ONLY_ACCOUNTS.isEmpty() && !ONLY_ACCOUNTS.contains(a.Account.Name)) { continue; }
+    if (!ONLY_ACCOUNTS.isEmpty() && !ONLY_ACCOUNTS.contains(a.Account.Name)) {
+        continue;
+    }
     matchedAccounts.add(a.Account.Name);
     processedAnchors++;
 
-    List<RLM_UsageUploaderController.UsageEntry> entries =
-        new List<RLM_UsageUploaderController.UsageEntry>();
+    List<RLM_UsageUploaderController.UsageEntry> entries = new List<RLM_UsageUploaderController.UsageEntry>();
     for (String code : profile.get(sku).keySet()) {
         Id resourceId = resByAnchor.containsKey(sku) ? resByAnchor.get(sku).get(code) : null;
         if (resourceId == null) {
@@ -99,24 +109,43 @@ for (Asset a : anchors) {
         e.transactionDate = USAGE_DATE;
         entries.add(e);
     }
-    if (entries.isEmpty()) { continue; }
+    if (entries.isEmpty()) {
+        continue;
+    }
 
     try {
-        RLM_UsageUploaderController.BulkUploadResult res =
-            RLM_UsageUploaderController.bulkUploadUsage(a.Id, entries);
+        RLM_UsageUploaderController.BulkUploadResult res = RLM_UsageUploaderController.bulkUploadUsage(a.Id, entries);
         uploaded += res.successCount;
         if (res.errorCount > 0) {
             failures.add(a.Account.Name + '/' + sku + ': ' + String.join(res.errors, '; '));
         }
-        System.debug('CONSUME ' + a.Account.Name + ' / ' + sku + ' -> '
-            + res.successCount + ' journal(s), ' + res.errorCount + ' error(s)');
+        System.debug(
+            'CONSUME ' +
+                a.Account.Name +
+                ' / ' +
+                sku +
+                ' -> ' +
+                res.successCount +
+                ' journal(s), ' +
+                res.errorCount +
+                ' error(s)'
+        );
     } catch (Exception ex) {
         failures.add(a.Account.Name + '/' + sku + ': ' + ex.getMessage());
     }
 }
 
-System.debug('CONSUME: ' + uploaded + ' journal(s) at x' + MULTIPLIER
-    + ' on ' + String.valueOf(USAGE_DATE) + ' across ' + processedAnchors + ' anchor(s)');
+System.debug(
+    'CONSUME: ' +
+        uploaded +
+        ' journal(s) at x' +
+        MULTIPLIER +
+        ' on ' +
+        String.valueOf(USAGE_DATE) +
+        ' across ' +
+        processedAnchors +
+        ' anchor(s)'
+);
 
 // A requested account that matched nothing is a mistake, not a filter. Report it
 // before the generic failure check so the message names the actual cause.
@@ -125,26 +154,38 @@ if (!ONLY_ACCOUNTS.isEmpty()) {
     unmatched.removeAll(matchedAccounts);
     if (!unmatched.isEmpty()) {
         throw new UsageConsumeException(
-            'ONLY_ACCOUNTS names ' + unmatched + ' but no anchor asset exists for '
-            + 'them (checked ' + anchors.size() + ' anchor asset(s) for '
-            + profile.keySet() + '). Check the spelling, or build the anchor first '
-            + 'with scripts/build_quote_to_asset.py -- otherwise this run silently '
-            + 'records nothing for those accounts.');
+            'ONLY_ACCOUNTS names ' +
+                unmatched +
+                ' but no anchor asset exists for ' +
+                'them (checked ' +
+                anchors.size() +
+                ' anchor asset(s) for ' +
+                profile.keySet() +
+                '). Check the spelling, or build the anchor first ' +
+                'with scripts/build_quote_to_asset.py -- otherwise this run silently ' +
+                'records nothing for those accounts.'
+        );
     }
 }
 if (processedAnchors == 0) {
     throw new UsageConsumeException(
-        'No anchor asset was processed, so no usage was recorded. '
-        + anchors.size() + ' anchor asset(s) exist'
-        + (ONLY_ACCOUNTS.isEmpty() ? '' : ' but none matched ONLY_ACCOUNTS ' + ONLY_ACCOUNTS)
-        + '.');
+        'No anchor asset was processed, so no usage was recorded. ' +
+            anchors.size() +
+            ' anchor asset(s) exist' +
+            (ONLY_ACCOUNTS.isEmpty() ? '' : ' but none matched ONLY_ACCOUNTS ' + ONLY_ACCOUNTS) +
+            '.'
+    );
 }
 
 // Fail loudly rather than leaving a partial consume to be discovered later as an
 // apparent rating defect.
 if (!failures.isEmpty()) {
-    throw new UsageConsumeException('consumeUsageProfile: ' + failures.size()
-        + ' failure(s) -- ' + String.join(failures, ' | ')
-        + '. Fix these and re-run; rating an incomplete consume produces results '
-        + 'that look like rating defects.');
+    throw new UsageConsumeException(
+        'consumeUsageProfile: ' +
+            failures.size() +
+            ' failure(s) -- ' +
+            String.join(failures, ' | ') +
+            '. Fix these and re-run; rating an incomplete consume produces results ' +
+            'that look like rating defects.'
+    );
 }

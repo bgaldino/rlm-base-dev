@@ -13,14 +13,18 @@
  * deployed by deploy_post_collections, which runs after this), this is a no-op.
  */
 List<CalculationMatrix> matrices = [
-    SELECT Id FROM CalculationMatrix WHERE UniqueName = 'DetermineCaseReasonAndRelatedAttributes' LIMIT 1
+    SELECT Id
+    FROM CalculationMatrix
+    WHERE UniqueName = 'DetermineCaseReasonAndRelatedAttributes'
+    LIMIT 1
 ];
 if (matrices.isEmpty()) {
     System.debug('DEACTIVATE_CASE_MATRIX: matrix not present yet (first run) — nothing to disable.');
 } else {
     List<CalculationMatrixVersion> enabledVersions = [
-        SELECT Id, IsEnabled FROM CalculationMatrixVersion
-        WHERE CalculationMatrixId = :matrices[0].Id AND IsEnabled = true
+        SELECT Id, IsEnabled
+        FROM CalculationMatrixVersion
+        WHERE CalculationMatrixId = :matrices[0].Id AND IsEnabled = TRUE
     ];
     for (CalculationMatrixVersion v : enabledVersions) {
         v.IsEnabled = false;

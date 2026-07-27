@@ -47,12 +47,14 @@ for (String code : reasonNames.keySet()) {
     if (existingReasonCodes.contains(code)) {
         continue;
     }
-    reasonsToInsert.add(new CollectionPlanReason(
-        Name = reasonNames.get(code),
-        Code = code,
-        Description = reasonDescs.get(code),
-        IsActive = true
-    ));
+    reasonsToInsert.add(
+        new CollectionPlanReason(
+            Name = reasonNames.get(code),
+            Code = code,
+            Description = reasonDescs.get(code),
+            IsActive = true
+        )
+    );
 }
 if (!reasonsToInsert.isEmpty()) {
     insert reasonsToInsert;
@@ -62,26 +64,37 @@ System.debug('SEED_CPR inserted=' + reasonsToInsert.size() + ' existing=' + exis
 // ── 2. Decision matrix rows ─────────────────────────────────────────────────
 // Name(hash) -> { Code, Reason, Priority } ; Type is always 'Collections'.
 Map<String, List<String>> rowData = new Map<String, List<String>>{
-    'ceb7594b2ef20a20fa5ca30a856edf05' => new List<String>{ 'CPR01', 'Missed Payments',    'Medium' },
-    '5e2a0b3c2d78800fb13ff604e3cb8ee1' => new List<String>{ 'CPR02', 'Bounced Checks',     'High'   },
+    'ceb7594b2ef20a20fa5ca30a856edf05' => new List<String>{ 'CPR01', 'Missed Payments', 'Medium' },
+    '5e2a0b3c2d78800fb13ff604e3cb8ee1' => new List<String>{ 'CPR02', 'Bounced Checks', 'High' },
     '6b750dec273296145dd1247ccb8c636e' => new List<String>{ 'CPR03', 'High-Risk Borrower', 'Medium' },
-    '5c13c3108e81827ab7e16c3cded9cbe1' => new List<String>{ 'CPR04', 'Deceased Account',   'High'   },
-    'be75e7f8101c1e58d1c928b2e718db7b' => new List<String>{ 'CPR05', 'Bankruptcy',         'High'   }
+    '5c13c3108e81827ab7e16c3cded9cbe1' => new List<String>{ 'CPR04', 'Deceased Account', 'High' },
+    'be75e7f8101c1e58d1c928b2e718db7b' => new List<String>{ 'CPR05', 'Bankruptcy', 'High' }
 };
 
 List<CalculationMatrix> matrices = [
-    SELECT Id FROM CalculationMatrix WHERE UniqueName = 'DetermineCaseReasonAndRelatedAttributes' LIMIT 1
+    SELECT Id
+    FROM CalculationMatrix
+    WHERE UniqueName = 'DetermineCaseReasonAndRelatedAttributes'
+    LIMIT 1
 ];
 if (matrices.isEmpty()) {
-    throw new System.AsyncException('DetermineCaseReasonAndRelatedAttributes matrix not found. Deploy the DecisionMatrixDefinition (deploy_post_collections) before running this seed.');
+    throw new System.AsyncException(
+        'DetermineCaseReasonAndRelatedAttributes matrix not found. Deploy the DecisionMatrixDefinition (deploy_post_collections) before running this seed.'
+    );
 }
 CalculationMatrixVersion version = [
-    SELECT Id, IsEnabled, Rank FROM CalculationMatrixVersion
-    WHERE CalculationMatrixId = :matrices[0].Id AND VersionNumber = 1 LIMIT 1
+    SELECT Id, IsEnabled, Rank
+    FROM CalculationMatrixVersion
+    WHERE CalculationMatrixId = :matrices[0].Id AND VersionNumber = 1
+    LIMIT 1
 ];
 
 Set<String> existingRowNames = new Set<String>();
-for (CalculationMatrixRow row : [SELECT Name FROM CalculationMatrixRow WHERE CalculationMatrixVersionId = :version.Id]) {
+for (CalculationMatrixRow row : [
+    SELECT Name
+    FROM CalculationMatrixRow
+    WHERE CalculationMatrixVersionId = :version.Id
+]) {
     existingRowNames.add(row.Name);
 }
 List<CalculationMatrixRow> rowsToInsert = new List<CalculationMatrixRow>();
@@ -90,12 +103,16 @@ for (String hashName : rowData.keySet()) {
         continue;
     }
     List<String> d = rowData.get(hashName);
-    rowsToInsert.add(new CalculationMatrixRow(
-        Name = hashName,
-        CalculationMatrixVersionId = version.Id,
-        InputData = JSON.serialize(new Map<String, Object>{ 'Code' => d[0] }),
-        OutputData = JSON.serialize(new Map<String, Object>{ 'Reason' => d[1], 'Priority' => d[2], 'Type' => 'Collections' })
-    ));
+    rowsToInsert.add(
+        new CalculationMatrixRow(
+            Name = hashName,
+            CalculationMatrixVersionId = version.Id,
+            InputData = JSON.serialize(new Map<String, Object>{ 'Code' => d[0] }),
+            OutputData = JSON.serialize(
+                new Map<String, Object>{ 'Reason' => d[1], 'Priority' => d[2], 'Type' => 'Collections' }
+            )
+        )
+    );
 }
 if (!rowsToInsert.isEmpty()) {
     // Rows can't be modified while the version is enabled.
@@ -115,11 +132,20 @@ if (!version.IsEnabled || version.Rank != 1) {
 }
 
 // ── 3. Runtime self-check ───────────────────────────────────────────────────
-Invocable.Action action = Invocable.Action.createCustomAction('runDecisionMatrix', 'DetermineCaseReasonAndRelatedAttributes');
+Invocable.Action action = Invocable.Action.createCustomAction(
+    'runDecisionMatrix',
+    'DetermineCaseReasonAndRelatedAttributes'
+);
 action.setInvocationParameter('Code', 'CPR01');
 List<Invocable.Action.Result> results = action.invoke();
 String reason = (String) results[0].getOutputParameters().get('Reason');
 if (!results[0].isSuccess() || reason != 'Missed Payments') {
-    throw new System.AsyncException('Collections case matrix self-check FAILED: expected Reason=Missed Payments for Code=CPR01, got success=' + results[0].isSuccess() + ' reason=' + reason + '. If this org computed different row hashes, re-import datasets/collections/decision_matrix_case_rows.csv via the Decision Matrix Designer and re-capture the Name hashes in this script.');
+    throw new System.AsyncException(
+        'Collections case matrix self-check FAILED: expected Reason=Missed Payments for Code=CPR01, got success=' +
+            results[0].isSuccess() +
+            ' reason=' +
+            reason +
+            '. If this org computed different row hashes, re-import datasets/collections/decision_matrix_case_rows.csv via the Decision Matrix Designer and re-capture the Name hashes in this script.'
+    );
 }
 System.debug('SEED_MATRIX_SELFCHECK OK: CPR01 -> ' + JSON.serialize(results[0].getOutputParameters()));

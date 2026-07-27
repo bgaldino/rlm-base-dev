@@ -10,7 +10,7 @@ List<Product2> productsToUpdate = new List<Product2>();
 for (Product2 product : products) {
     String baseSku = product.ProductCode;
     String newSku = baseSku;
-    
+
     // Check if the SKU already exists in the map
     if (skuMap.containsKey(newSku)) {
         Integer count = skuMap.get(newSku);
@@ -20,7 +20,7 @@ for (Product2 product : products) {
     } else {
         skuMap.put(newSku, 0);
     }
-    
+
     // Update the StockKeepingUnit field
     product.StockKeepingUnit = newSku;
     productsToUpdate.add(product);

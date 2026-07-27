@@ -5,12 +5,13 @@
 // Apex cannot construct the abstract built-in Exception -- `new Exception(msg)` is a
 // compile error ("Type cannot be constructed: Exception"), which made this script fail
 // to compile on every run. A custom subclass is required.
-public class BillingStructureException extends Exception {}
+public class BillingStructureException extends Exception {
+}
 
 List<BillingTreatment> missingPolicy = [
     SELECT Id, Name
     FROM BillingTreatment
-    WHERE BillingPolicyId = null
+    WHERE BillingPolicyId = NULL
 ];
 if (!missingPolicy.isEmpty()) {
     List<String> names = new List<String>();
@@ -18,8 +19,9 @@ if (!missingPolicy.isEmpty()) {
         names.add(bt.Name);
     }
     throw new BillingStructureException(
-        'BillingTreatment records must have BillingPolicyId set before activation. '
-        + 'The following records have null BillingPolicyId: ' + String.join(names, ', ')
-        + '. Re-run Pass 1 (insert only) and ensure BillingPolicy.Name in the source resolves; do not run Pass 2/3 until this is fixed.'
+        'BillingTreatment records must have BillingPolicyId set before activation. ' +
+            'The following records have null BillingPolicyId: ' +
+            String.join(names, ', ') +
+            '. Re-run Pass 1 (insert only) and ensure BillingPolicy.Name in the source resolves; do not run Pass 2/3 until this is fixed.'
     );
 }

@@ -40,22 +40,23 @@ Usage:
 // Org-specific — get contextDefinitionId + mappingId from describe_context.py
 // (see BEFORE RUNNING above). Left empty on purpose: shipping IDs from one org
 // would target an unrelated/nonexistent definition on any other org.
-String contextDefinitionId = '';  // 11O... from describe_context.py
-String mappingId           = '';  // 11j... QuoteEntitiesMapping (default) from describe_context.py
-String recordId            = '';  // a real Quote Id (0Q0...) — leave empty for synthetic
+String contextDefinitionId = ''; // 11O... from describe_context.py
+String mappingId = ''; // 11j... QuoteEntitiesMapping (default) from describe_context.py
+String recordId = ''; // a real Quote Id (0Q0...) — leave empty for synthetic
 // ─────────────────────────────────────────────────────────────────────────────
 if (String.isBlank(contextDefinitionId) || String.isBlank(mappingId)) {
     throw new IllegalArgumentException(
-        'Fill in contextDefinitionId and mappingId (from describe_context.py) before running.');
+        'Fill in contextDefinitionId and mappingId (from describe_context.py) before running.'
+    );
 }
 
 Context.IndustriesContext ctx = new Context.IndustriesContext();
 
 // 1. BUILD — hydrate (id-only pulls live data server-side, 0 SOQL)
 //    businessObjectType MUST be the MAPPED SObject name ("Quote"), NOT the node name.
-Map<String,String> md = new Map<String,String>{
+Map<String, String> md = new Map<String, String>{
     'contextDefinitionId' => contextDefinitionId,
-    'mappingId'           => mappingId
+    'mappingId' => mappingId
 };
 
 String dataPayload;
@@ -65,12 +66,9 @@ if (String.isNotBlank(recordId)) {
     dataPayload = '{"SalesTransaction":[{"id":"","businessObjectType":"Quote","SalesTransactionName":"Apex Lifecycle Test","Status":"Draft","CurrencyIsoCode":"USD"}]}';
 }
 
-Map<String,Object> buildInput = new Map<String,Object>{
-    'metadata' => md,
-    'data'     => dataPayload
-};
+Map<String, Object> buildInput = new Map<String, Object>{ 'metadata' => md, 'data' => dataPayload };
 
-Map<String,Object> buildResult = ctx.buildContext(buildInput);
+Map<String, Object> buildResult = ctx.buildContext(buildInput);
 String contextId = (String) buildResult.get('contextId');
 System.debug('=== BUILD: contextId = ' + contextId);
 // buildContext returns Context Info (contextId + metadata) — there is NO
@@ -80,16 +78,11 @@ System.debug('=== BUILD: contextInfoKeys = ' + buildResult.keySet());
 
 // 2. QUERY TAGS — read values by tag name (not attribute/field name)
 //    Tag names come from describe_context.py (attributeTags[].name on each attribute).
-List<String> tagsToQuery = new List<String>{
-    'SalesTransactionName', 'Status', 'CurrencyIsoCode'
-};
+List<String> tagsToQuery = new List<String>{ 'SalesTransactionName', 'Status', 'CurrencyIsoCode' };
 
-Map<String,Object> queryInput = new Map<String,Object>{
-    'contextId' => contextId,
-    'tags'      => tagsToQuery
-};
+Map<String, Object> queryInput = new Map<String, Object>{ 'contextId' => contextId, 'tags' => tagsToQuery };
 
-Map<String,Object> queryResult = ctx.leanerQueryTags(queryInput);
+Map<String, Object> queryResult = ctx.leanerQueryTags(queryInput);
 System.debug('=== QUERY TAGS: isSuccess = ' + queryResult.get('isSuccess'));
 System.debug('=== QUERY TAGS: recordIds = ' + queryResult.get('recordIds'));
 System.debug('=== QUERY TAGS: leanerQueryTagResult = ' + queryResult.get('leanerQueryTagResult'));
@@ -104,38 +97,39 @@ if (String.isNotBlank(recordId)) {
     List<String> dataPath = new List<String>();
     dataPath.add(recordId);
 
-    Map<String,Object> nodePath = new Map<String,Object>();
+    Map<String, Object> nodePath = new Map<String, Object>();
     nodePath.put('dataPath', dataPath);
 
-    Map<String,Object> attrValue = new Map<String,Object>();
+    Map<String, Object> attrValue = new Map<String, Object>();
     attrValue.put('attributeName', 'SalesTransactionName');
     attrValue.put('attributeValue', 'Updated via Apex');
 
-    List<Map<String,Object>> attributes = new List<Map<String,Object>>();
+    List<Map<String, Object>> attributes = new List<Map<String, Object>>();
     attributes.add(attrValue);
 
-    Map<String,Object> nodePathAndAttr = new Map<String,Object>();
+    Map<String, Object> nodePathAndAttr = new Map<String, Object>();
     nodePathAndAttr.put('nodePath', nodePath);
     nodePathAndAttr.put('attributes', attributes);
 
-    List<Map<String,Object>> nodePathAndAttributes = new List<Map<String,Object>>();
+    List<Map<String, Object>> nodePathAndAttributes = new List<Map<String, Object>>();
     nodePathAndAttributes.add(nodePathAndAttr);
 
-    Map<String,Object> updateInput = new Map<String,Object>();
+    Map<String, Object> updateInput = new Map<String, Object>();
     updateInput.put('contextId', contextId);
     updateInput.put('nodePathAndAttributes', nodePathAndAttributes);
 
-    Map<String,Object> updateResult = ctx.updateContextAttributes(updateInput);
+    Map<String, Object> updateResult = ctx.updateContextAttributes(updateInput);
     System.debug('=== UPDATE: ' + updateResult);
 
     // VERIFY the update took (query uses TAG names, not attribute names)
-    Map<String,Object> verifyResult = ctx.leanerQueryTags(new Map<String,Object>{
-        'contextId' => contextId,
-        'tags'      => new List<String>{'SalesTransactionName'}
-    });
+    Map<String, Object> verifyResult = ctx.leanerQueryTags(
+        new Map<String, Object>{ 'contextId' => contextId, 'tags' => new List<String>{ 'SalesTransactionName' } }
+    );
     System.debug('=== VERIFY: SalesTransactionName = ' + verifyResult.get('leanerQueryTagResult'));
 } else {
-    System.debug('=== UPDATE: skipped (requires a real recordId in dataPath to actually mutate — empty/node-name dataPath silently no-ops)');
+    System.debug(
+        '=== UPDATE: skipped (requires a real recordId in dataPath to actually mutate — empty/node-name dataPath silently no-ops)'
+    );
 }
 
 // 4. PERSIST — write dirty values back to the mapped SObjects (async)
@@ -143,15 +137,14 @@ if (String.isNotBlank(recordId)) {
 //    ⚠ Default QuoteEntitiesMapping carries non-updateable fields — a dirty
 //    persist through it will fail (errorNodes). Use a custom mapping with only
 //    updateable fields for production writeback.
-Map<String,Object> persistInput = new Map<String,Object>{
-    'contextId'       => contextId,
-    'targetMappingId' => mappingId
-};
+Map<String, Object> persistInput = new Map<String, Object>{ 'contextId' => contextId, 'targetMappingId' => mappingId };
 Object persistResult = ctx.persistContext(persistInput);
 System.debug('=== PERSIST: referenceId = ' + persistResult);
-System.debug('=== Check: SELECT Status, Response FROM AsyncOperationTracker WHERE JobType=\'ContextPersistence\' ORDER BY CreatedDate DESC LIMIT 1');
+System.debug(
+    '=== Check: SELECT Status, Response FROM AsyncOperationTracker WHERE JobType=\'ContextPersistence\' ORDER BY CreatedDate DESC LIMIT 1'
+);
 
 // 5. DELETE — evict the instance
-ctx.deleteContext(new Map<String,Object>{'contextId' => contextId});
+ctx.deleteContext(new Map<String, Object>{ 'contextId' => contextId });
 System.debug('=== DELETE: evicted contextId ' + contextId);
 System.debug('=== DONE — full lifecycle complete');

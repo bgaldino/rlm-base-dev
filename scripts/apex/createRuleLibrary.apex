@@ -11,7 +11,7 @@ String ruleApiName = 'RLM_ConfiguratorRuleLibrary';
 try {
     List<RuleLibrary> rules = [SELECT Id FROM RuleLibrary WHERE ApiName = :ruleApiName LIMIT 1];
 
-    if(rules.isEmpty()) {
+    if (rules.isEmpty()) {
         RuleLibrary rule = new RuleLibrary();
         rule.Name = 'RLM Configurator Rule Library';
         rule.ApiName = 'RLM_ConfiguratorRuleLibrary';

@@ -39,9 +39,9 @@
 // Each delete is therefore capped by the REMAINING budget, and the script stops
 // cleanly and asks to be re-run when the budget is spent -- a partial drain that
 // reports itself beats a LimitException that rolls the whole thing back.
-final String ACCOUNT_NAME = '';        // '' = every account
+final String ACCOUNT_NAME = ''; // '' = every account
 final Integer MAX_ROUNDS = 6;
-final Integer BATCH = 2000;            // per-statement ceiling, further clamped below
+final Integer BATCH = 2000; // per-statement ceiling, further clamped below
 Boolean budgetSpent = false;
 
 // ⚠ OFF BY DEFAULT. AssetRateCardEntry rows are created when the asset is created,
@@ -67,7 +67,9 @@ final Boolean DELETE_ASSET_RATE_CARD_ENTRIES = false;
 // inner type and rejects "static can only be used on methods of a top level type".
 public class Drain {
     public Integer run(List<SObject> records, String label) {
-        if (records == null || records.isEmpty()) { return 0; }
+        if (records == null || records.isEmpty()) {
+            return 0;
+        }
         Integer removed = 0;
         for (Database.DeleteResult r : Database.delete(records, false)) {
             if (r.isSuccess()) {
@@ -90,7 +92,9 @@ if (String.isNotBlank(ACCOUNT_NAME)) {
         throw new IllegalArgumentException('No account named ' + ACCOUNT_NAME);
     }
     accountId = accts[0].Id;
-    for (Asset a : [SELECT Id FROM Asset WHERE AccountId = :accountId]) { assetIds.add(a.Id); }
+    for (Asset a : [SELECT Id FROM Asset WHERE AccountId = :accountId]) {
+        assetIds.add(a.Id);
+    }
 }
 Boolean scoped = (accountId != null);
 Drain drain = new Drain();
@@ -104,46 +108,80 @@ for (Integer round = 1; round <= MAX_ROUNDS && !budgetSpent; round++) {
     Integer progress = 0;
 
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
-    if (take <= 0) { budgetSpent = true; break; }
+    if (take <= 0) {
+        budgetSpent = true;
+        break;
+    }
     List<UsageEntitlementEntry> entries = scoped
-        ? [SELECT Id FROM UsageEntitlementEntry
-           WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :take]
+        ? [
+              SELECT Id
+              FROM UsageEntitlementEntry
+              WHERE TransactionUsageEntitlement.Account.Id = :accountId
+              LIMIT :take
+          ]
         : [SELECT Id FROM UsageEntitlementEntry LIMIT :take];
     Integer nEntries = drain.run(entries, 'UsageEntitlementEntry');
-    uee += nEntries; progress += nEntries;
+    uee += nEntries;
+    progress += nEntries;
 
     // Inside the loop on purpose: UBPI is blocked by its summaries too, so
     // deleting it once up front strands rows behind summaries that only become
     // deletable on a later round.
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
-    if (take <= 0) { budgetSpent = true; break; }
+    if (take <= 0) {
+        budgetSpent = true;
+        break;
+    }
     List<UsageBillingPeriodItem> items = scoped
-        ? [SELECT Id FROM UsageBillingPeriodItem
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        ? [
+              SELECT Id
+              FROM UsageBillingPeriodItem
+              WHERE AccountId = :accountId OR AssetId IN :assetIds
+              LIMIT :take
+          ]
         : [SELECT Id FROM UsageBillingPeriodItem LIMIT :take];
     Integer nItems = drain.run(items, 'UsageBillingPeriodItem');
-    ubpi += nItems; progress += nItems;
+    ubpi += nItems;
+    progress += nItems;
 
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
-    if (take <= 0) { budgetSpent = true; break; }
+    if (take <= 0) {
+        budgetSpent = true;
+        break;
+    }
     List<UsageSummary> summaries = scoped
-        ? [SELECT Id FROM UsageSummary
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        ? [
+              SELECT Id
+              FROM UsageSummary
+              WHERE AccountId = :accountId OR AssetId IN :assetIds
+              LIMIT :take
+          ]
         : [SELECT Id FROM UsageSummary LIMIT :take];
     Integer nSum = drain.run(summaries, 'UsageSummary');
-    us += nSum; progress += nSum;
+    us += nSum;
+    progress += nSum;
 
     take = Math.min(BATCH, Limits.getLimitDmlRows() - Limits.getDmlRows());
-    if (take <= 0) { budgetSpent = true; break; }
+    if (take <= 0) {
+        budgetSpent = true;
+        break;
+    }
     List<UsageRatableSummary> ratable = scoped
-        ? [SELECT Id FROM UsageRatableSummary
-           WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :take]
+        ? [
+              SELECT Id
+              FROM UsageRatableSummary
+              WHERE AccountId = :accountId OR AssetId IN :assetIds
+              LIMIT :take
+          ]
         : [SELECT Id FROM UsageRatableSummary LIMIT :take];
     Integer nRat = drain.run(ratable, 'UsageRatableSummary');
-    urs += nRat; progress += nRat;
+    urs += nRat;
+    progress += nRat;
 
     System.debug('CLEAR: round ' + round + ' removed ' + progress + ' record(s)');
-    if (progress == 0) { break; }
+    if (progress == 0) {
+        break;
+    }
 }
 
 Integer arce = 0;
@@ -154,11 +192,15 @@ if (DELETE_ASSET_RATE_CARD_ENTRIES) {
             ? [SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId LIMIT :take]
             : [SELECT Id FROM AssetRateCardEntry LIMIT :take];
         arce = drain.run(arces, 'AssetRateCardEntry');
-    } else { budgetSpent = true; }
+    } else {
+        budgetSpent = true;
+    }
 } else {
-    System.debug('CLEAR: AssetRateCardEntry PRESERVED (DELETE_ASSET_RATE_CARD_ENTRIES=false) '
-        + '-- the assets keep their rates. Set it true only for a rate reload or a '
-        + 'full reset where the assets are being removed too.');
+    System.debug(
+        'CLEAR: AssetRateCardEntry PRESERVED (DELETE_ASSET_RATE_CARD_ENTRIES=false) ' +
+            '-- the assets keep their rates. Set it true only for a rate reload or a ' +
+            'full reset where the assets are being removed too.'
+    );
 }
 
 Integer tj = 0;
@@ -168,15 +210,32 @@ if (take > 0) {
     // graph only -- an unscoped delete would take the account's billing journals
     // with it, which no caller of a usage teardown is asking for.
     List<TransactionJournal> journals = scoped
-        ? [SELECT Id FROM TransactionJournal
-           WHERE AccountId = :accountId AND UsageType = 'UsageManagement' LIMIT :take]
+        ? [
+              SELECT Id
+              FROM TransactionJournal
+              WHERE AccountId = :accountId AND UsageType = 'UsageManagement'
+              LIMIT :take
+          ]
         : [SELECT Id FROM TransactionJournal WHERE UsageType = 'UsageManagement' LIMIT :take];
     tj = drain.run(journals, 'TransactionJournal');
-} else { budgetSpent = true; }
+} else {
+    budgetSpent = true;
+}
 
-System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi
-    + ' summaries=' + us + ' ratable=' + urs + ' assetRateCardEntries=' + arce
-    + ' journals=' + tj);
+System.debug(
+    'CLEAR: entitlementEntries=' +
+        uee +
+        ' billingPeriodItems=' +
+        ubpi +
+        ' summaries=' +
+        us +
+        ' ratable=' +
+        urs +
+        ' assetRateCardEntries=' +
+        arce +
+        ' journals=' +
+        tj
+);
 // The remaining counts MUST use the same scope as the deletes. Reported org-wide
 // after a per-account run, other accounts' rows make a complete cleanup look
 // unfinished -- and the rerun-until-zero guidance below would then never be
@@ -186,38 +245,73 @@ System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi
 // would report a false clean state -- UsageBillingPeriodItem was exactly that.
 Integer remEntries, remUbpi, remSummaries, remRatable, remArce, remJournals;
 if (scoped) {
-    remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry
-                    WHERE TransactionUsageEntitlement.Account.Id = :accountId];
-    remUbpi      = [SELECT COUNT() FROM UsageBillingPeriodItem
-                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
-    remSummaries = [SELECT COUNT() FROM UsageSummary
-                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
-    remRatable   = [SELECT COUNT() FROM UsageRatableSummary
-                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
-    remArce      = [SELECT COUNT() FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId];
-    remJournals  = [SELECT COUNT() FROM TransactionJournal
-                    WHERE AccountId = :accountId AND UsageType = 'UsageManagement'];
+    remEntries = [
+        SELECT COUNT()
+        FROM UsageEntitlementEntry
+        WHERE TransactionUsageEntitlement.Account.Id = :accountId
+    ];
+    remUbpi = [
+        SELECT COUNT()
+        FROM UsageBillingPeriodItem
+        WHERE AccountId = :accountId OR AssetId IN :assetIds
+    ];
+    remSummaries = [
+        SELECT COUNT()
+        FROM UsageSummary
+        WHERE AccountId = :accountId OR AssetId IN :assetIds
+    ];
+    remRatable = [
+        SELECT COUNT()
+        FROM UsageRatableSummary
+        WHERE AccountId = :accountId OR AssetId IN :assetIds
+    ];
+    remArce = [SELECT COUNT() FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId];
+    remJournals = [
+        SELECT COUNT()
+        FROM TransactionJournal
+        WHERE AccountId = :accountId AND UsageType = 'UsageManagement'
+    ];
 } else {
-    remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry];
-    remUbpi      = [SELECT COUNT() FROM UsageBillingPeriodItem];
+    remEntries = [SELECT COUNT() FROM UsageEntitlementEntry];
+    remUbpi = [SELECT COUNT() FROM UsageBillingPeriodItem];
     remSummaries = [SELECT COUNT() FROM UsageSummary];
-    remRatable   = [SELECT COUNT() FROM UsageRatableSummary];
-    remArce      = [SELECT COUNT() FROM AssetRateCardEntry];
-    remJournals  = [SELECT COUNT() FROM TransactionJournal WHERE UsageType = 'UsageManagement'];
+    remRatable = [SELECT COUNT() FROM UsageRatableSummary];
+    remArce = [SELECT COUNT() FROM AssetRateCardEntry];
+    remJournals = [SELECT COUNT() FROM TransactionJournal WHERE UsageType = 'UsageManagement'];
 }
 // arce is labelled "preserved" when the flag is off, so it is not read as an
 // outstanding row the rerun-until-zero check below must drive to zero.
-System.debug('CLEAR: remaining (' + (scoped ? 'account ' + ACCOUNT_NAME : 'org-wide')
-    + ') -- entries=' + remEntries + ' billingPeriodItems=' + remUbpi
-    + ' summaries=' + remSummaries + ' ratable=' + remRatable
-    + ' journals=' + remJournals
-    + ' | arce=' + remArce
-    + (DELETE_ASSET_RATE_CARD_ENTRIES ? '' : ' (preserved by design, not counted)'));
-System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100'
-    + ', DML rows used = ' + Limits.getDmlRows() + ' of ' + Limits.getLimitDmlRows());
+System.debug(
+    'CLEAR: remaining (' +
+        (scoped ? 'account ' + ACCOUNT_NAME : 'org-wide') +
+        ') -- entries=' +
+        remEntries +
+        ' billingPeriodItems=' +
+        remUbpi +
+        ' summaries=' +
+        remSummaries +
+        ' ratable=' +
+        remRatable +
+        ' journals=' +
+        remJournals +
+        ' | arce=' +
+        remArce +
+        (DELETE_ASSET_RATE_CARD_ENTRIES ? '' : ' (preserved by design, not counted)')
+);
+System.debug(
+    'CLEAR: SOQL used = ' +
+        (Limits.getQueries() - q0) +
+        ' of 100' +
+        ', DML rows used = ' +
+        Limits.getDmlRows() +
+        ' of ' +
+        Limits.getLimitDmlRows()
+);
 if (budgetSpent) {
-    System.debug('CLEAR: ⚠ STOPPED EARLY -- the transaction\'s DML row budget was spent. '
-        + 'Records remain (see the counts above). RE-RUN this script until every remaining '
-        + 'count reads 0'
-        + (DELETE_ASSET_RATE_CARD_ENTRIES ? '.' : ' (arce excluded -- preserved by design).'));
+    System.debug(
+        'CLEAR: ⚠ STOPPED EARLY -- the transaction\'s DML row budget was spent. ' +
+            'Records remain (see the counts above). RE-RUN this script until every remaining ' +
+            'count reads 0' +
+            (DELETE_ASSET_RATE_CARD_ENTRIES ? '.' : ' (arce excluded -- preserved by design).')
+    );
 }

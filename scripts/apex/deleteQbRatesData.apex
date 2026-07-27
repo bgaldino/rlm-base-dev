@@ -5,7 +5,9 @@
 // 1. Deactivate Active RateCardEntry (Active -> Inactive; platform allows only this transition)
 List<RateCardEntry> activeRces = [SELECT Id, Status FROM RateCardEntry WHERE Status = 'Active'];
 if (!activeRces.isEmpty()) {
-    for (RateCardEntry rce : activeRces) { rce.Status = 'Inactive'; }
+    for (RateCardEntry rce : activeRces) {
+        rce.Status = 'Inactive';
+    }
     update activeRces;
     System.debug('Deactivated ' + activeRces.size() + ' RateCardEntry records.');
 }

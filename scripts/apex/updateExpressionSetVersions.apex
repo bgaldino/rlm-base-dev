@@ -7,11 +7,15 @@
 */
 
 try {
-   	List<ExpressionSetVersion> esvs = [SELECT Id FROM ExpressionSetVersion WHERE Rank = null AND IsActive = false AND VersionNumber = 1];
+    List<ExpressionSetVersion> esvs = [
+        SELECT Id
+        FROM ExpressionSetVersion
+        WHERE Rank = NULL AND IsActive = FALSE AND VersionNumber = 1
+    ];
 
-    if(!esvs.isEmpty()) {
+    if (!esvs.isEmpty()) {
         List<ExpressionSetVersion> updatedEsvs = new List<ExpressionSetVersion>();
-        for(ExpressionSetVersion esv : esvs) {
+        for (ExpressionSetVersion esv : esvs) {
             esv.Rank = 1;
             esv.IsActive = true;
             updatedEsvs.add(esv);

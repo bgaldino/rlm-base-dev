@@ -61,7 +61,9 @@
 // Step 1: Activate UnitOfMeasureClass (safety net)
 List<UnitOfMeasureClass> uomcs = [SELECT Id, Status FROM UnitOfMeasureClass WHERE Status != 'Active'];
 if (!uomcs.isEmpty()) {
-    for (UnitOfMeasureClass uomc : uomcs) { uomc.Status = 'Active'; }
+    for (UnitOfMeasureClass uomc : uomcs) {
+        uomc.Status = 'Active';
+    }
     update uomcs;
     System.debug('Activated ' + uomcs.size() + ' UnitOfMeasureClass record(s).');
 } else {
@@ -71,7 +73,9 @@ if (!uomcs.isEmpty()) {
 // Step 2: Activate UsageResource (safety net)
 List<UsageResource> urs = [SELECT Id, Status FROM UsageResource WHERE Status != 'Active'];
 if (!urs.isEmpty()) {
-    for (UsageResource ur : urs) { ur.Status = 'Active'; }
+    for (UsageResource ur : urs) {
+        ur.Status = 'Active';
+    }
     update urs;
     System.debug('Activated ' + urs.size() + ' UsageResource record(s).');
 } else {
@@ -99,9 +103,9 @@ if (!urs.isEmpty()) {
 // purIdsWithChildren is built BEFORE the scan so child-bearing status can be used as a
 // survivor-selection criterion — ensuring the record we intend to keep is always the one
 // that survives and that the deletion filter and the scan agree on the same record.
-Set<String> candidatePairKeys    = new Set<String>();
-Set<Id>     candidateProductIds  = new Set<Id>();
-Set<Id>     candidateResourceIds = new Set<Id>();
+Set<String> candidatePairKeys = new Set<String>();
+Set<Id> candidateProductIds = new Set<Id>();
+Set<Id> candidateResourceIds = new Set<Id>();
 for (AggregateResult ar : [
     SELECT ProductId, UsageResourceId, COUNT(Id) cnt
     FROM ProductUsageResource
@@ -116,26 +120,30 @@ for (AggregateResult ar : [
     candidateResourceIds.add(rid);
 }
 if (candidatePairKeys.isEmpty()) {
-    System.debug('Step 2.5: no (Product, UsageResource) group has more than one Draft/Active PUR — nothing to deduplicate.');
+    System.debug(
+        'Step 2.5: no (Product, UsageResource) group has more than one Draft/Active PUR — nothing to deduplicate.'
+    );
 } else {
     Set<Id> purIdsWithChildren = new Set<Id>();
     for (AggregateResult ar : [
         SELECT ProductUsageResourceId purId
         FROM ProductUsageGrant
-        WHERE ProductUsageResource.ProductId IN :candidateProductIds
-        AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
+        WHERE
+            ProductUsageResource.ProductId IN :candidateProductIds
+            AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
         GROUP BY ProductUsageResourceId
     ]) {
-        purIdsWithChildren.add((Id)ar.get('purId'));
+        purIdsWithChildren.add((Id) ar.get('purId'));
     }
     for (AggregateResult ar : [
         SELECT ProductUsageResourceId purId
         FROM ProductUsageResourcePolicy
-        WHERE ProductUsageResource.ProductId IN :candidateProductIds
-        AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
+        WHERE
+            ProductUsageResource.ProductId IN :candidateProductIds
+            AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
         GROUP BY ProductUsageResourceId
     ]) {
-        purIdsWithChildren.add((Id)ar.get('purId'));
+        purIdsWithChildren.add((Id) ar.get('purId'));
     }
     // Broad SOQL filter (ProductId IN + UsageResourceId IN) bounds the row count to the
     // candidate scope. Apex post-filter on the exact composite pair key removes any
@@ -144,9 +152,10 @@ if (candidatePairKeys.isEmpty()) {
     for (ProductUsageResource pur : [
         SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
         FROM ProductUsageResource
-        WHERE Status IN ('Draft', 'Active')
-        AND ProductId IN :candidateProductIds
-        AND UsageResourceId IN :candidateResourceIds
+        WHERE
+            Status IN ('Draft', 'Active')
+            AND ProductId IN :candidateProductIds
+            AND UsageResourceId IN :candidateResourceIds
         ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
     ]) {
         if (candidatePairKeys.contains(pur.ProductId + ':' + pur.UsageResourceId)) {
@@ -159,24 +168,35 @@ if (candidatePairKeys.isEmpty()) {
     Datetime currentEnd = null;
     for (ProductUsageResource pur : allPurs) {
         // Start a new (ProductId, UsageResourceId) group, or initialise on the first record.
-        if (currentPur == null ||
+        if (
+            currentPur == null ||
             currentPur.ProductId != pur.ProductId ||
-            currentPur.UsageResourceId != pur.UsageResourceId) {
-            currentPur   = pur;
-            currentStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-            currentEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+            currentPur.UsageResourceId != pur.UsageResourceId
+        ) {
+            currentPur = pur;
+            currentStart = pur.EffectiveStartDate != null
+                ? (Datetime) pur.EffectiveStartDate
+                : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+            currentEnd = pur.EffectiveEndDate != null
+                ? (Datetime) pur.EffectiveEndDate
+                : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
             continue;
         }
         // Skip records already identified as duplicates.
-        if (duplicatePurIds.contains(pur.Id)) continue;
-        Datetime purStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-        Datetime purEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        if (duplicatePurIds.contains(pur.Id))
+            continue;
+        Datetime purStart = pur.EffectiveStartDate != null
+            ? (Datetime) pur.EffectiveStartDate
+            : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime purEnd = pur.EffectiveEndDate != null
+            ? (Datetime) pur.EffectiveEndDate
+            : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
         Boolean overlaps = (currentStart <= purEnd) && (currentEnd >= purStart);
         if (!overlaps) {
             // No overlap — this PUR starts a new non-overlapping period; it becomes the reference.
-            currentPur   = pur;
+            currentPur = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;
+            currentEnd = purEnd;
             continue;
         }
         // Overlapping PURs in the same group: decide which is the duplicate.
@@ -190,41 +210,45 @@ if (candidatePairKeys.isEmpty()) {
         if (currentPur.Status == 'Active' && pur.Status != 'Active') {
             duplicatePurIds.add(pur.Id);
             // Loser is pur (Draft). If it has children it stays in the org: widen window.
-            if (purIdsWithChildren.contains(pur.Id) && purEnd > currentEnd) currentEnd = purEnd;
+            if (purIdsWithChildren.contains(pur.Id) && purEnd > currentEnd)
+                currentEnd = purEnd;
         } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
-            Datetime loserEnd        = currentEnd;
-            Boolean  loserHasChildren = purIdsWithChildren.contains(currentPur.Id);
+            Datetime loserEnd = currentEnd;
+            Boolean loserHasChildren = purIdsWithChildren.contains(currentPur.Id);
             duplicatePurIds.add(currentPur.Id);
-            currentPur   = pur;
+            currentPur = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;
+            currentEnd = purEnd;
             // Loser is old currentPur (Draft). If it has children it stays: widen window.
-            if (loserHasChildren && loserEnd > currentEnd) currentEnd = loserEnd;
+            if (loserHasChildren && loserEnd > currentEnd)
+                currentEnd = loserEnd;
         } else if (purIdsWithChildren.contains(currentPur.Id) && !purIdsWithChildren.contains(pur.Id)) {
             duplicatePurIds.add(pur.Id);
             // Loser is pur (Draft, no children) — always deletable; no window expansion needed.
         } else if (purIdsWithChildren.contains(pur.Id) && !purIdsWithChildren.contains(currentPur.Id)) {
             Datetime loserEnd = currentEnd;
             duplicatePurIds.add(currentPur.Id);
-            currentPur   = pur;
+            currentPur = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;
+            currentEnd = purEnd;
             // Loser is old currentPur (Draft, no children) — always deletable; no window expansion.
         } else if (String.valueOf(currentPur.Id).compareTo(String.valueOf(pur.Id)) < 0) {
             // Lower Id wins — compare as strings for deterministic, universally safe ordering.
             // Both have the same status and child-bearing; loser is non-deletable iff Active or has children.
             duplicatePurIds.add(pur.Id);
             Boolean loserNonDeletable = (pur.Status == 'Active') || purIdsWithChildren.contains(pur.Id);
-            if (loserNonDeletable && purEnd > currentEnd) currentEnd = purEnd;
+            if (loserNonDeletable && purEnd > currentEnd)
+                currentEnd = purEnd;
         } else {
-            Datetime loserEnd         = currentEnd;
-            Boolean  loserNonDeletable = (currentPur.Status == 'Active') || purIdsWithChildren.contains(currentPur.Id);
+            Datetime loserEnd = currentEnd;
+            Boolean loserNonDeletable = (currentPur.Status == 'Active') || purIdsWithChildren.contains(currentPur.Id);
             duplicatePurIds.add(currentPur.Id);
-            currentPur   = pur;
+            currentPur = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;
+            currentEnd = purEnd;
             // Widen window if old survivor (loser) is non-deletable and had a wider range.
-            if (loserNonDeletable && loserEnd > currentEnd) currentEnd = loserEnd;
+            if (loserNonDeletable && loserEnd > currentEnd)
+                currentEnd = loserEnd;
         }
     }
     if (!duplicatePurIds.isEmpty()) {
@@ -241,24 +265,48 @@ if (candidatePairKeys.isEmpty()) {
         }
         if (!draftDuplicatePurIds.isEmpty()) {
             List<SObject> childrenToDelete = new List<SObject>();
-            childrenToDelete.addAll([SELECT Id FROM ProductUsageGrant         WHERE ProductUsageResourceId IN :draftDuplicatePurIds AND Status = 'Draft']);
-            childrenToDelete.addAll([SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResourceId IN :draftDuplicatePurIds]);
+            childrenToDelete.addAll(
+                [
+                    SELECT Id
+                    FROM ProductUsageGrant
+                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds AND Status = 'Draft'
+                ]
+            );
+            childrenToDelete.addAll(
+                [SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResourceId IN :draftDuplicatePurIds]
+            );
             if (!childrenToDelete.isEmpty()) {
                 Database.DeleteResult[] childResults = Database.delete(childrenToDelete, false);
                 Integer childDeleted = 0;
-                for (Database.DeleteResult r : childResults) { if (r.isSuccess()) childDeleted++; }
-                System.debug('Step 2.5a: cleared ' + childDeleted + '/' + childrenToDelete.size() +
-                    ' Draft child record(s) (PUG/PURP) of duplicate Draft PUR(s).');
+                for (Database.DeleteResult r : childResults) {
+                    if (r.isSuccess())
+                        childDeleted++;
+                }
+                System.debug(
+                    'Step 2.5a: cleared ' +
+                        childDeleted +
+                        '/' +
+                        childrenToDelete.size() +
+                        ' Draft child record(s) (PUG/PURP) of duplicate Draft PUR(s).'
+                );
                 // Refresh purIdsWithChildren for the affected PURs after child deletion
                 purIdsWithChildren.removeAll(draftDuplicatePurIds);
                 for (AggregateResult ar : [
-                    SELECT ProductUsageResourceId purId FROM ProductUsageGrant
-                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds GROUP BY ProductUsageResourceId
-                ]) { purIdsWithChildren.add((Id)ar.get('purId')); }
+                    SELECT ProductUsageResourceId purId
+                    FROM ProductUsageGrant
+                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds
+                    GROUP BY ProductUsageResourceId
+                ]) {
+                    purIdsWithChildren.add((Id) ar.get('purId'));
+                }
                 for (AggregateResult ar : [
-                    SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy
-                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds GROUP BY ProductUsageResourceId
-                ]) { purIdsWithChildren.add((Id)ar.get('purId')); }
+                    SELECT ProductUsageResourceId purId
+                    FROM ProductUsageResourcePolicy
+                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds
+                    GROUP BY ProductUsageResourceId
+                ]) {
+                    purIdsWithChildren.add((Id) ar.get('purId'));
+                }
             }
         }
 
@@ -276,16 +324,25 @@ if (candidatePairKeys.isEmpty()) {
                     deletedCount++;
                 } else {
                     for (Database.Error err : deleteResults[i].getErrors()) {
-                        System.debug(LoggingLevel.ERROR,
+                        System.debug(
+                            LoggingLevel.ERROR,
                             'Step 2.5: failed to delete duplicate Draft PUR ' +
-                            purToDelete[i].Id + ' (Status=' + purToDelete[i].Status + '): ' +
-                            err.getMessage()
+                                purToDelete[i].Id +
+                                ' (Status=' +
+                                purToDelete[i].Status +
+                                '): ' +
+                                err.getMessage()
                         );
                     }
                 }
             }
-            System.debug('Deleted ' + deletedCount + '/' + purToDelete.size() +
-                ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
+            System.debug(
+                'Deleted ' +
+                    deletedCount +
+                    '/' +
+                    purToDelete.size() +
+                    ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).'
+            );
             // Warn when cleanup is incomplete: some detected overlaps are non-deletable
             // (Active or Draft-with-children) or some delete attempts failed.
             // Activation may still fail with "effective period overlaps" until resolved manually.
@@ -295,10 +352,15 @@ if (candidatePairKeys.isEmpty()) {
                 System.debug(
                     LoggingLevel.WARN,
                     'Step 2.5: cleanup incomplete — ' +
-                    (nonDeletableCount > 0 ? nonDeletableCount + ' overlapping PUR(s) could not be attempted ' +
-                        '(Active or Draft with PUG/PURP children); ' : '') +
-                    (someDeletesFailed ? (purToDelete.size() - deletedCount) + ' delete attempt(s) failed (see ERROR logs); ' : '') +
-                    'manual review required — activation may still fail with "effective period overlaps".'
+                        (nonDeletableCount > 0
+                            ? nonDeletableCount +
+                              ' overlapping PUR(s) could not be attempted ' +
+                              '(Active or Draft with PUG/PURP children); '
+                            : '') +
+                        (someDeletesFailed
+                            ? (purToDelete.size() - deletedCount) + ' delete attempt(s) failed (see ERROR logs); '
+                            : '') +
+                        'manual review required — activation may still fail with "effective period overlaps".'
                 );
             }
         } else {
@@ -308,9 +370,11 @@ if (candidatePairKeys.isEmpty()) {
             // until these are resolved manually (deactivate or delete the overlapping PURs).
             System.debug(
                 LoggingLevel.WARN,
-                'Step 2.5: detected ' + duplicatePurIds.size() + ' overlapping PUR(s) by effective period ' +
-                'but none were auto-deleted (overlapping record(s) are Active, or Draft with PUG/PURP children). ' +
-                'Manual review required — activation may fail with "effective period overlaps".'
+                'Step 2.5: detected ' +
+                    duplicatePurIds.size() +
+                    ' overlapping PUR(s) by effective period ' +
+                    'but none were auto-deleted (overlapping record(s) are Active, or Draft with PUG/PURP children). ' +
+                    'Manual review required — activation may fail with "effective period overlaps".'
             );
         }
     }
@@ -324,10 +388,11 @@ if (candidatePairKeys.isEmpty()) {
 List<ProductUsageResource> needsTokenRes = [
     SELECT Id, TokenResourceId, UsageResource.TokenResourceId
     FROM ProductUsageResource
-    WHERE Status != 'Active'
-    AND TokenResourceId = null
-    AND UsageResource.Category != 'Token'
-    AND UsageResource.TokenResourceId != null
+    WHERE
+        Status != 'Active'
+        AND TokenResourceId = NULL
+        AND UsageResource.Category != 'Token'
+        AND UsageResource.TokenResourceId != NULL
 ];
 if (!needsTokenRes.isEmpty()) {
     for (ProductUsageResource pur : needsTokenRes) {
@@ -340,8 +405,10 @@ if (!needsTokenRes.isEmpty()) {
             successCount++;
         } else {
             for (Database.Error err : results[i].getErrors()) {
-                System.debug(LoggingLevel.ERROR, 'Failed to pre-populate TokenResourceId on PUR ' +
-                    needsTokenRes[i].Id + ': ' + err.getMessage());
+                System.debug(
+                    LoggingLevel.ERROR,
+                    'Failed to pre-populate TokenResourceId on PUR ' + needsTokenRes[i].Id + ': ' + err.getMessage()
+                );
             }
         }
     }
@@ -357,11 +424,12 @@ if (!needsTokenRes.isEmpty()) {
 List<ProductUsageResource> tokenPurs = [
     SELECT Id, Status
     FROM ProductUsageResource
-    WHERE Status != 'Active'
-    AND UsageResource.Category = 'Token'
+    WHERE Status != 'Active' AND UsageResource.Category = 'Token'
 ];
 if (!tokenPurs.isEmpty()) {
-    for (ProductUsageResource pur : tokenPurs) { pur.Status = 'Active'; }
+    for (ProductUsageResource pur : tokenPurs) {
+        pur.Status = 'Active';
+    }
     update tokenPurs;
     System.debug('Activated ' + tokenPurs.size() + ' Token PUR(s).');
 } else {
@@ -375,8 +443,7 @@ if (!tokenPurs.isEmpty()) {
 List<ProductUsageResource> nonTokenPurs = [
     SELECT Id, Status, TokenResourceId
     FROM ProductUsageResource
-    WHERE Status != 'Active'
-    AND UsageResource.Category != 'Token'
+    WHERE Status != 'Active' AND UsageResource.Category != 'Token'
 ];
 if (!nonTokenPurs.isEmpty()) {
     for (ProductUsageResource pur : nonTokenPurs) {
@@ -390,8 +457,10 @@ if (!nonTokenPurs.isEmpty()) {
             successCount++;
         } else {
             for (Database.Error err : results[i].getErrors()) {
-                System.debug(LoggingLevel.ERROR, 'Failed to activate PUR ' +
-                    nonTokenPurs[i].Id + ': ' + err.getMessage());
+                System.debug(
+                    LoggingLevel.ERROR,
+                    'Failed to activate PUR ' + nonTokenPurs[i].Id + ': ' + err.getMessage()
+                );
             }
         }
     }
@@ -403,7 +472,9 @@ if (!nonTokenPurs.isEmpty()) {
 // Step 6: Activate ProductUsageGrant
 List<ProductUsageGrant> pugs = [SELECT Id, Status FROM ProductUsageGrant WHERE Status != 'Active'];
 if (!pugs.isEmpty()) {
-    for (ProductUsageGrant pug : pugs) { pug.Status = 'Active'; }
+    for (ProductUsageGrant pug : pugs) {
+        pug.Status = 'Active';
+    }
     List<Database.SaveResult> results = Database.update(pugs, false);
     Integer successCount = 0;
     for (Integer i = 0; i < results.size(); i++) {
@@ -411,8 +482,7 @@ if (!pugs.isEmpty()) {
             successCount++;
         } else {
             for (Database.Error err : results[i].getErrors()) {
-                System.debug(LoggingLevel.ERROR, 'Failed to activate PUG ' +
-                    pugs[i].Id + ': ' + err.getMessage());
+                System.debug(LoggingLevel.ERROR, 'Failed to activate PUG ' + pugs[i].Id + ': ' + err.getMessage());
             }
         }
     }

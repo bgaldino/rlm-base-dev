@@ -34,11 +34,7 @@ List<BillingPolicy> pols = [
 ];
 BillingPolicy pol = pols.isEmpty() ? null : pols[0];
 if (pol == null) {
-    pol = new BillingPolicy(
-        Name = POLICY_NAME,
-        Status = 'Draft',
-        BillingTreatmentSelection = 'Default'
-    );
+    pol = new BillingPolicy(Name = POLICY_NAME, Status = 'Draft', BillingTreatmentSelection = 'Default');
     insert pol;
 }
 
@@ -50,7 +46,8 @@ if (pol == null) {
 //    config. A same-named treatment outside this policy is left untouched; we create
 //    our own under POLICY_NAME.
 List<BillingTreatment> existing = [
-    SELECT Id, Status FROM BillingTreatment
+    SELECT Id, Status
+    FROM BillingTreatment
     WHERE Name = :TREATMENT_NAME AND ExcludeFromBilling = 'Yes' AND BillingPolicyId = :pol.Id
     LIMIT 1
 ];

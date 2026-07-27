@@ -9,9 +9,9 @@
 // Collect all Reference-type conditions dynamically
 List<SObject> conditions = Database.query(
     'SELECT Id, FilterField, FilterValue ' +
-    'FROM SeqPolicySelectionCondition ' +
-    'WHERE FilterFieldType = \'Reference\' ' +
-    'AND FilterValue != null'
+        'FROM SeqPolicySelectionCondition ' +
+        'WHERE FilterFieldType = \'Reference\' ' +
+        'AND FilterValue != null'
 );
 
 if (conditions.isEmpty()) {
@@ -47,7 +47,10 @@ for (String objectType : byObjectType.keySet()) {
             idByName.put((String) obj.get('Name'), (Id) obj.get('Id'));
         }
     } catch (Exception e) {
-        System.debug(LoggingLevel.ERROR, 'resolveSeqPolicyConditionRefs: failed to query ' + objectType + ': ' + e.getMessage());
+        System.debug(
+            LoggingLevel.ERROR,
+            'resolveSeqPolicyConditionRefs: failed to query ' + objectType + ': ' + e.getMessage()
+        );
         continue;
     }
 
@@ -58,7 +61,10 @@ for (String objectType : byObjectType.keySet()) {
             c.put('FilterValue', resolvedId);
             toUpdate.add(c);
         } else {
-            System.debug(LoggingLevel.WARN, 'resolveSeqPolicyConditionRefs: no ' + objectType + ' found with Name = "' + currentValue + '"');
+            System.debug(
+                LoggingLevel.WARN,
+                'resolveSeqPolicyConditionRefs: no ' + objectType + ' found with Name = "' + currentValue + '"'
+            );
         }
     }
 }

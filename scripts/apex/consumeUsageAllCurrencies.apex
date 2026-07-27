@@ -22,10 +22,11 @@
 //     sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>
 // then re-run this. (Re-running is NOT merely additive.)
 
-public class UsageConsumeException extends Exception {}
+public class UsageConsumeException extends Exception {
+}
 
-final Decimal COMPUTE_MINUTES = 500;   // UR-CPUTIME  -- crosses QB-DB's 300+ override tier
-final Decimal STORAGE_TB = 20;         // UR-DATASTORAGE
+final Decimal COMPUTE_MINUTES = 500; // UR-CPUTIME  -- crosses QB-DB's 300+ override tier
+final Decimal STORAGE_TB = 20; // UR-DATASTORAGE
 final String ORCHESTRATION_FLOW = 'RLM_OrchestrateUsageManagement';
 
 // MUST be a date inside a PAST, COMPLETED billing period. Drawdown and final
@@ -38,9 +39,7 @@ final Date USAGE_DATE = Date.newInstance(2026, 6, 15);
 // The seven currencies this test claims to cover. Checked explicitly: a
 // non-empty result is NOT proof of coverage -- a single USD asset would
 // otherwise let the run report success while exercising one currency.
-final Set<String> EXPECTED_CURRENCIES = new Set<String>{
-    'USD', 'GBP', 'EUR', 'AUD', 'CAD', 'CHF', 'JPY'
-};
+final Set<String> EXPECTED_CURRENCIES = new Set<String>{ 'USD', 'GBP', 'EUR', 'AUD', 'CAD', 'CHF', 'JPY' };
 
 Map<String, Decimal> qtyByResource = new Map<String, Decimal>{
     'UR-CPUTIME' => COMPUTE_MINUTES,
@@ -58,8 +57,8 @@ if (assets.isEmpty()) {
     // context -- from anonymous Apex it fails with a confusing platform
     // error instead of this message.
     throw new UsageConsumeException(
-        'No QB-DB asset exists. Build the regional assets first with '
-        + 'scripts/build_quote_to_asset.py.');
+        'No QB-DB asset exists. Build the regional assets first with ' + 'scripts/build_quote_to_asset.py.'
+    );
 }
 
 Set<String> foundCurrencies = new Set<String>();
@@ -70,10 +69,13 @@ Set<String> missingCurrencies = new Set<String>(EXPECTED_CURRENCIES);
 missingCurrencies.removeAll(foundCurrencies);
 if (!missingCurrencies.isEmpty()) {
     throw new IllegalArgumentException(
-        'consumeUsageAllCurrencies covers ' + EXPECTED_CURRENCIES.size()
-        + ' currencies but no QB-DB asset exists for: ' + missingCurrencies
-        + '. Build the missing regional asset(s) first -- running against a subset'
-        + ' would report success without exercising those currencies.');
+        'consumeUsageAllCurrencies covers ' +
+            EXPECTED_CURRENCIES.size() +
+            ' currencies but no QB-DB asset exists for: ' +
+            missingCurrencies +
+            '. Build the missing regional asset(s) first -- running against a subset' +
+            ' would report success without exercising those currencies.'
+    );
 }
 
 Integer uploaded = 0;
@@ -86,22 +88,21 @@ List<String> failures = new List<String>();
 // dies on the 100-query governor limit.
 Map<String, Id> resourceIdByCode = new Map<String, Id>();
 for (ProductUsageResource pur : [
-        SELECT UsageResourceId, UsageResource.Code
-        FROM ProductUsageResource
-        WHERE Product.StockKeepingUnit = 'QB-DB'
-          AND UsageResource.Code IN :qtyByResource.keySet()
-          AND Status = 'Active']) {
+    SELECT UsageResourceId, UsageResource.Code
+    FROM ProductUsageResource
+    WHERE Product.StockKeepingUnit = 'QB-DB' AND UsageResource.Code IN :qtyByResource.keySet() AND Status = 'Active'
+]) {
     resourceIdByCode.put(pur.UsageResource.Code, pur.UsageResourceId);
 }
 
 for (Asset a : assets) {
     // Resolve this asset's usage resources through the same controller the UI uses,
     // so an unrated or mis-mapped resource surfaces here rather than silently.
-    List<RLM_UsageUploaderController.UsageResourceWrapper> resources =
-        RLM_UsageUploaderController.getUsageResourcesForAsset(a.Id);
+    List<RLM_UsageUploaderController.UsageResourceWrapper> resources = RLM_UsageUploaderController.getUsageResourcesForAsset(
+        a.Id
+    );
 
-    List<RLM_UsageUploaderController.UsageEntry> entries =
-        new List<RLM_UsageUploaderController.UsageEntry>();
+    List<RLM_UsageUploaderController.UsageEntry> entries = new List<RLM_UsageUploaderController.UsageEntry>();
 
     for (RLM_UsageUploaderController.UsageResourceWrapper w : resources) {
         Decimal qty = qtyByResource.get(w.resourceName);
@@ -125,7 +126,9 @@ for (Asset a : assets) {
         entries.clear();
         for (String code : qtyByResource.keySet()) {
             Id resourceId = resourceIdByCode.get(code);
-            if (resourceId == null) { continue; }
+            if (resourceId == null) {
+                continue;
+            }
             RLM_UsageUploaderController.UsageEntry e = new RLM_UsageUploaderController.UsageEntry();
             e.usageResourceId = resourceId;
             e.usageResourceName = code;
@@ -138,37 +141,65 @@ for (Asset a : assets) {
     // Require the full declared set. Anything less is a partial consume, and the
     // whole point of this script is that every currency records identical usage.
     if (entries.size() != qtyByResource.size()) {
-        failures.add(a.CurrencyIsoCode + ': resolved ' + entries.size() + ' of '
-            + qtyByResource.size() + ' required usage resources ('
-            + qtyByResource.keySet() + ') -- check for an inactive or missing '
-            + 'ProductUsageResource on QB-DB');
+        failures.add(
+            a.CurrencyIsoCode +
+                ': resolved ' +
+                entries.size() +
+                ' of ' +
+                qtyByResource.size() +
+                ' required usage resources (' +
+                qtyByResource.keySet() +
+                ') -- check for an inactive or missing ' +
+                'ProductUsageResource on QB-DB'
+        );
         continue;
     }
 
-    RLM_UsageUploaderController.BulkUploadResult res =
-        RLM_UsageUploaderController.bulkUploadUsage(a.Id, entries);
+    RLM_UsageUploaderController.BulkUploadResult res = RLM_UsageUploaderController.bulkUploadUsage(a.Id, entries);
     uploaded += res.successCount;
     if (res.errorCount > 0) {
         failures.add(a.CurrencyIsoCode + ': ' + String.join(res.errors, '; '));
     }
-    System.debug('CONSUME: ' + a.CurrencyIsoCode + ' (' + a.Account.Name + ') -> '
-        + res.successCount + ' journal(s), ' + res.errorCount + ' error(s)');
+    System.debug(
+        'CONSUME: ' +
+            a.CurrencyIsoCode +
+            ' (' +
+            a.Account.Name +
+            ') -> ' +
+            res.successCount +
+            ' journal(s), ' +
+            res.errorCount +
+            ' error(s)'
+    );
 }
 
 // Report the distinct currencies actually exercised, not the asset count: two
 // assets in the same currency are not two currencies covered.
-System.debug('CONSUME: uploaded ' + uploaded + ' journal(s) across '
-    + foundCurrencies.size() + ' currenc' + (foundCurrencies.size() == 1 ? 'y' : 'ies')
-    + ' (' + foundCurrencies + ') over ' + assets.size() + ' asset(s).');
+System.debug(
+    'CONSUME: uploaded ' +
+        uploaded +
+        ' journal(s) across ' +
+        foundCurrencies.size() +
+        ' currenc' +
+        (foundCurrencies.size() == 1 ? 'y' : 'ies') +
+        ' (' +
+        foundCurrencies +
+        ') over ' +
+        assets.size() +
+        ' asset(s).'
+);
 // Fail BEFORE orchestration. Rating incomplete data and exiting successfully would
 // send the user to validateRatedUsage.apex against a partial consume, where the
 // missing currency looks like a rating defect rather than a consume that never ran.
 if (!failures.isEmpty()) {
     throw new UsageConsumeException(
-        'consumeUsageAllCurrencies: ' + failures.size() + ' asset(s) failed to record usage -- '
-        + String.join(failures, ' | ')
-        + '. Orchestration NOT started; fix these and re-run, otherwise the rating '
-        + 'results would be validated against an incomplete consume.');
+        'consumeUsageAllCurrencies: ' +
+            failures.size() +
+            ' asset(s) failed to record usage -- ' +
+            String.join(failures, ' | ') +
+            '. Orchestration NOT started; fix these and re-run, otherwise the rating ' +
+            'results would be validated against an incomplete consume.'
+    );
 }
 
 // Kick off the rating/drawdown orchestration. Asynchronous: give it time to

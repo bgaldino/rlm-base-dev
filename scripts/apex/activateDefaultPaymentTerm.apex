@@ -1,6 +1,10 @@
 // Step 1: Set IsDefault and activate the Default Payment Term.
 // The default must be marked before other PaymentTerms can be activated.
-List<PaymentTerm> defaultTerms = [SELECT Id, Name, IsDefault, Status FROM PaymentTerm WHERE Name = 'Default Payment Term' AND Status != 'Active'];
+List<PaymentTerm> defaultTerms = [
+    SELECT Id, Name, IsDefault, Status
+    FROM PaymentTerm
+    WHERE Name = 'Default Payment Term' AND Status != 'Active'
+];
 if (!defaultTerms.isEmpty()) {
     for (PaymentTerm pt : defaultTerms) {
         pt.IsDefault = true;

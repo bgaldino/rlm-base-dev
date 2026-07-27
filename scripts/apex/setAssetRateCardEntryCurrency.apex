@@ -30,21 +30,21 @@
 // reports 0 corrected. (`!= 'USD'` also excludes null-currency assets in SOQL.)
 List<AssetRateCardEntry> toFix = new List<AssetRateCardEntry>();
 for (AssetRateCardEntry arce : [
-        SELECT Id, CurrencyIsoCode, Asset.CurrencyIsoCode
-        FROM AssetRateCardEntry
-        WHERE AssetId != null
-          AND CurrencyIsoCode = 'USD'
-          AND Asset.CurrencyIsoCode != 'USD'
-        LIMIT 10000]) {
-    toFix.add(new AssetRateCardEntry(
-        Id = arce.Id,
-        CurrencyIsoCode = arce.Asset.CurrencyIsoCode));
+    SELECT Id, CurrencyIsoCode, Asset.CurrencyIsoCode
+    FROM AssetRateCardEntry
+    WHERE AssetId != NULL AND CurrencyIsoCode = 'USD' AND Asset.CurrencyIsoCode != 'USD'
+    LIMIT 10000
+]) {
+    toFix.add(new AssetRateCardEntry(Id = arce.Id, CurrencyIsoCode = arce.Asset.CurrencyIsoCode));
 }
 if (!toFix.isEmpty()) {
     update toFix;
-    System.debug('setAssetRateCardEntryCurrency: corrected ' + toFix.size()
-        + ' AssetRateCardEntry record(s) to their parent Asset currency'
-        + (toFix.size() == 10000 ? ' (batch cap reached — rerun to correct any remaining).' : '.'));
+    System.debug(
+        'setAssetRateCardEntryCurrency: corrected ' +
+            toFix.size() +
+            ' AssetRateCardEntry record(s) to their parent Asset currency' +
+            (toFix.size() == 10000 ? ' (batch cap reached — rerun to correct any remaining).' : '.')
+    );
 } else {
     System.debug('setAssetRateCardEntryCurrency: no mismatched records — nothing to do.');
 }

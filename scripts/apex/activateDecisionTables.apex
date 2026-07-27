@@ -7,7 +7,7 @@ if (!decisionTables.isEmpty()) {
     for (DecisionTable dt : decisionTables) {
         dt.Status = 'Active';
     }
-    
+
     // Perform the update DML operation
     update decisionTables;
 

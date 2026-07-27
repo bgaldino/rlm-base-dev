@@ -11,7 +11,7 @@ String ruleApiName = 'DRO';
 try {
     List<RuleLibrary> rules = [SELECT Id FROM RuleLibrary WHERE ApiName = :ruleApiName LIMIT 1];
 
-    if(rules.isEmpty()) {
+    if (rules.isEmpty()) {
         RuleLibrary rule = new RuleLibrary();
         rule.Name = 'DRO';
         rule.ApiName = 'DRO';

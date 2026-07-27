@@ -3,7 +3,7 @@ String libraryApiName = 'DocgenDocumentTemplateLibrary';
 try {
     List<ContentWorkspace> libraries = [SELECT Id FROM ContentWorkspace WHERE DeveloperName = :libraryApiName LIMIT 1];
 
-    if(libraries.isEmpty()) {
+    if (libraries.isEmpty()) {
         ContentWorkspace library = new ContentWorkspace();
         library.Name = 'Docgen Document Template Library';
         library.DeveloperName = libraryApiName;
