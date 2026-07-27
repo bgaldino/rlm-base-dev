@@ -140,13 +140,15 @@ print("\n[1b] only the sanctioned fallback bypasses the pinned client")
 _manage_src = (REPO / "tasks" / "rlm_manage_decision_tables.py").read_text()
 _unpinned_uses = _manage_src.count("self.org_config.salesforce_client")
 
-# ⚠ A comment asking a future author to use self._sf is advisory; this makes it checkable.
-# The one sanctioned use of the unpinned client is the LOGGED fallback inside
-# _pinned_salesforce_client. A second occurrence means an operation was added that bypasses
-# the pin — and it would work perfectly until an org is upgraded ahead of the project,
-# which is exactly when nobody is looking at this file.
+# ⚠ A TRIPWIRE, not a proof — scope the claim honestly. This counts one literal spelling, so
+# it catches the single most probable regression (pasting `sf = self.org_config.salesforce_client`
+# into a new operation, which is exactly how the round-2 defect arose) and nothing else.
+# `getattr(self.org_config, "salesforce_client")`, binding `oc = self.org_config` first, or
+# constructing Salesforce(...) inline all bypass it silently — measured. Real enforcement is an
+# AST walk; this is the cheap 90%. The one sanctioned use is the LOGGED fallback inside
+# _pinned_salesforce_client.
 check(
-    "only the pinned fallback touches org_config.salesforce_client",
+    "only the pinned fallback spells out org_config.salesforce_client",
     _unpinned_uses == 1,
     f"found {_unpinned_uses} uses, expected 1",
 )
@@ -206,21 +208,40 @@ class _SilentLogger:
 
 
 class _CapturingLogger:
-    """Records what a task told the operator, per level."""
+    """
+    Records what a task told the operator, per level.
+
+    ⚠ Interpolate %-style args. Both task modules mix f-strings with lazy
+    `logger.info("  %s (%d): %s", ut, len(dts), ...)` formatting, and capturing only the
+    template would silently drop every value — a check on the rendered text would then be
+    asserting against `%s` placeholders and passing for the wrong reason.
+    """
 
     def __init__(self):
         self.infos = []
         self.warnings = []
         self.errors = []
+        self.debugs = []
+
+    @staticmethod
+    def _render(msg, args):
+        text = str(msg)
+        try:
+            return text % args if args else text
+        except (TypeError, ValueError):
+            return text
 
     def info(self, msg, *a, **k):
-        self.infos.append(str(msg))
+        self.infos.append(self._render(msg, a))
 
     def warning(self, msg, *a, **k):
-        self.warnings.append(str(msg))
+        self.warnings.append(self._render(msg, a))
 
     def error(self, msg, *a, **k):
-        self.errors.append(str(msg))
+        self.errors.append(self._render(msg, a))
+
+    def debug(self, msg, *a, **k):
+        self.debugs.append(self._render(msg, a))
 
 
 class _Recorder:
@@ -299,6 +320,11 @@ STATUS_CASES = [
     ({"isSuccess": True, "outputValues": {}}, False, "missing Status"),
     ({"isSuccess": True}, False, "missing outputValues"),
     ({"isSuccess": False, "errors": [{"message": "nope"}]}, False, "isSuccess False"),
+    # ⚠ A failure carrying NO details. Every other negative case leaves a second error line
+    # behind (the per-error loop), which masks the build path's generic failure line: downgrade
+    # that line to a warning and those cases still see an error and stay green. This shape has
+    # nothing else to log, so it is the only case that holds the generic line in place.
+    ({"isSuccess": False}, False, "isSuccess False, no error details"),
 ]
 
 QUEUE_FAILURE_MESSAGE = "Failed to queue a refresh"
@@ -330,15 +356,22 @@ def manage_counts_success(response):
         return False
 
 
-def refresh_errors_for(response):
+def refresh_logs_for(response):
     """
     Drive the BUILD PATH gate — RefreshDecisionTable._refresh_decision_table — and return
-    the error lines it logged.
+    everything it told the operator.
 
     That method deliberately does not raise (exit-0 behaviour is coupled to the
-    unconditional default-pricing flow step; see todo pack 049), so acceptance is
-    observable only as the ABSENCE of an error log. Asserting on that rather than on
-    wording keeps the check alive when the message is reworded.
+    unconditional default-pricing flow step; see todo pack 049), so the verdict is
+    observable only through the log. Asserting on error PRESENCE rather than on wording
+    keeps the verdict check alive when the message is reworded — which this branch has now
+    done twice.
+
+    ⚠ Returns the whole logger, not just `errors`. An earlier version returned the error
+    list alone, so the success path was never asserted at all: deleting the queued
+    `logger.info` outright broke ZERO checks, and every refresh_dt_* step of every build
+    would have run in total silence with the suite still green. Capturing a field and never
+    reading it is not coverage.
     """
     task = object.__new__(RefreshDecisionTable)
     logger = _CapturingLogger()
@@ -346,7 +379,7 @@ def refresh_errors_for(response):
     task._build_url_and_headers = lambda endpoint: ("https://example.invalid/x", {})
     task._make_request = lambda method, url, **kwargs: response
     RefreshDecisionTable._refresh_decision_table(task, "A_Table", False)
-    return logger.errors
+    return logger
 
 
 for response, should_queue, label in STATUS_CASES:
@@ -361,8 +394,17 @@ for response, should_queue, label in STATUS_CASES:
 
     refresh_label = f"RefreshDecisionTable treats {label} as {verdict}"
     try:
-        errors = refresh_errors_for(response)
-        check(refresh_label, (not errors) is should_queue, f"errors={errors}")
+        logs = refresh_logs_for(response)
+        check(refresh_label, (not logs.errors) is should_queue, f"errors={logs.errors}")
+        # ⚠ Assert the ANNOUNCEMENT too, not just the verdict. Silence is indistinguishable
+        # from acceptance if only errors are read, and this line is the entire deliverable of
+        # the async-honesty work — it prints for every table of every build.
+        if should_queue:
+            check(
+                f"RefreshDecisionTable announces the queue for {label}",
+                any("Refresh queued" in m for m in logs.infos),
+                str(logs.infos),
+            )
     except Exception as exc:
         check(refresh_label, False, f"unexpected {type(exc).__name__}: {exc}")
 
@@ -370,11 +412,22 @@ for response, should_queue, label in STATUS_CASES:
 # `or 'Unknown'` placed before .strip() never fires and the operator message renders a
 # blank where the status belongs — at the exact moment the gate is trying to explain
 # itself. Both classes normalise identically; this pins the rendering, not just the verdict.
-blank_status_errors = refresh_errors_for({"isSuccess": True, "outputValues": {"Status": "   "}})
+blank_status_errors = refresh_logs_for({"isSuccess": True, "outputValues": {"Status": "   "}}).errors
 check(
     "a whitespace-only Status renders as Unknown, not blank",
     bool(blank_status_errors) and "Unknown" in blank_status_errors[0],
     str(blank_status_errors),
+)
+
+# ⚠ The two classes carry SEPARATE copies of the async guidance, and "the build path and the
+# manual path said different things" was round 2's top finding. A comment saying they must not
+# drift is prose; this holds them. Byte-identical clause, asserted in both sources.
+ASYNC_GUIDANCE = "AFTER the job completes — a queued refresh has not yet advanced"
+_refresh_src = (REPO / "tasks" / "rlm_refresh_decision_table.py").read_text()
+check(
+    "both classes give byte-identical async guidance",
+    ASYNC_GUIDANCE in _manage_src and ASYNC_GUIDANCE in _refresh_src,
+    f"manage={ASYNC_GUIDANCE in _manage_src} refresh={ASYNC_GUIDANCE in _refresh_src}",
 )
 
 # ---------------------------------------------------------------------------
@@ -497,16 +550,29 @@ else:
 #
 # ⚠ Scanned across EVERY flow, not just this one. The marginal cost is one extra loop and
 # widening it is what found the psg_debug defect below on the first run.
-ALLOWED_NAMESPACES = {"org_config"}  # CCI-defined (org_type, scratch); not project-declared
+# ⚠ Validate the COMPLETE org_config reference, not just the namespace. Allowlisting
+# `org_config` wholesale lets `org_config.scrtch` through — and CCI's OrgConfig resolves an
+# unknown attribute to None rather than raising, so under Jinja2 that typo is falsy and the
+# guarded step is silently skipped. That is bit-for-bit the defect class this check exists to
+# catch, just in the other namespace. Verified live 2026-07-27: `org_config.scrtch` -> None.
+# CumulusCI puts exactly two names in the when: context (flowrunner.py:511-513), and these are
+# the only org_config attributes the repo uses; a static set needs no CumulusCI import, so the
+# offline suite stays offline.
+ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 
 # ⚠ PRE-EXISTING on main, not introduced by this branch. `psg_debug` is referenced by two
-# steps of assign_feature_permission_sets and is absent from project.custom, so both
-# evaluate `<flag> and Undefined` -> False in every org and have never run. Listed here so
-# this check can be enforced NOW rather than after that question is settled — and so the
-# defect cannot be quietly forgotten. Tracked as issue #331. Removing the name from this
-# set is the verification that the issue is fixed: with it gone, this check fails until the
-# flag is declared or the steps are deleted. Any NEW undeclared flag already fails today.
-KNOWN_UNDECLARED = {"psg_debug"}
+# steps of assign_feature_permission_sets and is absent from project.custom, so both evaluate
+# `<flag> and Undefined` -> False in every org and have never run. Allowlisted so this check
+# ships ENFORCED rather than blocked on an undecided question. Tracked as issue #331.
+#
+# ⚠ Scoped to (flow, step, flag), NOT to the bare name. A name-scoped allowlist forgives the
+# flag in all 198 clauses across 46 flows — measured: re-gating refresh_dt_prm_pricing onto
+# psg_debug, which would silently stop that step running in any org, broke zero checks. These
+# two sites are forgiven; a third reference anywhere is a failure.
+KNOWN_UNDECLARED = {
+    ("assign_feature_permission_sets", 1, "psg_debug"),
+    ("assign_feature_permission_sets", 4, "psg_debug"),
+}
 
 bad_refs = {}
 for flow_name, flow in (cci.get("flows") or {}).items():
@@ -515,21 +581,29 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         if not expr:
             continue
         for namespace, attribute in re.findall(r"(\w+)\.(\w+)", expr):
-            if namespace in ALLOWED_NAMESPACES:
-                continue
-            flag = (
-                attribute[len("project__custom__"):]
-                if attribute.startswith("project__custom__")
-                else None
-            )
-            if flag in declared_flags or flag in KNOWN_UNDECLARED:
-                continue
-            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(f"{namespace}.{attribute}")
+            reference = f"{namespace}.{attribute}"
+            if namespace == "org_config":
+                if reference in ALLOWED_ORG_CONFIG_REFS:
+                    continue
+            elif attribute.startswith("project__custom__"):
+                flag = attribute[len("project__custom__"):]
+                if flag in declared_flags or (flow_name, key, flag) in KNOWN_UNDECLARED:
+                    continue
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(reference)
 
 check(
-    f"every when: across all {len(cci.get('flows') or {})} flows references only declared flags",
+    f"every when: across all {len(cci.get('flows') or {})} flows resolves to a real name",
     not bad_refs,
     f"bad references: {bad_refs}",
+)
+
+# ⚠ The removal contract has to be enforced in both directions. If issue #331 is closed by
+# DECLARING psg_debug, the `flag in declared_flags` branch short-circuits first, this allowlist
+# becomes dead code, and nothing ever says so. Measured: that edit broke zero checks.
+check(
+    "KNOWN_UNDECLARED holds no flag that is now declared — delete the entry",
+    {flag for _, _, flag in KNOWN_UNDECLARED}.isdisjoint(declared_flags),
+    str({flag for _, _, flag in KNOWN_UNDECLARED} & declared_flags),
 )
 
 # ---------------------------------------------------------------------------
