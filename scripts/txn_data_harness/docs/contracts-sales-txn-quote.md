@@ -537,9 +537,9 @@ WHERE ProductId IN (…)
 - **Override path (`usage.unit_of_measure` in the YAML):** when a scenario
   pins a UoM code, resolve it via `SELECT Id FROM UnitOfMeasure WHERE
   UnitCode = :code AND UnitOfMeasureClassId = :binding.uom_class_id AND
-  Status = 'Active'`. The class-id constraint mirrors
-  `RLM_UsageUploaderController.cls:240` — a UoM is only valid against the
-  resource if it shares the resource's class.
+  Status = 'Active'`. The class-id constraint mirrors the UoM lookup in
+  `RLM_UsageUploaderController.uploadUsage()` — a UoM is only valid against
+  the resource if it shares the resource's class.
 
 ### 4d. Asset attribution — ✅ VERIFIED LIVE R262 (deterministic via AssetActionSource)
 
