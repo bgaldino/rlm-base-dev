@@ -1,0 +1,405 @@
+# Defect-class registry
+#
+# Every defect class found on a PR becomes a grep-able rule here, so it can never
+# silently recur. This is what turns "sweep the class" from a judgement call into a
+# deterministic check — the judgement is what failed nine times on PR #317.
+#
+# Consumed by scripts/ai/defect_scan.py (and, later, the Tier E stage of
+# scripts/ai/pre_push_audit.py — see todo 080).
+#
+# ---------------------------------------------------------------------------
+# SCOPE BOUNDARY — what does NOT belong here
+# ---------------------------------------------------------------------------
+# This registry holds classes learned from real review findings. It deliberately
+# does NOT duplicate:
+#   * AGENTS.md "DO NOT" guards        -> gate Tier B
+#   * .cursor/rules/*.mdc rules        -> gate Tier C
+#   * the doc-consistency change map   -> gate Tier D
+# Keep those in their own tiers so a rule has exactly one home.
+#
+# ---------------------------------------------------------------------------
+# SCHEMA
+# ---------------------------------------------------------------------------
+# id            kebab-case, stable. Cited in review replies and commit messages.
+# description   one line: what the defect IS, not how to find it.
+# source        where the class was learned (PR + the rounds it recurred in).
+# severity      blocker | important | minor  (REVIEW.md rubric)
+# detection     how the scanner treats matches:
+#                 mechanical    - ANY match is a failure unless allow-listed.
+#                                 Use only when the pattern is precise.
+#                 baseline      - current matches are PINNED in allow_list.
+#                                 A NEW match fails. This is how a heuristic
+#                                 becomes enforceable: you cannot add instance
+#                                 N+1 without adjudicating it.
+#                 review-prompt - not reliably greppable. Emits a REQUIRED
+#                                 checklist item when paths change; the gate
+#                                 fails if unacknowledged. Never silently skipped.
+# paths         glob(s) the class applies to. The scanner walks the WHOLE matching
+#               surface, not just changed hunks — PR #317's round-9 misses were in
+#               files the change never touched.
+# patterns      Python re syntax, applied per line unless multiline: true.
+# allow_list    known-good matches. EVERY entry needs a reason. An allow_list entry
+#               without a reason is itself a finding.
+# remediation   what the author should actually do. A gate that fails without
+#               telling you the fix gets bypassed with --no-verify.
+#
+# ---------------------------------------------------------------------------
+
+version: 1
+
+classes:
+  # =========================================================================
+  # Learned from PR #317 (refresh-dt-preview-no-forward-button), 9 rounds.
+  # =========================================================================
+
+  - id: raw-debug-in-user-output
+    description: >
+      Raw serialized data (JSON.stringify, char codes, stack text) reaching a
+      user-facing surface — toast, banner, tile, tooltip.
+    source: "PR #317 round 9"
+    severity: important
+    detection: mechanical
+    paths:
+      - "force-app/**/lwc/**/*.js"
+      - "unpackaged/**/lwc/**/*.js"
+    patterns:
+      # a serializer feeding something named like user-facing text
+      - '(?:message|title|label|banner|toast|subtitle|note|detail|summary)\w*\s*[:=][^;\n]*JSON\.stringify'
+      # …or a serializer inside a toast dispatch
+      - 'ShowToastEvent\([^)]*JSON\.stringify'
+      - 'charCodeAt\([^)]*\)[^;\n]*(?:message|label|title)'
+    allow_list: []
+    remediation: >
+      Render a human sentence. If the raw payload is genuinely needed for support,
+      log it to console and surface a short scoped message. See
+      .cursor/rules/lwc-components.mdc.
+
+  - id: absent-null-into-safe-predicate
+    description: >
+      A null meaning "absent/unknown" flowing into a predicate whose false branch
+      means "safe" — so missing data reads as a clean result. Fail closed instead.
+    source: "PR #317 round 3"
+    severity: blocker
+    detection: baseline
+    paths:
+      - "force-app/**/lwc/**/*.js"
+      - "unpackaged/**/lwc/**/*.js"
+      - "force-app/**/classes/*.cls"
+      - "unpackaged/**/classes/*.cls"
+    patterns:
+      - '\b(?:is|has)(?:Fresh|Valid|Safe|Ok|Ready|Clean|Current)\w*\s*=\s*[^;\n]*(?:==|!=)\s*(?:null|NULL)'
+      - '\b(?:fresh|valid|safe|ok|ready)\w*\s*=\s*[^;\n]*\?\?\s*true'
+    allow_list: []
+    remediation: >
+      Make absent its own state. A probe that could not read the source must not
+      report the reassuring answer — return unknown and say so in the UI.
+
+  - id: ordering-tie-claim
+    description: >
+      A strict comparison backing a user-facing claim of ordering ("after the last
+      full sync", "later than"), where equal timestamps are possible and the tie
+      makes the claim false.
+    source: "PR #317 rounds 3, 9"
+    severity: important
+    detection: baseline
+    paths:
+      - "force-app/**/lwc/**/*.js"
+      - "unpackaged/**/lwc/**/*.js"
+      - "force-app/**/classes/*.cls"
+      - "unpackaged/**/classes/*.cls"
+    patterns:
+      - '(?:LastModifiedDate|SystemModstamp|CreatedDate|lastSync|lastRefresh|lastRun|LastRefreshDate)\w*\s*[<>](?!=)'
+      - '[<>](?!=)\s*(?:LastModifiedDate|SystemModstamp|CreatedDate|lastSync|lastRefresh|lastRun)'
+      - '\.getTime\(\)\s*[<>](?!=)'
+    exclude_paths:
+      - "**/*Test.cls"
+    allow_list:
+      - file: "unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls"
+        match: "lastSyncDate <"
+        reason: >
+          Backs the word "predates", which means strictly before. A tie here should
+          NOT warn, so strict < matches the sentence the UI shows. Verified against
+          neverBuiltInThisOrgReason().
+    remediation: >
+      Decide explicitly what a tie means and use >= / <= to match the sentence the
+      UI shows. Equal timestamps are common — same-transaction writes share one.
+
+  - id: visibility-scope-missing
+    description: >
+      A user-facing string built from USER_MODE-filtered probe data that asserts a
+      state of the SOURCE ("nothing matched", "all tables") without scoping the
+      claim to what the running user can actually SEE.
+    source: "PR #317 rounds 4, 5, 9 — each in a surface the prior sweep did not reach"
+    severity: blocker
+    detection: baseline
+    ignore_comment_lines: true
+    paths:
+      - "force-app/**/lwc/**/*.js"
+      - "unpackaged/**/lwc/**/*.js"
+      - "force-app/**/lwc/**/*.html"
+      - "unpackaged/**/lwc/**/*.html"
+    patterns:
+      # An absolute claim about a source set, NOT followed by a scoping qualifier.
+      # The negative lookahead is the whole point: "matched nothing visible" is the
+      # FIXED form and must not fire, or the gate cries wolf on its own remedy.
+      - "(?:matched nothing|nothing matched|no records|no rows|none found)(?![^'\"`\\n]*(?:visible|you can see|your access|of the ones))"
+    allow_list:
+      - file: "unpackaged/post_utils/lwc/rlmDecisionTableManager/rlmDecisionTableManager.html"
+        match: "Refreshing by usage type updates every table"
+        reason: >
+          Describes what the refresh action does, not what a USER_MODE probe saw.
+          The statement is true: refreshing by usage type does update every table
+          sharing the value, including ones the running user cannot see.
+    remediation: >
+      Scope the sentence to visibility ("nothing VISIBLE matched") or carry the
+      qualification the detail view already carries. A USER_MODE probe cannot speak
+      for records the user cannot read.
+
+  - id: scoped-truth-stated-universally
+    description: >
+      A summary surface (tile, tooltip, table row, header count) dropping a
+      qualification that its own detail view carries — same fact, two scopes.
+    source: "PR #317 rounds 7, 9"
+    severity: important
+    detection: review-prompt
+    paths:
+      - "force-app/**/lwc/**/*"
+      - "unpackaged/**/lwc/**/*"
+    patterns: []
+    remediation: >
+      For every summary string, find the detail string it summarises and confirm the
+      qualifications match. If the detail says "visible" or "of the ones checked",
+      the summary must not drop it.
+
+  - id: partial-outcome-bucket-dropped
+    description: >
+      An early return reporting one outcome bucket while silently discarding another
+      (e.g. reports failures, drops skipped; reports refreshed, drops unchanged).
+    source: "PR #317 rounds 3, 9"
+    severity: important
+    detection: review-prompt
+    paths:
+      - "force-app/**/lwc/**/*.js"
+      - "unpackaged/**/lwc/**/*.js"
+      - "force-app/**/classes/*.cls"
+      - "unpackaged/**/classes/*.cls"
+    patterns: []
+    remediation: >
+      Enumerate every bucket the function can produce and confirm each early return
+      accounts for all of them. Silent truncation reads as "covered everything".
+
+  - id: doc-vs-code-drift
+    description: >
+      A comment, skill, or doc asserting behaviour the code no longer has — most
+      often left behind by a fix that changed the behaviour but not its description.
+    source: "PR #317 rounds 4, 7"
+    severity: important
+    detection: review-prompt
+    paths:
+      - "**/*.md"
+      - "force-app/**/*.js"
+      - "unpackaged/**/*.js"
+      - "**/*.cls"
+    patterns: []
+    remediation: >
+      For every behavioural change in the diff, grep the repo for prose describing
+      the OLD behaviour — including comments in the same file and skills that cite it.
+
+  # =========================================================================
+  # audit-review/SKILL.md recurring checklist. These predate #317 and are the
+  # classes the internal Salesforce audit re-raises.
+  # =========================================================================
+
+  - id: soql-missing-user-mode
+    description: >
+      Entry-reachable SOQL or DML in a controller running without USER_MODE /
+      as user — the #1 audit finding class.
+    source: "audit-review/SKILL.md; PR #203 (swept 5 flagged -> 20 real)"
+    severity: blocker
+    detection: baseline
+    paths:
+      - "force-app/**/classes/*.cls"
+      - "unpackaged/**/classes/*.cls"
+    patterns:
+      - '\[\s*SELECT\b(?![^\]]*(?:WITH USER_MODE|WITH SECURITY_ENFORCED))[^\]]*\]'
+    exclude_paths:
+      # Test classes run in system mode by design; a test asserting on seeded data
+      # is not an audit finding.
+      - "**/*Test.cls"
+    # NOTE: the baseline below is PRE-EXISTING and NOT YET ADJUDICATED. Pinning it
+    # is what lets the gate do its real job today — block instance N+1 — without
+    # pretending the backlog is clean. See the registry README note in todo 080.
+    allow_list:
+      - file: "unpackaged/post_agents/classes/RLM_AI_AddProductToQuoteService.cls"
+        match: "[SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_agents/classes/RLM_AI_UpdateRecordFieldsService.cls"
+        match: "[SELECT QuoteId FROM QuoteLineItem WHERE Id IN :lineIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_constraints/classes/UTIL_ConfigHelper.cls"
+        match: "[SELECT Id, ProductCode, Name FROM Product2 WHERE Id = :productId LIMIT 1]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_docgen/classes/RLM_DocumentGenerationCreate.cls"
+        match: "[SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Quote WHERE QuoteAccountId = :acctIdConverted]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Opportunity WHERE AccountId = :accountIdConverted]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM OrderItem WHERE OrderId IN :orderIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageEntitlementBucket WHERE Id IN :toDelete]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageEntitlementBucket WHERE Id IN :topLevelParentIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id, Name FROM Asset WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Asset WHERE AccountId = :accountIdConverted]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Contract WHERE AccountId = :accountIdConverted]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Asset WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Contract WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM AssetRelationship WHERE AssetId IN :assetIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id, Name FROM Asset WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageSummary WHERE AssetId IN :assetIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageSummary WHERE AccountId = :acctId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageRatableSummary WHERE AssetId IN :assetIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM TransactionUsageEntitlement WHERE AssetId IN :assetIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :acctId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :acctId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM UsageEntitlementAccount WHERE Id IN :allUeaIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Asset WHERE AccountId = :accountIdConverted]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id, Status FROM Invoice WHERE BillingAccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Asset WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "[SELECT Id FROM Contract WHERE AccountId = :accountId]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_UsageUploaderController.cls"
+        match: "[SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+      - file: "unpackaged/post_utils/classes/RLM_UsageUploaderController.cls"
+        match: "[SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds]"
+        reason: "PRE-EXISTING at registry creation (2026-07-27); NOT adjudicated. Pinned so the gate blocks NEW instances. Each needs review: add WITH USER_MODE, or replace this reason with why system mode is correct."
+    remediation: >
+      Add WITH USER_MODE (or AccessLevel.USER_MODE for Database methods). If the
+      query is deliberately system-mode, allow-list it here WITH the reason — see
+      apex-security-hardening/SKILL.md.
+
+  - id: apex-soql-dml-in-loop
+    description: Governor-limit hazard — SOQL or DML executed inside a loop body.
+    source: "AGENTS.md PR Review Focus Areas; audit-review checklist"
+    severity: blocker
+    detection: baseline
+    paths:
+      - "force-app/**/classes/*.cls"
+      - "unpackaged/**/classes/*.cls"
+      - "**/*.trigger"
+    patterns:
+      - '^\s*for\s*\([^)]*\)\s*\{[^}]*\[\s*SELECT'
+      - '^\s*(?:for|while)\s*\([^)]*\)\s*\{[^}]*\b(?:insert|update|delete|upsert)\s+\w'
+    allow_list: []
+    remediation: Collect into a collection and perform one bulk operation outside the loop.
+
+  - id: formula-vs-apex-case-sensitivity
+    description: >
+      A comparison whose case sensitivity differs between formula and Apex — formula
+      "=" is case-sensitive, Apex String "==" is not.
+    source: "audit-review/SKILL.md checklist"
+    severity: important
+    detection: review-prompt
+    paths:
+      - "**/*.cls"
+      - "**/objects/**/*.field-meta.xml"
+      - "**/flows/*.flow-meta.xml"
+    patterns: []
+    remediation: >
+      Use equalsIgnoreCase in Apex only where the formula side is also
+      case-insensitive; otherwise make both sides agree explicitly.
+
+  - id: flow-decision-logic
+    description: >
+      Flow lookup/decision hazards — getFirstRecordOnly assumptions, auto-store vs
+      assigned variable, inverted IsNull conditions.
+    source: "audit-review/SKILL.md checklist"
+    severity: important
+    detection: review-prompt
+    paths:
+      - "**/flows/*.flow-meta.xml"
+    patterns: []
+    remediation: >
+      Confirm each Get Records' storage mode matches how the result is consumed, and
+      that IsNull decisions are not inverted.
+
+  - id: feature-gated-metadata-in-always-on-output
+    description: >
+      Base layouts / flexipages / profiles referencing fields or components that only
+      exist behind a feature flag — breaks builds with the flag off.
+    source: "audit-review/SKILL.md checklist"
+    severity: blocker
+    detection: review-prompt
+    paths:
+      - "templates/**"
+      - "unpackaged/post_ux/**"
+      - "force-app/**/layouts/**"
+    patterns: []
+    remediation: >
+      Move the reference behind the same flag, or make the component unconditional.
+      See repo-integration/ux-assembly-retrieve.md.
+
+  - id: permission-set-grant-mismatch
+    description: >
+      A permission set that under-grants (feature breaks for non-admins) or
+      over-grants (audit finding) relative to what the Apex actually touches in
+      user mode.
+    source: "audit-review/SKILL.md checklist"
+    severity: blocker
+    detection: review-prompt
+    paths:
+      - "**/permissionsets/*.permissionset-meta.xml"
+    patterns: []
+    remediation: >
+      Enumerate every object/field the user-mode code path touches and reconcile
+      against the perm set in both directions. See apex-security-hardening/SKILL.md.
