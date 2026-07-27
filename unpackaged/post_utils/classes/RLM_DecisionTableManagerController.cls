@@ -1412,8 +1412,22 @@ public with sharing class RLM_DecisionTableManagerController {
      * the engine converts first is likewise unestablished. This repo ships multicurrency
      * tooling, so that shape is not hypothetical.
      *
-     * DATE is fine — Date.valueOf carries no zone. Equality on these types is
-     * unaffected; only ORDER comparisons are refused.
+     * DATE is fine — Date.valueOf carries no zone, so it is ordered here.
+     *
+     * ⚠ What this helper decides is ORDERING ONLY, and for most excluded types that
+     * does mean equality still translates: a picklist or a text field is refused for
+     * GreaterThan and stays usable for Equals.
+     *
+     * DATETIME and CURRENCY are NOT such types, and reading this helper as though they
+     * were is the trap. An earlier guard in translateCriterion refuses them OUTRIGHT
+     * via UNESTABLISHED_COMPARISON_TYPES — every operator, equality included — because
+     * it is the bound VALUE that cannot be pinned down, and a boundary bound to the
+     * wrong instant or the wrong currency amount selects a different non-empty row set
+     * whichever operator compares it. Their exclusion here is belt-and-braces and never
+     * reaches a decision. Do not restore an equality path for them on the strength of
+     * this helper: the two reasons above condemn equality exactly as hard as ordering,
+     * and refusing only ordering was the inconsistency review caught twice, once per
+     * type.
      */
     @TestVisible
     private static Boolean isOrderedType(Schema.DisplayType fieldType) {

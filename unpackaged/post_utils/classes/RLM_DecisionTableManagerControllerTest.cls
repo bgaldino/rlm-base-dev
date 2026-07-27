@@ -1118,7 +1118,13 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
                 'The skip must name the reason: ' + textResult.unreproducedCriteria[0]);
         }
 
-        // Equality is unaffected by the gate — only ORDER comparisons are refused.
+        // Equality on TEXT is unaffected by this gate, which refuses ordering only.
+        // ⚠ Not a general rule, and stating it as one is how the isOrderedType doc went
+        // stale: DATETIME and CURRENCY are refused for EVERY operator by a separate
+        // guard, equality included, because it is their bound VALUE that cannot be
+        // pinned down. Their equality refusal is pinned in
+        // aPlatformMaintainedFieldIsAGapEvenThoughItIsNotAFormula — LastModifiedDate
+        // Equals and UnitPrice Equals — not here.
         RLM_DecisionTableManagerController.SourcePlan equality = plan(
             table('Product2', '1'),
             new List<DecisionTableSourceCriteria>{
