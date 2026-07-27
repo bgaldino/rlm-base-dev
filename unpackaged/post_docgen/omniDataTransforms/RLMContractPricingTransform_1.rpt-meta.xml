@@ -15,6 +15,8 @@
   &quot;BillingCity&quot; : &quot;Atlanta&quot;,
   &quot;BillingState&quot; : &quot;GA&quot;,
   &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;PricingType&quot; : &quot;AdjustmentPercentage&quot;,
+  &quot;SampleCipId&quot; : &quot;1AuKa000000EXAMPLE&quot;,
   &quot;Line&quot; : [ {
     &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
     &quot;ProductCode&quot; : &quot;QB-CS-001&quot;,
@@ -22,6 +24,7 @@
     &quot;ListPrice&quot; : 50000.00,
     &quot;UnitPrice&quot; : 42500.00,
     &quot;DiscountPercent&quot; : 15,
+    &quot;DiscountAmount&quot; : 15,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   }, {
@@ -31,6 +34,7 @@
     &quot;ListPrice&quot; : 12000.00,
     &quot;UnitPrice&quot; : 9600.00,
     &quot;DiscountPercent&quot; : 20,
+    &quot;DiscountAmount&quot; : 20,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   } ]
@@ -46,6 +50,11 @@
   &quot;BillingCity&quot; : &quot;Atlanta&quot;,
   &quot;BillingState&quot; : &quot;GA&quot;,
   &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;IF_no_prices&quot; : false,
+  &quot;IF_has_prices&quot; : true,
+  &quot;IF_is_percent&quot; : true,
+  &quot;IF_is_amount&quot; : false,
+  &quot;IF_is_net&quot; : false,
   &quot;Line&quot; : [ {
     &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
     &quot;ProductCode&quot; : &quot;QB-CS-001&quot;,
@@ -53,6 +62,7 @@
     &quot;ListPrice&quot; : 50000.00,
     &quot;UnitPrice&quot; : 42500.00,
     &quot;DiscountPercent&quot; : 15,
+    &quot;DiscountAmount&quot; : &quot;$15.00&quot;,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   }, {
@@ -62,6 +72,7 @@
     &quot;ListPrice&quot; : 12000.00,
     &quot;UnitPrice&quot; : 9600.00,
     &quot;DiscountPercent&quot; : 20,
+    &quot;DiscountAmount&quot; : &quot;$20.00&quot;,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   } ]
@@ -331,6 +342,186 @@
         <requiredForUpsert>false</requiredForUpsert>
         <upsertKey>false</upsertKey>
     </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4b009-1009-4109-9009-000000000109</globalKey>
+        <inputFieldName>Line:DiscountAmount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Currency</outputFieldFormat>
+        <outputFieldName>Line:DiscountAmount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted></formulaConverted>
+        <formulaExpression>IF(ISBLANK(SampleCipId), true, false)</formulaExpression>
+        <formulaResultPath>IF_no_prices</formulaResultPath>
+        <formulaSequence>1.0</formulaSequence>
+        <globalKey>d4c4c001-0001-4c01-8c01-000000000c01</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted></formulaConverted>
+        <formulaExpression>IF(ISBLANK(SampleCipId), false, true)</formulaExpression>
+        <formulaResultPath>IF_has_prices</formulaResultPath>
+        <formulaSequence>2.0</formulaSequence>
+        <globalKey>d4c4c002-0002-4c02-8c02-000000000c02</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted></formulaConverted>
+        <formulaExpression>IF(PricingType = 'AdjustmentPercentage', true, false)</formulaExpression>
+        <formulaResultPath>IF_is_percent</formulaResultPath>
+        <formulaSequence>3.0</formulaSequence>
+        <globalKey>d4c4c003-0003-4c03-8c03-000000000c03</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted></formulaConverted>
+        <formulaExpression>IF(PricingType = 'AdjustmentAmount', true, false)</formulaExpression>
+        <formulaResultPath>IF_is_amount</formulaResultPath>
+        <formulaSequence>4.0</formulaSequence>
+        <globalKey>d4c4c004-0004-4c04-8c04-000000000c04</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted></formulaConverted>
+        <formulaExpression>IF(NOT(ISBLANK(SampleCipId)) &amp;&amp; ISBLANK(PricingType), true, false)</formulaExpression>
+        <formulaResultPath>IF_is_net</formulaResultPath>
+        <formulaSequence>5.0</formulaSequence>
+        <globalKey>d4c4c005-0005-4c05-8c05-000000000c05</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4d001-1001-4d01-9d01-000000000d01</globalKey>
+        <inputFieldName>IF_no_prices</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_no_prices</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4d002-1002-4d02-9d02-000000000d02</globalKey>
+        <inputFieldName>IF_has_prices</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_has_prices</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4d003-1003-4d03-9d03-000000000d03</globalKey>
+        <inputFieldName>IF_is_percent</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_is_percent</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4d004-1004-4d04-9d04-000000000d04</globalKey>
+        <inputFieldName>IF_is_amount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_is_amount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4c4d005-1005-4d05-9d05-000000000d05</globalKey>
+        <inputFieldName>IF_is_net</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_is_net</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
     <outputType>JSON</outputType>
     <previewJsonData>{
   &quot;ContractNumber&quot; : &quot;00000456&quot;,
@@ -343,6 +534,8 @@
   &quot;BillingCity&quot; : &quot;Atlanta&quot;,
   &quot;BillingState&quot; : &quot;GA&quot;,
   &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;PricingType&quot; : &quot;AdjustmentPercentage&quot;,
+  &quot;SampleCipId&quot; : &quot;1AuKa000000EXAMPLE&quot;,
   &quot;Line&quot; : [ {
     &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
     &quot;ProductCode&quot; : &quot;QB-CS-001&quot;,
@@ -350,6 +543,7 @@
     &quot;ListPrice&quot; : 50000.00,
     &quot;UnitPrice&quot; : 42500.00,
     &quot;DiscountPercent&quot; : 15,
+    &quot;DiscountAmount&quot; : 15,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   }, {
@@ -359,6 +553,7 @@
     &quot;ListPrice&quot; : 12000.00,
     &quot;UnitPrice&quot; : 9600.00,
     &quot;DiscountPercent&quot; : 20,
+    &quot;DiscountAmount&quot; : 20,
     &quot;StartDate&quot; : &quot;01/01/2026&quot;,
     &quot;EndDate&quot; : &quot;12/31/2026&quot;
   } ]

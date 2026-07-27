@@ -97,6 +97,38 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
+        <filterOperator>=</filterOperator>
+        <filterValue>Contract:Id</filterValue>
+        <globalKey>d3c3a006-0006-4006-8006-000000000006</globalKey>
+        <inputFieldName>ContractId</inputFieldName>
+        <inputObjectName>ContractItemPrice</inputObjectName>
+        <inputObjectQuerySequence>6.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingExtract</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>ContractPricingSample</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <filterOperator>LIMIT</filterOperator>
+        <filterValue>'1'</filterValue>
+        <globalKey>d3c3a007-0007-4007-8007-000000000007</globalKey>
+        <inputObjectName>ContractItemPrice</inputObjectName>
+        <inputObjectQuerySequence>6.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingExtract</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
         <globalKey>d3c3f001-1001-4101-9001-000000000101</globalKey>
         <inputFieldName>Contract:ContractNumber</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
@@ -257,6 +289,38 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
+        <globalKey>d3c3f030-3001-4301-9201-000000000301</globalKey>
+        <inputFieldName>ContractPricingSample:DiscountType</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingExtract</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>String</outputFieldFormat>
+        <outputFieldName>PricingType</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d3c3f031-3002-4302-9202-000000000302</globalKey>
+        <inputFieldName>ContractPricingSample:Id</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingExtract</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>String</outputFieldFormat>
+        <outputFieldName>SampleCipId</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
         <globalKey>d3c3f020-2001-4201-9101-000000000201</globalKey>
         <inputFieldName>Contract:ContractItemPrice:Item:Name</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
@@ -345,6 +409,22 @@
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:DiscountPercent</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d3c3f032-2009-4209-9109-000000000209</globalKey>
+        <inputFieldName>Contract:ContractItemPrice:DiscountValue</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractPricingExtract</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Currency</outputFieldFormat>
+        <outputFieldName>Line:DiscountAmount</outputFieldName>
         <outputObjectName>json</outputObjectName>
         <requiredForUpsert>false</requiredForUpsert>
         <transformValuesMappings>{ }</transformValuesMappings>
