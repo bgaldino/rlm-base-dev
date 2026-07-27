@@ -20,6 +20,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 5. Parent → child order in `objects` array (deletion runs reverse).
 6. `$$` CSV column must match externalId fields exactly.
 7. After extraction: run `post_process_extraction.py` to add `$$` columns.
+8. **A plan that loads cleanly into a fresh org is not safe to re-run into a *used* org** — check the plan's operations against what the org already has. See *Reloading a plan into a live org*.
 
 ## DO NOT
 
@@ -28,6 +29,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 - **DO NOT** leave empty CSVs without `excluded: true`
 - **DO NOT** use `$$` composite notation for lookup reference columns in CSVs (Bug 4 — self-referential and cross-object `$$` references fail on import; use simple field references)
 - **DO NOT** add `Insert` + `deleteOldData: true` for a relationship-traversal externalId citing Bugs 2/3/5 — those are fixed on the 5.6.4+ floor; `Upsert` matches. (Existing plans that still carry that pattern migrate under the gated `sfdmu-v5-optimization` initiative, not ad hoc.)
+- **DO NOT** re-run a plan into an org with live transactional data to add one record — see below
 
 ## export.json Structure
 
@@ -122,6 +124,40 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 3. Getting explicit user approval
 
 `deleteOldData: true` deletes ALL existing records before inserting. Misapplied, it wipes data that Upsert would have safely matched.
+
+## Reloading a Plan Into a Live Org
+
+Plans are written for a **fresh org**. Re-running one into an org that already has
+assets, entitlements, or other transactional data can duplicate or fail — and the
+failure mode differs by operation. Check before re-running:
+
+| Operation | Re-run into a used org |
+|-----------|------------------------|
+| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects) skip matched rows entirely, so a **correction** to existing data silently does not land. |
+| `Insert`, **no** `deleteOldData` | ⛔ **Duplicates every row.** No matching happens at all. |
+| `Insert` + `deleteOldData: true` | ⛔ Blocked when live records reference the design-time rows it must delete first |
+
+Two concrete traps in the QB plans:
+
+- **`qb-pricing` inserts `PricebookEntry` with no `deleteOldData`** — re-running the
+  **task** (`insert_quantumbit_pricing_data`) on its own duplicates every entry. The
+  **flow** is safe: `prepare_pricing_data` runs `delete_quantumbit_pricing_data`
+  first, which clears every Insert-operation object in the plan. So reach for the
+  flow, or run the delete task yourself before the insert.
+- **`qb-rating` / `qb-rates` use `Insert` + `deleteOldData`** — which cannot clear
+  design-time rows (PUR/PUG/RateCardEntry, and `AssetRateCardEntry` referencing
+  `RateCardEntry`) while live entitlements point at them. The delete silently leaves
+  them and you get a duplicate Draft set.
+
+**To add one product to a live org, load it surgically** — insert just the new
+records and their relationships (a throwaway script or anonymous Apex), rather than
+re-running the plan. Then:
+
+1. **Still commit the new rows to the plan CSVs** so a *fresh* build picks them up.
+2. Update the plan README and re-run `check_plan_readme_consistency.py`.
+3. **Verify plan-level wiring on the next full `prepare_rlm_org` build** — a
+   surgical load proves the *records* work, not that the *plan* creates them
+   correctly. Track that verification as owed work until it runs.
 
 ## Object Ordering
 

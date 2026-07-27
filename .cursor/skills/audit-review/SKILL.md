@@ -137,6 +137,11 @@ gh api graphql -f query='mutation($tid:ID!){ resolveReviewThread(input:{threadId
 
 ## Workflow patterns for scale
 
+> **Commissioning the review from another agent** — what to put in the prompt so the
+> round is worth its cost (local refs, the do-not-re-report list, severity framing,
+> artifact naming that keeps two reviewers' reports distinct):
+> [`external-review-briefing.md`](external-review-briefing.md).
+
 For a branch-wide audit, fan out rather than read serially — parallelize the work
 across multiple agents (use whatever multi-agent / parallel-task capability your
 tool provides; serial reading also works, just slower):

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**271 tasks** across **10 groups**.
+**273 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*162 task(s)*
+*164 task(s)*
 
 ### `activate_agents`
 
@@ -1341,6 +1341,18 @@
 
 - `api_names`: `['RLM_Sales_Representative']`
 - `user_alias`: `salesrep`
+
+---
+
+### `check_decision_table_freshness`
+
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last full sync — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/checkDecisionTableFreshness.apex`
 
 ---
 
@@ -3136,6 +3148,18 @@
 - `file`: `None`
 - `kind`: `None`
 - `strict`: `False`
+
+---
+
+### `validate_multicurrency_rates`
+
+**Description:** Validate the multicurrency usage-rating configuration, scoped to the QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy, every ProductUsageResource is rated, every currency-denominated entry covers all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment, and per-asset entitlement shape compared across assets of the same product) which self-skip when no assets exist. Offline equivalent: python tests/test_qb_multicurrency_data.py
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/validateMulticurrencyRates.apex`
 
 ---
 

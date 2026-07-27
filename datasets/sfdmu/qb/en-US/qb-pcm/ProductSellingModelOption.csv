@@ -24,6 +24,7 @@ QB-CMPC-5882;One-Time;OneTime,true,QB-CMPC-5882,One-Time;OneTime,
 QB-CMPC-5887;One-Time;OneTime,true,QB-CMPC-5887,One-Time;OneTime,
 QB-CMT-TKN-EACH;Term Annual;TermDefined,true,QB-CMT-TKN-EACH,Term Annual;TermDefined,Default Proration Policy
 QB-CMT-TKN-FLAT;Term Annual;TermDefined,true,QB-CMT-TKN-FLAT,Term Annual;TermDefined,Default Proration Policy
+QB-CMT-TKN-BND;Term Annual;TermDefined,true,QB-CMT-TKN-BND,Term Annual;TermDefined,Default Proration Policy
 QB-CMT-TKN-TIER;Term Annual;TermDefined,true,QB-CMT-TKN-TIER,Term Annual;TermDefined,Default Proration Policy
 QB-COMPLETE;Evergreen Monthly;Evergreen,false,QB-COMPLETE,Evergreen Monthly;Evergreen,Default Proration Policy
 QB-COMPLETE;One-Time;OneTime,false,QB-COMPLETE,One-Time;OneTime,

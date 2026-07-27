@@ -5,7 +5,9 @@ live in `tasks/` and are registered in `cumulusci.yml`.
 
 ## Quick Rules
 
-1. Use `BaseTask` unless you need `sf` CLI (then `SFDXBaseTask`).
+1. Use `BaseTask` unless you need `sf` CLI. For `sf` CLI **against an org** use
+   `SFDXOrgTask` (or `SFDXBaseTask` **plus `salesforce_task = True`**); bare
+   `SFDXBaseTask` is the **no-org** variant and silently drops `--org`.
 2. Use `org_config.username` for CLI calls, `access_token` for REST only.
 3. Every task needs `task_options` dict + `_run_task()` method.
 4. Register in `cumulusci.yml` with `group:` and `description:`.
@@ -24,7 +26,8 @@ live in `tasks/` and are registered in `cumulusci.yml`.
 | Base Class | Import | Use When | Org Required? |
 |------------|--------|----------|---------------|
 | `BaseTask` | `from cumulusci.core.tasks import BaseTask` | Local tasks, Robot wrappers, org API via `self.org_config` | Depends |
-| `SFDXBaseTask` | `from cumulusci.tasks.sfdx import SFDXBaseTask` | Tasks that call `sf` CLI or need `access_token`/`instance_url` | Yes |
+| `SFDXBaseTask` | `from cumulusci.tasks.sfdx import SFDXBaseTask` | `sf` CLI tasks that need **no** org | **No** — its docstring is literally "call the sfdx cli with params and no org"; it leaves `salesforce_task = False` |
+| `SFDXOrgTask` | `from cumulusci.tasks.sfdx import SFDXOrgTask` | `sf` CLI tasks that **do** target an org | Yes — this is the org-aware variant of `SFDXBaseTask` |
 | `BaseSalesforceTask` | `from cumulusci.tasks.salesforce import BaseSalesforceTask` | Deprecated — prefer `BaseTask` | Yes |
 | `BaseSalesforceApiTask` | `from cumulusci.tasks.salesforce import BaseSalesforceApiTask` | Tasks using CCI's built-in REST client (`self.sf`) | Yes |
 | `AnonymousApexTask` | `from cumulusci.tasks.apex.anon import AnonymousApexTask` | Run an Apex script file (no custom class needed) | Yes |
@@ -38,9 +41,40 @@ live in `tasks/` and are registered in `cumulusci.yml`.
 2. **Running Robot Framework tests** → `BaseTask` + subprocess Robot
 3. **Calling REST/Connect/Tooling API directly** → `BaseTask` with manual
    `self.org_config.access_token` / `self.org_config.instance_url`
-4. **Calling `sf` CLI** → `SFDXBaseTask` or `SalesforceCommand` (no class)
+4. **Calling `sf` CLI against an org** → `SFDXOrgTask`, or `SFDXBaseTask` **plus
+   `salesforce_task = True`** (see the warning below). Only use bare
+   `SFDXBaseTask` when the command genuinely needs no org.
 5. **Deploying metadata from a path** → `Deploy` (no class needed)
 6. **Running Apex** → `AnonymousApexTask` (no class needed)
+
+### ⚠ `salesforce_task` decides whether your task can be pointed at an org
+
+`BaseTask.salesforce_task` defaults to `False`, and **a task that talks to an org but
+leaves it `False` still appears to work** — which is why this is easy to ship:
+
+1. **`--org` is never offered.** cci builds the CLI option list from
+   `task_class.salesforce_task` (`cumulusci/cli/task.py`), so `--org <alias>` is
+   rejected with `Error: No such option: --org` and the task can only ever run
+   against the **default org**.
+2. **The missing-org guard is skipped.** `BaseTask.__call__` only raises
+   `TaskRequiresSalesforceOrg` when the flag is set.
+3. **The run does not record which org it hit.** `_log_begin` prints the
+   `As user:` / `In org:` lines only when the flag is set.
+
+If you subclass anything whose base leaves it `False` — including `SFDXBaseTask` —
+and your task uses `self.org_config`, declare it explicitly:
+
+```python
+class MyOrgTask(SFDXBaseTask):
+    salesforce_task = True   # or subclass SFDXOrgTask instead
+```
+
+Re-parenting to `SFDXOrgTask` also brings `BaseSalesforceTask._update_credentials`
+(OAuth refresh). Prefer it when your task hits the API directly; setting the flag is
+enough when you shell out to `sf`, which authenticates itself from the username.
+
+**Verify it:** `cci task run <task> --help` must list `--org`. This was live in
+`FileBasedAnonymousApexTask` until 2026-07-25; see `tests/test_rlm_apex_file.py`.
 
 ---
 
