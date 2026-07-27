@@ -1,0 +1,11 @@
+# Revisions to skip when running git blame.
+#
+# Use it by default in this clone:
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honours this file automatically in its blame view.
+#
+# Only pure-mechanical, no-behaviour-change commits belong here.
+
+# style(apex): apply Prettier to all 114 .cls/.trigger files [formatting only]
+72bf424ef2b819f093f259fca17f967776b990bc
