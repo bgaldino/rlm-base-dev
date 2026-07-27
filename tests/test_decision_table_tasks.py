@@ -71,6 +71,7 @@ def check(label, condition, detail=""):
 
 
 _summary_done = False
+_summary_at = None
 
 
 def _print_summary():
@@ -92,22 +93,54 @@ def _print_summary():
     silent-truncation shape the floor was added to prevent. Registered at exit, this reports
     the abort no matter where it happens.
     """
-    global _summary_done
+    global _summary_done, _summary_at
     if _summary_done:
+        # ⚠ atexit re-entry is NOT a no-op. A check registered after the footer used to be
+        # invisible twice over: `_summary_done` short-circuited this, and the footer's exit
+        # condition had already been evaluated. Measured — a deliberately FAILING check appended
+        # at end of file printed its FAIL line BELOW "All 87 passed" and the process exited 0.
+        # Appending a new numbered section after the footer is the natural edit, and it was the
+        # one edit that switched off the accounting for everything it added.
+        if _summary_at is not None and len(run_labels) != _summary_at:
+            # ⚠ RETRACT the summary explicitly. It was computed before these checks existed, so
+            # it is now wrong — and leaving a stale "All N passed" as the last word a reader
+            # trusts is the same self-contradicting pair this branch spent four rounds removing
+            # from the task logs. Say which line is void, not just that something is amiss.
+            print(
+                f"CHECKS AFTER THE FOOTER: {len(run_labels) - _summary_at} check(s) registered "
+                "after the accounting closed — never counted, never gated the exit status. "
+                "THE SUMMARY ABOVE IS VOID: it was computed before these ran"
+                + (f", and {len(failures)} check(s) failed." if failures else ".")
+                + " Move them above `_print_summary()`."
+            )
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(1)
         return
     _summary_done = True
+    _summary_at = len(run_labels)
     aborted = TERMINAL_CHECK not in run_labels
+    misplaced = (not aborted) and bool(run_labels) and run_labels[-1] != TERMINAL_CHECK
+    # ⚠ EXACT, not `<`. A floor that only rejects "too few" does not enforce its own
+    # instruction to raise the constant: adding a check without bumping it printed
+    # "All 88 passed" and exited 0, leaving the floor stale-LOW so a later deletion back to 87
+    # would pass unnoticed. Both directions are now loud.
+    miscounted = (not aborted) and len(run_labels) != EXPECTED_CHECKS
+    # ⚠ Every invalid outcome forces the status, not just `aborted`. INCOMPLETE, FAILED and
+    # SENTINEL NOT LAST all used to rely on the footer, which a driver's sys.exit(0) skips —
+    # measured: INCOMPLETE printed, exit 0. Same escaped-footer path fixed for ABORTED last
+    # round, left standing for the three states added alongside it.
+    invalid = aborted or misplaced or miscounted or bool(failures)
     # ⚠ Decided BEFORE any I/O, and forced in a `finally`. Every diagnostic below is
     # best-effort; the status change is not. An exception from `print` or from either flush
     # used to skip the one operation that turns an escaped SystemExit(0) into a failure —
     # measured with a stderr wrapper whose flush() raises: ABORTED printed, exit 0.
     try:
         print("\n" + "=" * 60)
-        if run_labels and run_labels[-1] != TERMINAL_CHECK and not aborted:
-            print(
-                f"SENTINEL NOT LAST: {run_labels[-1]!r} registered after it — the sentinel's "
-                "guarantee is void, because it can no longer prove the file ran to the end."
-            )
+        # ⚠ ONE outcome line. A separate `if` for the sentinel printed the placement error and
+        # then fell through to "All 88 … passed" — a structural failure and a success verdict
+        # in the same summary, which is exactly the self-contradicting pair this branch spent
+        # four rounds removing from the task logs.
         if aborted:
             print(
                 f"ABORTED: the run stopped before the final check — {len(run_labels)} check(s) "
@@ -116,7 +149,12 @@ def _print_summary():
             )
         elif failures:
             print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
-        elif len(run_labels) < EXPECTED_CHECKS:
+        elif misplaced:
+            print(
+                f"SENTINEL NOT LAST: {run_labels[-1]!r} registered after it — the sentinel's "
+                "guarantee is void, because it can no longer prove the file ran to the end."
+            )
+        elif miscounted:
             # ⚠ COMPLETION and COMPLETENESS are different questions, and this file has now got
             # each one wrong once. The arithmetic floor answered "did everything run" and was
             # replaced by a sentinel answering "did the run reach the end" — framed as retiring
@@ -126,9 +164,10 @@ def _print_summary():
             # the abort branch owns its message, so a stale integer here can only ever produce
             # a loud false INCOMPLETE — never a false abort, and never a silent pass.
             print(
-                f"INCOMPLETE: {len(run_labels)} of {EXPECTED_CHECKS} checks registered. The run "
-                "reached the end but did not run everything — a check was removed, or a loop's "
-                "data went empty. Restore it; do not lower this number."
+                f"CHECK COUNT: {len(run_labels)} registered, expected exactly {EXPECTED_CHECKS}. "
+                "Fewer means a check was removed or a loop's data went empty — restore it. More "
+                "means checks were added without raising EXPECTED_CHECKS — raise it, or the "
+                "floor goes stale and a later deletion passes unnoticed."
             )
         else:
             print(f"All {len(run_labels)} decision-table task checks passed.")
@@ -138,7 +177,7 @@ def _print_summary():
         # ⚠ os._exit, not sys.exit: sys.exit inside an atexit handler does NOT change the
         # process status — measured, it still exits 0. os._exit does, which is what makes the
         # flushes above mandatory (it bypasses Python-level buffering; verified through a pipe).
-        if aborted:
+        if invalid:
             os._exit(1)
 
 
@@ -824,13 +863,17 @@ KNOWN_UNDECLARED = {
 # than names, because a bare `tso` alongside a valid `...project__custom__tso` would otherwise be
 # excused by sharing a segment name.
 STRING_LITERAL = re.compile(r"'[^']*'|\"[^\"]*\"")
-# ⚠ Unicode-aware start class, not [A-Za-z_]. Jinja accepts Unicode identifiers, so an
-# all-Unicode bare name matched neither the dotted-run scan nor an ASCII-only IDENTIFIER and
-# vanished from validation — measured: `when: коммерция` gave 87/87 and exit 0 while CCI's own
-# Jinja environment resolved it to falsy None and would silently skip the step. `[^\W\d]` is
-# "word character that is not a digit", i.e. any Unicode letter or underscore; `\w` is already
-# Unicode-aware in Python 3. Fifth reachable form of the same false negative.
-IDENTIFIER = re.compile(r"[^\W\d]\w*")
+# ⚠ Scan for UNMODELLED TOKENS rather than modelling identifiers. Two rounds were spent chasing
+# Jinja's identifier alphabet — `[A-Za-z_]\w*` missed `коммерция`, and `[^\W\d]\w*` still missed
+# U+2118 ℘ and U+212E ℮, which Jinja accepts as identifier starts and Python's `\w` does not.
+# Each measured at 87/87, exit 0, while CCI's own Jinja resolved them to falsy None.
+#
+# Approximating someone else's grammar is a losing game, and jinja2 cannot be imported here
+# anyway (absent in the bare offline environment). So invert it: split on the characters this
+# scan DOES model — whitespace, operators, grouping — and treat every remaining run as
+# unmodelled unless it is a reserved word or a bare number. Anything the scan cannot account
+# for fails closed by construction, whatever alphabet it is written in.
+UNMODELLED_TOKEN = re.compile(r"[^\s()\[\],!=<>+\-*/%|&~.]+")
 JINJA_RESERVED = {"and", "or", "not", "in", "is", "if", "else", "true", "false", "none"}
 
 bad_refs = {}
@@ -847,14 +890,30 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # NO GUARD AT ALL and the step runs unconditionally, which is the exact opposite of
         # what someone writing `when: false` intends. That makes it a live repo defect, not a
         # scanner inconvenience, so it is flagged rather than skipped.
-        raw_expr = (step or {}).get("when")
-        if raw_expr is not None and not isinstance(raw_expr, str):
-            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"{raw_expr!r} (when: is not a string. CCI evaluates `if step.when:` before "
-                "compiling, so a bool runs this step UNGUARDED rather than gating it)"
-            )
+        # ⚠ Key on PRESENCE, not truthiness. Round 10 hoisted the type guard above the emptiness
+        # check so falsy non-strings could not vanish — but it exempted None and the next line
+        # still swallowed every falsy string, so `when: ''` and a null `when:` both gave 87/87
+        # and exit 0. The null case is the likely one: PyYAML maps a commented-out expression
+        # body to None while leaving the key present, which is exactly how someone disables a
+        # guard while debugging.
+        #
+        #     when: # project_config.project__custom__rating   ->  {'when': None}
+        #
+        # It reads as "this step is off". It means "this step now runs in EVERY org", because
+        # CCI's runner tests `if step.when:` before compiling — a falsy value is not a disabled
+        # guard, it is no guard at all. Same production consequence as `when: false`.
+        # A whitespace-only value is folded in: it is truthy, so Jinja raises loudly rather than
+        # skipping silently, but it is the same unmodelled-value class and there is no reason to
+        # leave one leg standing.
+        if "when" not in (step or {}):
             continue
-        if not raw_expr:
+        raw_expr = step["when"]
+        if not isinstance(raw_expr, str) or not raw_expr.strip():
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{raw_expr!r} (empty, null or non-string when:. CCI evaluates `if step.when:` "
+                "before compiling, so a falsy value runs this step UNGUARDED rather than gating "
+                "it; a whitespace-only value raises TemplateSyntaxError at flow time)"
+            )
             continue
         # Blank out string literals so a quoted comparand ("Developer Edition") is not read as
         # an unresolved name. Substituting spaces keeps every other offset intact.
@@ -924,18 +983,20 @@ for flow_name, flow in (cci.get("flows") or {}).items():
                     continue
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(run)
 
-        # Anything identifier-shaped that the dotted-run scan did not cover: a bracketed
-        # subscript, a bare name, or any access form this check cannot parse. Fail closed —
-        # an unsupported form must not be able to disappear from validation.
-        for match in IDENTIFIER.finditer(expr):
-            if any(start <= match.start() < end for start, end in consumed_spans):
-                continue
-            if match.group(0).lower() in JINJA_RESERVED:
+        # Anything the dotted-run scan did not consume: a bare name in any alphabet, a filter,
+        # a callee, a stray token. Blank the consumed spans first so a leftover is genuinely
+        # leftover, then fail closed on whatever remains.
+        scrubbed = list(expr)
+        for start, end in consumed_spans:
+            scrubbed[start:end] = " " * (end - start)
+        for match in UNMODELLED_TOKEN.finditer("".join(scrubbed)):
+            token = match.group(0)
+            if token.lower() in JINJA_RESERVED or token.isdigit():
                 continue
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"{match.group(0)} in {raw_expr!r}: not consumed as <namespace>.<attribute> — "
-                "a bare name, a bracketed subscript, or a Jinja filter/test this scan does not "
-                "model. If it is a filter, add it to JINJA_RESERVED; if it is a name, fix it."
+                f"{token} in {raw_expr!r}: not consumed as <namespace>.<attribute> — a bare "
+                "name, a subscript, or a Jinja filter/test this scan does not model. If it is a "
+                "filter, add it to JINJA_RESERVED; if it is a name, fix it."
             )
 
 check(
