@@ -482,14 +482,17 @@ export default class RlmDecisionTableManager extends LightningElement {
             this.handleCloseDetail()
             return
         }
-        // ⚠ The sentinels cover every position INSIDE the dialog, but not the one the
-        // dialog opens in. Initial focus sits on the section itself (tabindex="-1", so
-        // the dialog is announced rather than a control inside it), and the leading
-        // sentinel is the section's first CHILD — after it in tab order, not before.
-        // Nothing focusable precedes the section, so Shift+Tab at that first moment
-        // walks straight out into the page behind the overlay: the exact escape the
-        // trap exists to prevent, available for as long as the user has not tabbed yet.
-        // Once focus has moved inside, the sentinels take over and this is inert.
+        // Shift+Tab from the dialog itself wraps to the last control.
+        //
+        // ⚠ This is now a BACKSTOP, not the mechanism. It was the mechanism while the
+        // leading sentinel lived inside the section as its first child — after the
+        // section in tab order, so nothing focusable preceded the dialog and Shift+Tab
+        // escaped to the page behind. That placement also broke FORWARD tabbing (the
+        // sentinel bounced Tab straight to the footer, skipping every help control), so
+        // the sentinel moved OUTSIDE the section, which fixes both directions
+        // structurally. Shift+Tab now reaches that sentinel on its own and this branch
+        // reproduces the same wrap before it gets there. Kept because it costs nothing
+        // and the two agree; if they ever disagree, the sentinel is the one to trust.
         if (event.key === 'Tab' && event.shiftKey &&
             event.target === this.template.querySelector('section[role="dialog"]')) {
             event.preventDefault()

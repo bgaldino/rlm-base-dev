@@ -479,8 +479,20 @@ public with sharing class RLM_DecisionTableManagerController {
      * post-spin readiness check is to say out loud that these tables need refreshing.
      */
     @TestVisible
+    private static String neverBuiltInThisOrgReason(Datetime lastSyncDate, Datetime orgCreated) {
+        if (lastSyncDate == null) {
+            return 'Never fully refreshed in this org.';
+        }
+        if (orgCreated != null && lastSyncDate < orgCreated) {
+            return 'Last full sync (' + lastSyncDate.format() + ') predates this org, created ' +
+                orgCreated.format() + '. An org spun from a template inherits the template\'s ' +
+                'sync timestamp, so this table still holds rows built somewhere else — refresh it.';
+        }
+        return null;
+    }
+
     /**
-     * Withdraw FRESH when the spin check could not run.
+     * Withdraw FRESH when the spin check above could not run.
      *
      * ⚠ neverBuiltInThisOrgReason needs the org's creation date, and orgCreatedDate()
      * can come back null — its Organization read is caught, not propagated. A null
@@ -505,18 +517,6 @@ public with sharing class RLM_DecisionTableManagerController {
             'cannot be told apart from one that ran here, and that is exactly the case that ' +
             'reads fresh while the table holds rows built somewhere else. Grant read on ' +
             'Organization, or compare by hand.';
-    }
-
-    private static String neverBuiltInThisOrgReason(Datetime lastSyncDate, Datetime orgCreated) {
-        if (lastSyncDate == null) {
-            return 'Never fully refreshed in this org.';
-        }
-        if (orgCreated != null && lastSyncDate < orgCreated) {
-            return 'Last full sync (' + lastSyncDate.format() + ') predates this org, created ' +
-                orgCreated.format() + '. An org spun from a template inherits the template\'s ' +
-                'sync timestamp, so this table still holds rows built somewhere else — refresh it.';
-        }
-        return null;
     }
 
     /**
@@ -808,7 +808,7 @@ public with sharing class RLM_DecisionTableManagerController {
         }
         try {
             for (DecisionTableParameter param : [
-                SELECT DecisionTableId, FieldPath, DomainObject
+                SELECT DecisionTableId, FieldName, FieldPath, DomainObject
                 FROM DecisionTableParameter
                 WHERE DecisionTableId IN :tables
                 WITH USER_MODE
@@ -817,8 +817,18 @@ public with sharing class RLM_DecisionTableManagerController {
                 if (dt == null) {
                     continue;
                 }
+                // ⚠ FieldPath is BLANK on most parameters, and that is normal, not a
+                // gap: the column is a plain field on the source object and its name is
+                // in FieldName. Measured on a stock build — 193 of 309 parameters have
+                // no FieldPath, every one of them has a FieldName, and none of those
+                // FieldNames contains a dot. Reading only FieldPath meant those 193
+                // columns were never classified at all, so a FORMULA column named by
+                // FieldName slipped past the unwatchable-field check entirely.
+                String columnPath = String.isNotBlank(param.FieldPath)
+                    ? param.FieldPath
+                    : param.FieldName;
                 recordContributor(byTable.get(param.DecisionTableId), dt.SourceObject,
-                    param.DomainObject, param.FieldPath, globalDescribe);
+                    param.DomainObject, columnPath, globalDescribe);
             }
         } catch (Exception e) {
             // Whatever was collected before the failure stays — it is still a real
@@ -900,8 +910,16 @@ public with sharing class RLM_DecisionTableManagerController {
             // Fresh. A blank FieldPath lands here too, via sourceFields.get('').
             SObjectField ownField = sourceFields.get(path.toLowerCase());
             if (ownField == null) {
-                found.unresolvedPaths.add((String.isBlank(path) ? '(no field path)' : path) +
-                    ' (names no field on ' + primary + ')');
+                // ⚠ Only a path that NAMES something is a gap. A blank one is not, and
+                // a live run proved it: 193 of 309 parameters carry no FieldPath because
+                // the column is named by FieldName instead, and treating those as gaps
+                // turned four healthy stock tables "Not comparable" at once. The caller
+                // now falls back to FieldName, so a blank arriving here means the
+                // parameter named nothing at all — measured zero on a stock build, and
+                // still not something to claim coverage of.
+                found.unresolvedPaths.add(String.isBlank(path)
+                    ? '(a column with no field name or path)'
+                    : path + ' (names no field on ' + primary + ')');
                 return;
             }
             if (movesWithoutARecordEdit(primary, ownField)) {

@@ -171,13 +171,23 @@
       check it against a table with source criteria before assuming it fits.
     -->
     <template if:true={detailRow}>
+        <!-- Focus sentinels. lightning-button renders its <button> inside its own shadow
+             root, so a querySelectorAll-based focus trap cannot see it from here.
+             Bouncing focus off a sentinel keeps Tab inside the dialog without needing to
+             enumerate what is focusable.
+
+             ⚠ This one sits BEFORE the section, not inside it as its first child, and
+             that placement is the whole trap. The section takes initial focus (so the
+             dialog is announced) and carries tabindex="-1", so a forward Tab from it
+             goes to the next focusable in DOM order. With the sentinel inside, that WAS
+             the sentinel — which wraps to the footer — giving a dialog → footer → dialog
+             loop that never once reached the help controls carrying the visibility scope
+             and tie caveats. Outside, forward Tab lands on the first real control and
+             walks the whole dialog, while Shift+Tab still reaches this sentinel and
+             wraps to the end. -->
+        <span class="dtm-focus-sentinel" tabindex="0" onfocusin={handleFocusEscapeEnd}></span>
         <section role="dialog" tabindex="-1" aria-modal="true" onkeydown={handleDetailKeydown}
                  aria-labelledby="dtm-detail-heading" class="slds-modal slds-fade-in-open slds-modal_large">
-            <!-- Focus sentinels. lightning-button renders its <button> inside its own
-                 shadow root, so a querySelectorAll-based focus trap cannot see it from
-                 here. Bouncing focus off a sentinel keeps Tab inside the dialog without
-                 needing to enumerate what is focusable. -->
-            <span class="dtm-focus-sentinel" tabindex="0" onfocusin={handleFocusEscapeEnd}></span>
             <div class="slds-modal__container">
                 <header class="slds-modal__header dtm-detail__header">
                     <h2 id="dtm-detail-heading" class="slds-modal__title slds-hyphenate">
