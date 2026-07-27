@@ -532,6 +532,9 @@ _PATH_ROOTS = (
     "force-app/", "orgs/", "postman/", "robot/", "scripts/", "tasks/", "templates/",
     "unpackaged/",
 )
+#: Root-level files the manifest legitimately names. Without these, a typo in a
+#: declared root file passed the audit because it matched no _PATH_ROOTS prefix.
+_ROOT_FILES = ("AGENTS.md", "CLAUDE.md", "REVIEW.md", "README.md", "cumulusci.yml")
 
 
 def _path_like_values(node: Any, where: str):
@@ -546,7 +549,7 @@ def _path_like_values(node: Any, where: str):
     elif isinstance(node, list):
         for index, value in enumerate(node):
             yield from _path_like_values(value, f"{where}[{index}]")
-    elif isinstance(node, str) and node.startswith(_PATH_ROOTS):
+    elif isinstance(node, str) and (node.startswith(_PATH_ROOTS) or node in _ROOT_FILES):
         yield where, node
 
 
@@ -587,13 +590,16 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     for name in sorted(on_disk - declared):
         problems.append(f"{name}: has a SKILL.md but is not declared — agents cannot discover it")
 
-    # ⚠ Every path-shaped value, found by walking — NOT a hand-listed set of field
-    # names. The first version checked only path/manifest/index and a postman list,
-    # which meant `postman_environment` (added in the same change as the audit),
-    # `cci_reference.*` and `erd_data.query_cli` were never validated: a typo in any
-    # of them still printed "all paths resolve". A checker with a hand-maintained
-    # field list is a checker that goes stale the next time someone adds a field.
-    for where, rel in _path_like_values(section.get("grounding") or {}, "grounding"):
+    # ⚠ Every path-shaped value in the WHOLE section, found by walking — not a
+    # hand-listed set of field names, and not one subtree.
+    #
+    # Twice now this has been narrower than its own claim. First it checked only
+    # path/manifest/index plus a postman list, missing `postman_environment` — added in
+    # the very same change. Then it walked `grounding` only, so skill fields like
+    # `auto_generated_subfiles` and `governs`, and declared root files such as
+    # AGENTS.md, still went unaudited while the output said "all paths resolve".
+    # The lesson both times: scope the walk to the claim, or weaken the claim.
+    for where, rel in _path_like_values(section, "foundations"):
         if not exists(rel):
             problems.append(f"{where}: missing {rel}")
 

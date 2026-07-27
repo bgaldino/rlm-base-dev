@@ -589,9 +589,41 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         Assert.areNotEqual('Not comparable', lmd.verdict,
             'LastModifiedDate moving IS a record edit, so it must never be refused: ' + lmd.reason);
         Assert.areEqual(1, lmd.unreproducedCriteria.size(), 'It is skipped, not translated.');
-        Assert.isTrue(lmd.unreproducedCriteria[0].contains('timezone'),
-            'And skipped for the datetime-zone reason, not as an unwatchable field: ' +
-            lmd.unreproducedCriteria[0]);
+        Assert.isTrue(lmd.unreproducedCriteria[0].contains('not '),
+            'And skipped for the unestablished-comparison reason, not as an unwatchable ' +
+            'field: ' + lmd.unreproducedCriteria[0]);
+
+        // ⚠ CURRENCY gets the same treatment as DATETIME, and for a parallel reason:
+        // isOrderedType already excludes it because ordering is ambiguous in a
+        // multicurrency org, and equality is ambiguous for exactly the same reason —
+        // stored amount, corporate-currency amount and converted amount are three
+        // different numbers. Refusing only ordering was an inconsistency; this was
+        // caught one review round AFTER the identical DATETIME fix, which is what
+        // sweeping the class rather than the cited line is supposed to prevent.
+        Assert.areEqual(Schema.DisplayType.CURRENCY,
+            PricebookEntry.UnitPrice.getDescribe().getType(),
+            'UnitPrice must still be the CURRENCY field this pins.');
+        RLM_DecisionTableManagerController.SourcePlan money = plan(
+            table('PricebookEntry', '1'),
+            new List<DecisionTableSourceCriteria>{
+                criterion('UnitPrice', 'Equals', '10', 'Literal')
+            }
+        );
+        Assert.areEqual('', money.probe.whereClause,
+            'A currency comparison must not reach the query: ' + money.reason);
+        Assert.areEqual(1, money.unreproducedCriteria.size(),
+            'It is skipped and the comparison widened, which stays sound.');
+
+        // Control: an ordinary number on the same object still translates, so the guard
+        // is scoped to CURRENCY rather than to numbers generally.
+        RLM_DecisionTableManagerController.SourcePlan plainNumber = plan(
+            table('Product2', '1'),
+            new List<DecisionTableSourceCriteria>{
+                criterion('ProductCode', 'Equals', TEST_CODE_MATCH, 'Literal')
+            }
+        );
+        Assert.areEqual('ProductCode = :dtCriterion0', plainNumber.probe.whereClause,
+            'Non-currency comparisons are unaffected: ' + plainNumber.reason);
 
         // A DATE field still translates — only DATETIME carries the zone ambiguity.
         RLM_DecisionTableManagerController.SourcePlan dateField = plan(

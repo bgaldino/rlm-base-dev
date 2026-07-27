@@ -38,6 +38,7 @@
                     <div key={tile.key}
                          class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4 slds-p-bottom_x-small">
                         <button type="button" class={tile.cssClass} data-verdict={tile.key}
+                                aria-pressed={tile.ariaPressed}
                                 onclick={handleTileFilter} title={tile.help}>
                             <span class="dtm-tile__count">{tile.count}</span>
                             <span class="dtm-tile__label">{tile.label}</span>

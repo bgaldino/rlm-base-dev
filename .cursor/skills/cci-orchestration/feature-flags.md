@@ -36,7 +36,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 10 flow step(s) |
+| `personas` | `True` | 11 flow step(s) |
 | `prm` | `True` | 25 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 16 flow step(s) |
@@ -45,14 +45,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 14 flow step(s) |
+| `quantumbit` | `True` | 15 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 16 flow step(s) |
+| `tso` | `False` | 17 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -261,7 +261,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
 - `prepare_personas` step 8 → `assign_permission_sets`
-- `prepare_personas` step 9 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 9 → `assign_permission_sets`
+- `prepare_personas` step 10 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -401,6 +402,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 - `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -478,6 +480,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 - `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
 
 ### `ux` (default: `True`)
 

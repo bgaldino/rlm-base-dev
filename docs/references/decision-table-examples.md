@@ -389,7 +389,7 @@ Screen flows in the org provide manual refresh by category. Deployed from **unpa
 | RC Refresh Commerce Decision Tables | post_commerce | Refresh Commerce decision tables (when Commerce is enabled) |
 | RC UpdateDecisionTables | post_utils | Generic: select which decision tables to refresh from a list |
 
-The Incremental toggle on Pricing, Asset, and Rate Card flows is wired to the **refreshDecisionTable** action (`IsIncremental` input) so the run is incremental or full based on user choice. Deploy post_utils: `cci task run deploy_post_utils`. Deploy Commerce flows: `cci task run deploy_post_commerce` (or enable `deploy_post_commerce` in prepare when `commerce: true`).
+The Incremental toggle is wired to the **refreshDecisionTable** action's `isDecisionTableIncremental` input (NOT `IsIncremental` — that name is not a valid input and the action silently ignores it), so the run is incremental or full based on user choice. Note that incremental sync is disabled on every decision table this repo ships, so an incremental request there is accepted and then changes nothing. Deploy post_utils: `cci task run deploy_post_utils`. Deploy Commerce flows: `cci task run deploy_post_commerce` (or enable `deploy_post_commerce` in prepare when `commerce: true`).
 
 ---
 

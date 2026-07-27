@@ -292,6 +292,11 @@ export default class RlmDecisionTableManager extends LightningElement {
             label,
             count,
             help,
+            // ⚠ The active filter was signalled by the is-active CLASS alone, which a
+            // screen reader cannot see: the tiles are toggle buttons, so which one is
+            // selected has to be in the accessibility tree too. String, not boolean —
+            // aria-pressed is an attribute value.
+            ariaPressed: this.verdictFilter === key ? 'true' : 'false',
             cssClass:
                 `dtm-tile dtm-tile_${modifier}` +
                 (this.verdictFilter === key ? ' is-active' : '')
@@ -758,10 +763,20 @@ export default class RlmDecisionTableManager extends LightningElement {
         // Evidence that THIS refresh ran, so a stale terminal status from a previous
         // one cannot end the watch on its own. See poll().
         this._observedRunning = new Set()
-        this._syncDateAtQueue = new Map(
+        // ⚠ Snapshot ALL THREE signals, not just the full-sync date. A fast INCREMENTAL
+        // refresh advances lastIncrementalSyncDate and never lastSyncDate; a fast FAILED
+        // refresh advances neither but does change the status. Watching only lastSyncDate
+        // meant either of those, if it finished before the first 4s poll, sat in
+        // stillRunning until the three-minute timeout — safe, but wrong, and it made the
+        // component look broken on exactly the fastest cases.
+        this._stateAtQueue = new Map(
             apiNames.map((name) => {
-                const row = this.rows.find((t) => t.apiName === name)
-                return [name, (row && row.lastSyncDate) || '']
+                const row = this.rows.find((t) => t.apiName === name) || {}
+                return [name, {
+                    sync: row.lastSyncDate || '',
+                    incremental: row.lastIncrementalSyncDate || '',
+                    status: row.refreshStatus || ''
+                }]
             })
         )
         this.isPolling = true
@@ -825,9 +840,12 @@ export default class RlmDecisionTableManager extends LightningElement {
                 // the queued job had moved. Require evidence: either we saw it running,
                 // or its full-sync timestamp advanced past the snapshot taken at queue
                 // time. Neither means keep waiting.
+                const before = this._stateAtQueue.get(name) || {}
                 const started =
                     this._observedRunning.has(name) ||
-                    (row.lastSyncDate || '') !== (this._syncDateAtQueue.get(name) || '')
+                    (row.lastSyncDate || '') !== (before.sync || '') ||
+                    (row.lastIncrementalSyncDate || '') !== (before.incremental || '') ||
+                    (row.refreshStatus || '') !== (before.status || '')
                 if (!started) {
                     stillRunning.push(name)
                     return

@@ -277,8 +277,15 @@ public with sharing class RLM_DecisionTableManagerController {
     };
     private static final Set<Schema.DisplayType> NUMBER_FIELD_TYPES = new Set<Schema.DisplayType>{
         Schema.DisplayType.INTEGER, Schema.DisplayType.LONG, Schema.DisplayType.DOUBLE,
-        Schema.DisplayType.CURRENCY, Schema.DisplayType.PERCENT
+        Schema.DisplayType.PERCENT
     };
+
+    // Types whose COMPARISON VALUE this check cannot pin down, so no operator on them
+    // is translated — not equality, not ordering. See translateCriterion for each one's
+    // reason. Skipping widens the probe, which stays sound: both types move only when
+    // their record is written.
+    private static final Set<Schema.DisplayType> UNESTABLISHED_COMPARISON_TYPES =
+        new Set<Schema.DisplayType>{ Schema.DisplayType.DATETIME, Schema.DisplayType.CURRENCY };
 
     /**
      * Every decision table with its sync state and, where it can be computed
@@ -1208,11 +1215,21 @@ public with sharing class RLM_DecisionTableManagerController {
                 ' has no ordering that SOQL and the decision table are guaranteed to agree on';
             return out;
         }
-        // Every datetime comparison, not just the ordering ones — see coerceValue. The
-        // boundary instant is what is unestablished, and equality binds one too.
-        if (fdr.getType() == Schema.DisplayType.DATETIME) {
-            out.reason = 'field "' + path + '" is a datetime, and the timezone the ' +
-                'decision-table engine reads its boundary in is not established here';
+        // ⚠ EVERY comparison on these types, not just the ordering ones. isOrderedType
+        // excludes both for a reason that condemns equality just as hard, and refusing
+        // only ordering was an inconsistency the review caught twice — once per type:
+        //   DATETIME — Datetime.valueOf parses in the RUNNING USER'S timezone, and the
+        //     zone the engine reads its boundary in is unestablished.
+        //   CURRENCY — in a multicurrency org the stored amount, the corporate-currency
+        //     amount and the converted amount are three different numbers, and which one
+        //     the engine compares is unestablished.
+        // Either way a boundary bound to the wrong value selects a different NONEMPTY
+        // row set, which the zero-result safeguard cannot catch, and the probe then
+        // measures rows the table does not hold.
+        if (UNESTABLISHED_COMPARISON_TYPES.contains(fdr.getType())) {
+            out.reason = 'field "' + path + '" is a ' + fdr.getType() +
+                ', and how the decision-table engine reads its comparison value is not ' +
+                'established here';
             return out;
         }
 
@@ -1452,6 +1469,11 @@ public with sharing class RLM_DecisionTableManagerController {
                 // Throws on anything that is not a well-formed Id, which the catch turns
                 // into a skip — a refusal decided here rather than a query that fails.
                 return Id.valueOf(value);
+            }
+            if (UNESTABLISHED_COMPARISON_TYPES.contains(fieldType)) {
+                // Refused at translateCriterion with a precise reason; belt-and-braces
+                // here so no future caller can coerce one by accident.
+                return null;
             }
             if (fieldType == Schema.DisplayType.DATE) {
                 return Date.valueOf(value);

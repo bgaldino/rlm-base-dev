@@ -4712,9 +4712,9 @@ flows:
         # RUNNING user; only a user_alias assignment reaches the persona.
         #
         # Granted deliberately, and the grant is broader than "the button now works".
-        # RLM_AccountUtilities declares NO sharing keyword (RLM_AccountUtilities.cls:28),
-        # so when it is entered directly — as it is from this invocable — it runs in
-        # SYSTEM MODE. Granting this set therefore hands a non-admin persona a
+        # RLM_AccountUtilities is `without sharing` — declared explicitly now, where it
+        # once had no keyword at all — so when it is entered directly, as it is from
+        # this invocable, it runs in SYSTEM MODE. Granting this set therefore hands a non-admin persona a
         # system-mode destructive entry point: the reset deletes an account's orders,
         # assets, contracts, invoices and usage graph regardless of what that user can
         # see. It is not bounded by their sharing.
@@ -4725,9 +4725,11 @@ flows:
         # the persona was the alternative and was rejected because the reset is a persona
         # workflow, not an admin one.
         #
-        # The clean fix is to give RLM_AccountUtilities an explicit sharing declaration
-        # and decide its enforcement deliberately — tracked separately. Until then this
-        # grant is the widest non-admin privilege the build hands out, and the permission
+        # The sharing mode is now a DECIDED question, not an open one: `without sharing`
+        # is deliberate, because the reset must remove records the running user cannot
+        # see or the account is left half-reset. Do not "fix" it by switching to
+        # `with sharing`. This grant remains the widest non-admin privilege the build
+        # hands out, and the permission
         # reference records it as such.
         #
         # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
@@ -4750,6 +4752,27 @@ flows:
           api_names: *ps_account_utilities
           user_alias: salesrep
       9:
+        # The Decision Table Manager sits on the shared Revenue Cloud Home page, and
+        # there is no persona-specific Home page — so the salesrep persona SEES it. The
+        # grant elsewhere in the build assigns to the RUNNING user only (same trap as
+        # step 8 documents), which left the persona looking at a default-open section
+        # that errors on Apex class access.
+        #
+        # Granted rather than hidden, following step 8's precedent: a visible component
+        # that errors is worse than the grant. The grant is also far narrower than that
+        # one — class access to a controller that reads decision-table metadata and
+        # queues the platform's own refresh action. It deletes nothing, and the refresh
+        # is the same operation the Setup page offers.
+        #
+        # Gated like step 8, and for the same reason: the permission set ships with
+        # post_utils, so assigning it on a personas-only build would fail on a
+        # PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_decision_table_manager
+          user_alias: salesrep
+      10:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

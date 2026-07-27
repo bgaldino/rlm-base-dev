@@ -106,8 +106,8 @@ component does, so they cannot disagree.
 |---|---|
 | **Fresh** | The last full sync is later than the newest change in *every* object the table reads. |
 | **Stale** | Something the table reads changed after the sync. The reason names the object that drove it. |
-| **Not comparable** | The check refused to guess — usually a source criterion it could not faithfully reproduce, or a dependency it could not check. Compare by hand. |
-| **Unknown** | No sObject behind the table at all (`CsvUpload`, `ContextDefinition`), or its source object is unreadable. |
+| **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
+| **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
 
 Three limits apply to **every** verdict, by construction:
 
