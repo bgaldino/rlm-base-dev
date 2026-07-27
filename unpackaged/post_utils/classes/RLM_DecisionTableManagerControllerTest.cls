@@ -406,6 +406,14 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         Assert.areEqual('Stale', tiedInfo.staleness,
             'A sync at the same instant as the newest change establishes no ordering, ' +
             'so it may not read Fresh: ' + tiedInfo.stalenessReason);
+        // ⚠ The REASON must not claim the ordering the verdict declined to claim. A
+        // conservative verdict paired with a factually wrong explanation is the exact
+        // pairing this class exists to avoid — and "after the last full sync" is what
+        // this branch said before the tie got its own sentence.
+        Assert.isFalse(tiedInfo.stalenessReason.contains('after the last full sync'),
+            'At a tie nothing happened "after" anything: ' + tiedInfo.stalenessReason);
+        Assert.isTrue(tiedInfo.stalenessReason.contains('same instant'),
+            'The tie must be named, not glossed: ' + tiedInfo.stalenessReason);
 
         // ⚠ The control, and it earns its place: without it this test would also pass
         // if the fixture were stale for some unrelated reason. ONE MILLISECOND of

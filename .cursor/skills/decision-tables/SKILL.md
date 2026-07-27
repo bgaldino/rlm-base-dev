@@ -105,7 +105,7 @@ component does, so they cannot disagree.
 | Verdict | Means |
 |---|---|
 | **Fresh** | The last full sync is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. |
-| **Stale** | Something the table reads changed after the sync. The reason names the object that drove it. |
+| **Stale** | Something the table reads changed **at or after** the sync. The reason names the object that drove it, and says so explicitly when the two timestamps tie. |
 | **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
 

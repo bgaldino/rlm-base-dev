@@ -303,10 +303,19 @@ export default class RlmDecisionTableManager extends LightningElement {
         })
         return [
             tile(FILTER_ALL, 'Total', counts.total, 'total', 'Show every decision table'),
+            // ⚠ These two summarise the controller's verdicts, so they carry the same
+            // two qualifications those reasons do, for the same reasons:
+            //   "you can see" — probes run USER_MODE, so every verdict is scoped to the
+            //     caller. Without it the Fresh tile promises org-wide quiet.
+            //   "at or after" — the tie counts as stale, so "after" would assert an
+            //     ordering the verdict explicitly declined to claim.
+            // A summary that drops a qualification the detail carries is not shorter,
+            // it is wrong — and the tiles are what people read first.
             tile(VERDICT_STALE, 'Stale', counts.stale, 'stale',
-                'Source changed after the last full sync'),
+                'Something this table reads changed at or after the last full sync'),
             tile(VERDICT_FRESH, 'Fresh', counts.fresh, 'fresh',
-                'Last full sync is later than the newest source change'),
+                'Last full sync is later than the newest change you can see in every ' +
+                    'object this table reads'),
             tile(FILTER_UNCLEAR, 'Not comparable', counts.unclear, 'unclear',
                 `"${VERDICT_UNCOMPUTED}" or "${VERDICT_UNKNOWN}" — freshness was not ` +
                     'established, which is not the same as fresh')
@@ -741,8 +750,18 @@ export default class RlmDecisionTableManager extends LightningElement {
             this.isLoading = false
 
             if (result.errorMessage) {
-                this.errorMessage = result.errorMessage
-                this.toast('Refresh not started', result.errorMessage, 'error')
+                // ⚠ The error path must still report the OTHER bucket. The controller
+                // populates unknownApiNames before the incremental gate returns
+                // precisely so a mixed request — one disabled table, one name that no
+                // longer exists — reports both. Dropping it here defeats that at the
+                // last step: the user fixes the incremental problem, re-runs, and is
+                // still silently missing a table.
+                const missing =
+                    result.unknownApiNames && result.unknownApiNames.length > 0
+                        ? ` Also not found: ${result.unknownApiNames.join(', ')}.`
+                        : ''
+                this.errorMessage = result.errorMessage + missing
+                this.toast('Refresh not started', this.errorMessage, 'error')
                 return
             }
 
@@ -967,11 +986,17 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     // ---- helpers -------------------------------------------------------------
 
+    // ⚠ Never JSON.stringify into a user-facing string — .cursor/rules/lwc-components.mdc
+    // forbids raw JSON in error messages, and a serialised Apex fault is both
+    // unreadable and a disclosure risk. The unrecognised shape still has to reach
+    // someone who can act on it, so it goes to the console and the user gets a
+    // recovery instruction instead of a dump.
     readError(error) {
         if (!error) return 'Unknown error.'
         if (error.body && error.body.message) return error.body.message
         if (error.message) return error.message
-        return JSON.stringify(error)
+        console.error('rlmDecisionTableManager: unrecognised error shape', error)
+        return 'Something went wrong and the cause could not be read. Reload the page and try again — the details are in the browser console.'
     }
 
     toast(title, message, variant, mode) {

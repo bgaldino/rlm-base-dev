@@ -26,7 +26,9 @@
  *
  * ══ How freshness is decided, and where it deliberately refuses to decide ══
  *
- * A table is stale when its source changed after the last full sync. That
+ * A table is stale when its source changed at or after the last full sync — the
+ * tie counts as stale, because at an exact tie nothing establishes which came
+ * first and Fresh is the verdict that cannot be walked back. That
  * comparison is only meaningful if the rows counted are the rows the table
  * actually holds, so a table carrying DecisionTableSourceCriteria needs those
  * criteria reproduced in the comparison query. translateCriterion does that for
@@ -606,8 +608,17 @@ public with sharing class RLM_DecisionTableManagerController {
             // SystemModstamp, which a background process moves without any user edit —
             // so someone who reads "changed" and goes looking in field history can find
             // nothing and conclude the tool is wrong. Say what the timestamp means.
+            // ⚠ The tie gets its own sentence. The branch above admits equality on
+            // purpose — at an exact tie nothing establishes which happened first — so
+            // saying "after the last full sync" there asserts the very ordering the
+            // verdict declined to claim. Conservative verdict, factually wrong reason,
+            // which is the pairing this class exists to avoid.
             info.stalenessReason = driver + ' was changed by a user or an automated ' +
-                'process at ' + newest.format() + ', after the last full sync.' + scope;
+                'process at ' + newest.format() +
+                (dt.LastSyncDate == newest
+                    ? ', the same instant as the last full sync. Nothing establishes ' +
+                      'which happened first, so this is treated as stale rather than fresh.'
+                    : ', after the last full sync.') + scope;
         } else if (!unread.isEmpty() || plan.contributorsUnenumerable) {
             // Fresh does NOT stand: something that could have changed was not read, so
             // there is no basis for an all-clear. Two different gaps reach here — a
