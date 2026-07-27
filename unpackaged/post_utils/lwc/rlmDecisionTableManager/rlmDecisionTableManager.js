@@ -174,10 +174,18 @@ export default class RlmDecisionTableManager extends LightningElement {
     _watchedApiNames = []
 
     connectedCallback() {
+        this._connected = true
         this.loadTables()
     }
 
     disconnectedCallback() {
+        // ⚠ Clearing the timer is not enough on its own. Every async continuation in
+        // this component resumes AFTER its await whether or not the component still
+        // exists, and one of them — queueRefresh — goes on to call startPolling() and
+        // open a NEW interval on a destroyed component, which then polls until it hits
+        // the attempt cap. Navigating away mid-refresh is the ordinary way to hit it.
+        // The flag is what the continuations check; see the guards after each await.
+        this._connected = false
         // Leaving the page mid-refresh must not leave a timer running.
         this.stopPolling()
     }
@@ -188,6 +196,12 @@ export default class RlmDecisionTableManager extends LightningElement {
         this.isLoading = true
         try {
             const data = await getDecisionTables()
+            // Same guard, lesser stake: no timer to strand here, only work and state
+            // assignment on a component nobody can see. Written the same way so the
+            // three continuations stay recognisable as one rule.
+            if (!this._connected) {
+                return
+            }
             this.rows = data.map((row) => this.decorate(row))
             this.errorMessage = undefined
         } catch (error) {
@@ -797,6 +811,13 @@ export default class RlmDecisionTableManager extends LightningElement {
         this.isLoading = true
         try {
             const result = await refreshTables({ apiNames, incremental: this.useIncremental })
+            // ⚠ The leak this guard exists for: without it, a continuation resuming
+            // after the component was destroyed still reaches startPolling() and opens
+            // an interval nothing will ever clear, because the disconnectedCallback
+            // that would have cleared it already ran.
+            if (!this._connected) {
+                return
+            }
             this.isLoading = false
 
             if (result.errorMessage) {
@@ -909,6 +930,12 @@ export default class RlmDecisionTableManager extends LightningElement {
         this._pollAttempts += 1
         try {
             const statuses = await getRefreshStatus({ apiNames: this._watchedApiNames })
+            // Third continuation, same rule. This one can reach loadTables() and a
+            // toast on its terminal paths, neither of which belongs to a component
+            // that is gone.
+            if (!this._connected) {
+                return
+            }
             this.mergeStatuses(statuses)
 
             // Iterate the WATCHED names, not the returned rows: a name the query
