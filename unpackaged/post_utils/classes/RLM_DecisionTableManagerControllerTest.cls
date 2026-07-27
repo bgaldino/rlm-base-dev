@@ -1280,8 +1280,14 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'that is exactly the false all-clear every refusal in this class exists to prevent.');
         Assert.areEqual('Not comparable', info.staleness,
             'It should be reported as not comparable: ' + info.stalenessReason);
-        Assert.isTrue(info.stalenessReason.contains('does hold rows'),
+        Assert.isTrue(info.stalenessReason.contains('does hold visible rows'),
             'The reason must say why the zero is untrustworthy: ' + info.stalenessReason);
+        // ⚠ And "visible" must survive here too. A zero row count means three different
+        // things — an empty source, a filter translated too narrowly, or rows the CALLER
+        // cannot see — and the probe is USER_MODE, so no count in this class can rule the
+        // third one out. Every sentence built from a count says so.
+        Assert.isTrue(info.stalenessReason.contains('visible'),
+            'A count-derived reason must stay scoped to the caller: ' + info.stalenessReason);
     }
 
     @isTest

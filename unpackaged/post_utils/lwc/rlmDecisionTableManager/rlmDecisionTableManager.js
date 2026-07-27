@@ -587,24 +587,35 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     // Full wording, shown on hover. The panel must not scroll, so the long form
     // lives in a title tooltip and only the short form is printed.
-    // ⚠ A zero count means two different things, and only one of them licenses the
-    // "a refresh would produce an empty table" prediction. When the verdict is
-    // Not comparable, the controller has explicitly refused to rule out that the
-    // filter was translated too narrowly — in which case rows DO feed the table and a
-    // refresh would not be empty. Predicting an empty table there states exactly the
-    // conclusion the verdict declined to reach.
+    //
+    // ⚠ A zero count means THREE different things, and only one of them licenses the
+    // "a refresh would produce an empty table" prediction:
+    //
+    //   1. The source genuinely holds nothing.
+    //   2. The reproduced filter was translated too narrowly — rows DO feed the table.
+    //      When the verdict is Not comparable the controller has explicitly refused to
+    //      rule this out, so predicting an empty table there states exactly the
+    //      conclusion the verdict declined to reach.
+    //   3. ⚠ Rows exist but are hidden from the CALLER. The count comes from a
+    //      USER_MODE probe, so zero means "nothing you can see", never "nothing".
+    //      This one was missed while 1 and 2 were handled carefully, and it is the
+    //      one the personas build made reachable by assigning the component to
+    //      salesrep. Nothing here can prove the caller sees every row — so every
+    //      caption below is scoped to them, and the empty-refresh prediction is
+    //      stated as the conditional it actually is.
     get sourceRowCountExplanation() {
         if (!this.detailRow) return ''
         const scope = this.detailRow.criteriaApplied
-            ? 'Rows matching the criteria as this check reproduced them.'
-            : 'Rows in the source object.'
+            ? 'Rows you can see that match the criteria as this check reproduced them.'
+            : 'Rows you can see in the source object.'
         if (this.detailRow.sourceRowCount !== 0) {
             return `${scope} This is the source, not the number of rows in the decision table itself.`
         }
         return this.isVerdictEstablished
-            ? `${scope} Nothing feeds this table, so a refresh would produce an empty table.`
-            : `${scope} The reproduced filter matched nothing, but it may not match what the ` +
-                  'decision table itself matches — so this does not mean a refresh would be empty.'
+            ? `${scope} Nothing you can see feeds this table — if your access covers every row, ` +
+                  'a refresh would produce an empty table.'
+            : `${scope} The reproduced filter matched nothing visible, but it may not match what ` +
+                  'the decision table itself matches — so this does not mean a refresh would be empty.'
     }
 
     get sourceRowCountNote() {
@@ -612,10 +623,12 @@ export default class RlmDecisionTableManager extends LightningElement {
         if (!this.hasSourceRowCount) return 'Source was not counted.'
         if (this.detailRow.sourceRowCount === 0) {
             return this.isVerdictEstablished
-                ? 'Nothing feeds this table.'
-                : 'Nothing matched the reproduced filter.'
+                ? 'Nothing you can see feeds this table.'
+                : 'Nothing visible matched the reproduced filter.'
         }
-        return this.detailRow.criteriaApplied ? 'Matching the criteria below.' : 'In the source object.'
+        return this.detailRow.criteriaApplied
+            ? 'Visible, matching the criteria below.'
+            : 'Visible in the source object.'
     }
 
     get isVerdictEstablished() {

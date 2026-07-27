@@ -179,7 +179,7 @@ triggering DML. A refresh that fails must not take the contract with it.
 | `MasterLabel` is a constant | Never a table identifier. |
 | A parent edit does not touch the child's `LastModifiedDate` | Measured 200/200. This is why criteria that traverse a lookup cannot be verified from child timestamps alone. |
 | `SourceConditionLogic` is a non-filterable textarea | Cannot be used in a `WHERE`; read it and inspect. It is populated on every table with criteria (the platform writes `"1"`, `"1 AND 2"`), so "not blank" does **not** mean custom logic. |
-| `DecisionTableDataset` / `DecisionTableRecordset` reject aggregates and partial filters | A table's **own** row count is not queryable. Only source counts exist. |
+| `DecisionTableDataset` / `DecisionTableRecordset` reject aggregates and partial filters | A table's **own** row count is not queryable. Only source counts exist — and those are `USER_MODE`, so a **zero** source count means "nothing *you* can see", never "nothing". |
 | `CalculationMatrix.DecisionMatrixType` joins `Name` ↔ `SetupName` | The only way to tell a Decision Table from a Decision Matrix. |
 | A Trialforce spin inherits the template's `LastSyncDate` | A sync predating `Organization.CreatedDate` proves the table was never built in this org. |
 

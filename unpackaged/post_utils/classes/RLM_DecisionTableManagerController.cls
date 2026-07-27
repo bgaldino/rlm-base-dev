@@ -679,7 +679,7 @@ public with sharing class RLM_DecisionTableManagerController {
         // method exists to fix.
         if (wholeObject == null || !wholeObject.ran) {
             info.staleness = STALENESS_UNCOMPUTED;
-            info.stalenessReason = 'No source rows match the reproduced criteria, and the ' +
+            info.stalenessReason = 'No visible source rows match the reproduced criteria, and the ' +
                 'whole-object check that would tell a genuinely empty source from a filter ' +
                 'translated too narrowly did not run (' +
                 (wholeObject == null ? 'it was never planned' : wholeObject.failureReason) +
@@ -695,9 +695,9 @@ public with sharing class RLM_DecisionTableManagerController {
         }
 
         info.staleness = STALENESS_UNCOMPUTED;
-        info.stalenessReason = 'No source rows match the reproduced criteria, but the object does ' +
-            'hold rows. That is either a filter that genuinely matches nothing or a criterion ' +
-            'translated too narrowly, and the two cannot be told apart here — so no verdict.';
+        info.stalenessReason = 'No visible source rows match the reproduced criteria, but the object ' +
+            'does hold visible rows. That is either a filter that genuinely matches nothing or a ' +
+            'criterion translated too narrowly, and the two cannot be told apart here — so no verdict.';
     }
 
     /**
