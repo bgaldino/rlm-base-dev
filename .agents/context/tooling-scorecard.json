@@ -9,6 +9,11 @@
       ".cursor/skills/cci-orchestration/feature-flags.md",
       ".cursor/skills/cci-orchestration/flows-reference.md",
       ".cursor/skills/cci-orchestration/tasks-reference.md",
+      ".cursor/skills/constraint-models/SKILL.md",
+      ".cursor/skills/context-service/SKILL.md",
+      ".cursor/skills/context-service/authoring-and-lifecycle.md",
+      ".cursor/skills/context-service/data-model-and-api.md",
+      ".cursor/skills/context-service/runtime-and-persistence.md",
       ".cursor/skills/doc-consistency/SKILL.md",
       ".cursor/skills/document-generation/SKILL.md",
       ".cursor/skills/document-generation/data-mapper-authoring.md",
@@ -44,20 +49,23 @@
       ".cursor/skills/skill-authoring/SKILL.md",
       ".cursor/skills/troubleshooting/SKILL.md",
       ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md",
-      ".cursor/skills/txn-data-harness/SKILL.md"
+      ".cursor/skills/txn-data-harness/SKILL.md",
+      ".cursor/skills/usage-consumption/SKILL.md",
+      ".cursor/skills/usage-consumption/building-usage-assets.md",
+      ".cursor/skills/usage-consumption/verification.md"
     ],
     "missing": []
   },
   "counts": {
-    "agents_skill_references": 44,
-    "cursor_rules": 11,
+    "agents_skill_references": 52,
+    "cursor_rules": 12,
     "errors": 0,
     "generated_cci_reference_files_present": 3,
     "generated_cci_reference_files_total": 3,
     "missing_agents_skill_references": 0,
     "required_files_present": 6,
     "required_files_total": 6,
-    "skills_markdown_files": 54,
+    "skills_markdown_files": 62,
     "warnings": 0
   },
   "errors": [],
@@ -77,11 +85,13 @@
     "manifest_version": "2",
     "present": true,
     "salesforce_release_active": "262",
-    "skill_count": 22,
+    "skill_count": 25,
     "skill_ids": [
       "apex-security-hardening",
       "audit-review",
       "cci-orchestration",
+      "constraint-models",
+      "context-service",
       "doc-consistency",
       "document-generation",
       "expression-sets",
@@ -100,12 +110,15 @@
       "sfdmu-data-plans",
       "skill-authoring",
       "troubleshooting",
-      "txn-data-harness"
+      "txn-data-harness",
+      "usage-consumption"
     ],
     "skill_paths": [
       ".cursor/skills/apex-security-hardening/SKILL.md",
       ".cursor/skills/audit-review/SKILL.md",
       ".cursor/skills/cci-orchestration/SKILL.md",
+      ".cursor/skills/constraint-models/SKILL.md",
+      ".cursor/skills/context-service/SKILL.md",
       ".cursor/skills/doc-consistency/SKILL.md",
       ".cursor/skills/document-generation/SKILL.md",
       ".cursor/skills/expression-sets/SKILL.md",
@@ -124,7 +137,8 @@
       ".cursor/skills/sfdmu-data-plans/SKILL.md",
       ".cursor/skills/skill-authoring/SKILL.md",
       ".cursor/skills/troubleshooting/SKILL.md",
-      ".cursor/skills/txn-data-harness/SKILL.md"
+      ".cursor/skills/txn-data-harness/SKILL.md",
+      ".cursor/skills/usage-consumption/SKILL.md"
     ]
   },
   "required_files": {
@@ -160,6 +174,11 @@
       "rule": "cci-task-definitions.mdc",
       "status": "skill",
       "target": ".cursor/skills/cci-orchestration/SKILL.md"
+    },
+    {
+      "rule": "context-plans.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/context-service/SKILL.md"
     },
     {
       "rule": "doc-review.mdc",
@@ -198,6 +217,7 @@
     ".cursor/rules/apex-scripts.mdc",
     ".cursor/rules/cci-python-tasks.mdc",
     ".cursor/rules/cci-task-definitions.mdc",
+    ".cursor/rules/context-plans.mdc",
     ".cursor/rules/doc-review.mdc",
     ".cursor/rules/lwc-components.mdc",
     ".cursor/rules/robot-tests.mdc",
@@ -215,6 +235,11 @@
     ".cursor/skills/cci-orchestration/feature-flags.md",
     ".cursor/skills/cci-orchestration/flows-reference.md",
     ".cursor/skills/cci-orchestration/tasks-reference.md",
+    ".cursor/skills/constraint-models/SKILL.md",
+    ".cursor/skills/context-service/SKILL.md",
+    ".cursor/skills/context-service/authoring-and-lifecycle.md",
+    ".cursor/skills/context-service/data-model-and-api.md",
+    ".cursor/skills/context-service/runtime-and-persistence.md",
     ".cursor/skills/doc-consistency/SKILL.md",
     ".cursor/skills/document-generation/SKILL.md",
     ".cursor/skills/document-generation/data-mapper-authoring.md",
@@ -259,7 +284,10 @@
     ".cursor/skills/skill-authoring/SKILL.md",
     ".cursor/skills/troubleshooting/SKILL.md",
     ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md",
-    ".cursor/skills/txn-data-harness/SKILL.md"
+    ".cursor/skills/txn-data-harness/SKILL.md",
+    ".cursor/skills/usage-consumption/SKILL.md",
+    ".cursor/skills/usage-consumption/building-usage-assets.md",
+    ".cursor/skills/usage-consumption/verification.md"
   ],
   "status": "pass",
   "warnings": []

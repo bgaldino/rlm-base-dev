@@ -222,9 +222,12 @@ cci task run manage_decision_tables --operation list --status Active
 
 ## Integration with Other Tasks
 
-### Using with RLM_Refresh_Decision_Tables Flow
+### Refreshing without the UI
 
-The `manage_decision_tables` task provides similar functionality to the `RLM_Refresh_Decision_Tables` Screen Flow (which supports All / ByUsageType / Individual modes), but can be automated:
+Decision tables are refreshed interactively from the **Decision Table Manager** on the
+Home page, which also shows a freshness verdict per table. (It replaced the
+`RLM_Refresh_Decision_Tables` screen flow, which is gone.) The `manage_decision_tables`
+task does the same job non-interactively:
 
 ```bash
 # Instead of running the flow manually, use the task:
@@ -374,19 +377,31 @@ The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_
 
 ---
 
-## Org Utility Flows (Screen Flows)
+## In-Org Refresh Entry Points
 
-Screen flows in the org provide manual refresh by category. Deployed from **unpackaged/post_utils** and **unpackaged/post_commerce**:
+⚠ **The per-category `post_utils` screen flows are gone.** Interactive refresh happens in
+the **Decision Table Manager** component on the Revenue Cloud Home page, which replaced
+them: it lists every table with a freshness verdict and refreshes any selection. What
+remains under `post_utils` is autolaunched — no UI to click through.
 
-| Flow | Location | Description |
-|------|----------|-------------|
-| RC Refresh Pricing Decision Tables | post_utils | Refresh default pricing tables; includes Incremental toggle |
-| RC Refresh Asset Decision Tables | post_utils | Refresh asset decision tables; includes Incremental toggle |
-| RC Refresh Rate Card Decision Tables | post_utils | Refresh usage & rating decision tables; includes Incremental toggle |
-| RC Refresh Commerce Decision Tables | post_commerce | Refresh Commerce decision tables (when Commerce is enabled) |
-| RC UpdateDecisionTables | post_utils | Generic: select which decision tables to refresh from a list |
+| Entry point | Location | Type | Use |
+|---|---|---|---|
+| **Decision Table Manager** | `post_utils` LWC, Home page | Component | Interactive: per-table verdict, selective refresh, status polling |
+| `RLM_Refresh_Decision_Tables_Bulk` | `post_utils` | **Autolaunched** | The only way Apex can reach the refresh action — `Flow.Interview.createInterview(...).start()`. Carries the incremental input |
+| `RLM_Refresh_Decision_Tables_By_Usage_Type` | `post_utils` | **Autolaunched** | Refreshes every table sharing a usage type; called by `RLM_Account_Utilities` |
+| `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled |
+| `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table |
 
-The Incremental toggle on Pricing, Asset, and Rate Card flows is wired to the **refreshDecisionTable** action (`IsIncremental` input) so the run is incremental or full based on user choice. Deploy post_utils: `cci task run deploy_post_utils`. Deploy Commerce flows: `cci task run deploy_post_commerce` (or enable `deploy_post_commerce` in prepare when `commerce: true`).
+⚠ The incremental input is `isDecisionTableIncremental` — **NOT** `IsIncremental`, which is
+not a valid input name and which the action silently ignores. Under `post_utils` it now
+appears on exactly one flow, `RLM_Refresh_Decision_Tables_Bulk`.
+
+⚠ Incremental sync is **disabled on every decision table this repo ships**, so an
+incremental request is accepted and then changes nothing. The Manager refuses one on such
+a table rather than queueing a no-op.
+
+Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`
+(or enable `deploy_post_commerce` in prepare when `commerce: true`).
 
 ---
 
