@@ -15,6 +15,7 @@ then recurred twice more in this feature, which is what this file is for.
 """
 import atexit
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
@@ -46,9 +47,13 @@ def load_task_module(stem):
 failures = []
 run_labels = []
 
-# The last check in this file. Its presence in run_labels is what proves the module ran to
-# completion — see _print_summary.
-TERMINAL_CHECK = "description mentions tso"
+# ⚠ An EXPLICIT sentinel, registered as the literal last statement of this file — not the label
+# of whichever check happens to be last. Keying on another check's wording created a coupling
+# with no local sign of it: renaming that check produced "ABORTED … 86 check(s) registered" on a
+# run where all 86 had passed and nothing had aborted. Measured. That is the same class of wrong
+# message the sentinel replaced the arithmetic floor to remove, so it does not get to survive in
+# the replacement. Label and key now sit together and move together.
+TERMINAL_CHECK = "the suite ran to completion"
 
 
 def check(label, condition, detail=""):
@@ -93,6 +98,18 @@ def _print_summary():
             "registered. Everything after that point never ran, so a partial run proves "
             "nothing. Fix the abort; do not delete this guard."
         )
+        # ⚠ FORCE a nonzero status from here, because this branch can be reached on a run that
+        # would otherwise exit 0. The guards catch Exception, and SystemExit is NOT an Exception
+        # — so a driver calling sys.exit(0) escaped every guard, skipped the footer that does the
+        # exiting, and printed this accurate ABORTED warning while the process reported SUCCESS.
+        # Measured: 2 of 86 checks ran, exit 0. An automated caller would have accepted it.
+        #
+        # ⚠ os._exit, not sys.exit: sys.exit inside an atexit handler does NOT change the status
+        # — measured, it still exits 0. os._exit does, which is why the flush above it is
+        # mandatory (it bypasses buffering).
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
     elif failures:
         print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
     else:
@@ -309,7 +326,8 @@ try:  # GUARDED — see the note in section 1
     check("a real list passes through", _as_name_list(["A", "B"], "x") == ["A", "B"])
     check("single name still works", _as_name_list("A", "x") == ["A"])
 except Exception as exc:
-    check("_as_name_list positive cases ran", False, f"raised {type(exc).__name__}: {exc}")
+    check('"A,B,C" splits into three (and the 3 sibling _as_name_list checks)', False,
+          f"driver raised {type(exc).__name__}: {exc}")
 
 for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5, "wrong type")):
     try:
@@ -331,7 +349,8 @@ try:  # GUARDED — see the note in section 1
     check('"true"  -> True', process_bool_arg("true") is True)
     check("False   -> False", process_bool_arg(False) is False)
 except Exception as exc:
-    check("process_bool_arg positive cases ran", False, f"raised {type(exc).__name__}: {exc}")
+    check('"false" -> False (and the 2 sibling process_bool_arg checks)', False,
+          f"driver raised {type(exc).__name__}: {exc}")
 
 # The offline fallback must match CumulusCI's real helper, INCLUDING raising on an
 # uninterpretable value. A fallback that disagrees makes every check above prove the
@@ -789,9 +808,43 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         raw_expr = (step or {}).get("when") or ""
         if not raw_expr:
             continue
+        # ⚠ A non-string when:. YAML parses bare `when: true` as a bool, which is truthy, so it
+        # passes the emptiness guard and then reaches a regex that needs a string. CCI compiles
+        # when: with jinja2.compile_expression, which also needs a string — so this is a repo
+        # defect in its own right, and flagging it says so where crashing the scanner would not.
+        # (`when: false` is falsy and skipped, which is why only one half of the pair shows up.)
+        if not isinstance(raw_expr, str):
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{raw_expr!r} (when: is not a string; CCI compiles it as a Jinja expression)"
+            )
+            continue
         # Blank out string literals so a quoted comparand ("Developer Edition") is not read as
         # an unresolved name. Substituting spaces keeps every other offset intact.
         expr = STRING_LITERAL.sub(lambda m: " " * len(m.group(0)), raw_expr)
+
+        # ⚠ Reject SUBSCRIPTS OUTRIGHT, and a call applied to a grouped expression. The previous
+        # rule looked only at the character immediately after each dotted match, so a closing
+        # delimiter hid the suffix: `(org_config.scratch)["bogus"]` and `[org_config.scratch][1]`
+        # both passed 86/86 with exit 0. That was the FOURTH variant of one false negative in
+        # four rounds — 3-deep chains, bracket-rooted names, bracket-suffixed references, and now
+        # grouped ones — each fix making the next look covered.
+        #
+        # So stop closing variants and close the class: NO `when:` in this repo uses a bracket at
+        # all (measured across all 198 clauses), so any bracket is an unmodelled form and fails
+        # closed. A legitimate `x in ['a','b']` would be rejected too — that is the same trade as
+        # JINJA_RESERVED and ALLOWED_ORG_CONFIG_REFS, and the message names the remedy.
+        if "[" in expr or "]" in expr:
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{raw_expr!r} contains a subscript. This scan does not model bracket access, and "
+                "a subscript that does not resolve is falsy under Jinja2 — the step would be "
+                "skipped silently. Rewrite as <namespace>.<attribute>, or extend this scan."
+            )
+            continue
+        if re.search(r"[\)\]]\s*\(", expr):
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{raw_expr!r} calls a grouped expression; this scan does not model it"
+            )
+            continue
 
         consumed_spans = []
         for match in re.finditer(r"\b\w+(?:\.\w+)+", expr):
@@ -873,6 +926,10 @@ print("\n[5] the Commerce task description reflects the tso gate")
 
 desc = cci["tasks"]["refresh_dt_commerce"]["description"]
 check("description mentions tso", "tso" in desc.lower(), desc)
+
+# ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
+# abort diagnosis on its presence.
+check(TERMINAL_CHECK, True)
 
 _print_summary()
 if failures or TERMINAL_CHECK not in run_labels:
