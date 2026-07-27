@@ -66,7 +66,10 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     private static RLM_AccountUtilities.InputVariables request(
-        Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling
+        Id accountId,
+        Boolean deleteAssets,
+        Boolean deleteFulfillment,
+        Boolean deleteBilling
     ) {
         RLM_AccountUtilities.InputVariables iv = new RLM_AccountUtilities.InputVariables();
         iv.accountId = accountId;
@@ -77,9 +80,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     private static void run(RLM_AccountUtilities.InputVariables iv) {
-        RLM_AccountUtilities.delAccountRelatedObjects(
-            new List<RLM_AccountUtilities.InputVariables>{ iv }
-        );
+        RLM_AccountUtilities.delAccountRelatedObjects(new List<RLM_AccountUtilities.InputVariables>{ iv });
     }
 
     // ------------------------------------------------------------------ guards
@@ -97,9 +98,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void emptyRequestIsANoOp() {
         Test.startTest();
-        RLM_AccountUtilities.delAccountRelatedObjects(
-            new List<RLM_AccountUtilities.InputVariables>()
-        );
+        RLM_AccountUtilities.delAccountRelatedObjects(new List<RLM_AccountUtilities.InputVariables>());
         Test.stopTest();
         System.assert(true, 'An empty request must return quietly');
     }
@@ -124,10 +123,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         System.assert(threw, 'A bulk request must be rejected, not silently half-processed');
-        System.assert(
-            message.contains('only one request at a time'),
-            'Rejection must say why. Got: ' + message
-        );
+        System.assert(message.contains('only one request at a time'), 'Rejection must say why. Got: ' + message);
     }
 
     // ------------------------------------------------------- baseline teardown
@@ -203,10 +199,10 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assertEquals(
             1,
             [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id],
-            'DeleteAssets=false must keep the asset. AssetRateCardEntry rows are '
-                + 'generated at asset creation and never regenerated for an existing '
-                + 'asset, so anything that removes them while keeping the asset '
-                + 'leaves a usage asset that can never rate again'
+            'DeleteAssets=false must keep the asset. AssetRateCardEntry rows are ' +
+                'generated at asset creation and never regenerated for an existing ' +
+                'asset, so anything that removes them while keeping the asset ' +
+                'leaves a usage asset that can never rate again'
         );
     }
 
@@ -242,10 +238,18 @@ private without sharing class RLM_AccountUtilitiesTest {
         insert bystander;
 
         insert new List<Opportunity>{
-            new Opportunity(Name = 'Target Opp', AccountId = target.Id,
-                StageName = 'Prospecting', CloseDate = Date.today().addDays(30)),
-            new Opportunity(Name = 'Bystander Opp', AccountId = bystander.Id,
-                StageName = 'Prospecting', CloseDate = Date.today().addDays(30))
+            new Opportunity(
+                Name = 'Target Opp',
+                AccountId = target.Id,
+                StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30)
+            ),
+            new Opportunity(
+                Name = 'Bystander Opp',
+                AccountId = bystander.Id,
+                StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30)
+            )
         };
 
         Test.startTest();

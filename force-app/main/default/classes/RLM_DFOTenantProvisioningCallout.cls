@@ -1,10 +1,13 @@
-global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfwk.ProcessIntegrationProvider{
+global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfwk.ProcessIntegrationProvider {
+    private static final industriesintegrationfwk.ApexProviderAttr inputOrderIdTest = new industriesintegrationfwk.ApexProviderAttr(
+        'inputOrderId',
+        'inputOrderId',
+        '',
+        false,
+        'String'
+    );
 
-    private static final industriesintegrationfwk.ApexProviderAttr inputOrderIdTest = new industriesintegrationfwk.ApexProviderAttr('inputOrderId', 
-    'inputOrderId', '', false, 'String');
-
-    private static HttpResponse makeCallout(String inputOrderId){
-        
+    private static HttpResponse makeCallout(String inputOrderId) {
         // Construct the request object
         String endPoint = 'callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant';
         HttpRequest request = new HttpRequest();
@@ -19,13 +22,18 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
         system.debug(JSON.serialize(tci));
 
         request.setBody(JSON.serialize(tci));
-        
+
         // Send request
         HttpResponse response = new Http().send(request);
         return response;
-    } 
+    }
 
-    global static industriesintegrationfwk.IntegrationCalloutResponse executeCallout(String requestGuid, String inputRecordId, String payload, Map<String, Object> attributes) {
+    global static industriesintegrationfwk.IntegrationCalloutResponse executeCallout(
+        String requestGuid,
+        String inputRecordId,
+        String payload,
+        Map<String, Object> attributes
+    ) {
         system.debug('input record id is ' + inputRecordId);
         //Get Order
 
@@ -37,36 +45,46 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
 
         HttpResponse response = new HttpResponse();
 
-        if(sourceObjectType == 'OrderItem'){
-            OrderItem oi = [SELECT Id, OrderId
-                                FROM OrderItem
-                                WHERE Id =: inputRecordId LIMIT 1];
-                                
+        if (sourceObjectType == 'OrderItem') {
+            OrderItem oi = [
+                SELECT Id, OrderId
+                FROM OrderItem
+                WHERE Id = :inputRecordId
+                LIMIT 1
+            ];
+
             system.debug('Order to callout on is ' + oi.OrderId);
 
             response = makeCallout(oi.OrderId);
-        }else if(sourceObjectType == 'FulfillmentOrderLineItem'){
-            FulfillmentLineSourceRel lineSourceRel = [SELECT Id, SourceLineItemId, FulfilmentOrderLineId 
-                                                        FROM FulfillmentLineSourceRel 
-                                                        WHERE (SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId =: inputRecordId) LIMIT 1];
-            
-            OrderItem oi = [SELECT Id, OrderId
-                            FROM OrderItem
-                            WHERE Id =: lineSourceRel.SourceLineItemId LIMIT 1];
-                                                        
+        } else if (sourceObjectType == 'FulfillmentOrderLineItem') {
+            FulfillmentLineSourceRel lineSourceRel = [
+                SELECT Id, SourceLineItemId, FulfilmentOrderLineId
+                FROM FulfillmentLineSourceRel
+                WHERE SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId = :inputRecordId
+                LIMIT 1
+            ];
+
+            OrderItem oi = [
+                SELECT Id, OrderId
+                FROM OrderItem
+                WHERE Id = :lineSourceRel.SourceLineItemId
+                LIMIT 1
+            ];
+
             system.debug('Order to callout on is ' + oi.OrderId);
-                        
+
             response = makeCallout(oi.OrderId);
         }
-        
-        // Group response by groupId 
+
+        // Group response by groupId
         Map<String, Object> responseGroup = getResponseGroupAfterCallout(response);
 
         // Create IntegrationCalloutResponse Response
-        industriesintegrationfwk.IntegrationCalloutResponse integrationCalloutResponse = new industriesintegrationfwk.IntegrationCalloutResponse(true);
-//        integrationCalloutResponse.setReturnValue(responseGroup);
+        industriesintegrationfwk.IntegrationCalloutResponse integrationCalloutResponse = new industriesintegrationfwk.IntegrationCalloutResponse(
+            true
+        );
+        //        integrationCalloutResponse.setReturnValue(responseGroup);
         return integrationCalloutResponse;
-        
     }
 
     private static Map<String, Object> getResponseGroupAfterCallout(HttpResponse response) {
@@ -80,25 +98,25 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
         return responseGroup;
     }
 
-    // Convert response string into Map 
-    private static Map<String,Object> getResponseMap(String responseBody) {
+    // Convert response string into Map
+    private static Map<String, Object> getResponseMap(String responseBody) {
         try {
-            Map<String,Object> responseBodyMap = (Map<String,Object>) JSON.deserializeUntyped(responseBody);
+            Map<String, Object> responseBodyMap = (Map<String, Object>) JSON.deserializeUntyped(responseBody);
             return responseBodyMap;
         } catch (Exception e) {
-            Map<String, Object> responseMap = new Map<String,Object>();
+            Map<String, Object> responseMap = new Map<String, Object>();
             responseMap.put('response', responseBody);
             return responseMap;
         }
     }
 
-    public List<industriesintegrationfwk.ApexProviderAttr> getProviderAttributes(){
+    public List<industriesintegrationfwk.ApexProviderAttr> getProviderAttributes() {
         List<industriesintegrationfwk.ApexProviderAttr> defaults = new List<industriesintegrationfwk.ApexProviderAttr>();
-//        defaults.add(inputOrderIdTest);
+        //        defaults.add(inputOrderIdTest);
         return defaults;
     }
 
-    public class TenantCreationInfo{
+    public class TenantCreationInfo {
         public String orderId;
     }
 }

@@ -1,8 +1,11 @@
 public with sharing class RLM_InvoiceTaxSummaryController {
     public class TaxSummaryRow {
-        @AuraEnabled public String taxName;
-        @AuraEnabled public Decimal totalTaxAmount;
-        @AuraEnabled public String currencyIsoCode;
+        @AuraEnabled
+        public String taxName;
+        @AuraEnabled
+        public Decimal totalTaxAmount;
+        @AuraEnabled
+        public String currencyIsoCode;
 
         public TaxSummaryRow(String taxName, Decimal totalTaxAmount, String currencyIsoCode) {
             this.taxName = taxName;
@@ -20,20 +23,20 @@ public with sharing class RLM_InvoiceTaxSummaryController {
         List<TaxSummaryRow> rows = new List<TaxSummaryRow>();
 
         for (AggregateResult ar : [
-            SELECT
-                TaxName taxName,
-                CurrencyIsoCode currencyIsoCode,
-                SUM(TaxAmount) totalTaxAmount
+            SELECT TaxName taxName, CurrencyIsoCode currencyIsoCode, SUM(TaxAmount) totalTaxAmount
             FROM InvoiceLineTax
             WHERE InvoiceLine.InvoiceId = :invoiceId
-            WITH USER_MODE GROUP BY TaxName, CurrencyIsoCode
+            WITH USER_MODE
+            GROUP BY TaxName, CurrencyIsoCode
             ORDER BY TaxName, CurrencyIsoCode
         ]) {
-            rows.add(new TaxSummaryRow(
-                (String) ar.get('taxName'),
-                (Decimal) ar.get('totalTaxAmount'),
-                (String) ar.get('currencyIsoCode')
-            ));
+            rows.add(
+                new TaxSummaryRow(
+                    (String) ar.get('taxName'),
+                    (Decimal) ar.get('totalTaxAmount'),
+                    (String) ar.get('currencyIsoCode')
+                )
+            );
         }
 
         return rows;

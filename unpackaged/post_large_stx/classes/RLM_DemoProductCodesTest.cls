@@ -1,6 +1,5 @@
 @IsTest
 private class RLM_DemoProductCodesTest {
-
     @IsTest
     static void testOrderedDemoProductIdentifiers() {
         List<String> ordered = RLM_DemoProductCodes.orderedDemoProductIdentifiers();
@@ -17,11 +16,20 @@ private class RLM_DemoProductCodesTest {
     @IsTest
     static void testIdentifierPredicates() {
         System.assertEquals(true, RLM_DemoProductCodes.isOneTimeIdentifier('QB-SRV-IMP'));
-        System.assertEquals(false, RLM_DemoProductCodes.isOneTimeIdentifier(RLM_DemoProductCodes.EVERGREEN_PRODUCT_IDENTIFIER));
+        System.assertEquals(
+            false,
+            RLM_DemoProductCodes.isOneTimeIdentifier(RLM_DemoProductCodes.EVERGREEN_PRODUCT_IDENTIFIER)
+        );
         System.assertEquals(false, RLM_DemoProductCodes.isOneTimeIdentifier(null));
 
-        System.assertEquals(true, RLM_DemoProductCodes.isEvergreenIdentifier(RLM_DemoProductCodes.EVERGREEN_PRODUCT_IDENTIFIER));
-        System.assertEquals(true, RLM_DemoProductCodes.isTermedIdentifier(RLM_DemoProductCodes.TERMED_PRODUCT_IDENTIFIER));
+        System.assertEquals(
+            true,
+            RLM_DemoProductCodes.isEvergreenIdentifier(RLM_DemoProductCodes.EVERGREEN_PRODUCT_IDENTIFIER)
+        );
+        System.assertEquals(
+            true,
+            RLM_DemoProductCodes.isTermedIdentifier(RLM_DemoProductCodes.TERMED_PRODUCT_IDENTIFIER)
+        );
 
         System.assertEquals(true, RLM_DemoProductCodes.isStandaloneLineProbeOneTime('PROD-2035320005'));
         System.assertEquals(false, RLM_DemoProductCodes.isStandaloneLineProbeOneTime('QB-SRV-IMP'));

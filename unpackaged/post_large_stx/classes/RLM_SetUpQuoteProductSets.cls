@@ -21,7 +21,9 @@ public with sharing class RLM_SetUpQuoteProductSets {
     }
 
     public static String normalizeProductSetMode(String productSetMode) {
-        String normalized = String.isNotBlank(productSetMode) ? productSetMode.trim().toUpperCase() : PRODUCT_SET_QUANTUMBIT;
+        String normalized = String.isNotBlank(productSetMode)
+            ? productSetMode.trim().toUpperCase()
+            : PRODUCT_SET_QUANTUMBIT;
         return normalized == PRODUCT_SET_SIEMENS ? PRODUCT_SET_SIEMENS : PRODUCT_SET_QUANTUMBIT;
     }
 
@@ -107,7 +109,9 @@ public with sharing class RLM_SetUpQuoteProductSets {
         }
 
         for (Integer i = 0; i < bundleCount; i++) {
-            out.add(new ProductRequest(RLM_DemoProductCodes.BULK_BUNDLE_PRODUCT_IDENTIFIER, QUANTUMBIT_BULK_BUNDLE_QLI_COST));
+            out.add(
+                new ProductRequest(RLM_DemoProductCodes.BULK_BUNDLE_PRODUCT_IDENTIFIER, QUANTUMBIT_BULK_BUNDLE_QLI_COST)
+            );
         }
 
         Integer simpleCount = target - (bundleCount * QUANTUMBIT_BULK_BUNDLE_QLI_COST);

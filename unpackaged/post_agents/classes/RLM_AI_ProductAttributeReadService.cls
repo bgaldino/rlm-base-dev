@@ -3,22 +3,25 @@
  * producing a human-readable configuration summary.
  */
 public with sharing class RLM_AI_ProductAttributeReadService {
-
     public class ReadInput {
         @InvocableVariable(required=true label='Quote Line Item Id')
         public String quoteLineItemId;
     }
 
     public class ReadOutput {
-        @InvocableVariable(label='Configuration Summary'
-            description='Human-readable list of attribute name: value pairs')
+        @InvocableVariable(
+            label='Configuration Summary'
+            description='Human-readable list of attribute name: value pairs'
+        )
         public String configurationSummary;
 
         @InvocableVariable(label='Saved Attributes JSON')
         public String savedAttributesJson;
 
-        @InvocableVariable(label='Is Success'
-            description='True if the read ran without a system-level error. False if an exception prevented it from completing.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True if the read ran without a system-level error. False if an exception prevented it from completing.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Error Message')
@@ -71,7 +74,6 @@ public with sharing class RLM_AI_ProductAttributeReadService {
 
             out.savedAttributesJson = JSON.serialize(saved);
             out.configurationSummary = String.join(lines, '\n');
-
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
             out.isSuccess = false;

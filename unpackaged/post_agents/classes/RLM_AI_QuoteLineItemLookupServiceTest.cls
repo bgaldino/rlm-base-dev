@@ -2,19 +2,18 @@
 private class RLM_AI_QuoteLineItemLookupServiceTest {
     @isTest
     static void lookupReturnsMatchWhenProductExists() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'FESBA Generator Set'
+        );
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'FESBA Generator Set';
 
         Test.startTest();
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'One result should be returned.');
@@ -28,18 +27,17 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupReturnsNotFoundWhenNoMatch() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'FESBA Generator Set'
+        );
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'NoSuchProduct';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'A no-match outcome still ran correctly.');
         System.assertEquals(false, results[0].isFound);
@@ -49,15 +47,13 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupHandlesInvalidQuoteId() {
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = 'not-an-id';
         input.productName = 'Generator';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess, 'An invalid quote Id is a system/input error.');
         System.assertEquals(false, results[0].isFound);
@@ -67,21 +63,20 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupPrefersExactMatchOverPartialMatch() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Generator');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'Generator'
+        );
 
         addQuoteLineItem(fixture.quoteId, 'FESBA Generator Set');
         addQuoteLineItem(fixture.quoteId, 'Generator Plus');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'Generator';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isFound);
         System.assertEquals('Generator', results[0].productNameFound);
@@ -93,20 +88,19 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         // The shared engine scores in memory (no SOQL LIKE), so punctuation in
         // the search term is tokenized away rather than interpreted as a wildcard.
         // A single, clearly-best line still resolves.
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('100% Pure Generator');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            '100% Pure Generator'
+        );
 
         addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = '100% Pure';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isFound);
         System.assertEquals('100% Pure Generator', results[0].productNameFound);
@@ -114,20 +108,19 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupListsAllLinesWhenProductNameIsBlank() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'FESBA Generator Set'
+        );
         addQuoteLineItem(fixture.quoteId, 'Support Plan');
         addQuoteLineItem(fixture.quoteId, 'Extended Warranty');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = '  ';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         // Blank product name = list-all mode: every line is returned as a
         // candidate, never auto-selected, so the agent can offer all/multiple.
@@ -140,7 +133,11 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         System.assert(results[0].candidateQuoteLineSummariesDisplay.contains('FESBA Generator Set'));
 
         List<Object> summaries = (List<Object>) JSON.deserializeUntyped(results[0].candidateQuoteLineSummariesJson);
-        System.assertEquals(3, summaries.size(), 'All three quote lines should be returned (not capped at 3-candidate disambiguation limit).');
+        System.assertEquals(
+            3,
+            summaries.size(),
+            'All three quote lines should be returned (not capped at 3-candidate disambiguation limit).'
+        );
         Set<String> summaryNames = new Set<String>();
         for (Object summaryObj : summaries) {
             Map<String, Object> summary = (Map<String, Object>) summaryObj;
@@ -175,15 +172,13 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         );
         insert q;
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(q.Id);
         input.productName = null;
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'Empty list-all still ran correctly.');
         System.assertEquals(false, results[0].isFound);
@@ -193,21 +188,20 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupRequestsDisambiguationForLowConfidencePartialMatch() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'FESBA Generator Set'
+        );
 
         addQuoteLineItem(fixture.quoteId, 'FESBA Generator Pro');
         addQuoteLineItem(fixture.quoteId, 'FESBA Generator Ultra');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'Gen';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         // "Gen" is a substring of "Generator" in all three lines, so the shared
         // engine scores them all equally (contains-all). Equal top scores =>
@@ -253,47 +247,47 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         // the threshold below its confidence auto-selects it. (The unified engine
         // never force-picks between equally-scoring lines — the threshold only
         // moves the bar for a clear, single winner.)
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Cloud Storage Premium Enterprise');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'Cloud Storage Premium Enterprise'
+        );
         addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'Cloud Storage Premium Edition';
         input.autoSelectThresholdPercent = 55;
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isFound);
         System.assertEquals(false, results[0].needsDisambiguation);
         System.assertEquals('Cloud Storage Premium Enterprise', results[0].productNameFound);
         System.assert(results[0].matchConfidencePercent >= 55);
-        System.assert(results[0].matchConfidencePercent < 80,
-            'The match is a partial below the default threshold; only the lowered threshold selects it.');
+        System.assert(
+            results[0].matchConfidencePercent < 80,
+            'The match is a partial below the default threshold; only the lowered threshold selects it.'
+        );
     }
 
     @isTest
     static void lookupRespectsCustomThresholdAndDisambiguatesWhenRaised() {
         // A SINGLE clear winner scoring 85 (contains-all): raising the threshold
         // above its confidence demotes it to a confirmation/disambiguation step.
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Generator Plus');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'Generator Plus'
+        );
         addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'Generator';
         input.autoSelectThresholdPercent = 95;
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isFound);
         System.assertEquals(true, results[0].needsDisambiguation);
@@ -311,45 +305,45 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         // auto-selected it. The shared engine scores "Additional API" far higher
         // (every name token present in the search) and drops the weak single-token
         // overlap on "API Access Requests (AEH)" below the confidence floor.
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Additional API');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'Additional API'
+        );
         addQuoteLineItem(fixture.quoteId, 'API Access Requests (AEH)');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         // Includes the trailing attribute noise word the LLM may pass through.
         input.productName = 'Additional API type';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess);
-        System.assertEquals(true, results[0].isFound,
-            'A single dominant line must auto-resolve, not disambiguate.');
-        System.assertEquals('Additional API', results[0].productNameFound,
-            'Must resolve to "Additional API", never "API Access Requests (AEH)".');
+        System.assertEquals(true, results[0].isFound, 'A single dominant line must auto-resolve, not disambiguate.');
+        System.assertEquals(
+            'Additional API',
+            results[0].productNameFound,
+            'Must resolve to "Additional API", never "API Access Requests (AEH)".'
+        );
         System.assertEquals(false, results[0].needsDisambiguation);
     }
 
     @isTest
     static void lookupDisambiguatesWhenDuplicateTopProductLinesExist() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Additional API');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'Additional API'
+        );
         addQuoteLineItem(fixture.quoteId, 'Additional API');
         addQuoteLineItem(fixture.quoteId, 'Additional API Plus');
 
-        RLM_AI_QuoteLineItemLookupService.LookupInput input =
-            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        RLM_AI_QuoteLineItemLookupService.LookupInput input = new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
         input.productName = 'Additional API';
 
-        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
-            RLM_AI_QuoteLineItemLookupService.lookup(
-                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
-            );
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results = RLM_AI_QuoteLineItemLookupService.lookup(
+            new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isFound);
         System.assertEquals(true, results[0].needsDisambiguation);
@@ -370,10 +364,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
     private static Id addQuoteLineItem(Id quoteId, String productName) {
         Id standardPbId = Test.getStandardPricebookId();
 
-        Product2 product = new Product2(
-            Name = productName,
-            IsActive = true
-        );
+        Product2 product = new Product2(Name = productName, IsActive = true);
         insert product;
 
         PricebookEntry pbe = new PricebookEntry(

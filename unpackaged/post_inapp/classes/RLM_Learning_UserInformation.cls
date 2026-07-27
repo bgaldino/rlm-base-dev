@@ -10,11 +10,9 @@ public with sharing class RLM_Learning_UserInformation {
     // and its result can be cached and go stale.
 
     @AuraEnabled(cacheable=true)
-    public static Integer getExpiryDays(){
+    public static Integer getExpiryDays() {
         try {
-            List<Organization> objList = [
-                SELECT TrialExpirationDate FROM Organization WITH USER_MODE LIMIT 1
-            ];
+            List<Organization> objList = [SELECT TrialExpirationDate FROM Organization WITH USER_MODE LIMIT 1];
             // Non-trial orgs (e.g. Enterprise) have no TrialExpirationDate; return
             // null so the welcome UI omits the countdown instead of throwing.
             if (objList.isEmpty() || objList[0].TrialExpirationDate == null) {

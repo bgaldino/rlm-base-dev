@@ -11,9 +11,7 @@ public with sharing class RLM_RefundController {
     @AuraEnabled(cacheable=true)
     public static Decimal getPaymentBalance(String recordId) {
         try {
-            List<Payment> payments = [
-                SELECT Balance FROM Payment WHERE Id = :recordId WITH USER_MODE LIMIT 1
-            ];
+            List<Payment> payments = [SELECT Balance FROM Payment WHERE Id = :recordId WITH USER_MODE LIMIT 1];
             if (payments.isEmpty() || payments[0].Balance == null) {
                 return 0;
             }
@@ -36,7 +34,11 @@ public with sharing class RLM_RefundController {
             }
 
             List<Payment> payments = [
-                SELECT Balance, AccountId FROM Payment WHERE Id = :recordId WITH USER_MODE LIMIT 1
+                SELECT Balance, AccountId
+                FROM Payment
+                WHERE Id = :recordId
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (payments.isEmpty()) {
                 result.success = false;
@@ -79,10 +81,9 @@ public with sharing class RLM_RefundController {
             ConnectApi.ReferencedRefundRequest request = buildRefundRequest(amount, accountId);
             // In-org Connect API call (no callout / named credential). Target-agnostic:
             // routes through the payment's own gateway adapter using the running user's context.
-            ConnectApi.ReferencedRefundResponse response =
-                (Test.isRunningTest() && mockRefundResponse != null)
-                    ? mockRefundResponse
-                    : ConnectApi.Payments.refund(request, paymentId);
+            ConnectApi.ReferencedRefundResponse response = (Test.isRunningTest() && mockRefundResponse != null)
+                ? mockRefundResponse
+                : ConnectApi.Payments.refund(request, paymentId);
 
             result.success = true;
             result.refundId = extractRefundId(response);
@@ -106,8 +107,7 @@ public with sharing class RLM_RefundController {
             return null;
         }
         try {
-            Map<String, Object> parsed =
-                (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(response));
+            Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(response));
             Object idValue = parsed.get('refundId') != null ? parsed.get('refundId') : parsed.get('id');
             return idValue != null ? String.valueOf(idValue) : null;
         } catch (Exception e) {
@@ -134,8 +134,11 @@ public with sharing class RLM_RefundController {
     }
 
     public class RefundResult {
-        @AuraEnabled public Boolean success;
-        @AuraEnabled public String message;
-        @AuraEnabled public String refundId;
+        @AuraEnabled
+        public Boolean success;
+        @AuraEnabled
+        public String message;
+        @AuraEnabled
+        public String refundId;
     }
 }

@@ -12,20 +12,26 @@
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
  */
 public with sharing class RLM_AI_QuoteDemoSummaryService {
-
     public class SummaryInput {
-        @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0) to summarize.')
+        @InvocableVariable(
+            required=true
+            label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0) to summarize.'
+        )
         public String quoteId;
     }
 
     public class SummaryOutput {
-        @InvocableVariable(label='Is Success'
-            description='True if the recap was built (including a quote with no lines). False only on input/system error.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True if the recap was built (including a quote with no lines). False only on input/system error.'
+        )
         public Boolean isSuccess;
 
-        @InvocableVariable(label='Summary Display'
-            description='Rich-text, names-only per-line list for user-facing display (no header/totals — those are on the record card).')
+        @InvocableVariable(
+            label='Summary Display'
+            description='Rich-text, names-only per-line list for user-facing display (no header/totals — those are on the record card).'
+        )
         public String summaryDisplay;
 
         @InvocableVariable(label='Error Message')
@@ -83,8 +89,8 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
 
         if (quote == null && lines.isEmpty()) {
             out.errorMessage =
-                'Could not find a quote with that Id, or it has no readable details. '
-                + 'Verify the quote and try again.';
+                'Could not find a quote with that Id, or it has no readable details. ' +
+                'Verify the quote and try again.';
             return out;
         }
 
@@ -108,8 +114,7 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
 
     private static List<QuoteLineItem> queryLines(Id quoteId) {
         return [
-            SELECT Id, Product2.Name, Quantity, NetUnitPrice, UnitPrice,
-                   NetTotalPrice, TotalPrice, LineNumber
+            SELECT Id, Product2.Name, Quantity, NetUnitPrice, UnitPrice, NetTotalPrice, TotalPrice, LineNumber
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
             ORDER BY LineNumber ASC, Product2.Name ASC
@@ -142,8 +147,7 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
                 : 'Unnamed Product';
             Decimal unitPrice = qli.NetUnitPrice != null ? qli.NetUnitPrice : qli.UnitPrice;
             Decimal totalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
-            String line = ordinal + '. **' + productName + '**'
-                + ' — Qty ' + formatQuantity(qli.Quantity);
+            String line = ordinal + '. **' + productName + '**' + ' — Qty ' + formatQuantity(qli.Quantity);
             if (unitPrice != null) {
                 line += ', Unit ' + formatCurrency(unitPrice);
             }

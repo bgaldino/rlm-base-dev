@@ -1,6 +1,5 @@
 @isTest
 private class RLM_DisputeDetailsControllerTest {
-
     private static Id fakeId(Schema.SObjectType sot) {
         String prefix = sot.getDescribe().getKeyPrefix();
         // Defensive: a type with no key prefix would otherwise build 'null000...' and throw an
@@ -20,8 +19,11 @@ private class RLM_DisputeDetailsControllerTest {
         System.assert(result.containsKey('invoiceNames'), 'invoiceNames key expected.');
         System.assert(result.containsKey('lineNames'), 'lineNames key expected.');
         System.assert(result.containsKey('lineBalances'), 'lineBalances key expected.');
-        System.assertEquals(0, ((Map<String, String>) result.get('invoiceNames')).size(),
-            'Null invoice ids yield an empty name map.');
+        System.assertEquals(
+            0,
+            ((Map<String, String>) result.get('invoiceNames')).size(),
+            'Null invoice ids yield an empty name map.'
+        );
     }
 
     @isTest
@@ -32,8 +34,11 @@ private class RLM_DisputeDetailsControllerTest {
         Map<String, Object> result = RLM_DisputeDetailsController.getRelatedNames(invoiceIds, invoiceLineIds);
         Test.stopTest();
         System.assertNotEquals(null, result, 'A non-null result map should always be returned.');
-        System.assertEquals(0, ((Map<String, String>) result.get('lineNames')).size(),
-            'Non-existent line ids yield an empty name map.');
+        System.assertEquals(
+            0,
+            ((Map<String, String>) result.get('lineNames')).size(),
+            'Non-existent line ids yield an empty name map.'
+        );
     }
 
     @isTest
@@ -65,8 +70,11 @@ private class RLM_DisputeDetailsControllerTest {
         Integer rowsAfter = Limits.getDmlRows();
         Test.stopTest();
 
-        System.assertEquals(rowsBefore, rowsAfter,
-            'A non-existent DisputeItem id must never cause a record to be updated.');
+        System.assertEquals(
+            rowsBefore,
+            rowsAfter,
+            'A non-existent DisputeItem id must never cause a record to be updated.'
+        );
     }
 
     private static Id disputeItemFakeId() {

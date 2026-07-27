@@ -16,10 +16,12 @@
  * RLM_AI_AttributeResolver for why.
  */
 public with sharing class RLM_AI_QuoteLineAttributeService {
-
     public class GetLineAttributesInput {
-        @InvocableVariable(required=true label='Quote Line Item Id'
-            description='18-character Salesforce Id of the QuoteLineItem (starts with 0QL) whose existing attributes to read.')
+        @InvocableVariable(
+            required=true
+            label='Quote Line Item Id'
+            description='18-character Salesforce Id of the QuoteLineItem (starts with 0QL) whose existing attributes to read.'
+        )
         public String quoteLineItemId;
     }
 
@@ -27,20 +29,28 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
         @InvocableVariable(label='Product Name')
         public String productName;
 
-        @InvocableVariable(label='Attributes JSON'
-            description='JSON array of the attributes on the line. Each has: name, developerName, dataType, currentValue, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner.')
+        @InvocableVariable(
+            label='Attributes JSON'
+            description='JSON array of the attributes on the line. Each has: name, developerName, dataType, currentValue, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner.'
+        )
         public String attributesJson;
 
-        @InvocableVariable(label='Attribute Summary'
-            description='Pre-formatted human-readable summary of the attributes on the line, each with its current value and (for picklists) the valid options. Display this directly to the user.')
+        @InvocableVariable(
+            label='Attribute Summary'
+            description='Pre-formatted human-readable summary of the attributes on the line, each with its current value and (for picklists) the valid options. Display this directly to the user.'
+        )
         public String attributeSummary;
 
-        @InvocableVariable(label='Has Attributes'
-            description='True when the line has at least one attribute with a value set.')
+        @InvocableVariable(
+            label='Has Attributes'
+            description='True when the line has at least one attribute with a value set.'
+        )
         public Boolean hasAttributes;
 
-        @InvocableVariable(label='Is Success'
-            description='True if the action ran without a system-level error. False if an exception prevented it from completing. Distinct from hasAttributes, which is a domain result.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True if the action ran without a system-level error. False if an exception prevented it from completing. Distinct from hasAttributes, which is a domain result.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Error Message')
@@ -52,9 +62,7 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
         description='Reads the attributes on a quote line with each current value and valid picklist options. Use before changing an existing attribute. Read-only.'
         category='Product Configuration'
     )
-    public static List<GetLineAttributesOutput> getQuoteLineAttributes(
-        List<GetLineAttributesInput> inputs
-    ) {
+    public static List<GetLineAttributesOutput> getQuoteLineAttributes(List<GetLineAttributesInput> inputs) {
         List<GetLineAttributesOutput> results = new List<GetLineAttributesOutput>();
         if (inputs == null || inputs.isEmpty()) {
             return results;
@@ -73,8 +81,7 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
                 return fail(out, 'Select a quote line item before reading its attributes.');
             }
             Id qliId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteLineItemId);
-            if (qliId == null
-                || !String.valueOf(qliId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+            if (qliId == null || !String.valueOf(qliId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
                 return fail(out, 'Select a valid quote line item before reading its attributes.');
             }
 
@@ -87,7 +94,6 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
             }
             out.productName = res.productName;
             summarize(out, res.attributes);
-
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
             out.hasAttributes = false;
@@ -107,10 +113,7 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
      * inserted-and-queried-back in one test transaction.
      */
     @TestVisible
-    private static void summarize(
-        GetLineAttributesOutput out,
-        List<RLM_AI_AttributeResolver.ResolvedAttribute> attrs
-    ) {
+    private static void summarize(GetLineAttributesOutput out, List<RLM_AI_AttributeResolver.ResolvedAttribute> attrs) {
         out.attributesJson = RLM_AI_AttributeResolver.toJson(attrs);
 
         Boolean anyValueSet = false;
@@ -150,8 +153,10 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
             for (RLM_AI_AttributeResolver.ResolvedAttribute a : attrs) {
                 names.add(a.name);
             }
-            return header + ' has no attribute values set yet. Configurable attributes: '
-                + String.join(names, ', ') + '.';
+            return header +
+                ' has no attribute values set yet. Configurable attributes: ' +
+                String.join(names, ', ') +
+                '.';
         }
         List<String> lines = new List<String>();
         lines.add('Attributes on ' + header + ':');
@@ -162,8 +167,7 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
             // Bold the currently-selected value so it stands out from the options.
             String row = i + '. ' + a.name + ' — currently **' + current + '**';
             if (a.dataType == 'Picklist') {
-                List<String> valStrs = a.picklistValues != null
-                    ? a.picklistValues : new List<String>();
+                List<String> valStrs = a.picklistValues != null ? a.picklistValues : new List<String>();
                 if (!valStrs.isEmpty()) {
                     row += ' (options: ' + String.join(valStrs, ', ') + ')';
                 }

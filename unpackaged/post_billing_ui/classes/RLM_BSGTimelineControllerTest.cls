@@ -1,6 +1,5 @@
 @isTest
 private class RLM_BSGTimelineControllerTest {
-
     private static String fakeBsgId() {
         return Id.valueOf(BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
     }
@@ -37,8 +36,9 @@ private class RLM_BSGTimelineControllerTest {
     @isTest
     static void getMilestoneChartData_unknownBsg_returnsEmptyList() {
         Test.startTest();
-        List<RLM_BSGTimelineController.MilestoneChartItem> items =
-            RLM_BSGTimelineController.getMilestoneChartData(fakeBsgId());
+        List<RLM_BSGTimelineController.MilestoneChartItem> items = RLM_BSGTimelineController.getMilestoneChartData(
+            fakeBsgId()
+        );
         Test.stopTest();
         System.assertNotEquals(null, items, 'A non-null list should always be returned.');
         System.assertEquals(0, items.size(), 'No milestones exist for a non-existent BSG.');

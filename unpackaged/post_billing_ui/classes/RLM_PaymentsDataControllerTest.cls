@@ -1,6 +1,5 @@
 @isTest
 private class RLM_PaymentsDataControllerTest {
-
     @isTest
     static void optionLists_returnSafeDefaults() {
         Test.startTest();
@@ -20,12 +19,17 @@ private class RLM_PaymentsDataControllerTest {
     @isTest
     static void getPaymentScheduleItems_noData_returnsZeroedSummaries() {
         Test.startTest();
-        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
-            RLM_PaymentsDataController.getPaymentScheduleItems(null, null);
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries = RLM_PaymentsDataController.getPaymentScheduleItems(
+            null,
+            null
+        );
         Test.stopTest();
 
-        System.assertEquals(5, summaries.size(),
-            'Failed/Ready/Applied/Draft/Processing summaries are always returned.');
+        System.assertEquals(
+            5,
+            summaries.size(),
+            'Failed/Ready/Applied/Draft/Processing summaries are always returned.'
+        );
         for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
             System.assertEquals(0, s.itemCount, 'No data -> zero items for ' + s.status);
             System.assertEquals(0, s.totalRequestedAmount, 'No data -> zero total for ' + s.status);
@@ -41,20 +45,34 @@ private class RLM_PaymentsDataControllerTest {
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 150);
         insert ps;
         insert new List<PaymentScheduleItem>{
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
-                RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
-                RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+            new PaymentScheduleItem(
+                PaymentScheduleId = ps.Id,
+                PaymentAccountId = acc.Id,
+                RequestedAmount = 100,
+                TargetPaymentProcessingDate = Date.today(),
+                Status = 'Draft'
+            ),
+            new PaymentScheduleItem(
+                PaymentScheduleId = ps.Id,
+                PaymentAccountId = acc.Id,
+                RequestedAmount = 50,
+                TargetPaymentProcessingDate = Date.today(),
+                Status = 'Draft'
+            )
         };
 
         Test.startTest();
-        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
-            RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries = RLM_PaymentsDataController.getPaymentScheduleItems(
+            acc.Id,
+            null
+        );
         Test.stopTest();
 
         RLM_PaymentsDataController.PaymentStatusSummary draft = null;
         for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
-            if (s.status == 'Draft') { draft = s; }
+            if (s.status == 'Draft') {
+                draft = s;
+            }
         }
         System.assertNotEquals(null, draft, 'A Draft summary should be present.');
         System.assertEquals(2, draft.itemCount, 'Two Draft items were seeded.');
@@ -69,8 +87,13 @@ private class RLM_PaymentsDataControllerTest {
         insert acc;
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
         insert ps;
-        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
-            RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert new PaymentScheduleItem(
+            PaymentScheduleId = ps.Id,
+            PaymentAccountId = acc.Id,
+            RequestedAmount = 100,
+            TargetPaymentProcessingDate = Date.today(),
+            Status = 'Draft'
+        );
 
         Test.startTest();
         List<Map<String, String>> options = RLM_PaymentsDataController.getAccountOptions();
@@ -80,8 +103,11 @@ private class RLM_PaymentsDataControllerTest {
         for (Map<String, String> option : options) {
             if (option.get('value') == String.valueOf(acc.Id)) {
                 found = true;
-                System.assertEquals('RLM Payments Account Option Test', option.get('label'),
-                    'The account label should match the seeded account name.');
+                System.assertEquals(
+                    'RLM Payments Account Option Test',
+                    option.get('label'),
+                    'The account label should match the seeded account name.'
+                );
             }
         }
         System.assert(found, 'An account with a PaymentScheduleItem should appear in the options.');

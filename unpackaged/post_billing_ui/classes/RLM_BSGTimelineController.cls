@@ -1,82 +1,134 @@
 public with sharing class RLM_BSGTimelineController {
-    
     /**
      * Wrapper class for Billing Schedule Group data
      */
     public class BSGData {
-        @AuraEnabled public String id;
-        @AuraEnabled public String groupNumber;
-        @AuraEnabled public String productName;
-        @AuraEnabled public String accountName;
-        @AuraEnabled public String currencyCode;
-        @AuraEnabled public Decimal totalBilledAmount;
-        @AuraEnabled public Decimal totalPendingAmount;
-        @AuraEnabled public String billingTerm;
-        @AuraEnabled public String billingTermUnit;
-        @AuraEnabled public Integer billDayOfMonth;
-        @AuraEnabled public Date cancellationDate;
-        @AuraEnabled public Date startDate;
-        @AuraEnabled public Date endDate;
-        @AuraEnabled public Date suspensionDate;
-        @AuraEnabled public Date resumptionDate;
-        @AuraEnabled public List<BillingScheduleData> billingSchedules;
-        @AuraEnabled public List<MilestoneChartItem> milestoneItems;
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String groupNumber;
+        @AuraEnabled
+        public String productName;
+        @AuraEnabled
+        public String accountName;
+        @AuraEnabled
+        public String currencyCode;
+        @AuraEnabled
+        public Decimal totalBilledAmount;
+        @AuraEnabled
+        public Decimal totalPendingAmount;
+        @AuraEnabled
+        public String billingTerm;
+        @AuraEnabled
+        public String billingTermUnit;
+        @AuraEnabled
+        public Integer billDayOfMonth;
+        @AuraEnabled
+        public Date cancellationDate;
+        @AuraEnabled
+        public Date startDate;
+        @AuraEnabled
+        public Date endDate;
+        @AuraEnabled
+        public Date suspensionDate;
+        @AuraEnabled
+        public Date resumptionDate;
+        @AuraEnabled
+        public List<BillingScheduleData> billingSchedules;
+        @AuraEnabled
+        public List<MilestoneChartItem> milestoneItems;
     }
-    
+
     /**
      * Wrapper class for Billing Schedule data
      */
     public class BillingScheduleData {
-        @AuraEnabled public String id;
-        @AuraEnabled public String scheduleNumber;
-        @AuraEnabled public String category;
-        @AuraEnabled public String status;
-        @AuraEnabled public Decimal quantity;
-        @AuraEnabled public Decimal billedAmount;
-        @AuraEnabled public Decimal pendingAmount;
-        @AuraEnabled public Decimal totalAmount;
-        @AuraEnabled public Decimal billingPeriodAmount;
-        @AuraEnabled public Decimal unitPrice;
-        @AuraEnabled public Date startDate;
-        @AuraEnabled public Date endDate;
-        @AuraEnabled public Date nextBillingDate;
-        @AuraEnabled public String billingMethod;
-        @AuraEnabled public String billingType;
-        @AuraEnabled public Integer billingTerm;
-        @AuraEnabled public String billingTermUnit;
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String scheduleNumber;
+        @AuraEnabled
+        public String category;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public Decimal quantity;
+        @AuraEnabled
+        public Decimal billedAmount;
+        @AuraEnabled
+        public Decimal pendingAmount;
+        @AuraEnabled
+        public Decimal totalAmount;
+        @AuraEnabled
+        public Decimal billingPeriodAmount;
+        @AuraEnabled
+        public Decimal unitPrice;
+        @AuraEnabled
+        public Date startDate;
+        @AuraEnabled
+        public Date endDate;
+        @AuraEnabled
+        public Date nextBillingDate;
+        @AuraEnabled
+        public String billingMethod;
+        @AuraEnabled
+        public String billingType;
+        @AuraEnabled
+        public Integer billingTerm;
+        @AuraEnabled
+        public String billingTermUnit;
     }
-    
+
     /**
      * Wrapper class for consolidated billing timeline segments
      */
     public class ConsolidatedSegment {
-        @AuraEnabled public Integer periodNumber;
-        @AuraEnabled public Date startDate;
-        @AuraEnabled public Date endDate;
-        @AuraEnabled public Decimal netQuantity;
-        @AuraEnabled public Decimal periodicBilling;
-        @AuraEnabled public Decimal credits;
-        @AuraEnabled public String status;
-        @AuraEnabled public List<String> activeScheduleIds;
-        @AuraEnabled public List<String> activeScheduleNumbers;
+        @AuraEnabled
+        public Integer periodNumber;
+        @AuraEnabled
+        public Date startDate;
+        @AuraEnabled
+        public Date endDate;
+        @AuraEnabled
+        public Decimal netQuantity;
+        @AuraEnabled
+        public Decimal periodicBilling;
+        @AuraEnabled
+        public Decimal credits;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public List<String> activeScheduleIds;
+        @AuraEnabled
+        public List<String> activeScheduleNumbers;
     }
-    
+
     /**
      * Wrapper for milestone chart data
      */
     public class MilestoneChartItem {
-        @AuraEnabled public String id;
-        @AuraEnabled public String name;
-        @AuraEnabled public Decimal amount;
-        @AuraEnabled public Decimal percentage;
-        @AuraEnabled public String status;
-        @AuraEnabled public Date completionDate;
-        @AuraEnabled public Boolean isAccomplished;
-        @AuraEnabled public String milestoneType;
-        @AuraEnabled public Decimal referenceAmount;
-        @AuraEnabled public Decimal billedAmount;
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public Decimal amount;
+        @AuraEnabled
+        public Decimal percentage;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public Date completionDate;
+        @AuraEnabled
+        public Boolean isAccomplished;
+        @AuraEnabled
+        public String milestoneType;
+        @AuraEnabled
+        public Decimal referenceAmount;
+        @AuraEnabled
+        public Decimal billedAmount;
     }
-    
+
     /**
      * Get Billing Schedule Group with related Billing Schedules
      */
@@ -85,34 +137,59 @@ public with sharing class RLM_BSGTimelineController {
         try {
             // Query BSG with all required fields using correct field names
             List<BillingScheduleGroup> bsgList = [
-                SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name,
-                       CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit,
-                       BillDayOfMonth, CancellationDate, StartDate, EndDate
+                SELECT
+                    Id,
+                    BillingScheduleGroupNumber,
+                    ProductName,
+                    BillingAccountId,
+                    BillingAccount.Name,
+                    CurrencyIsoCode,
+                    TotalBilledAmount,
+                    TotalPendingAmount,
+                    BillingTerm,
+                    BillingTermUnit,
+                    BillDayOfMonth,
+                    CancellationDate,
+                    StartDate,
+                    EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :recordId
                 WITH USER_MODE
                 LIMIT 1
             ];
-            
+
             if (bsgList.isEmpty()) {
                 throw new AuraHandledException('Billing Schedule Group not found');
             }
-            
+
             BillingScheduleGroup bsg = bsgList[0];
-            
+
             // Query related Billing Schedules separately
             List<BillingSchedule> billingSchedules = [
-                SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount, 
-                       PendingAmount, TotalAmount, BillingPeriodAmount, UnitPrice,
-                       BillingScheduleStartDate, BillingScheduleEndDate,
-                       NextBillingDate, BillingMethod, BillingType, BillingTerm,
-                       BillingTermUnit
+                SELECT
+                    Id,
+                    BillingScheduleNumber,
+                    Category,
+                    Status,
+                    Quantity,
+                    BilledAmount,
+                    PendingAmount,
+                    TotalAmount,
+                    BillingPeriodAmount,
+                    UnitPrice,
+                    BillingScheduleStartDate,
+                    BillingScheduleEndDate,
+                    NextBillingDate,
+                    BillingMethod,
+                    BillingType,
+                    BillingTerm,
+                    BillingTermUnit
                 FROM BillingSchedule
                 WHERE BillingScheduleGroupId = :recordId
                 WITH USER_MODE
                 ORDER BY BillingScheduleStartDate ASC, CreatedDate ASC
             ];
-            
+
             BSGData data = new BSGData();
             data.id = bsg.Id;
             data.groupNumber = bsg.BillingScheduleGroupNumber;
@@ -136,7 +213,7 @@ public with sharing class RLM_BSGTimelineController {
                 );
                 if (!suspList.isEmpty()) {
                     Object suspVal = suspList[0].get('BillingSuspensionDate');
-                    Object resVal  = suspList[0].get('BillingResumptionDate');
+                    Object resVal = suspList[0].get('BillingResumptionDate');
                     if (suspVal != null) {
                         data.suspensionDate = Date.valueOf(String.valueOf(suspVal));
                     }
@@ -147,7 +224,7 @@ public with sharing class RLM_BSGTimelineController {
             } catch (Exception ex) {
                 // Fields not available
             }
-            
+
             // Map billing schedules
             data.billingSchedules = new List<BillingScheduleData>();
             for (BillingSchedule bs : billingSchedules) {
@@ -169,7 +246,7 @@ public with sharing class RLM_BSGTimelineController {
                 bsData.billingType = bs.BillingType;
                 bsData.billingTerm = bs.BillingTerm;
                 bsData.billingTermUnit = bs.BillingTermUnit;
-                
+
                 data.billingSchedules.add(bsData);
             }
 
@@ -181,9 +258,8 @@ public with sharing class RLM_BSGTimelineController {
             if (!milestones.isEmpty()) {
                 data.milestoneItems = milestones;
             }
-            
+
             return data;
-            
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving Billing Schedule Group: ' + e.getMessage());
         }
@@ -212,20 +288,22 @@ public with sharing class RLM_BSGTimelineController {
                 'SELECT ReferenceItemAmount FROM BillingMilestonePlan WHERE Id = :planId LIMIT 1',
                 AccessLevel.USER_MODE
             );
-            Decimal referenceAmount = bmpList.isEmpty()
-                ? null
-                : (Decimal) bmpList[0].get('ReferenceItemAmount');
+            Decimal referenceAmount = bmpList.isEmpty() ? null : (Decimal) bmpList[0].get('ReferenceItemAmount');
 
             List<BillingScheduleGroup> bsgList = [
-                SELECT TotalBilledAmount FROM BillingScheduleGroup WHERE Id = :recordId WITH USER_MODE LIMIT 1
+                SELECT TotalBilledAmount
+                FROM BillingScheduleGroup
+                WHERE Id = :recordId
+                WITH USER_MODE
+                LIMIT 1
             ];
             Decimal groupBilledAmount = bsgList.isEmpty() ? null : bsgList[0].TotalBilledAmount;
 
             List<SObject> items = Database.query(
                 'SELECT Id, Name, MilestoneAmount, Percentage, Status, ' +
-                'MilestoneAccomplishmentDate, IsMilestoneAccomplished, MilestoneType ' +
-                'FROM BillingMilestonePlanItem WHERE BillingMilestonePlanId = :planId ' +
-                'ORDER BY IsMilestoneAccomplished DESC, MilestoneAccomplishmentDate ASC NULLS LAST, MilestoneAmount DESC',
+                    'MilestoneAccomplishmentDate, IsMilestoneAccomplished, MilestoneType ' +
+                    'FROM BillingMilestonePlanItem WHERE BillingMilestonePlanId = :planId ' +
+                    'ORDER BY IsMilestoneAccomplished DESC, MilestoneAccomplishmentDate ASC NULLS LAST, MilestoneAmount DESC',
                 AccessLevel.USER_MODE
             );
 
@@ -248,7 +326,7 @@ public with sharing class RLM_BSGTimelineController {
         }
         return result;
     }
-    
+
     /**
      * Get consolidated billing timeline segments
      */
@@ -257,32 +335,34 @@ public with sharing class RLM_BSGTimelineController {
         try {
             // Get BSG data
             BSGData bsgData = getBillingScheduleGroupData(recordId);
-            
+
             if (bsgData.billingSchedules.isEmpty()) {
                 return new List<ConsolidatedSegment>();
             }
-            
+
             // Build segments in a List (insertion order = chronological order since allDates is sorted).
             // A Map was previously used but Map.values() iteration order is not guaranteed in Apex.
             List<ConsolidatedSegment> segments = new List<ConsolidatedSegment>();
             List<Date> allDates = new List<Date>();
-            
+
             // Collect all unique start and end dates
             Set<Date> dateSet = new Set<Date>();
             for (BillingScheduleData bs : bsgData.billingSchedules) {
-                if (bs.startDate != null) dateSet.add(bs.startDate);
-                if (bs.endDate != null) dateSet.add(bs.endDate.addDays(1)); // Add 1 day for exclusive end
+                if (bs.startDate != null)
+                    dateSet.add(bs.startDate);
+                if (bs.endDate != null)
+                    dateSet.add(bs.endDate.addDays(1)); // Add 1 day for exclusive end
             }
-            
+
             allDates.addAll(dateSet);
             allDates.sort();
-            
+
             // Create segments based on date boundaries
             Integer periodNum = 1;
             for (Integer i = 0; i < allDates.size() - 1; i++) {
                 Date segStart = allDates[i];
                 Date segEnd = allDates[i + 1].addDays(-1); // Subtract 1 for inclusive end
-                
+
                 ConsolidatedSegment segment = new ConsolidatedSegment();
                 segment.periodNumber = periodNum++;
                 segment.startDate = segStart;
@@ -293,18 +373,18 @@ public with sharing class RLM_BSGTimelineController {
                 segment.activeScheduleIds = new List<String>();
                 segment.activeScheduleNumbers = new List<String>();
                 segment.status = 'Active';
-                
+
                 // Find all BS that overlap with this segment
                 for (BillingScheduleData bs : bsgData.billingSchedules) {
                     if (bs.startDate <= segEnd && bs.endDate >= segStart) {
                         segment.activeScheduleIds.add(bs.id);
                         segment.activeScheduleNumbers.add(bs.scheduleNumber);
-                        
+
                         // Calculate quantities and amounts
                         if (bs.quantity != null) {
                             segment.netQuantity += bs.quantity;
                         }
-                        
+
                         if (bs.billingPeriodAmount != null) {
                             if (bs.billingPeriodAmount >= 0) {
                                 segment.periodicBilling += bs.billingPeriodAmount;
@@ -312,7 +392,7 @@ public with sharing class RLM_BSGTimelineController {
                                 segment.credits += bs.billingPeriodAmount;
                             }
                         }
-                        
+
                         // Check if any schedule is cancelled
                         if (bs.category == 'Cancellation' || bs.status == 'Cancelled') {
                             segment.status = 'Cancelled';
@@ -321,12 +401,11 @@ public with sharing class RLM_BSGTimelineController {
                         }
                     }
                 }
-                
+
                 segments.add(segment);
             }
 
             return segments;
-            
         } catch (Exception e) {
             throw new AuraHandledException('Error calculating consolidated timeline: ' + e.getMessage());
         }

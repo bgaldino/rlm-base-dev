@@ -1,5 +1,9 @@
 public class RLM_ReturnPDFDocument {
-    @InvocableMethod(label='Return PDF Document ID' description='Doc Gen creates a Word and a PDF Document' category='Document Generation')
+    @InvocableMethod(
+        label='Return PDF Document ID'
+        description='Doc Gen creates a Word and a PDF Document'
+        category='Document Generation'
+    )
     public static List<OutputVariable> ReturnPDFDocumentId(List<InputVariable> requests) {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_ReturnPDFDocument: at least one request is required.');

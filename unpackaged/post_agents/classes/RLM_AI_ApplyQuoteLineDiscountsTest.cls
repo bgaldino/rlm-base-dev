@@ -1,6 +1,5 @@
 @isTest
 private class RLM_AI_ApplyQuoteLineDiscountsTest {
-
     // ---- Fake invoker: records every call and returns a canned result ----
     private class FakeInvoker implements RLM_AI_ApplyQuoteLineDiscountsService.ManagedDiscountInvoker {
         public Boolean returnSuccess = true;
@@ -11,7 +10,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         public Set<Id> failForLines = new Set<Id>();
 
         public RLM_AI_ApplyQuoteLineDiscountsService.ManagedResult applyDiscount(
-            Id quoteId, Id quoteLineItemId, Decimal discountPercentage
+            Id quoteId,
+            Id quoteLineItemId,
+            Decimal discountPercentage
         ) {
             callCount++;
             percentByLine.put(quoteLineItemId, discountPercentage);
@@ -34,9 +35,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountPercentage = 10;
 
         Test.startTest();
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput out = results[0];
@@ -65,13 +66,12 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percentOfList';
         input.targetPercentOfList = 90;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
-        System.assertEquals(10, fake.percentByLine.get(f.lineIds[0]),
-            'Selling at 90% of list = 10% discount.');
+        System.assertEquals(10, fake.percentByLine.get(f.lineIds[0]), 'Selling at 90% of list = 10% discount.');
     }
 
     @isTest
@@ -86,13 +86,12 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'targetPrice';
         input.targetPrice = 75;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
-        System.assertEquals(25, fake.percentByLine.get(f.lineIds[0]),
-            'Target price 75 against list 100 = 25% off.');
+        System.assertEquals(25, fake.percentByLine.get(f.lineIds[0]), 'Target price 75 against list 100 = 25% off.');
     }
 
     @isTest
@@ -106,12 +105,11 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'targetPrice';
         input.targetPrice = 150;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
-        System.assertEquals(0, fake.percentByLine.get(f.lineIds[0]),
-            'Target at/above list yields no discount.');
+        System.assertEquals(0, fake.percentByLine.get(f.lineIds[0]), 'Target at/above list yields no discount.');
     }
 
     @isTest
@@ -125,9 +123,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percent';
         input.discountPercentage = 5;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
         System.assertEquals(1, results[0].appliedCount, 'Only the Server line matches.');
@@ -145,13 +143,11 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percent';
         input.discountPercentage = 10;
         // One Id from this quote, one from another quote.
-        input.quoteLineItemIds = new List<String>{
-            String.valueOf(f.lineIds[0]), String.valueOf(other.lineIds[0])
-        };
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]), String.valueOf(other.lineIds[0]) };
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assertEquals(0, fake.callCount, 'No mutation when ownership validation fails.');
@@ -177,14 +173,16 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.selectedDisplayNumbersJson = '[2]';
         input.pendingSelectionJson = JSON.serialize(pending);
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
         System.assertEquals(1, fake.callCount);
-        System.assert(fake.percentByLine.containsKey(f.lineIds[0]),
-            'Ordinal 2 should map to the first line via the pending map.');
+        System.assert(
+            fake.percentByLine.containsKey(f.lineIds[0]),
+            'Ordinal 2 should map to the first line via the pending map.'
+        );
     }
 
     @isTest
@@ -193,18 +191,16 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         FakeInvoker fake = new FakeInvoker();
         RLM_AI_ApplyQuoteLineDiscountsService.invoker = fake;
 
-        Map<String, String> pending = new Map<String, String>{
-            '1' => String.valueOf(f.lineIds[0])
-        };
+        Map<String, String> pending = new Map<String, String>{ '1' => String.valueOf(f.lineIds[0]) };
         RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input = baseInput(f.quoteId);
         input.discountMode = 'percent';
         input.discountPercentage = 10;
         input.selectedDisplayNumbersJson = '[5]';
         input.pendingSelectionJson = JSON.serialize(pending);
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assertEquals(0, fake.callCount);
@@ -223,9 +219,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountPercentage = 20;
         input.selectedDisplayNumbersJson = '[1,3]';
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
         System.assertEquals(2, results[0].appliedCount);
@@ -242,15 +238,17 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountPercentage = 10;
         // No applyToAll, no productName, no ordinals, no Ids.
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput out = results[0];
         System.assertEquals(true, out.needsDisambiguation);
         System.assertEquals(0, fake.callCount);
-        System.assert(String.isNotBlank(out.pendingSelectionJson),
-            'Disambiguation emits the ordinal map for the next turn.');
+        System.assert(
+            String.isNotBlank(out.pendingSelectionJson),
+            'Disambiguation emits the ordinal map for the next turn.'
+        );
         System.assert(out.candidateSummariesDisplay.contains('Quinn A'));
     }
 
@@ -261,9 +259,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.applyToAll = true;
         // No mode, no values.
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('exactly one discount'));
@@ -277,9 +275,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percent';
         input.discountPercentage = 150;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('between 0 and 100'));
@@ -297,9 +295,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percent';
         input.discountPercentage = 10;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput out = results[0];
         System.assertEquals(false, out.isSuccess, 'A partial failure is not full success.');
@@ -309,16 +307,15 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
 
     @isTest
     static void rejectsBlankQuoteId() {
-        RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input =
-            new RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput();
+        RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input = new RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput();
         input.quoteId = '  ';
         input.applyToAll = true;
         input.discountMode = 'percent';
         input.discountPercentage = 10;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('Quote Id is required'));
@@ -326,8 +323,9 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
 
     @isTest
     static void emptyInputListReturnsEmpty() {
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(null);
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            null
+        );
         System.assertEquals(0, results.size());
     }
 
@@ -335,75 +333,79 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
 
     @isTest
     static void tokenMatcherExactMatch() {
-        System.assertEquals(true,
+        System.assertEquals(
+            true,
             RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB API Management', 'QB API Management'),
-            'Exact match should succeed');
+            'Exact match should succeed'
+        );
     }
 
     @isTest
     static void tokenMatcherCaseInsensitive() {
-        System.assertEquals(true,
+        System.assertEquals(
+            true,
             RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB API Management', 'qb api management'),
-            'Case-insensitive match should succeed');
+            'Case-insensitive match should succeed'
+        );
     }
 
     @isTest
     static void tokenMatcherMissingTrailingWord() {
-        System.assertEquals(true,
-            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
-                'QB API Management Solution', 'QB API Management'
-            ),
-            'All search tokens present should match');
+        System.assertEquals(
+            true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB API Management Solution', 'QB API Management'),
+            'All search tokens present should match'
+        );
     }
 
     @isTest
     static void tokenMatcherReorderedTokens() {
-        System.assertEquals(true,
-            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
-                'API Management QB Solution', 'QB Management API'
-            ),
-            'Reordered tokens should match');
+        System.assertEquals(
+            true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('API Management QB Solution', 'QB Management API'),
+            'Reordered tokens should match'
+        );
     }
 
     @isTest
     static void tokenMatcherPartialTokenMatch() {
-        System.assertEquals(true,
-            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
-                'Additional API Product', 'API'
-            ),
-            'Single token should match multiple products');
+        System.assertEquals(
+            true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('Additional API Product', 'API'),
+            'Single token should match multiple products'
+        );
     }
 
     @isTest
     static void tokenMatcherMissingTokenFails() {
-        System.assertEquals(false,
-            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
-                'QB Management Solution', 'QB API Management'
-            ),
-            'Missing token API should fail');
+        System.assertEquals(
+            false,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB Management Solution', 'QB API Management'),
+            'Missing token API should fail'
+        );
     }
 
     @isTest
     static void tokenMatcherBlankSearchFails() {
-        System.assertEquals(false,
+        System.assertEquals(
+            false,
             RLM_AI_ConfigServiceUtils.productNameMatchesTokens('Product Name', ''),
-            'Blank search should fail');
+            'Blank search should fail'
+        );
     }
 
     @isTest
     static void tokenMatcherBlankProductFails() {
-        System.assertEquals(false,
+        System.assertEquals(
+            false,
             RLM_AI_ConfigServiceUtils.productNameMatchesTokens('', 'search term'),
-            'Blank product should fail');
+            'Blank product should fail'
+        );
     }
 
     @isTest
     static void productNameTokenizedMatchByPartName() {
-        Fixture f = buildFixture(new List<String>{
-            'QB API Management Solution',
-            'QB Server Standard',
-            'Quinn Cable'
-        });
+        Fixture f = buildFixture(new List<String>{ 'QB API Management Solution', 'QB Server Standard', 'Quinn Cable' });
         FakeInvoker fake = new FakeInvoker();
         RLM_AI_ApplyQuoteLineDiscountsService.invoker = fake;
 
@@ -412,14 +414,13 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         input.discountMode = 'percent';
         input.discountPercentage = 5;
 
-        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
-            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
-                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results = RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+            new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input }
+        );
 
         RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput out = results[0];
         System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
-        System.assertEquals(1, out.appliedCount,
-            'Only QB API Management Solution should match');
+        System.assertEquals(1, out.appliedCount, 'Only QB API Management Solution should match');
         System.assertEquals(1, fake.callCount);
     }
 
@@ -431,8 +432,7 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
     }
 
     private static RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput baseInput(Id quoteId) {
-        RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input =
-            new RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput();
+        RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input = new RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput();
         input.quoteId = String.valueOf(quoteId);
         return input;
     }
@@ -469,12 +469,7 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
                 IsActive = true
             );
             insert pbe;
-            lines.add(new QuoteLineItem(
-                QuoteId = q.Id,
-                PricebookEntryId = pbe.Id,
-                Quantity = 1,
-                UnitPrice = 100
-            ));
+            lines.add(new QuoteLineItem(QuoteId = q.Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = 100));
         }
         insert lines;
         for (QuoteLineItem qli : lines) {

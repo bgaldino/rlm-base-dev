@@ -1,31 +1,48 @@
 public with sharing class RLM_InvoiceSummaryController {
-
     public class InvoiceSummaryData {
-        @AuraEnabled public Decimal totalDue;
-        @AuraEnabled public Integer totalInvoices;
-        @AuraEnabled public Date periodStart;
-        @AuraEnabled public Date periodEnd;
+        @AuraEnabled
+        public Decimal totalDue;
+        @AuraEnabled
+        public Integer totalInvoices;
+        @AuraEnabled
+        public Date periodStart;
+        @AuraEnabled
+        public Date periodEnd;
 
-        @AuraEnabled public Decimal currentAmount;
-        @AuraEnabled public Integer currentCount;
+        @AuraEnabled
+        public Decimal currentAmount;
+        @AuraEnabled
+        public Integer currentCount;
 
-        @AuraEnabled public Decimal debitAmount;
-        @AuraEnabled public Integer debitCount;
+        @AuraEnabled
+        public Decimal debitAmount;
+        @AuraEnabled
+        public Integer debitCount;
 
-        @AuraEnabled public Decimal disputeAmount;
-        @AuraEnabled public Integer disputeCount;
+        @AuraEnabled
+        public Decimal disputeAmount;
+        @AuraEnabled
+        public Integer disputeCount;
 
-        @AuraEnabled public Decimal overdueAmount;
-        @AuraEnabled public Integer overdueCount;
+        @AuraEnabled
+        public Decimal overdueAmount;
+        @AuraEnabled
+        public Integer overdueCount;
 
-        @AuraEnabled public Decimal promiseToPayAmount;
-        @AuraEnabled public Integer promiseToPayCount;
+        @AuraEnabled
+        public Decimal promiseToPayAmount;
+        @AuraEnabled
+        public Integer promiseToPayCount;
 
-        @AuraEnabled public Decimal paidAmount;
-        @AuraEnabled public Integer paidCount;
+        @AuraEnabled
+        public Decimal paidAmount;
+        @AuraEnabled
+        public Integer paidCount;
 
-        @AuraEnabled public Decimal cashCollected;
-        @AuraEnabled public Integer openInvoices;
+        @AuraEnabled
+        public Decimal cashCollected;
+        @AuraEnabled
+        public Integer openInvoices;
     }
 
     @AuraEnabled(cacheable=true)
@@ -56,17 +73,20 @@ public with sharing class RLM_InvoiceSummaryController {
         Map<String, Decimal> convRates = new Map<String, Decimal>();
 
         if (isMultiCurrency) {
-            for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
-                AccessLevel.USER_MODE
-            )) {
-                convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
+            for (
+                SObject ct : Database.query(
+                    'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                    AccessLevel.USER_MODE
+                )
+            ) {
+                convRates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
         }
 
         // ── 1. Posted invoices with outstanding balance ─────────
         String invQuery = 'SELECT Id, Balance, DueDate, Status, SettlementStatus';
-        if (isMultiCurrency) invQuery += ', CurrencyIsoCode';
+        if (isMultiCurrency)
+            invQuery += ', CurrencyIsoCode';
         invQuery += ' FROM Invoice WHERE BillingAccountId = :accountId AND Status = \'Posted\' AND Balance > 0 AND SettlementStatus != \'Settled\'';
         List<SObject> invoices = Database.query(invQuery, AccessLevel.USER_MODE);
 
@@ -74,7 +94,7 @@ public with sharing class RLM_InvoiceSummaryController {
         // Query open cases for the account, then get Dispute records
         // linked to those cases. Sum DisputedAmount converted to account currency.
         Set<Id> caseIds = new Set<Id>();
-        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false WITH USER_MODE]) {
+        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = FALSE WITH USER_MODE]) {
             caseIds.add(c.Id);
         }
 
@@ -94,19 +114,20 @@ public with sharing class RLM_InvoiceSummaryController {
                 dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
 
                 for (SObject d : Database.query(dispQuery, AccessLevel.USER_MODE)) {
-                    Decimal amt = (Decimal)d.get('DisputedAmount');
-                    if (amt == null || amt <= 0) continue;
+                    Decimal amt = (Decimal) d.get('DisputedAmount');
+                    if (amt == null || amt <= 0)
+                        continue;
 
                     // Convert to account currency if multi-currency
                     if (isMultiCurrency) {
-                        String dispCurr = (String)d.get('CurrencyIsoCode');
+                        String dispCurr = (String) d.get('CurrencyIsoCode');
                         amt = convertCurrency(amt, dispCurr, targetCurrency, convRates);
                     }
 
                     data.disputeAmount += amt;
                     data.disputeCount++;
 
-                    Id invId = (Id)d.get('InvoiceId');
+                    Id invId = (Id) d.get('InvoiceId');
                     if (invId != null) {
                         disputedInvoiceIds.add(invId);
                         Decimal prev = disputeByInvoice.containsKey(invId) ? disputeByInvoice.get(invId) : 0;
@@ -115,19 +136,24 @@ public with sharing class RLM_InvoiceSummaryController {
                 }
             } catch (Exception e) {
                 // Dispute fields not available (billing dispute feature not provisioned) — keep zero defaults.
-                System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController dispute query skipped: ' + e.getMessage());
+                System.debug(
+                    LoggingLevel.WARN,
+                    'RLM_InvoiceSummaryController dispute query skipped: ' + e.getMessage()
+                );
             }
         }
 
         // ── 3. Debit Memos — posted for this account ────────────
         String dmQuery = 'SELECT Id, TotalAmount';
-        if (isMultiCurrency) dmQuery += ', CurrencyIsoCode';
+        if (isMultiCurrency)
+            dmQuery += ', CurrencyIsoCode';
         dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\'';
         for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
-            Decimal amt = (Decimal)dm.get('TotalAmount');
-            if (amt == null || amt <= 0) continue;
+            Decimal amt = (Decimal) dm.get('TotalAmount');
+            if (amt == null || amt <= 0)
+                continue;
             if (isMultiCurrency) {
-                amt = convertCurrency(amt, (String)dm.get('CurrencyIsoCode'), targetCurrency, convRates);
+                amt = convertCurrency(amt, (String) dm.get('CurrencyIsoCode'), targetCurrency, convRates);
             }
             data.debitAmount += amt;
             data.debitCount++;
@@ -135,16 +161,21 @@ public with sharing class RLM_InvoiceSummaryController {
 
         // ── 4. Promise to Pay — PSIs via CollectionPlan chain ───
         String psiQuery = 'SELECT Id, RequestedAmount, Status';
-        if (isMultiCurrency) psiQuery += ', CurrencyIsoCode';
-        psiQuery += ' FROM PaymentScheduleItem'
-            + ' WHERE PaymentSchedule.CollectionPlanItemId != null'
-            + ' AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId = \'' + String.escapeSingleQuotes(String.valueOf(accountId)) + '\''
-            + ' AND Status NOT IN (\'Processed\', \'Canceled\')';
+        if (isMultiCurrency)
+            psiQuery += ', CurrencyIsoCode';
+        psiQuery +=
+            ' FROM PaymentScheduleItem' +
+            ' WHERE PaymentSchedule.CollectionPlanItemId != null' +
+            ' AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId = \'' +
+            String.escapeSingleQuotes(String.valueOf(accountId)) +
+            '\'' +
+            ' AND Status NOT IN (\'Processed\', \'Canceled\')';
         for (SObject psi : Database.query(psiQuery, AccessLevel.USER_MODE)) {
-            Decimal amt = (Decimal)psi.get('RequestedAmount');
-            if (amt == null || amt <= 0) continue;
+            Decimal amt = (Decimal) psi.get('RequestedAmount');
+            if (amt == null || amt <= 0)
+                continue;
             if (isMultiCurrency) {
-                amt = convertCurrency(amt, (String)psi.get('CurrencyIsoCode'), targetCurrency, convRates);
+                amt = convertCurrency(amt, (String) psi.get('CurrencyIsoCode'), targetCurrency, convRates);
             }
             data.promiseToPayAmount += amt;
             data.promiseToPayCount++;
@@ -159,16 +190,18 @@ public with sharing class RLM_InvoiceSummaryController {
         // Count is # of fully-settled invoices in window.
         // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
         String paidInvQuery = 'SELECT Id, NetPaymentsApplied';
-        if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
-        paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
-                     + ' AND Status = \'Posted\''
-                     + ' AND SettlementStatus = \'Settled\''
-                     + ' AND FullSettlementDate = LAST_N_DAYS:30';
+        if (isMultiCurrency)
+            paidInvQuery += ', CurrencyIsoCode';
+        paidInvQuery +=
+            ' FROM Invoice WHERE BillingAccountId = :accountId' +
+            ' AND Status = \'Posted\'' +
+            ' AND SettlementStatus = \'Settled\'' +
+            ' AND FullSettlementDate = LAST_N_DAYS:30';
         for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
-            Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
+            Decimal applied = (Decimal) inv.get('NetPaymentsApplied');
             applied = applied != null ? applied : 0;
             if (isMultiCurrency) {
-                applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
+                applied = convertCurrency(applied, (String) inv.get('CurrencyIsoCode'), targetCurrency, convRates);
             }
             data.paidAmount += applied;
             data.paidCount++;
@@ -184,25 +217,31 @@ public with sharing class RLM_InvoiceSummaryController {
      */
     @TestVisible
     private static void classifyInvoices(
-        List<SObject> invoices, InvoiceSummaryData data, Date today,
-        Boolean isMultiCurrency, String targetCurrency, Map<String, Decimal> convRates
+        List<SObject> invoices,
+        InvoiceSummaryData data,
+        Date today,
+        Boolean isMultiCurrency,
+        String targetCurrency,
+        Map<String, Decimal> convRates
     ) {
         Date minDate = null;
         Date maxDate = null;
 
         for (SObject inv : invoices) {
-            Decimal bal = (Decimal)inv.get('Balance');
-            Date dueDate = (Date)inv.get('DueDate');
+            Decimal bal = (Decimal) inv.get('Balance');
+            Date dueDate = (Date) inv.get('DueDate');
             bal = bal != null ? bal : 0;
 
             if (isMultiCurrency) {
-                String invCurr = (String)inv.get('CurrencyIsoCode');
+                String invCurr = (String) inv.get('CurrencyIsoCode');
                 bal = convertCurrency(bal, invCurr, targetCurrency, convRates);
             }
 
             if (dueDate != null) {
-                if (minDate == null || dueDate < minDate) minDate = dueDate;
-                if (maxDate == null || dueDate > maxDate) maxDate = dueDate;
+                if (minDate == null || dueDate < minDate)
+                    minDate = dueDate;
+                if (maxDate == null || dueDate > maxDate)
+                    maxDate = dueDate;
             }
 
             data.totalDue += bal;
@@ -224,7 +263,8 @@ public with sharing class RLM_InvoiceSummaryController {
 
     @TestVisible
     private static Decimal convertCurrency(Decimal amount, String fromCurr, String toCurr, Map<String, Decimal> rates) {
-        if (fromCurr == toCurr || amount == 0) return amount;
+        if (fromCurr == toCurr || amount == 0)
+            return amount;
         Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;
         Decimal toRate = rates.containsKey(toCurr) ? rates.get(toCurr) : 1;
         return amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate;
@@ -240,8 +280,10 @@ public with sharing class RLM_InvoiceSummaryController {
         if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
             return false;
         }
-        Map<String, Schema.SObjectField> dFields =
-            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+        Map<String, Schema.SObjectField> dFields = Schema.getGlobalDescribe()
+            .get('Dispute')
+            .getDescribe()
+            .fields.getMap();
         for (String f : fieldNames) {
             if (!dFields.containsKey(f)) {
                 return false;

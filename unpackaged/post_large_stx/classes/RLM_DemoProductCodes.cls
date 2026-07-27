@@ -46,7 +46,9 @@ public with sharing class RLM_DemoProductCodes {
      * wherever we enqueue one-times into a PST Add Products request; the full list remains
      * available for catalog resolution / diagnostics.
      */
-    private static final Set<String> ONE_TIME_ROTATION_EXCLUDES = new Set<String>(STANDALONE_LINE_PROBE_ONE_TIME_IDENTIFIERS);
+    private static final Set<String> ONE_TIME_ROTATION_EXCLUDES = new Set<String>(
+        STANDALONE_LINE_PROBE_ONE_TIME_IDENTIFIERS
+    );
     public static final List<String> ONE_TIME_ROTATION_IDENTIFIERS = buildOneTimeRotationIdentifiers();
 
     private static List<String> buildOneTimeRotationIdentifiers() {
@@ -125,7 +127,10 @@ public with sharing class RLM_DemoProductCodes {
         while (!frontier.isEmpty() && depth < 50) {
             Set<Id> next = new Set<Id>();
             for (ProductRelatedComponent prc : [
-                SELECT ChildProductId FROM ProductRelatedComponent WHERE ParentProductId IN :frontier WITH USER_MODE
+                SELECT ChildProductId
+                FROM ProductRelatedComponent
+                WHERE ParentProductId IN :frontier
+                WITH USER_MODE
             ]) {
                 if (!seen.contains(prc.ChildProductId)) {
                     next.add(prc.ChildProductId);

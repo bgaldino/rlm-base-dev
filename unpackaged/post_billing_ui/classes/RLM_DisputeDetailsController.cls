@@ -3,7 +3,6 @@
  * Provides methods to resolve Invoice/InvoiceLine names and save approved amounts.
  */
 public with sharing class RLM_DisputeDetailsController {
-
     /**
      * Resolve Invoice DocumentNumber and InvoiceLine Names + Balance from their IDs.
      */
@@ -39,7 +38,10 @@ public with sharing class RLM_DisputeDetailsController {
 
             // Attempt Balance separately via dynamic SOQL
             try {
-                List<SObject> lines = Database.query('SELECT Id, Balance FROM InvoiceLine WHERE Id IN :invoiceLineIds', AccessLevel.USER_MODE);
+                List<SObject> lines = Database.query(
+                    'SELECT Id, Balance FROM InvoiceLine WHERE Id IN :invoiceLineIds',
+                    AccessLevel.USER_MODE
+                );
                 for (SObject il : lines) {
                     Object balVal = il.get('Balance');
                     if (balVal != null) {
@@ -62,7 +64,8 @@ public with sharing class RLM_DisputeDetailsController {
      */
     @AuraEnabled
     public static void saveApprovedAmounts(List<Map<String, Object>> items) {
-        if (items == null || items.isEmpty()) return;
+        if (items == null || items.isEmpty())
+            return;
 
         Schema.SObjectType diType = Schema.getGlobalDescribe().get('DisputeItem');
         if (diType == null) {
@@ -100,7 +103,9 @@ public with sharing class RLM_DisputeDetailsController {
                 allFields.add(fieldMap.get(key).getDescribe().getName());
             }
             allFields.sort();
-            throw new AuraHandledException('Approved Amount field not found. All fields: ' + String.join(allFields, ', '));
+            throw new AuraHandledException(
+                'Approved Amount field not found. All fields: ' + String.join(allFields, ', ')
+            );
         }
 
         // Collect IDs and amounts

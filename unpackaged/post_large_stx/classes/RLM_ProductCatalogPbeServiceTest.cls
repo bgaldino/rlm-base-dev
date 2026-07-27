@@ -1,6 +1,5 @@
 @IsTest
 private class RLM_ProductCatalogPbeServiceTest {
-
     @IsTest
     static void testResolveStandardPricebook2Id() {
         Test.startTest();
@@ -11,11 +10,21 @@ private class RLM_ProductCatalogPbeServiceTest {
 
     @IsTest
     static void testResolveProductsToPBEMap_EmptyInputs() {
-        System.assertEquals(0, RLM_ProductCatalogPbeService.resolveProductsToPBEMap(null, Test.getStandardPricebookId()).size());
-        System.assertEquals(0, RLM_ProductCatalogPbeService.resolveProductsToPBEMap(new List<String>{ 'X' }, null).size());
         System.assertEquals(
             0,
-            RLM_ProductCatalogPbeService.resolveProductsToPBEMap(new List<String>{ 'NO-SUCH-CODE' }, Test.getStandardPricebookId()).size(),
+            RLM_ProductCatalogPbeService.resolveProductsToPBEMap(null, Test.getStandardPricebookId()).size()
+        );
+        System.assertEquals(
+            0,
+            RLM_ProductCatalogPbeService.resolveProductsToPBEMap(new List<String>{ 'X' }, null).size()
+        );
+        System.assertEquals(
+            0,
+            RLM_ProductCatalogPbeService.resolveProductsToPBEMap(
+                    new List<String>{ 'NO-SUCH-CODE' },
+                    Test.getStandardPricebookId()
+                )
+                .size(),
             'Unknown identifiers resolve to empty map'
         );
     }
@@ -34,7 +43,10 @@ private class RLM_ProductCatalogPbeServiceTest {
         insert pbe;
 
         Test.startTest();
-        Map<String, PricebookEntry> byCode = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(new List<String>{ 'TESTCODE' }, pbId);
+        Map<String, PricebookEntry> byCode = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(
+            new List<String>{ 'TESTCODE' },
+            pbId
+        );
         PricebookEntry single = RLM_ProductCatalogPbeService.resolveProductToPBE('TESTCODE', pbId);
         PricebookEntry missing = RLM_ProductCatalogPbeService.resolveProductToPBE('NOPE', pbId);
         PricebookEntry blank = RLM_ProductCatalogPbeService.resolveProductToPBE(null, pbId);

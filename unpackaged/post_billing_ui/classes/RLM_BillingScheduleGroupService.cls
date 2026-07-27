@@ -33,8 +33,10 @@ public with sharing class RLM_BillingScheduleGroupService {
     private static Map<String, Object> mockActionOutputs = null;
 
     public class LegalEntityOption {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String name;
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String name;
 
         public LegalEntityOption(Id id, String name) {
             this.id = id;
@@ -43,8 +45,10 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     public class TaxTreatmentOption {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String name;
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String name;
 
         public TaxTreatmentOption(Id id, String name) {
             this.id = id;
@@ -53,8 +57,10 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     public class PicklistOption {
-        @AuraEnabled public String label;
-        @AuraEnabled public String value;
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String value;
 
         public PicklistOption(String label, String value) {
             this.label = label;
@@ -63,19 +69,29 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     public class CreateResult {
-        @AuraEnabled public Id billingScheduleGroupId;
-        @AuraEnabled public Id billingScheduleId;
-        @AuraEnabled public Id captureId;
-        @AuraEnabled public String requestId;
-        @AuraEnabled public String statusUrl;
-        @AuraEnabled public String apiResponse;
+        @AuraEnabled
+        public Id billingScheduleGroupId;
+        @AuraEnabled
+        public Id billingScheduleId;
+        @AuraEnabled
+        public Id captureId;
+        @AuraEnabled
+        public String requestId;
+        @AuraEnabled
+        public String statusUrl;
+        @AuraEnabled
+        public String apiResponse;
     }
 
     public class AccountInfo {
-        @AuraEnabled public String accountName;
-        @AuraEnabled public Id billingAccountId;
-        @AuraEnabled public String billingAccountName;
-        @AuraEnabled public String billingCity;
+        @AuraEnabled
+        public String accountName;
+        @AuraEnabled
+        public Id billingAccountId;
+        @AuraEnabled
+        public String billingAccountName;
+        @AuraEnabled
+        public String billingCity;
 
         public AccountInfo(String accountName, Id billingAccountId, String billingAccountName, String billingCity) {
             this.accountName = accountName;
@@ -86,8 +102,10 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     public class ProductOption {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String name;
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String name;
 
         public ProductOption(Id id, String name) {
             this.id = id;
@@ -130,8 +148,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         for (Product2 prod : [
             SELECT Id, Name
             FROM Product2
-            WHERE IsActive = true
-            AND Family = 'Software'
+            WHERE IsActive = TRUE AND Family = 'Software'
             WITH USER_MODE
             ORDER BY Name
             LIMIT 200
@@ -183,7 +200,8 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<PicklistOption> getBillingScheduleBillingTermUnitOptions() {
         List<PicklistOption> options = getPicklistOptions('BillingSchedule', 'BillingTermUnit');
-        if (!options.isEmpty()) return options;
+        if (!options.isEmpty())
+            return options;
 
         return new List<PicklistOption>{
             new PicklistOption('Month', 'Month'),
@@ -195,7 +213,8 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<PicklistOption> getPricingTermUnitOptions() {
         List<PicklistOption> options = getPicklistOptions('BillingSchedule', 'PricingTermUnit');
-        if (!options.isEmpty()) return options;
+        if (!options.isEmpty())
+            return options;
 
         return new List<PicklistOption>{
             new PicklistOption('Annual', 'Annual'),
@@ -299,9 +318,23 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         String transactionDetailsJson = buildTransactionDetailsJson(
-            accountId, billingAccountId, billingTermUnitPicklist, quantity, legalEntityId,
-            taxTreatmentId, currencyIsoCode, unitPrice, totalPrice, billingCity, productId,
-            productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate
+            accountId,
+            billingAccountId,
+            billingTermUnitPicklist,
+            quantity,
+            legalEntityId,
+            taxTreatmentId,
+            currencyIsoCode,
+            unitPrice,
+            totalPrice,
+            billingCity,
+            productId,
+            productName,
+            startDate,
+            billingDayOfMonth,
+            billingStartMonth,
+            termSetting,
+            endDate
         );
 
         Map<String, Object> outputs = invokeStandaloneBillingScheduleCreate(transactionDetailsJson);
@@ -382,8 +415,10 @@ public with sharing class RLM_BillingScheduleGroupService {
 
     @TestVisible
     private static String formatIsoDate(Date d) {
-        return String.valueOf(d.year()) + '-' +
-            String.valueOf(d.month()).leftPad(2, '0') + '-' +
+        return String.valueOf(d.year()) +
+            '-' +
+            String.valueOf(d.month()).leftPad(2, '0') +
+            '-' +
             String.valueOf(d.day()).leftPad(2, '0');
     }
 

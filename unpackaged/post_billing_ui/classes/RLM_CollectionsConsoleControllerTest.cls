@@ -1,6 +1,5 @@
 @isTest
 private class RLM_CollectionsConsoleControllerTest {
-
     // Invoice and the downstream PaymentSchedule/CollectionPlanItem/Dispute records are
     // system-managed and not insertable in Apex tests. With no qualifying invoices visible
     // (SeeAllData=false), the worklist query returns empty and the dispute/schedule lookups
@@ -8,12 +7,14 @@ private class RLM_CollectionsConsoleControllerTest {
     @isTest
     static void getHighValueDelinquents_noData_returnsEmptyList() {
         Test.startTest();
-        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
-            RLM_CollectionsConsoleController.getHighValueDelinquents();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows = RLM_CollectionsConsoleController.getHighValueDelinquents();
         Test.stopTest();
         System.assertNotEquals(null, rows, 'A non-null list must always be returned.');
-        System.assertEquals(0, rows.size(),
-            'With no qualifying invoices in the test context, the worklist should be empty.');
+        System.assertEquals(
+            0,
+            rows.size(),
+            'With no qualifying invoices in the test context, the worklist should be empty.'
+        );
     }
 
     // Exercises the wrapper projection with synthetic invoices + related-record maps, since
@@ -21,22 +22,26 @@ private class RLM_CollectionsConsoleControllerTest {
     @isTest
     static void buildDelinquents_projectsFieldsAndDefaults() {
         Id acctId = mintId(Account.SObjectType);
-        Id inv1   = mintId(Invoice.SObjectType);
-        Id inv2   = mintId(Invoice.SObjectType);
+        Id inv1 = mintId(Invoice.SObjectType);
+        Id inv2 = mintId(Invoice.SObjectType);
         Id planId = mintId(Account.SObjectType); // plan record id is stored, not validated
 
         Invoice i1 = synthInvoice(inv1, acctId, 'Acme Corp', 5000, 45, 'INV-001');
         Invoice i2 = synthInvoice(inv2, acctId, 'Beta LLC', 3200, 31, 'INV-002');
 
-        Map<Id, Date>   ptp      = new Map<Id, Date>{ inv1 => Date.today() };
+        Map<Id, Date> ptp = new Map<Id, Date>{ inv1 => Date.today() };
         Map<Id, String> planName = new Map<Id, String>{ inv1 => 'Plan A' };
-        Map<Id, Id>     planIds  = new Map<Id, Id>{ inv1 => planId };
+        Map<Id, Id> planIds = new Map<Id, Id>{ inv1 => planId };
         Map<Id, String> disputes = new Map<Id, String>{ inv2 => 'Billing Error - Overcharge' };
 
         Test.startTest();
-        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
-            RLM_CollectionsConsoleController.buildDelinquents(
-                new List<Invoice>{ i1, i2 }, ptp, planName, planIds, disputes);
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows = RLM_CollectionsConsoleController.buildDelinquents(
+            new List<Invoice>{ i1, i2 },
+            ptp,
+            planName,
+            planIds,
+            disputes
+        );
         Test.stopTest();
 
         System.assertEquals(2, rows.size(), 'Both invoices should produce a wrapper.');
@@ -71,19 +76,24 @@ private class RLM_CollectionsConsoleControllerTest {
     // Invoice fields are not writeable on a constructed sObject; build via JSON to populate
     // Balance/DaysInvoiceOverdue and the BillingAccount.Name relationship.
     private static Invoice synthInvoice(
-        Id id, Id acctId, String acctName, Decimal balance, Integer overdue, String docNum
+        Id id,
+        Id acctId,
+        String acctName,
+        Decimal balance,
+        Integer overdue,
+        String docNum
     ) {
         Map<String, Object> m = new Map<String, Object>{
-            'attributes'        => new Map<String, Object>{ 'type' => 'Invoice' },
-            'Id'                => id,
-            'BillingAccountId'  => acctId,
-            'Balance'           => balance,
-            'DaysInvoiceOverdue'=> overdue,
-            'DocumentNumber'    => docNum,
-            'BillingAccount'    => new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => id,
+            'BillingAccountId' => acctId,
+            'Balance' => balance,
+            'DaysInvoiceOverdue' => overdue,
+            'DocumentNumber' => docNum,
+            'BillingAccount' => new Map<String, Object>{
                 'attributes' => new Map<String, Object>{ 'type' => 'Account' },
-                'Id'         => acctId,
-                'Name'       => acctName
+                'Id' => acctId,
+                'Name' => acctName
             }
         };
         return (Invoice) JSON.deserialize(JSON.serialize(m), Invoice.class);

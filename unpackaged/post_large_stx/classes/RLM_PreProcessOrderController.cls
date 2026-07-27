@@ -14,14 +14,17 @@
  *   'C' = Completed, 'N' = Not started/skipped, 'Q' = Queued, 'F' = Failed
  */
 public with sharing class RLM_PreProcessOrderController {
-
     private static final Set<String> DONE_STATUSES = new Set<String>{ 'Completed' };
     private static final Set<String> FAILED_STATUSES = new Set<String>{ 'Failed', 'Failure', 'Canceled', 'Cancelled' };
     private static final String ACTIVATED_STATUS = 'Activated';
 
     // AsyncOperationTracker terminal statuses (the job is no longer running).
     private static final Set<String> TRACKER_TERMINAL_STATUSES = new Set<String>{
-        'Completed', 'Failed', 'Failure', 'Canceled', 'Cancelled'
+        'Completed',
+        'Failed',
+        'Failure',
+        'Canceled',
+        'Cancelled'
     };
 
     // Order.CalculationStatus buckets (core OrderCalculationStatus enum — see
@@ -33,19 +36,32 @@ public with sharing class RLM_PreProcessOrderController {
     // Order.ValidationResult == null — the field the platform preprocess validation
     // actually checks ("the prices aren't updated" fires while it is non-null).
     private static final Set<String> PRICING_IN_PROGRESS_STATUSES = new Set<String>{
-        'NotStarted', 'ContextHydrationInProgress', 'QueuedForConfiguration',
-        'ConfigurationInProgress', 'QueuedForPricing', 'QueuedForPricingAndSaving',
-        'PriceCalculationInProgress', 'TaxCalculationWaiting', 'QueuedForSaving',
-        'Saving', 'ReconciliationInProgress'
+        'NotStarted',
+        'ContextHydrationInProgress',
+        'QueuedForConfiguration',
+        'ConfigurationInProgress',
+        'QueuedForPricing',
+        'QueuedForPricingAndSaving',
+        'PriceCalculationInProgress',
+        'TaxCalculationWaiting',
+        'QueuedForSaving',
+        'Saving',
+        'ReconciliationInProgress'
     };
     private static final Set<String> PRICING_FAILED_STATUSES = new Set<String>{
-        'PstBaseStepFailed', 'ConfigurationFailed', 'GroupRampConfigurationFailed',
-        'PriceCalculationFailed', 'TaxCalculationFailed', 'SaveFailedOrIncomplete',
-        'ReconciliationFailed', 'OrderRequestFailed'
+        'PstBaseStepFailed',
+        'ConfigurationFailed',
+        'GroupRampConfigurationFailed',
+        'PriceCalculationFailed',
+        'TaxCalculationFailed',
+        'SaveFailedOrIncomplete',
+        'ReconciliationFailed',
+        'OrderRequestFailed'
     };
     // Partial-save states — surface for investigation, never auto-retry.
     private static final Set<String> PRICING_INVESTIGATE_STATUSES = new Set<String>{
-        'OrderRequestPartiallySaved', 'PartialSaveSuccess'
+        'OrderRequestPartiallySaved',
+        'PartialSaveSuccess'
     };
 
     /**
@@ -58,7 +74,6 @@ public with sharing class RLM_PreProcessOrderController {
     private static final String LARGE_DEAL_EXCLUDE_TREATMENT = 'RLM Large Deal - Exclude from Billing';
     private static Id largeDealExcludeTreatmentId;
     private static Boolean excludeTreatmentResolved = false;
-
 
     /** Lightweight order context for the action UI (gating + current state). */
     @AuraEnabled(cacheable=false)
@@ -79,15 +94,17 @@ public with sharing class RLM_PreProcessOrderController {
                 return errorJson('Order not found or not accessible.');
             }
             Order o = orders[0];
-            return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'orderNumber' => o.OrderNumber,
-                'status' => o.Status,
-                'isLargeDeal' => o.IsLargeDeal == true,
-                'preprocessingStatus' => o.PreprocessingStatus,
-                'validationComplete' => isValidationComplete(o.PreprocessingStatus),
-                'activated' => ACTIVATED_STATUS.equalsIgnoreCase(o.Status)
-            });
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'success' => true,
+                    'orderNumber' => o.OrderNumber,
+                    'status' => o.Status,
+                    'isLargeDeal' => o.IsLargeDeal == true,
+                    'preprocessingStatus' => o.PreprocessingStatus,
+                    'validationComplete' => isValidationComplete(o.PreprocessingStatus),
+                    'activated' => ACTIVATED_STATUS.equalsIgnoreCase(o.Status)
+                }
+            );
         } catch (Exception e) {
             return errorJson(e.getMessage());
         }
@@ -125,11 +142,13 @@ public with sharing class RLM_PreProcessOrderController {
             // Pre-stamp the exclude-from-billing treatment (idempotent; no-op for
             // standard orders / when the seed treatment is absent).
             stampLargeDealExcludeTreatment(oid);
-            return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'isLargeDeal' => isLarge,
-                'phase' => isLarge ? 'repricing' : 'ready_to_enqueue'
-            });
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'success' => true,
+                    'isLargeDeal' => isLarge,
+                    'phase' => isLarge ? 'repricing' : 'ready_to_enqueue'
+                }
+            );
         } catch (Exception e) {
             return errorJson('Preprocess error: ' + e.getMessage());
         }
@@ -150,20 +169,25 @@ public with sharing class RLM_PreProcessOrderController {
             Id oid = Id.valueOf(orderId);
             List<Order> orders = [
                 SELECT Id, CalculationStatus, ValidationResult
-                FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
+                FROM Order
+                WHERE Id = :oid
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (orders.isEmpty()) {
                 return errorJson('Order not found or not accessible.');
             }
             Order o = orders[0];
             Integer pendingAsyncCount = countPendingAsync(oid);
-            return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'phase' => classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount),
-                'calculationStatus' => o.CalculationStatus,
-                'validationResult' => o.ValidationResult,
-                'pendingAsyncCount' => pendingAsyncCount
-            });
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'success' => true,
+                    'phase' => classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount),
+                    'calculationStatus' => o.CalculationStatus,
+                    'validationResult' => o.ValidationResult,
+                    'pendingAsyncCount' => pendingAsyncCount
+                }
+            );
         } catch (Exception e) {
             return errorJson(e.getMessage());
         }
@@ -185,7 +209,10 @@ public with sharing class RLM_PreProcessOrderController {
             Id oid = Id.valueOf(orderId);
             List<Order> orders = [
                 SELECT Id, IsLargeDeal, CalculationStatus, ValidationResult, PreprocessingStatus
-                FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
+                FROM Order
+                WHERE Id = :oid
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (orders.isEmpty()) {
                 return errorJson('Order not found or not accessible.');
@@ -194,31 +221,44 @@ public with sharing class RLM_PreProcessOrderController {
             // Large deals: do not enqueue until pricing has committed.
             if (o.IsLargeDeal == true) {
                 Integer pendingAsyncCount = countPendingAsync(oid);
-                if (classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount) != 'pricing_committed') {
-                    return JSON.serialize(new Map<String, Object>{
-                        'success' => false,
-                        'phase' => 'pricing_not_committed',
-                        'errorMessage' => 'Pricing has not committed yet.'
-                    });
+                if (
+                    classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount) !=
+                    'pricing_committed'
+                ) {
+                    return JSON.serialize(
+                        new Map<String, Object>{
+                            'success' => false,
+                            'phase' => 'pricing_not_committed',
+                            'errorMessage' => 'Pricing has not committed yet.'
+                        }
+                    );
                 }
             }
             // Idempotency: validation already complete, or a preprocess job in flight.
             if (isValidationComplete(o.PreprocessingStatus)) {
-                return JSON.serialize(new Map<String, Object>{
-                    'success' => true, 'alreadyEnqueued' => true, 'requestId' => null
-                });
+                return JSON.serialize(
+                    new Map<String, Object>{ 'success' => true, 'alreadyEnqueued' => true, 'requestId' => null }
+                );
             }
             List<AsyncOperationTracker> inflight = [
-                SELECT Id, Status FROM AsyncOperationTracker
-                WHERE ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
-                  AND Status NOT IN :TRACKER_TERMINAL_STATUSES
+                SELECT Id, Status
+                FROM AsyncOperationTracker
+                WHERE
+                    ReferenceEntityId = :oid
+                    AND JobType = 'PreprocessOrder'
+                    AND Status NOT IN :TRACKER_TERMINAL_STATUSES
                 WITH USER_MODE
-                ORDER BY CreatedDate DESC LIMIT 1
+                ORDER BY CreatedDate DESC
+                LIMIT 1
             ];
             if (!inflight.isEmpty()) {
-                return JSON.serialize(new Map<String, Object>{
-                    'success' => true, 'alreadyEnqueued' => true, 'requestId' => inflight[0].Id
-                });
+                return JSON.serialize(
+                    new Map<String, Object>{
+                        'success' => true,
+                        'alreadyEnqueued' => true,
+                        'requestId' => inflight[0].Id
+                    }
+                );
             }
             Invocable.Action action = Invocable.Action.createStandardAction('preProcessSalesTransaction');
             action.setInvocationParameter('salesTransactionId', String.valueOf(oid));
@@ -237,9 +277,7 @@ public with sharing class RLM_PreProcessOrderController {
             }
             Map<String, Object> outParams = r.getOutputParameters();
             String requestId = outParams != null ? String.valueOf(outParams.get('requestId')) : null;
-            return JSON.serialize(new Map<String, Object>{
-                'success' => true, 'requestId' => requestId
-            });
+            return JSON.serialize(new Map<String, Object>{ 'success' => true, 'requestId' => requestId });
         } catch (Exception e) {
             return errorJson('Preprocess error: ' + e.getMessage());
         }
@@ -255,7 +293,8 @@ public with sharing class RLM_PreProcessOrderController {
     /** Count of non-terminal AsyncOperationTracker rows for the order (pending PST/async work). */
     private static Integer countPendingAsync(Id orderId) {
         return [
-            SELECT COUNT() FROM AsyncOperationTracker
+            SELECT COUNT()
+            FROM AsyncOperationTracker
             WHERE ReferenceEntityId = :orderId AND Status NOT IN :TRACKER_TERMINAL_STATUSES
             WITH USER_MODE
         ];
@@ -278,8 +317,7 @@ public with sharing class RLM_PreProcessOrderController {
         if (calcStatus != null && PRICING_INVESTIGATE_STATUSES.contains(calcStatus)) {
             return 'pricing_investigate';
         }
-        Boolean pricingFinished = String.isNotBlank(calcStatus)
-            && !PRICING_IN_PROGRESS_STATUSES.contains(calcStatus);
+        Boolean pricingFinished = String.isNotBlank(calcStatus) && !PRICING_IN_PROGRESS_STATUSES.contains(calcStatus);
         Boolean noPending = (pendingAsyncCount == null || pendingAsyncCount <= 0);
         if (String.isBlank(validationResult) && pricingFinished && noPending) {
             return 'pricing_committed';
@@ -302,7 +340,8 @@ public with sharing class RLM_PreProcessOrderController {
                 // tracker Id from the client can't report an unrelated job's status. A
                 // non-match yields no rows and falls through to the per-order fallback below.
                 List<AsyncOperationTracker> trackers = [
-                    SELECT Id, Status FROM AsyncOperationTracker
+                    SELECT Id, Status
+                    FROM AsyncOperationTracker
                     WHERE Id = :reqId AND ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
                     WITH USER_MODE
                     LIMIT 1
@@ -314,17 +353,23 @@ public with sharing class RLM_PreProcessOrderController {
             // Fallback: most recent PreprocessOrder tracker for this order.
             if (trackerStatus == null) {
                 List<AsyncOperationTracker> trackers = [
-                    SELECT Id, Status FROM AsyncOperationTracker
+                    SELECT Id, Status
+                    FROM AsyncOperationTracker
                     WHERE ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
                     WITH USER_MODE
-                    ORDER BY CreatedDate DESC LIMIT 1
+                    ORDER BY CreatedDate DESC
+                    LIMIT 1
                 ];
                 if (!trackers.isEmpty()) {
                     trackerStatus = trackers[0].Status;
                 }
             }
             List<Order> orders = [
-                SELECT Id, Status, PreprocessingStatus FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
+                SELECT Id, Status, PreprocessingStatus
+                FROM Order
+                WHERE Id = :oid
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (orders.isEmpty()) {
                 return errorJson('Order not found or not accessible.');
@@ -333,16 +378,18 @@ public with sharing class RLM_PreProcessOrderController {
             Boolean failed = trackerStatus != null && FAILED_STATUSES.contains(trackerStatus);
             Boolean trackerDone = trackerStatus != null && DONE_STATUSES.contains(trackerStatus);
             Boolean validationComplete = isValidationComplete(o.PreprocessingStatus);
-            return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'trackerStatus' => trackerStatus,
-                'preprocessingStatus' => o.PreprocessingStatus,
-                'orderStatus' => o.Status,
-                'done' => trackerDone || validationComplete,
-                'failed' => failed,
-                'ready' => validationComplete,
-                'activated' => ACTIVATED_STATUS.equalsIgnoreCase(o.Status)
-            });
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'success' => true,
+                    'trackerStatus' => trackerStatus,
+                    'preprocessingStatus' => o.PreprocessingStatus,
+                    'orderStatus' => o.Status,
+                    'done' => trackerDone || validationComplete,
+                    'failed' => failed,
+                    'ready' => validationComplete,
+                    'activated' => ACTIVATED_STATUS.equalsIgnoreCase(o.Status)
+                }
+            );
         } catch (Exception e) {
             return errorJson(e.getMessage());
         }
@@ -367,9 +414,9 @@ public with sharing class RLM_PreProcessOrderController {
     /** Bit 0 (Validation) is the only bit activation unconditionally requires. */
     @TestVisible
     private static Boolean isValidationComplete(String preprocessingStatus) {
-        return String.isNotBlank(preprocessingStatus)
-            && preprocessingStatus.length() >= 1
-            && preprocessingStatus.substring(0, 1).equalsIgnoreCase('C');
+        return String.isNotBlank(preprocessingStatus) &&
+            preprocessingStatus.length() >= 1 &&
+            preprocessingStatus.substring(0, 1).equalsIgnoreCase('C');
     }
 
     /**
@@ -387,35 +434,29 @@ public with sharing class RLM_PreProcessOrderController {
      */
     @TestVisible
     private static void repriceLargeDealOrderIfNeeded(Id orderId) {
-        List<Order> orders = [
-            SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1
-        ];
+        List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1];
         if (orders.isEmpty() || orders[0].IsLargeDeal != true) {
             return;
         }
-        RevSalesTrxn.RecordResource header =
-            new RevSalesTrxn.RecordResource(Order.getSObjectType(), 'PATCH', orderId);
+        RevSalesTrxn.RecordResource header = new RevSalesTrxn.RecordResource(Order.getSObjectType(), 'PATCH', orderId);
         header.fieldValues = new Map<String, Object>();
-        List<RevSalesTrxn.RecordWithReferenceRequest> records =
-            new List<RevSalesTrxn.RecordWithReferenceRequest>{
-                new RevSalesTrxn.RecordWithReferenceRequest('refHeader', header)
-            };
-        RevSalesTrxn.GraphRequest graph =
-            new RevSalesTrxn.GraphRequest('PrepareForActivationReprice', records);
+        List<RevSalesTrxn.RecordWithReferenceRequest> records = new List<RevSalesTrxn.RecordWithReferenceRequest>{
+            new RevSalesTrxn.RecordWithReferenceRequest('refHeader', header)
+        };
+        RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('PrepareForActivationReprice', records);
         // Typed nulls so the overloaded execute() signature resolves unambiguously.
         RevSalesTrxn.CatalogRatesPreferenceEnum ratesPref = null;
         RevSalesTrxn.TaxPreferenceEnum taxPref = null;
-        RevSalesTrxn.PlaceSalesTransactionResponse resp =
-            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                graph,
-                RevSalesTrxn.PricingPreferenceEnum.FORCE,
-                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
-                new RevSalesTrxn.ConfigurationOptionsInput(),
-                null,
-                ratesPref,
-                taxPref,
-                null
-            );
+        RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+            graph,
+            RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+            new RevSalesTrxn.ConfigurationOptionsInput(),
+            null,
+            ratesPref,
+            taxPref,
+            null
+        );
         if (resp == null || !resp.isSuccess) {
             throw new RLM_PreProcessException(
                 'Reprice failed: ' + (resp != null ? String.valueOf(resp.errorResponse) : 'null response')
@@ -442,8 +483,9 @@ public with sharing class RLM_PreProcessOrderController {
             return;
         }
         List<OrderItem> toStamp = [
-            SELECT Id FROM OrderItem
-            WHERE OrderId = :orderId AND BillingTreatmentId = null
+            SELECT Id
+            FROM OrderItem
+            WHERE OrderId = :orderId AND BillingTreatmentId = NULL
             WITH USER_MODE
         ];
         if (toStamp.isEmpty()) {
@@ -469,10 +511,9 @@ public with sharing class RLM_PreProcessOrderController {
         if (!excludeTreatmentResolved) {
             excludeTreatmentResolved = true;
             List<BillingTreatment> bts = [
-                SELECT Id FROM BillingTreatment
-                WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT
-                  AND Status = 'Active'
-                  AND ExcludeFromBilling = 'Yes'
+                SELECT Id
+                FROM BillingTreatment
+                WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT AND Status = 'Active' AND ExcludeFromBilling = 'Yes'
                 WITH USER_MODE
                 LIMIT 1
             ];
@@ -482,11 +523,11 @@ public with sharing class RLM_PreProcessOrderController {
     }
 
     private static String errorJson(String msg) {
-        return JSON.serialize(new Map<String, Object>{
-            'success' => false,
-            'errorMessage' => String.isBlank(msg) ? 'Unknown error' : msg
-        });
+        return JSON.serialize(
+            new Map<String, Object>{ 'success' => false, 'errorMessage' => String.isBlank(msg) ? 'Unknown error' : msg }
+        );
     }
 
-    public class RLM_PreProcessException extends Exception {}
+    public class RLM_PreProcessException extends Exception {
+    }
 }

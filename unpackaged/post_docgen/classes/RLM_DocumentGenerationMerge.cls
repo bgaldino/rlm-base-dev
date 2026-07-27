@@ -1,5 +1,9 @@
 public class RLM_DocumentGenerationMerge {
-    @InvocableMethod(label='Build a PDF file from Ids and return the merge id' description='Accepts a list of Ids and a DocTitle.' category='Document Generation')
+    @InvocableMethod(
+        label='Build a PDF file from Ids and return the merge id'
+        description='Accepts a list of Ids and a DocTitle.'
+        category='Document Generation'
+    )
     public static List<Response> MergeDocuments(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_DocumentGenerationMerge: at least one request is required.');
@@ -21,7 +25,9 @@ public class RLM_DocumentGenerationMerge {
             // Use JSON.serialize to safely escape DocTitle (avoids invalid JSON on quotes/newlines)
             dgp.RequestText = JSON.serialize(new Map<String, Object>{ 'title' => req.DocTitle });
             if (idStrings.isEmpty()) {
-                throw new IllegalArgumentException('RLM_DocumentGenerationMerge: recordIds must contain at least one non-null Id.');
+                throw new IllegalArgumentException(
+                    'RLM_DocumentGenerationMerge: recordIds must contain at least one non-null Id.'
+                );
             }
             dgp.PdfDocIdentifiersList = String.join(idStrings, ',');
             dgp.Status = 'InProgress';

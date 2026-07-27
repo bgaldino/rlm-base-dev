@@ -13,7 +13,6 @@
  * for different purposes and the SOQL skeleton is the only shared part.
  */
 public inherited sharing class RLM_AI_ConfigServiceUtils {
-
     // Salesforce key prefixes for the records these services handle.
     public static final String QUOTE_PREFIX = '0Q0';
     public static final String QUOTE_LINE_ITEM_PREFIX = '0QL';
@@ -101,10 +100,7 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
         if (rawValue == null) {
             return '';
         }
-        return rawValue
-            .replace('\\', '\\\\')
-            .replace('%', '\\%')
-            .replace('_', '\\_');
+        return rawValue.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
     }
 
     /**
@@ -251,7 +247,11 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
      * candidates and let the user pick). Shared by the direct product search and
      * the indirect quote-line resolution so both decide identically.
      */
-    public enum MatchResolution { NONE, SINGLE, AMBIGUOUS }
+    public enum MatchResolution {
+        NONE,
+        SINGLE,
+        AMBIGUOUS
+    }
 
     /**
      * Classifies confidence-filtered, score-descending candidates into a single
@@ -359,13 +359,11 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
         }
         String soql =
             'SELECT Id, Name, ProductCode FROM Product2 ' +
-            'WHERE IsActive = true AND (' + String.join(orClauses, ' OR ') + ') ' +
+            'WHERE IsActive = true AND (' +
+            String.join(orClauses, ' OR ') +
+            ') ' +
             'ORDER BY Name ASC LIMIT 500';
-        List<Product2> candidates = Database.queryWithBinds(
-            soql,
-            binds,
-            AccessLevel.SYSTEM_MODE
-        );
+        List<Product2> candidates = Database.queryWithBinds(soql, binds, AccessLevel.SYSTEM_MODE);
 
         Integer cap = (limitCount != null && limitCount > 0) ? limitCount : 200;
         for (Product2 p : candidates) {
@@ -403,9 +401,7 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
      * element, letting callers keep their existing `size() > 1 -> disambiguate`
      * logic while gaining consistent fuzzy behavior.
      */
-    public static List<QuoteLineItem> matchLinesByProductName(
-        Id quoteId, String searchTerm
-    ) {
+    public static List<QuoteLineItem> matchLinesByProductName(Id quoteId, String searchTerm) {
         List<ScoredLine> ranked = matchLinesByProductNameScored(quoteId, searchTerm);
         if (ranked.isEmpty()) {
             return new List<QuoteLineItem>();
@@ -440,9 +436,7 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
      * primitive behind matchLinesByProductName; exposed for callers that want the
      * raw ranked scores rather than the single-vs-many decision.
      */
-    public static List<ScoredLine> matchLinesByProductNameScored(
-        Id quoteId, String searchTerm
-    ) {
+    public static List<ScoredLine> matchLinesByProductNameScored(Id quoteId, String searchTerm) {
         List<ScoredLine> ranked = new List<ScoredLine>();
         if (String.isBlank(searchTerm)) {
             return ranked;
@@ -452,8 +446,16 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
         // have <200 lines). This avoids brittle SOQL LIKE that fails on
         // non-contiguous matches.
         List<QuoteLineItem> allLines = [
-            SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, ListPrice,
-                   LineNumber, ProductSellingModel.SellingModelType
+            SELECT
+                Id,
+                Product2Id,
+                Product2.Name,
+                Quantity,
+                UnitPrice,
+                NetUnitPrice,
+                ListPrice,
+                LineNumber,
+                ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
             ORDER BY LineNumber ASC

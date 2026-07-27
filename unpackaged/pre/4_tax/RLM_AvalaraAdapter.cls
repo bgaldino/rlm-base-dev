@@ -1,11 +1,9 @@
 global virtual class RLM_AvalaraAdapter implements commercetax.TaxEngineAdapter {
-
     global commercetax.TaxEngineResponse processRequest(commercetax.TaxEngineContext taxEngineContext) {
         commercetax.RequestType requestType = taxEngineContext.getRequestType();
-        if(requestType == commercetax.RequestType.CalculateTax){
+        if (requestType == commercetax.RequestType.CalculateTax) {
             return RLM_CalculateTaxService.getTax(taxEngineContext);
-        }
-        else 
-        	return null;
+        } else
+            return null;
     }
 }

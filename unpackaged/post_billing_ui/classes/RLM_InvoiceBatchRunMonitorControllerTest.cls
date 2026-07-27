@@ -1,11 +1,9 @@
 @isTest
 private class RLM_InvoiceBatchRunMonitorControllerTest {
-
     @isTest
     static void getInvoiceStatusCounts_blank_returnsZeroedMap() {
         Test.startTest();
-        Map<String, Integer> counts =
-            RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts('');
+        Map<String, Integer> counts = RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts('');
         Test.stopTest();
         System.assertEquals(4, counts.size(), 'All four status buckets should be present.');
         System.assertEquals(0, counts.get('Draft'), 'Blank id -> zero Draft.');
@@ -17,8 +15,7 @@ private class RLM_InvoiceBatchRunMonitorControllerTest {
     @isTest
     static void getInvoiceStatusCounts_nullId_returnsZeroedMap() {
         Test.startTest();
-        Map<String, Integer> counts =
-            RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts(null);
+        Map<String, Integer> counts = RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts(null);
         Test.stopTest();
         System.assertEquals(0, counts.get('Posted'), 'Null id should short-circuit to zeros.');
     }
@@ -34,10 +31,10 @@ private class RLM_InvoiceBatchRunMonitorControllerTest {
         }
         Id fakeId = Id.valueOf(ibrType.getDescribe().getKeyPrefix() + '000000000000');
         Test.startTest();
-        Map<String, Integer> counts =
-            RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts(String.valueOf(fakeId));
+        Map<String, Integer> counts = RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts(
+            String.valueOf(fakeId)
+        );
         Test.stopTest();
-        System.assertEquals(0, counts.get('Posted'),
-            'An unknown batch-run id should yield no posted invoices.');
+        System.assertEquals(0, counts.get('Posted'), 'An unknown batch-run id should yield no posted invoices.');
     }
 }

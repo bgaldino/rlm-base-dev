@@ -1,12 +1,15 @@
 @isTest
 private class RLM_PreProcessOrderControllerTest {
-
     @isTest
     static void testIsValidationComplete() {
         System.assertEquals(true, RLM_PreProcessOrderController.isValidationComplete('CNNN'), 'C in bit 0 = complete');
         System.assertEquals(true, RLM_PreProcessOrderController.isValidationComplete('CCCC'), 'all complete');
         System.assertEquals(true, RLM_PreProcessOrderController.isValidationComplete('c'), 'case-insensitive');
-        System.assertEquals(false, RLM_PreProcessOrderController.isValidationComplete('NNNN'), 'N in bit 0 = not complete');
+        System.assertEquals(
+            false,
+            RLM_PreProcessOrderController.isValidationComplete('NNNN'),
+            'N in bit 0 = not complete'
+        );
         System.assertEquals(false, RLM_PreProcessOrderController.isValidationComplete('QNNN'), 'Q in bit 0 = queued');
         System.assertEquals(false, RLM_PreProcessOrderController.isValidationComplete(null), 'null = not complete');
         System.assertEquals(false, RLM_PreProcessOrderController.isValidationComplete(''), 'blank = not complete');
@@ -97,30 +100,46 @@ private class RLM_PreProcessOrderControllerTest {
 
     @isTest
     static void testClassifyPricingPhase_Cases() {
-        System.assertEquals('pricing_committed',
+        System.assertEquals(
+            'pricing_committed',
             RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', null, 0),
-            'Cleared ValidationResult + terminal success + no pending = committed');
-        System.assertEquals('pricing_in_progress',
+            'Cleared ValidationResult + terminal success + no pending = committed'
+        );
+        System.assertEquals(
+            'pricing_in_progress',
             RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', 'TransactionIncomplete', 0),
-            'Dirty ValidationResult is not committed even with terminal status');
-        System.assertEquals('pricing_in_progress',
+            'Dirty ValidationResult is not committed even with terminal status'
+        );
+        System.assertEquals(
+            'pricing_in_progress',
             RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', null, 2),
-            'Pending async work is not committed');
-        System.assertEquals('pricing_in_progress',
+            'Pending async work is not committed'
+        );
+        System.assertEquals(
+            'pricing_in_progress',
             RLM_PreProcessOrderController.classifyPricingPhase('PriceCalculationInProgress', null, 0),
-            'In-progress status waits');
-        System.assertEquals('pricing_in_progress',
+            'In-progress status waits'
+        );
+        System.assertEquals(
+            'pricing_in_progress',
             RLM_PreProcessOrderController.classifyPricingPhase(null, null, 0),
-            'Null status waits');
-        System.assertEquals('pricing_failed',
+            'Null status waits'
+        );
+        System.assertEquals(
+            'pricing_failed',
             RLM_PreProcessOrderController.classifyPricingPhase('PstBaseStepFailed', null, 0),
-            'PstBaseStepFailed = failed (retry)');
-        System.assertEquals('pricing_failed',
+            'PstBaseStepFailed = failed (retry)'
+        );
+        System.assertEquals(
+            'pricing_failed',
             RLM_PreProcessOrderController.classifyPricingPhase('PriceCalculationFailed', null, 9),
-            'Failure status overrides pending/validation');
-        System.assertEquals('pricing_investigate',
+            'Failure status overrides pending/validation'
+        );
+        System.assertEquals(
+            'pricing_investigate',
             RLM_PreProcessOrderController.classifyPricingPhase('PartialSaveSuccess', null, 0),
-            'Partial-save = investigate (no auto-retry)');
+            'Partial-save = investigate (no auto-retry)'
+        );
     }
 
     @isTest
@@ -208,7 +227,11 @@ private class RLM_PreProcessOrderControllerTest {
         Test.stopTest();
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(resp);
         System.assertEquals(true, m.get('success'), 'Real order status resolves');
-        System.assertEquals(null, m.get('trackerStatus'), 'No tracker for a fresh order (scoping falls through to none)');
+        System.assertEquals(
+            null,
+            m.get('trackerStatus'),
+            'No tracker for a fresh order (scoping falls through to none)'
+        );
         System.assertEquals(null, m.get('preprocessingStatus'), 'PreprocessingStatus unstamped on a fresh order');
         System.assertEquals('Draft', m.get('orderStatus'), 'Order status reflected from the order record');
         System.assertEquals(false, m.get('done'), 'No tracker-done and no validation-complete => not done');
@@ -327,12 +350,7 @@ private class RLM_PreProcessOrderControllerTest {
     private static Order buildLargeDealOrder() {
         Account a = new Account(Name = 'PreProc Test Account');
         insert a;
-        Order o = new Order(
-            AccountId = a.Id,
-            Status = 'Draft',
-            EffectiveDate = Date.today(),
-            IsLargeDeal = true
-        );
+        Order o = new Order(AccountId = a.Id, Status = 'Draft', EffectiveDate = Date.today(), IsLargeDeal = true);
         insert o;
         return o;
     }
@@ -349,9 +367,7 @@ private class RLM_PreProcessOrderControllerTest {
         insert prods;
         List<PricebookEntry> pbes = new List<PricebookEntry>();
         for (Product2 pr : prods) {
-            pbes.add(new PricebookEntry(
-                Pricebook2Id = pbId, Product2Id = pr.Id, UnitPrice = 10, IsActive = true
-            ));
+            pbes.add(new PricebookEntry(Pricebook2Id = pbId, Product2Id = pr.Id, UnitPrice = 10, IsActive = true));
         }
         insert pbes;
         Order o = new Order(
@@ -364,10 +380,15 @@ private class RLM_PreProcessOrderControllerTest {
         insert o;
         List<OrderItem> items = new List<OrderItem>();
         for (PricebookEntry pbe : pbes) {
-            items.add(new OrderItem(
-                OrderId = o.Id, PricebookEntryId = pbe.Id, Product2Id = pbe.Product2Id,
-                Quantity = 1, UnitPrice = 10
-            ));
+            items.add(
+                new OrderItem(
+                    OrderId = o.Id,
+                    PricebookEntryId = pbe.Id,
+                    Product2Id = pbe.Product2Id,
+                    Quantity = 1,
+                    UnitPrice = 10
+                )
+            );
         }
         insert items;
         return o;
@@ -380,7 +401,9 @@ private class RLM_PreProcessOrderControllerTest {
     /** Seeds the Active Exclude-from-Billing treatment; returns its id. */
     private static Id seedExcludeTreatment() {
         BillingPolicy p = new BillingPolicy(
-            Name = 'RLM Large Deal Policy', Status = 'Draft', BillingTreatmentSelection = 'Default'
+            Name = 'RLM Large Deal Policy',
+            Status = 'Draft',
+            BillingTreatmentSelection = 'Default'
         );
         insert p;
         BillingTreatment t = new BillingTreatment(

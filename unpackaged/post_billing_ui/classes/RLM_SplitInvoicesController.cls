@@ -18,8 +18,9 @@ public with sharing class RLM_SplitInvoicesController {
     @AuraEnabled(cacheable=true)
     public static CurrentInvoiceBillingInfo getCurrentInvoiceBillingInfo(String invoiceId) {
         CurrentInvoiceBillingInfo info = new CurrentInvoiceBillingInfo();
-        if (String.isBlank(invoiceId)) return info;
-        String[] queries = new String[] {
+        if (String.isBlank(invoiceId))
+            return info;
+        String[] queries = new List<String>{
             'SELECT Id, BillingArrangementId, BillingArrangement.Name, BillingArrangementVerNumber FROM Invoice WHERE Id = :invoiceId LIMIT 1',
             'SELECT Id, BillingArrangementId, BillingArrangement.Name FROM Invoice WHERE Id = :invoiceId LIMIT 1',
             'SELECT Id, BillingArrangement, BillingArrangement.Name, BillingArrangementVerNumber FROM Invoice WHERE Id = :invoiceId LIMIT 1',
@@ -28,19 +29,36 @@ public with sharing class RLM_SplitInvoicesController {
         for (Integer i = 0; i < queries.size(); i++) {
             try {
                 List<SObject> listInv = Database.query(queries[i], AccessLevel.USER_MODE);
-                if (listInv.isEmpty()) continue;
+                if (listInv.isEmpty())
+                    continue;
                 SObject inv = listInv[0];
-                try { SObject arr = inv.getSObject('BillingArrangement'); if (arr != null) info.billingArrangementName = (String) arr.get('Name'); } catch (Exception e2) { }
-                if (i == 0 || i == 2) { try { Object ver = inv.get('BillingArrangementVerNumber'); if (ver != null) info.billingArrangementVerNumber = String.valueOf(ver); } catch (Exception e3) { } }
+                try {
+                    SObject arr = inv.getSObject('BillingArrangement');
+                    if (arr != null)
+                        info.billingArrangementName = (String) arr.get('Name');
+                } catch (Exception e2) {
+                }
+                if (i == 0 || i == 2) {
+                    try {
+                        Object ver = inv.get('BillingArrangementVerNumber');
+                        if (ver != null)
+                            info.billingArrangementVerNumber = String.valueOf(ver);
+                    } catch (Exception e3) {
+                    }
+                }
                 break;
-            } catch (Exception e) { continue; }
+            } catch (Exception e) {
+                continue;
+            }
         }
         return info;
     }
 
     public class CurrentInvoiceBillingInfo {
-        @AuraEnabled public String billingArrangementName;
-        @AuraEnabled public String billingArrangementVerNumber;
+        @AuraEnabled
+        public String billingArrangementName;
+        @AuraEnabled
+        public String billingArrangementVerNumber;
     }
 
     @AuraEnabled(cacheable=true)
@@ -49,27 +67,49 @@ public with sharing class RLM_SplitInvoicesController {
             return new List<InvoiceRow>();
         }
         List<InvoiceRow> rows = new List<InvoiceRow>();
-        String soql = 'SELECT Id, DocumentNumber, InvoiceDate, Balance, Status, '
-            + CORRELATION_FIELD + ', '
-            + 'BillingAccountId, BillingAccount.Name, '
-            + BILLING_ARRANGEMENT_LOOKUP + ', ' + BILLING_ARRANGEMENT_REL + '.Name, '
-            + BILLING_PROFILE_LOOKUP + ', ' + BILLING_PROFILE_REL + '.Name, '
-            + BILLING_ARRANGEMENT_VERSION_FIELD + ' '
-            + 'FROM ' + INVOICE_OBJECT + ' '
-            + 'WHERE ' + CORRELATION_FIELD + ' = :correlationId '
-            + 'ORDER BY DocumentNumber ASC LIMIT 500';
+        String soql =
+            'SELECT Id, DocumentNumber, InvoiceDate, Balance, Status, ' +
+            CORRELATION_FIELD +
+            ', ' +
+            'BillingAccountId, BillingAccount.Name, ' +
+            BILLING_ARRANGEMENT_LOOKUP +
+            ', ' +
+            BILLING_ARRANGEMENT_REL +
+            '.Name, ' +
+            BILLING_PROFILE_LOOKUP +
+            ', ' +
+            BILLING_PROFILE_REL +
+            '.Name, ' +
+            BILLING_ARRANGEMENT_VERSION_FIELD +
+            ' ' +
+            'FROM ' +
+            INVOICE_OBJECT +
+            ' ' +
+            'WHERE ' +
+            CORRELATION_FIELD +
+            ' = :correlationId ' +
+            'ORDER BY DocumentNumber ASC LIMIT 500';
         try {
             List<SObject> invoices = Database.query(soql, AccessLevel.USER_MODE);
             for (SObject inv : invoices) {
                 rows.add(new InvoiceRow(inv));
             }
         } catch (QueryException e) {
-            System.debug(LoggingLevel.ERROR, 'RLM_SplitInvoicesController SOQL failed: '
-                + e.getTypeName() + ': ' + e.getMessage()
-                + ' | SOQL: ' + soql.replace(':correlationId', '\'' + correlationId + '\''));
+            System.debug(
+                LoggingLevel.ERROR,
+                'RLM_SplitInvoicesController SOQL failed: ' +
+                    e.getTypeName() +
+                    ': ' +
+                    e.getMessage() +
+                    ' | SOQL: ' +
+                    soql.replace(':correlationId', '\'' + correlationId + '\'')
+            );
             throw new AuraHandledException('Unable to load split invoices. Contact your administrator.');
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'RLM_SplitInvoicesController error: ' + e.getTypeName() + ': ' + e.getMessage());
+            System.debug(
+                LoggingLevel.ERROR,
+                'RLM_SplitInvoicesController error: ' + e.getTypeName() + ': ' + e.getMessage()
+            );
             throw new AuraHandledException('Unable to load split invoices. Contact your administrator.');
         }
         return rows;
@@ -80,7 +120,12 @@ public with sharing class RLM_SplitInvoicesController {
      * Used when GraphQL provides only IDs; LWC calls this and merges names into rows.
      */
     @AuraEnabled(cacheable=false)
-    public static RelatedNamesResult getRelatedNames(List<String> accountIds, List<String> arrangementIds, List<String> profileIds, List<String> contactIds) {
+    public static RelatedNamesResult getRelatedNames(
+        List<String> accountIds,
+        List<String> arrangementIds,
+        List<String> profileIds,
+        List<String> contactIds
+    ) {
         RelatedNamesResult result = new RelatedNamesResult();
         result.accountNames = namesByIds(accountIds);
         result.arrangementNames = namesByIds(arrangementIds);
@@ -91,12 +136,15 @@ public with sharing class RLM_SplitInvoicesController {
 
     private static Map<String, String> namesByIds(List<String> idList) {
         Map<String, String> idToName = new Map<String, String>();
-        if (idList == null || idList.isEmpty()) return idToName;
+        if (idList == null || idList.isEmpty())
+            return idToName;
         List<Id> ids = new List<Id>();
         for (String s : idList) {
-            if (String.isNotBlank(s)) ids.add(Id.valueOf(s));
+            if (String.isNotBlank(s))
+                ids.add(Id.valueOf(s));
         }
-        if (ids.isEmpty()) return idToName;
+        if (ids.isEmpty())
+            return idToName;
         try {
             Schema.SObjectType token = ids[0].getSObjectType();
             String objName = token.getDescribe().getName();
@@ -112,25 +160,41 @@ public with sharing class RLM_SplitInvoicesController {
     }
 
     public class RelatedNamesResult {
-        @AuraEnabled public Map<String, String> accountNames = new Map<String, String>();
-        @AuraEnabled public Map<String, String> arrangementNames = new Map<String, String>();
-        @AuraEnabled public Map<String, String> profileNames = new Map<String, String>();
-        @AuraEnabled public Map<String, String> contactNames = new Map<String, String>();
+        @AuraEnabled
+        public Map<String, String> accountNames = new Map<String, String>();
+        @AuraEnabled
+        public Map<String, String> arrangementNames = new Map<String, String>();
+        @AuraEnabled
+        public Map<String, String> profileNames = new Map<String, String>();
+        @AuraEnabled
+        public Map<String, String> contactNames = new Map<String, String>();
     }
 
     public class InvoiceRow {
-        @AuraEnabled public String Id;
-        @AuraEnabled public String DocumentNumber;
-        @AuraEnabled public Date InvoiceDate;
-        @AuraEnabled public Decimal Balance;
-        @AuraEnabled public String Status;
-        @AuraEnabled public String billingAccountId;
-        @AuraEnabled public String billingAccountName;
-        @AuraEnabled public String billingArrangementId;
-        @AuraEnabled public String billingArrangementName;
-        @AuraEnabled public String billingProfileId;
-        @AuraEnabled public String billingProfileName;
-        @AuraEnabled public String billingArrangementVerNumber;
+        @AuraEnabled
+        public String Id;
+        @AuraEnabled
+        public String DocumentNumber;
+        @AuraEnabled
+        public Date InvoiceDate;
+        @AuraEnabled
+        public Decimal Balance;
+        @AuraEnabled
+        public String Status;
+        @AuraEnabled
+        public String billingAccountId;
+        @AuraEnabled
+        public String billingAccountName;
+        @AuraEnabled
+        public String billingArrangementId;
+        @AuraEnabled
+        public String billingArrangementName;
+        @AuraEnabled
+        public String billingProfileId;
+        @AuraEnabled
+        public String billingProfileName;
+        @AuraEnabled
+        public String billingArrangementVerNumber;
 
         public InvoiceRow(SObject inv) {
             this.Id = (String) inv.get('Id');

@@ -1,30 +1,26 @@
-global with sharing class RLM_JsonSuccessParser
-{
-  public static void consumeObject(JSONParser parser)
-  {
-    Integer depth = 0;
-    do {
-      JSONToken curr = parser.getCurrentToken();
-      if (curr == JSONToken.START_OBJECT ||
-        curr == JSONToken.START_ARRAY) {
-        depth++;
-      } else if (curr == JSONToken.END_OBJECT ||
-        curr == JSONToken.END_ARRAY) {
-        depth--;
-      }
-    } while (depth > 0 && parser.nextToken() != null);
-  }
+global with sharing class RLM_JsonSuccessParser {
+    public static void consumeObject(JSONParser parser) {
+        Integer depth = 0;
+        do {
+            JSONToken curr = parser.getCurrentToken();
+            if (curr == JSONToken.START_OBJECT || curr == JSONToken.START_ARRAY) {
+                depth++;
+            } else if (curr == JSONToken.END_OBJECT || curr == JSONToken.END_ARRAY) {
+                depth--;
+            }
+        } while (depth > 0 && parser.nextToken() != null);
+    }
 
     public class Addresses {
-        public String id {get;set;}
-        public String transactionId {get;set;}
-        public String boundaryLevel {get;set;}
-        public String line1 {get;set;}
-        public String city {get;set;}
-        public String region {get;set;}
-        public String postalCode {get;set;}
-        public String country {get;set;}
-        public Integer taxRegionId {get;set;}
+        public String id { get; set; }
+        public String transactionId { get; set; }
+        public String boundaryLevel { get; set; }
+        public String line1 { get; set; }
+        public String city { get; set; }
+        public String region { get; set; }
+        public String postalCode { get; set; }
+        public String country { get; set; }
+        public Integer taxRegionId { get; set; }
 
         public Addresses(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -59,25 +55,25 @@ global with sharing class RLM_JsonSuccessParser
     }
 
     public class Details {
-        public String id {get;set;}
-        public String transactionLineId {get;set;}
-        public String transactionId {get;set;}
-        public String country {get;set;}
-        public String region {get;set;}
-        public Integer exemptAmount {get;set;}
-        public String jurisCode {get;set;}
-        public String jurisName {get;set;}
-        public String stateAssignedNo {get;set;}
-        public String jurisType {get;set;}
-        public Integer nonTaxableAmount {get;set;}
-        public Double rate {get;set;}
-        public Double tax {get;set;}
-        public Integer taxableAmount {get;set;}
-        public String taxType {get;set;}
-        public String taxName {get;set;}
-        public Integer taxAuthorityTypeId {get;set;}
-        public Double taxCalculated {get;set;}
-        public String rateType {get;set;}
+        public String id { get; set; }
+        public String transactionLineId { get; set; }
+        public String transactionId { get; set; }
+        public String country { get; set; }
+        public String region { get; set; }
+        public Integer exemptAmount { get; set; }
+        public String jurisCode { get; set; }
+        public String jurisName { get; set; }
+        public String stateAssignedNo { get; set; }
+        public String jurisType { get; set; }
+        public Integer nonTaxableAmount { get; set; }
+        public Double rate { get; set; }
+        public Double tax { get; set; }
+        public Integer taxableAmount { get; set; }
+        public String taxType { get; set; }
+        public String taxName { get; set; }
+        public Integer taxAuthorityTypeId { get; set; }
+        public Double taxCalculated { get; set; }
+        public String rateType { get; set; }
 
         public Details(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -132,11 +128,11 @@ global with sharing class RLM_JsonSuccessParser
     }
 
     public class Messages {
-        public String summary {get;set;}
-        public String details {get;set;}
-        public String refersTo {get;set;}
-        public String severity {get;set;}
-        public String source {get;set;}
+        public String summary { get; set; }
+        public String details { get; set; }
+        public String refersTo { get; set; }
+        public String severity { get; set; }
+        public String source { get; set; }
 
         public Messages(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -162,29 +158,29 @@ global with sharing class RLM_JsonSuccessParser
         }
     }
 
-    public String id {get;set;}
-    public String code {get;set;}
-    public String referenceCode {get;set;}
-    public Integer companyId {get;set;}
-    public String taxDate {get;set;}
-    public String transactionDate {get;set;}
-    public String status {get;set;}
-    public String type_Z {get;set;} // in json: type
-    public Boolean reconciled {get;set;}
-    public Integer totalAmount {get;set;}
-    public Integer totalExempt {get;set;}
-    public Double totalTax {get;set;}
-    public Integer totalTaxable {get;set;}
-    public Double totalTaxCalculated {get;set;}
-    public String adjustmentReason {get;set;}
-    public Boolean locked {get;set;}
-    public Integer version {get;set;}
-    public String modifiedDate {get;set;}
-    public Integer modifiedUserId {get;set;}
-    public List<Lines> lines {get;set;}
-    public List<Addresses> addresses {get;set;}
-    public List<Summary> summary {get;set;}
-    public List<Messages> messages {get;set;}
+    public String id { get; set; }
+    public String code { get; set; }
+    public String referenceCode { get; set; }
+    public Integer companyId { get; set; }
+    public String taxDate { get; set; }
+    public String transactionDate { get; set; }
+    public String status { get; set; }
+    public String type_Z { get; set; } // in json: type
+    public Boolean reconciled { get; set; }
+    public Integer totalAmount { get; set; }
+    public Integer totalExempt { get; set; }
+    public Double totalTax { get; set; }
+    public Integer totalTaxable { get; set; }
+    public Double totalTaxCalculated { get; set; }
+    public String adjustmentReason { get; set; }
+    public Boolean locked { get; set; }
+    public Integer version { get; set; }
+    public String modifiedDate { get; set; }
+    public Integer modifiedUserId { get; set; }
+    public List<Lines> lines { get; set; }
+    public List<Addresses> addresses { get; set; }
+    public List<Summary> summary { get; set; }
+    public List<Messages> messages { get; set; }
 
     public RLM_JsonSuccessParser(JSONParser parser) {
         while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -195,7 +191,7 @@ global with sharing class RLM_JsonSuccessParser
                         id = parser.getText();
                     } else if (text == 'code') {
                         code = parser.getText();
-                    } else if (text == 'referenceCode'){
+                    } else if (text == 'referenceCode') {
                         referenceCode = parser.getText();
                     } else if (text == 'companyId') {
                         companyId = parser.getIntegerValue();
@@ -258,23 +254,23 @@ global with sharing class RLM_JsonSuccessParser
     }
 
     public class Summary {
-        public String country {get;set;}
-        public String region {get;set;}
-        public String jurisType {get;set;}
-        public String jurisCode {get;set;}
-        public String jurisName {get;set;}
-        public Integer taxAuthorityType {get;set;}
-        public String stateAssignedNo {get;set;}
-        public String taxType {get;set;}
-        public String taxName {get;set;}
-        public String taxGroup {get;set;}
-        public String rateType {get;set;}
-        public Integer taxable {get;set;}
-        public Double rate {get;set;}
-        public Double tax {get;set;}
-        public Double taxCalculated {get;set;}
-        public Integer nonTaxable {get;set;}
-        public Integer exemption {get;set;}
+        public String country { get; set; }
+        public String region { get; set; }
+        public String jurisType { get; set; }
+        public String jurisCode { get; set; }
+        public String jurisName { get; set; }
+        public Integer taxAuthorityType { get; set; }
+        public String stateAssignedNo { get; set; }
+        public String taxType { get; set; }
+        public String taxName { get; set; }
+        public String taxGroup { get; set; }
+        public String rateType { get; set; }
+        public Integer taxable { get; set; }
+        public Double rate { get; set; }
+        public Double tax { get; set; }
+        public Double taxCalculated { get; set; }
+        public Integer nonTaxable { get; set; }
+        public Integer exemption { get; set; }
 
         public Summary(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -325,24 +321,24 @@ global with sharing class RLM_JsonSuccessParser
     }
 
     public class Lines {
-        public String id {get;set;}
-        public String transactionId {get;set;}
-        public String lineNumber {get;set;}
-        public Integer discountAmount {get;set;}
-        public Integer exemptAmount {get;set;}
-        public Integer exemptCertId {get;set;}
-        public Boolean isItemTaxable {get;set;}
-        public Integer lineAmount {get;set;}
-        public Double quantity {get;set;}
-        public String reportingDate {get;set;}
-        public Double tax {get;set;}
-        public Integer taxableAmount {get;set;}
-        public Double taxCalculated {get;set;}
-        public String taxCode {get;set;}
-        public String taxDate {get;set;}
-        public Boolean taxIncluded {get;set;}
-        public List<Details> details {get;set;}
-        public String itemCode {get;set;}
+        public String id { get; set; }
+        public String transactionId { get; set; }
+        public String lineNumber { get; set; }
+        public Integer discountAmount { get; set; }
+        public Integer exemptAmount { get; set; }
+        public Integer exemptCertId { get; set; }
+        public Boolean isItemTaxable { get; set; }
+        public Integer lineAmount { get; set; }
+        public Double quantity { get; set; }
+        public String reportingDate { get; set; }
+        public Double tax { get; set; }
+        public Integer taxableAmount { get; set; }
+        public Double taxCalculated { get; set; }
+        public String taxCode { get; set; }
+        public String taxDate { get; set; }
+        public Boolean taxIncluded { get; set; }
+        public List<Details> details { get; set; }
+        public String itemCode { get; set; }
         public Lines(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
@@ -352,9 +348,9 @@ global with sharing class RLM_JsonSuccessParser
                             id = parser.getText();
                         } else if (text == 'transactionId') {
                             transactionId = parser.getText();
-                        }else if (text == 'itemCode') {
+                        } else if (text == 'itemCode') {
                             itemCode = parser.getText();
-                        }else if (text == 'lineNumber') {
+                        } else if (text == 'lineNumber') {
                             lineNumber = parser.getText();
                         } else if (text == 'discountAmount') {
                             discountAmount = parser.getIntegerValue();
@@ -396,9 +392,7 @@ global with sharing class RLM_JsonSuccessParser
         }
     }
 
-
-    public static RLM_JsonSuccessParser parse(String json)
-    {
+    public static RLM_JsonSuccessParser parse(String json) {
         return new RLM_JsonSuccessParser(System.JSON.createParser(json));
     }
 }

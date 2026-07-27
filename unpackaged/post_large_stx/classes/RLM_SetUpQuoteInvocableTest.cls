@@ -1,6 +1,5 @@
 @IsTest
 private class RLM_SetUpQuoteInvocableTest {
-
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -17,12 +16,7 @@ private class RLM_SetUpQuoteInvocableTest {
             CloseDate = Date.today().addDays(30)
         );
         insert opp;
-        Quote q = new Quote(
-            Name = name,
-            Pricebook2Id = pbId,
-            OpportunityId = opp.Id,
-            Status = 'Draft'
-        );
+        Quote q = new Quote(Name = name, Pricebook2Id = pbId, OpportunityId = opp.Id, Status = 'Draft');
         insert q;
         return q;
     }
@@ -63,8 +57,9 @@ private class RLM_SetUpQuoteInvocableTest {
     @IsTest
     static void testExecute_EmptyInputList_ReturnsFail() {
         Test.startTest();
-        List<RLM_SetUpQuoteInvocable.Output> results =
-            RLM_SetUpQuoteInvocable.execute(new List<RLM_SetUpQuoteInvocable.Input>());
+        List<RLM_SetUpQuoteInvocable.Output> results = RLM_SetUpQuoteInvocable.execute(
+            new List<RLM_SetUpQuoteInvocable.Input>()
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'Expected one output for empty input list');
@@ -78,8 +73,9 @@ private class RLM_SetUpQuoteInvocableTest {
         RLM_SetUpQuoteInvocable.Input inp = makeModifyInput(null, hierarchyJson);
 
         Test.startTest();
-        List<RLM_SetUpQuoteInvocable.Output> results =
-            RLM_SetUpQuoteInvocable.execute(new List<RLM_SetUpQuoteInvocable.Input>{ inp });
+        List<RLM_SetUpQuoteInvocable.Output> results = RLM_SetUpQuoteInvocable.execute(
+            new List<RLM_SetUpQuoteInvocable.Input>{ inp }
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size());
@@ -92,8 +88,9 @@ private class RLM_SetUpQuoteInvocableTest {
         RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Test Quote', '{"parents":[]}');
 
         Test.startTest();
-        List<RLM_SetUpQuoteInvocable.Output> results =
-            RLM_SetUpQuoteInvocable.execute(new List<RLM_SetUpQuoteInvocable.Input>{ inp });
+        List<RLM_SetUpQuoteInvocable.Output> results = RLM_SetUpQuoteInvocable.execute(
+            new List<RLM_SetUpQuoteInvocable.Input>{ inp }
+        );
         Test.stopTest();
 
         // PST may succeed or fail in test context; what matters is we get a result, not an exception
@@ -102,13 +99,19 @@ private class RLM_SetUpQuoteInvocableTest {
         // success and keeps errorMessage/quoteId consistent, in both reachable branches.
         RLM_SetUpQuoteInvocable.Output out0 = results[0];
         System.assertNotEquals(null, out0, 'Output must not be null');
-        System.assertNotEquals(null, out0.success, 'execute() must always decide success (true or false), never leave it null');
+        System.assertNotEquals(
+            null,
+            out0.success,
+            'execute() must always decide success (true or false), never leave it null'
+        );
         if (out0.success == true) {
             System.assertEquals(null, out0.errorMessage, 'Success output must have a null errorMessage');
         } else {
             System.assertNotEquals(null, out0.errorMessage, 'Failure output must carry an errorMessage');
-            System.assert(out0.errorMessage.startsWith('Quote creation failed: '),
-                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage);
+            System.assert(
+                out0.errorMessage.startsWith('Quote creation failed: '),
+                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage
+            );
             System.assertEquals(null, out0.quoteId, 'Failure output must not carry a quoteId');
         }
     }
@@ -121,8 +124,9 @@ private class RLM_SetUpQuoteInvocableTest {
         inp.productCountsJson = '{"0":0}';
 
         Test.startTest();
-        List<RLM_SetUpQuoteInvocable.Output> results =
-            RLM_SetUpQuoteInvocable.execute(new List<RLM_SetUpQuoteInvocable.Input>{ inp });
+        List<RLM_SetUpQuoteInvocable.Output> results = RLM_SetUpQuoteInvocable.execute(
+            new List<RLM_SetUpQuoteInvocable.Input>{ inp }
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'Should always return one output');
@@ -133,13 +137,19 @@ private class RLM_SetUpQuoteInvocableTest {
         // failure path it returns fail(null, 'Quote creation failed: ' + msg).
         RLM_SetUpQuoteInvocable.Output out0 = results[0];
         System.assertNotEquals(null, out0, 'Output must not be null');
-        System.assertNotEquals(null, out0.success, 'execute() must always decide success (true or false), never leave it null');
+        System.assertNotEquals(
+            null,
+            out0.success,
+            'execute() must always decide success (true or false), never leave it null'
+        );
         if (out0.success == true) {
             System.assertEquals(null, out0.errorMessage, 'Success output must have a null errorMessage');
         } else {
             System.assertNotEquals(null, out0.errorMessage, 'Failure output must carry an errorMessage');
-            System.assert(out0.errorMessage.startsWith('Quote creation failed: '),
-                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage);
+            System.assert(
+                out0.errorMessage.startsWith('Quote creation failed: '),
+                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage
+            );
             System.assertEquals(null, out0.quoteId, 'Failure output must not carry a quoteId');
         }
     }
@@ -161,11 +171,13 @@ private class RLM_SetUpQuoteInvocableTest {
 
     @IsTest
     static void testRunSetUpQuoteFromLWC_ModifyBlankId_ReturnsErrorJson() {
-        String inputJson = JSON.serialize(new Map<String, Object>{
-            'isCreate' => false,
-            'quoteId' => null,
-            'hierarchyJson' => '{"parents":[{"name":"A","path":"0","children":[]}]}'
-        });
+        String inputJson = JSON.serialize(
+            new Map<String, Object>{
+                'isCreate' => false,
+                'quoteId' => null,
+                'hierarchyJson' => '{"parents":[{"name":"A","path":"0","children":[]}]}'
+            }
+        );
 
         Test.startTest();
         String result = RLM_SetUpQuoteInvocable.runSetUpQuoteFromLWC(inputJson);
@@ -198,7 +210,10 @@ private class RLM_SetUpQuoteInvocableTest {
 
         Boolean found = false;
         for (Map<String, String> opt : options) {
-            if (opt.get('value') == q.Id) { found = true; break; }
+            if (opt.get('value') == q.Id) {
+                found = true;
+                break;
+            }
         }
         System.assert(found, 'getQuotesForModify should include the inserted quote');
     }
@@ -225,7 +240,11 @@ private class RLM_SetUpQuoteInvocableTest {
         QuoteLineGroup parent = new QuoteLineGroup(QuoteId = q.Id, Name = 'Parent Group', SortOrder = 1);
         insert parent;
         QuoteLineGroup child = new QuoteLineGroup(
-            QuoteId = q.Id, Name = 'Child Group', ParentQuoteLineGroupId = parent.Id, SortOrder = 1);
+            QuoteId = q.Id,
+            Name = 'Child Group',
+            ParentQuoteLineGroupId = parent.Id,
+            SortOrder = 1
+        );
         insert child;
 
         Test.startTest();
@@ -304,7 +323,8 @@ private class RLM_SetUpQuoteInvocableTest {
     @IsTest
     static void testGetSetUpQuoteStatus_BlankReturnsFailure() {
         Map<String, Object> blank = (Map<String, Object>) JSON.deserializeUntyped(
-            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(null));
+            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(null)
+        );
         System.assertEquals(false, blank.get('success'), 'Blank quoteId returns success=false');
     }
 
@@ -314,7 +334,8 @@ private class RLM_SetUpQuoteInvocableTest {
 
         Test.startTest();
         Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(
-            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(q.Id));
+            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(q.Id)
+        );
         Test.stopTest();
 
         System.assertEquals(true, out.get('success'), 'Valid quoteId returns success=true');
@@ -373,15 +394,21 @@ private class RLM_SetUpQuoteInvocableTest {
         );
         insert acct;
         Contact con = new Contact(
-            LastName = 'Buyer', AccountId = acct.Id, Email = 'buyer@example.com', Phone = '415-555-0100');
+            LastName = 'Buyer',
+            AccountId = acct.Id,
+            Email = 'buyer@example.com',
+            Phone = '415-555-0100'
+        );
         insert con;
 
         RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Builder Quote', '{"parents":[]}');
         inp.quoteAccountId = acct.Id;
 
         Test.startTest();
-        Map<String, Object> hdr =
-            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        Map<String, Object> hdr = RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(
+            inp,
+            Test.getStandardPricebookId()
+        );
         Test.stopTest();
 
         // Account linkage + billing/shipping address copied from the Account.
@@ -407,8 +434,10 @@ private class RLM_SetUpQuoteInvocableTest {
         RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('No Account Quote', '{"parents":[]}');
 
         Test.startTest();
-        Map<String, Object> hdr =
-            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        Map<String, Object> hdr = RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(
+            inp,
+            Test.getStandardPricebookId()
+        );
         Test.stopTest();
 
         System.assertEquals('No Account Quote', hdr.get('Name'), 'Name set');
@@ -424,30 +453,51 @@ private class RLM_SetUpQuoteInvocableTest {
 
     @IsTest
     static void testToPricingEnum_MapsValues() {
-        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.SKIP,
-            RLM_SetUpQuoteInvocable.toPricingEnum('Skip'), 'Skip -> SKIP');
-        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
-            RLM_SetUpQuoteInvocable.toPricingEnum('System'), 'System -> SYSTEM');
-        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
-            RLM_SetUpQuoteInvocable.toPricingEnum('Force'), 'Force -> FORCE');
-        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
-            RLM_SetUpQuoteInvocable.toPricingEnum(null), 'null -> FORCE (default)');
-        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
-            RLM_SetUpQuoteInvocable.toPricingEnum('Bogus'), 'unknown -> FORCE (default)');
+        System.assertEquals(
+            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Skip'),
+            'Skip -> SKIP'
+        );
+        System.assertEquals(
+            RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+            RLM_SetUpQuoteInvocable.toPricingEnum('System'),
+            'System -> SYSTEM'
+        );
+        System.assertEquals(
+            RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Force'),
+            'Force -> FORCE'
+        );
+        System.assertEquals(
+            RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum(null),
+            'null -> FORCE (default)'
+        );
+        System.assertEquals(
+            RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Bogus'),
+            'unknown -> FORCE (default)'
+        );
     }
 
     @IsTest
     static void testToTaxEnum_OnlySkipSkips() {
-        System.assertEquals(RevSalesTrxn.TaxPreferenceEnum.SKIP,
-            RLM_SetUpQuoteInvocable.toTaxEnum('Skip'), 'Skip -> SKIP');
+        System.assertEquals(
+            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            RLM_SetUpQuoteInvocable.toTaxEnum('Skip'),
+            'Skip -> SKIP'
+        );
         System.assertEquals(null, RLM_SetUpQuoteInvocable.toTaxEnum(null), 'null -> run tax');
         System.assertEquals(null, RLM_SetUpQuoteInvocable.toTaxEnum('Run'), 'other -> run tax');
     }
 
     @IsTest
     static void testToCatalogRatesEnum_OnlyFetchFetches() {
-        System.assertEquals(RevSalesTrxn.CatalogRatesPreferenceEnum.FETCH,
-            RLM_SetUpQuoteInvocable.toCatalogRatesEnum('Fetch'), 'Fetch -> FETCH');
+        System.assertEquals(
+            RevSalesTrxn.CatalogRatesPreferenceEnum.FETCH,
+            RLM_SetUpQuoteInvocable.toCatalogRatesEnum('Fetch'),
+            'Fetch -> FETCH'
+        );
         System.assertEquals(null, RLM_SetUpQuoteInvocable.toCatalogRatesEnum(null), 'null -> no fetch');
         System.assertEquals(null, RLM_SetUpQuoteInvocable.toCatalogRatesEnum('Skip'), 'Skip -> no fetch');
     }
@@ -476,10 +526,11 @@ private class RLM_SetUpQuoteInvocableTest {
     @IsTest
     static void testBuildCreateQuoteHeaderFields_BlankType_NoTransactionTypeStamped() {
         RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('No TPT', '{"parents":[]}');
-        Map<String, Object> hdr =
-            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
-        System.assertEquals(false, hdr.containsKey('TransactionType'),
-            'No TransactionType stamped when none selected');
+        Map<String, Object> hdr = RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(
+            inp,
+            Test.getStandardPricebookId()
+        );
+        System.assertEquals(false, hdr.containsKey('TransactionType'), 'No TransactionType stamped when none selected');
     }
 
     /**
@@ -490,7 +541,8 @@ private class RLM_SetUpQuoteInvocableTest {
     @IsTest
     @SuppressWarnings('PMD.ApexUnitTestClassShouldHaveAsserts')
     static void testResolvePstPrefs_KnownSkipType_WhenRecordPresent() {
-        Boolean present = ![SELECT Id FROM TransactionProcessingType WHERE DeveloperName = 'RLM_SUQ_SkipPriceAndTax'].isEmpty();
+        Boolean present = ![SELECT Id FROM TransactionProcessingType WHERE DeveloperName = 'RLM_SUQ_SkipPriceAndTax']
+            .isEmpty();
         if (!present) {
             return; // records not deployed in this org — covered by mapper unit tests above
         }
@@ -501,10 +553,14 @@ private class RLM_SetUpQuoteInvocableTest {
         System.assertEquals(RevSalesTrxn.TaxPreferenceEnum.SKIP, prefs.taxPref, 'Maps to SKIP tax');
         System.assertEquals('RLM_SUQ_SkipPriceAndTax', prefs.typeDeveloperName, 'Validated name retained');
 
-        Map<String, Object> hdr =
-            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
-        System.assertEquals('RLM_SUQ_SkipPriceAndTax', hdr.get('TransactionType'),
-            'Validated TransactionType stamped on header');
+        Map<String, Object> hdr = RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(
+            inp,
+            Test.getStandardPricebookId()
+        );
+        System.assertEquals(
+            'RLM_SUQ_SkipPriceAndTax',
+            hdr.get('TransactionType'),
+            'Validated TransactionType stamped on header'
+        );
     }
-
 }

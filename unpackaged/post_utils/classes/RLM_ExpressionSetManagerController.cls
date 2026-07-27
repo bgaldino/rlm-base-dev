@@ -21,11 +21,15 @@
  * (or adding resume/compensation) is tracked in issue #305.
  */
 public with sharing class RLM_ExpressionSetManagerController {
-
     private static final String API_VERSION = 'v67.0';
     private static final String OPERATION_MAKE_ACTIVE = 'make_active';
     private static final String OPERATION_MAKE_INACTIVE = 'make_inactive';
-    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{ 'Queued', 'Preparing', 'Processing', 'Holding' };
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Queued',
+        'Preparing',
+        'Processing',
+        'Holding'
+    };
     private static final Set<String> FAILED_JOB_STATUSES = new Set<String>{ 'Failed', 'Aborted' };
 
     @AuraEnabled(cacheable=true)
@@ -72,8 +76,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         for (ExpressionSet es : [
             SELECT ExpressionSetDefinitionId
             FROM ExpressionSet
-            WHERE UsageType = 'Constraint'
-            AND ExpressionSetDefinitionId NOT IN :linkedDefIds
+            WHERE UsageType = 'Constraint' AND ExpressionSetDefinitionId NOT IN :linkedDefIds
             WITH USER_MODE
         ]) {
             unlinkedConstraintDefIds.add(es.ExpressionSetDefinitionId);
@@ -87,13 +90,15 @@ public with sharing class RLM_ExpressionSetManagerController {
             return new List<ExpressionSetInfo>();
         }
 
-        Map<Id, ExpressionSetDefinition> defs = new Map<Id, ExpressionSetDefinition>([
-            SELECT Id, DeveloperName, MasterLabel
-            FROM ExpressionSetDefinition
-            WHERE Id IN :allDefIds
-            WITH USER_MODE
-            ORDER BY MasterLabel
-        ]);
+        Map<Id, ExpressionSetDefinition> defs = new Map<Id, ExpressionSetDefinition>(
+            [
+                SELECT Id, DeveloperName, MasterLabel
+                FROM ExpressionSetDefinition
+                WHERE Id IN :allDefIds
+                WITH USER_MODE
+                ORDER BY MasterLabel
+            ]
+        );
 
         List<ExpressionSet> sets = [
             SELECT Id, ExpressionSetDefinitionId, UsageType
@@ -113,8 +118,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         for (AggregateResult ar : [
             SELECT ExpressionSetId setId, COUNT(Id) activeCount
             FROM ExpressionSetVersion
-            WHERE ExpressionSetId IN :setIds
-            AND IsActive = true
+            WHERE ExpressionSetId IN :setIds AND IsActive = TRUE
             WITH USER_MODE
             GROUP BY ExpressionSetId
         ]) {
@@ -140,8 +144,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             for (ExpressionSetVersion v : [
                 SELECT Id, ExpressionSetId, VersionNumber
                 FROM ExpressionSetVersion
-                WHERE ExpressionSetId IN :setIds
-                AND VersionNumber IN :latestVersionNumbers
+                WHERE ExpressionSetId IN :setIds AND VersionNumber IN :latestVersionNumbers
                 WITH USER_MODE
             ]) {
                 if (v.VersionNumber == latestVersionNumberBySetId.get(v.ExpressionSetId)) {
@@ -153,7 +156,8 @@ public with sharing class RLM_ExpressionSetManagerController {
         List<ExpressionSetInfo> results = new List<ExpressionSetInfo>();
         for (Id defId : allDefIds) {
             ExpressionSetDefinition def = defs.get(defId);
-            if (def == null) continue;
+            if (def == null)
+                continue;
 
             ExpressionSet es = setByDefId.get(defId);
             // Skip definitions with no runtime ExpressionSet. They are not
@@ -161,20 +165,16 @@ public with sharing class RLM_ExpressionSetManagerController {
             // /ExpressionSet/null/view link, and activating one enqueues a job
             // that emits no version PATCH — so getActivateStatus would never reach
             // 'complete' and the LWC would poll to the domain timeout.
-            if (es == null) continue;
+            if (es == null)
+                continue;
 
             Id setId = es.Id;
             ExpressionSetVersion latestVersion = latestVersionBySetId.get(setId);
             Boolean hasActive = hasActiveBySetId.containsKey(setId);
 
-            results.add(new ExpressionSetInfo(
-                def,
-                setId,
-                es.UsageType,
-                latestVersion,
-                hasActive,
-                linkedDefIds.contains(defId)
-            ));
+            results.add(
+                new ExpressionSetInfo(def, setId, es.UsageType, latestVersion, hasActive, linkedDefIds.contains(defId))
+            );
         }
         return results;
     }
@@ -195,9 +195,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         List<AsyncApexJob> jobs = [
             SELECT Id, Status, ExtendedStatus, NumberOfErrors
             FROM AsyncApexJob
-            WHERE Id = :jobId
-            AND CreatedById = :currentUserId
-            AND ApexClass.Name = 'RLM_ExpressionSetManagerController'
+            WHERE Id = :jobId AND CreatedById = :currentUserId AND ApexClass.Name = 'RLM_ExpressionSetManagerController'
             LIMIT 1
         ];
         if (jobs.isEmpty()) {
@@ -221,32 +219,41 @@ public with sharing class RLM_ExpressionSetManagerController {
         // before enqueuing — the junction object is mutated through Composite REST
         // (where the session-id user's permissions are enforced server-side), and
         // its describe returns false for createable/deletable on every profile.
-        if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
-                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
+        if (
+            !ExpressionSetVersion.SObjectType.getDescribe().isUpdateable() ||
+            !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()
+        ) {
             throw new AuraHandledException('Insufficient access to deactivate Expression Sets.');
         }
-        List<Id> validatedDefinitionIds = validateDefinitionIds(contextDefinitionId, definitionIds, OPERATION_MAKE_INACTIVE);
+        List<Id> validatedDefinitionIds = validateDefinitionIds(
+            contextDefinitionId,
+            definitionIds,
+            OPERATION_MAKE_INACTIVE
+        );
         String sessionId = getApiSessionId();
         Set<Id> constraintDefIds = getConstraintDefIds(validatedDefinitionIds);
-        return System.enqueueJob(new DeactivateQueueable(contextDefinitionId, validatedDefinitionIds, constraintDefIds, sessionId));
+        return System.enqueueJob(
+            new DeactivateQueueable(contextDefinitionId, validatedDefinitionIds, constraintDefIds, sessionId)
+        );
     }
 
     @AuraEnabled
     public static String getDeactivateStatus(Id contextDefinitionId, List<Id> definitionIds) {
         List<Id> normalizedDefinitionIds = normalizeDefinitionIds(definitionIds);
         Integer activeCount = countActiveVersions(normalizedDefinitionIds);
-        if (activeCount > 0) return 'in_progress';
+        if (activeCount > 0)
+            return 'in_progress';
 
         Set<Id> constraintDefIds = getConstraintDefIds(normalizedDefinitionIds);
         if (!constraintDefIds.isEmpty()) {
             Integer remaining = [
                 SELECT COUNT()
                 FROM ExpressionSetDefinitionContextDefinition
-                WHERE ContextDefinitionId = :contextDefinitionId
-                AND ExpressionSetDefinitionId IN :constraintDefIds
+                WHERE ContextDefinitionId = :contextDefinitionId AND ExpressionSetDefinitionId IN :constraintDefIds
                 WITH USER_MODE
             ];
-            if (remaining > 0) return 'in_progress';
+            if (remaining > 0)
+                return 'in_progress';
         }
 
         return 'complete';
@@ -256,18 +263,23 @@ public with sharing class RLM_ExpressionSetManagerController {
     public static Id activateExpressionSets(Id contextDefinitionId, List<Id> definitionIds) {
         // See deactivateExpressionSets — junction is mutated via Composite REST,
         // not Apex DML, so we only guard the field we actually update from Apex.
-        if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
-                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
+        if (
+            !ExpressionSetVersion.SObjectType.getDescribe().isUpdateable() ||
+            !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()
+        ) {
             throw new AuraHandledException('Insufficient access to activate Expression Sets.');
         }
-        List<Id> validatedDefinitionIds = validateDefinitionIds(contextDefinitionId, definitionIds, OPERATION_MAKE_ACTIVE);
+        List<Id> validatedDefinitionIds = validateDefinitionIds(
+            contextDefinitionId,
+            definitionIds,
+            OPERATION_MAKE_ACTIVE
+        );
         String sessionId = getApiSessionId();
         Set<Id> existingDefIds = new Set<Id>();
         for (ExpressionSetDefinitionContextDefinition j : [
             SELECT ExpressionSetDefinitionId
             FROM ExpressionSetDefinitionContextDefinition
-            WHERE ContextDefinitionId = :contextDefinitionId
-            AND ExpressionSetDefinitionId IN :validatedDefinitionIds
+            WHERE ContextDefinitionId = :contextDefinitionId AND ExpressionSetDefinitionId IN :validatedDefinitionIds
             WITH USER_MODE
         ]) {
             existingDefIds.add(j.ExpressionSetDefinitionId);
@@ -278,7 +290,9 @@ public with sharing class RLM_ExpressionSetManagerController {
                 needsJunction.add(defId);
             }
         }
-        return System.enqueueJob(new ActivateQueueable(contextDefinitionId, validatedDefinitionIds, needsJunction, sessionId));
+        return System.enqueueJob(
+            new ActivateQueueable(contextDefinitionId, validatedDefinitionIds, needsJunction, sessionId)
+        );
     }
 
     @AuraEnabled
@@ -287,11 +301,11 @@ public with sharing class RLM_ExpressionSetManagerController {
         Integer junctionCount = [
             SELECT COUNT()
             FROM ExpressionSetDefinitionContextDefinition
-            WHERE ContextDefinitionId = :contextDefinitionId
-            AND ExpressionSetDefinitionId IN :normalizedDefinitionIds
+            WHERE ContextDefinitionId = :contextDefinitionId AND ExpressionSetDefinitionId IN :normalizedDefinitionIds
             WITH USER_MODE
         ];
-        if (junctionCount < normalizedDefinitionIds.size()) return 'in_progress';
+        if (junctionCount < normalizedDefinitionIds.size())
+            return 'in_progress';
 
         Integer activeCount = countActiveVersions(normalizedDefinitionIds);
         return activeCount >= normalizedDefinitionIds.size() ? 'complete' : 'in_progress';
@@ -305,7 +319,12 @@ public with sharing class RLM_ExpressionSetManagerController {
         private Set<Id> constraintDefIds;
         private String sessionId;
 
-        public DeactivateQueueable(Id contextDefinitionId, List<Id> definitionIds, Set<Id> constraintDefIds, String sessionId) {
+        public DeactivateQueueable(
+            Id contextDefinitionId,
+            List<Id> definitionIds,
+            Set<Id> constraintDefIds,
+            String sessionId
+        ) {
             this.contextDefinitionId = contextDefinitionId;
             this.definitionIds = definitionIds;
             this.constraintDefIds = constraintDefIds;
@@ -317,9 +336,9 @@ public with sharing class RLM_ExpressionSetManagerController {
             Set<Id> setIds = getExpressionSetIds(definitionIds);
 
             List<ExpressionSetVersion> activeVersions = [
-                SELECT Id FROM ExpressionSetVersion
-                WHERE ExpressionSetId IN :setIds
-                AND IsActive = true
+                SELECT Id
+                FROM ExpressionSetVersion
+                WHERE ExpressionSetId IN :setIds AND IsActive = TRUE
                 WITH USER_MODE
             ];
 
@@ -334,9 +353,9 @@ public with sharing class RLM_ExpressionSetManagerController {
             // Delete junctions for Constraint types (platform requires this)
             if (!constraintDefIds.isEmpty()) {
                 List<ExpressionSetDefinitionContextDefinition> junctions = [
-                    SELECT Id FROM ExpressionSetDefinitionContextDefinition
-                    WHERE ContextDefinitionId = :contextDefinitionId
-                    AND ExpressionSetDefinitionId IN :constraintDefIds
+                    SELECT Id
+                    FROM ExpressionSetDefinitionContextDefinition
+                    WHERE ContextDefinitionId = :contextDefinitionId AND ExpressionSetDefinitionId IN :constraintDefIds
                     WITH USER_MODE
                 ];
                 if (!junctions.isEmpty()) {
@@ -354,9 +373,10 @@ public with sharing class RLM_ExpressionSetManagerController {
                         // stance as sendCompositeInChunks (cap/compensation → #305).
                         if (!activeVersions.isEmpty()) {
                             throw new CalloutException(
-                                'Operation partially applied: the selected Expression Set version(s) were '
-                                + 'deactivated, but removing the Context Definition link did not complete. '
-                                + 'Refresh to see current state. ' + e.getMessage()
+                                'Operation partially applied: the selected Expression Set version(s) were ' +
+                                    'deactivated, but removing the Context Definition link did not complete. ' +
+                                    'Refresh to see current state. ' +
+                                    e.getMessage()
                             );
                         }
                         throw e;
@@ -372,7 +392,12 @@ public with sharing class RLM_ExpressionSetManagerController {
         private Set<Id> needsJunction;
         private String sessionId;
 
-        public ActivateQueueable(Id contextDefinitionId, List<Id> definitionIds, Set<Id> needsJunction, String sessionId) {
+        public ActivateQueueable(
+            Id contextDefinitionId,
+            List<Id> definitionIds,
+            Set<Id> needsJunction,
+            String sessionId
+        ) {
             this.contextDefinitionId = contextDefinitionId;
             this.definitionIds = definitionIds;
             this.needsJunction = needsJunction;
@@ -390,10 +415,13 @@ public with sharing class RLM_ExpressionSetManagerController {
                 sub.put('method', 'POST');
                 sub.put('url', '/services/data/' + API_VERSION + '/sobjects/ExpressionSetDefinitionContextDefinition');
                 sub.put('referenceId', 'junction_' + refIdx);
-                sub.put('body', new Map<String, Object>{
-                    'ExpressionSetDefinitionId' => defId,
-                    'ContextDefinitionId' => contextDefinitionId
-                });
+                sub.put(
+                    'body',
+                    new Map<String, Object>{
+                        'ExpressionSetDefinitionId' => defId,
+                        'ContextDefinitionId' => contextDefinitionId
+                    }
+                );
                 subrequests.add(sub);
                 refIdx++;
             }
@@ -409,8 +437,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             for (AggregateResult ar : [
                 SELECT ExpressionSetId setId
                 FROM ExpressionSetVersion
-                WHERE ExpressionSetId IN :setIds
-                AND IsActive = true
+                WHERE ExpressionSetId IN :setIds AND IsActive = TRUE
                 WITH USER_MODE
                 GROUP BY ExpressionSetId
             ]) {
@@ -420,16 +447,14 @@ public with sharing class RLM_ExpressionSetManagerController {
             List<ExpressionSetVersion> allVersions = [
                 SELECT Id, ExpressionSetId, VersionNumber, Rank
                 FROM ExpressionSetVersion
-                WHERE ExpressionSetId IN :setIds
-                AND IsActive = false
+                WHERE ExpressionSetId IN :setIds AND IsActive = FALSE
                 WITH USER_MODE
                 ORDER BY ExpressionSetId, VersionNumber DESC
             ];
 
             Set<Id> activated = new Set<Id>();
             for (ExpressionSetVersion v : allVersions) {
-                if (!setsWithActiveVersion.contains(v.ExpressionSetId)
-                        && !activated.contains(v.ExpressionSetId)) {
+                if (!setsWithActiveVersion.contains(v.ExpressionSetId) && !activated.contains(v.ExpressionSetId)) {
                     subrequests.add(buildVersionPatch(v.Id, true, v.Rank, refIdx));
                     activated.add(v.ExpressionSetId);
                     refIdx++;
@@ -444,13 +469,21 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     // --- Shared Helpers ---
 
-    private static List<Id> validateDefinitionIds(Id contextDefinitionId, List<Id> definitionIds, String operationMode) {
+    private static List<Id> validateDefinitionIds(
+        Id contextDefinitionId,
+        List<Id> definitionIds,
+        String operationMode
+    ) {
         if (contextDefinitionId == null) {
             throw new AuraHandledException('Select a Context Definition before managing Expression Sets.');
         }
 
         List<Id> normalizedDefinitionIds = normalizeDefinitionIds(definitionIds);
-        Set<Id> allowedDefinitionIds = getAllowedDefinitionIds(contextDefinitionId, normalizedDefinitionIds, operationMode);
+        Set<Id> allowedDefinitionIds = getAllowedDefinitionIds(
+            contextDefinitionId,
+            normalizedDefinitionIds,
+            operationMode
+        );
         assertRequestedIdsAllowed(normalizedDefinitionIds, allowedDefinitionIds, operationMode);
         return normalizedDefinitionIds;
     }
@@ -475,7 +508,11 @@ public with sharing class RLM_ExpressionSetManagerController {
         return normalizedDefinitionIds;
     }
 
-    private static Set<Id> getAllowedDefinitionIds(Id contextDefinitionId, List<Id> requestedDefinitionIds, String operationMode) {
+    private static Set<Id> getAllowedDefinitionIds(
+        Id contextDefinitionId,
+        List<Id> requestedDefinitionIds,
+        String operationMode
+    ) {
         // Only definitions backed by a runtime ExpressionSet are actionable. A
         // linked definition without one has no version to toggle, so accepting it
         // would enqueue a job that does nothing while the status poll waits for an
@@ -495,8 +532,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         for (ExpressionSetDefinitionContextDefinition junction : [
             SELECT ExpressionSetDefinitionId
             FROM ExpressionSetDefinitionContextDefinition
-            WHERE ContextDefinitionId = :contextDefinitionId
-            AND ExpressionSetDefinitionId IN :requestedDefinitionIds
+            WHERE ContextDefinitionId = :contextDefinitionId AND ExpressionSetDefinitionId IN :requestedDefinitionIds
             WITH USER_MODE
         ]) {
             if (definitionIdsWithSet.contains(junction.ExpressionSetDefinitionId)) {
@@ -508,8 +544,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             for (ExpressionSet expressionSet : [
                 SELECT ExpressionSetDefinitionId
                 FROM ExpressionSet
-                WHERE UsageType = 'Constraint'
-                AND ExpressionSetDefinitionId IN :requestedDefinitionIds
+                WHERE UsageType = 'Constraint' AND ExpressionSetDefinitionId IN :requestedDefinitionIds
                 WITH USER_MODE
             ]) {
                 allowedDefinitionIds.add(expressionSet.ExpressionSetDefinitionId);
@@ -519,11 +554,17 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     @TestVisible
-    private static void assertRequestedIdsAllowed(List<Id> requestedDefinitionIds, Set<Id> allowedDefinitionIds, String operationMode) {
+    private static void assertRequestedIdsAllowed(
+        List<Id> requestedDefinitionIds,
+        Set<Id> allowedDefinitionIds,
+        String operationMode
+    ) {
         for (Id definitionId : requestedDefinitionIds) {
             if (!allowedDefinitionIds.contains(definitionId)) {
                 String action = operationMode == OPERATION_MAKE_ACTIVE ? 'activate' : 'deactivate';
-                throw new AuraHandledException('You can only ' + action + ' Expression Sets available for the selected Context Definition.');
+                throw new AuraHandledException(
+                    'You can only ' + action + ' Expression Sets available for the selected Context Definition.'
+                );
             }
         }
     }
@@ -531,9 +572,9 @@ public with sharing class RLM_ExpressionSetManagerController {
     private static Set<Id> getConstraintDefIds(List<Id> definitionIds) {
         Set<Id> constraintDefIds = new Set<Id>();
         for (ExpressionSet es : [
-            SELECT ExpressionSetDefinitionId FROM ExpressionSet
-            WHERE ExpressionSetDefinitionId IN :definitionIds
-            AND UsageType = 'Constraint'
+            SELECT ExpressionSetDefinitionId
+            FROM ExpressionSet
+            WHERE ExpressionSetDefinitionId IN :definitionIds AND UsageType = 'Constraint'
             WITH USER_MODE
         ]) {
             constraintDefIds.add(es.ExpressionSetDefinitionId);
@@ -544,7 +585,10 @@ public with sharing class RLM_ExpressionSetManagerController {
     private static Set<Id> getExpressionSetIds(List<Id> definitionIds) {
         Set<Id> setIds = new Set<Id>();
         for (ExpressionSet es : [
-            SELECT Id FROM ExpressionSet WHERE ExpressionSetDefinitionId IN :definitionIds WITH USER_MODE
+            SELECT Id
+            FROM ExpressionSet
+            WHERE ExpressionSetDefinitionId IN :definitionIds
+            WITH USER_MODE
         ]) {
             setIds.add(es.Id);
         }
@@ -562,15 +606,19 @@ public with sharing class RLM_ExpressionSetManagerController {
         AggregateResult ar = [
             SELECT COUNT_DISTINCT(ExpressionSetId) activeSets
             FROM ExpressionSetVersion
-            WHERE ExpressionSetId IN :setIds
-            AND IsActive = true
+            WHERE ExpressionSetId IN :setIds AND IsActive = TRUE
             WITH USER_MODE
         ];
         return (Integer) ar.get('activeSets');
     }
 
     @TestVisible
-    private static Map<String, Object> buildVersionPatch(Id versionId, Boolean setActive, Integer currentRank, Integer refIdx) {
+    private static Map<String, Object> buildVersionPatch(
+        Id versionId,
+        Boolean setActive,
+        Integer currentRank,
+        Integer refIdx
+    ) {
         Map<String, Object> sub = new Map<String, Object>();
         sub.put('method', 'PATCH');
         sub.put('url', '/services/data/' + API_VERSION + '/sobjects/ExpressionSetVersion/' + versionId);
@@ -596,8 +644,13 @@ public with sharing class RLM_ExpressionSetManagerController {
             // without it a single undeletable junction would leave the rest of the
             // batch deleted before assertNoCompositeDeleteFailures throws — a
             // partially applied operation.
-            req.setEndpoint(baseUrl + '/services/data/' + API_VERSION
-                + '/composite/sobjects?allOrNone=true&ids=' + String.join(chunk, ','));
+            req.setEndpoint(
+                baseUrl +
+                    '/services/data/' +
+                    API_VERSION +
+                    '/composite/sobjects?allOrNone=true&ids=' +
+                    String.join(chunk, ',')
+            );
             req.setMethod('DELETE');
             req.setHeader('Authorization', 'Bearer ' + sessionId);
             req.setTimeout(120000);
@@ -605,10 +658,14 @@ public with sharing class RLM_ExpressionSetManagerController {
             Http http = new Http();
             HttpResponse res = http.send(req);
             if (res.getStatusCode() != 200) {
-                System.debug(LoggingLevel.FINE, 'Composite delete HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
+                System.debug(
+                    LoggingLevel.FINE,
+                    'Composite delete HTTP ' + res.getStatusCode() + ' body: ' + res.getBody()
+                );
                 String concise = conciseErrorFromBody(res.getBody());
-                throw new CalloutException('Composite delete failed: HTTP ' + res.getStatusCode()
-                    + (concise != null ? ' - ' + concise : ''));
+                throw new CalloutException(
+                    'Composite delete failed: HTTP ' + res.getStatusCode() + (concise != null ? ' - ' + concise : '')
+                );
             }
             assertNoCompositeDeleteFailures(res.getBody());
         }
@@ -634,9 +691,13 @@ public with sharing class RLM_ExpressionSetManagerController {
                 // in issue #305.
                 if (sentSoFar > 0) {
                     throw new CalloutException(
-                        'Operation partially applied: ' + sentSoFar + ' of ' + subrequests.size()
-                        + ' change(s) were already committed before this failure, and are not rolled back. '
-                        + 'Refresh to see current state. ' + e.getMessage()
+                        'Operation partially applied: ' +
+                            sentSoFar +
+                            ' of ' +
+                            subrequests.size() +
+                            ' change(s) were already committed before this failure, and are not rolled back. ' +
+                            'Refresh to see current state. ' +
+                            e.getMessage()
                     );
                 }
                 throw e;
@@ -665,8 +726,9 @@ public with sharing class RLM_ExpressionSetManagerController {
         if (res.getStatusCode() != 200) {
             System.debug(LoggingLevel.FINE, 'Composite HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
             String concise = conciseErrorFromBody(res.getBody());
-            throw new CalloutException('Composite request failed: HTTP ' + res.getStatusCode()
-                + (concise != null ? ' - ' + concise : ''));
+            throw new CalloutException(
+                'Composite request failed: HTTP ' + res.getStatusCode() + (concise != null ? ' - ' + concise : '')
+            );
         }
 
         assertNoCompositeSubrequestFailures(res.getBody());
@@ -719,12 +781,14 @@ public with sharing class RLM_ExpressionSetManagerController {
     // response detail is written to the debug log at each call site.
     @TestVisible
     private static String conciseCompositeErrors(List<Object> errors) {
-        if (errors == null) return null;
+        if (errors == null)
+            return null;
         List<String> msgs = new List<String>();
         for (Object e : errors) {
             if (e instanceof Map<String, Object>) {
                 Object m = ((Map<String, Object>) e).get('message');
-                if (m != null) msgs.add(String.valueOf(m));
+                if (m != null)
+                    msgs.add(String.valueOf(m));
             }
         }
         return msgs.isEmpty() ? null : String.join(msgs, '; ');
@@ -735,7 +799,8 @@ public with sharing class RLM_ExpressionSetManagerController {
     // recognise so the caller falls back to the HTTP status.
     @TestVisible
     private static String conciseErrorFromBody(String responseBody) {
-        if (String.isBlank(responseBody)) return null;
+        if (String.isBlank(responseBody))
+            return null;
         try {
             Object parsed = JSON.deserializeUntyped(responseBody);
             if (parsed instanceof List<Object>) {
@@ -743,8 +808,10 @@ public with sharing class RLM_ExpressionSetManagerController {
             }
             if (parsed instanceof Map<String, Object>) {
                 Map<String, Object> m = (Map<String, Object>) parsed;
-                if (m.get('message') != null) return String.valueOf(m.get('message'));
-                if (m.get('error_description') != null) return String.valueOf(m.get('error_description'));
+                if (m.get('message') != null)
+                    return String.valueOf(m.get('message'));
+                if (m.get('error_description') != null)
+                    return String.valueOf(m.get('error_description'));
             }
         } catch (Exception ignored) {
             // Non-JSON body (e.g. HTML) — fall back to the HTTP status.
@@ -763,10 +830,14 @@ public with sharing class RLM_ExpressionSetManagerController {
     // --- DTOs ---
 
     public class ContextDefinitionWrapper {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String developerName;
-        @AuraEnabled public String label;
-        @AuraEnabled public Integer expressionSetCount;
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String developerName;
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public Integer expressionSetCount;
 
         public ContextDefinitionWrapper(Id id, String developerName, String label, Integer expressionSetCount) {
             this.id = id;
@@ -777,8 +848,10 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     public class JobStatus {
-        @AuraEnabled public String state;
-        @AuraEnabled public String message;
+        @AuraEnabled
+        public String state;
+        @AuraEnabled
+        public String message;
 
         public JobStatus(String state, String message) {
             this.state = state;
@@ -787,18 +860,35 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     public class ExpressionSetInfo {
-        @AuraEnabled public Id definitionId;
-        @AuraEnabled public Id expressionSetId;
-        @AuraEnabled public String developerName;
-        @AuraEnabled public String label;
-        @AuraEnabled public String usageType;
-        @AuraEnabled public Boolean hasActiveVersion;
-        @AuraEnabled public Boolean isLinked;
-        @AuraEnabled public Id latestVersionId;
-        @AuraEnabled public Integer latestVersionNumber;
-        @AuraEnabled public List<VersionInfo> versions;
+        @AuraEnabled
+        public Id definitionId;
+        @AuraEnabled
+        public Id expressionSetId;
+        @AuraEnabled
+        public String developerName;
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String usageType;
+        @AuraEnabled
+        public Boolean hasActiveVersion;
+        @AuraEnabled
+        public Boolean isLinked;
+        @AuraEnabled
+        public Id latestVersionId;
+        @AuraEnabled
+        public Integer latestVersionNumber;
+        @AuraEnabled
+        public List<VersionInfo> versions;
 
-        public ExpressionSetInfo(ExpressionSetDefinition def, Id esId, String usageType, ExpressionSetVersion latestVersion, Boolean hasActive, Boolean isLinked) {
+        public ExpressionSetInfo(
+            ExpressionSetDefinition def,
+            Id esId,
+            String usageType,
+            ExpressionSetVersion latestVersion,
+            Boolean hasActive,
+            Boolean isLinked
+        ) {
             this.definitionId = def.Id;
             this.expressionSetId = esId;
             this.developerName = def.DeveloperName;
@@ -816,8 +906,10 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     public class VersionInfo {
-        @AuraEnabled public Id versionId;
-        @AuraEnabled public Integer versionNumber;
+        @AuraEnabled
+        public Id versionId;
+        @AuraEnabled
+        public Integer versionNumber;
 
         public VersionInfo(ExpressionSetVersion v) {
             this.versionId = v.Id;

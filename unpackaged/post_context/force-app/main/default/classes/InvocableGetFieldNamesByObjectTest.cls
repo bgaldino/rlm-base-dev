@@ -1,17 +1,20 @@
 @isTest
 private class InvocableGetFieldNamesByObjectTest {
-
     @isTest
     static void testValidObjectName() {
         // Prepare test input with a valid standard object
         InvocableGetFieldNamesByObject.ApiRequest req = new InvocableGetFieldNamesByObject.ApiRequest();
         req.objectName = 'Account';
 
-        List<InvocableGetFieldNamesByObject.ApiRequest> reqList = new List<InvocableGetFieldNamesByObject.ApiRequest>{ req };
+        List<InvocableGetFieldNamesByObject.ApiRequest> reqList = new List<InvocableGetFieldNamesByObject.ApiRequest>{
+            req
+        };
 
         // Call the method
         Test.startTest();
-        List<InvocableGetFieldNamesByObject.ApiResponse> responses = InvocableGetFieldNamesByObject.createHeadlessBody(reqList);
+        List<InvocableGetFieldNamesByObject.ApiResponse> responses = InvocableGetFieldNamesByObject.createHeadlessBody(
+            reqList
+        );
         Test.stopTest();
 
         // Assertions
@@ -33,7 +36,9 @@ private class InvocableGetFieldNamesByObjectTest {
         InvocableGetFieldNamesByObject.ApiRequest req = new InvocableGetFieldNamesByObject.ApiRequest();
         req.objectName = 'InvalidObjectName';
 
-        List<InvocableGetFieldNamesByObject.ApiRequest> reqList = new List<InvocableGetFieldNamesByObject.ApiRequest>{ req };
+        List<InvocableGetFieldNamesByObject.ApiRequest> reqList = new List<InvocableGetFieldNamesByObject.ApiRequest>{
+            req
+        };
 
         // Expect an exception to be thrown
         Test.startTest();
@@ -41,7 +46,10 @@ private class InvocableGetFieldNamesByObjectTest {
             InvocableGetFieldNamesByObject.createHeadlessBody(reqList);
             System.assert(false, 'Expected exception for invalid object name');
         } catch (IllegalArgumentException ex) {
-            System.assert(ex.getMessage().contains('Invalid object name'), 'Should catch invalid object name exception');
+            System.assert(
+                ex.getMessage().contains('Invalid object name'),
+                'Should catch invalid object name exception'
+            );
         }
         Test.stopTest();
     }

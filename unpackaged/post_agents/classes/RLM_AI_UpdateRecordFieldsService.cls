@@ -26,7 +26,6 @@
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
  */
 public with sharing class RLM_AI_UpdateRecordFieldsService {
-
     // Test-only seam: QuoteLineItem Ids to treat as one-time selling model.
     // QuoteLineItem.SellingModelType/ProductSellingModelId are not createable
     // (the model flows from the product/pricebook), so a one-time line cannot be
@@ -36,40 +35,50 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     private static Set<Id> testForceOneTimeLineIds;
 
     public class UpdateFieldsInput {
-        @InvocableVariable(label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0). Optional when Quote Line Item Ids are supplied — the parent quote is derived from the line(s); otherwise required.')
+        @InvocableVariable(
+            label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0). Optional when Quote Line Item Ids are supplied — the parent quote is derived from the line(s); otherwise required.'
+        )
         public String quoteId;
 
-        @InvocableVariable(label='sObject Type'
-            description='QuoteLineItem (default) or Quote.')
+        @InvocableVariable(label='sObject Type' description='QuoteLineItem (default) or Quote.')
         public String sObjectType;
 
-        @InvocableVariable(required=true label='Field Updates JSON'
-            description='JSON array: [{"fieldApiName":"EndDate","value":"2029-06-25"}]. Values as strings; dates yyyy-MM-dd. Omitted field=preserve, explicit null=clear (if nillable).')
+        @InvocableVariable(
+            required=true
+            label='Field Updates JSON'
+            description='JSON array: [{"fieldApiName":"EndDate","value":"2029-06-25"}]. Values as strings; dates yyyy-MM-dd. Omitted field=preserve, explicit null=clear (if nillable).'
+        )
         public String fieldUpdatesJson;
 
-        @InvocableVariable(label='Quote Line Item Ids'
-            description='Explicit QuoteLineItem Ids to update, when already known.')
+        @InvocableVariable(
+            label='Quote Line Item Ids'
+            description='Explicit QuoteLineItem Ids to update, when already known.'
+        )
         public List<String> quoteLineItemIds;
 
-        @InvocableVariable(label='Product Name'
-            description='Update lines whose product name matches this term. Multi-match=disambiguation (never fans out).')
+        @InvocableVariable(
+            label='Product Name'
+            description='Update lines whose product name matches this term. Multi-match=disambiguation (never fans out).'
+        )
         public String productName;
 
-        @InvocableVariable(label='Apply To All'
-            description='When true, update every line on the quote.')
+        @InvocableVariable(label='Apply To All' description='When true, update every line on the quote.')
         public Boolean applyToAll;
 
-        @InvocableVariable(label='Selected Display Numbers JSON'
-            description='JSON array of the displayed selection numbers the user picked (e.g. [1,3]). Mapped through Pending Selection JSON.')
+        @InvocableVariable(
+            label='Selected Display Numbers JSON'
+            description='JSON array of the displayed selection numbers the user picked (e.g. [1,3]). Mapped through Pending Selection JSON.'
+        )
         public String selectedDisplayNumbersJson;
 
-        @InvocableVariable(label='Pending Selection JSON In'
-            description='Internal plumbing: hidden ordinal-to-quoteLineItemId map produced when a candidate list was shown. Never displayed.')
+        @InvocableVariable(
+            label='Pending Selection JSON In'
+            description='Internal plumbing: hidden ordinal-to-quoteLineItemId map produced when a candidate list was shown. Never displayed.'
+        )
         public String pendingSelectionJsonIn;
 
-        @InvocableVariable(label='Reprice'
-            description='Reserved for future use. Ignored in v1.')
+        @InvocableVariable(label='Reprice' description='Reserved for future use. Ignored in v1.')
         public Boolean reprice;
     }
 
@@ -80,20 +89,28 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         @InvocableVariable(label='Updated Count')
         public Decimal updatedCount;
 
-        @InvocableVariable(label='Results Display'
-            description='Rich-text summary of what was updated, for user-facing display. Bold record/product names.')
+        @InvocableVariable(
+            label='Results Display'
+            description='Rich-text summary of what was updated, for user-facing display. Bold record/product names.'
+        )
         public String resultsDisplay;
 
-        @InvocableVariable(label='Needs Disambiguation'
-            description='True when targeting did not resolve to a definite line set and the user must pick.')
+        @InvocableVariable(
+            label='Needs Disambiguation'
+            description='True when targeting did not resolve to a definite line set and the user must pick.'
+        )
         public Boolean needsDisambiguation;
 
-        @InvocableVariable(label='Candidate Quote Line Summaries Display'
-            description='Formatted numbered list of quote lines for user-facing disambiguation.')
+        @InvocableVariable(
+            label='Candidate Quote Line Summaries Display'
+            description='Formatted numbered list of quote lines for user-facing disambiguation.'
+        )
         public String candidateQuoteLineSummariesDisplay;
 
-        @InvocableVariable(label='Pending Selection JSON'
-            description='Internal plumbing: ordinal-to-quoteLineItemId map for the candidate list above. Never displayed; pass back unchanged.')
+        @InvocableVariable(
+            label='Pending Selection JSON'
+            description='Internal plumbing: ordinal-to-quoteLineItemId map for the candidate list above. Never displayed; pass back unchanged.'
+        )
         public String pendingSelectionJson;
 
         @InvocableVariable(label='Error Message')
@@ -137,8 +154,11 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // Ids → look up the line's QuoteId rather than forcing the caller to
             // resolve it first.
             String effectiveQuoteId = input.quoteId;
-            if (String.isBlank(effectiveQuoteId) && input.quoteLineItemIds != null
-                && !input.quoteLineItemIds.isEmpty()) {
+            if (
+                String.isBlank(effectiveQuoteId) &&
+                input.quoteLineItemIds != null &&
+                !input.quoteLineItemIds.isEmpty()
+            ) {
                 effectiveQuoteId = deriveQuoteIdFromLines(input.quoteLineItemIds);
             }
             if (String.isBlank(effectiveQuoteId)) {
@@ -152,9 +172,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
 
             // 1. Resolve sObjectType
-            String typeName = String.isBlank(input.sObjectType)
-                ? 'QuoteLineItem'
-                : input.sObjectType.trim();
+            String typeName = String.isBlank(input.sObjectType) ? 'QuoteLineItem' : input.sObjectType.trim();
             if (typeName == 'QuoteLineItemAttribute') {
                 out.errorMessage = 'QuoteLineItemAttribute edits must use the configuration actions, not direct field updates.';
                 return out;
@@ -213,8 +231,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 Map<String, CoercedField> applicable = fieldsForRecord(typeName, rec, coercedFields);
                 if (applicable.isEmpty()) {
                     // Every requested field was term-gated out for this one-time line.
-                    skippedLines.add(recordLabel(typeName, rec)
-                        + ' — skipped (one-time product; dates do not apply)');
+                    skippedLines.add(recordLabel(typeName, rec) + ' — skipped (one-time product; dates do not apply)');
                     continue;
                 }
                 // Mutate the loaded row too, so recordLabel/summarizeChanges read
@@ -235,8 +252,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             Integer successCount = 0;
 
             if (!dmlRecords.isEmpty()) {
-                Database.SaveResult[] saveResults =
-                    Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
+                Database.SaveResult[] saveResults = Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
 
                 for (Integer i = 0; i < saveResults.size(); i++) {
                     Database.SaveResult sr = saveResults[i];
@@ -264,7 +280,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             } else if (!failedLines.isEmpty()) {
                 out.errorMessage = 'Some records could not be updated.';
             }
-
         } catch (Exception e) {
             out.isSuccess = false;
             out.errorMessage = e.getMessage();
@@ -315,9 +330,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     }
 
     @TestVisible
-    private static Map<String, CoercedField> validateAndCoerce(
-        String objectType, List<FieldUpdate> fieldUpdates
-    ) {
+    private static Map<String, CoercedField> validateAndCoerce(String objectType, List<FieldUpdate> fieldUpdates) {
         Schema.DescribeSObjectResult objDescribe;
         try {
             objDescribe = Schema.getGlobalDescribe().get(objectType).getDescribe();
@@ -369,9 +382,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return coerced;
     }
 
-    private static String resolveFieldApiName(
-        String userSupplied, Map<String, Schema.SObjectField> fieldMap
-    ) {
+    private static String resolveFieldApiName(String userSupplied, Map<String, Schema.SObjectField> fieldMap) {
         // Case-insensitive match
         for (String apiName : fieldMap.keySet()) {
             if (apiName.equalsIgnoreCase(userSupplied)) {
@@ -396,9 +407,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return DateTime.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                    'Invalid datetime value for ' + dfr.getName() + '.'
-                );
+                throw new IllegalArgumentException('Invalid datetime value for ' + dfr.getName() + '.');
             }
         }
         if (dt == Schema.DisplayType.BOOLEAN) {
@@ -417,18 +426,14 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return Integer.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                    'Invalid integer value for ' + dfr.getName() + '.'
-                );
+                throw new IllegalArgumentException('Invalid integer value for ' + dfr.getName() + '.');
             }
         }
         if (dt == Schema.DisplayType.DOUBLE || dt == Schema.DisplayType.CURRENCY || dt == Schema.DisplayType.PERCENT) {
             try {
                 return Decimal.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                    'Invalid number value for ' + dfr.getName() + '.'
-                );
+                throw new IllegalArgumentException('Invalid number value for ' + dfr.getName() + '.');
             }
         }
         if (dt == Schema.DisplayType.PICKLIST || dt == Schema.DisplayType.MULTIPICKLIST) {
@@ -452,8 +457,12 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // Neither matched
             List<String> validOptions = new List<String>(apiValues);
             throw new IllegalArgumentException(
-                'Invalid picklist value "' + rawValue + '" for ' + dfr.getName() +
-                '. Valid options: ' + String.join(validOptions, ', ')
+                'Invalid picklist value "' +
+                    rawValue +
+                    '" for ' +
+                    dfr.getName() +
+                    '. Valid options: ' +
+                    String.join(validOptions, ', ')
             );
         }
         // Default: String
@@ -474,7 +483,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
      * fields and non-OneTime lines pass through unchanged.
      */
     private static Map<String, CoercedField> fieldsForRecord(
-        String typeName, SObject rec, Map<String, CoercedField> coercedFields
+        String typeName,
+        SObject rec,
+        Map<String, CoercedField> coercedFields
     ) {
         if (typeName != 'QuoteLineItem' || !isOneTimeLine(rec)) {
             return coercedFields;
@@ -494,8 +505,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     @TestVisible
     private static Boolean isOneTimeLine(SObject rec) {
         QuoteLineItem qli = (QuoteLineItem) rec;
-        if (testForceOneTimeLineIds != null && qli.Id != null
-                && testForceOneTimeLineIds.contains(qli.Id)) {
+        if (testForceOneTimeLineIds != null && qli.Id != null && testForceOneTimeLineIds.contains(qli.Id)) {
             return true;
         }
         if (qli.ProductSellingModel == null) {
@@ -507,7 +517,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     // ---- Target resolution ----
 
     private static List<SObject> resolveTargets(
-        Id quoteId, String typeName, UpdateFieldsInput input, UpdateFieldsOutput out
+        Id quoteId,
+        String typeName,
+        UpdateFieldsInput input,
+        UpdateFieldsOutput out
     ) {
         if (typeName == 'Quote') {
             // Quote header edit — target the quote itself
@@ -550,9 +563,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return null;
     }
 
-    private static List<SObject> resolveQuoteLineTargets(
-        Id quoteId, UpdateFieldsInput input, UpdateFieldsOutput out
-    ) {
+    private static List<SObject> resolveQuoteLineTargets(Id quoteId, UpdateFieldsInput input, UpdateFieldsOutput out) {
         // Explicit Ids
         if (input.quoteLineItemIds != null && !input.quoteLineItemIds.isEmpty()) {
             return resolveLinesByIds(quoteId, input.quoteLineItemIds, out);
@@ -571,9 +582,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
         // Product name — DISAMBIGUATION if >1 match
         if (String.isNotBlank(input.productName)) {
-            List<QuoteLineItem> matches = RLM_AI_ConfigServiceUtils.matchLinesByProductName(
-                quoteId, input.productName
-            );
+            List<QuoteLineItem> matches = RLM_AI_ConfigServiceUtils.matchLinesByProductName(quoteId, input.productName);
             if (matches.size() > 1) {
                 // Multi-match → disambiguation
                 populateDisambiguation(out, matches);
@@ -598,8 +607,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         Set<Id> lineIds = new Set<Id>();
         for (String raw : rawIds) {
             Id parsed = RLM_AI_ConfigServiceUtils.toIdOrNull(raw);
-            if (parsed != null
-                && String.valueOf(parsed).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+            if (parsed != null && String.valueOf(parsed).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
                 lineIds.add(parsed);
             }
         }
@@ -610,14 +618,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         for (QuoteLineItem qli : [SELECT QuoteId FROM QuoteLineItem WHERE Id IN :lineIds]) {
             parentQuoteIds.add(qli.QuoteId);
         }
-        return parentQuoteIds.size() == 1
-            ? String.valueOf(new List<Id>(parentQuoteIds)[0])
-            : null;
+        return parentQuoteIds.size() == 1 ? String.valueOf(new List<Id>(parentQuoteIds)[0]) : null;
     }
 
-    private static List<SObject> resolveLinesByIds(
-        Id quoteId, List<String> rawIds, UpdateFieldsOutput out
-    ) {
+    private static List<SObject> resolveLinesByIds(Id quoteId, List<String> rawIds, UpdateFieldsOutput out) {
         Set<Id> requested = new Set<Id>();
         for (String raw : rawIds) {
             Id parsed = RLM_AI_ConfigServiceUtils.toIdOrNull(raw);
@@ -630,8 +634,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             return null;
         }
         List<QuoteLineItem> lines = [
-            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber,
-                   ProductSellingModel.SellingModelType
+            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber, ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId AND Id IN :requested
             ORDER BY LineNumber ASC
@@ -644,7 +647,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     }
 
     private static List<SObject> resolveLinesByOrdinals(
-        Id quoteId, List<Integer> ordinals, String pendingSelectionJson, UpdateFieldsOutput out
+        Id quoteId,
+        List<Integer> ordinals,
+        String pendingSelectionJson,
+        UpdateFieldsOutput out
     ) {
         Map<String, Object> ordinalMap = parsePendingSelection(pendingSelectionJson);
         List<String> idsToResolve = new List<String>();
@@ -653,8 +659,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             for (Integer ord : ordinals) {
                 Object idVal = ordinalMap.get(String.valueOf(ord));
                 if (idVal == null) {
-                    out.errorMessage = 'Selection ' + ord
-                        + ' was not in the list shown. Ask the user to pick from the displayed lines.';
+                    out.errorMessage =
+                        'Selection ' +
+                        ord +
+                        ' was not in the list shown. Ask the user to pick from the displayed lines.';
                     return null;
                 }
                 idsToResolve.add(String.valueOf(idVal));
@@ -671,8 +679,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         List<SObject> chosen = new List<SObject>();
         for (Integer ord : ordinals) {
             if (ord < 1 || ord > all.size()) {
-                out.errorMessage = 'Selection ' + ord + ' is out of range (there are '
-                    + all.size() + ' lines).';
+                out.errorMessage = 'Selection ' + ord + ' is out of range (there are ' + all.size() + ' lines).';
                 return null;
             }
             chosen.add(all[ord - 1]);
@@ -682,8 +689,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
     private static List<QuoteLineItem> queryAllLines(Id quoteId) {
         return [
-            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber,
-                   ProductSellingModel.SellingModelType
+            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber, ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
             ORDER BY LineNumber ASC, Product2.Name ASC
@@ -774,9 +780,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return String.join(parts, ', ');
     }
 
-    private static String buildResultsDisplay(
-        List<String> success, List<String> failed, List<String> skipped
-    ) {
+    private static String buildResultsDisplay(List<String> success, List<String> failed, List<String> skipped) {
         List<String> parts = new List<String>();
         if (!success.isEmpty()) {
             parts.add('Updated:');

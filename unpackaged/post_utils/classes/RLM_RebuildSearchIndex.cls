@@ -1,5 +1,4 @@
 public with sharing class RLM_RebuildSearchIndex {
-
     private static final String PCM_INDEX_PATH = '/services/data/v67.0/connect/pcm/index/deploy';
 
     @AuraEnabled
@@ -12,7 +11,10 @@ public with sharing class RLM_RebuildSearchIndex {
         }
     }
 
-    @InvocableMethod(label='Deploy PCM Index' description='Calls the Connect API to deploy PCM index after Decision Table refresh')
+    @InvocableMethod(
+        label='Deploy PCM Index'
+        description='Calls the Connect API to deploy PCM index after Decision Table refresh'
+    )
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {
         List<PCMDeployResult> results = new List<PCMDeployResult>();
 
@@ -23,17 +25,16 @@ public with sharing class RLM_RebuildSearchIndex {
                 HttpResponse httpRes = callPcmDeploy();
                 Map<String, Object> parsed = buildResultMap(httpRes);
 
-                result.isSuccess      = (Boolean) parsed.get('isSuccess');
-                result.message        = (String)  parsed.get('message');
-                result.statusCode     = (String)  parsed.get('statusCode');
-                result.snapshotId     = (String)  parsed.get('snapshotId');
+                result.isSuccess = (Boolean) parsed.get('isSuccess');
+                result.message = (String) parsed.get('message');
+                result.statusCode = (String) parsed.get('statusCode');
+                result.snapshotId = (String) parsed.get('snapshotId');
                 result.activationStatus = (String) parsed.get('activationStatus');
-                result.activationType = (String)  parsed.get('activationType');
-                result.indexId        = (String)  parsed.get('indexId');
-                result.indexBuildType = (String)  parsed.get('indexBuildType');
-                result.indexType      = (String)  parsed.get('indexType');
+                result.activationType = (String) parsed.get('activationType');
+                result.indexId = (String) parsed.get('indexId');
+                result.indexBuildType = (String) parsed.get('indexBuildType');
+                result.indexType = (String) parsed.get('indexType');
                 result.lastBuildStatus = (String) parsed.get('lastBuildStatus');
-
             } catch (Exception e) {
                 result.isSuccess = false;
                 result.message = 'Exception occurred: ' + e.getMessage();
@@ -102,45 +103,45 @@ public with sharing class RLM_RebuildSearchIndex {
 
         return result;
     }
-    
+
     // Input wrapper class
     public class PCMDeployRequest {
         @InvocableVariable(label='Build Type' description='The build type for PCM index (default: FULL)')
         public String buildType = 'FULL';
-        
+
         @InvocableVariable(label='Activation Type' description='The activation type for PCM index (default: IMMEDIATE)')
         public String activationType = 'IMMEDIATE';
     }
-    
+
     // Output wrapper class
     public class PCMDeployResult {
         @InvocableVariable(label='Success' description='Indicates if the API call was successful')
         public Boolean isSuccess;
-        
+
         @InvocableVariable(label='Snapshot ID' description='The ID of the created snapshot')
         public String snapshotId;
-        
+
         @InvocableVariable(label='Activation Status' description='The activation status of the snapshot')
         public String activationStatus;
-        
+
         @InvocableVariable(label='Activation Type' description='The activation type of the snapshot')
         public String activationType;
-        
+
         @InvocableVariable(label='Status Code' description='HTTP status code of the API response')
         public String statusCode;
-        
+
         @InvocableVariable(label='Message' description='Success or error message')
         public String message;
-        
+
         @InvocableVariable(label='Index ID' description='The ID of the snapshot index')
         public String indexId;
-        
+
         @InvocableVariable(label='Index Build Type' description='The build type of the index')
         public String indexBuildType;
-        
+
         @InvocableVariable(label='Index Type' description='The type of the index')
         public String indexType;
-        
+
         @InvocableVariable(label='Last Build Status' description='The last build status of the index')
         public String lastBuildStatus;
     }

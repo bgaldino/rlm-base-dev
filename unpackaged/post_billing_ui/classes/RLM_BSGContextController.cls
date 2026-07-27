@@ -1,109 +1,175 @@
 public with sharing class RLM_BSGContextController {
-
     public class BSGContext {
-        @AuraEnabled public String viewType; // 'milestone', 'bundle', 'usage', 'standard'
-        @AuraEnabled public String bsgNumber;
-        @AuraEnabled public String productName;
-        @AuraEnabled public String billingType;
-        @AuraEnabled public String billingMethod;
-        @AuraEnabled public String billingTermUnit;
-        @AuraEnabled public Integer billingTerm;
+        @AuraEnabled
+        public String viewType; // 'milestone', 'bundle', 'usage', 'standard'
+        @AuraEnabled
+        public String bsgNumber;
+        @AuraEnabled
+        public String productName;
+        @AuraEnabled
+        public String billingType;
+        @AuraEnabled
+        public String billingMethod;
+        @AuraEnabled
+        public String billingTermUnit;
+        @AuraEnabled
+        public Integer billingTerm;
 
-        @AuraEnabled public MilestonePlanData milestonePlan;
-        @AuraEnabled public BundleData bundle;
-        @AuraEnabled public UsageData usage;
+        @AuraEnabled
+        public MilestonePlanData milestonePlan;
+        @AuraEnabled
+        public BundleData bundle;
+        @AuraEnabled
+        public UsageData usage;
 
-        @AuraEnabled public Decimal bsBilledAmount;
-        @AuraEnabled public Decimal bsPendingAmount;
+        @AuraEnabled
+        public Decimal bsBilledAmount;
+        @AuraEnabled
+        public Decimal bsPendingAmount;
 
         // Billing Arrangement (applicable to any view type)
-        @AuraEnabled public ArrangementData arrangement;
+        @AuraEnabled
+        public ArrangementData arrangement;
     }
 
     // ─── Milestone wrappers ─────────────────────────────────────────────────
 
     public class MilestonePlanData {
-        @AuraEnabled public String planId;
-        @AuraEnabled public String planName;
-        @AuraEnabled public String planStatus;
-        @AuraEnabled public String description;
-        @AuraEnabled public Decimal referenceAmount;
-        @AuraEnabled public Decimal billedAmount;
-        @AuraEnabled public List<MilestoneItemData> items;
+        @AuraEnabled
+        public String planId;
+        @AuraEnabled
+        public String planName;
+        @AuraEnabled
+        public String planStatus;
+        @AuraEnabled
+        public String description;
+        @AuraEnabled
+        public Decimal referenceAmount;
+        @AuraEnabled
+        public Decimal billedAmount;
+        @AuraEnabled
+        public List<MilestoneItemData> items;
     }
 
     public class MilestoneItemData {
-        @AuraEnabled public String id;
-        @AuraEnabled public String name;
-        @AuraEnabled public String itemType;
-        @AuraEnabled public Decimal percentage;
-        @AuraEnabled public Decimal flatAmount;
-        @AuraEnabled public String milestoneType;
-        @AuraEnabled public Decimal milestoneAmount;
-        @AuraEnabled public String commencementDate;
-        @AuraEnabled public Boolean isAccomplished;
-        @AuraEnabled public String status;
-        @AuraEnabled public String accomplishmentDate;
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public String itemType;
+        @AuraEnabled
+        public Decimal percentage;
+        @AuraEnabled
+        public Decimal flatAmount;
+        @AuraEnabled
+        public String milestoneType;
+        @AuraEnabled
+        public Decimal milestoneAmount;
+        @AuraEnabled
+        public String commencementDate;
+        @AuraEnabled
+        public Boolean isAccomplished;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public String accomplishmentDate;
     }
 
     // ─── Bundle wrappers ────────────────────────────────────────────────────
 
     public class BundleData {
-        @AuraEnabled public Boolean isMainBundle;
-        @AuraEnabled public String mainBsgId;
-        @AuraEnabled public String mainBsgProduct;
-        @AuraEnabled public String mainChargeType;
-        @AuraEnabled public String mainBillingFrequency;
-        @AuraEnabled public List<BundleComponentData> components;
+        @AuraEnabled
+        public Boolean isMainBundle;
+        @AuraEnabled
+        public String mainBsgId;
+        @AuraEnabled
+        public String mainBsgProduct;
+        @AuraEnabled
+        public String mainChargeType;
+        @AuraEnabled
+        public String mainBillingFrequency;
+        @AuraEnabled
+        public List<BundleComponentData> components;
     }
 
     public class BundleComponentData {
-        @AuraEnabled public String bsgId;
-        @AuraEnabled public String productName;
-        @AuraEnabled public String chargeType;
-        @AuraEnabled public String billingFrequency;
-        @AuraEnabled public Boolean isCurrent;
-        @AuraEnabled public Integer depth;
-        @AuraEnabled public Boolean isSubBundle;
+        @AuraEnabled
+        public String bsgId;
+        @AuraEnabled
+        public String productName;
+        @AuraEnabled
+        public String chargeType;
+        @AuraEnabled
+        public String billingFrequency;
+        @AuraEnabled
+        public Boolean isCurrent;
+        @AuraEnabled
+        public Integer depth;
+        @AuraEnabled
+        public Boolean isSubBundle;
     }
 
     // ─── Usage wrappers ─────────────────────────────────────────────────────
 
     public class UsageData {
-        @AuraEnabled public String anchorBsgId;
-        @AuraEnabled public String anchorBsgNumber;
-        @AuraEnabled public String anchorProductName;
-        @AuraEnabled public String currentResourceName;
-        @AuraEnabled public String currentBsgNumber;
-        @AuraEnabled public String currentProductName;
-        @AuraEnabled public String billingType;
-        @AuraEnabled public List<UsageSiblingData> siblings;
+        @AuraEnabled
+        public String anchorBsgId;
+        @AuraEnabled
+        public String anchorBsgNumber;
+        @AuraEnabled
+        public String anchorProductName;
+        @AuraEnabled
+        public String currentResourceName;
+        @AuraEnabled
+        public String currentBsgNumber;
+        @AuraEnabled
+        public String currentProductName;
+        @AuraEnabled
+        public String billingType;
+        @AuraEnabled
+        public List<UsageSiblingData> siblings;
     }
 
     public class UsageSiblingData {
-        @AuraEnabled public String bsgId;
-        @AuraEnabled public String bsgNumber;
-        @AuraEnabled public String resourceName;
-        @AuraEnabled public Decimal billedAmount;
-        @AuraEnabled public Boolean isCurrent;
+        @AuraEnabled
+        public String bsgId;
+        @AuraEnabled
+        public String bsgNumber;
+        @AuraEnabled
+        public String resourceName;
+        @AuraEnabled
+        public Decimal billedAmount;
+        @AuraEnabled
+        public Boolean isCurrent;
     }
 
     // ─── Billing Arrangement wrappers ───────────────────────────────────────
 
     public class ArrangementData {
-        @AuraEnabled public String arrangementId;
-        @AuraEnabled public String arrangementName;
-        @AuraEnabled public String status;
-        @AuraEnabled public List<ArrangementLineData> lines;
+        @AuraEnabled
+        public String arrangementId;
+        @AuraEnabled
+        public String arrangementName;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public List<ArrangementLineData> lines;
     }
 
     public class ArrangementLineData {
-        @AuraEnabled public String lineId;
-        @AuraEnabled public String lineName;
-        @AuraEnabled public String accountName;
-        @AuraEnabled public String billingAccountName;
-        @AuraEnabled public Decimal billingPercentage;
-        @AuraEnabled public Boolean shouldBillRemainder;
+        @AuraEnabled
+        public String lineId;
+        @AuraEnabled
+        public String lineName;
+        @AuraEnabled
+        public String accountName;
+        @AuraEnabled
+        public String billingAccountName;
+        @AuraEnabled
+        public Decimal billingPercentage;
+        @AuraEnabled
+        public Boolean shouldBillRemainder;
     }
 
     // ─── Main entry point ───────────────────────────────────────────────────
@@ -124,10 +190,20 @@ public with sharing class RLM_BSGContextController {
 
         try {
             List<BillingScheduleGroup> bsgList = [
-                SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id,
-                       BillingType, BillingMethod, BillingTermUnit, BillingTerm,
-                       AnchorProdtBillingSchdGrpId, BindingInstanceId,
-                       BillingArrangementId, TotalBilledAmount, EndDate
+                SELECT
+                    Id,
+                    BillingScheduleGroupNumber,
+                    ProductName,
+                    Product2Id,
+                    BillingType,
+                    BillingMethod,
+                    BillingTermUnit,
+                    BillingTerm,
+                    AnchorProdtBillingSchdGrpId,
+                    BindingInstanceId,
+                    BillingArrangementId,
+                    TotalBilledAmount,
+                    EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :bsgRecordId
                 WITH USER_MODE
@@ -173,11 +249,17 @@ public with sharing class RLM_BSGContextController {
             if (ctx.viewType == null) {
                 List<BsgRelationship> asMain = [
                     SELECT Id, AssociatedBsgId, AssociatedBsgRole, AssociatedBsgPricing
-                    FROM BsgRelationship WHERE MainBsgId = :bsgRecordId WITH USER_MODE LIMIT 50
+                    FROM BsgRelationship
+                    WHERE MainBsgId = :bsgRecordId
+                    WITH USER_MODE
+                    LIMIT 50
                 ];
                 List<BsgRelationship> asComponent = [
                     SELECT Id, MainBsgId, MainBsgRole
-                    FROM BsgRelationship WHERE AssociatedBsgId = :bsgRecordId WITH USER_MODE LIMIT 1
+                    FROM BsgRelationship
+                    WHERE AssociatedBsgId = :bsgRecordId
+                    WITH USER_MODE
+                    LIMIT 1
                 ];
 
                 if (!asMain.isEmpty() || !asComponent.isEmpty()) {
@@ -257,10 +339,10 @@ public with sharing class RLM_BSGContextController {
 
             List<SObject> items = Database.query(
                 'SELECT Id, Name, Type, Percentage, FlatAmount, MilestoneType, ' +
-                'MilestoneAmount, CommencementDate, ' +
-                'IsMilestoneAccomplished, Status, MilestoneAccomplishmentDate ' +
-                'FROM BillingMilestonePlanItem WHERE BillingMilestonePlanId = :planId ' +
-                'ORDER BY IsMilestoneAccomplished DESC, MilestoneAccomplishmentDate ASC NULLS LAST, MilestoneAmount DESC',
+                    'MilestoneAmount, CommencementDate, ' +
+                    'IsMilestoneAccomplished, Status, MilestoneAccomplishmentDate ' +
+                    'FROM BillingMilestonePlanItem WHERE BillingMilestonePlanId = :planId ' +
+                    'ORDER BY IsMilestoneAccomplished DESC, MilestoneAccomplishmentDate ASC NULLS LAST, MilestoneAmount DESC',
                 AccessLevel.USER_MODE
             );
 
@@ -291,8 +373,10 @@ public with sharing class RLM_BSGContextController {
     // ─── Bundle ─────────────────────────────────────────────────────────────
 
     private static BundleData getBundleData(
-        Id recordId, BillingScheduleGroup currentBsg,
-        List<BsgRelationship> asMain, List<BsgRelationship> asComponent
+        Id recordId,
+        BillingScheduleGroup currentBsg,
+        List<BsgRelationship> asMain,
+        List<BsgRelationship> asComponent
     ) {
         BundleData bd = new BundleData();
 
@@ -311,9 +395,19 @@ public with sharing class RLM_BSGContextController {
             mainBsg = currentBsg;
         } else {
             List<BillingScheduleGroup> mainBsgList = [
-                SELECT Id, BillingScheduleGroupNumber, ProductName, BillingType,
-                       BillingMethod, BillingTermUnit, BillingTerm, EndDate
-                FROM BillingScheduleGroup WHERE Id = :mainBsgId WITH USER_MODE LIMIT 1
+                SELECT
+                    Id,
+                    BillingScheduleGroupNumber,
+                    ProductName,
+                    BillingType,
+                    BillingMethod,
+                    BillingTermUnit,
+                    BillingTerm,
+                    EndDate
+                FROM BillingScheduleGroup
+                WHERE Id = :mainBsgId
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (mainBsgList.isEmpty()) {
                 // Root resolved to a record the user can't see / no longer exists; fall back.
@@ -344,17 +438,23 @@ public with sharing class RLM_BSGContextController {
         while (current != null && !visited.contains(current)) {
             visited.add(current);
             List<BsgRelationship> parentRel = [
-                SELECT MainBsgId FROM BsgRelationship
-                WHERE AssociatedBsgId = :current WITH USER_MODE LIMIT 1
+                SELECT MainBsgId
+                FROM BsgRelationship
+                WHERE AssociatedBsgId = :current
+                WITH USER_MODE
+                LIMIT 1
             ];
-            if (parentRel.isEmpty()) return current;
+            if (parentRel.isEmpty())
+                return current;
             current = parentRel[0].MainBsgId;
         }
         return current;
     }
 
     private static void collectChildComponents(
-        Id mainBsgId, Id currentRecordId, Integer startDepth,
+        Id mainBsgId,
+        Id currentRecordId,
+        Integer startDepth,
         List<BundleComponentData> result
     ) {
         // Breadth-first load of the descendant hierarchy: one relationship query per level
@@ -367,12 +467,15 @@ public with sharing class RLM_BSGContextController {
         Integer level = 0;
         while (!frontier.isEmpty() && level < 5) {
             frontier.removeAll(seenParents);
-            if (frontier.isEmpty()) break;
+            if (frontier.isEmpty())
+                break;
             seenParents.addAll(frontier);
             Set<Id> nextFrontier = new Set<Id>();
             for (BsgRelationship rel : [
-                SELECT MainBsgId, AssociatedBsgId FROM BsgRelationship
-                WHERE MainBsgId IN :frontier WITH USER_MODE
+                SELECT MainBsgId, AssociatedBsgId
+                FROM BsgRelationship
+                WHERE MainBsgId IN :frontier
+                WITH USER_MODE
             ]) {
                 if (!parentToChildren.containsKey(rel.MainBsgId)) {
                     parentToChildren.put(rel.MainBsgId, new List<Id>());
@@ -385,41 +488,62 @@ public with sharing class RLM_BSGContextController {
             level++;
         }
 
-        if (allChildIds.isEmpty()) return;
+        if (allChildIds.isEmpty())
+            return;
 
         // Any child that is itself a parent in the map is a sub-bundle.
         Set<Id> subBundleIds = new Set<Id>(parentToChildren.keySet());
 
-        Map<Id, BillingScheduleGroup> bsgById = new Map<Id, BillingScheduleGroup>([
-            SELECT Id, ProductName, BillingMethod, BillingTermUnit, BillingTerm, EndDate
-            FROM BillingScheduleGroup WHERE Id IN :allChildIds WITH USER_MODE
-        ]);
+        Map<Id, BillingScheduleGroup> bsgById = new Map<Id, BillingScheduleGroup>(
+            [
+                SELECT Id, ProductName, BillingMethod, BillingTermUnit, BillingTerm, EndDate
+                FROM BillingScheduleGroup
+                WHERE Id IN :allChildIds
+                WITH USER_MODE
+            ]
+        );
 
-        appendComponentsDfs(mainBsgId, currentRecordId, startDepth, parentToChildren,
-                            subBundleIds, bsgById, result, new Set<Id>());
+        appendComponentsDfs(
+            mainBsgId,
+            currentRecordId,
+            startDepth,
+            parentToChildren,
+            subBundleIds,
+            bsgById,
+            result,
+            new Set<Id>()
+        );
     }
 
     @TestVisible
     private static void appendComponentsDfs(
-        Id parentBsgId, Id currentRecordId, Integer depth,
-        Map<Id, List<Id>> parentToChildren, Set<Id> subBundleIds,
-        Map<Id, BillingScheduleGroup> bsgById, List<BundleComponentData> result,
+        Id parentBsgId,
+        Id currentRecordId,
+        Integer depth,
+        Map<Id, List<Id>> parentToChildren,
+        Set<Id> subBundleIds,
+        Map<Id, BillingScheduleGroup> bsgById,
+        List<BundleComponentData> result,
         Set<Id> emitted
     ) {
-        if (depth > 5) return; // safety limit
+        if (depth > 5)
+            return; // safety limit
         List<Id> childIds = parentToChildren.get(parentBsgId);
-        if (childIds == null || childIds.isEmpty()) return;
+        if (childIds == null || childIds.isEmpty())
+            return;
 
         // Sort siblings by ProductName to preserve the original (ORDER BY ProductName) display order.
         List<BsgNameSort> sorted = new List<BsgNameSort>();
         for (Id cid : childIds) {
-            if (bsgById.containsKey(cid)) sorted.add(new BsgNameSort(bsgById.get(cid)));
+            if (bsgById.containsKey(cid))
+                sorted.add(new BsgNameSort(bsgById.get(cid)));
         }
         sorted.sort();
 
         for (BsgNameSort wrapper : sorted) {
             BillingScheduleGroup comp = wrapper.bsg;
-            if (emitted.contains(comp.Id)) continue; // diamond / cycle guard
+            if (emitted.contains(comp.Id))
+                continue; // diamond / cycle guard
             emitted.add(comp.Id);
 
             BundleComponentData bcd = new BundleComponentData();
@@ -433,15 +557,25 @@ public with sharing class RLM_BSGContextController {
             result.add(bcd);
 
             if (bcd.isSubBundle) {
-                appendComponentsDfs(comp.Id, currentRecordId, depth + 1, parentToChildren,
-                                    subBundleIds, bsgById, result, emitted);
+                appendComponentsDfs(
+                    comp.Id,
+                    currentRecordId,
+                    depth + 1,
+                    parentToChildren,
+                    subBundleIds,
+                    bsgById,
+                    result,
+                    emitted
+                );
             }
         }
     }
 
     private class BsgNameSort implements Comparable {
         BillingScheduleGroup bsg;
-        BsgNameSort(BillingScheduleGroup b) { this.bsg = b; }
+        BsgNameSort(BillingScheduleGroup b) {
+            this.bsg = b;
+        }
         public Integer compareTo(Object other) {
             String a = bsg.ProductName == null ? '' : bsg.ProductName;
             String b = ((BsgNameSort) other).bsg.ProductName == null ? '' : ((BsgNameSort) other).bsg.ProductName;
@@ -451,15 +585,19 @@ public with sharing class RLM_BSGContextController {
 
     @TestVisible
     private static String deriveChargeType(String billingMethod, String termUnit, Date endDate) {
-        if (billingMethod == 'Usage') return 'Usage';
-        if (termUnit != null && termUnit.equalsIgnoreCase('OneTime')) return 'One-Time';
-        if (endDate == null) return 'Evergreen';
+        if (billingMethod == 'Usage')
+            return 'Usage';
+        if (termUnit != null && termUnit.equalsIgnoreCase('OneTime'))
+            return 'One-Time';
+        if (endDate == null)
+            return 'Evergreen';
         return 'Termed Subscription';
     }
 
     @TestVisible
     private static String formatFrequency(Integer term, String unit) {
-        if (unit != null && unit.equalsIgnoreCase('OneTime')) return 'One-Time';
+        if (unit != null && unit.equalsIgnoreCase('OneTime'))
+            return 'One-Time';
         String t = (term != null ? String.valueOf(term) : '1');
         String u = (unit != null ? unit : '');
         return t + ' ' + u;
@@ -477,7 +615,7 @@ public with sharing class RLM_BSGContextController {
         List<BillingSchedule> bsList = [
             SELECT UsageResourceId, UsageResource.Name
             FROM BillingSchedule
-            WHERE BillingScheduleGroupId = :recordId AND UsageResourceId != null
+            WHERE BillingScheduleGroupId = :recordId AND UsageResourceId != NULL
             WITH USER_MODE
             LIMIT 1
         ];
@@ -488,7 +626,10 @@ public with sharing class RLM_BSGContextController {
         if (bsg.AnchorProdtBillingSchdGrpId != null) {
             List<BillingScheduleGroup> anchorList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName
-                FROM BillingScheduleGroup WHERE Id = :bsg.AnchorProdtBillingSchdGrpId WITH USER_MODE LIMIT 1
+                FROM BillingScheduleGroup
+                WHERE Id = :bsg.AnchorProdtBillingSchdGrpId
+                WITH USER_MODE
+                LIMIT 1
             ];
             if (!anchorList.isEmpty()) {
                 ud.anchorBsgNumber = anchorList[0].BillingScheduleGroupNumber;
@@ -501,8 +642,7 @@ public with sharing class RLM_BSGContextController {
             List<BillingScheduleGroup> siblingBsgs = [
                 SELECT Id, BillingScheduleGroupNumber, TotalBilledAmount
                 FROM BillingScheduleGroup
-                WHERE AnchorProdtBillingSchdGrpId = :bsg.AnchorProdtBillingSchdGrpId
-                  AND BillingMethod = 'Usage'
+                WHERE AnchorProdtBillingSchdGrpId = :bsg.AnchorProdtBillingSchdGrpId AND BillingMethod = 'Usage'
                 WITH USER_MODE
             ];
 
@@ -516,7 +656,7 @@ public with sharing class RLM_BSGContextController {
                 for (BillingSchedule bs : [
                     SELECT BillingScheduleGroupId, UsageResource.Name
                     FROM BillingSchedule
-                    WHERE BillingScheduleGroupId IN :siblingIds AND UsageResourceId != null
+                    WHERE BillingScheduleGroupId IN :siblingIds AND UsageResourceId != NULL
                     WITH USER_MODE
                 ]) {
                     bsgToResourceName.put(bs.BillingScheduleGroupId, bs.UsageResource.Name);
@@ -544,7 +684,10 @@ public with sharing class RLM_BSGContextController {
 
         List<BillingArrangement> baList = [
             SELECT Id, Name, Status
-            FROM BillingArrangement WHERE Id = :arrangementId WITH USER_MODE LIMIT 1
+            FROM BillingArrangement
+            WHERE Id = :arrangementId
+            WITH USER_MODE
+            LIMIT 1
         ];
         if (baList.isEmpty()) {
             return ad;
@@ -557,8 +700,13 @@ public with sharing class RLM_BSGContextController {
 
         ad.lines = new List<ArrangementLineData>();
         for (BillingArrangementLine bal : [
-            SELECT Id, BillingArrangementLineName, Account.Name,
-                   BillingAccountId, BillingPercentage, ShouldBillRemainder
+            SELECT
+                Id,
+                BillingArrangementLineName,
+                Account.Name,
+                BillingAccountId,
+                BillingPercentage,
+                ShouldBillRemainder
             FROM BillingArrangementLine
             WHERE BillingArrangementId = :arrangementId
             WITH USER_MODE

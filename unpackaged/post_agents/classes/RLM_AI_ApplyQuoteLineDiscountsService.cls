@@ -27,71 +27,95 @@
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
  */
 public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
-
     public class DiscountInput {
-        @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0).')
+        @InvocableVariable(
+            required=true
+            label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0).'
+        )
         public String quoteId;
 
-        @InvocableVariable(label='Discount Mode'
-            description='One of: percent, targetPrice, percentOfList. Determines which value field is used.')
+        @InvocableVariable(
+            label='Discount Mode'
+            description='One of: percent, targetPrice, percentOfList. Determines which value field is used.'
+        )
         public String discountMode;
 
-        @InvocableVariable(label='Discount Percentage'
-            description='Percent off (0-100). Used when discountMode is percent.')
+        @InvocableVariable(
+            label='Discount Percentage'
+            description='Percent off (0-100). Used when discountMode is percent.'
+        )
         public Decimal discountPercentage;
 
-        @InvocableVariable(label='Target Price'
-            description='Per-unit sell price. Used when discountMode is targetPrice (e.g. "sell at $900").')
+        @InvocableVariable(
+            label='Target Price'
+            description='Per-unit sell price. Used when discountMode is targetPrice (e.g. "sell at $900").'
+        )
         public Decimal targetPrice;
 
-        @InvocableVariable(label='Target Percent Of List'
-            description='Per-unit price as a percent of list price (0-100). Used when discountMode is percentOfList (e.g. "90% of list").')
+        @InvocableVariable(
+            label='Target Percent Of List'
+            description='Per-unit price as a percent of list price (0-100). Used when discountMode is percentOfList (e.g. "90% of list").'
+        )
         public Decimal targetPercentOfList;
 
-        @InvocableVariable(label='Apply To All'
-            description='When true, discount every line on the quote.')
+        @InvocableVariable(label='Apply To All' description='When true, discount every line on the quote.')
         public Boolean applyToAll;
 
-        @InvocableVariable(label='Product Name'
-            description='Discount every line whose product name matches this term.')
+        @InvocableVariable(label='Product Name' description='Discount every line whose product name matches this term.')
         public String productName;
 
-        @InvocableVariable(label='Selected Display Numbers JSON'
-            description='JSON array of the displayed selection numbers the user picked (e.g. [1,3]). Mapped through Pending Selection JSON.')
+        @InvocableVariable(
+            label='Selected Display Numbers JSON'
+            description='JSON array of the displayed selection numbers the user picked (e.g. [1,3]). Mapped through Pending Selection JSON.'
+        )
         public String selectedDisplayNumbersJson;
 
-        @InvocableVariable(label='Pending Selection JSON'
-            description='Internal plumbing: hidden ordinal-to-quoteLineItemId map produced when a candidate list was shown. Never displayed.')
+        @InvocableVariable(
+            label='Pending Selection JSON'
+            description='Internal plumbing: hidden ordinal-to-quoteLineItemId map produced when a candidate list was shown. Never displayed.'
+        )
         public String pendingSelectionJson;
 
-        @InvocableVariable(label='Quote Line Item Ids'
-            description='Explicit QuoteLineItem Ids to discount, when already known.')
+        @InvocableVariable(
+            label='Quote Line Item Ids'
+            description='Explicit QuoteLineItem Ids to discount, when already known.'
+        )
         public List<String> quoteLineItemIds;
     }
 
     public class DiscountOutput {
-        @InvocableVariable(label='Is Success'
-            description='True when at least the resolved lines were discounted. False on input error, ambiguous targeting, or managed-action failure.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True when at least the resolved lines were discounted. False on input error, ambiguous targeting, or managed-action failure.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Applied Count')
         public Decimal appliedCount;
 
-        @InvocableVariable(label='Results Display'
-            description='Rich-text, per-line by product name summary of what was discounted, for user-facing display.')
+        @InvocableVariable(
+            label='Results Display'
+            description='Rich-text, per-line by product name summary of what was discounted, for user-facing display.'
+        )
         public String resultsDisplay;
 
-        @InvocableVariable(label='Needs Disambiguation'
-            description='True when targeting did not resolve to a definite line set and the user must pick.')
+        @InvocableVariable(
+            label='Needs Disambiguation'
+            description='True when targeting did not resolve to a definite line set and the user must pick.'
+        )
         public Boolean needsDisambiguation;
 
-        @InvocableVariable(label='Candidate Summaries Display'
-            description='Formatted numbered list of quote lines for user-facing disambiguation.')
+        @InvocableVariable(
+            label='Candidate Summaries Display'
+            description='Formatted numbered list of quote lines for user-facing disambiguation.'
+        )
         public String candidateSummariesDisplay;
 
-        @InvocableVariable(label='Pending Selection JSON'
-            description='Internal plumbing: ordinal-to-quoteLineItemId map for the candidate list above. Never displayed; pass back unchanged.')
+        @InvocableVariable(
+            label='Pending Selection JSON'
+            description='Internal plumbing: ordinal-to-quoteLineItemId map for the candidate list above. Never displayed; pass back unchanged.'
+        )
         public String pendingSelectionJson;
 
         @InvocableVariable(label='Error Message')
@@ -162,19 +186,18 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             for (QuoteLineItem qli : targets) {
                 Decimal percent = computePercentForLine(spec, qli);
                 if (percent == null) {
-                    failedLines.add(lineLabel(qli)
-                        + ' — could not compute a discount (missing list price).');
+                    failedLines.add(lineLabel(qli) + ' — could not compute a discount (missing list price).');
                     continue;
                 }
                 percent = percent.setScale(2, RoundingMode.HALF_UP);
                 ManagedResult mr = invoker.applyDiscount(quoteId, qli.Id, percent);
                 if (mr != null && mr.isSuccess == true) {
                     applied++;
-                    resultLines.add(lineLabel(qli) + ' — '
-                        + percent.stripTrailingZeros().toPlainString() + '% off');
+                    resultLines.add(lineLabel(qli) + ' — ' + percent.stripTrailingZeros().toPlainString() + '% off');
                 } else {
                     String err = (mr != null && String.isNotBlank(mr.errorMessage))
-                        ? mr.errorMessage : 'discount failed';
+                        ? mr.errorMessage
+                        : 'discount failed';
                     failedLines.add(lineLabel(qli) + ' — ' + err);
                 }
             }
@@ -198,17 +221,15 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
 
     private class DiscountSpec {
         String mode;
-        Decimal percent;             // for mode == percent
-        Decimal targetPrice;         // for mode == targetPrice
+        Decimal percent; // for mode == percent
+        Decimal targetPrice; // for mode == targetPrice
         Decimal targetPercentOfList; // for mode == percentOfList
         String errorMessage;
     }
 
     private static DiscountSpec resolveDiscountSpec(DiscountInput input) {
         DiscountSpec spec = new DiscountSpec();
-        String mode = String.isBlank(input.discountMode)
-            ? inferMode(input)
-            : input.discountMode.trim().toLowerCase();
+        String mode = String.isBlank(input.discountMode) ? inferMode(input) : input.discountMode.trim().toLowerCase();
 
         if (mode == 'percent') {
             if (input.discountPercentage == null) {
@@ -233,8 +254,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             return spec;
         }
         if (mode == 'percentoflist') {
-            if (input.targetPercentOfList == null
-                    || input.targetPercentOfList < 0 || input.targetPercentOfList > 100) {
+            if (input.targetPercentOfList == null || input.targetPercentOfList < 0 || input.targetPercentOfList > 100) {
                 spec.errorMessage = 'Target percent of list must be between 0 and 100.';
                 return spec;
             }
@@ -243,8 +263,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             return spec;
         }
 
-        spec.errorMessage = 'Specify exactly one discount: a percentage, a target price, '
-            + 'or a percent of list.';
+        spec.errorMessage = 'Specify exactly one discount: a percentage, a target price, ' + 'or a percent of list.';
         return spec;
     }
 
@@ -252,9 +271,18 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
     private static String inferMode(DiscountInput input) {
         Integer supplied = 0;
         String mode = '';
-        if (input.discountPercentage != null) { supplied++; mode = 'percent'; }
-        if (input.targetPrice != null) { supplied++; mode = 'targetprice'; }
-        if (input.targetPercentOfList != null) { supplied++; mode = 'percentoflist'; }
+        if (input.discountPercentage != null) {
+            supplied++;
+            mode = 'percent';
+        }
+        if (input.targetPrice != null) {
+            supplied++;
+            mode = 'targetprice';
+        }
+        if (input.targetPercentOfList != null) {
+            supplied++;
+            mode = 'percentoflist';
+        }
         return supplied == 1 ? mode : '';
     }
 
@@ -299,9 +327,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
      * error or disambiguation payload. An empty list means "no match" (handled
      * by the caller as a clean message).
      */
-    private static List<QuoteLineItem> resolveTargets(
-        Id quoteId, DiscountInput input, DiscountOutput out
-    ) {
+    private static List<QuoteLineItem> resolveTargets(Id quoteId, DiscountInput input, DiscountOutput out) {
         // (a) Explicit Ids — validate each belongs to the quote.
         if (input.quoteLineItemIds != null && !input.quoteLineItemIds.isEmpty()) {
             return resolveByIds(quoteId, input.quoteLineItemIds, out);
@@ -333,9 +359,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
         return null;
     }
 
-    private static List<QuoteLineItem> resolveByIds(
-        Id quoteId, List<String> rawIds, DiscountOutput out
-    ) {
+    private static List<QuoteLineItem> resolveByIds(Id quoteId, List<String> rawIds, DiscountOutput out) {
         Set<Id> requested = new Set<Id>();
         for (String raw : rawIds) {
             Id parsed = RLM_AI_ConfigServiceUtils.toIdOrNull(raw);
@@ -362,7 +386,10 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
     }
 
     private static List<QuoteLineItem> resolveByOrdinals(
-        Id quoteId, List<Integer> ordinals, String pendingSelectionJson, DiscountOutput out
+        Id quoteId,
+        List<Integer> ordinals,
+        String pendingSelectionJson,
+        DiscountOutput out
     ) {
         Map<String, Object> ordinalMap = parsePendingSelection(pendingSelectionJson);
         List<String> idsToResolve = new List<String>();
@@ -372,8 +399,10 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             for (Integer ord : ordinals) {
                 Object idVal = ordinalMap.get(String.valueOf(ord));
                 if (idVal == null) {
-                    out.errorMessage = 'Selection ' + ord
-                        + ' was not in the list shown. Ask the user to pick from the displayed lines.';
+                    out.errorMessage =
+                        'Selection ' +
+                        ord +
+                        ' was not in the list shown. Ask the user to pick from the displayed lines.';
                     return null;
                 }
                 idsToResolve.add(String.valueOf(idVal));
@@ -390,8 +419,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
         List<QuoteLineItem> chosen = new List<QuoteLineItem>();
         for (Integer ord : ordinals) {
             if (ord < 1 || ord > all.size()) {
-                out.errorMessage = 'Selection ' + ord + ' is out of range (there are '
-                    + all.size() + ' lines).';
+                out.errorMessage = 'Selection ' + ord + ' is out of range (there are ' + all.size() + ' lines).';
                 return null;
             }
             chosen.add(all[ord - 1]);
@@ -520,8 +548,10 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
      */
     public class DefaultManagedDiscountInvoker implements ManagedDiscountInvoker {
         public ManagedResult applyDiscount(Id quoteId, Id quoteLineItemId, Decimal discountPercentage) {
-            Invocable.Action action =
-                Invocable.Action.createCustomAction('flow', 'quotingAI__applyDiscountToQuoteLine');
+            Invocable.Action action = Invocable.Action.createCustomAction(
+                'flow',
+                'quotingAI__applyDiscountToQuoteLine'
+            );
             action.setInvocationParameter('quoteId', String.valueOf(quoteId));
             action.setInvocationParameter('quoteLineItemId', String.valueOf(quoteLineItemId));
             action.setInvocationParameter('discountPercentage', discountPercentage);

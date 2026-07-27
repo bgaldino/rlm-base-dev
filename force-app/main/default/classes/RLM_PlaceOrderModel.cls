@@ -4,15 +4,13 @@ global class RLM_PlaceOrderModel {
     global Map<String, Boolean> configurationOptions;
     global OrderGraphModel graph;
 
-    global class OrderGraphModel{
+    global class OrderGraphModel {
         global string graphId;
         global List<ObjectRecordModel> records;
-
     }
 
-    global class ObjectRecordModel{
+    global class ObjectRecordModel {
         global string referenceId;
         global Map<String, Object> record;
     }
-    
 }

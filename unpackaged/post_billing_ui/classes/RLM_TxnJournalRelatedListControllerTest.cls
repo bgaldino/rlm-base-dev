@@ -1,6 +1,5 @@
 @isTest
 private class RLM_TxnJournalRelatedListControllerTest {
-
     // TransactionJournal records are system-generated and not insertable in Apex tests,
     // so a null id and a well-formed but non-existent Invoice id both drive the empty path.
     @isTest

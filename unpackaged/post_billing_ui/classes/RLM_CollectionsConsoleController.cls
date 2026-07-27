@@ -1,10 +1,8 @@
 public with sharing class RLM_CollectionsConsoleController {
-
     @AuraEnabled(cacheable=true)
     public static List<DelinquentWrapper> getHighValueDelinquents() {
         List<Invoice> invoices = [
-            SELECT Id, BillingAccountId, BillingAccount.Name, Balance,
-                   DaysInvoiceOverdue, DocumentNumber
+            SELECT Id, BillingAccountId, BillingAccount.Name, Balance, DaysInvoiceOverdue, DocumentNumber
             FROM Invoice
             WHERE Balance > 2000 AND DaysInvoiceOverdue > 30
             WITH USER_MODE
@@ -24,12 +22,16 @@ public with sharing class RLM_CollectionsConsoleController {
 
         if (!invoiceIds.isEmpty()) {
             List<PaymentSchedule> schedules = [
-                SELECT Id, ReferenceEntityId,
-                    (SELECT Id, TargetPaymentProcessingDate
-                     FROM PaymentScheduleItems
-                     WHERE TargetPaymentProcessingDate != NULL
-                     ORDER BY TargetPaymentProcessingDate DESC
-                     LIMIT 1)
+                SELECT
+                    Id,
+                    ReferenceEntityId,
+                    (
+                        SELECT Id, TargetPaymentProcessingDate
+                        FROM PaymentScheduleItems
+                        WHERE TargetPaymentProcessingDate != NULL
+                        ORDER BY TargetPaymentProcessingDate DESC
+                        LIMIT 1
+                    )
                 FROM PaymentSchedule
                 WHERE ReferenceEntityId IN :invoiceIds
                 WITH USER_MODE
@@ -87,14 +89,20 @@ public with sharing class RLM_CollectionsConsoleController {
                 } catch (Exception e) {
                     // Dispute / Dispute.InvoiceId not available (billing dispute feature
                     // not provisioned in this org) — omit dispute reasons.
-                    System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage());
+                    System.debug(
+                        LoggingLevel.WARN,
+                        'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage()
+                    );
                 }
             }
         }
 
         return buildDelinquents(
-            invoices, latestPtpByInvoice, collectionPlanByInvoice,
-            collectionPlanIdByInvoice, disputeReasonByInvoice
+            invoices,
+            latestPtpByInvoice,
+            collectionPlanByInvoice,
+            collectionPlanIdByInvoice,
+            disputeReasonByInvoice
         );
     }
 
@@ -140,24 +148,31 @@ public with sharing class RLM_CollectionsConsoleController {
         if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
             return false;
         }
-        return Schema.getGlobalDescribe()
-            .get('Dispute')
-            .getDescribe()
-            .fields.getMap()
-            .containsKey(fieldName);
+        return Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap().containsKey(fieldName);
     }
 
     public class DelinquentWrapper {
-        @AuraEnabled public Id Id;
-        @AuraEnabled public String businessAccount;
-        @AuraEnabled public Id accountId;
-        @AuraEnabled public Decimal balance;
-        @AuraEnabled public Integer overdueDays;
-        @AuraEnabled public Date ptpDate;
-        @AuraEnabled public Decimal invoiceBalance;
-        @AuraEnabled public String documentNumber;
-        @AuraEnabled public String disputeReason;
-        @AuraEnabled public String collectionPlanId;
-        @AuraEnabled public Id collectionPlanRecordId;
+        @AuraEnabled
+        public Id Id;
+        @AuraEnabled
+        public String businessAccount;
+        @AuraEnabled
+        public Id accountId;
+        @AuraEnabled
+        public Decimal balance;
+        @AuraEnabled
+        public Integer overdueDays;
+        @AuraEnabled
+        public Date ptpDate;
+        @AuraEnabled
+        public Decimal invoiceBalance;
+        @AuraEnabled
+        public String documentNumber;
+        @AuraEnabled
+        public String disputeReason;
+        @AuraEnabled
+        public String collectionPlanId;
+        @AuraEnabled
+        public Id collectionPlanRecordId;
     }
 }

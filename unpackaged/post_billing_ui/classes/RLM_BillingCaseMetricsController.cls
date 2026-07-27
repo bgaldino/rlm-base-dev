@@ -10,7 +10,6 @@
  * class compiles in every org and degrades gracefully where Dispute is absent.
  */
 public with sharing class RLM_BillingCaseMetricsController {
-
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getMetrics() {
         Map<String, Object> result = new Map<String, Object>();
@@ -30,13 +29,15 @@ public with sharing class RLM_BillingCaseMetricsController {
             List<AggregateResult> caseAgg = [
                 SELECT COUNT(Id) cnt
                 FROM Case
-                WHERE IsClosed = false
-                AND Type = 'Billing'
+                WHERE IsClosed = FALSE AND Type = 'Billing'
                 WITH USER_MODE
             ];
             return (Integer) caseAgg[0].get('cnt');
         } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController.countOpenBillingCases failed: ' + e.getMessage());
+            System.debug(
+                LoggingLevel.WARN,
+                'RLM_BillingCaseMetricsController.countOpenBillingCases failed: ' + e.getMessage()
+            );
             return 0;
         }
     }
@@ -52,8 +53,10 @@ public with sharing class RLM_BillingCaseMetricsController {
             return metrics;
         }
 
-        Map<String, Schema.SObjectField> disputeFields =
-            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+        Map<String, Schema.SObjectField> disputeFields = Schema.getGlobalDescribe()
+            .get('Dispute')
+            .getDescribe()
+            .fields.getMap();
 
         Boolean hasIsClosed = disputeFields.containsKey('IsClosed');
         Boolean hasDisputedAmount = disputeFields.containsKey('DisputedAmount');
@@ -66,7 +69,8 @@ public with sharing class RLM_BillingCaseMetricsController {
                     selectClause += ', SUM(DisputedAmount) totalAmt';
                 }
                 List<AggregateResult> disputeAgg = Database.query(
-                    selectClause + ' FROM Dispute WHERE IsClosed = false', AccessLevel.USER_MODE
+                    selectClause + ' FROM Dispute WHERE IsClosed = false',
+                    AccessLevel.USER_MODE
                 );
                 metrics.put('openDisputes', (Integer) disputeAgg[0].get('cnt'));
                 if (hasDisputedAmount) {
@@ -75,19 +79,26 @@ public with sharing class RLM_BillingCaseMetricsController {
                 }
             } catch (Exception e) {
                 // Dispute field not accessible (license/extension not enabled) — keep zero defaults.
-                System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage());
+                System.debug(
+                    LoggingLevel.WARN,
+                    'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage()
+                );
             }
 
             if (hasInvoiceId) {
                 try {
                     List<AggregateResult> invAgg = Database.query(
                         'SELECT COUNT_DISTINCT(InvoiceId) cnt ' +
-                        'FROM Dispute WHERE IsClosed = false AND InvoiceId != null', AccessLevel.USER_MODE
+                        'FROM Dispute WHERE IsClosed = false AND InvoiceId != null',
+                        AccessLevel.USER_MODE
                     );
                     metrics.put('disputedInvoices', (Integer) invAgg[0].get('cnt'));
                 } catch (Exception e) {
                     // Dispute.InvoiceId not accessible (license/extension not enabled) — keep zero default.
-                    System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController disputed-invoice aggregate failed: ' + e.getMessage());
+                    System.debug(
+                        LoggingLevel.WARN,
+                        'RLM_BillingCaseMetricsController disputed-invoice aggregate failed: ' + e.getMessage()
+                    );
                 }
             }
         }

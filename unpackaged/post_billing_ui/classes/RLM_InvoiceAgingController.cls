@@ -1,75 +1,92 @@
 public with sharing class RLM_InvoiceAgingController {
-    
     @AuraEnabled(cacheable=true)
     public static InvoiceAgingData getInvoiceAgingData(Id accountId) {
         try {
             if (accountId == null) {
                 return new InvoiceAgingData();
             }
-            
+
             // Query invoices for the account with specific criteria:
             // Status = 'Posted'
             // SettlementStatus = 'PartiallySettled' OR 'NotSettled' (including label variations)
             List<Invoice> invoices = [
-                SELECT Id, InvoiceNumber, DaysInvoiceOpen, DaysInvoiceOverdue, 
-                       TotalAmountWithTax, Balance, DueDate, InvoiceDate, 
-                       CurrencyIsoCode, Status, SettlementStatus
+                SELECT
+                    Id,
+                    InvoiceNumber,
+                    DaysInvoiceOpen,
+                    DaysInvoiceOverdue,
+                    TotalAmountWithTax,
+                    Balance,
+                    DueDate,
+                    InvoiceDate,
+                    CurrencyIsoCode,
+                    Status,
+                    SettlementStatus
                 FROM Invoice
-                WHERE BillingAccountId = :accountId
-                AND Status = 'Posted'
-                AND (SettlementStatus = 'PartiallySettled' 
-                     OR SettlementStatus = 'Partially Settled'
-                     OR SettlementStatus = 'NotSettled'
-                     OR SettlementStatus = 'Not Settled')
-                WITH USER_MODE ORDER BY InvoiceDate DESC
+                WHERE
+                    BillingAccountId = :accountId
+                    AND Status = 'Posted'
+                    AND (SettlementStatus = 'PartiallySettled'
+                    OR SettlementStatus = 'Partially Settled'
+                    OR SettlementStatus = 'NotSettled'
+                    OR SettlementStatus = 'Not Settled')
+                WITH USER_MODE
+                ORDER BY InvoiceDate DESC
             ];
-            
+
             return processInvoiceData(invoices);
-            
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'RLM_InvoiceAgingController error for accountId=' + accountId + ': ' + e.getTypeName() + ': ' + e.getMessage());
+            System.debug(
+                LoggingLevel.ERROR,
+                'RLM_InvoiceAgingController error for accountId=' +
+                    accountId +
+                    ': ' +
+                    e.getTypeName() +
+                    ': ' +
+                    e.getMessage()
+            );
             throw new AuraHandledException('Unable to load invoice aging data. Contact your administrator.');
         }
     }
-    
+
     private static InvoiceAgingData processInvoiceData(List<Invoice> invoices) {
         InvoiceAgingData data = new InvoiceAgingData();
-        
+
         if (invoices == null || invoices.isEmpty()) {
             return data;
         }
-        
+
         data.totalInvoices = invoices.size();
-        
+
         Decimal totalAmount = 0;
         Decimal totalAge = 0;
         Integer overdueCount = 0;
         Integer lessThan30 = 0;
         Integer days30To60 = 0;
         Integer moreThan60 = 0;
-        
+
         String currencyCode = 'USD';
-        
+
         for (Invoice inv : invoices) {
             // Get currency code from first invoice
             if (String.isNotBlank(inv.CurrencyIsoCode)) {
                 currencyCode = inv.CurrencyIsoCode;
             }
-            
+
             // Calculate totals
             if (inv.Balance != null) {
                 totalAmount += inv.Balance;
             }
-            
+
             // Calculate age using DaysInvoiceOpen
             Decimal invoiceAge = inv.DaysInvoiceOpen != null ? inv.DaysInvoiceOpen : 0;
             totalAge += invoiceAge;
-            
+
             // Check if overdue
             if (inv.DaysInvoiceOverdue != null && inv.DaysInvoiceOverdue > 0) {
                 overdueCount++;
             }
-            
+
             // Categorize by age
             if (invoiceAge < 30) {
                 lessThan30++;
@@ -79,7 +96,7 @@ public with sharing class RLM_InvoiceAgingController {
                 moreThan60++;
             }
         }
-        
+
         // Set the data
         data.overdueInvoices = overdueCount;
         data.totalAmount = totalAmount;
@@ -89,22 +106,31 @@ public with sharing class RLM_InvoiceAgingController {
         data.days30To60 = days30To60;
         data.moreThan60 = moreThan60;
         data.invoices = invoices;
-        
+
         return data;
     }
-    
+
     // Wrapper class for invoice aging data
     public class InvoiceAgingData {
-        @AuraEnabled public Integer totalInvoices { get; set; }
-        @AuraEnabled public Integer overdueInvoices { get; set; }
-        @AuraEnabled public Decimal totalAmount { get; set; }
-        @AuraEnabled public Decimal averageAge { get; set; }
-        @AuraEnabled public String currencyCode { get; set; }
-        @AuraEnabled public Integer lessThan30 { get; set; }
-        @AuraEnabled public Integer days30To60 { get; set; }
-        @AuraEnabled public Integer moreThan60 { get; set; }
-        @AuraEnabled public List<Invoice> invoices { get; set; }
-        
+        @AuraEnabled
+        public Integer totalInvoices { get; set; }
+        @AuraEnabled
+        public Integer overdueInvoices { get; set; }
+        @AuraEnabled
+        public Decimal totalAmount { get; set; }
+        @AuraEnabled
+        public Decimal averageAge { get; set; }
+        @AuraEnabled
+        public String currencyCode { get; set; }
+        @AuraEnabled
+        public Integer lessThan30 { get; set; }
+        @AuraEnabled
+        public Integer days30To60 { get; set; }
+        @AuraEnabled
+        public Integer moreThan60 { get; set; }
+        @AuraEnabled
+        public List<Invoice> invoices { get; set; }
+
         public InvoiceAgingData() {
             this.totalInvoices = 0;
             this.overdueInvoices = 0;

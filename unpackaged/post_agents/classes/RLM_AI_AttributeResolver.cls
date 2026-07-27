@@ -27,7 +27,6 @@
  * the silent-empty divergence this class exists to prevent.
  */
 public with sharing class RLM_AI_AttributeResolver {
-
     /** One attribute on a line, merged from classification + materialized value. */
     public class ResolvedAttribute {
         public Id attributeDefinitionId;
@@ -36,10 +35,10 @@ public with sharing class RLM_AI_AttributeResolver {
         public String dataType;
         public Boolean isRequired;
         public Boolean isPriceImpacting;
-        public List<String> picklistValues;   // empty for non-picklist types
-        public String currentValue;            // null when not set on the line
-        public Boolean isOnClassification;     // part of the definable set
-        public Boolean isOnLine;               // materialized on the line
+        public List<String> picklistValues; // empty for non-picklist types
+        public String currentValue; // null when not set on the line
+        public Boolean isOnClassification; // part of the definable set
+        public Boolean isOnLine; // materialized on the line
     }
 
     /** Result of resolving a single quote line. */
@@ -88,24 +87,23 @@ public with sharing class RLM_AI_AttributeResolver {
 
         // Definable set: the active, editable, visible attributes for the
         // product's classification. Empty when the product has no classification.
-        Map<Id, ProductClassificationAttr> classByAttrDefId =
-            new Map<Id, ProductClassificationAttr>();
+        Map<Id, ProductClassificationAttr> classByAttrDefId = new Map<Id, ProductClassificationAttr>();
         if (classificationId != null) {
             for (ProductClassificationAttr pca : [
                 SELECT AttributeDefinitionId, IsRequired, IsPriceImpacting
                 FROM ProductClassificationAttr
-                WHERE ProductClassificationId = :classificationId
-                  AND Status = 'Active'
-                  AND IsReadOnly = false
-                  AND IsHidden = false
+                WHERE
+                    ProductClassificationId = :classificationId
+                    AND Status = 'Active'
+                    AND IsReadOnly = FALSE
+                    AND IsHidden = FALSE
             ]) {
                 classByAttrDefId.put(pca.AttributeDefinitionId, pca);
             }
         }
 
         // Materialized values: what is currently set on the line.
-        Map<Id, QuoteLineItemAttribute> lineByAttrDefId =
-            new Map<Id, QuoteLineItemAttribute>();
+        Map<Id, QuoteLineItemAttribute> lineByAttrDefId = new Map<Id, QuoteLineItemAttribute>();
         for (QuoteLineItemAttribute qlia : [
             SELECT AttributeName, AttributeValue, IsPriceImpacting, AttributeDefinitionId
             FROM QuoteLineItemAttribute
@@ -125,11 +123,13 @@ public with sharing class RLM_AI_AttributeResolver {
             return res;
         }
 
-        Map<Id, AttributeDefinition> defs = new Map<Id, AttributeDefinition>([
-            SELECT Id, Name, DeveloperName, DataType, PicklistId
-            FROM AttributeDefinition
-            WHERE Id IN :attrDefIds
-        ]);
+        Map<Id, AttributeDefinition> defs = new Map<Id, AttributeDefinition>(
+            [
+                SELECT Id, Name, DeveloperName, DataType, PicklistId
+                FROM AttributeDefinition
+                WHERE Id IN :attrDefIds
+            ]
+        );
 
         // Picklist values for any picklist-typed attribute, one query for all.
         Set<Id> picklistIds = new Set<Id>();
@@ -149,9 +149,7 @@ public with sharing class RLM_AI_AttributeResolver {
                 if (!valuesByPicklist.containsKey(pv.PicklistId)) {
                     valuesByPicklist.put(pv.PicklistId, new List<String>());
                 }
-                valuesByPicklist.get(pv.PicklistId).add(
-                    String.isNotBlank(pv.Name) ? pv.Name : pv.Code
-                );
+                valuesByPicklist.get(pv.PicklistId).add(String.isNotBlank(pv.Name) ? pv.Name : pv.Code);
             }
         }
 
@@ -166,9 +164,7 @@ public with sharing class RLM_AI_AttributeResolver {
 
             ResolvedAttribute ra = new ResolvedAttribute();
             ra.attributeDefinitionId = ad.Id;
-            ra.name = String.isNotBlank(ad.Name)
-                ? ad.Name
-                : (qlia != null ? qlia.AttributeName : null);
+            ra.name = String.isNotBlank(ad.Name) ? ad.Name : (qlia != null ? qlia.AttributeName : null);
             ra.developerName = ad.DeveloperName;
             ra.dataType = ad.DataType;
             ra.isOnClassification = (pca != null);
@@ -179,8 +175,9 @@ public with sharing class RLM_AI_AttributeResolver {
                 ? (pca.IsPriceImpacting == true)
                 : (qlia != null && qlia.IsPriceImpacting == true);
             ra.currentValue = (qlia != null) ? qlia.AttributeValue : null;
-            ra.picklistValues = (ad.DataType == 'Picklist' && ad.PicklistId != null
-                    && valuesByPicklist.containsKey(ad.PicklistId))
+            ra.picklistValues = (ad.DataType == 'Picklist' &&
+                ad.PicklistId != null &&
+                valuesByPicklist.containsKey(ad.PicklistId))
                 ? valuesByPicklist.get(ad.PicklistId)
                 : new List<String>();
 
@@ -199,17 +196,16 @@ public with sharing class RLM_AI_AttributeResolver {
         if (attributes != null) {
             for (ResolvedAttribute ra : attributes) {
                 Map<String, Object> entry = new Map<String, Object>{
-                    'name'             => ra.name,
-                    'developerName'    => ra.developerName,
-                    'dataType'         => ra.dataType,
-                    'isRequired'       => ra.isRequired,
+                    'name' => ra.name,
+                    'developerName' => ra.developerName,
+                    'dataType' => ra.dataType,
+                    'isRequired' => ra.isRequired,
                     'isPriceImpacting' => ra.isPriceImpacting,
-                    'attributeId'      => ra.attributeDefinitionId,
-                    'currentValue'     => ra.currentValue
+                    'attributeId' => ra.attributeDefinitionId,
+                    'currentValue' => ra.currentValue
                 };
                 if (ra.dataType == 'Picklist') {
-                    entry.put('picklistValues',
-                        ra.picklistValues != null ? ra.picklistValues : new List<String>());
+                    entry.put('picklistValues', ra.picklistValues != null ? ra.picklistValues : new List<String>());
                 }
                 rows.add(entry);
             }
@@ -221,7 +217,8 @@ public with sharing class RLM_AI_AttributeResolver {
         public Integer compare(AttributeDefinition a, AttributeDefinition b) {
             String na = a != null && a.Name != null ? a.Name.toLowerCase() : '';
             String nb = b != null && b.Name != null ? b.Name.toLowerCase() : '';
-            if (na == nb) return 0;
+            if (na == nb)
+                return 0;
             return na < nb ? -1 : 1;
         }
     }

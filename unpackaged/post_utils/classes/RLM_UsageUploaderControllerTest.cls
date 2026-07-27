@@ -6,7 +6,6 @@
  */
 @IsTest
 private class RLM_UsageUploaderControllerTest {
-
     /**
      * Creates test data: Account, Product, UoM, UsageResource, ProductUsageResource, Asset
      */
@@ -17,11 +16,7 @@ private class RLM_UsageUploaderControllerTest {
         insert acc;
 
         // Product — must have UsageModelType for ProductUsageResource linkage
-        Product2 prod = new Product2(
-            Name = 'Test Usage Product',
-            IsActive = true,
-            UsageModelType = 'Anchor'
-        );
+        Product2 prod = new Product2(Name = 'Test Usage Product', IsActive = true, UsageModelType = 'Anchor');
         insert prod;
 
         // Unit of Measure Class — must be created in Draft, then activated
@@ -73,11 +68,7 @@ private class RLM_UsageUploaderControllerTest {
         update pur;
 
         // Asset
-        Asset ast = new Asset(
-            Name = 'Test Usage Asset',
-            AccountId = acc.Id,
-            Product2Id = prod.Id
-        );
+        Asset ast = new Asset(Name = 'Test Usage Asset', AccountId = acc.Id, Product2Id = prod.Id);
         insert ast;
     }
 
@@ -98,8 +89,9 @@ private class RLM_UsageUploaderControllerTest {
         Asset ast = getTestAsset();
 
         Test.startTest();
-        List<RLM_UsageUploaderController.UsageResourceWrapper> resources =
-            RLM_UsageUploaderController.getUsageResourcesForAsset(ast.Id);
+        List<RLM_UsageUploaderController.UsageResourceWrapper> resources = RLM_UsageUploaderController.getUsageResourcesForAsset(
+            ast.Id
+        );
         Test.stopTest();
 
         System.assertEquals(1, resources.size(), 'Should return 1 usage resource');
@@ -148,20 +140,21 @@ private class RLM_UsageUploaderControllerTest {
         UsageResource ur = getTestUsageResource();
 
         Test.startTest();
-        Id journalId = RLM_UsageUploaderController.uploadUsage(
-            ast.Id,
-            ur.Id,
-            150.0,
-            Date.today(),
-            null
-        );
+        Id journalId = RLM_UsageUploaderController.uploadUsage(ast.Id, ur.Id, 150.0, Date.today(), null);
         Test.stopTest();
 
         System.assertNotEquals(null, journalId, 'Should return a journal ID');
 
         TransactionJournal tj = [
-            SELECT Id, ReferenceRecordId, UsageResourceId, Quantity,
-                   ActivityDate, Status, UsageType, QuantityUnitOfMeasureId
+            SELECT
+                Id,
+                ReferenceRecordId,
+                UsageResourceId,
+                Quantity,
+                ActivityDate,
+                Status,
+                UsageType,
+                QuantityUnitOfMeasureId
             FROM TransactionJournal
             WHERE Id = :journalId
         ];
@@ -184,9 +177,7 @@ private class RLM_UsageUploaderControllerTest {
         UsageResource ur = getTestUsageResource();
 
         Test.startTest();
-        Id journalId = RLM_UsageUploaderController.uploadUsage(
-            ast.Id, ur.Id, 50.0, Date.today(), null
-        );
+        Id journalId = RLM_UsageUploaderController.uploadUsage(ast.Id, ur.Id, 50.0, Date.today(), null);
         Test.stopTest();
 
         System.assertNotEquals(null, journalId, 'Should create journal');
@@ -211,16 +202,15 @@ private class RLM_UsageUploaderControllerTest {
         update uom2;
 
         Test.startTest();
-        Id journalId = RLM_UsageUploaderController.uploadUsage(
-            ast.Id, ur.Id, 1024.0, Date.today(), uom2.Id
-        );
+        Id journalId = RLM_UsageUploaderController.uploadUsage(ast.Id, ur.Id, 1024.0, Date.today(), uom2.Id);
         Test.stopTest();
 
-        TransactionJournal tj = [
-            SELECT QuantityUnitOfMeasureId FROM TransactionJournal WHERE Id = :journalId
-        ];
-        System.assertEquals(uom2.Id, tj.QuantityUnitOfMeasureId,
-            'Should use the explicitly provided UoM, not the default');
+        TransactionJournal tj = [SELECT QuantityUnitOfMeasureId FROM TransactionJournal WHERE Id = :journalId];
+        System.assertEquals(
+            uom2.Id,
+            tj.QuantityUnitOfMeasureId,
+            'Should use the explicitly provided UoM, not the default'
+        );
     }
 
     // ─── validateUsageEntries Tests ─────────────────────────────────────
@@ -237,8 +227,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e);
 
         Test.startTest();
-        List<RLM_UsageUploaderController.ValidationResult> results =
-            RLM_UsageUploaderController.validateUsageEntries(ast.Id, entries);
+        List<RLM_UsageUploaderController.ValidationResult> results = RLM_UsageUploaderController.validateUsageEntries(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size());
@@ -258,8 +250,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e);
 
         Test.startTest();
-        List<RLM_UsageUploaderController.ValidationResult> results =
-            RLM_UsageUploaderController.validateUsageEntries(ast.Id, entries);
+        List<RLM_UsageUploaderController.ValidationResult> results = RLM_UsageUploaderController.validateUsageEntries(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(false, results[0].isValid);
@@ -278,8 +272,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e);
 
         Test.startTest();
-        List<RLM_UsageUploaderController.ValidationResult> results =
-            RLM_UsageUploaderController.validateUsageEntries(ast.Id, entries);
+        List<RLM_UsageUploaderController.ValidationResult> results = RLM_UsageUploaderController.validateUsageEntries(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(false, results[0].isValid);
@@ -298,8 +294,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e);
 
         Test.startTest();
-        List<RLM_UsageUploaderController.ValidationResult> results =
-            RLM_UsageUploaderController.validateUsageEntries(ast.Id, entries);
+        List<RLM_UsageUploaderController.ValidationResult> results = RLM_UsageUploaderController.validateUsageEntries(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(false, results[0].isValid);
@@ -336,8 +334,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e3);
 
         Test.startTest();
-        RLM_UsageUploaderController.BulkUploadResult result =
-            RLM_UsageUploaderController.bulkUploadUsage(ast.Id, entries);
+        RLM_UsageUploaderController.BulkUploadResult result = RLM_UsageUploaderController.bulkUploadUsage(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(2, result.successCount, 'Should have 2 successful inserts');
@@ -353,8 +353,7 @@ private class RLM_UsageUploaderControllerTest {
         Asset ast = getTestAsset();
 
         Test.startTest();
-        List<RLM_UsageUploaderController.RateInfoWrapper> rates =
-            RLM_UsageUploaderController.getRatesForAsset(ast.Id);
+        List<RLM_UsageUploaderController.RateInfoWrapper> rates = RLM_UsageUploaderController.getRatesForAsset(ast.Id);
         Test.stopTest();
 
         System.assertEquals(0, rates.size(), 'Asset without rate card entries should return empty list');
@@ -417,8 +416,7 @@ private class RLM_UsageUploaderControllerTest {
         insert arce;
 
         Test.startTest();
-        List<RLM_UsageUploaderController.RateInfoWrapper> rates =
-            RLM_UsageUploaderController.getRatesForAsset(ast.Id);
+        List<RLM_UsageUploaderController.RateInfoWrapper> rates = RLM_UsageUploaderController.getRatesForAsset(ast.Id);
         Test.stopTest();
 
         System.assertEquals(1, rates.size(), 'Should return 1 rate entry');
@@ -434,8 +432,9 @@ private class RLM_UsageUploaderControllerTest {
         Asset ast = getTestAsset();
 
         Test.startTest();
-        List<RLM_UsageUploaderController.GrantInfoWrapper> grants =
-            RLM_UsageUploaderController.getGrantsForAsset(ast.Id);
+        List<RLM_UsageUploaderController.GrantInfoWrapper> grants = RLM_UsageUploaderController.getGrantsForAsset(
+            ast.Id
+        );
         Test.stopTest();
 
         System.assertEquals(0, grants.size(), 'Asset without entitlements should return empty list');
@@ -514,8 +513,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e1);
 
         Test.startTest();
-        RLM_UsageUploaderController.BulkUploadResult result =
-            RLM_UsageUploaderController.bulkUploadUsage(ast.Id, entries);
+        RLM_UsageUploaderController.BulkUploadResult result = RLM_UsageUploaderController.bulkUploadUsage(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(1, result.successCount);
@@ -535,8 +536,10 @@ private class RLM_UsageUploaderControllerTest {
         entries.add(e);
 
         Test.startTest();
-        List<RLM_UsageUploaderController.ValidationResult> results =
-            RLM_UsageUploaderController.validateUsageEntries(ast.Id, entries);
+        List<RLM_UsageUploaderController.ValidationResult> results = RLM_UsageUploaderController.validateUsageEntries(
+            ast.Id,
+            entries
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size());

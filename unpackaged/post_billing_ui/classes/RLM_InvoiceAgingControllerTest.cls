@@ -1,11 +1,9 @@
 @isTest
 private class RLM_InvoiceAgingControllerTest {
-
     @isTest
     static void getInvoiceAgingData_nullAccount_returnsEmptyData() {
         Test.startTest();
-        RLM_InvoiceAgingController.InvoiceAgingData data =
-            RLM_InvoiceAgingController.getInvoiceAgingData(null);
+        RLM_InvoiceAgingController.InvoiceAgingData data = RLM_InvoiceAgingController.getInvoiceAgingData(null);
         Test.stopTest();
         System.assertNotEquals(null, data, 'A non-null aging wrapper should always be returned.');
         System.assertEquals(0, data.totalInvoices, 'A null account id short-circuits to zero invoices.');
@@ -20,8 +18,7 @@ private class RLM_InvoiceAgingControllerTest {
 
         Test.startTest();
         try {
-            RLM_InvoiceAgingController.InvoiceAgingData data =
-                RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
+            RLM_InvoiceAgingController.InvoiceAgingData data = RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
             System.assertNotEquals(null, data, 'A non-null aging wrapper should be returned.');
             System.assertEquals(0, data.totalInvoices, 'No posted invoices -> zero count.');
         } catch (AuraHandledException e) {

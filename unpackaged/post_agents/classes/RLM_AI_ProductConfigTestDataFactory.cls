@@ -20,10 +20,7 @@ public class RLM_AI_ProductConfigTestDataFactory {
 
         Id standardPbId = Test.getStandardPricebookId();
 
-        Product2 product = new Product2(
-            Name = productName,
-            IsActive = true
-        );
+        Product2 product = new Product2(Name = productName, IsActive = true);
         insert product;
 
         PricebookEntry pbe = new PricebookEntry(
@@ -42,12 +39,7 @@ public class RLM_AI_ProductConfigTestDataFactory {
         );
         insert q;
 
-        QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = q.Id,
-            PricebookEntryId = pbe.Id,
-            Quantity = 1,
-            UnitPrice = 100
-        );
+        QuoteLineItem qli = new QuoteLineItem(QuoteId = q.Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = 100);
         insert qli;
 
         QuoteFixture fixture = new QuoteFixture();

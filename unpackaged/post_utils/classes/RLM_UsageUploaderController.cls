@@ -9,7 +9,6 @@
  *  - Validate usage entries before committing
  */
 public with sharing class RLM_UsageUploaderController {
-
     // ─── Constants ──────────────────────────────────────────────────────
 
     private static final String USAGE_TYPE_MANAGEMENT = 'UsageManagement';
@@ -18,85 +17,140 @@ public with sharing class RLM_UsageUploaderController {
     // ─── Inner Classes (Wrappers) ───────────────────────────────────────
 
     public class UsageResourceWrapper {
-        @AuraEnabled public Id resourceId;
-        @AuraEnabled public String resourceName;
-        @AuraEnabled public String unitOfMeasureName;
-        @AuraEnabled public String unitOfMeasureCode;
-        @AuraEnabled public Id unitOfMeasureId;
-        @AuraEnabled public Id unitOfMeasureClassId;
-        @AuraEnabled public List<UomOption> availableUoms;
+        @AuraEnabled
+        public Id resourceId;
+        @AuraEnabled
+        public String resourceName;
+        @AuraEnabled
+        public String unitOfMeasureName;
+        @AuraEnabled
+        public String unitOfMeasureCode;
+        @AuraEnabled
+        public Id unitOfMeasureId;
+        @AuraEnabled
+        public Id unitOfMeasureClassId;
+        @AuraEnabled
+        public List<UomOption> availableUoms;
     }
 
     public class UomOption {
-        @AuraEnabled public Id uomId;
-        @AuraEnabled public String uomName;
-        @AuraEnabled public String uomCode;
+        @AuraEnabled
+        public Id uomId;
+        @AuraEnabled
+        public String uomName;
+        @AuraEnabled
+        public String uomCode;
     }
 
     public class UsageEntry {
-        @AuraEnabled public Id usageResourceId { get; set; }
-        @AuraEnabled public String usageResourceName { get; set; }
-        @AuraEnabled public Decimal quantity { get; set; }
-        @AuraEnabled public Date transactionDate { get; set; }
+        @AuraEnabled
+        public Id usageResourceId { get; set; }
+        @AuraEnabled
+        public String usageResourceName { get; set; }
+        @AuraEnabled
+        public Decimal quantity { get; set; }
+        @AuraEnabled
+        public Date transactionDate { get; set; }
     }
 
     public class BulkUploadResult {
-        @AuraEnabled public Integer successCount;
-        @AuraEnabled public Integer errorCount;
-        @AuraEnabled public List<Id> journalIds;
-        @AuraEnabled public List<String> errors;
+        @AuraEnabled
+        public Integer successCount;
+        @AuraEnabled
+        public Integer errorCount;
+        @AuraEnabled
+        public List<Id> journalIds;
+        @AuraEnabled
+        public List<String> errors;
     }
 
     public class ValidationResult {
-        @AuraEnabled public Integer rowIndex;
-        @AuraEnabled public Boolean isValid;
-        @AuraEnabled public String errorMessage;
-        @AuraEnabled public Id resolvedResourceId;
-        @AuraEnabled public Id resolvedUnitOfMeasureId;
+        @AuraEnabled
+        public Integer rowIndex;
+        @AuraEnabled
+        public Boolean isValid;
+        @AuraEnabled
+        public String errorMessage;
+        @AuraEnabled
+        public Id resolvedResourceId;
+        @AuraEnabled
+        public Id resolvedUnitOfMeasureId;
     }
 
     public class RateInfoWrapper {
-        @AuraEnabled public Id rateCardEntryId;
-        @AuraEnabled public String rateCardName;
-        @AuraEnabled public String rateCardType;     // 'Base' or 'Tier'
-        @AuraEnabled public Id usageResourceId;
-        @AuraEnabled public String usageResourceName;
-        @AuraEnabled public Decimal baseRate;
-        @AuraEnabled public Decimal negotiatedRate;
-        @AuraEnabled public String rateUomName;
-        @AuraEnabled public Datetime startDate;
-        @AuraEnabled public Datetime endDate;
-        @AuraEnabled public List<TierInfo> tiers;
+        @AuraEnabled
+        public Id rateCardEntryId;
+        @AuraEnabled
+        public String rateCardName;
+        @AuraEnabled
+        public String rateCardType; // 'Base' or 'Tier'
+        @AuraEnabled
+        public Id usageResourceId;
+        @AuraEnabled
+        public String usageResourceName;
+        @AuraEnabled
+        public Decimal baseRate;
+        @AuraEnabled
+        public Decimal negotiatedRate;
+        @AuraEnabled
+        public String rateUomName;
+        @AuraEnabled
+        public Datetime startDate;
+        @AuraEnabled
+        public Datetime endDate;
+        @AuraEnabled
+        public List<TierInfo> tiers;
     }
 
     public class TierInfo {
-        @AuraEnabled public Decimal lowerBound;
-        @AuraEnabled public Decimal upperBound;
-        @AuraEnabled public String adjustmentType;
-        @AuraEnabled public Decimal adjustmentValue;
-        @AuraEnabled public String rateUomName;
+        @AuraEnabled
+        public Decimal lowerBound;
+        @AuraEnabled
+        public Decimal upperBound;
+        @AuraEnabled
+        public String adjustmentType;
+        @AuraEnabled
+        public Decimal adjustmentValue;
+        @AuraEnabled
+        public String rateUomName;
     }
 
     public class GrantInfoWrapper {
-        @AuraEnabled public Id entitlementId;
-        @AuraEnabled public String entitlementName;
-        @AuraEnabled public Id usageResourceId;
-        @AuraEnabled public String usageResourceName;
-        @AuraEnabled public Decimal entitlementQuantity;
-        @AuraEnabled public String usageModelType;
-        @AuraEnabled public String grantType;
-        @AuraEnabled public String chargeForOverage;
-        @AuraEnabled public Datetime startDate;
-        @AuraEnabled public Datetime endDate;
-        @AuraEnabled public Decimal bucketBalance;
-        @AuraEnabled public Decimal consumedEntitlement;
-        @AuraEnabled public Decimal totalConsumedEntitlement;
+        @AuraEnabled
+        public Id entitlementId;
+        @AuraEnabled
+        public String entitlementName;
+        @AuraEnabled
+        public Id usageResourceId;
+        @AuraEnabled
+        public String usageResourceName;
+        @AuraEnabled
+        public Decimal entitlementQuantity;
+        @AuraEnabled
+        public String usageModelType;
+        @AuraEnabled
+        public String grantType;
+        @AuraEnabled
+        public String chargeForOverage;
+        @AuraEnabled
+        public Datetime startDate;
+        @AuraEnabled
+        public Datetime endDate;
+        @AuraEnabled
+        public Decimal bucketBalance;
+        @AuraEnabled
+        public Decimal consumedEntitlement;
+        @AuraEnabled
+        public Decimal totalConsumedEntitlement;
     }
 
     public class AssetOption {
-        @AuraEnabled public Id assetId;
-        @AuraEnabled public String assetName;
-        @AuraEnabled public String productName;
+        @AuraEnabled
+        public Id assetId;
+        @AuraEnabled
+        public String assetName;
+        @AuraEnabled
+        public String productName;
     }
 
     // ─── Methods ────────────────────────────────────────────────────────
@@ -112,10 +166,11 @@ public with sharing class RLM_UsageUploaderController {
         List<Asset> assets = [
             SELECT Id, Name, Product2.Name, Product2.UsageModelType
             FROM Asset
-            WHERE AccountId = :accountId
-              AND LifecycleStartDate <= TODAY
-              AND LifecycleEndDate >= TODAY
-              AND Product2.UsageModelType = 'Anchor'
+            WHERE
+                AccountId = :accountId
+                AND LifecycleStartDate <= TODAY
+                AND LifecycleEndDate >= TODAY
+                AND Product2.UsageModelType = 'Anchor'
             ORDER BY Name ASC
         ];
 
@@ -148,16 +203,16 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         List<ProductUsageResource> purList = [
-            SELECT Id,
-                   UsageResourceId,
-                   UsageResource.Name,
-                   UsageResource.DefaultUnitOfMeasureId,
-                   UsageResource.DefaultUnitOfMeasure.Name,
-                   UsageResource.DefaultUnitOfMeasure.UnitCode,
-                   UsageResource.UnitOfMeasureClassId
+            SELECT
+                Id,
+                UsageResourceId,
+                UsageResource.Name,
+                UsageResource.DefaultUnitOfMeasureId,
+                UsageResource.DefaultUnitOfMeasure.Name,
+                UsageResource.DefaultUnitOfMeasure.UnitCode,
+                UsageResource.UnitOfMeasureClassId
             FROM ProductUsageResource
-            WHERE ProductId = :ast.Product2Id
-              AND Status = 'Active'
+            WHERE ProductId = :ast.Product2Id AND Status = 'Active'
             ORDER BY UsageResource.Name ASC
         ];
 
@@ -173,8 +228,7 @@ public with sharing class RLM_UsageUploaderController {
             for (UnitOfMeasure uom : [
                 SELECT Id, Name, UnitCode, UnitOfMeasureClassId
                 FROM UnitOfMeasure
-                WHERE UnitOfMeasureClassId IN :uomClassIds
-                  AND Status = 'Active'
+                WHERE UnitOfMeasureClassId IN :uomClassIds AND Status = 'Active'
                 ORDER BY Name ASC
             ]) {
                 if (!uomsByClass.containsKey(uom.UnitOfMeasureClassId)) {
@@ -245,8 +299,7 @@ public with sharing class RLM_UsageUploaderController {
             List<UnitOfMeasure> candidates = [
                 SELECT Id, Status, UnitOfMeasureClassId
                 FROM UnitOfMeasure
-                WHERE Id = :unitOfMeasureId
-                  AND UnitOfMeasureClassId = :ur.UnitOfMeasureClassId
+                WHERE Id = :unitOfMeasureId AND UnitOfMeasureClassId = :ur.UnitOfMeasureClassId
                 LIMIT 1
             ];
             if (candidates.isEmpty() || candidates[0].Status != 'Active') {
@@ -415,10 +468,7 @@ public with sharing class RLM_UsageUploaderController {
                 throw new AuraHandledException('You do not have permission to create usage records.');
             }
 
-            SObjectAccessDecision accessDecision = Security.stripInaccessible(
-                AccessType.CREATABLE,
-                toInsert
-            );
+            SObjectAccessDecision accessDecision = Security.stripInaccessible(AccessType.CREATABLE, toInsert);
             List<TransactionJournal> sanitized = (List<TransactionJournal>) accessDecision.getRecords();
             Database.SaveResult[] saveResults = Database.insert(sanitized, false);
             for (Integer i = 0; i < saveResults.size(); i++) {
@@ -451,19 +501,20 @@ public with sharing class RLM_UsageUploaderController {
     @AuraEnabled(cacheable=true)
     public static List<RateInfoWrapper> getRatesForAsset(Id assetId) {
         List<AssetRateCardEntry> arces = [
-            SELECT Id,
-                   AssetId,
-                   UsageResourceId,
-                   NegotiatedRate,
-                   RateCardEntryId,
-                   RateCardEntry.Rate,
-                   RateCardEntry.RateUnitOfMeasureName,
-                   RateCardEntry.RateCardType,
-                   RateCardId,
-                   RateCard.Name,
-                   StartDate,
-                   EndDate,
-                   RateUnitOfMeasureId
+            SELECT
+                Id,
+                AssetId,
+                UsageResourceId,
+                NegotiatedRate,
+                RateCardEntryId,
+                RateCardEntry.Rate,
+                RateCardEntry.RateUnitOfMeasureName,
+                RateCardEntry.RateCardType,
+                RateCardId,
+                RateCard.Name,
+                StartDate,
+                EndDate,
+                RateUnitOfMeasureId
             FROM AssetRateCardEntry
             WHERE AssetId = :assetId
             ORDER BY UsageResourceId, RateCard.Name ASC
@@ -484,8 +535,7 @@ public with sharing class RLM_UsageUploaderController {
         // Query tier adjustments for these rate card entries
         Map<Id, List<RateAdjustmentByTier>> tiersByRce = new Map<Id, List<RateAdjustmentByTier>>();
         for (RateAdjustmentByTier rat : [
-            SELECT Id, RateCardEntryId, AdjustmentType, AdjustmentValue,
-                   LowerBound, UpperBound, RateUnitOfMeasureName
+            SELECT Id, RateCardEntryId, AdjustmentType, AdjustmentValue, LowerBound, UpperBound, RateUnitOfMeasureName
             FROM RateAdjustmentByTier
             WHERE RateCardEntryId IN :rceIds
             ORDER BY LowerBound ASC
@@ -498,9 +548,7 @@ public with sharing class RLM_UsageUploaderController {
 
         // Query Usage Resource names
         Map<Id, String> resourceNames = new Map<Id, String>();
-        for (UsageResource ur : [
-            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds
-        ]) {
+        for (UsageResource ur : [SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds]) {
             resourceNames.put(ur.Id, ur.Name);
         }
 
@@ -550,18 +598,19 @@ public with sharing class RLM_UsageUploaderController {
     @AuraEnabled(cacheable=true)
     public static List<GrantInfoWrapper> getGrantsForAsset(Id assetId) {
         List<TransactionUsageEntitlement> tues = [
-            SELECT Id,
-                   Name,
-                   AssetId,
-                   UsageResourceId,
-                   EntitlementQuantity,
-                   TransactionQuantity,
-                   NetQuantity,
-                   ChargeForOverage,
-                   EffectiveStartDateTime,
-                   EffectiveEndDateTime,
-                   UsageModelType,
-                   GrantType
+            SELECT
+                Id,
+                Name,
+                AssetId,
+                UsageResourceId,
+                EntitlementQuantity,
+                TransactionQuantity,
+                NetQuantity,
+                ChargeForOverage,
+                EffectiveStartDateTime,
+                EffectiveEndDateTime,
+                UsageModelType,
+                GrantType
             FROM TransactionUsageEntitlement
             WHERE AssetId = :assetId
             ORDER BY UsageResourceId ASC
@@ -581,9 +630,7 @@ public with sharing class RLM_UsageUploaderController {
 
         // Query Usage Resource names
         Map<Id, String> resourceNames = new Map<Id, String>();
-        for (UsageResource ur : [
-            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds
-        ]) {
+        for (UsageResource ur : [SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds]) {
             resourceNames.put(ur.Id, ur.Name);
         }
 
@@ -591,12 +638,16 @@ public with sharing class RLM_UsageUploaderController {
         // These contain the actual balance and consumption for the current period
         Map<Id, UsageEntitlementBucket> currentBucketByTue = new Map<Id, UsageEntitlementBucket>();
         for (UsageEntitlementBucket ueb : [
-            SELECT Id, TransactionUsageEntitlementId, BucketBalance,
-                   ConsumedEntitlement, TotalConsumedEntitlement,
-                   EffectiveStartDateTime, EffectiveEndDateTime
+            SELECT
+                Id,
+                TransactionUsageEntitlementId,
+                BucketBalance,
+                ConsumedEntitlement,
+                TotalConsumedEntitlement,
+                EffectiveStartDateTime,
+                EffectiveEndDateTime
             FROM UsageEntitlementBucket
-            WHERE TransactionUsageEntitlementId IN :tueIds
-              AND ParentId != null
+            WHERE TransactionUsageEntitlementId IN :tueIds AND ParentId != NULL
             ORDER BY EffectiveStartDateTime DESC
         ]) {
             // Keep only the most recent period bucket per TUE
@@ -625,7 +676,9 @@ public with sharing class RLM_UsageUploaderController {
             if (bucket != null) {
                 w.bucketBalance = bucket.BucketBalance;
                 w.consumedEntitlement = bucket.ConsumedEntitlement != null ? bucket.ConsumedEntitlement : 0;
-                w.totalConsumedEntitlement = bucket.TotalConsumedEntitlement != null ? bucket.TotalConsumedEntitlement : 0;
+                w.totalConsumedEntitlement = bucket.TotalConsumedEntitlement != null
+                    ? bucket.TotalConsumedEntitlement
+                    : 0;
             }
 
             wrappers.add(w);

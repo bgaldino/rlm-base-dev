@@ -122,15 +122,19 @@
  * A table whose source cannot be read is UNKNOWN, never FRESH.
  */
 public with sharing class RLM_DecisionTableManagerController {
-
-    @TestVisible private static final String BULK_REFRESH_FLOW = 'RLM_Refresh_Decision_Tables_Bulk';
+    @TestVisible
+    private static final String BULK_REFRESH_FLOW = 'RLM_Refresh_Decision_Tables_Bulk';
 
     // Staleness verdicts. Anything that is not a positive, computed comparison is
     // one of the two non-committal values — never FRESH by default.
-    @TestVisible private static final String STALENESS_FRESH = 'Fresh';
-    @TestVisible private static final String STALENESS_STALE = 'Stale';
-    @TestVisible private static final String STALENESS_UNCOMPUTED = 'Not comparable';
-    @TestVisible private static final String STALENESS_UNKNOWN = 'Unknown';
+    @TestVisible
+    private static final String STALENESS_FRESH = 'Fresh';
+    @TestVisible
+    private static final String STALENESS_STALE = 'Stale';
+    @TestVisible
+    private static final String STALENESS_UNCOMPUTED = 'Not comparable';
+    @TestVisible
+    private static final String STALENESS_UNKNOWN = 'Unknown';
 
     // Freshness costs one aggregate query per DISTINCT probe, and probes are registered
     // in more than one place — every `probesByKey.put` site in getDecisionTables is a
@@ -146,20 +150,22 @@ public with sharing class RLM_DecisionTableManagerController {
     // ⚠ A filtered probe and its disambiguator are NOT kept together by this cap —
     // either can be the one that gets dropped. applyEmptySourceVerdict handles the
     // split honestly rather than assuming the partner ran.
-    @TestVisible private static final Integer MAX_SOURCE_QUERIES = 70;
+    @TestVisible
+    private static final Integer MAX_SOURCE_QUERIES = 70;
 
     // DataSourceType values whose rows do NOT come from an sObject, so comparing
     // LastSyncDate against a source object's newest change is meaningless for them.
     // A CsvUpload table is refreshed by uploading a file — UploadStatus is its real
     // signal — and a ContextDefinition table is fed by Context Service.
-    @TestVisible private static final Set<String> NON_SOBJECT_SOURCE_TYPES =
-        new Set<String>{ 'CsvUpload', 'ContextDefinition' };
+    @TestVisible
+    private static final Set<String> NON_SOBJECT_SOURCE_TYPES = new Set<String>{ 'CsvUpload', 'ContextDefinition' };
 
     // The only ValueType whose Value is a literal that can be bound as-is. Parameter,
     // Formula and Lookup resolve at runtime, and Picklist is not the same thing as a
     // literal picklist value — the platform stamps Literal for those (measured on
     // IndexRate.UsageType, a picklist field, whose criterion is ValueType=Literal).
-    @TestVisible private static final String VALUE_TYPE_LITERAL = 'Literal';
+    @TestVisible
+    private static final String VALUE_TYPE_LITERAL = 'Literal';
 
     /**
      * The timestamp every probe measures. A platform constant, never stored text — it
@@ -184,13 +190,14 @@ public with sharing class RLM_DecisionTableManagerController {
      * view stamps live outside the record's own modification tracking, so those guards
      * stay.
      */
-    @TestVisible private static final String WITNESS_FIELD = 'SystemModstamp';
+    @TestVisible
+    private static final String WITNESS_FIELD = 'SystemModstamp';
 
     // ⚠ Says what is actually true of BOTH kinds movesWithoutARecordEdit catches. It
     // once said "a formula", which was a guess about which kind had been found — and
     // wrong for every platform-maintained field, where there is no formula at all.
-    @TestVisible private static final String UNWATCHABLE_FIELD =
-        'can change without its record being edited, so no timestamp here moves with it';
+    @TestVisible
+    private static final String UNWATCHABLE_FIELD = 'can change without its record being edited, so no timestamp here moves with it';
 
     /**
      * Fields the PLATFORM maintains whose value moves without the record being edited,
@@ -211,8 +218,10 @@ public with sharing class RLM_DecisionTableManagerController {
      *     change that LastModifiedDate could not see.)
      *   - SystemModstamp itself: witnessed by construction — REMOVED.
      */
-    @TestVisible private static final Set<String> PLATFORM_MAINTAINED_FIELDS = new Set<String>{
-        'lastvieweddate', 'lastreferenceddate'
+    @TestVisible
+    private static final Set<String> PLATFORM_MAINTAINED_FIELDS = new Set<String>{
+        'lastvieweddate',
+        'lastreferenceddate'
     };
 
     /**
@@ -242,9 +251,8 @@ public with sharing class RLM_DecisionTableManagerController {
      *   — sforce_api_objects_assetratecardentry. Both inputs (BindingObjectId, the
      *   related asset) are fields on the AssetRateCardEntry row itself.
      */
-    @TestVisible private static final Set<String> OWN_RECORD_FORMULAS = new Set<String>{
-        'assetratecardentry.bindingobjectformula'
-    };
+    @TestVisible
+    private static final Set<String> OWN_RECORD_FORMULAS = new Set<String>{ 'assetratecardentry.bindingobjectformula' };
 
     // Operator values with an unambiguous SOQL equivalent. The picklist also offers
     // Matches, DoesNotMatch, Contains, ExistsIn and DoesNotExistIn; those are left
@@ -252,7 +260,8 @@ public with sharing class RLM_DecisionTableManagerController {
     // escaping, list delimiter, case sensitivity) are not established here, and a
     // guessed translation produces a confident wrong verdict. A table using one is
     // refused by name so it is obvious what to add.
-    @TestVisible private static final Map<String, String> SOQL_OPERATORS = new Map<String, String>{
+    @TestVisible
+    private static final Map<String, String> SOQL_OPERATORS = new Map<String, String>{
         'Equals' => '=',
         'NotEquals' => '!=',
         'GreaterThan' => '>',
@@ -268,12 +277,17 @@ public with sharing class RLM_DecisionTableManagerController {
     // silently disagree is the same hazard that keeps MULTIPICKLIST out of the type
     // list and Contains/Matches out of the operator map, so these are allowed only on
     // types with one unambiguous ordering.
-    @TestVisible private static final Set<String> ORDERING_OPERATORS = new Set<String>{
-        'GreaterThan', 'GreaterOrEqual', 'LessThan', 'LessOrEqual'
+    @TestVisible
+    private static final Set<String> ORDERING_OPERATORS = new Set<String>{
+        'GreaterThan',
+        'GreaterOrEqual',
+        'LessThan',
+        'LessOrEqual'
     };
 
     // Operators that compare against null and therefore take no bind variable.
-    @TestVisible private static final Map<String, String> NULL_OPERATORS = new Map<String, String>{
+    @TestVisible
+    private static final Map<String, String> NULL_OPERATORS = new Map<String, String>{
         'IsNull' => '=',
         'IsNotNull' => '!='
     };
@@ -284,18 +298,25 @@ public with sharing class RLM_DecisionTableManagerController {
     // decision-table engine. TEXTAREA, ENCRYPTEDSTRING and the rest are excluded
     // because they are not reliably filterable.
     private static final Set<Schema.DisplayType> TEXT_FIELD_TYPES = new Set<Schema.DisplayType>{
-        Schema.DisplayType.STRING, Schema.DisplayType.PICKLIST, Schema.DisplayType.EMAIL,
-        Schema.DisplayType.PHONE, Schema.DisplayType.URL, Schema.DisplayType.COMBOBOX
+        Schema.DisplayType.STRING,
+        Schema.DisplayType.PICKLIST,
+        Schema.DisplayType.EMAIL,
+        Schema.DisplayType.PHONE,
+        Schema.DisplayType.URL,
+        Schema.DisplayType.COMBOBOX
     };
     // ⚠ NOT text, though they look it. Binding a raw String to an Id field is a repo
     // DO NOT (.cursor/rules/apex-classes.mdc) and turns a malformed criterion into a
     // query-time exception — which this class would report as Unknown, when it should
     // have been a controlled refusal at translation. Coerced through Id.valueOf below.
     private static final Set<Schema.DisplayType> ID_FIELD_TYPES = new Set<Schema.DisplayType>{
-        Schema.DisplayType.ID, Schema.DisplayType.REFERENCE
+        Schema.DisplayType.ID,
+        Schema.DisplayType.REFERENCE
     };
     private static final Set<Schema.DisplayType> NUMBER_FIELD_TYPES = new Set<Schema.DisplayType>{
-        Schema.DisplayType.INTEGER, Schema.DisplayType.LONG, Schema.DisplayType.DOUBLE,
+        Schema.DisplayType.INTEGER,
+        Schema.DisplayType.LONG,
+        Schema.DisplayType.DOUBLE,
         Schema.DisplayType.PERCENT
     };
 
@@ -303,8 +324,10 @@ public with sharing class RLM_DecisionTableManagerController {
     // is translated — not equality, not ordering. See translateCriterion for each one's
     // reason. Skipping widens the probe, which stays sound: both types move only when
     // their record is written.
-    private static final Set<Schema.DisplayType> UNESTABLISHED_COMPARISON_TYPES =
-        new Set<Schema.DisplayType>{ Schema.DisplayType.DATETIME, Schema.DisplayType.CURRENCY };
+    private static final Set<Schema.DisplayType> UNESTABLISHED_COMPARISON_TYPES = new Set<Schema.DisplayType>{
+        Schema.DisplayType.DATETIME,
+        Schema.DisplayType.CURRENCY
+    };
 
     /**
      * Every decision table with its sync state and, where it can be computed
@@ -319,11 +342,28 @@ public with sharing class RLM_DecisionTableManagerController {
     @AuraEnabled(cacheable=false)
     public static List<DecisionTableInfo> getDecisionTables() {
         List<DecisionTable> tables = [
-            SELECT Id, DeveloperName, SetupName, Description, SourceObject, UsageType,
-                   Status, Type, DataSourceType, ExecutionType, ConditionType,
-                   FilterResultBy, UploadStatus, IsVersioned, DataSpaceName,
-                   SourceConditionLogic, LastSyncDate, LastIncrementalSyncDate,
-                   RefreshStatus, RefreshFailureReason, IsIncrementalSyncEnabled
+            SELECT
+                Id,
+                DeveloperName,
+                SetupName,
+                Description,
+                SourceObject,
+                UsageType,
+                Status,
+                Type,
+                DataSourceType,
+                ExecutionType,
+                ConditionType,
+                FilterResultBy,
+                UploadStatus,
+                IsVersioned,
+                DataSpaceName,
+                SourceConditionLogic,
+                LastSyncDate,
+                LastIncrementalSyncDate,
+                RefreshStatus,
+                RefreshFailureReason,
+                IsIncrementalSyncEnabled
             FROM DecisionTable
             WITH USER_MODE
             ORDER BY UsageType, SetupName
@@ -342,8 +382,12 @@ public with sharing class RLM_DecisionTableManagerController {
             if (NON_SOBJECT_SOURCE_TYPES.contains(dt.DataSourceType) || String.isBlank(dt.SourceObject)) {
                 continue; // no sObject behind it; handled by its own branch below
             }
-            SourcePlan plan = planSource(dt, criteriaByTable.get(dt.Id), globalDescribe,
-                joinedObjectsByTable.get(dt.Id));
+            SourcePlan plan = planSource(
+                dt,
+                criteriaByTable.get(dt.Id),
+                globalDescribe,
+                joinedObjectsByTable.get(dt.Id)
+            );
             planByTable.put(dt.Id, plan);
             if (plan.probe != null) {
                 probesByKey.put(plan.probe.key(), plan.probe);
@@ -491,8 +535,11 @@ public with sharing class RLM_DecisionTableManagerController {
             return 'Never fully refreshed in this org.';
         }
         if (orgCreated != null && lastSyncDate < orgCreated) {
-            return 'Last full sync (' + lastSyncDate.format() + ') predates this org, created ' +
-                orgCreated.format() + '. An org spun from a template inherits the template\'s ' +
+            return 'Last full sync (' +
+                lastSyncDate.format() +
+                ') predates this org, created ' +
+                orgCreated.format() +
+                '. An org spun from a template inherits the template\'s ' +
                 'sync timestamp, so this table still holds rows built somewhere else — refresh it.';
         }
         return null;
@@ -519,7 +566,8 @@ public with sharing class RLM_DecisionTableManagerController {
             return;
         }
         info.staleness = STALENESS_UNCOMPUTED;
-        info.stalenessReason = 'Nothing visible has changed since the last sync, but this ' +
+        info.stalenessReason =
+            'Nothing visible has changed since the last sync, but this ' +
             'org\'s creation date could not be read — so a sync inherited from a template ' +
             'cannot be told apart from one that ran here, and that is exactly the case that ' +
             'reads fresh while the table holds rows built somewhere else. Grant read on ' +
@@ -539,7 +587,8 @@ public with sharing class RLM_DecisionTableManagerController {
         if (dataSourceType == 'CsvUpload') {
             return 'Rows come from an uploaded CSV, not an sObject, so there is no source to ' +
                 'compare against. Upload status: ' +
-                (String.isBlank(uploadStatus) ? 'none recorded' : uploadStatus) + '.';
+                (String.isBlank(uploadStatus) ? 'none recorded' : uploadStatus) +
+                '.';
         }
         return 'Rows come from a Context Definition, not an sObject, so there is no source to compare against.';
     }
@@ -576,8 +625,12 @@ public with sharing class RLM_DecisionTableManagerController {
             // rows" and would trip the invariant that criteriaApplied implies a
             // computed comparison.
             info.staleness = STALENESS_UNKNOWN;
-            info.stalenessReason = 'Source object ' + dt.SourceObject + ' was not read: ' +
-                (probed == null ? 'its source query was never run' : probed.failureReason) + '.';
+            info.stalenessReason =
+                'Source object ' +
+                dt.SourceObject +
+                ' was not read: ' +
+                (probed == null ? 'its source query was never run' : probed.failureReason) +
+                '.';
             return;
         }
         info.criteriaApplied = plan.filtered;
@@ -595,7 +648,10 @@ public with sharing class RLM_DecisionTableManagerController {
         if (!plan.unreproducedCriteria.isEmpty()) {
             // Say it plainly: the comparison covered more rows than the table holds, so
             // a Stale here may belong to a row the table excludes. Fresh is unaffected.
-            scope += ' ' + plan.unreproducedCriteria.size() + ' criterion(s) could not be ' +
+            scope +=
+                ' ' +
+                plan.unreproducedCriteria.size() +
+                ' criterion(s) could not be ' +
                 'reproduced, so this covers more rows than the table holds and their objects ' +
                 'are watched instead.';
         }
@@ -681,12 +737,16 @@ public with sharing class RLM_DecisionTableManagerController {
             // saying "after the last full sync" there asserts the very ordering the
             // verdict declined to claim. Conservative verdict, factually wrong reason,
             // which is the pairing this class exists to avoid.
-            info.stalenessReason = driver + ' was changed by a user or an automated ' +
-                'process at ' + newest.format() +
+            info.stalenessReason =
+                driver +
+                ' was changed by a user or an automated ' +
+                'process at ' +
+                newest.format() +
                 (dt.LastSyncDate == newest
                     ? ', the same instant as the last full sync. Nothing establishes ' +
                       'which happened first, so this is treated as stale rather than fresh.'
-                    : ', after the last full sync.') + scope;
+                    : ', after the last full sync.') +
+                scope;
         } else if (!unread.isEmpty() || plan.contributorsUnenumerable) {
             // Fresh does NOT stand: something that could have changed was not read, so
             // there is no basis for an all-clear. Two different gaps reach here — a
@@ -701,8 +761,10 @@ public with sharing class RLM_DecisionTableManagerController {
                 gaps.add('the objects this table assembles its columns from could not be listed');
             }
             info.staleness = STALENESS_UNCOMPUTED;
-            info.stalenessReason = 'Nothing readable has changed since the last sync, but ' +
-                String.join(gaps, ', and ') + ' — so freshness cannot be confirmed.';
+            info.stalenessReason =
+                'Nothing readable has changed since the last sync, but ' +
+                String.join(gaps, ', and ') +
+                ' — so freshness cannot be confirmed.';
         } else {
             info.staleness = STALENESS_FRESH;
             // ⚠ "visible" is the whole claim. Probes run USER_MODE, so this compared the
@@ -710,8 +772,11 @@ public with sharing class RLM_DecisionTableManagerController {
             // Without that word this sentence asserts org-wide quiet on the evidence of
             // one user's view, and Fresh is the verdict people act on by NOT refreshing.
             // The empty-source reasons have always been scoped; this one was not.
-            info.stalenessReason = 'The last full sync is later than the newest visible ' +
-                'change in every object this table reads.' + alsoReads + scope;
+            info.stalenessReason =
+                'The last full sync is later than the newest visible ' +
+                'change in every object this table reads.' +
+                alsoReads +
+                scope;
         }
     }
 
@@ -747,9 +812,7 @@ public with sharing class RLM_DecisionTableManagerController {
             return;
         }
 
-        ProbeResult wholeObject = plan.unfilteredProbe == null
-            ? null
-            : probeResults.get(plan.unfilteredProbe.key());
+        ProbeResult wholeObject = plan.unfilteredProbe == null ? null : probeResults.get(plan.unfilteredProbe.key());
 
         // The disambiguating probe may not have run — the query cap does not keep a
         // filtered probe and its partner together, and either can throw on its own.
@@ -758,7 +821,8 @@ public with sharing class RLM_DecisionTableManagerController {
         // method exists to fix.
         if (wholeObject == null || !wholeObject.ran) {
             info.staleness = STALENESS_UNCOMPUTED;
-            info.stalenessReason = 'No visible source rows match the reproduced criteria, and the ' +
+            info.stalenessReason =
+                'No visible source rows match the reproduced criteria, and the ' +
                 'whole-object check that would tell a genuinely empty source from a filter ' +
                 'translated too narrowly did not run (' +
                 (wholeObject == null ? 'it was never planned' : wholeObject.failureReason) +
@@ -768,13 +832,15 @@ public with sharing class RLM_DecisionTableManagerController {
 
         if (wholeObject.rowCount == 0) {
             info.staleness = STALENESS_FRESH;
-            info.stalenessReason = 'The source object holds no visible rows at all, so the criteria ' +
+            info.stalenessReason =
+                'The source object holds no visible rows at all, so the criteria ' +
                 'excluded nothing and no visible row has changed since the last sync.';
             return;
         }
 
         info.staleness = STALENESS_UNCOMPUTED;
-        info.stalenessReason = 'No visible source rows match the reproduced criteria, but the object ' +
+        info.stalenessReason =
+            'No visible source rows match the reproduced criteria, but the object ' +
             'does hold visible rows. That is either a filter that genuinely matches nothing or a ' +
             'criterion translated too narrowly, and the two cannot be told apart here — so no verdict.';
     }
@@ -835,7 +901,8 @@ public with sharing class RLM_DecisionTableManagerController {
      * would silently restore the primary-only comparison this exists to replace.
      */
     private static Map<Id, Contributors> loadJoinedObjects(
-        List<DecisionTable> tables, Map<String, SObjectType> globalDescribe
+        List<DecisionTable> tables,
+        Map<String, SObjectType> globalDescribe
     ) {
         Map<Id, Contributors> byTable = new Map<Id, Contributors>();
         if (tables.isEmpty()) {
@@ -863,11 +930,14 @@ public with sharing class RLM_DecisionTableManagerController {
                 // FieldNames contains a dot. Reading only FieldPath meant those 193
                 // columns were never classified at all, so a FORMULA column named by
                 // FieldName slipped past the unwatchable-field check entirely.
-                String columnPath = String.isNotBlank(param.FieldPath)
-                    ? param.FieldPath
-                    : param.FieldName;
-                recordContributor(byTable.get(param.DecisionTableId), dt.SourceObject,
-                    param.DomainObject, columnPath, globalDescribe);
+                String columnPath = String.isNotBlank(param.FieldPath) ? param.FieldPath : param.FieldName;
+                recordContributor(
+                    byTable.get(param.DecisionTableId),
+                    dt.SourceObject,
+                    param.DomainObject,
+                    columnPath,
+                    globalDescribe
+                );
             }
         } catch (Exception e) {
             // Whatever was collected before the failure stays — it is still a real
@@ -911,8 +981,7 @@ public with sharing class RLM_DecisionTableManagerController {
         // build, against 14 that are a genuine SQL null. String.isBlank does not catch
         // 'null', so without this every such table is refused for reading an object
         // called "null" (StandardTax was, before a live run caught it).
-        Boolean offPrimary = String.isNotBlank(domainObject)
-            && domainObject != 'null' && domainObject != primary;
+        Boolean offPrimary = String.isNotBlank(domainObject) && domainObject != 'null' && domainObject != primary;
         if (offPrimary) {
             found.objects.add(domainObject);
         }
@@ -932,8 +1001,7 @@ public with sharing class RLM_DecisionTableManagerController {
             // today; if the shape ever appears, a refusal is the honest answer until
             // someone works out what the join actually is.
             if (offPrimary) {
-                found.unresolvedPaths.add(path + ' (reads ' + domainObject +
-                    ', but the path names no route to it)');
+                found.unresolvedPaths.add(path + ' (reads ' + domainObject + ', but the path names no route to it)');
                 return;
             }
             // A same-object column: the primary probe already covers it, unless the
@@ -956,9 +1024,11 @@ public with sharing class RLM_DecisionTableManagerController {
                 // now falls back to FieldName, so a blank arriving here means the
                 // parameter named nothing at all — measured zero on a stock build, and
                 // still not something to claim coverage of.
-                found.unresolvedPaths.add(String.isBlank(path)
-                    ? '(a column with no field name or path)'
-                    : path + ' (names no field on ' + primary + ')');
+                found.unresolvedPaths.add(
+                    String.isBlank(path)
+                        ? '(a column with no field name or path)'
+                        : path + ' (names no field on ' + primary + ')'
+                );
                 return;
             }
             if (movesWithoutARecordEdit(primary, ownField)) {
@@ -1032,9 +1102,7 @@ public with sharing class RLM_DecisionTableManagerController {
         SourcePlan plan = new SourcePlan();
         // Copied, never mutated in place: the caller's map is shared across tables, and
         // criteria watch objects below are this table's alone.
-        Set<String> joinedObjects = contributors == null
-            ? new Set<String>()
-            : new Set<String>(contributors.objects);
+        Set<String> joinedObjects = contributors == null ? new Set<String>() : new Set<String>(contributors.objects);
         if (contributors != null) {
             plan.contributorsUnenumerable = contributors.unenumerable;
             plan.unreadableContributors.addAll(contributors.unresolvedPaths);
@@ -1071,8 +1139,10 @@ public with sharing class RLM_DecisionTableManagerController {
             // here, and AND-ing it anyway would answer a different question.
             if (!isPlainConjunction(dt.SourceConditionLogic, criteria.size())) {
                 plan.verdict = STALENESS_UNCOMPUTED;
-                plan.reason = 'Source criteria combine with logic this check does not reproduce (' +
-                    dt.SourceConditionLogic.trim() + ').';
+                plan.reason =
+                    'Source criteria combine with logic this check does not reproduce (' +
+                    dt.SourceConditionLogic.trim() +
+                    ').';
                 return plan;
             }
 
@@ -1089,8 +1159,7 @@ public with sharing class RLM_DecisionTableManagerController {
             Set<String> watch = new Set<String>();
             Integer bindIndex = 0;
             for (DecisionTableSourceCriteria c : criteria) {
-                TranslatedCriterion translated = translateCriterion(
-                    c, dsr.getName(), fields, probe.binds, bindIndex);
+                TranslatedCriterion translated = translateCriterion(c, dsr.getName(), fields, probe.binds, bindIndex);
                 bindIndex++;
                 if (translated.clause != null) {
                     clauses.add(translated.clause);
@@ -1105,8 +1174,11 @@ public with sharing class RLM_DecisionTableManagerController {
             }
             if (!blockers.isEmpty()) {
                 plan.verdict = STALENESS_UNCOMPUTED;
-                plan.reason = 'Source is filtered by criteria this check can neither reproduce nor ' +
-                    'watch — ' + String.join(blockers, '; ') + '. Compare manually.';
+                plan.reason =
+                    'Source is filtered by criteria this check can neither reproduce nor ' +
+                    'watch — ' +
+                    String.join(blockers, '; ') +
+                    '. Compare manually.';
                 return plan;
             }
             probe.whereClause = String.join(clauses, ' AND ');
@@ -1170,8 +1242,11 @@ public with sharing class RLM_DecisionTableManagerController {
                 continue;
             }
             DescribeSObjectResult joinedDsr = joinedType.getDescribe();
-            if (!joinedDsr.isQueryable() || !joinedDsr.isAccessible()
-                    || !joinedDsr.fields.getMap().containsKey(WITNESS_FIELD.toLowerCase())) {
+            if (
+                !joinedDsr.isQueryable() ||
+                !joinedDsr.isAccessible() ||
+                !joinedDsr.fields.getMap().containsKey(WITNESS_FIELD.toLowerCase())
+            ) {
                 // Recorded as contributing but unprobeable: the verdict below
                 // refuses to claim Fresh rather than ignoring it.
                 plan.unreadableContributors.add(joined);
@@ -1204,8 +1279,12 @@ public with sharing class RLM_DecisionTableManagerController {
             return true;
         }
         String normalized = logic.trim().toUpperCase();
-        if (normalized.contains('(') || normalized.contains(')')
-                || normalized.contains(' OR ') || normalized.contains('NOT ')) {
+        if (
+            normalized.contains('(') ||
+            normalized.contains(')') ||
+            normalized.contains(' OR ') ||
+            normalized.contains('NOT ')
+        ) {
             return false;
         }
         Set<Integer> referenced = new Set<Integer>();
@@ -1269,7 +1348,10 @@ public with sharing class RLM_DecisionTableManagerController {
         // membership stays a function of record state whatever ValueType is stamped.
         if (c.ValueType != VALUE_TYPE_LITERAL && !NULL_OPERATORS.containsKey(c.Operator)) {
             out.mustRefuse = true;
-            out.reason = '"' + path + '" compares against a ' +
+            out.reason =
+                '"' +
+                path +
+                '" compares against a ' +
                 (String.isBlank(c.ValueType) ? 'value of unknown type' : c.ValueType + ' value') +
                 ' rather than a literal, and a value that resolves at refresh time can ' +
                 'change the rows without changing any record';
@@ -1297,12 +1379,20 @@ public with sharing class RLM_DecisionTableManagerController {
             // moves without any of them being edited.
             if (movesWithoutARecordEdit(resolved.objects[resolved.objects.size() - 1], resolved.terminal)) {
                 out.mustRefuse = true;
-                out.reason = '"' + path + '" ends on a field whose value ' + UNWATCHABLE_FIELD +
+                out.reason =
+                    '"' +
+                    path +
+                    '" ends on a field whose value ' +
+                    UNWATCHABLE_FIELD +
                     ', so nothing here can observe it changing';
                 return out;
             }
             out.watchObjects = resolved.objects;
-            out.reason = '"' + path + '" reads a field on ' + String.join(resolved.objects, ', ') +
+            out.reason =
+                '"' +
+                path +
+                '" reads a field on ' +
+                String.join(resolved.objects, ', ') +
                 ', so it is watched instead of reproduced';
             return out;
         }
@@ -1324,7 +1414,11 @@ public with sharing class RLM_DecisionTableManagerController {
         // who can see it, so it has to be decided first.
         if (movesWithoutARecordEdit(sourceObject, field)) {
             out.mustRefuse = true;
-            out.reason = 'field "' + path + '" has a value that ' + UNWATCHABLE_FIELD +
+            out.reason =
+                'field "' +
+                path +
+                '" has a value that ' +
+                UNWATCHABLE_FIELD +
                 ', so nothing here can observe it changing';
             return out;
         }
@@ -1346,7 +1440,11 @@ public with sharing class RLM_DecisionTableManagerController {
             return out;
         }
         if (ORDERING_OPERATORS.contains(c.Operator) && !isOrderedType(fdr.getType())) {
-            out.reason = 'operator "' + c.Operator + '" compares order, and ' + fdr.getType() +
+            out.reason =
+                'operator "' +
+                c.Operator +
+                '" compares order, and ' +
+                fdr.getType() +
                 ' has no ordering that SOQL and the decision table are guaranteed to agree on';
             return out;
         }
@@ -1362,7 +1460,11 @@ public with sharing class RLM_DecisionTableManagerController {
         // row set, which the zero-result safeguard cannot catch, and the probe then
         // measures rows the table does not hold.
         if (UNESTABLISHED_COMPARISON_TYPES.contains(fdr.getType())) {
-            out.reason = 'field "' + path + '" is a ' + fdr.getType() +
+            out.reason =
+                'field "' +
+                path +
+                '" is a ' +
+                fdr.getType() +
                 ', and how the decision-table engine reads its comparison value is not ' +
                 'established here';
             return out;
@@ -1543,11 +1645,11 @@ public with sharing class RLM_DecisionTableManagerController {
      */
     @TestVisible
     private static Boolean isOrderedType(Schema.DisplayType fieldType) {
-        return fieldType == Schema.DisplayType.INTEGER
-            || fieldType == Schema.DisplayType.LONG
-            || fieldType == Schema.DisplayType.DOUBLE
-            || fieldType == Schema.DisplayType.PERCENT
-            || fieldType == Schema.DisplayType.DATE;
+        return fieldType == Schema.DisplayType.INTEGER ||
+            fieldType == Schema.DisplayType.LONG ||
+            fieldType == Schema.DisplayType.DOUBLE ||
+            fieldType == Schema.DisplayType.PERCENT ||
+            fieldType == Schema.DisplayType.DATE;
     }
 
     /**
@@ -1586,7 +1688,9 @@ public with sharing class RLM_DecisionTableManagerController {
             return null;
         }
         if (labels.contains(value)) {
-            return 'value "' + value + '" is the LABEL of a picklist entry, not its API name, ' +
+            return 'value "' +
+                value +
+                '" is the LABEL of a picklist entry, not its API name, ' +
                 'and SOQL filters on the API name';
         }
         if (fdr.isRestrictedPicklist()) {
@@ -1681,8 +1785,7 @@ public with sharing class RLM_DecisionTableManagerController {
      */
     @TestVisible
     private static String probeSoql(SourceProbe probe) {
-        String soql = 'SELECT COUNT(Id) srcCount, MAX(' + WITNESS_FIELD + ') newest FROM ' +
-            probe.objectName;
+        String soql = 'SELECT COUNT(Id) srcCount, MAX(' + WITNESS_FIELD + ') newest FROM ' + probe.objectName;
         if (String.isNotBlank(probe.whereClause)) {
             soql += ' WHERE ' + probe.whereClause;
         }
@@ -1700,8 +1803,10 @@ public with sharing class RLM_DecisionTableManagerController {
             if (queriesIssued >= MAX_SOURCE_QUERIES) {
                 // Stop rather than throw, and say so per table rather than truncating
                 // silently. Every remaining probe reports UNKNOWN — never FRESH.
-                result.failureReason = 'this org needs more source queries than one transaction allows (limit ' +
-                    MAX_SOURCE_QUERIES + ')';
+                result.failureReason =
+                    'this org needs more source queries than one transaction allows (limit ' +
+                    MAX_SOURCE_QUERIES +
+                    ')';
                 resultsByKey.put(key, result);
                 continue;
             }
@@ -1710,9 +1815,7 @@ public with sharing class RLM_DecisionTableManagerController {
             // Counted before the attempt: a query that throws has still been issued.
             queriesIssued++;
             try {
-                List<AggregateResult> rows = Database.queryWithBinds(
-                    soql, probe.binds, AccessLevel.USER_MODE
-                );
+                List<AggregateResult> rows = Database.queryWithBinds(soql, probe.binds, AccessLevel.USER_MODE);
                 result.ran = true;
                 if (!rows.isEmpty()) {
                     result.newest = (Datetime) rows[0].get('newest');
@@ -1745,7 +1848,8 @@ public with sharing class RLM_DecisionTableManagerController {
         Set<String> known = new Set<String>();
         List<String> incrementalDisabled = new List<String>();
         for (DecisionTable dt : [
-            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
+            SELECT DeveloperName, IsIncrementalSyncEnabled
+            FROM DecisionTable
             WHERE DeveloperName IN :requested
             WITH USER_MODE
         ]) {
@@ -1777,8 +1881,10 @@ public with sharing class RLM_DecisionTableManagerController {
         // heavier operation than the caller asked for, and doing it unasked would be a
         // different surprise. Naming the tables lets them re-run with Full.
         if (incremental == true && !incrementalDisabled.isEmpty()) {
-            result.errorMessage = 'Incremental sync is not enabled on ' +
-                incrementalDisabled.size() + ' of the selected table(s): ' +
+            result.errorMessage =
+                'Incremental sync is not enabled on ' +
+                incrementalDisabled.size() +
+                ' of the selected table(s): ' +
                 String.join(incrementalDisabled, ', ') +
                 '. An incremental refresh there is accepted and then changes nothing. ' +
                 'Run a full refresh, or enable incremental sync on the table first.';
@@ -1826,11 +1932,27 @@ public with sharing class RLM_DecisionTableManagerController {
         }
         Set<String> requested = new Set<String>(apiNames);
         for (DecisionTable dt : [
-            SELECT Id, DeveloperName, SetupName, Description, SourceObject, UsageType,
-                   Status, Type, DataSourceType, ExecutionType, ConditionType,
-                   FilterResultBy, UploadStatus, IsVersioned, DataSpaceName,
-                   LastSyncDate, LastIncrementalSyncDate, RefreshStatus,
-                   RefreshFailureReason, IsIncrementalSyncEnabled
+            SELECT
+                Id,
+                DeveloperName,
+                SetupName,
+                Description,
+                SourceObject,
+                UsageType,
+                Status,
+                Type,
+                DataSourceType,
+                ExecutionType,
+                ConditionType,
+                FilterResultBy,
+                UploadStatus,
+                IsVersioned,
+                DataSpaceName,
+                LastSyncDate,
+                LastIncrementalSyncDate,
+                RefreshStatus,
+                RefreshFailureReason,
+                IsIncrementalSyncEnabled
             FROM DecisionTable
             WHERE DeveloperName IN :requested
             WITH USER_MODE
@@ -1877,8 +1999,8 @@ public with sharing class RLM_DecisionTableManagerController {
      */
     /** One field path, walked once: the objects it crosses and the field it lands on. */
     private class ResolvedPath {
-        public List<String> objects;   // null until the walk succeeds
-        public SObjectField terminal;  // null when the final segment does not resolve
+        public List<String> objects; // null until the walk succeeds
+        public SObjectField terminal; // null when the final segment does not resolve
     }
 
     @TestVisible
@@ -1894,11 +2016,11 @@ public with sharing class RLM_DecisionTableManagerController {
     /** How one table's source will be measured, or why it will not be. */
     @TestVisible
     private class SourcePlan {
-        public SourceProbe probe;          // null when the source cannot be measured
+        public SourceProbe probe; // null when the source cannot be measured
         public SourceProbe unfilteredProbe; // set only when filtered; disambiguates a zero result
-        public String verdict;             // set only when probe is null
-        public String reason;              // set only when probe is null
-        public Boolean filtered = false;   // true when criteria were reproduced in the probe
+        public String verdict; // set only when probe is null
+        public String reason; // set only when probe is null
+        public Boolean filtered = false; // true when criteria were reproduced in the probe
         // Other objects this table reads columns from. Probed alongside the primary so
         // the verdict covers every object that can change what the table holds.
         public List<SourceProbe> joinedProbes = new List<SourceProbe>();
@@ -1929,9 +2051,7 @@ public with sharing class RLM_DecisionTableManagerController {
          * separator can collide and merge two genuinely different probes.
          */
         public String key() {
-            return JSON.serialize(new List<String>{
-                objectName, whereClause, JSON.serialize(binds)
-            });
+            return JSON.serialize(new List<String>{ objectName, whereClause, JSON.serialize(binds) });
         }
     }
 
@@ -1966,32 +2086,56 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     public class DecisionTableInfo {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String apiName;
-        @AuraEnabled public String label;
-        @AuraEnabled public String sourceObject;
-        @AuraEnabled public String usageType;
-        @AuraEnabled public String status;
-        @AuraEnabled public Datetime lastSyncDate;
-        @AuraEnabled public Datetime lastIncrementalSyncDate;
-        @AuraEnabled public String refreshStatus;
-        @AuraEnabled public String refreshFailureReason;
-        @AuraEnabled public Boolean incrementalEnabled;
-        @AuraEnabled public String description;
-        @AuraEnabled public String tableType;
-        @AuraEnabled public String dataSourceType;
-        @AuraEnabled public String executionType;
-        @AuraEnabled public String conditionType;
-        @AuraEnabled public String filterResultBy;
-        @AuraEnabled public String uploadStatus;
-        @AuraEnabled public Boolean isVersioned;
-        @AuraEnabled public String dataSpaceName;
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String apiName;
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String sourceObject;
+        @AuraEnabled
+        public String usageType;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public Datetime lastSyncDate;
+        @AuraEnabled
+        public Datetime lastIncrementalSyncDate;
+        @AuraEnabled
+        public String refreshStatus;
+        @AuraEnabled
+        public String refreshFailureReason;
+        @AuraEnabled
+        public Boolean incrementalEnabled;
+        @AuraEnabled
+        public String description;
+        @AuraEnabled
+        public String tableType;
+        @AuraEnabled
+        public String dataSourceType;
+        @AuraEnabled
+        public String executionType;
+        @AuraEnabled
+        public String conditionType;
+        @AuraEnabled
+        public String filterResultBy;
+        @AuraEnabled
+        public String uploadStatus;
+        @AuraEnabled
+        public Boolean isVersioned;
+        @AuraEnabled
+        public String dataSpaceName;
         // "Decision Table" or "Decision Matrix", from CalculationMatrix. Details-pane
         // context only — see loadLookupTypes for why it must not become a column.
-        @AuraEnabled public String lookupType;
-        @AuraEnabled public String staleness;
-        @AuraEnabled public String stalenessReason;
-        @AuraEnabled public Datetime sourceNewestChange;
+        @AuraEnabled
+        public String lookupType;
+        @AuraEnabled
+        public String staleness;
+        @AuraEnabled
+        public String stalenessReason;
+        @AuraEnabled
+        public Datetime sourceNewestChange;
         // Rows in the SOURCE, not rows in the decision table — the table's own row
         // count is not reachable from Apex: DecisionTableDataset and
         // DecisionTableRecordset reject aggregates outright ("Aggregate functions not
@@ -1999,21 +2143,26 @@ public with sharing class RLM_DecisionTableManagerController {
         // within the composite key"). Read together with criteriaApplied, which says
         // whether this counts the filtered set or the whole object. Null when the
         // source was never read.
-        @AuraEnabled public Integer sourceRowCount;
-        @AuraEnabled public List<String> sourceCriteria = new List<String>();
+        @AuraEnabled
+        public Integer sourceRowCount;
+        @AuraEnabled
+        public List<String> sourceCriteria = new List<String>();
         // Objects OTHER than the source that this table reads columns from or filters
         // across, and whose changes therefore count against its freshness. Empty for a
         // single-object table; populated for the MultipleSobjects ones.
-        @AuraEnabled public List<String> contributingObjects = new List<String>();
+        @AuraEnabled
+        public List<String> contributingObjects = new List<String>();
         // Criteria the check watched rather than reproduced, so the comparison covers
         // more rows than the table holds. Non-empty means Stale may be over-reported —
         // Fresh is unaffected, since a superset that predates the sync proves the real
         // set does too.
-        @AuraEnabled public List<String> unreproducedCriteria = new List<String>();
+        @AuraEnabled
+        public List<String> unreproducedCriteria = new List<String>();
         // Whether the criteria above were reproduced in the freshness comparison.
         // The component says which, so a filtered verdict is never read as covering
         // the whole object and an unapplied filter is never read as applied.
-        @AuraEnabled public Boolean criteriaApplied = false;
+        @AuraEnabled
+        public Boolean criteriaApplied = false;
 
         public DecisionTableInfo(DecisionTable dt) {
             this.id = dt.Id;
@@ -2042,11 +2191,17 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     public class RefreshResult {
-        @AuraEnabled public Integer queuedCount = 0;
-        @AuraEnabled public Integer failedCount = 0;
-        @AuraEnabled public Boolean incremental = false;
-        @AuraEnabled public List<String> failedApiNames = new List<String>();
-        @AuraEnabled public List<String> unknownApiNames = new List<String>();
-        @AuraEnabled public String errorMessage;
+        @AuraEnabled
+        public Integer queuedCount = 0;
+        @AuraEnabled
+        public Integer failedCount = 0;
+        @AuraEnabled
+        public Boolean incremental = false;
+        @AuraEnabled
+        public List<String> failedApiNames = new List<String>();
+        @AuraEnabled
+        public List<String> unknownApiNames = new List<String>();
+        @AuraEnabled
+        public String errorMessage;
     }
 }

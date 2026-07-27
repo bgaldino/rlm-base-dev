@@ -1,5 +1,4 @@
 public with sharing class RLM_InvoiceBatchRunMonitorController {
-
     @AuraEnabled
     public static Map<String, Integer> getInvoiceStatusCounts(String invoiceBatchRunId) {
         Map<String, Integer> counts = new Map<String, Integer>{

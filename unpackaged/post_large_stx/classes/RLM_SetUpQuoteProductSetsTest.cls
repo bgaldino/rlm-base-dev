@@ -1,6 +1,5 @@
 @IsTest
 private class RLM_SetUpQuoteProductSetsTest {
-
     @IsTest
     static void testNormalizeProductSetMode() {
         System.assertEquals(
@@ -29,12 +28,19 @@ private class RLM_SetUpQuoteProductSetsTest {
 
     @IsTest
     static void testIdentifiersForResolution() {
-        List<String> qb = RLM_SetUpQuoteProductSets.identifiersForResolution(RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT);
+        List<String> qb = RLM_SetUpQuoteProductSets.identifiersForResolution(
+            RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT
+        );
         System.assert(!qb.isEmpty(), 'QuantumBit identifiers must be non-empty');
         System.assert(qb.contains(RLM_DemoProductCodes.BULK_BUNDLE_PRODUCT_IDENTIFIER), 'Must include the bulk bundle');
 
-        List<String> siemens = RLM_SetUpQuoteProductSets.identifiersForResolution(RLM_SetUpQuoteProductSets.PRODUCT_SET_SIEMENS);
-        System.assert(siemens.contains(RLM_SetUpQuoteProductSets.SIEMENS_BUNDLE_IDENTIFIER), 'Must include the Siemens bundle');
+        List<String> siemens = RLM_SetUpQuoteProductSets.identifiersForResolution(
+            RLM_SetUpQuoteProductSets.PRODUCT_SET_SIEMENS
+        );
+        System.assert(
+            siemens.contains(RLM_SetUpQuoteProductSets.SIEMENS_BUNDLE_IDENTIFIER),
+            'Must include the Siemens bundle'
+        );
 
         Set<String> siemensSet = RLM_SetUpQuoteProductSets.siemensProductIdentifierSet();
         System.assert(siemensSet.contains(RLM_SetUpQuoteProductSets.SIEMENS_BUNDLE_IDENTIFIER), 'Set includes bundle');
@@ -51,12 +57,18 @@ private class RLM_SetUpQuoteProductSetsTest {
     @IsTest
     static void testAllocateRequests_QuantumBit() {
         // Small count (< threshold) → all simple, no bundles
-        List<RLM_SetUpQuoteProductSets.ProductRequest> small = RLM_SetUpQuoteProductSets.allocateRequests('QUANTUMBIT', 5);
+        List<RLM_SetUpQuoteProductSets.ProductRequest> small = RLM_SetUpQuoteProductSets.allocateRequests(
+            'QUANTUMBIT',
+            5
+        );
         System.assertEquals(5, small.size(), 'Small QuantumBit count yields 5 simple requests');
         System.assertEquals(5, sumExpected(small), 'Expected QLI total equals requested');
 
         // Large count → some bundles + simples, total expected equals requested
-        List<RLM_SetUpQuoteProductSets.ProductRequest> large = RLM_SetUpQuoteProductSets.allocateRequests('QUANTUMBIT', 100);
+        List<RLM_SetUpQuoteProductSets.ProductRequest> large = RLM_SetUpQuoteProductSets.allocateRequests(
+            'QUANTUMBIT',
+            100
+        );
         Integer bundles = 0;
         for (RLM_SetUpQuoteProductSets.ProductRequest r : large) {
             if (r.productIdentifier == RLM_DemoProductCodes.BULK_BUNDLE_PRODUCT_IDENTIFIER) {
@@ -73,7 +85,10 @@ private class RLM_SetUpQuoteProductSetsTest {
         System.assertEquals(5, small.size(), 'Small Siemens count yields 5 simple requests');
         System.assertEquals(5, sumExpected(small), 'Expected QLI total equals requested');
 
-        List<RLM_SetUpQuoteProductSets.ProductRequest> large = RLM_SetUpQuoteProductSets.allocateRequests('SIEMENS', 100);
+        List<RLM_SetUpQuoteProductSets.ProductRequest> large = RLM_SetUpQuoteProductSets.allocateRequests(
+            'SIEMENS',
+            100
+        );
         System.assertEquals(100, sumExpected(large), 'Expected QLI total equals requested');
     }
 

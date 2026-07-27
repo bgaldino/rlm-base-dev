@@ -1,5 +1,9 @@
 public class RLM_DocumentGenerationCreate {
-    @InvocableMethod(label='Build a PDF file from an Object' description='Accepts the Object Id and a DocTitle.' category='Document Generation')
+    @InvocableMethod(
+        label='Build a PDF file from an Object'
+        description='Accepts the Object Id and a DocTitle.'
+        category='Document Generation'
+    )
     public static List<Response> CreateDocument(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_DocumentGenerationCreate: at least one request is required.');
@@ -7,7 +11,8 @@ public class RLM_DocumentGenerationCreate {
         // Bulkify: collect all template IDs and query once before the loop.
         Set<Id> templateIds = new Set<Id>();
         for (Request req : requests) {
-            if (req.DocTemplateId != null) templateIds.add(req.DocTemplateId);
+            if (req.DocTemplateId != null)
+                templateIds.add(req.DocTemplateId);
         }
         Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
             [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds]
@@ -27,18 +32,22 @@ public class RLM_DocumentGenerationCreate {
             dgp.ReferenceObject = stCurrRecordId;
             dgp.DocumentTemplateId = stDocTemplateId;
             // Use JSON.serialize to safely escape DocTitle (avoids invalid JSON on quotes/newlines)
-            dgp.RequestText = JSON.serialize(new Map<String, Object>{ 'keepIntermediate' => true, 'title' => stDocTitle });
+            dgp.RequestText = JSON.serialize(
+                new Map<String, Object>{ 'keepIntermediate' => true, 'title' => stDocTitle }
+            );
             dgp.DocGenApiVersionType = 'Advanced';
             dgp.DocumentInputType = 'DocumentTemplate';
             if (isContextService) {
                 dgp.DocGenAdditionalInputType = 'ContextService';
                 // CS DocGen requires inputData format with the primary node name as key
                 String primaryNodeName = 'Quote';
-                dgp.DocGenAdditionalInput = JSON.serialize(new Map<String, Object>{
-                    'inputData' => new Map<String, Object>{
-                        primaryNodeName => new Map<String, Object>{ 'id' => stCurrRecordId }
+                dgp.DocGenAdditionalInput = JSON.serialize(
+                    new Map<String, Object>{
+                        'inputData' => new Map<String, Object>{
+                            primaryNodeName => new Map<String, Object>{ 'id' => stCurrRecordId }
+                        }
                     }
-                });
+                );
             } else {
                 dgp.DataRaptorInput = JSON.serialize(new Map<String, Object>{ 'Id' => stCurrRecordId });
             }

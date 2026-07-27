@@ -27,7 +27,6 @@
  * reflect what was truly persisted.
  */
 public with sharing class RLM_AI_ProductAttributeSaveService {
-
     // ── Input / Output ──────────────────────────────────────────────────────
 
     public class SaveInput {
@@ -37,8 +36,11 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
         @InvocableVariable(required=true label='Quote Line Item Id')
         public String quoteLineItemId;
 
-        @InvocableVariable(required=true label='Attribute Selections JSON'
-            description='JSON object: keys = attribute developerName, values = selected value.')
+        @InvocableVariable(
+            required=true
+            label='Attribute Selections JSON'
+            description='JSON object: keys = attribute developerName, values = selected value.'
+        )
         public String attributeSelectionsJson;
     }
 
@@ -85,39 +87,46 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             if (input == null) {
                 return fail(out, 'Select a quote and quote line item before saving product configuration.');
             }
-            Map<String, Object> selections =
-                RLM_AI_ConfigServiceUtils.safeDeserializeMap(input.attributeSelectionsJson);
+            Map<String, Object> selections = RLM_AI_ConfigServiceUtils.safeDeserializeMap(
+                input.attributeSelectionsJson
+            );
 
             Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
             if (quoteId == null || !String.valueOf(quoteId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_PREFIX)) {
                 return fail(out, 'Select a valid quote before saving product configuration.');
             }
             Id quoteLineItemId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteLineItemId);
-            if (quoteLineItemId == null || !String.valueOf(quoteLineItemId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+            if (
+                quoteLineItemId == null ||
+                !String.valueOf(quoteLineItemId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)
+            ) {
                 return fail(out, 'Select a valid quote line item before saving product configuration.');
             }
             if (!quoteLineItemBelongsToQuote(quoteLineItemId, quoteId)) {
-                return fail(out, 'Select a quote line item that belongs to the current quote before saving product configuration.');
+                return fail(
+                    out,
+                    'Select a quote line item that belongs to the current quote before saving product configuration.'
+                );
             }
 
             // ── Step 1: Load existing attributes with definition type + picklist ──
-            Map<String, QuoteLineItemAttribute> existingByDevName =
-                new Map<String, QuoteLineItemAttribute>();
+            Map<String, QuoteLineItemAttribute> existingByDevName = new Map<String, QuoteLineItemAttribute>();
             Set<Id> picklistIds = new Set<Id>();
 
             for (QuoteLineItemAttribute qlia : [
-                SELECT Id,
-                       AttributeDefinition.DeveloperName,
-                       AttributeDefinition.DataType,
-                       AttributeDefinition.PicklistId
-                FROM   QuoteLineItemAttribute
-                WHERE  QuoteLineItemId = :quoteLineItemId
+                SELECT
+                    Id,
+                    AttributeDefinition.DeveloperName,
+                    AttributeDefinition.DataType,
+                    AttributeDefinition.PicklistId
+                FROM QuoteLineItemAttribute
+                WHERE QuoteLineItemId = :quoteLineItemId
             ]) {
                 String devName = qlia.AttributeDefinition?.DeveloperName;
-                if (devName == null) continue;
+                if (devName == null)
+                    continue;
                 existingByDevName.put(devName, qlia);
-                if (qlia.AttributeDefinition.DataType == 'Picklist'
-                        && qlia.AttributeDefinition.PicklistId != null) {
+                if (qlia.AttributeDefinition.DataType == 'Picklist' && qlia.AttributeDefinition.PicklistId != null) {
                     picklistIds.add(qlia.AttributeDefinition.PicklistId);
                 }
             }
@@ -127,16 +136,15 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             if (!picklistIds.isEmpty()) {
                 for (AttributePicklistValue apv : [
                     SELECT Id, Name, Code, Value, PicklistId
-                    FROM   AttributePicklistValue
-                    WHERE  PicklistId IN :picklistIds
+                    FROM AttributePicklistValue
+                    WHERE PicklistId IN :picklistIds
                 ]) {
                     if (!pvByPicklist.containsKey(apv.PicklistId)) {
                         pvByPicklist.put(apv.PicklistId, new Map<String, Id>());
                     }
                     Map<String, Id> pvMap = pvByPicklist.get(apv.PicklistId);
                     pvMap.put(apv.Value, apv.Id);
-                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value
-                        && !pvMap.containsKey(apv.Name)) {
+                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value && !pvMap.containsKey(apv.Name)) {
                         pvMap.put(apv.Name, apv.Id);
                     }
                     if (String.isNotBlank(apv.Code) && !pvMap.containsKey(apv.Code)) {
@@ -154,11 +162,12 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             // Number attribute from the existing BOM component rather than honoring
             // the submitted value. Sequencing: Number PST first, Picklist PST second.
 
-            Map<String, Object> numberSelections   = new Map<String, Object>();
+            Map<String, Object> numberSelections = new Map<String, Object>();
             Map<String, Object> picklistSelections = new Map<String, Object>();
 
             for (String devName : selections.keySet()) {
-                if (!existingByDevName.containsKey(devName)) continue;
+                if (!existingByDevName.containsKey(devName))
+                    continue;
                 QuoteLineItemAttribute qlia = existingByDevName.get(devName);
                 if (qlia.AttributeDefinition.DataType == 'Picklist') {
                     picklistSelections.put(devName, selections.get(devName));
@@ -170,24 +179,34 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             // ── Step 4: PST call 1 — Number attributes ───────────────────────────
             if (!numberSelections.isEmpty()) {
                 SaveOutput numResult = executePst(
-                    String.valueOf(quoteId), String.valueOf(quoteLineItemId),
-                    numberSelections, existingByDevName, pvByPicklist);
-                if (!numResult.isSuccess) return numResult;
+                    String.valueOf(quoteId),
+                    String.valueOf(quoteLineItemId),
+                    numberSelections,
+                    existingByDevName,
+                    pvByPicklist
+                );
+                if (!numResult.isSuccess)
+                    return numResult;
             }
 
             // ── Step 5: PST call 2 — Picklist attributes ─────────────────────────
             if (!picklistSelections.isEmpty()) {
                 SaveOutput plResult = executePst(
-                    String.valueOf(quoteId), String.valueOf(quoteLineItemId),
-                    picklistSelections, existingByDevName, pvByPicklist);
-                if (!plResult.isSuccess) return plResult;
+                    String.valueOf(quoteId),
+                    String.valueOf(quoteLineItemId),
+                    picklistSelections,
+                    existingByDevName,
+                    pvByPicklist
+                );
+                if (!plResult.isSuccess)
+                    return plResult;
             }
 
             if (numberSelections.isEmpty() && picklistSelections.isEmpty()) {
                 // No matching attributes found in existingByDevName
-                out.isSuccess            = true;
-                out.isValid              = true;
-                out.savedAttributesJson  = JSON.serialize(selections);
+                out.isSuccess = true;
+                out.isValid = true;
+                out.savedAttributesJson = JSON.serialize(selections);
                 out.validationErrorsJson = '[]';
                 return out;
             }
@@ -202,21 +221,19 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             Map<String, String> actualValues = new Map<String, String>();
             for (QuoteLineItemAttribute qlia : [
                 SELECT AttributeDefinition.DeveloperName, AttributeValue
-                FROM   QuoteLineItemAttribute
-                WHERE  QuoteLineItemId = :quoteLineItemId
-                AND    AttributeDefinition.DeveloperName IN :submittedDevNames
+                FROM QuoteLineItemAttribute
+                WHERE QuoteLineItemId = :quoteLineItemId AND AttributeDefinition.DeveloperName IN :submittedDevNames
             ]) {
                 actualValues.put(qlia.AttributeDefinition.DeveloperName, qlia.AttributeValue);
             }
 
-            out.isSuccess            = true;
-            out.isValid              = true;
-            out.savedAttributesJson  = JSON.serialize(actualValues);
+            out.isSuccess = true;
+            out.isValid = true;
+            out.savedAttributesJson = JSON.serialize(actualValues);
             out.validationErrorsJson = '[]';
-
         } catch (Exception e) {
-            out.isSuccess    = false;
-            out.isValid      = false;
+            out.isSuccess = false;
+            out.isValid = false;
             out.errorMessage = e.getMessage();
         }
         return out;
@@ -232,92 +249,89 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
 
     private static Boolean quoteLineItemBelongsToQuote(Id quoteLineItemId, Id quoteId) {
         return [
-            SELECT COUNT()
-            FROM QuoteLineItem
-            WHERE Id = :quoteLineItemId
-              AND QuoteId = :quoteId
-        ] == 1;
+                SELECT COUNT()
+                FROM QuoteLineItem
+                WHERE Id = :quoteLineItemId AND QuoteId = :quoteId
+            ] == 1;
     }
 
     // ── Helper: execute a single PST graph for the given attribute subset ───
 
     private static SaveOutput executePst(
-            String quoteId,
-            String quoteLineItemId,
-            Map<String, Object> attrSelections,
-            Map<String, QuoteLineItemAttribute> existingByDevName,
-            Map<Id, Map<String, Id>> pvByPicklist) {
-
+        String quoteId,
+        String quoteLineItemId,
+        Map<String, Object> attrSelections,
+        Map<String, QuoteLineItemAttribute> existingByDevName,
+        Map<Id, Map<String, Id>> pvByPicklist
+    ) {
         SaveOutput out = new SaveOutput();
 
-        List<RevSalesTrxn.RecordWithReferenceRequest> graphNodes =
-            new List<RevSalesTrxn.RecordWithReferenceRequest>();
+        List<RevSalesTrxn.RecordWithReferenceRequest> graphNodes = new List<RevSalesTrxn.RecordWithReferenceRequest>();
 
-        RevSalesTrxn.RecordResource quoteNode =
-            new RevSalesTrxn.RecordResource(Quote.getSobjectType(), 'PATCH', quoteId);
+        RevSalesTrxn.RecordResource quoteNode = new RevSalesTrxn.RecordResource(
+            Quote.getSobjectType(),
+            'PATCH',
+            quoteId
+        );
         graphNodes.add(new RevSalesTrxn.RecordWithReferenceRequest('refQuote', quoteNode));
 
         Integer nodeIdx = 0;
         for (String devName : attrSelections.keySet()) {
-            if (!existingByDevName.containsKey(devName)) continue;
+            if (!existingByDevName.containsKey(devName))
+                continue;
             QuoteLineItemAttribute qlia = existingByDevName.get(devName);
-            String newVal = attrSelections.get(devName) != null
-                ? String.valueOf(attrSelections.get(devName)) : '';
+            String newVal = attrSelections.get(devName) != null ? String.valueOf(attrSelections.get(devName)) : '';
 
-            RevSalesTrxn.RecordResource qliaNode =
-                new RevSalesTrxn.RecordResource(
-                    QuoteLineItemAttribute.getSobjectType(), 'PATCH', qlia.Id);
+            RevSalesTrxn.RecordResource qliaNode = new RevSalesTrxn.RecordResource(
+                QuoteLineItemAttribute.getSobjectType(),
+                'PATCH',
+                qlia.Id
+            );
 
-            Map<String, Object> fields = new Map<String, Object>{
-                'AttributeValue' => newVal
-            };
+            Map<String, Object> fields = new Map<String, Object>{ 'AttributeValue' => newVal };
 
             if (qlia.AttributeDefinition.DataType == 'Picklist') {
-                Map<String, Id> pvMap =
-                    pvByPicklist.get(qlia.AttributeDefinition.PicklistId);
+                Map<String, Id> pvMap = pvByPicklist.get(qlia.AttributeDefinition.PicklistId);
                 if (pvMap != null && pvMap.containsKey(newVal)) {
                     fields.put('AttributePicklistValueId', pvMap.get(newVal));
                 }
             }
             qliaNode.fieldValues = fields;
 
-            graphNodes.add(new RevSalesTrxn.RecordWithReferenceRequest(
-                'refQlia' + nodeIdx++, qliaNode));
+            graphNodes.add(new RevSalesTrxn.RecordWithReferenceRequest('refQlia' + nodeIdx++, qliaNode));
         }
 
         if (graphNodes.size() <= 1) {
-            out.isSuccess            = true;
-            out.isValid              = true;
-            out.savedAttributesJson  = JSON.serialize(attrSelections);
+            out.isSuccess = true;
+            out.isValid = true;
+            out.savedAttributesJson = JSON.serialize(attrSelections);
             out.validationErrorsJson = '[]';
             return out;
         }
 
-        RevSalesTrxn.GraphRequest graph =
-            new RevSalesTrxn.GraphRequest('configureAndPrice', graphNodes);
+        RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('configureAndPrice', graphNodes);
 
-        RevSalesTrxn.PlaceSalesTransactionResponse resp =
-            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                graph,
-                RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
-                RevSalesTrxn.ConfigurationExecutionEnum.SYSTEM,
-                new RevSalesTrxn.ConfigurationOptionsInput(),
-                null
-            );
+        RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+            graph,
+            RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+            RevSalesTrxn.ConfigurationExecutionEnum.SYSTEM,
+            new RevSalesTrxn.ConfigurationOptionsInput(),
+            null
+        );
 
         if (!resp.isSuccess) {
             List<String> errs = new List<String>();
             for (Object e : resp.errorResponse) {
                 errs.add(JSON.serialize(e));
             }
-            out.isSuccess    = false;
-            out.isValid      = false;
+            out.isSuccess = false;
+            out.isValid = false;
             out.errorMessage = String.join(errs, '; ');
             return out;
         }
 
         out.isSuccess = true;
-        out.isValid   = true;
+        out.isValid = true;
         return out;
     }
 }

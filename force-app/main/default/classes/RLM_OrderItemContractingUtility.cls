@@ -1,6 +1,5 @@
 public with sharing class RLM_OrderItemContractingUtility {
-
-    @InvocableMethod(label = 'Calculate Contract Info' description = 'Returns Contract End Date based on last Order Item')
+    @InvocableMethod(label='Calculate Contract Info' description='Returns Contract End Date based on last Order Item')
     public static List<OrderInfoResults> calculateOrderInfoForContract(List<Id> inputOrderIds) {
         List<OrderInfoResults> results = new List<OrderInfoResults>();
         if (inputOrderIds.isEmpty()) {
@@ -9,24 +8,33 @@ public with sharing class RLM_OrderItemContractingUtility {
 
         // Check field-level security before executing queries
         Boolean isOrderAccessible = Schema.sObjectType.Order.fields.EffectiveDate.isAccessible();
-        Boolean isOrderItemAccessible = Schema.sObjectType.OrderItem.fields.ServiceDate.isAccessible() && Schema.sObjectType.OrderItem.fields.EndDate.isAccessible();
+        Boolean isOrderItemAccessible =
+            Schema.sObjectType.OrderItem.fields.ServiceDate.isAccessible() &&
+            Schema.sObjectType.OrderItem.fields.EndDate.isAccessible();
         Boolean isOrderActionAccessible = Schema.sObjectType.OrderAction.fields.Type.isAccessible();
-        
+
         if (!isOrderAccessible || !isOrderItemAccessible || !isOrderActionAccessible) {
             System.debug('User does not have access to required fields on Order, OrderItem, or OrderAction objects.');
             return results;
         }
 
-        Map<Id, Order> ordersMap = new Map<Id, Order>([
-            SELECT Id, EffectiveDate,
-                (SELECT Id, ServiceDate, EndDate, ProductSellingModel.SellingModelType
-                 FROM OrderItems
-                 WHERE ProductSellingModel.SellingModelType != 'OneTime' AND EndDate != null
-                 ORDER BY EndDate DESC LIMIT 1),
-                (SELECT Id, Type FROM OrderActions WHERE Type IN ('Add', 'Amend', 'Renew'))
-            FROM Order
-            WHERE Id IN :inputOrderIds
-        ]);
+        Map<Id, Order> ordersMap = new Map<Id, Order>(
+            [
+                SELECT
+                    Id,
+                    EffectiveDate,
+                    (
+                        SELECT Id, ServiceDate, EndDate, ProductSellingModel.SellingModelType
+                        FROM OrderItems
+                        WHERE ProductSellingModel.SellingModelType != 'OneTime' AND EndDate != NULL
+                        ORDER BY EndDate DESC
+                        LIMIT 1
+                    ),
+                    (SELECT Id, Type FROM OrderActions WHERE Type IN ('Add', 'Amend', 'Renew'))
+                FROM Order
+                WHERE Id IN :inputOrderIds
+            ]
+        );
 
         for (Order o : ordersMap.values()) {
             OrderInfoResults result = new OrderInfoResults();

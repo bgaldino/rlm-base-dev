@@ -1,6 +1,5 @@
 @isTest
 private class RLM_InvoiceSummaryControllerTest {
-
     // Invoices/DebitMemos/Disputes/PSIs are system-managed and not insertable in Apex tests.
     // An Account with no billing activity drives every query down its empty path, verifying
     // the summary is fully zero-initialized and the (USER_MODE) queries run clean.
@@ -10,8 +9,7 @@ private class RLM_InvoiceSummaryControllerTest {
         insert acc;
 
         Test.startTest();
-        RLM_InvoiceSummaryController.InvoiceSummaryData data =
-            RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
         Test.stopTest();
 
         System.assertNotEquals(null, data, 'A summary should always be returned.');
@@ -25,8 +23,7 @@ private class RLM_InvoiceSummaryControllerTest {
         System.assertEquals(0, data.debitAmount, 'No debit memos -> zero debit amount.');
         System.assertEquals(0, data.promiseToPayCount, 'No PSIs -> zero promise-to-pay count.');
         System.assertEquals(0, data.paidCount, 'No settled invoices -> zero paid count.');
-        System.assertEquals(Date.today(), data.periodEnd,
-            'With no invoices the period end defaults to today.');
+        System.assertEquals(Date.today(), data.periodEnd, 'With no invoices the period end defaults to today.');
     }
 
     // Exercises the classification seam with synthetic invoices: current vs overdue bucketing,
@@ -36,19 +33,20 @@ private class RLM_InvoiceSummaryControllerTest {
         Date today = Date.today();
         List<SObject> invoices = new List<SObject>{
             synthInvoice(100, today.addDays(-10)), // overdue
-            synthInvoice(50, today.addDays(10)),   // current
-            synthInvoice(25, null)                 // no due date -> current bucket
+            synthInvoice(50, today.addDays(10)), // current
+            synthInvoice(25, null) // no due date -> current bucket
         };
 
-        RLM_InvoiceSummaryController.InvoiceSummaryData data =
-            new RLM_InvoiceSummaryController.InvoiceSummaryData();
-        data.totalDue = 0; data.openInvoices = 0;
-        data.overdueAmount = 0; data.overdueCount = 0;
-        data.currentAmount = 0; data.currentCount = 0;
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = new RLM_InvoiceSummaryController.InvoiceSummaryData();
+        data.totalDue = 0;
+        data.openInvoices = 0;
+        data.overdueAmount = 0;
+        data.overdueCount = 0;
+        data.currentAmount = 0;
+        data.currentCount = 0;
 
         Test.startTest();
-        RLM_InvoiceSummaryController.classifyInvoices(
-            invoices, data, today, false, 'USD', new Map<String, Decimal>());
+        RLM_InvoiceSummaryController.classifyInvoices(invoices, data, today, false, 'USD', new Map<String, Decimal>());
         Test.stopTest();
 
         System.assertEquals(175, data.totalDue, 'Sum of all balances.');
@@ -65,15 +63,21 @@ private class RLM_InvoiceSummaryControllerTest {
     @isTest
     static void convertCurrency_coversIdentityAndCrossRate() {
         Map<String, Decimal> rates = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 };
-        System.assertEquals(100,
+        System.assertEquals(
+            100,
             RLM_InvoiceSummaryController.convertCurrency(100, 'USD', 'USD', rates),
-            'Same currency is a no-op.');
-        System.assertEquals(0,
+            'Same currency is a no-op.'
+        );
+        System.assertEquals(
+            0,
             RLM_InvoiceSummaryController.convertCurrency(0, 'EUR', 'USD', rates),
-            'Zero amount short-circuits.');
-        System.assertEquals(200,
+            'Zero amount short-circuits.'
+        );
+        System.assertEquals(
+            200,
             RLM_InvoiceSummaryController.convertCurrency(100, 'EUR', 'USD', rates),
-            '100 EUR @0.5 -> 200 USD @1.0.');
+            '100 EUR @0.5 -> 200 USD @1.0.'
+        );
     }
 
     private static Integer seq = 0;
@@ -92,8 +96,8 @@ private class RLM_InvoiceSummaryControllerTest {
     private static SObject synthInvoice(Decimal balance, Date dueDate) {
         Map<String, Object> m = new Map<String, Object>{
             'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
-            'Id'         => mintInvoiceId(),
-            'Balance'    => balance
+            'Id' => mintInvoiceId(),
+            'Balance' => balance
         };
         if (dueDate != null) {
             m.put('DueDate', dueDate);

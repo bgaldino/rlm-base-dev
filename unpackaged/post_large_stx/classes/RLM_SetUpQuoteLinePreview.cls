@@ -9,9 +9,10 @@ public with sharing class RLM_SetUpQuoteLinePreview {
 
     // Thrown when the depth guard trips, so the preview surfaces an error instead of
     // silently undercounting the deleted-group / projected-line totals.
-    public class PreviewExpansionException extends Exception {}
+    public class PreviewExpansionException extends Exception {
+    }
 
-    @AuraEnabled(cacheable = false)
+    @AuraEnabled(cacheable=false)
     public static String previewQuoteLineCounts(String previewJson) {
         if (String.isBlank(previewJson)) {
             return buildResponse(0, 0, 0, 0, 0, null);
@@ -24,16 +25,22 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
         Boolean isCreate = m.get('isCreate') == true;
         String quoteIdStr = m.get('quoteId') != null ? String.valueOf(m.get('quoteId')) : null;
-        String groupsToDeleteJson = m.get('groupsToDeleteJson') != null ? String.valueOf(m.get('groupsToDeleteJson')) : null;
-        String existingGroupCountsJson =
-            m.get('existingGroupCountsJson') != null ? String.valueOf(m.get('existingGroupCountsJson')) : null;
+        String groupsToDeleteJson = m.get('groupsToDeleteJson') != null
+            ? String.valueOf(m.get('groupsToDeleteJson'))
+            : null;
+        String existingGroupCountsJson = m.get('existingGroupCountsJson') != null
+            ? String.valueOf(m.get('existingGroupCountsJson'))
+            : null;
         String hierarchyJson = m.get('hierarchyJson') != null ? String.valueOf(m.get('hierarchyJson')) : null;
-        String productCountsJson = m.get('productCountsJson') != null ? String.valueOf(m.get('productCountsJson')) : null;
+        String productCountsJson = m.get('productCountsJson') != null
+            ? String.valueOf(m.get('productCountsJson'))
+            : null;
         String productSetMode = RLM_SetUpQuoteProductSets.normalizeProductSetMode(
             m.get('productSetMode') != null ? String.valueOf(m.get('productSetMode')) : null
         );
-        String csvImportLineItemsJson =
-            m.get('csvImportLineItemsJson') != null ? String.valueOf(m.get('csvImportLineItemsJson')) : null;
+        String csvImportLineItemsJson = m.get('csvImportLineItemsJson') != null
+            ? String.valueOf(m.get('csvImportLineItemsJson'))
+            : null;
 
         Integer currentTotal = 0;
         Id parsedQId = null;
@@ -59,8 +66,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             linesRemovedFromDeletes = [
                 SELECT COUNT()
                 FROM QuoteLineItem
-                WHERE QuoteId = :parsedQId
-                  AND QuoteLineGroupId IN :deletedGroupIds
+                WHERE QuoteId = :parsedQId AND QuoteLineGroupId IN :deletedGroupIds
                 WITH USER_MODE
             ];
         }
@@ -68,7 +74,12 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         Integer existingAdds = 0;
         if (!isCreate && parsedQId != null && String.isNotBlank(existingGroupCountsJson)) {
             try {
-                existingAdds = computeExistingGroupAdds(existingGroupCountsJson, deletedGroupIds, productSetMode, parsedQId);
+                existingAdds = computeExistingGroupAdds(
+                    existingGroupCountsJson,
+                    deletedGroupIds,
+                    productSetMode,
+                    parsedQId
+                );
             } catch (Exception e) {
                 // Surface the failure instead of silently undercounting the preview.
                 Integer projectedOnError = currentTotal - linesRemovedFromDeletes;
@@ -93,7 +104,10 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // CSV lines resolve even with an empty hierarchy (CSV-only / ungrouped
             // modify where hierarchyJson is {"parents":[]}), so count them
             // regardless of whether parents are present.
-            newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
+            newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(
+                hierarchyJson,
+                csvImportLineItemsJson
+            );
         } else {
             if (parentsList != null && !parentsList.isEmpty()) {
                 newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
@@ -102,9 +116,14 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // addProductRequestsForCount(ungroupedProductCount, ...) independent of the
             // hierarchy, so include them here or the preview undercounts. Expected QLI
             // count mirrors the invocable's product-set/demo allocation.
-            Integer ungroupedProductCount = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(m.get('ungroupedProductCount'));
+            Integer ungroupedProductCount = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(
+                m.get('ungroupedProductCount')
+            );
             if (ungroupedProductCount > 0) {
-                newFromHierarchy += RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(productSetMode, ungroupedProductCount);
+                newFromHierarchy += RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(
+                    productSetMode,
+                    ungroupedProductCount
+                );
             }
         }
 
@@ -177,7 +196,12 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // Ownership guard: only traverse roots that belong to the target quote
             if (quoteId != null) {
                 Set<Id> ownedRoots = new Set<Id>();
-                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId WITH USER_MODE]) {
+                for (QuoteLineGroup g : [
+                    SELECT Id
+                    FROM QuoteLineGroup
+                    WHERE Id IN :rootIds AND QuoteId = :quoteId
+                    WITH USER_MODE
+                ]) {
                     ownedRoots.add(g.Id);
                 }
                 rootIds = ownedRoots;
@@ -199,7 +223,12 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 levelGuard++;
                 Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
-                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId WITH USER_MODE]
+                    ? [
+                          SELECT Id
+                          FROM QuoteLineGroup
+                          WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId
+                          WITH USER_MODE
+                      ]
                     : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier WITH USER_MODE];
                 for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
@@ -219,12 +248,19 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         if (truncated) {
             throw new PreviewExpansionException(
                 'The group hierarchy is too deep to preview accurately (exceeded ' +
-                EXPANSION_MAX_LEVELS + ' levels). Refresh the page and retry, or reduce nesting.');
+                    EXPANSION_MAX_LEVELS +
+                    ' levels). Refresh the page and retry, or reduce nesting.'
+            );
         }
         return result;
     }
 
-    private static Integer computeExistingGroupAdds(String existingGroupCountsJson, Set<Id> deletedGroupIds, String productSetMode, Id quoteId) {
+    private static Integer computeExistingGroupAdds(
+        String existingGroupCountsJson,
+        Set<Id> deletedGroupIds,
+        String productSetMode,
+        Id quoteId
+    ) {
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(existingGroupCountsJson);
         if (m == null || m.isEmpty()) {
             return 0;
@@ -235,7 +271,10 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         Map<Id, Integer> idToAddCount = new Map<Id, Integer>();
         for (String k : m.keySet()) {
             Object v = m.get(k);
-            Integer addCount = RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(productSetMode, parsePositiveInt(v));
+            Integer addCount = RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(
+                productSetMode,
+                parsePositiveInt(v)
+            );
             Id gid = null;
             try {
                 gid = Id.valueOf(k);
@@ -259,7 +298,12 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
         // Ownership guard: only count adds for groups that belong to this quote
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet() WITH USER_MODE]) {
+        for (QuoteLineGroup g : [
+            SELECT Id
+            FROM QuoteLineGroup
+            WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet()
+            WITH USER_MODE
+        ]) {
             validGroupIds.add(g.Id);
         }
         for (Id gid : idToAddCount.keySet()) {

@@ -24,7 +24,6 @@
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
  */
 public with sharing class RLM_AI_AddProductToQuoteService {
-
     // Upper bound on product-name search matches returned for disambiguation.
     // Set high (200) so a broad search term never silently hides valid products;
     // it is a heap/SOQL safety bound, not a UX cap. Quantity is per line and
@@ -32,38 +31,46 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     private static final Integer MAX_PRODUCT_CANDIDATES = 200;
 
     public class AddInput {
-        @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0) to add the product to.')
+        @InvocableVariable(
+            required=true
+            label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0) to add the product to.'
+        )
         public String quoteId;
 
-        @InvocableVariable(label='Product Id'
-            description='Salesforce Id of the product to add, when already known. Takes precedence over Product Name.')
+        @InvocableVariable(
+            label='Product Id'
+            description='Salesforce Id of the product to add, when already known. Takes precedence over Product Name.'
+        )
         public String productId;
 
-        @InvocableVariable(label='Product Name'
-            description='Name of the product to add. Used when Product Id is not supplied; resolved by name match.')
+        @InvocableVariable(
+            label='Product Name'
+            description='Name of the product to add. Used when Product Id is not supplied; resolved by name match.'
+        )
         public String productName;
 
-        @InvocableVariable(label='Quantity'
-            description='Number of units to add. Defaults to 1.')
+        @InvocableVariable(label='Quantity' description='Number of units to add. Defaults to 1.')
         public Decimal quantity;
 
-        @InvocableVariable(label='Selling Model Name'
-            description='Optional. Only set this when the USER explicitly names a selling model (e.g. "add it as Term Monthly"). Matched case-insensitively against the selling-model option names of the product. When blank, the DEFAULT selling model of the product is used automatically — do NOT ask the user to choose.')
+        @InvocableVariable(
+            label='Selling Model Name'
+            description='Optional. Only set this when the USER explicitly names a selling model (e.g. "add it as Term Monthly"). Matched case-insensitively against the selling-model option names of the product. When blank, the DEFAULT selling model of the product is used automatically — do NOT ask the user to choose.'
+        )
         public String sellingModelName;
 
-        @InvocableVariable(label='Start Date'
-            description='Optional start date for the line.')
+        @InvocableVariable(label='Start Date' description='Optional start date for the line.')
         public Date startDate;
 
-        @InvocableVariable(label='End Date'
-            description='Optional end date for the line.')
+        @InvocableVariable(label='End Date' description='Optional end date for the line.')
         public Date endDate;
     }
 
     public class AddOutput {
-        @InvocableVariable(label='Is Success'
-            description='True only when the line was added. False on input error, disambiguation, or a managed add-line failure.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True only when the line was added. False on input error, disambiguation, or a managed add-line failure.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Quote Line Item Id')
@@ -78,19 +85,25 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         @InvocableVariable(label='Selling Model Name')
         public String sellingModelName;
 
-        @InvocableVariable(label='Line Summary Display'
-            description='Rich-text, names-only confirmation of what was added, for user-facing display.')
+        @InvocableVariable(
+            label='Line Summary Display'
+            description='Rich-text, names-only confirmation of what was added, for user-facing display.'
+        )
         public String lineSummaryDisplay;
 
-        @InvocableVariable(label='Needs Disambiguation'
-            description='True when the product name matched more than one product and the user must pick.')
+        @InvocableVariable(
+            label='Needs Disambiguation'
+            description='True when the product name matched more than one product and the user must pick.'
+        )
         public Boolean needsDisambiguation;
 
         @InvocableVariable(label='Candidate Products')
         public List<Product2> candidateProducts;
 
-        @InvocableVariable(label='Candidate Summaries Display'
-            description='Formatted numbered list of matching products for user-facing disambiguation.')
+        @InvocableVariable(
+            label='Candidate Summaries Display'
+            description='Formatted numbered list of matching products for user-facing disambiguation.'
+        )
         public String candidateSummariesDisplay;
 
         @InvocableVariable(label='Error Message')
@@ -149,12 +162,14 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             }
 
             // 3. Invoke the managed add-line action with the resolved inputs.
-            Decimal quantity = (input.quantity == null || input.quantity <= 0)
-                ? 1
-                : input.quantity;
+            Decimal quantity = (input.quantity == null || input.quantity <= 0) ? 1 : input.quantity;
             ManagedResult mr = invoker.addLine(
-                quoteId, product.Id, psm.sellingModelId, quantity,
-                input.startDate, input.endDate
+                quoteId,
+                product.Id,
+                psm.sellingModelId,
+                quantity,
+                input.startDate,
+                input.endDate
             );
             if (mr == null || mr.isSuccess != true) {
                 out.errorMessage = (mr != null && String.isNotBlank(mr.errorMessage))
@@ -184,9 +199,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     private static Product2 resolveProduct(AddInput input, AddOutput out) {
         Id productId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.productId);
         if (productId != null) {
-            List<Product2> byId = [
-                SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1
-            ];
+            List<Product2> byId = [SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1];
             if (byId.isEmpty()) {
                 out.errorMessage = 'No product found for the supplied product Id.';
                 return null;
@@ -205,8 +218,10 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         // "bundle" the user adds that is not in the catalog name). Replaces the
         // brittle single contiguous LIKE that failed when the typed phrase was
         // not a substring of the product name.
-        List<RLM_AI_ConfigServiceUtils.ScoredProduct> scored =
-            RLM_AI_ConfigServiceUtils.matchProductsByName(term, MAX_PRODUCT_CANDIDATES);
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> scored = RLM_AI_ConfigServiceUtils.matchProductsByName(
+            term,
+            MAX_PRODUCT_CANDIDATES
+        );
 
         // Confidence floor + single-vs-ambiguous decision come from the SHARED
         // engine (RLM_AI_ConfigServiceUtils) so this direct product search and the
@@ -216,8 +231,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         // auto-resolve and add the wrong product. The noise-word case
         // ("quantumbit complete solution bundle" -> 90) and exact/contains-all
         // matches (100/85) stay well above the floor.
-        List<RLM_AI_ConfigServiceUtils.ScoredProduct> confident =
-            new List<RLM_AI_ConfigServiceUtils.ScoredProduct>();
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> confident = new List<RLM_AI_ConfigServiceUtils.ScoredProduct>();
         List<Integer> confidentScores = new List<Integer>();
         for (RLM_AI_ConfigServiceUtils.ScoredProduct sp : scored) {
             if (sp.score >= RLM_AI_ConfigServiceUtils.MIN_CONFIDENT_SCORE) {
@@ -227,16 +241,14 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         }
 
         if (confident.isEmpty()) {
-            out.errorMessage = 'No active product found matching "' + term
-                + '". Check the product name and try again.';
+            out.errorMessage = 'No active product found matching "' + term + '". Check the product name and try again.';
             return null;
         }
 
         // A single clear winner (exact match, or a dominant top score) resolves
         // without a prompt — keeps "add the complete solution" fluid even when
         // other products share a token.
-        RLM_AI_ConfigServiceUtils.MatchResolution res =
-            RLM_AI_ConfigServiceUtils.classifyScores(confidentScores);
+        RLM_AI_ConfigServiceUtils.MatchResolution res = RLM_AI_ConfigServiceUtils.classifyScores(confidentScores);
         if (res == RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE) {
             return confident[0].product;
         }
@@ -255,8 +267,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         out.needsDisambiguation = true;
         out.candidateProducts = candidateList;
         out.candidateSummariesDisplay = buildProductCandidateDisplay(candidateList);
-        out.errorMessage = 'Multiple products match "' + term
-            + '". Ask the user which one to add.';
+        out.errorMessage = 'Multiple products match "' + term + '". Ask the user which one to add.';
         return null;
     }
 
@@ -282,8 +293,9 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         ];
 
         if (options.isEmpty()) {
-            res.errorMessage = 'This product has no selling model configured, '
-                + 'so it cannot be added to a quote yet. Configure a selling model for it first.';
+            res.errorMessage =
+                'This product has no selling model configured, ' +
+                'so it cannot be added to a quote yet. Configure a selling model for it first.';
             return res;
         }
 
@@ -302,9 +314,12 @@ public with sharing class RLM_AI_AddProductToQuoteService {
                     }
                 }
             }
-            res.errorMessage = 'This product has no "' + requestedName
-                + '" selling model. Available: ' + String.join(available, ', ')
-                + '. Ask the user which one to use.';
+            res.errorMessage =
+                'This product has no "' +
+                requestedName +
+                '" selling model. Available: ' +
+                String.join(available, ', ') +
+                '. Ask the user which one to use.';
             return res;
         }
 
@@ -329,16 +344,15 @@ public with sharing class RLM_AI_AddProductToQuoteService {
                     names.add(n);
                 }
             }
-            res.errorMessage = 'This product has multiple selling models ('
-                + String.join(names, ', ')
-                + ') and no default. Ask the user which selling model to use.';
+            res.errorMessage =
+                'This product has multiple selling models (' +
+                String.join(names, ', ') +
+                ') and no default. Ask the user which selling model to use.';
             return res;
         }
 
         res.sellingModelId = chosen.ProductSellingModelId;
-        res.sellingModelName = chosen.ProductSellingModel != null
-            ? chosen.ProductSellingModel.Name
-            : null;
+        res.sellingModelName = chosen.ProductSellingModel != null ? chosen.ProductSellingModel.Name : null;
         return res;
     }
 
@@ -388,7 +402,6 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return String.valueOf(value);
     }
 
-
     // ---- Managed add-line invocation seam (injectable for tests) ----
 
     public class ManagedResult {
@@ -402,8 +415,12 @@ public with sharing class RLM_AI_AddProductToQuoteService {
 
     public interface ManagedAddLineInvoker {
         ManagedResult addLine(
-            Id quoteId, Id productId, Id sellingModelId,
-            Decimal quantity, Date startDate, Date endDate
+            Id quoteId,
+            Id productId,
+            Id sellingModelId,
+            Decimal quantity,
+            Date startDate,
+            Date endDate
         );
     }
 
@@ -415,11 +432,14 @@ public with sharing class RLM_AI_AddProductToQuoteService {
      */
     public class DefaultManagedAddLineInvoker implements ManagedAddLineInvoker {
         public ManagedResult addLine(
-            Id quoteId, Id productId, Id sellingModelId,
-            Decimal quantity, Date startDate, Date endDate
+            Id quoteId,
+            Id productId,
+            Id sellingModelId,
+            Decimal quantity,
+            Date startDate,
+            Date endDate
         ) {
-            Invocable.Action action =
-                Invocable.Action.createCustomAction('flow', 'quotingAI__addQuoteLineItemToQuote');
+            Invocable.Action action = Invocable.Action.createCustomAction('flow', 'quotingAI__addQuoteLineItemToQuote');
             action.setInvocationParameter('quoteId', String.valueOf(quoteId));
             action.setInvocationParameter('productId', String.valueOf(productId));
             action.setInvocationParameter('productSellingModelID', String.valueOf(sellingModelId));

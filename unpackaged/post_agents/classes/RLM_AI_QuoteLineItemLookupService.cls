@@ -28,16 +28,23 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
     private static final Integer AUTO_SELECT_CONFIDENCE_THRESHOLD = 80;
 
     public class LookupInput {
-        @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0).')
+        @InvocableVariable(
+            required=true
+            label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0).'
+        )
         public String quoteId;
 
-        @InvocableVariable(label='Product Name'
-            description='Partial or full product name to search for. Leave blank to return every quote line on the quote as disambiguation candidates (used to let the user pick lines to discount, including "all").')
+        @InvocableVariable(
+            label='Product Name'
+            description='Partial or full product name to search for. Leave blank to return every quote line on the quote as disambiguation candidates (used to let the user pick lines to discount, including "all").'
+        )
         public String productName;
 
-        @InvocableVariable(label='Auto Select Threshold Percent'
-            description='Optional confidence threshold (0-100) required to auto-select a match. Defaults to 80. Raising it forces a confirmation step; it never forces a pick between equally-scoring lines.')
+        @InvocableVariable(
+            label='Auto Select Threshold Percent'
+            description='Optional confidence threshold (0-100) required to auto-select a match. Defaults to 80. Raising it forces a confirmation step; it never forces a pick between equally-scoring lines.'
+        )
         public Integer autoSelectThresholdPercent;
     }
 
@@ -48,8 +55,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         @InvocableVariable(label='Product Name Found')
         public String productNameFound;
 
-        @InvocableVariable(label='Is Success'
-            description='True if the lookup ran correctly (including no-match and disambiguation outcomes). False only when a system or input error prevented it from running. Distinct from isFound, which reports whether a single high-confidence match was selected.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True if the lookup ran correctly (including no-match and disambiguation outcomes). False only when a system or input error prevented it from running. Distinct from isFound, which reports whether a single high-confidence match was selected.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Is Found')
@@ -73,8 +82,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         @InvocableVariable(label='Candidate Quote Line Summaries JSON')
         public String candidateQuoteLineSummariesJson;
 
-        @InvocableVariable(label='Candidate Quote Line Summaries Display'
-            description='Formatted numbered summary of quote line candidates for user-facing disambiguation.')
+        @InvocableVariable(
+            label='Candidate Quote Line Summaries Display'
+            description='Formatted numbered summary of quote line candidates for user-facing disambiguation.'
+        )
         public String candidateQuoteLineSummariesDisplay;
 
         @InvocableVariable(label='Error Message')
@@ -174,8 +185,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 }
                 populateDisambiguationOutputs(out, allCandidates, allCandidates.size());
                 out.errorMessage =
-                    'Listing all ' + allCandidates.size()
-                    + ' quote line(s) for selection. Present candidateQuoteLineSummariesJson as a numbered list and ask the user which line(s) to act on (they may choose all, several, or one).';
+                    'Listing all ' +
+                    allCandidates.size() +
+                    ' quote line(s) for selection. Present candidateQuoteLineSummariesJson as a numbered list and ask the user which line(s) to act on (they may choose all, several, or one).';
                 return out;
             }
 
@@ -185,9 +197,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
 
             if (rankedCandidates.isEmpty()) {
                 out.errorMessage =
-                    'No QuoteLineItem found on this quote matching product name "'
-                    + input.productName
-                    + '". Verify the quote ID and product name and try again.';
+                    'No QuoteLineItem found on this quote matching product name "' +
+                    input.productName +
+                    '". Verify the quote ID and product name and try again.';
                 return out;
             }
 
@@ -200,9 +212,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             if (hasDuplicateTopProductLines(rankedCandidates)) {
                 populateDisambiguationOutputs(out, rankedCandidates);
                 out.errorMessage =
-                    'Multiple quote lines were found for product "'
-                    + bestMatch.qli.Product2.Name
-                    + '". Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
+                    'Multiple quote lines were found for product "' +
+                    bestMatch.qli.Product2.Name +
+                    '". Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
                 return out;
             }
 
@@ -213,20 +225,23 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             for (MatchCandidate c : rankedCandidates) {
                 scores.add(c.confidence);
             }
-            RLM_AI_ConfigServiceUtils.MatchResolution resolution =
-                RLM_AI_ConfigServiceUtils.classifyScores(scores);
+            RLM_AI_ConfigServiceUtils.MatchResolution resolution = RLM_AI_ConfigServiceUtils.classifyScores(scores);
 
-            if (resolution == RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE
-                && bestMatch.confidence >= thresholdPercent) {
+            if (
+                resolution == RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE &&
+                bestMatch.confidence >= thresholdPercent
+            ) {
                 out.quoteLineItemId = bestMatch.qli.Id;
                 out.productNameFound = bestMatch.qli.Product2.Name;
                 out.isFound = true;
             } else {
                 populateDisambiguationOutputs(out, rankedCandidates);
                 out.errorMessage =
-                    'No single quote line clearly matched "' + input.productName
-                    + '" at the ' + thresholdPercent
-                    + '% confidence threshold (the top matches scored too closely, or the best match fell below the threshold). Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
+                    'No single quote line clearly matched "' +
+                    input.productName +
+                    '" at the ' +
+                    thresholdPercent +
+                    '% confidence threshold (the top matches scored too closely, or the best match fell below the threshold). Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
             }
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
@@ -251,9 +266,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
      * best-first. score and confidence are the same 0-100 value so the rest of
      * the contract (matchConfidencePercent, comparator) is unchanged.
      */
-    private static List<MatchCandidate> rankConfidentCandidates(
-        List<QuoteLineItem> qlis, String searchTerm
-    ) {
+    private static List<MatchCandidate> rankConfidentCandidates(List<QuoteLineItem> qlis, String searchTerm) {
         List<MatchCandidate> candidates = new List<MatchCandidate>();
         for (QuoteLineItem qli : qlis) {
             String candidateName = qli?.Product2?.Name;
@@ -314,7 +327,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return products;
     }
 
-    private static List<QuoteLineItem> buildCandidateQuoteLineItems(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
+    private static List<QuoteLineItem> buildCandidateQuoteLineItems(
+        List<MatchCandidate> rankedCandidates,
+        Integer maxToReturn
+    ) {
         List<QuoteLineItem> quoteLines = new List<QuoteLineItem>();
         Set<Id> seenQuoteLineIds = new Set<Id>();
         for (MatchCandidate candidate : rankedCandidates) {
@@ -330,10 +346,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                     UnitPrice = resolveDisplayUnitPrice(qli)
                 );
                 if (qli.Product2Id != null) {
-                    displayQuoteLine.Product2 = new Product2(
-                        Id = qli.Product2Id,
-                        Name = qli?.Product2?.Name
-                    );
+                    displayQuoteLine.Product2 = new Product2(Id = qli.Product2Id, Name = qli?.Product2?.Name);
                 }
                 quoteLines.add(displayQuoteLine);
                 seenQuoteLineIds.add(qli.Id);
@@ -352,10 +365,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return qli.UnitPrice;
     }
 
-    private static void populateDisambiguationOutputs(
-        LookupOutput out,
-        List<MatchCandidate> rankedCandidates
-    ) {
+    private static void populateDisambiguationOutputs(LookupOutput out, List<MatchCandidate> rankedCandidates) {
         // Show EVERY ranked candidate — never hide valid choices behind a cap.
         // The user must be able to pick any matching line, not just the top few.
         Integer all = (rankedCandidates == null) ? 0 : rankedCandidates.size();
@@ -398,7 +408,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return false;
     }
 
-    private static String buildCandidateQuoteLineSummariesJson(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
+    private static String buildCandidateQuoteLineSummariesJson(
+        List<MatchCandidate> rankedCandidates,
+        Integer maxToReturn
+    ) {
         List<Object> summaries = new List<Object>();
         Set<Id> seenQuoteLineIds = new Set<Id>();
         for (MatchCandidate candidate : rankedCandidates) {
@@ -413,19 +426,24 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
 
             Decimal netUnitPrice = resolveDisplayUnitPrice(qli);
             Decimal netTotalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
-            summaries.add(new Map<String, Object>{
-                'quoteLineItemId' => qli.Id,
-                'productName' => qli?.Product2?.Name,
-                'quantity' => qli.Quantity,
-                'netUnitPrice' => netUnitPrice,
-                'netTotalPrice' => netTotalPrice
-            });
+            summaries.add(
+                new Map<String, Object>{
+                    'quoteLineItemId' => qli.Id,
+                    'productName' => qli?.Product2?.Name,
+                    'quantity' => qli.Quantity,
+                    'netUnitPrice' => netUnitPrice,
+                    'netTotalPrice' => netTotalPrice
+                }
+            );
             seenQuoteLineIds.add(qli.Id);
         }
         return JSON.serialize(summaries);
     }
 
-    private static String buildCandidateQuoteLineSummariesDisplay(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
+    private static String buildCandidateQuoteLineSummariesDisplay(
+        List<MatchCandidate> rankedCandidates,
+        Integer maxToReturn
+    ) {
         List<String> lines = new List<String>();
         lines.add('Select the quote line(s) to update:');
         Set<Id> seenQuoteLineIds = new Set<Id>();
@@ -439,16 +457,19 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 continue;
             }
 
-            String productName = String.isNotBlank(qli?.Product2?.Name)
-                ? qli.Product2.Name
-                : 'Unnamed Product';
+            String productName = String.isNotBlank(qli?.Product2?.Name) ? qli.Product2.Name : 'Unnamed Product';
             Decimal netUnitPrice = resolveDisplayUnitPrice(qli);
             Decimal netTotalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
             lines.add(
-                lineNumber + '. **' + productName
-                + '** - Quantity: ' + String.valueOf(qli.Quantity)
-                + ', Net Unit Price: ' + formatCurrency(netUnitPrice)
-                + ', Net Total Price: ' + formatCurrency(netTotalPrice)
+                lineNumber +
+                    '. **' +
+                    productName +
+                    '** - Quantity: ' +
+                    String.valueOf(qli.Quantity) +
+                    ', Net Unit Price: ' +
+                    formatCurrency(netUnitPrice) +
+                    ', Net Total Price: ' +
+                    formatCurrency(netTotalPrice)
             );
             seenQuoteLineIds.add(qli.Id);
             lineNumber++;
@@ -474,10 +495,6 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         if (String.isBlank(value)) {
             return '';
         }
-        return value
-            .toLowerCase()
-            .replaceAll('[^a-z0-9]+', ' ')
-            .replaceAll('\\s+', ' ')
-            .trim();
+        return value.toLowerCase().replaceAll('[^a-z0-9]+', ' ').replaceAll('\\s+', ' ').trim();
     }
 }

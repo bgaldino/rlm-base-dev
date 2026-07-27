@@ -1,6 +1,5 @@
 @isTest
 private class RLM_AI_UpdateRecordFieldsServiceTest {
-
     // ---- Fixture builder ----
     private class Fixture {
         public Id quoteId;
@@ -59,8 +58,7 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     }
 
     private static RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput baseInput(Id quoteId) {
-        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input =
-            new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
         input.quoteId = String.valueOf(quoteId);
         return input;
     }
@@ -76,16 +74,19 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
         System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
         System.assertEquals(1, out.updatedCount);
         System.assert(out.resultsDisplay.contains('Quinn Alpha'), 'display should mention product');
-        System.assert(out.resultsDisplay.toLowerCase().contains('enddate'), 'display should echo field name: ' + out.resultsDisplay);
+        System.assert(
+            out.resultsDisplay.toLowerCase().contains('enddate'),
+            'display should echo field name: ' + out.resultsDisplay
+        );
 
         QuoteLineItem updated = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
         System.assertEquals(Date.newInstance(2029, 6, 25), updated.EndDate);
@@ -106,9 +107,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -130,18 +131,16 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk updated"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
         System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
         System.assertEquals(2, out.updatedCount);
 
-        List<QuoteLineItem> lines = [
-            SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds ORDER BY Id
-        ];
+        List<QuoteLineItem> lines = [SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds ORDER BY Id];
         for (QuoteLineItem qli : lines) {
             System.assertEquals('Bulk updated', qli.Description);
         }
@@ -154,14 +153,15 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'Quote';
-        input.fieldUpdatesJson = '[{"fieldApiName":"Name","value":"Updated Quote Name"},'
-            + '{"fieldApiName":"Description","value":"Updated description"},'
-            + '{"fieldApiName":"ExpirationDate","value":"2029-12-31"}]';
+        input.fieldUpdatesJson =
+            '[{"fieldApiName":"Name","value":"Updated Quote Name"},' +
+            '{"fieldApiName":"Description","value":"Updated description"},' +
+            '{"fieldApiName":"ExpirationDate","value":"2029-12-31"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -185,9 +185,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input1.fieldUpdatesJson = '[{"fieldApiName":"Status","value":"Presented"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results1 =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input1 });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results1 = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input1 }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out1 = results1[0];
@@ -212,9 +212,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Quantity","value":"5"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -235,9 +235,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Single match updated"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -259,9 +259,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Should not update"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -283,9 +283,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input2.pendingSelectionJsonIn = out.pendingSelectionJson;
         input2.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Second line updated"}]';
 
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results2 =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input2 });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results2 = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input2 }
+        );
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out2 = results2[0];
         System.assertEquals(true, out2.isSuccess, 'error: ' + out2.errorMessage);
@@ -315,9 +315,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Updated description"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -340,9 +340,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":null}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -363,9 +363,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Quantity","value":null}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -387,9 +387,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"CreatedDate","value":"2029-01-01"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -408,9 +408,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"NonExistentField","value":"test"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -428,9 +428,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"AttributeValue","value":"test"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -449,9 +449,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"12/31/2029"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -471,9 +471,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Cross-quote"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -492,9 +492,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         // No targeting at all
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -513,9 +513,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -526,15 +526,14 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Blank quote Id rejected ----
     @isTest
     static void blankQuoteIdRejected() {
-        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input =
-            new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
         input.quoteId = '';
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"test"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -550,17 +549,16 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     static void blankQuoteIdDerivedFromLine() {
         Fixture f = buildFixture(new List<String>{ 'Quinn Derive' });
 
-        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input =
-            new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
         input.quoteId = ''; // not known — only the line is
         input.sObjectType = 'QuoteLineItem';
         input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
         input.fieldUpdatesJson = '[{"fieldApiName":"Quantity","value":"4"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -573,15 +571,14 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Invalid quote Id rejected ----
     @isTest
     static void invalidQuoteIdRejected() {
-        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input =
-            new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
         input.quoteId = 'not-an-id';
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"test"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -593,9 +590,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     @isTest
     static void emptyInputListReturnsEmpty() {
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>());
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>()
+        );
         Test.stopTest();
 
         System.assertEquals(0, results.size(), 'empty input should return empty output');
@@ -605,8 +602,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     @isTest
     static void nullInputListReturnsEmpty() {
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(null);
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            null
+        );
         Test.stopTest();
 
         System.assertEquals(0, results.size(), 'null input should return empty output');
@@ -623,9 +621,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = 'not-valid-json{';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -650,9 +648,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -676,9 +674,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Ordinal 2 updated"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -701,9 +699,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Tokenized match"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -711,8 +709,7 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(1, out.updatedCount);
 
         QuoteLineItem updated = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
-        System.assertEquals('Tokenized match', updated.Description,
-            'Non-contiguous tokens should match');
+        System.assertEquals('Tokenized match', updated.Description, 'Non-contiguous tokens should match');
     }
 
     // ---- Selling-model gate: dates skipped on one-time lines ----
@@ -726,9 +723,11 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
             '"ProductSellingModel":{"attributes":{"type":"ProductSellingModel"},"SellingModelType":"OneTime"}}',
             QuoteLineItem.class
         );
-        System.assertEquals(true,
+        System.assertEquals(
+            true,
             RLM_AI_UpdateRecordFieldsService.isOneTimeLine(qli),
-            'OneTime selling model should be detected');
+            'OneTime selling model should be detected'
+        );
     }
 
     @isTest
@@ -738,26 +737,29 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
             '"ProductSellingModel":{"attributes":{"type":"ProductSellingModel"},"SellingModelType":"TermDefined"}}',
             QuoteLineItem.class
         );
-        System.assertEquals(false,
+        System.assertEquals(
+            false,
             RLM_AI_UpdateRecordFieldsService.isOneTimeLine(termed),
-            'TermDefined line is not one-time');
+            'TermDefined line is not one-time'
+        );
     }
 
     @isTest
     static void isOneTimeLineFalseWhenModelMissing() {
         // No selling model populated → treated as not one-time (date edits proceed).
         QuoteLineItem bare = new QuoteLineItem();
-        System.assertEquals(false,
+        System.assertEquals(
+            false,
             RLM_AI_UpdateRecordFieldsService.isOneTimeLine(bare),
-            'Null selling model should not be treated as one-time');
+            'Null selling model should not be treated as one-time'
+        );
     }
 
     @isTest
     static void endDateSkipsOneTimeLineInMixedBatch() {
         Fixture f = buildFixture(new List<String>{ 'Quinn Termed', 'Quinn OneTime' });
         // Force the second line to be treated as a one-time selling model.
-        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
-            new Set<Id>{ f.lineIds[1] };
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds = new Set<Id>{ f.lineIds[1] };
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'QuoteLineItem';
@@ -765,30 +767,29 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
         System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
         System.assertEquals(1, out.updatedCount, 'only the termed line gets the date');
-        System.assert(out.resultsDisplay.toLowerCase().contains('skipped'),
-            'display should note the skipped one-time line: ' + out.resultsDisplay);
+        System.assert(
+            out.resultsDisplay.toLowerCase().contains('skipped'),
+            'display should note the skipped one-time line: ' + out.resultsDisplay
+        );
 
         QuoteLineItem termed = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
         QuoteLineItem oneTime = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[1]];
-        System.assertEquals(Date.newInstance(2029, 6, 25), termed.EndDate,
-            'termed line gets the new end date');
-        System.assertEquals(null, oneTime.EndDate,
-            'one-time line is skipped, end date untouched');
+        System.assertEquals(Date.newInstance(2029, 6, 25), termed.EndDate, 'termed line gets the new end date');
+        System.assertEquals(null, oneTime.EndDate, 'one-time line is skipped, end date untouched');
     }
 
     @isTest
     static void endDateOnlyOneTimeLineSkippedNotError() {
         Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
-        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
-            new Set<Id>{ f.lineIds[0] };
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds = new Set<Id>{ f.lineIds[0] };
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'QuoteLineItem';
@@ -796,9 +797,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -806,15 +807,16 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(true, out.isSuccess, 'all-skipped should not be an error: ' + out.errorMessage);
         System.assertEquals(0, out.updatedCount);
         System.assertEquals(null, out.errorMessage, 'no error for a legitimate skip');
-        System.assert(out.resultsDisplay.toLowerCase().contains('skipped'),
-            'display should note the skip: ' + out.resultsDisplay);
+        System.assert(
+            out.resultsDisplay.toLowerCase().contains('skipped'),
+            'display should note the skip: ' + out.resultsDisplay
+        );
     }
 
     @isTest
     static void nonDateFieldStillAppliesToOneTimeLine() {
         Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
-        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
-            new Set<Id>{ f.lineIds[0] };
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds = new Set<Id>{ f.lineIds[0] };
 
         // A non-date edit (Description) must still apply to a one-time line.
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -823,9 +825,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"One-time desc"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -838,10 +840,7 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void productNameTokenizedDisambiguates() {
-        Fixture f = buildFixture(new List<String>{
-            'Additional API Product Alpha',
-            'Additional API Product Beta'
-        });
+        Fixture f = buildFixture(new List<String>{ 'Additional API Product Alpha', 'Additional API Product Beta' });
 
         // Search for just "API" which matches both
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -850,17 +849,15 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"test"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
-        System.assertEquals(true, out.needsDisambiguation,
-            'Multiple token matches should disambiguate');
+        System.assertEquals(true, out.needsDisambiguation, 'Multiple token matches should disambiguate');
         System.assertEquals(0, out.updatedCount);
-        System.assert(String.isNotBlank(out.candidateQuoteLineSummariesDisplay),
-            'Should have candidate display');
+        System.assert(String.isNotBlank(out.candidateQuoteLineSummariesDisplay), 'Should have candidate display');
     }
 
     // ---- Boolean coercion ----
@@ -874,9 +871,9 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"yes"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
@@ -894,15 +891,16 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"maybe"}]';
 
         Test.startTest();
-        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
-            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
-                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results = RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+            new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
-        System.assert(String.isNotBlank(out.errorMessage),
-            'Should reject invalid boolean');
-        System.assert(out.errorMessage.containsIgnoreCase('boolean'),
-            'Error should mention boolean: ' + out.errorMessage);
+        System.assert(String.isNotBlank(out.errorMessage), 'Should reject invalid boolean');
+        System.assert(
+            out.errorMessage.containsIgnoreCase('boolean'),
+            'Error should mention boolean: ' + out.errorMessage
+        );
     }
 }

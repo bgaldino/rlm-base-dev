@@ -15,10 +15,12 @@
  * Each method is in its own class due to the one-@InvocableMethod-per-class rule.
  */
 public with sharing class RLM_AI_ProductAttributeService {
-
     public class GetAttributeOptionsInput {
-        @InvocableVariable(required=true label='Quote Line Item Id'
-            description='18-character Salesforce Id of the QuoteLineItem record. The service resolves the Product2Id from this record.')
+        @InvocableVariable(
+            required=true
+            label='Quote Line Item Id'
+            description='18-character Salesforce Id of the QuoteLineItem record. The service resolves the Product2Id from this record.'
+        )
         public String quoteLineItemId;
     }
 
@@ -26,19 +28,25 @@ public with sharing class RLM_AI_ProductAttributeService {
         @InvocableVariable(label='Product Name')
         public String productName;
 
-        @InvocableVariable(label='Attributes JSON'
-            description='JSON array of attribute objects. Each has: name, developerName, dataType, isRequired, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner when calling Configure_Product_Attributes.')
+        @InvocableVariable(
+            label='Attributes JSON'
+            description='JSON array of attribute objects. Each has: name, developerName, dataType, isRequired, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner when calling Configure_Product_Attributes.'
+        )
         public String attributesJson;
 
-        @InvocableVariable(label='Attribute Summary'
-            description='Pre-formatted human-readable summary of all configurable attributes and their valid values. Display this directly to the user.')
+        @InvocableVariable(
+            label='Attribute Summary'
+            description='Pre-formatted human-readable summary of all configurable attributes and their valid values. Display this directly to the user.'
+        )
         public String attributeSummary;
 
         @InvocableVariable(label='Has Configurable Attributes')
         public Boolean hasConfigurableAttributes;
 
-        @InvocableVariable(label='Is Success'
-            description='True if the action ran without a system-level error. False if an exception prevented it from completing. Distinct from hasConfigurableAttributes, which is a domain result.')
+        @InvocableVariable(
+            label='Is Success'
+            description='True if the action ran without a system-level error. False if an exception prevented it from completing. Distinct from hasConfigurableAttributes, which is a domain result.'
+        )
         public Boolean isSuccess;
 
         @InvocableVariable(label='Error Message')
@@ -50,9 +58,7 @@ public with sharing class RLM_AI_ProductAttributeService {
         description='Retrieves configurable attribute definitions for any product via SOQL (ProductClassificationAttr). Product-agnostic: attribute structure resolved at runtime.'
         category='Product Configuration'
     )
-    public static List<GetAttributeOptionsOutput> getProductAttributeOptions(
-        List<GetAttributeOptionsInput> inputs
-    ) {
+    public static List<GetAttributeOptionsOutput> getProductAttributeOptions(List<GetAttributeOptionsInput> inputs) {
         List<GetAttributeOptionsOutput> results = new List<GetAttributeOptionsOutput>();
         if (inputs == null || inputs.isEmpty()) {
             return results;
@@ -88,7 +94,6 @@ public with sharing class RLM_AI_ProductAttributeService {
             out.attributesJson = RLM_AI_AttributeResolver.toJson(res.attributes);
             out.hasConfigurableAttributes = res.hasAttributes();
             out.attributeSummary = buildSummary(out.productName, res.attributes);
-
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
             out.hasConfigurableAttributes = false;
@@ -105,9 +110,7 @@ public with sharing class RLM_AI_ProductAttributeService {
         return out;
     }
 
-    private static String buildSummary(
-        String productName, List<RLM_AI_AttributeResolver.ResolvedAttribute> attrList
-    ) {
+    private static String buildSummary(String productName, List<RLM_AI_AttributeResolver.ResolvedAttribute> attrList) {
         String header = String.isNotBlank(productName) ? productName : 'This line';
         if (attrList == null || attrList.isEmpty()) {
             return header + ' has no configurable attributes.';
@@ -121,12 +124,9 @@ public with sharing class RLM_AI_ProductAttributeService {
             String req = attr.isRequired == true ? ' (required)' : '';
             // Show the current value when one is set, so discovery and the
             // current-state read present the same fact.
-            String cur = String.isNotBlank(attr.currentValue)
-                ? ' — currently **' + attr.currentValue + '**'
-                : '';
+            String cur = String.isNotBlank(attr.currentValue) ? ' — currently **' + attr.currentValue + '**' : '';
             if (attr.dataType == 'Picklist') {
-                List<String> valStrs = attr.picklistValues != null
-                    ? attr.picklistValues : new List<String>();
+                List<String> valStrs = attr.picklistValues != null ? attr.picklistValues : new List<String>();
                 lines.add(i + '. ' + label + req + cur);
                 lines.add('   Options: ' + String.join(valStrs, ', '));
             } else if (attr.dataType == 'Number') {

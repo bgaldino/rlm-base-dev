@@ -1,6 +1,10 @@
 public class RLM_QuoteModelUtility {
-    @InvocableMethod(label='Convert Quote to Context String' description='Converts a Single Quote to SalesTranscationModel for context' category='RLM SE TAT')
-    public static List<String> CreateQuoteContextString(List<Id> quoteId){
+    @InvocableMethod(
+        label='Convert Quote to Context String'
+        description='Converts a Single Quote to SalesTranscationModel for context'
+        category='RLM SE TAT'
+    )
+    public static List<String> CreateQuoteContextString(List<Id> quoteId) {
         Quote q = getQuote(quoteId);
         List<QuoteLineItem> qls = getQuoteLines(q.Id);
 
@@ -8,20 +12,33 @@ public class RLM_QuoteModelUtility {
 
         SalesContext.SalesTransaction.SalesTransactionSource = q.Id;
         SalesContext.SalesTransaction.PriceBooks = q.Pricebook2Id;
-        SalesContext.SalesTransaction.EffectiveDate = String.valueOf(q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
+        SalesContext.SalesTransaction.EffectiveDate = String.valueOf(
+            q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'')
+        );
         SalesContext.SalesTransaction.CurrencyIsoCode = q.CurrencyIsoCode;
         SalesContext.SalesTransaction.SalesTransactionItem = new List<SalesTransactionItemModel>();
 
-        for(QuoteLineItem ql: qls){
+        for (QuoteLineItem ql : qls) {
             SalesTransactionItemModel item = new SalesTransactionItemModel();
 
-            List<QuoteLineItemAttribute> qlAtts = [SELECT QuoteLineItemId, AttributeName, AttributeValue
-                                                    FROM QuoteLineItemAttribute 
-                                                    WHERE QuoteLineItemId =: ql.Id];
-                                                    
-            List<QuoteLineRelationship> qlRs =  [SELECT  AssociatedQuoteLineId, AssociatedQuoteLine.ProductSellingModelId, AssociatedQuoteLine.Product2Id,
-                                                    AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
-                                                     FROM QuoteLineRelationship WHERE AssociatedQuoteLineId =: ql.Id];
+            List<QuoteLineItemAttribute> qlAtts = [
+                SELECT QuoteLineItemId, AttributeName, AttributeValue
+                FROM QuoteLineItemAttribute
+                WHERE QuoteLineItemId = :ql.Id
+            ];
+
+            List<QuoteLineRelationship> qlRs = [
+                SELECT
+                    AssociatedQuoteLineId,
+                    AssociatedQuoteLine.ProductSellingModelId,
+                    AssociatedQuoteLine.Product2Id,
+                    AssociatedQuoteLinePricing,
+                    MainQuoteLineId,
+                    MainQuoteLine.ProductSellingModelId,
+                    MainQuoteLine.Product2Id
+                FROM QuoteLineRelationship
+                WHERE AssociatedQuoteLineId = :ql.Id
+            ];
 
             item.SalesTransactionItemParent = ql.QuoteId;
             item.price_water_fall = '';
@@ -31,8 +48,11 @@ public class RLM_QuoteModelUtility {
             item.InputUnitPrice = String.valueOf(ql.ListPrice);
             item.StartProrationPeriodDay = string.valueOf(ql.StartDate.day());
             item.StartProrationPeriod = ql.PeriodBoundary;
-            item.AllowPartialProrationPeriods = string.valueOf(ql.ProrationPolicy.ArePartialPeriodsAllowed) ;
-            item.StartProrationPeriodMonth = string.valueOf(DateTime.newInstance(ql.StartDate.year(), ql.StartDate.month(), ql.StartDate.day(), 0, 0, 0).format('MMMM'));
+            item.AllowPartialProrationPeriods = string.valueOf(ql.ProrationPolicy.ArePartialPeriodsAllowed);
+            item.StartProrationPeriodMonth = string.valueOf(
+                DateTime.newInstance(ql.StartDate.year(), ql.StartDate.month(), ql.StartDate.day(), 0, 0, 0)
+                    .format('MMMM')
+            );
             item.ItemDiscountAmount = String.valueOf(ql.DiscountAmount);
             item.ItemDiscountPercentage = String.valueOf(ql.Discount);
             item.SalesTransactionItemAttribute = new List<SalesTransactionItemAttributeModel>();
@@ -46,8 +66,8 @@ public class RLM_QuoteModelUtility {
             item.SellingModelType = ql.SellingModelType;
             item.PricingTermUnit = ql.PricingTermUnit;
 
-            if(qlAtts.size()>0){
-                for(QuoteLineItemAttribute qlAtt: qlAtts){
+            if (qlAtts.size() > 0) {
+                for (QuoteLineItemAttribute qlAtt : qlAtts) {
                     SalesTransactionItemAttributeModel att = new SalesTransactionItemAttributeModel();
                     att.SalesTransactionItemAttrParent = ql.Id;
                     att.PriceImpactingAttribute = 'TRUE';
@@ -58,13 +78,13 @@ public class RLM_QuoteModelUtility {
                 }
             }
 
-            if(qlRs.size()>0){
-                for(QuoteLineRelationship qlr: qlRs){
+            if (qlRs.size() > 0) {
+                for (QuoteLineRelationship qlr : qlRs) {
                     SalesTransactionItemRelationshipModel rm = new SalesTransactionItemRelationshipModel();
 
-                    if(qlr.AssociatedQuoteLinePricing == 'NotIncludedInBundlePrice'){
+                    if (qlr.AssociatedQuoteLinePricing == 'NotIncludedInBundlePrice') {
                         rm.InclusivePrice = 'FALSE';
-                    }else{
+                    } else {
                         rm.InclusivePrice = 'TRUE';
                     }
 
@@ -73,7 +93,7 @@ public class RLM_QuoteModelUtility {
                     rm.MainItemProductSellingModel = qlr.MainQuoteLine.ProductSellingModelId;
                     rm.RootItemProduct = qlr.MainQuoteLine.Product2Id;
                     rm.MainItemProduct = qlr.MainQuoteLine.Product2Id;
-                    
+
                     item.SalesTrxnItemRelationship.add(rm);
                 }
             }
@@ -82,53 +102,74 @@ public class RLM_QuoteModelUtility {
         }
         system.debug(JSON.serialize(SalesContext));
         List<String> JSONstringsToReturn = new List<String>();
-		
+
         String JSONstringToReturn = JSON.serialize(SalesContext).replace('null', '""');
         JSONstringsToReturn.add(JSONstringToReturn);
         system.debug(JSONstringsToReturn);
         return JSONstringsToReturn;
     }
 
-    public static Quote getQuote(List<Id> quoteId){
-        Quote q = [SELECT Id, Pricebook2Id, CurrencyIsoCode, CreatedDate 
-                    FROM Quote 
-                    WHERE Id IN: quoteId LIMIT 1].get(0);
+    public static Quote getQuote(List<Id> quoteId) {
+        Quote q = [
+                SELECT Id, Pricebook2Id, CurrencyIsoCode, CreatedDate
+                FROM Quote
+                WHERE Id IN :quoteId
+                LIMIT 1
+            ]
+            .get(0);
         return q;
     }
 
-    public static List<QuoteLineItem> getQuoteLines(Id quoteId){
-        List<QuoteLineItem> qls = [SELECT QuoteId, ProductSellingModelId, SubscriptionTerm, Product2Id,
-                                ListPrice, Discount, DiscountAmount, StartDate, EndDate, LineNumber, Quantity, 
-                                PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth, SellingModelType,
-                                ProrationPolicy.ArePartialPeriodsAllowed, PricingTermUnit 
-                                FROM QuoteLineItem WHERE QuoteId =: quoteId];
+    public static List<QuoteLineItem> getQuoteLines(Id quoteId) {
+        List<QuoteLineItem> qls = [
+            SELECT
+                QuoteId,
+                ProductSellingModelId,
+                SubscriptionTerm,
+                Product2Id,
+                ListPrice,
+                Discount,
+                DiscountAmount,
+                StartDate,
+                EndDate,
+                LineNumber,
+                Quantity,
+                PeriodBoundary,
+                PeriodBoundaryDay,
+                PeriodBoundaryStartMonth,
+                SellingModelType,
+                ProrationPolicy.ArePartialPeriodsAllowed,
+                PricingTermUnit
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+        ];
 
         return qls;
     }
 
-    public static string convertStartDate(Date sd){
+    public static string convertStartDate(Date sd) {
         DateTime startDateTime = DateTime.newInstance(sd.year(), sd.month(), sd.day(), 0, 0, 0);
         String convertedStartDateTime = startDateTime.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
 
         return convertedStartDateTime;
     }
 
-    public static string convertEndDate(Date ed){
+    public static string convertEndDate(Date ed) {
         DateTime endDateTime = DateTime.newInstance(ed.year(), ed.month(), ed.day(), 23, 59, 59);
         String convertedEndDateTime = endDateTime.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
 
         return convertedEndDateTime;
     }
 
-    public class SalesContextModel{
+    public class SalesContextModel {
         public SalesTransactionModel SalesTransaction;
 
-        public SalesContextModel(){
+        public SalesContextModel() {
             SalesTransaction = new SalesTransactionModel();
         }
     }
 
-    public class SalesTransactionModel{
+    public class SalesTransactionModel {
         public String SalesTransactionSource;
         public String PriceBooks;
         public List<SalesTransactionItemModel> SalesTransactionItem;
@@ -137,7 +178,7 @@ public class RLM_QuoteModelUtility {
         public string TotalAmount;
     }
 
-    public class SalesTransactionItemModel{
+    public class SalesTransactionItemModel {
         public string SalesTransactionItemParent;
         public string TotalLineAmount;
         public string price_water_fall;
@@ -172,14 +213,14 @@ public class RLM_QuoteModelUtility {
         public string ItemContractVolumePasId;
     }
 
-    public class SalesTransactionItemAttributeModel{
+    public class SalesTransactionItemAttributeModel {
         public string SalesTransactionItemAttrParent;
         public string PriceImpactingAttribute;
         public string AttributeValue;
         public string Attribute;
     }
 
-    public class ContributorPriceDetailModel{
+    public class ContributorPriceDetailModel {
         public string ContributorFormulaInput;
         public string ContributorScope;
         public string ContributorSource;
@@ -188,7 +229,7 @@ public class RLM_QuoteModelUtility {
         public string Contributor;
     }
 
-    public class SalesTransactionItemRelationshipModel{
+    public class SalesTransactionItemRelationshipModel {
         public string SalesTrnItemRelationshipParent;
         public string InclusivePrice;
         public string RootProductSellingModel;

@@ -29,8 +29,7 @@ private class RLM_RefundControllerTest {
     @isTest
     static void issueRefund_nonPaymentObject_isRejected() {
         Test.startTest();
-        RLM_RefundController.RefundResult result =
-            RLM_RefundController.issueRefund(fakePaymentId(), 'CreditMemo');
+        RLM_RefundController.RefundResult result = RLM_RefundController.issueRefund(fakePaymentId(), 'CreditMemo');
         Test.stopTest();
         System.assertEquals(false, result.success, 'Non-Payment objects must be rejected.');
         System.assert(
@@ -42,8 +41,7 @@ private class RLM_RefundControllerTest {
     @isTest
     static void issueRefund_missingPayment_isHandled() {
         Test.startTest();
-        RLM_RefundController.RefundResult result =
-            RLM_RefundController.issueRefund(fakePaymentId(), 'Payment');
+        RLM_RefundController.RefundResult result = RLM_RefundController.issueRefund(fakePaymentId(), 'Payment');
         Test.stopTest();
         System.assertEquals(false, result.success, 'A missing payment cannot be refunded.');
         System.assert(
@@ -82,8 +80,7 @@ private class RLM_RefundControllerTest {
         }
         RLM_RefundController.mockRefundResponse = new ConnectApi.ReferencedRefundResponse();
         Test.startTest();
-        RLM_RefundController.RefundResult result =
-            RLM_RefundController.issueRefund(pmt.Id, 'Payment');
+        RLM_RefundController.RefundResult result = RLM_RefundController.issueRefund(pmt.Id, 'Payment');
         Test.stopTest();
         System.assertEquals(true, result.success, 'A payment with balance should refund: ' + result.message);
     }
@@ -95,8 +92,11 @@ private class RLM_RefundControllerTest {
         // No mock response set, so createRefund() falls through to the live ConnectApi call,
         // which cannot reach a gateway in a test context and is caught as a failed refund.
         Test.startTest();
-        RLM_RefundController.RefundResult result =
-            RLM_RefundController.createRefund(String.valueOf(fakePaymentId()), 50, acc.Id);
+        RLM_RefundController.RefundResult result = RLM_RefundController.createRefund(
+            String.valueOf(fakePaymentId()),
+            50,
+            acc.Id
+        );
         Test.stopTest();
         System.assertEquals(false, result.success, 'A gateway/connect failure must surface as an unsuccessful result.');
         System.assertNotEquals(null, result.message, 'A user-facing message should always be set.');
@@ -113,8 +113,7 @@ private class RLM_RefundControllerTest {
         RLM_RefundController.mockRefundResponse = new ConnectApi.ReferencedRefundResponse();
 
         Test.startTest();
-        RLM_RefundController.RefundResult result =
-            RLM_RefundController.createRefund(paymentId, 50, acc.Id);
+        RLM_RefundController.RefundResult result = RLM_RefundController.createRefund(paymentId, 50, acc.Id);
         Test.stopTest();
 
         System.assertEquals(true, result.success, 'Mocked refund should succeed: ' + result.message);

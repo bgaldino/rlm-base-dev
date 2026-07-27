@@ -15,11 +15,12 @@
  * @see RLM_UsageDatatable (FieldSet) on TransactionJournal, UsageSummary, UsageBillingPeriodItem
  */
 public with sharing class RLM_UsageDataController {
-
     /** Allowlist of SObjects this controller can query. Validated server-side to prevent
      *  unauthorized object access even though the LWC picklist constrains the client-side options. */
     private static final Set<String> ALLOWED_OBJECTS = new Set<String>{
-        'TransactionJournal', 'UsageSummary', 'UsageBillingPeriodItem'
+        'TransactionJournal',
+        'UsageSummary',
+        'UsageBillingPeriodItem'
     };
 
     /** Allowlist of WHERE filter fields by object. Prevents client-provided filterField from
@@ -79,9 +80,7 @@ public with sharing class RLM_UsageDataController {
         }
 
         // Use describeSObjects() instead of getGlobalDescribe() to avoid loading all SObject metadata
-        Schema.DescribeSObjectResult objDescribe = Schema.describeSObjects(
-            new List<String>{ objectApiName }
-        )[0];
+        Schema.DescribeSObjectResult objDescribe = Schema.describeSObjects(new List<String>{ objectApiName })[0];
 
         Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(fieldSetName);
         if (fs == null) {
@@ -91,9 +90,9 @@ public with sharing class RLM_UsageDataController {
         // Build SOQL field list and column definitions from the FieldSet
         List<String> queryFields = new List<String>{ 'Id' };
         List<Map<String, Object>> columns = new List<Map<String, Object>>();
-        Map<String, String> lookupRelNames = new Map<String, String>();   // fieldApiName -> relationship name
+        Map<String, String> lookupRelNames = new Map<String, String>(); // fieldApiName -> relationship name
         Map<String, String> lookupNameFields = new Map<String, String>(); // fieldApiName -> related object's name field
-        Set<String> nameFieldApis = new Set<String>();                    // tracks which fields are name fields
+        Set<String> nameFieldApis = new Set<String>(); // tracks which fields are name fields
         Map<Schema.SObjectType, String> nameFieldCache = new Map<Schema.SObjectType, String>(); // avoids redundant describes
 
         Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
@@ -114,8 +113,11 @@ public with sharing class RLM_UsageDataController {
             Schema.SObjectField sObjField = fieldMap.get(fieldApiName);
             if (sObjField == null) {
                 throw new AuraHandledException(
-                    'FieldSet entry "' + fieldApiName + '" on ' + objectApiName +
-                    ' is not a direct field on the object. Relationship paths and non-field entries are not supported.'
+                    'FieldSet entry "' +
+                        fieldApiName +
+                        '" on ' +
+                        objectApiName +
+                        ' is not a direct field on the object. Relationship paths and non-field entries are not supported.'
                 );
             }
             Schema.DescribeFieldResult fieldDescribe = sObjField.getDescribe();
@@ -125,7 +127,6 @@ public with sharing class RLM_UsageDataController {
                 queryFields.add(fieldApiName);
                 nameFieldApis.add(fieldApiName);
                 columns.add(buildUrlColumn(label, fieldApiName + '__url', fieldApiName));
-
             } else if (fieldType == Schema.DisplayType.REFERENCE) {
                 // Lookup fields render as URLs to the related record with the related name as label
                 queryFields.add(fieldApiName);
@@ -146,7 +147,6 @@ public with sharing class RLM_UsageDataController {
                     col.put('sortable', true);
                     columns.add(col);
                 }
-
             } else {
                 // Standard fields use type-mapped datatable column types
                 queryFields.add(fieldApiName);
@@ -166,16 +166,18 @@ public with sharing class RLM_UsageDataController {
         // Security is still enforced: with sharing (record access), FLS on field reads, object allowlist, permission set required.
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
         Integer fetchLimit = QUERY_LIMIT + 1;
-        String soql = 'SELECT ' + String.join(queryFields, ', ') +
-            ' FROM ' + objectApiName +
-            ' WHERE ' + filterField + ' = :recordId ORDER BY Id ASC' +
+        String soql =
+            'SELECT ' +
+            String.join(queryFields, ', ') +
+            ' FROM ' +
+            objectApiName +
+            ' WHERE ' +
+            filterField +
+            ' = :recordId ORDER BY Id ASC' +
             ' LIMIT :fetchLimit';
 
         List<SObject> queriedRecords = Database.query(soql);
-        SObjectAccessDecision stripResult = Security.stripInaccessible(
-            AccessType.READABLE,
-            queriedRecords
-        );
+        SObjectAccessDecision stripResult = Security.stripInaccessible(AccessType.READABLE, queriedRecords);
         List<SObject> records = stripResult.getRecords();
         Boolean truncated = records.size() > QUERY_LIMIT;
         Integer recordCount = truncated ? QUERY_LIMIT : records.size();
@@ -194,7 +196,6 @@ public with sharing class RLM_UsageDataController {
                 if (nameFieldApis.contains(fieldApiName)) {
                     row.put(fieldApiName, rec.get(fieldApiName));
                     row.put(fieldApiName + '__url', '/' + String.valueOf(rec.get('Id')));
-
                 } else if (fsm.getType() == Schema.DisplayType.REFERENCE) {
                     Object lookupId = rec.get(fieldApiName);
                     // Always populate fieldApiName with the raw Id so that text-column
@@ -212,7 +213,6 @@ public with sharing class RLM_UsageDataController {
                         row.put(fieldApiName + '__url', null);
                         row.put(fieldApiName + '__name', null);
                     }
-
                 } else {
                     row.put(fieldApiName, rec.get(fieldApiName));
                 }
@@ -221,11 +221,7 @@ public with sharing class RLM_UsageDataController {
             flatRecords.add(row);
         }
 
-        return new Map<String, Object>{
-            'columns' => columns,
-            'records' => flatRecords,
-            'truncated' => truncated
-        };
+        return new Map<String, Object>{ 'columns' => columns, 'records' => flatRecords, 'truncated' => truncated };
     }
 
     /**

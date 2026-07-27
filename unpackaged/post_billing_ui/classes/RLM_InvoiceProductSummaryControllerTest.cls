@@ -1,6 +1,5 @@
 @isTest
 private class RLM_InvoiceProductSummaryControllerTest {
-
     private static Id fakeInvoiceId() {
         return Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
     }
@@ -28,7 +27,10 @@ private class RLM_InvoiceProductSummaryControllerTest {
         RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
         Integer rowsAfter = Limits.getDmlRows();
         Test.stopTest();
-        System.assertEquals(rowsBefore, rowsAfter,
-            'A non-existent invoice has no lines, so no records may be updated.');
+        System.assertEquals(
+            rowsBefore,
+            rowsAfter,
+            'A non-existent invoice has no lines, so no records may be updated.'
+        );
     }
 }

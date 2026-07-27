@@ -2,18 +2,17 @@
 private class RLM_AI_ProductAttributeServiceTest {
     @isTest
     static void returnsNoConfigurableAttributesWhenProductHasNoClassification() {
-        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('RLM No Classification Product');
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture = RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(
+            'RLM No Classification Product'
+        );
 
-        RLM_AI_ProductAttributeService.GetAttributeOptionsInput input =
-            new RLM_AI_ProductAttributeService.GetAttributeOptionsInput();
+        RLM_AI_ProductAttributeService.GetAttributeOptionsInput input = new RLM_AI_ProductAttributeService.GetAttributeOptionsInput();
         input.quoteLineItemId = String.valueOf(fixture.quoteLineItemId);
 
         Test.startTest();
-        List<RLM_AI_ProductAttributeService.GetAttributeOptionsOutput> results =
-            RLM_AI_ProductAttributeService.getProductAttributeOptions(
-                new List<RLM_AI_ProductAttributeService.GetAttributeOptionsInput>{ input }
-            );
+        List<RLM_AI_ProductAttributeService.GetAttributeOptionsOutput> results = RLM_AI_ProductAttributeService.getProductAttributeOptions(
+            new List<RLM_AI_ProductAttributeService.GetAttributeOptionsInput>{ input }
+        );
         Test.stopTest();
 
         System.assertEquals(1, results.size());
@@ -25,17 +24,18 @@ private class RLM_AI_ProductAttributeServiceTest {
 
     @isTest
     static void handlesInvalidQuoteLineItemId() {
-        RLM_AI_ProductAttributeService.GetAttributeOptionsInput input =
-            new RLM_AI_ProductAttributeService.GetAttributeOptionsInput();
+        RLM_AI_ProductAttributeService.GetAttributeOptionsInput input = new RLM_AI_ProductAttributeService.GetAttributeOptionsInput();
         input.quoteLineItemId = 'not-an-id';
 
-        List<RLM_AI_ProductAttributeService.GetAttributeOptionsOutput> results =
-            RLM_AI_ProductAttributeService.getProductAttributeOptions(
-                new List<RLM_AI_ProductAttributeService.GetAttributeOptionsInput>{ input }
-            );
+        List<RLM_AI_ProductAttributeService.GetAttributeOptionsOutput> results = RLM_AI_ProductAttributeService.getProductAttributeOptions(
+            new List<RLM_AI_ProductAttributeService.GetAttributeOptionsInput>{ input }
+        );
 
         System.assertEquals(false, results[0].hasConfigurableAttributes);
         System.assertEquals(false, results[0].isSuccess);
-        System.assertEquals('Select a valid quote line item before looking up configurable attributes.', results[0].errorMessage);
+        System.assertEquals(
+            'Select a valid quote line item before looking up configurable attributes.',
+            results[0].errorMessage
+        );
     }
 }

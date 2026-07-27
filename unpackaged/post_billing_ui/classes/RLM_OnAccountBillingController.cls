@@ -1,5 +1,4 @@
 public with sharing class RLM_OnAccountBillingController {
-
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getBillingSummary(Id accountId) {
         Map<String, Object> result = new Map<String, Object>();
@@ -31,42 +30,71 @@ public with sharing class RLM_OnAccountBillingController {
         result.put('isMultiCurrency', isMultiCurrency);
 
         Decimal invoiceBalance = queryAggregate(
-            'Invoice', 'Balance', 'BillingAccountId',
+            'Invoice',
+            'Balance',
+            'BillingAccountId',
             'Status = \'Posted\' AND Balance != 0',
-            accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
+            accountId,
+            accountCurrency,
+            standardRates,
+            datedRates,
+            isMultiCurrency
         );
         result.put('invoiceBalance', invoiceBalance);
 
         Decimal debitMemoBalance = queryAggregate(
-            'DebitMemo', 'TotalChargeAmount', 'AccountId',
+            'DebitMemo',
+            'TotalChargeAmount',
+            'AccountId',
             'Status = \'Posted\' AND TotalChargeAmount != 0',
-            accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
+            accountId,
+            accountCurrency,
+            standardRates,
+            datedRates,
+            isMultiCurrency
         );
         result.put('debitMemoBalance', debitMemoBalance);
 
         Decimal creditMemoBalance = queryAggregate(
-            'CreditMemo', 'Balance', 'BillingAccountId',
+            'CreditMemo',
+            'Balance',
+            'BillingAccountId',
             'Status = \'Posted\' AND Balance != 0',
-            accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
+            accountId,
+            accountCurrency,
+            standardRates,
+            datedRates,
+            isMultiCurrency
         );
         result.put('creditMemoBalance', creditMemoBalance);
 
         Decimal paymentBalance = queryAggregate(
-            'Payment', 'Balance', 'AccountId',
+            'Payment',
+            'Balance',
+            'AccountId',
             'Status = \'Processed\' AND Balance != 0',
-            accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
+            accountId,
+            accountCurrency,
+            standardRates,
+            datedRates,
+            isMultiCurrency
         );
         result.put('paymentBalance', paymentBalance);
 
         Decimal refundBalance = queryAggregate(
-            'Refund', 'Balance', 'AccountId',
+            'Refund',
+            'Balance',
+            'AccountId',
             'Status = \'Processed\' AND Balance != 0',
-            accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
+            accountId,
+            accountCurrency,
+            standardRates,
+            datedRates,
+            isMultiCurrency
         );
         result.put('refundBalance', refundBalance);
 
-        Decimal netBalance = invoiceBalance + debitMemoBalance
-            - creditMemoBalance - paymentBalance + refundBalance;
+        Decimal netBalance = invoiceBalance + debitMemoBalance - creditMemoBalance - paymentBalance + refundBalance;
         result.put('netAccountBalance', netBalance);
 
         // Status-related queries
@@ -83,7 +111,8 @@ public with sharing class RLM_OnAccountBillingController {
 
         // Total posted invoices
         Integer totalInvoices = [
-            SELECT COUNT() FROM Invoice
+            SELECT COUNT()
+            FROM Invoice
             WHERE BillingAccountId = :accountId AND Status = 'Posted'
             WITH USER_MODE
         ];
@@ -91,22 +120,18 @@ public with sharing class RLM_OnAccountBillingController {
 
         // Overdue invoices (past due date, still have balance)
         Integer overdueCount = [
-            SELECT COUNT() FROM Invoice
-            WHERE BillingAccountId = :accountId
-              AND Status = 'Posted'
-              AND Balance > 0
-              AND DueDate < :today
+            SELECT COUNT()
+            FROM Invoice
+            WHERE BillingAccountId = :accountId AND Status = 'Posted' AND Balance > 0 AND DueDate < :today
             WITH USER_MODE
         ];
         info.put('overdueCount', overdueCount);
 
         // Delinquent invoices (60+ days past due)
         Integer delinquentCount = [
-            SELECT COUNT() FROM Invoice
-            WHERE BillingAccountId = :accountId
-              AND Status = 'Posted'
-              AND Balance > 0
-              AND DueDate < :delinquentThreshold
+            SELECT COUNT()
+            FROM Invoice
+            WHERE BillingAccountId = :accountId AND Status = 'Posted' AND Balance > 0 AND DueDate < :delinquentThreshold
             WITH USER_MODE
         ];
         info.put('delinquentCount', delinquentCount);
@@ -115,11 +140,9 @@ public with sharing class RLM_OnAccountBillingController {
         Integer partiallyPaidOverdueCount = 0;
         try {
             for (Invoice inv : [
-                SELECT Id, Balance, TotalAmountWithTax FROM Invoice
-                WHERE BillingAccountId = :accountId
-                  AND Status = 'Posted'
-                  AND Balance > 0
-                  AND DueDate < :today
+                SELECT Id, Balance, TotalAmountWithTax
+                FROM Invoice
+                WHERE BillingAccountId = :accountId AND Status = 'Posted' AND Balance > 0 AND DueDate < :today
                 WITH USER_MODE
             ]) {
                 if (inv.Balance < inv.TotalAmountWithTax) {
@@ -133,10 +156,9 @@ public with sharing class RLM_OnAccountBillingController {
 
         // Open invoices with balance
         Integer openWithBalance = [
-            SELECT COUNT() FROM Invoice
-            WHERE BillingAccountId = :accountId
-              AND Status = 'Posted'
-              AND Balance > 0
+            SELECT COUNT()
+            FROM Invoice
+            WHERE BillingAccountId = :accountId AND Status = 'Posted' AND Balance > 0
             WITH USER_MODE
         ];
         info.put('openWithBalance', openWithBalance);
@@ -145,9 +167,9 @@ public with sharing class RLM_OnAccountBillingController {
         Integer writtenOffCount = 0;
         try {
             writtenOffCount = [
-                SELECT COUNT() FROM Invoice
-                WHERE BillingAccountId = :accountId
-                  AND Status = 'WrittenOff'
+                SELECT COUNT()
+                FROM Invoice
+                WHERE BillingAccountId = :accountId AND Status = 'WrittenOff'
                 WITH USER_MODE
             ];
         } catch (Exception e) {
@@ -159,9 +181,9 @@ public with sharing class RLM_OnAccountBillingController {
         Integer disputeCount = 0;
         try {
             List<AggregateResult> dRes = Database.query(
-                'SELECT COUNT(Id) cnt FROM Dispute '
-                + 'WHERE Invoice.BillingAccountId = :accountId '
-                + 'AND Status != \'Closed\'',
+                'SELECT COUNT(Id) cnt FROM Dispute ' +
+                    'WHERE Invoice.BillingAccountId = :accountId ' +
+                    'AND Status != \'Closed\'',
                 AccessLevel.USER_MODE
             );
             if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
@@ -176,7 +198,8 @@ public with sharing class RLM_OnAccountBillingController {
         Boolean inCollections = false;
         try {
             Integer collectionPlanCount = [
-                SELECT COUNT() FROM CollectionPlan
+                SELECT COUNT()
+                FROM CollectionPlan
                 WHERE AccountId = :accountId
                 WITH USER_MODE
                 LIMIT 1
@@ -197,17 +220,21 @@ public with sharing class RLM_OnAccountBillingController {
      * instead, we reverse the standard conversion and re-apply the dated rate.
      */
     private static Decimal queryAggregate(
-        String objectName, String sumField, String accountField,
-        String conditions, Id accountId, String targetCurrency,
-        Map<String, Decimal> standardRates, Map<String, Decimal> datedRates,
+        String objectName,
+        String sumField,
+        String accountField,
+        String conditions,
+        Id accountId,
+        String targetCurrency,
+        Map<String, Decimal> standardRates,
+        Map<String, Decimal> datedRates,
         Boolean isMultiCurrency
     ) {
         String query = 'SELECT SUM(' + sumField + ') total';
         if (isMultiCurrency) {
             query += ', CurrencyIsoCode curr';
         }
-        query += ' FROM ' + objectName
-              + ' WHERE ' + accountField + ' = :accountId AND ' + conditions;
+        query += ' FROM ' + objectName + ' WHERE ' + accountField + ' = :accountId AND ' + conditions;
         if (isMultiCurrency) {
             query += ' GROUP BY CurrencyIsoCode';
         }
@@ -218,10 +245,7 @@ public with sharing class RLM_OnAccountBillingController {
                 Decimal amount = ar.get('total') != null ? (Decimal) ar.get('total') : 0;
                 if (isMultiCurrency) {
                     String sourceCurrency = (String) ar.get('curr');
-                    amount = correctConversion(
-                        amount, sourceCurrency, targetCurrency,
-                        standardRates, datedRates
-                    );
+                    amount = correctConversion(amount, sourceCurrency, targetCurrency, standardRates, datedRates);
                 }
                 total += amount;
             }
@@ -238,15 +262,18 @@ public with sharing class RLM_OnAccountBillingController {
      *   2. Apply dated conversion:    result    = rawAmount / datedRate * targetDatedRate
      */
     private static Decimal correctConversion(
-        Decimal autoConverted, String fromCurrency, String toCurrency,
-        Map<String, Decimal> standardRates, Map<String, Decimal> datedRates
+        Decimal autoConverted,
+        String fromCurrency,
+        String toCurrency,
+        Map<String, Decimal> standardRates,
+        Map<String, Decimal> datedRates
     ) {
         if (fromCurrency == toCurrency || autoConverted == 0) {
             return autoConverted;
         }
-        Decimal stdFromRate   = standardRates.containsKey(fromCurrency) ? standardRates.get(fromCurrency) : 1;
+        Decimal stdFromRate = standardRates.containsKey(fromCurrency) ? standardRates.get(fromCurrency) : 1;
         Decimal datedFromRate = datedRates.containsKey(fromCurrency) ? datedRates.get(fromCurrency) : 1;
-        Decimal datedToRate   = datedRates.containsKey(toCurrency)   ? datedRates.get(toCurrency)   : 1;
+        Decimal datedToRate = datedRates.containsKey(toCurrency) ? datedRates.get(toCurrency) : 1;
 
         Decimal rawAmount = autoConverted * stdFromRate;
         return rawAmount.divide(datedFromRate, 10, RoundingMode.HALF_UP) * datedToRate;
@@ -255,10 +282,12 @@ public with sharing class RLM_OnAccountBillingController {
     private static Map<String, Decimal> loadStandardRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
-            for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
-                AccessLevel.USER_MODE
-            )) {
+            for (
+                SObject ct : Database.query(
+                    'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                    AccessLevel.USER_MODE
+                )
+            ) {
                 rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
         } catch (Exception e) {
@@ -270,11 +299,13 @@ public with sharing class RLM_OnAccountBillingController {
     private static Map<String, Decimal> loadDatedRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
-            for (SObject dcr : Database.query(
-                'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
-                + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY',
-                AccessLevel.USER_MODE
-            )) {
+            for (
+                SObject dcr : Database.query(
+                    'SELECT IsoCode, ConversionRate FROM DatedConversionRate ' +
+                    'WHERE StartDate <= TODAY AND NextStartDate > TODAY',
+                    AccessLevel.USER_MODE
+                )
+            ) {
                 rates.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
             }
         } catch (Exception e) {

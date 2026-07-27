@@ -6,7 +6,6 @@
  * the RLM_OrchestrateUsageManagement flow.
  */
 public with sharing class RLM_UsageOrchestrationController {
-
     private static final String ORCHESTRATION_FLOW_API_NAME = 'RLM_OrchestrateUsageManagement';
 
     /**
@@ -28,13 +27,9 @@ public with sharing class RLM_UsageOrchestrationController {
 
         try {
             // Create and start the flow interview
-            Flow.Interview interview = Flow.Interview.createInterview(
-                flowApiName,
-                new Map<String, Object>()
-            );
+            Flow.Interview interview = Flow.Interview.createInterview(flowApiName, new Map<String, Object>());
             interview.start();
             return 'started';
-
         } catch (Exception e) {
             throw new AuraHandledException('Failed to start orchestration: ' + e.getMessage());
         }

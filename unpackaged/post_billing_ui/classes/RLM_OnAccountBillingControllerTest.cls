@@ -1,6 +1,5 @@
 @isTest
 private class RLM_OnAccountBillingControllerTest {
-
     @isTest
     static void getBillingSummary_nullAccount_returnsEmptyMap() {
         Test.startTest();
@@ -30,7 +29,10 @@ private class RLM_OnAccountBillingControllerTest {
         System.assertEquals(0, (Decimal) result.get('netAccountBalance'), 'No activity -> zero net balance.');
         System.assertEquals(0, (Integer) result.get('totalInvoices'), 'No invoices -> zero count.');
         System.assertEquals(0, (Integer) result.get('overdueCount'), 'No invoices -> zero overdue.');
-        System.assertEquals(false, (Boolean) result.get('inCollections'),
-            'No collection plans -> account is not in collections.');
+        System.assertEquals(
+            false,
+            (Boolean) result.get('inCollections'),
+            'No collection plans -> account is not in collections.'
+        );
     }
 }

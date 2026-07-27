@@ -1,6 +1,5 @@
 @isTest
 private class RLM_AI_AddProductToQuoteServiceTest {
-
     // ---- Fake invoker: records the inputs and returns a canned result ----
     private class FakeInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
         public Boolean returnSuccess;
@@ -17,8 +16,12 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         }
 
         public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
-            Id quoteId, Id productId, Id sellingModelId,
-            Decimal quantity, Date startDate, Date endDate
+            Id quoteId,
+            Id productId,
+            Id sellingModelId,
+            Decimal quantity,
+            Date startDate,
+            Date endDate
         ) {
             this.callCount++;
             this.lastQuoteId = quoteId;
@@ -35,16 +38,15 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn Generator';
         input.quantity = 3;
 
         Test.startTest();
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
@@ -53,11 +55,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         System.assertEquals(3, out.quantityAdded);
         System.assertEquals(1, fake.callCount, 'Managed add-line should be called once.');
         System.assertEquals(f.productId, fake.lastProductId);
-        System.assertEquals(f.sellingModelId, fake.lastSellingModelId,
-            'The default selling model should be passed to the managed action.');
+        System.assertEquals(
+            f.sellingModelId,
+            fake.lastSellingModelId,
+            'The default selling model should be passed to the managed action.'
+        );
         System.assertEquals(3, fake.lastQuantity);
-        System.assert(out.lineSummaryDisplay.contains('Quinn Generator'),
-            'Confirmation should name the product.');
+        System.assert(out.lineSummaryDisplay.contains('Quinn Generator'), 'Confirmation should name the product.');
         // Names-only: the summary must not leak the raw product Id.
         System.assert(!out.lineSummaryDisplay.contains(String.valueOf(f.productId)));
     }
@@ -68,15 +72,14 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productId = String.valueOf(f.productId);
         // No quantity supplied.
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
         System.assertEquals(1, results[0].quantityAdded, 'Quantity should default to 1.');
@@ -91,14 +94,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn Server Rack';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
         System.assertEquals(false, out.isSuccess);
@@ -116,14 +118,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn Cable';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
         System.assertEquals('Quinn Cable', results[0].productNameAdded);
@@ -135,19 +136,20 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn No PSM Product';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assertEquals(false, results[0].needsDisambiguation);
-        System.assert(results[0].errorMessage.contains('selling model'),
-            'Should explain the missing selling model in plain language.');
+        System.assert(
+            results[0].errorMessage.contains('selling model'),
+            'Should explain the missing selling model in plain language.'
+        );
         System.assertEquals(0, fake.callCount, 'No mutation when prerequisite missing.');
     }
 
@@ -157,14 +159,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(false, 'Managed add-line said no.');
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn Failing Product';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assertEquals('Managed add-line said no.', results[0].errorMessage);
@@ -172,14 +173,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
 
     @isTest
     static void rejectsBlankQuoteId() {
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = '   ';
         input.productName = 'Anything';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('Quote Id is required'));
@@ -187,14 +187,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
 
     @isTest
     static void rejectsInvalidQuoteId() {
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = 'not-an-id';
         input.productName = 'Anything';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('Invalid quote Id'));
@@ -203,14 +202,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     @isTest
     static void requiresProductIdentifier() {
         Fixture f = buildFixture('Quinn Base Product', true, false);
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         // No productId, no productName.
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('product Id or product name'));
@@ -219,14 +217,13 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     @isTest
     static void noProductNameMatchReturnsCleanMessage() {
         Fixture f = buildFixture('Quinn Real Product', true, false);
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Nonexistent Zzzzz Product';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         System.assertEquals(false, results[0].isSuccess);
         System.assert(results[0].errorMessage.contains('No active product'));
@@ -253,24 +250,29 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn Termed Product';
-        input.sellingModelName = 'term monthly';   // case-insensitive
+        input.sellingModelName = 'term monthly'; // case-insensitive
 
         Test.startTest();
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
         Test.stopTest();
 
         RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
         System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
-        System.assertEquals('Term Monthly', out.sellingModelName,
-            'The user-named selling model should be used, not the default.');
-        System.assertEquals(termed.Id, fake.lastSellingModelId,
-            'The requested model Id should be passed to the managed action.');
+        System.assertEquals(
+            'Term Monthly',
+            out.sellingModelName,
+            'The user-named selling model should be used, not the default.'
+        );
+        System.assertEquals(
+            termed.Id,
+            fake.lastSellingModelId,
+            'The requested model Id should be passed to the managed action.'
+        );
     }
 
     @isTest
@@ -279,29 +281,31 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
 
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
+        RLM_AI_AddProductToQuoteService.AddInput input = new RLM_AI_AddProductToQuoteService.AddInput();
         input.quoteId = String.valueOf(f.quoteId);
         input.productName = 'Quinn One Model Product';
         input.sellingModelName = 'Nonexistent Model';
 
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(
+            new List<RLM_AI_AddProductToQuoteService.AddInput>{ input }
+        );
 
         RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
         System.assertEquals(false, out.isSuccess);
-        System.assert(out.errorMessage.contains('Nonexistent Model'),
-            'Error should name the requested model: ' + out.errorMessage);
-        System.assert(out.errorMessage.contains('Available'),
-            'Error should list available models: ' + out.errorMessage);
+        System.assert(
+            out.errorMessage.contains('Nonexistent Model'),
+            'Error should name the requested model: ' + out.errorMessage
+        );
+        System.assert(
+            out.errorMessage.contains('Available'),
+            'Error should list available models: ' + out.errorMessage
+        );
         System.assertEquals(0, fake.callCount, 'No mutation when the named model is invalid.');
     }
 
     @isTest
     static void emptyInputListReturnsEmpty() {
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(null);
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results = RLM_AI_AddProductToQuoteService.addProduct(null);
         System.assertEquals(0, results.size());
     }
 

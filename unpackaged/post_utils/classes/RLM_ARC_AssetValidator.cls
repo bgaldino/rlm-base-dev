@@ -17,8 +17,10 @@
  * records for display in flow datatables.
  */
 public without sharing class RLM_ARC_AssetValidator {
-
-    @InvocableMethod(label='Validate Assets for Asset Actions' description='Checks whether any of the provided assets (including related assets via AssetRelationship) are ramped, usage-based, expired, or derived-price — conditions that block swap, transfer, and rollback operations.')
+    @InvocableMethod(
+        label='Validate Assets for Asset Actions'
+        description='Checks whether any of the provided assets (including related assets via AssetRelationship) are ramped, usage-based, expired, or derived-price — conditions that block swap, transfer, and rollback operations.'
+    )
     public static List<Result> validate(List<Request> requests) {
         // 1. Build the expanded asset ID set per request (input IDs + related assets)
         List<Set<Id>> expandedIdsByRequest = expandWithRelatedAssets(requests);
@@ -49,11 +51,17 @@ public without sharing class RLM_ARC_AssetValidator {
 
         Map<Id, Asset> blockedAssetMap = new Map<Id, Asset>();
         if (!allBlockedIds.isEmpty()) {
-            blockedAssetMap = new Map<Id, Asset>((List<Asset>) Security.stripInaccessible(
-                AccessType.READABLE,
-                [SELECT Id, Name, Product2.Name, LifecycleStartDate, LifecycleEndDate
-                 FROM Asset WHERE Id IN :allBlockedIds]
-            ).getRecords());
+            blockedAssetMap = new Map<Id, Asset>(
+                (List<Asset>) Security.stripInaccessible(
+                        AccessType.READABLE,
+                        [
+                            SELECT Id, Name, Product2.Name, LifecycleStartDate, LifecycleEndDate
+                            FROM Asset
+                            WHERE Id IN :allBlockedIds
+                        ]
+                    )
+                    .getRecords()
+            );
         }
 
         // 5. Map results back to each request
@@ -114,8 +122,7 @@ public without sharing class RLM_ARC_AssetValidator {
         for (AssetRelationship ar : [
             SELECT AssetId, RelatedAssetId
             FROM AssetRelationship
-            WHERE AssetId IN :allInputIds
-            OR RelatedAssetId IN :allInputIds
+            WHERE AssetId IN :allInputIds OR RelatedAssetId IN :allInputIds
         ]) {
             addRelation(relatedByAssetId, ar.AssetId, ar.RelatedAssetId);
             addRelation(relatedByAssetId, ar.RelatedAssetId, ar.AssetId);
@@ -154,8 +161,7 @@ public without sharing class RLM_ARC_AssetValidator {
         for (AssetStatePeriod asp : [
             SELECT AssetId
             FROM AssetStatePeriod
-            WHERE AssetId IN :assetIds
-            AND RampIdentifier != NULL
+            WHERE AssetId IN :assetIds AND RampIdentifier != NULL
         ]) {
             ramped.add(asp.AssetId);
         }
@@ -167,7 +173,9 @@ public without sharing class RLM_ARC_AssetValidator {
      * product-to-asset map, saving one SOQL query vs. querying separately.
      */
     private static void queryAssetsForExpiredAndProducts(
-        Set<Id> assetIds, Set<Id> expiredAssetIds, Map<Id, Set<Id>> assetIdsByProductId
+        Set<Id> assetIds,
+        Set<Id> expiredAssetIds,
+        Map<Id, Set<Id>> assetIdsByProductId
     ) {
         if (assetIds.isEmpty()) {
             return;
@@ -202,8 +210,7 @@ public without sharing class RLM_ARC_AssetValidator {
         for (ProductUsageResource pur : [
             SELECT ProductId
             FROM ProductUsageResource
-            WHERE ProductId IN :productIds
-            AND Status = 'Active'
+            WHERE ProductId IN :productIds AND Status = 'Active'
         ]) {
             usageBased.addAll(assetIdsByProductId.get(pur.ProductId));
         }
@@ -223,15 +230,19 @@ public without sharing class RLM_ARC_AssetValidator {
         for (PricebookEntry pbe : [
             SELECT Product2Id
             FROM PricebookEntry
-            WHERE Product2Id IN :productIds
-            AND IsDerived = true
+            WHERE Product2Id IN :productIds AND IsDerived = TRUE
         ]) {
             derived.addAll(assetIdsByProductId.get(pbe.Product2Id));
         }
         return derived;
     }
 
-    private static String buildBlockedMessage(Result res, String action, Boolean includeExpired, Boolean includeDerived) {
+    private static String buildBlockedMessage(
+        Result res,
+        String action,
+        Boolean includeExpired,
+        Boolean includeDerived
+    ) {
         List<String> reasons = new List<String>();
         if (res.hasRampedAssets) {
             reasons.add('ramped (' + res.rampedAssetIds.size() + ')');
@@ -248,9 +259,11 @@ public without sharing class RLM_ARC_AssetValidator {
         if (reasons.isEmpty()) {
             return null;
         }
-        return 'This action can\'t be completed. The selected assets include '
-            + String.join(reasons, ', ')
-            + ' assets that don\'t support ' + action + '. Remove the affected assets and try again.';
+        return 'This action can\'t be completed. The selected assets include ' +
+            String.join(reasons, ', ') +
+            ' assets that don\'t support ' +
+            action +
+            '. Remove the affected assets and try again.';
     }
 
     private static List<Id> getIntersection(Set<Id> a, Set<Id> b) {

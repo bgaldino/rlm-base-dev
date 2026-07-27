@@ -1,6 +1,5 @@
 @IsTest
 private class RLM_UsageOrchestrationControllerTest {
-
     @IsTest
     static void testStartOrchestration_InvalidFlow_Throws() {
         Test.startTest();
@@ -14,5 +13,4 @@ private class RLM_UsageOrchestrationControllerTest {
         Test.stopTest();
         System.assert(didThrow, 'Expected AuraHandledException for invalid flow API name');
     }
-
 }

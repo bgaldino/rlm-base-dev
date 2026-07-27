@@ -1,6 +1,5 @@
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {
-
     // With no Cases or Disputes, every aggregate resolves to zero. Dispute is a license-gated
     // extension; the controller degrades gracefully whether or not it is present in the org.
     @isTest
@@ -18,7 +17,11 @@ private class RLM_BillingCaseMetricsControllerTest {
         System.assertEquals(0, (Integer) result.get('openBillingCases'), 'No billing cases -> zero.');
         System.assertEquals(0, (Integer) result.get('openDisputes'), 'No disputes -> zero.');
         System.assertEquals(0, (Integer) result.get('disputedInvoices'), 'No disputed invoices -> zero.');
-        System.assertNotEquals(null, result.get('totalDisputedAmount'), 'Disputed amount should default to zero, not null.');
+        System.assertNotEquals(
+            null,
+            result.get('totalDisputedAmount'),
+            'Disputed amount should default to zero, not null.'
+        );
     }
 
     // Positive path for the open-billing-case count. Case is an insertable standard object, so an
@@ -36,13 +39,15 @@ private class RLM_BillingCaseMetricsControllerTest {
         Map<String, Object> result = RLM_BillingCaseMetricsController.getMetrics();
         Test.stopTest();
 
-        System.assertEquals(1, (Integer) result.get('openBillingCases'),
-            'One open Type=Billing case should be counted.');
+        System.assertEquals(
+            1,
+            (Integer) result.get('openBillingCases'),
+            'One open Type=Billing case should be counted.'
+        );
     }
 
     private static Boolean billingCaseTypeIsValid() {
-        Schema.DescribeFieldResult typeField =
-            Case.SObjectType.getDescribe().fields.getMap().get('Type').getDescribe();
+        Schema.DescribeFieldResult typeField = Case.SObjectType.getDescribe().fields.getMap().get('Type').getDescribe();
         for (Schema.PicklistEntry entry : typeField.getPicklistValues()) {
             if (entry.isActive() && entry.getValue() == 'Billing') {
                 return true;
