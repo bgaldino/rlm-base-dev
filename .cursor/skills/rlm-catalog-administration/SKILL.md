@@ -16,26 +16,25 @@ the DO NOT list before proposing any load command.
 ## Quick Rules
 
 1. Always confirm source type (PDF / URL / description) and target org before extracting.
-2. Any time more than one record will be created or uploaded, only use SFDMU data plans for bulk load; see `.cursor/skills/sfdmu-data-plans/SKILL.md`.
-3. For product and catalog loads, construct a temporary directory, imitating `./datasets/sfdmu/qb/en-US/qb-pcm`. Look at the file `./datasets/sfdmu/qb/en-US/qb-pcm/export.json` - base which objects need to have CSV files created and which fields need to be accomodated based on the contents of this export.json file.
-4. SFDMU does not use hard-coded ID's - any files created for that purpose need to keep this in mind. 
-4. Wire pricing changes through the layering model in `.cursor/skills/pricing-wiring/SKILL.md`. 
-5. Validate on a clean org, then re-run for idempotency.
-6.
+2. Any time more than one record will be created or uploaded, only use SFDMU data plans for bulk load; see `.cursor/skills/sfdmu-data-plans/SKILL.md`. Do **not** fall back to `sf data import bulk`, `sf data upsert bulk`, Composite REST, or the SObject MCPs to work around an SFDMU issue — fix the plan instead (see Troubleshooting below).
+3. For product/catalog structure loads (Product2, ProductCategory, ProductComponentGroup, ProductRelatedComponent, etc.), imitate `./datasets/sfdmu/qb/en-US/qb-pcm/` — its `export.json` is the reference for which objects need CSVs and which fields to include. For **pricing** loads (PricebookEntry, ProductSellingModelOption, PriceAdjustmentSchedule, AttributeBasedAdjRule, BundleBasedAdjustment, CostBookEntry, PricebookEntryDerivedPrice), imitate `./datasets/sfdmu/qb/en-US/qb-pricing/` instead — the object set and lookup pattern differ from `qb-pcm`.
+4. SFDMU plans must not contain hardcoded Salesforce IDs. Lookups reference records via natural keys (`StockKeepingUnit`, `Name`, `Code`, `IsStandard`, etc.). When the target org already contains records that a plan needs to reference (e.g. an existing `Pricebook2`, `ProductSellingModel`, or `Product2`), **ship a companion CSV for that object in the plan directory, populated by querying the target org first** — that is how SFDMU resolves lookups in `csvfile`-source mode. See the `Product2.csv` / `Pricebook2.csv` / `ProductSellingModel.csv` files in `datasets/sfdmu/qb/en-US/qb-pricing/` for the canonical shape.
+5. Wire **any PricebookEntry work** — creating, loading, updating, or overlaying — through `.cursor/skills/pricing-wiring/SKILL.md`. This includes the base PBE + `ProductSellingModelOption` load itself, not just procedure/recipe/overlay changes.
+6. Present a summarized plan to the user in terms of what will be loaded or updated.
+7. No need to make the temporary directory permanent as a plan - ask the user to confirm, then act directly from the temp directory.
+8. Unless told to do so explicitly, do not set the IsSoldOnlyWithOtherProds field on Product2.
+9. When a load session spans multiple phases (structure → pricing → attributes → images → …), re-read this skill **and** the linked skill for the incoming phase before starting it. Do not treat a new phase as a continuation of the previous one — its rules and reference plans differ.
+
 
 ## DO NOT
 
-<!-- TODO(vance): explicit safety constraints. Candidates:
-- DO NOT invent SKUs, prices, or attribute values that are not present in the source.
-- DO NOT load directly against a shared org before dry-running on a scratch/PDE.
-- DO NOT modify shipped procedures/decision tables to accommodate a catalog load.
-- DO NOT skip the intermediate CSV/YAML review step, even for "small" catalogs.
-- DO NOT hardcode record IDs, org URLs, or user references.
--->
-
-- **DO NOT** _TBD_
-- **DO NOT** _TBD_
-- **DO NOT** _TBD_
+- **DO NOT** use SObject MCPs to load/update records in Salesforce without explicitly asking the user and receiving confirmation.
+- **DO NOT** invent SKUs, prices, or attribute values that are not present in the source. If a value is missing, ask the user or mark the row for review — do not synthesize.
+- **DO NOT** modify shipped procedures / decision tables / pricing recipes to accommodate a catalog load. If a load appears to require it, stop and route to `.cursor/skills/pricing-wiring/SKILL.md`.
+- **DO NOT** skip the intermediate CSV / YAML review step, even for "small" catalogs. Every load produces a reviewable intermediate at `tmp/catalog-loads/<slug>/` first, then loads from that directory after user confirmation.
+- **DO NOT** hardcode Salesforce record IDs, org URLs, or user references inside any file that will be reused or committed. Plans must be portable across orgs — reference by natural key (SKU, Name, Code) and let SFDMU resolve at run time.
+- **DO NOT** bypass SFDMU with direct `sf data import bulk`, `sf data upsert bulk`, Composite REST, or MCP inserts for business records (Product2, PricebookEntry, ProductSellingModelOption, ProductRelatedComponent, ProductCategoryProduct, etc.), even when SFDMU is misbehaving. Fix the plan (usually a missing reference CSV in the plan directory) — see Troubleshooting. The direct-bulk path produces non-repeatable, ID-baked artifacts that cannot be re-run across orgs.
+- **DO NOT** trust an SFDMU "Inserted N" summary line on its own. Always cross-check with a SOQL count on the target and read `<Object>_insert_target.csv` in the plan's `target/` directory — SFDMU reports pass-level counts that do not always match batch-level success.
 
 ---
 
@@ -108,11 +107,26 @@ Pick the load path based on target org, volume, and reversibility needs:
 
 ## Pricing Wiring Handoff
 
-Once Products and Price Book Entries are loaded, any change to **pricing
-behavior** (recipes, procedures, overlays, decision tables) belongs to the
-pricing-wiring workflow. Do not extend this skill with procedure-authoring
-detail; instead, link out:
+**Pricing object loading is not covered here.** This skill covers catalog
+structure only (Product2, ProductCategory, ProductClassification,
+ProductComponentGroup, ProductRelatedComponent, ProductCategoryProduct,
+ProductRelationshipType). The moment the load involves any of the objects
+below, hand off to `.cursor/skills/pricing-wiring/SKILL.md` for the plan
+authoring, then return here only if you also need to add structure records:
 
+- `PricebookEntry`, `Pricebook2`
+- `ProductSellingModelOption`, `ProductSellingModel`, `ProductRampSegment`,
+  `ProrationPolicy`
+- `PriceAdjustmentSchedule`, `PriceAdjustmentTier`, `AttributeBasedAdjRule`,
+  `AttributeBasedAdjustment`, `AttributeAdjustmentCondition`,
+  `BundleBasedAdjustment`
+- `CostBook`, `CostBookEntry`
+- `PricebookEntryDerivedPrice`
+
+Also route out for related lifecycle work:
+
+- Recipes, procedures, overlays, decision tables →
+  `.cursor/skills/pricing-wiring/SKILL.md`
 - Layering model, prerequisites, and overlays →
   `.cursor/skills/pricing-wiring/SKILL.md`
 - Expression Set authoring, CRUD, activation lifecycle →
@@ -171,16 +185,26 @@ Do:
 
 ## Validation Checks
 
-Run the applicable checks after every catalog load:
+Run the applicable checks after every catalog load. Every load ends with an
+**org-side** verification, not just the SFDMU / import summary log.
 
 ```bash
-# TODO(vance): confirm exact commands for this repo.
+# Local plan validation (runs before load)
 python scripts/validate_sfdmu_v5_datasets.py
-python scripts/ai/skill_manifest.py --check
+
+# Org-side verification (runs after load, for every object the plan touched)
+sf data query -q "SELECT COUNT() FROM <Object> WHERE <load-filter>" --target-org <alias>
 ```
 
 Also review:
 
+- **SOQL count on the target matches the CSV row count for every loaded
+  object.** If any count is off, treat the load as failed regardless of what
+  the SFDMU summary said.
+- **`<Object>_insert_target.csv` in the plan's `target/` directory must
+  either be absent or empty of `#N/A` / `Errors` rows.** Its existence with
+  content means SFDMU silently dropped records even if the summary shows
+  "Inserted N".
 - Product count in target org matches the intermediate artifact.
 - Price Book Entries exist for every (Product, PriceType, Currency) tuple.
 - No duplicate SKUs were introduced.
@@ -188,3 +212,63 @@ Also review:
   artifact directory.
 - Schema drift check: `.cursor/skills/schema-validation/SKILL.md`.
 - Doc consistency before PR: `.cursor/skills/doc-consistency/SKILL.md`.
+
+---
+
+## Troubleshooting
+
+**Symptom: SFDMU reports "Inserted N" but the target has 0 records.**
+Open the plan's `target/<Object>_insert_target.csv`. If every row shows `#N/A`
+in lookup FK columns (`Product2Id`, `Pricebook2Id`, `ProductSellingModelId`,
+etc.) with errors like `Required fields are missing: [Product2Id, ...]` or
+`To save this price book entry, first specify a product.`, SFDMU could not
+resolve the natural-key lookup.
+
+**Root cause: missing companion CSVs.** In `csvfile`-source mode, SFDMU
+resolves lookup references from *other CSVs shipped in the plan directory*,
+not from the target org. If your plan references `Product2` (via
+`Product2.StockKeepingUnit`) but the plan directory has no `Product2.csv`,
+every lookup returns `#N/A`.
+
+**Fix (canonical):** query the target for the referenced records and drop
+them into the plan directory as companion CSVs. This preserves
+zero-hardcoded-IDs and keeps the plan portable.
+
+```bash
+# Example — for a PricebookEntry load that references existing Product2,
+# Pricebook2, and ProductSellingModel records already in the target org:
+sf data query --result-format csv \
+  -q "SELECT Id, StockKeepingUnit, Name FROM Product2 WHERE StockKeepingUnit IN (...)" \
+  --target-org <alias> > <plan-dir>/Product2.csv
+
+sf data query --result-format csv \
+  -q "SELECT Id, Name, IsStandard FROM Pricebook2 WHERE IsStandard = true" \
+  --target-org <alias> > <plan-dir>/Pricebook2.csv
+
+sf data query --result-format csv \
+  -q "SELECT Id, Name, SellingModelType FROM ProductSellingModel WHERE Status = 'Active'" \
+  --target-org <alias> > <plan-dir>/ProductSellingModel.csv
+```
+
+Then reference each companion object in `export.json` (see `qb-pricing/export.json`
+for the exact objects-array shape) and re-run SFDMU. The `qb-pcm` and
+`qb-pricing` reference plans ship the full set of companion CSVs — study those
+before authoring a new plan.
+
+**Anti-pattern (do not do this):** falling back to `sf data import bulk` /
+`sf data upsert bulk` / Composite REST with pre-resolved IDs. That path
+produces an ID-baked artifact that cannot be re-run on another org, breaks
+the "no hardcoded IDs" rule (Quick Rule 4), and violates the DO NOT list.
+
+**Symptom: `LineEnding is invalid on user data. Current LineEnding setting
+is LF`.** You almost never hit this via SFDMU, but if you fall through to
+`sf data import bulk` (which you should not — see above), note that Bulk API
+2.0 defaults to `LineEnding=LF` while Python's `csv.writer` emits CRLF by
+default. Set `lineterminator="\n"` when writing.
+
+**Symptom: SFDMU "Insert" of a record whose object has a system-enforced
+unique key (`PricebookEntry` on `(Pricebook2Id, Product2Id,
+ProductSellingModelId, CurrencyIsoCode)`, `ProductSellingModelOption` on
+`(Product2Id, ProductSellingModelId)`) fails on rerun with `DUPLICATE_VALUE`.**
+Use `Upsert` with a composite `externalId` covering the unique key, not
+`Insert`. `qb-pricing/export.json` demonstrates the shape.
