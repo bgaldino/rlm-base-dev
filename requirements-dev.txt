@@ -1,0 +1,52 @@
+# Offline tooling dependencies — what `scripts/`, `tasks/` and `tests/` need to
+# run WITHOUT CumulusCI or an org.
+#
+#     python -m venv .venv && source .venv/bin/activate   # README Step 5
+#     pip install -r requirements-dev.txt
+#
+# WHY THIS FILE EXISTS. README Step 5 says the project venv is for "running
+# project scripts (scripts/, tasks/) directly outside of CCI" — but nothing
+# declared what those scripts need, so a fresh .venv could not actually run
+# them. In practice they worked only because the pipx CumulusCI venv happens to
+# provide `requests` and `PyYAML` as its own transitive dependencies. That is a
+# coincidence, not a contract: it breaks the moment CumulusCI drops either one,
+# or pipx is reinstalled, and it fails in the worst way — a script that cannot
+# import yaml exits non-zero and reads as "no findings" rather than "did not
+# run". See scripts/ai/_gate_interpreter.py.
+#
+# Derived by parsing every import across scripts/, tasks/ and tests/ rather than
+# from memory: requests appears in 31 files, pytest in 21, yaml in 10.
+
+# HTTP for the REST-API scripts (cml/, docgen/, context_service/, erd/, ai/).
+requests>=2.31
+
+# Data plans, context plans, the defect registry and the pre-push gate rules.
+PyYAML>=6.0
+
+# Required by tests/build_harness/ (13 files) and tests/txn_data_harness/ (21),
+# the two pytest testpaths declared in pyproject.toml. NOTE the top-level
+# tests/*.py are deliberately NOT pytest — they self-report via main()'s exit
+# code and are run directly (`python tests/<name>.py`). Under pytest their
+# test_* functions would false-pass, because their checks never raise.
+pytest>=7.4
+
+# Pulled in by reference rather than copied, so there stays one source of truth
+# for the TUI stack. tests/build_harness/test_tui_app.py imports
+# scripts.build_harness.tui.app, which imports textual at module scope — so
+# WITHOUT this, pytest fails at COLLECTION and takes all 30 files in both
+# pytest testpaths down with it, not just the one TUI test.
+-r scripts/build_harness/tui/requirements.txt
+
+# ── Not included here, on purpose ────────────────────────────────────────────
+# These belong to a specific surface and have their own files, so a plain
+# offline-tooling venv stays small:
+#   robot/requirements.txt          Robot Framework + selenium stack. Install
+#                                   into the CCI environment, not here:
+#                                   pipx inject cumulusci --force -r robot/requirements.txt
+#   scripts/docgen/requirements.txt python-docx, for building .docx templates.
+#                                   tests/test_docgen_helpers.py does not need
+#                                   it - it imports only the two helper modules.
+#
+# Undeclared anywhere and only needed by `snapshot_dev_guide`: playwright,
+# markdownify. Left out rather than silently adopted here — installing
+# playwright also requires `playwright install`, which is not a pip step.

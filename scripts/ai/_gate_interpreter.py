@@ -24,36 +24,81 @@ import subprocess
 import sys
 from pathlib import Path
 
-#: Interpreters to try, in order, when the current one lacks PyYAML.
-#: RLM_PYTHON wins so a machine with a different layout can override without
-#: editing this file.
-_CANDIDATES = (
-    str(Path.home() / ".local/pipx/venvs/cumulusci/bin/python"),
-    "/usr/bin/python3",
-    "/opt/homebrew/bin/python3",
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _candidates():
+    """Interpreters to try, in priority order, when the current one lacks PyYAML.
+
+    Order matters and follows the repo's documented environment (README Step 5,
+    docs/guides/dev-environment-setup.md):
+
+      1. RLM_PYTHON        explicit override always wins
+      2. $VIRTUAL_ENV      an already-activated venv (direnv or `source`)
+      3. .venv             the project venv the README designates for running
+                           scripts/ and tasks/ outside CCI
+      4. .harness/tui-venv the build-harness venv, auto-created by ./tui-cci
+      5. pipx cumulusci    LAST RESORT. This one works only by accident: the CCI
+                           venv has PyYAML because CumulusCI depends on it, not
+                           because anyone chose it as the script runtime. Keeping
+                           it means an unprepared clone still runs; putting it
+                           last means a prepared clone uses its own venv.
+      6. system python3
+    """
+    out = []
+    if os.environ.get("RLM_PYTHON"):
+        out.append(os.environ["RLM_PYTHON"])
+    if os.environ.get("VIRTUAL_ENV"):
+        out.append(str(Path(os.environ["VIRTUAL_ENV"]) / "bin" / "python"))
+    out += [
+        str(REPO_ROOT / ".venv" / "bin" / "python"),
+        str(REPO_ROOT / ".harness" / "tui-venv" / "bin" / "python"),
+        str(Path.home() / ".local/pipx/venvs/cumulusci/bin/python"),
+        "/usr/bin/python3",
+        "/opt/homebrew/bin/python3",
+    ]
+    return out
+
+
+#: Minimum Python for the gate scripts. Matches pyproject's
+#: [tool.build_harness] requires_python = ">=3.11" and buys `tomllib`.
+#: This floor is not cosmetic: /usr/bin/python3 on macOS is 3.9 AND ships
+#: PyYAML, so a yaml-only check happily selects it and the scripts then die on
+#: 3.12+ syntax — exiting non-zero in a way that reads as findings rather than
+#: as "did not run". Version and yaml must BOTH be satisfied.
+_MIN_PY = (3, 11)
+
+_PROBE = (
+    "import sys, yaml; "
+    "sys.exit(0 if sys.version_info >= {} else 9)".format(_MIN_PY)
 )
 
 
-def ensure_pyyaml(script_path):
-    """Re-exec `script_path` under an interpreter that has PyYAML.
-
-    Returns normally if the current interpreter already has it. Otherwise
-    re-execs (this call does not return) or exits 2. Never returns without a
-    working `import yaml`.
-    """
+def _usable(version_info=None):
+    if version_info is None:
+        version_info = sys.version_info
+    if tuple(version_info[:2]) < _MIN_PY:
+        return False
     try:
         import yaml  # noqa: F401
-        return
+        return True
     except ImportError:
-        pass
+        return False
+
+
+def ensure_pyyaml(script_path):
+    """Re-exec `script_path` under an interpreter that has PyYAML AND is new
+    enough to parse these scripts.
+
+    Returns normally if the current interpreter already qualifies. Otherwise
+    re-execs (this call does not return) or exits 2. Never returns without a
+    working `import yaml` on a supported Python.
+    """
+    if _usable():
+        return
 
     tried = []
-    candidates = []
-    if os.environ.get("RLM_PYTHON"):
-        candidates.append(os.environ["RLM_PYTHON"])
-    candidates.extend(_CANDIDATES)
-
-    for cand in candidates:
+    for cand in _candidates():
         if not cand:
             continue
         tried.append(cand)
@@ -66,15 +111,21 @@ def ensure_pyyaml(script_path):
                 continue
         except OSError:
             continue
-        probe = subprocess.run([cand, "-c", "import yaml"], capture_output=True)
+        probe = subprocess.run([cand, "-c", _PROBE], capture_output=True)
         if probe.returncode == 0:
             os.execv(cand, [cand, str(Path(script_path).resolve())] + sys.argv[1:])
 
+    need = ".".join(str(n) for n in _MIN_PY)
     sys.stderr.write(
-        "FATAL: no interpreter with PyYAML found.\n"
-        f"  current: {sys.executable}\n"
+        f"FATAL: no interpreter found with PyYAML on Python >= {need}.\n"
+        f"  current: {sys.executable} "
+        f"({sys.version_info.major}.{sys.version_info.minor})\n"
         f"  tried:   {', '.join(tried)}\n"
-        "  Set RLM_PYTHON to a python that has PyYAML, or `pip install pyyaml`.\n"
+        "\n"
+        "  Prepare the project venv (README Step 5):\n"
+        "      python -m venv .venv && source .venv/bin/activate\n"
+        "      pip install -r requirements-dev.txt\n"
+        "  or point RLM_PYTHON at an interpreter that has PyYAML.\n"
         "  Refusing to continue - a gate that cannot run must not report clean.\n"
     )
     sys.exit(2)

@@ -72,6 +72,9 @@ def _files_for(globs, exclude_globs=()):
     return sorted(seen)
 
 
+_WS_RE = re.compile(r"[ \t\r\n]+")
+
+
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -89,7 +92,11 @@ def _key(rel_path: str, matched: str) -> str:
     todo-080 acceptance test against PR #317's head, where exactly this happened
     to five pinned queries. Case is preserved — `null` vs `NULL` must stay
     distinguishable."""
-    return f"{rel_path}::{re.sub(r'[ \t\r\n]+', '', matched)}"
+    # Precompiled and kept OUT of the f-string: before Python 3.12 an f-string
+    # expression cannot contain a backslash, so inlining this regex is a
+    # SyntaxError on 3.9 - which crashes the scan and, worse, looks like a
+    # findings-exit rather than a did-not-run.
+    return f"{rel_path}::{_WS_RE.sub('', matched)}"
 
 
 def scan_class(cls):

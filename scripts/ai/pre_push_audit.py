@@ -94,8 +94,37 @@ def git(*args):
 
 def _could_not_run(out):
     """Distinguish 'the check failed' from 'the check never ran'."""
+    # SyntaxError/IndentationError mean the file could not even be PARSED, so it
+    # never ran - reporting that as a failed check would attribute a crash to
+    # the code under audit. Found the hard way: an f-string containing a
+    # backslash is a SyntaxError before Python 3.12, and macOS /usr/bin/python3
+    # is 3.9 yet ships PyYAML, so it got selected and then died.
     return bool(re.search(r"ModuleNotFoundError|ImportError:|No module named|"
+                          r"SyntaxError|IndentationError|"
                           r"command not found|executable not found|timed out after", out))
+
+
+def _pytest_testpaths():
+    """The pytest surfaces, read from pyproject.toml so this cannot drift.
+
+    Falls back to discovery if the file is unreadable - but never to "none",
+    because silently finding zero pytest suites is how 34 test files went
+    unrun while the gate reported success.
+    """
+    cfg = REPO_ROOT / "pyproject.toml"
+    try:
+        import tomllib
+        data = tomllib.loads(cfg.read_text(encoding="utf-8"))
+        paths = (data.get("tool", {}).get("pytest", {})
+                 .get("ini_options", {}).get("testpaths", []))
+        found = [p for p in paths if (REPO_ROOT / p).is_dir()]
+        if found:
+            return found
+    except Exception:
+        pass
+    return sorted(str(p.relative_to(REPO_ROOT))
+                  for p in (REPO_ROOT / "tests").iterdir()
+                  if p.is_dir() and any(p.glob("test_*.py")))
 
 
 # ───────────────────────────── diff scoping ──────────────────────────────────
@@ -259,26 +288,46 @@ def tier_a(diff, args):
     else:
         add(Result("A", "expression-set schema", NA, "no candidate JSON changed"))
 
-    # Offline test suites. A ModuleNotFoundError is UNAVAILABLE, not FAIL.
-    tests = sorted(p.name for p in (REPO_ROOT / "tests").glob("*.py"))
+    # THREE test surfaces, not one. Running only the top-level glob covers 13 of
+    # 47 files and reports "13 suite(s)" as though that were the whole surface -
+    # exactly the silent scope truncation the todo pack forbids.
+    #   tests/*.py          self-contained, run DIRECTLY. pyproject.toml is
+    #                       explicit that these must NOT be pytest-collected:
+    #                       they aggregate via check() and gate on main()'s exit
+    #                       code, so under pytest their test_* functions would
+    #                       false-pass because the checks never raise.
+    #   pyproject testpaths real pytest suites (build_harness, txn_data_harness).
+    direct = sorted(p.name for p in (REPO_ROOT / "tests").glob("*.py"))
     failed, unavailable = [], []
-    for t in tests:
+    for t in direct:
         code, out = run([py, f"tests/{t}"], timeout=300)
         if code == 0:
             continue
         (unavailable if (code < 0 or _could_not_run(out)) else failed).append(t)
+
+    paths = _pytest_testpaths()
+    n_pytest = sum(len(list((REPO_ROOT / p).rglob("test_*.py"))) for p in paths)
+    if paths:
+        code, out = run([py, "-m", "pytest", "-q", *paths], timeout=900)
+        if code != 0:
+            if code < 0 or _could_not_run(out) or "No module named pytest" in out:
+                unavailable.append(f"pytest [{', '.join(paths)}]")
+            else:
+                failed.append(f"pytest [{', '.join(paths)}]")
+
+    note = (f"{len(direct)} direct + {n_pytest} pytest file(s) across "
+            f"{1 + len(paths)} surface(s)")
     if failed:
         add(Result("A", "offline test suites", FAIL, ", ".join(failed),
-                   "Run the suite directly to see the assertion.",
-                   f"{len(tests)} suite(s)"))
+                   "Run the suite directly to see the assertion.", note))
     elif unavailable:
         add(Result("A", "offline test suites", UNAVAILABLE, ", ".join(unavailable),
                    "A dependency is missing, so these did not run at all - which is "
-                   "NOT a pass. Try: pip install pytest "
-                   "(and pip install -r scripts/docgen/requirements.txt).",
-                   f"{len(tests)} suite(s)"))
+                   "NOT a pass. Prepare the project venv: "
+                   "python -m venv .venv && source .venv/bin/activate && "
+                   "pip install -r requirements-dev.txt", note))
     else:
-        add(Result("A", "offline test suites", PASS, "", "", f"{len(tests)} suite(s)"))
+        add(Result("A", "offline test suites", PASS, "", "", note))
 
     # Prettier on Apex - enforced as of this branch (todo 080 Tier A decision).
     apex = diff.match(["**/*.cls", "**/*.trigger", "**/*.apex"])
