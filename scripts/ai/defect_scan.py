@@ -131,6 +131,34 @@ def scan_class(cls):
         except OSError as exc:
             return "skipped", [], f"unreadable {rel}: {exc}"
         skip_comments = cls.get("ignore_comment_lines")
+
+        # WHOLE-FILE scanning for classes whose construct spans lines. A
+        # line-based scan cannot see them at all, and it fails SILENTLY - it
+        # reports "ok" while being structurally incapable of matching, which is
+        # the worst failure mode a gate has.
+        #
+        # This is not hypothetical here: `soql-missing-user-mode` requires the
+        # closing `]`, and 265 of this repo's 370 SOQL literals span lines -
+        # a share the Apex reformat on this very branch INCREASED, because
+        # Prettier splits long queries. The flagship class was seeing 28% of its
+        # own surface.
+        if cls.get("multiline"):
+            for rx in compiled:
+                for m in rx.finditer(text):
+                    if _key(rel, m.group(0)) in allowed:
+                        continue
+                    findings.append({
+                        "file": rel,
+                        "line": text.count("\n", 0, m.start()) + 1,
+                        # FULL match, never truncated. --emit-baseline prints this
+                        # verbatim as an allow_list key, so a display-truncated
+                        # value would emit a baseline that cannot match its own
+                        # findings — every query over the cut length would stay
+                        # "unpinned" forever. Truncation happens at PRINT time.
+                        "match": _norm(m.group(0)),
+                    })
+            continue
+
         for lineno, line in enumerate(text.splitlines(), 1):
             # Classes about USER-FACING STRINGS must not fire on prose in comments;
             # a comment saying "can return no rows" is documentation, not a claim
@@ -144,7 +172,7 @@ def scan_class(cls):
                 if _key(rel, m.group(0)) in allowed:
                     continue
                 findings.append(
-                    {"file": rel, "line": lineno, "match": _norm(m.group(0))[:160]}
+                    {"file": rel, "line": lineno, "match": _norm(m.group(0))}
                 )
                 break
     return "executed", findings, None
@@ -201,7 +229,7 @@ def main():
             print(f"  FAIL    {cid}  ({len(findings)} finding(s), severity="
                   f"{cls.get('severity', '?')})")
             for f in findings[:20]:
-                print(f"            {f['file']}:{f['line']}  {f['match']}")
+                print(f"            {f['file']}:{f['line']}  {f['match'][:160]}")
             if len(findings) > 20:
                 print(f"            … and {len(findings) - 20} more")
             print(f"            fix: {_norm(cls.get('remediation', '—'))}")

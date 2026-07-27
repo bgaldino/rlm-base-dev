@@ -41,7 +41,8 @@
 # not execute is not a pass.
 
 # Tier D is KNOWINGLY PARTIAL. The doc-consistency change-surface map has 18
-# rows; the rules below mechanise 3 of them. Declared here, and printed by
+# rows; the rules below enforce 12 (10 mechanically, 2 as blocking prompts —
+# see covered_as_prompt). Declared here, and printed by
 # pre_push_audit, because a tier that silently covers a fraction of its stated
 # scope is the exact failure this gate exists to stop — and it already happened
 # once: `scripts/ai/*.py -> AGENTS.md` was an unimplemented row, so the gate
@@ -250,13 +251,24 @@ rules:
     scope: changed-content
     paths: ["**/*.cls", "**/*.trigger"]
     exclude_paths: ["**/*Test.cls"]
-    ignore_comment_lines: true
+    # Whole-file scan. Line-based, this rule could only ever match a for-loop
+    # whose entire body AND query sat on one line — verified: it matched a
+    # synthetic single-line case and MISSED the ordinary multi-line shape. It
+    # would have reported "ok" forever while being incapable of finding the
+    # defect it names.
+    multiline: true
     patterns:
-      - 'for\s*\([^)]*\)\s*\{[^}]*\[\s*SELECT\b'
+      - 'for\s*\([^)]*\)\s*\{[^{}]*\[\s*SELECT\b'
     remediation: >
       SOQL inside a loop hits governor limits under bulk load. Query once before
       the loop into a Map and look up inside it.
-    allow_list: []
+    allow_list:
+      - file: "force-app/main/default/classes/RLM_QuoteModelUtility.cls"
+        match: "for (QuoteLineItem ql : qls) { SalesTransactionItemModel item = new SalesTransactionItemModel(); List<QuoteLineItemAttribute> qlAtts = [ SELECT QuoteLineItemId, AttributeName, AttributeValue FROM QuoteLineItemAttribute WHERE QuoteLineItemId = :ql.Id ]; List<QuoteLineRelationship> qlRs = [ SELECT"
+        reason: "PRE-EXISTING REAL DEFECT, deliberately NOT fixed here. One SOQL per QuoteLineItem: a quote with >100 lines breaches the SOQL governor limit. Fixing it changes Apex behaviour and needs live-org verification, which does not belong on a formatting+tooling branch. Pinned so the gate blocks NEW instances; tracked separately for a real fix."
+      - file: "unpackaged/post_utils/classes/RLM_AccountUtilities.cls"
+        match: "for (Integer round = 1; round <= MAX_TEARDOWN_ROUNDS; round++) { Integer progress = 0; progress += deleteQuietly( [ SELECT Id FROM UsageEntitlementEntry WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageBillingPeriodItem WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageSummary WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageRatableSummary WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM TransactionJournal WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM UsageEntitlementBucket WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH ] ); progress += deleteQuietly( [ SELECT"
+        reason: "NOT a defect. Bounded teardown loop: iterations are capped by MAX_TEARDOWN_ROUNDS and each query carries LIMIT :TEARDOWN_BATCH, so SOQL cost is fixed per round rather than growing with org history — the comment above the loop states this intent. A batched delete of unbounded history has to re-query each round."
 
   - id: apex-unqualified-sharing
     tier: C

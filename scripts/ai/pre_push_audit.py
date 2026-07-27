@@ -392,7 +392,12 @@ def tier_a(diff, args):
 
 # ────────────────────────── Tiers B / C / D ──────────────────────────────────
 
-def _scan_files(files, patterns, ignore_comments, allow):
+def _norm(text):
+    """Collapse whitespace for allow-list keys, matching defect_scan's shape."""
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _scan_files(files, patterns, ignore_comments, allow, multiline=False):
     findings = []
     compiled = [re.compile(p) for p in patterns]
     for f in files:
@@ -403,6 +408,20 @@ def _scan_files(files, patterns, ignore_comments, allow):
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+
+        # Whole-file scan for constructs that span lines. A line-based scan
+        # cannot match them and fails SILENTLY — it prints "ok" while being
+        # structurally incapable of finding anything, which is the worst thing a
+        # gate can do. apex-soql-in-loop is exactly that shape: real SOQL-in-loop
+        # is virtually always written across several lines.
+        if multiline:
+            for rx in compiled:
+                for m in rx.finditer(text):
+                    if f"{f}::{_norm(m.group(0))}" in allow:
+                        continue
+                    findings.append(f"{f}:{text.count(chr(10), 0, m.start()) + 1}")
+            continue
+
         for lineno, line in enumerate(text.splitlines(), 1):
             if ignore_comments and re.match(r"\s*(?://|\*|/\*|<!--|#)", line):
                 continue
@@ -497,7 +516,8 @@ def tier_bcd(diff, acked):
                 done(UNAVAILABLE, "mechanical rule with no patterns")
                 continue
             try:
-                hits = _scan_files(files, pats, rule.get("ignore_comment_lines"), allow)
+                hits = _scan_files(files, pats, rule.get("ignore_comment_lines"),
+                                   allow, rule.get("multiline"))
             except re.error as exc:
                 done(UNAVAILABLE, f"bad regex: {exc}")
                 continue
