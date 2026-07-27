@@ -38,11 +38,12 @@ except ImportError:
         """
         Offline fallback so this module still imports without CumulusCI.
 
-        ⚠ Mirrors cumulusci.core.utils.process_bool_arg deliberately, INCLUDING the
-        TypeError on an uninterpretable value. An earlier version returned bool(arg)
-        for anything unrecognised, so "maybe" became True offline and raised under the
-        real helper — a fallback that disagrees with the thing it stands in for makes
-        any test using it prove the wrong thing.
+        ⚠ Same vocabulary and the same TypeError as cumulusci.core.utils.process_bool_arg.
+        NOT identical: CCI emits two DeprecationWarnings for None that this does not, and
+        both call sites pre-empt None with `or False` so that path is unreachable anyway.
+        An earlier version returned bool(arg) for anything unrecognised, so "maybe" became
+        True offline and raised under the real helper — a fallback that disagrees with the
+        thing it stands in for makes any test using it prove the wrong thing.
         """
         if isinstance(arg, (int, bool)):
             return bool(arg)
@@ -110,23 +111,18 @@ class ManageDecisionTables(BaseTask):
         ⚠ Scope the risk honestly. The stale-token failure this guards against needs a
         plain `OrgConfig` — the `cci org connect` shape, where the stored token is used
         as-is. **This project does not have that shape**: the sf CLI manages auth, so
-        every org is `ScratchOrgConfig` or `SfdxOrgConfig`, both of which resolve
-        `access_token` through `sfdx_info` and are always fresh. So the override is
+        every org is an `SfdxOrgConfig` (or its `ScratchOrgConfig` subclass), which
+        resolves `access_token` through `sfdx_info` and is always fresh. So the override is
         correctness insurance for the class, not a fix for an incidence anyone here has
         met — do not cite it as one.
         """
-        # save_if_changed, matching BaseSalesforceTask. refresh_oauth_token also
-        # reloads user and org info; without the wrapper that work is discarded at
-        # process exit and the keychain-updated log line never appears.
+        # save_if_changed, matching BaseSalesforceTask: refresh_oauth_token also reloads
+        # user and org info, and without the wrapper that work is discarded at exit.
         #
-        # ⚠ Safe under this project's auth model, which is why there is no
-        # connected-app handling here: CCI wraps the sf CLI and leverages its auth.
-        # Every org is a ScratchOrgConfig or SfdxOrgConfig, and BOTH override refresh_oauth_token to
-        # shell `sf org display` rather than run an OAuth flow — no connected app is
-        # ever involved. Verified against the keychain 2026-07-27: zero plain OrgConfig.
-        # So this call costs a cached `sf org display` and cannot raise
-        # ServiceNotConfigured. It is kept because the flag genuinely does not bring a
-        # refresh (see above) and the class should not depend on the caller's org type.
+        # ⚠ No connected-app handling, deliberately. Every org here is an SfdxOrgConfig
+        # (or its ScratchOrgConfig subclass), which overrides refresh_oauth_token to shell
+        # `sf org display` — no OAuth flow, no connected app. Verified against the keychain
+        # 2026-07-27: zero plain OrgConfig. So this cannot raise ServiceNotConfigured.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
@@ -138,16 +134,9 @@ class ManageDecisionTables(BaseTask):
         GETs /services/data and takes the last entry — so it drifts upward the moment an
         org is upgraded ahead of the project.
 
-        ⚠ Use this for EVERY call site in this class, not just the refresh. An earlier
-        version pinned only the refresh, which left the task querying DecisionTable on
-        the org's newest version and — worse — performing its only WRITE
-        (`sf.DecisionTable.update`, the activate/deactivate operations) there too. Writes
-        are exactly where an unannounced version bump is most likely to change validation
-        or required-field behaviour. `_sf` below is the single client all three share.
-
-        The instance normalisation is character-for-character what CCI's own
-        `OrgConfig.salesforce_client` does, so My Domain / sandbox / enhanced-domain
-        hostnames behave exactly as they do under the unpinned client.
+        Called only by `_sf`. The instance normalisation is character-for-character what
+        CCI's own `OrgConfig.salesforce_client` does, so My Domain / sandbox /
+        enhanced-domain hostnames behave exactly as they do under the unpinned client.
         """
         api_version = self.project_config.project__package__api_version
         if not api_version or Salesforce is None:
@@ -168,7 +157,15 @@ class ManageDecisionTables(BaseTask):
 
     @property
     def _sf(self):
-        """The pinned client, built once per task run and reused by every operation."""
+        """
+        The pinned client, built once per task run and reused by every operation.
+
+        ⚠ EVERY call site in this class goes through here — query, refresh and the
+        activate/deactivate WRITE. An earlier version pinned only the refresh, which left
+        the query and the only write running on the org's newest API instead of the
+        project's. Writes are where an unannounced version bump is most likely to change
+        validation or required-field behaviour, so if you add an operation, use `self._sf`.
+        """
         if getattr(self, "_sf_client", None) is None:
             self._sf_client = self._pinned_salesforce_client()
         return self._sf_client
@@ -387,18 +384,7 @@ class ManageDecisionTables(BaseTask):
         if not hasattr(self, 'org_config') or not self.org_config:
             raise TaskOptionsError("No org_config available")
 
-        # ⚠ salesforce_client, NOT org_config.get_connection(). OrgConfig inherits
-        # BaseConfig.__getattr__, which returns None for any key it does not know
-        # instead of raising — so `get_connection` resolved to None and calling it
-        # died with "'NoneType' object is not callable". This refresh path therefore
-        # never ran successfully from the day it was written; the sibling operations
-        # all use salesforce_client, which is why only refresh was affected.
-        #
-        # ⚠ salesforce_client pins itself to org_config.latest_api_version — the org's
-        # NEWEST version, not this project's. Rebuild it on the project's pinned version
-        # so both decision-table refresh paths call the same action on the same API, and
-        # so the call does not drift when an org upgrades ahead of the project.
-        sf = self._sf
+        sf = self._sf  # pinned client; rationale on _pinned_salesforce_client
 
         success_count = 0
         fail_count = 0
@@ -427,7 +413,7 @@ class ManageDecisionTables(BaseTask):
                 # for the failure that actually occurs (an unresolvable name leaves no
                 # record to stamp). LastSyncDate, which the freshness check uses, is the
                 # one signal that holds for every shape.
-                action_status = (result.get('outputValues') or {}).get('Status') or 'Unknown'
+                action_status = ((result.get('outputValues') or {}).get('Status') or 'Unknown').strip()
                 if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
                     self.logger.info(
@@ -438,7 +424,9 @@ class ManageDecisionTables(BaseTask):
                     fail_count += 1
                     self.logger.error(
                         f"❌ Refresh of '{developer_name}' was accepted but reported "
-                        f"Status: {action_status} (expected 'Queued'); treating as not queued."
+                        f"Status: {action_status} (expected 'Queued'); treating as not queued. "
+                        "If this is a new platform status rather than a failure, confirm with "
+                        "check_decision_table_freshness and extend the accepted set."
                     )
                 else:
                     fail_count += 1

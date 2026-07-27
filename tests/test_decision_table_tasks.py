@@ -14,6 +14,7 @@ FileBasedAnonymousApexTask shipped with `salesforce_task = False`. That defect c
 then recurred twice more in this feature, which is what this file is for.
 """
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -75,22 +76,29 @@ check("RefreshDecisionTable.salesforce_task is True", RefreshDecisionTable.sales
 # if the body is replaced with `pass`, which is materially the original defect.
 
 
+# ⚠ Record an ORDERED event sequence, not two independent booleans. A pair of flags is
+# satisfied by `with save_if_changed(): pass` followed by refresh_oauth_token() OUTSIDE the
+# block — which defeats the whole point, since save_if_changed diffs the config on exit and
+# would see nothing to persist. Only the ordering enter → refresh → exit proves the refresh
+# happened inside the persistence context.
 class _FakeOrgConfig:
-    def __init__(self):
+    def __init__(self, events):
+        self.events = events
         self.refreshed_with = None
-        self.saved = False
 
     def refresh_oauth_token(self, keychain):
         self.refreshed_with = keychain
+        self.events.append("refresh")
 
     def save_if_changed(self):
         outer = self
 
         class _Ctx:
             def __enter__(self_inner):
-                outer.saved = True
+                outer.events.append("enter")
 
             def __exit__(self_inner, *exc):
+                outer.events.append("exit")
                 return False
 
         return _Ctx()
@@ -101,21 +109,25 @@ class _FakeProjectConfig:
         self.keychain = keychain
 
 
-def credentials_hook_refreshes(cls):
-    """Call the class's _update_credentials with fakes; did it refresh with the keychain?"""
-    task = object.__new__(cls)
+def credentials_hook_events(cls):
+    """Invoke _update_credentials against fakes and return (events, refreshed_with_keychain)."""
+    events = []
     sentinel = object()
-    org = _FakeOrgConfig()
-    task.org_config = org
+    task = object.__new__(cls)
+    task.org_config = _FakeOrgConfig(events)
     task.project_config = _FakeProjectConfig(sentinel)
     cls._update_credentials(task)
-    return org.refreshed_with is sentinel, org.saved
+    return events, task.org_config.refreshed_with is sentinel
 
 
 for cls in (ManageDecisionTables, RefreshDecisionTable):
-    refreshed, saved = credentials_hook_refreshes(cls)
-    check(f"{cls.__name__}._update_credentials refreshes with the keychain", refreshed)
-    check(f"{cls.__name__}._update_credentials wraps in save_if_changed", saved)
+    events, right_keychain = credentials_hook_events(cls)
+    check(f"{cls.__name__}._update_credentials refreshes with the keychain", right_keychain)
+    check(
+        f"{cls.__name__} refreshes INSIDE save_if_changed (enter→refresh→exit)",
+        events == ["enter", "refresh", "exit"],
+        str(events),
+    )
 
 # ---------------------------------------------------------------------------
 # 2. Name normalisation. A comma-separated CLI string used to become ONE name.
@@ -212,6 +224,59 @@ for label, fn in (("ManageDecisionTables", manage_payload_for), ("RefreshDecisio
     except Exception as exc:  # surface rather than silently skip
         check(f"{label} boolean call-site check ran", False, f"{type(exc).__name__}: {exc}")
 
+# The refresh module keeps its OWN offline fallback. Testing only the manage module's copy
+# leaves the other free to drift back to plain truthiness while all checks stay green.
+for mod_label, fn in (("manage", _manage.process_bool_arg), ("refresh", _refresh.process_bool_arg)):
+    ok = fn("false") is False and fn("true") is True and fn(0) is False
+    check(f"{mod_label} fallback vocabulary matches CCI", ok)
+    try:
+        fn("maybe")
+        check(f"{mod_label} fallback raises on an uninterpretable value", False, "returned")
+    except TypeError:
+        check(f"{mod_label} fallback raises on an uninterpretable value", True)
+
+# ---------------------------------------------------------------------------
+# 3b. The status gate. Only an explicit Queued counts as accepted — everything
+#     else, including a missing outputValues or an unrecognised value, is a
+#     failure. Round 2 shipped "anything but Failed", which let the code's own
+#     'Unknown' fallback claim a queue that never happened.
+# ---------------------------------------------------------------------------
+print("\n[3b] the status gate accepts ONLY an explicit Queued")
+
+STATUS_CASES = [
+    ({"isSuccess": True, "outputValues": {"Status": "Queued"}}, True, "Queued"),
+    ({"isSuccess": True, "outputValues": {"Status": "queued"}}, True, "queued (case)"),
+    ({"isSuccess": True, "outputValues": {"Status": "Failed"}}, False, "Failed"),
+    ({"isSuccess": True, "outputValues": {"Status": "Accepted"}}, False, "unrecognised status"),
+    ({"isSuccess": True, "outputValues": {}}, False, "missing Status"),
+    ({"isSuccess": True}, False, "missing outputValues"),
+    ({"isSuccess": False, "errors": [{"message": "nope"}]}, False, "isSuccess False"),
+]
+
+
+def manage_counts_success(response):
+    """Drive ManageDecisionTables._refresh_decision_tables and report whether it counted a queue."""
+    task = object.__new__(ManageDecisionTables)
+    task.options = {"developer_names": "A_Table", "is_incremental": False}
+    task.logger = _SilentLogger()
+    task.org_config = object()
+    task._sf_client = object()
+    task._refresh_single_decision_table = lambda sf, name, inc: response
+    try:
+        ManageDecisionTables._refresh_decision_tables(task)
+        return True  # no raise => fail_count was 0 => it counted a queue
+    except Exception:
+        return False  # raises "Failed to queue a refresh for N" when fail_count > 0
+
+
+for response, should_queue, label in STATUS_CASES:
+    got = manage_counts_success(response)
+    check(
+        f"ManageDecisionTables treats {label} as {'queued' if should_queue else 'NOT queued'}",
+        got is should_queue,
+        f"counted queued={got}",
+    )
+
 # ---------------------------------------------------------------------------
 # 4. Flow shape. A draft of this very change created a duplicate step key, and
 #    YAML silently kept the last one — deleting refresh_dt_commerce from the flow.
@@ -248,28 +313,66 @@ commerce = [s for s in steps.values() if s.get("task") == "refresh_dt_commerce"]
 when = commerce[0].get("when", "") if commerce else ""
 
 
-def evaluate_when(expr, commerce_flag, tso_flag):
-    """Evaluate a cumulusci `when:` expression for a given flag pair."""
+# ⚠ CumulusCI evaluates `when:` with **Jinja2**, not Python — `cumulusci/core/flowrunner.py`
+# builds an ImmutableSandboxedEnvironment (:71, :89) and calls compile_expression (:515).
+# Use that engine when it is importable so the check is faithful. Python `eval` is the
+# fallback, and the two differ in a way that matters: Jinja2 resolves an unknown attribute
+# to a falsy Undefined and raises nothing, while `eval` raises AttributeError. The
+# unknown-flag check below closes that gap in BOTH engines, which is why it is not optional.
+try:
+    from jinja2.sandbox import ImmutableSandboxedEnvironment
 
+    _jinja_env = ImmutableSandboxedEnvironment()
+except ImportError:  # jinja2 ships with CumulusCI; absent in the bare offline environment
+    _jinja_env = None
+
+
+def _flag_ctx(commerce_flag, tso_flag):
     class _Custom:
         pass
 
     custom = _Custom()
     setattr(custom, "project__custom__commerce", commerce_flag)
     setattr(custom, "project__custom__tso", tso_flag)
-    return bool(eval(expr, {"__builtins__": {}}, {"project_config": custom}))
+    return custom
 
 
+def evaluate_when(expr, commerce_flag, tso_flag):
+    """Evaluate a cumulusci `when:` expression, in CCI's engine where available."""
+    ctx = _flag_ctx(commerce_flag, tso_flag)
+    if _jinja_env is not None:
+        return bool(_jinja_env.compile_expression(expr)(project_config=ctx))
+    return bool(eval(expr, {"__builtins__": {}}, {"project_config": ctx}))
+
+
+engine = "jinja2 (CCI's own)" if _jinja_env is not None else "eval fallback — jinja2 absent"
 expected = {(False, False): False, (False, True): True, (True, False): True, (True, True): True}
 if not when:
     check("refresh_dt_commerce has a when: expression", False, "step absent or unguarded")
 else:
     actual = {pair: evaluate_when(when, *pair) for pair in expected}
     check(
-        "refresh_dt_commerce truth table is commerce OR tso",
+        f"refresh_dt_commerce truth table is commerce OR tso [{engine}]",
         actual == expected,
         f"{when} -> {actual}",
     )
+
+# ⚠ The one thing Jinja2 swallows silently is a flag name that does not exist: it is
+# Undefined, therefore falsy, therefore the step never runs — and nothing errors. That is
+# bit-for-bit the bug this branch exists to fix, so a typo in any `when:` would reintroduce
+# it invisibly. Checked by name against the real flag list, which needs no engine at all.
+declared_flags = set(cci["project"]["custom"])
+bad_refs = {}
+for key, step in steps.items():
+    expr = step.get("when") or ""
+    unknown = set(re.findall(r"project__custom__(\w+)", expr)) - declared_flags
+    if unknown:
+        bad_refs[key] = sorted(unknown)
+check(
+    "every when: in the flow references only declared flags",
+    not bad_refs,
+    f"unknown flags: {bad_refs}",
+)
 
 # ---------------------------------------------------------------------------
 # 5. Operator-facing text must not contradict the flow.

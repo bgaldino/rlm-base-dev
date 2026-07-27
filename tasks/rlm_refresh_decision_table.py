@@ -17,8 +17,10 @@ except ImportError:  # pragma: no cover - exercised only in the offline test env
     BaseProjectKeychain = object
 
     def process_bool_arg(arg):
-        """Offline fallback mirroring cumulusci.core.utils.process_bool_arg exactly,
-        including the TypeError on an uninterpretable value."""
+        """Offline fallback for cumulusci.core.utils.process_bool_arg: same vocabulary,
+        same TypeError on an uninterpretable value. NOT identical — CCI emits two
+        DeprecationWarnings for None that this does not; both call sites pre-empt None
+        with `or False`, so that path is unreachable either way."""
         if isinstance(arg, (int, bool)):
             return bool(arg)
         if arg is None:
@@ -54,27 +56,17 @@ class RefreshDecisionTable(SFDXBaseTask):
         logs — so a token that failed to refresh would mean every table goes unrefreshed
         while the flow step stays green.
 
-        ⚠ Scope that risk honestly rather than restating it as a live danger. **CCI
-        wraps the sf CLI and leverages its auth**, so every org here is a
-        `ScratchOrgConfig` or `SfdxOrgConfig`, both of which resolve `access_token`
-        through `sfdx_info` — a `sf org display` behind a TTL cache — and are therefore
-        always fresh. The stale-token shape needs a plain `OrgConfig` from
-        `cci org connect`, which this project does not use. Verified against the keychain
-        2026-07-27: zero plain `OrgConfig`. The override is correctness insurance for the
-        class; do not cite it as a fix for a failure anyone here has actually hit.
+        ⚠ Scope that risk honestly rather than restating it as a live danger. CCI wraps
+        the sf CLI and leverages its auth, so every org here is an `SfdxOrgConfig` (or its
+        `ScratchOrgConfig` subclass), which resolves `access_token` through `sfdx_info` —
+        a `sf org display` behind a TTL cache — and is therefore always fresh. The
+        stale-token shape needs a plain `OrgConfig` from `cci org connect`, which this
+        project does not use; verified against the keychain 2026-07-27, zero plain
+        `OrgConfig`. Insurance for the class, not a fix for anything seen here.
         """
-        # save_if_changed, matching BaseSalesforceTask. refresh_oauth_token also
-        # reloads user and org info; without the wrapper that work is discarded at
-        # process exit and the keychain-updated log line never appears.
-        #
-        # ⚠ Safe under this project's auth model, which is why there is no
-        # connected-app handling here: CCI wraps the sf CLI and leverages its auth.
-        # Every org is a ScratchOrgConfig or SfdxOrgConfig, and BOTH override refresh_oauth_token to
-        # shell `sf org display` rather than run an OAuth flow — no connected app is
-        # ever involved. Verified against the keychain 2026-07-27: zero plain OrgConfig.
-        # So this call costs a cached `sf org display` and cannot raise
-        # ServiceNotConfigured. It is kept because the flag genuinely does not bring a
-        # refresh (see above) and the class should not depend on the caller's org type.
+        # save_if_changed, matching BaseSalesforceTask. Why there is no connected-app
+        # handling: see the same method on ManageDecisionTables, which carries the single
+        # record of this project's auth model rather than a second copy of it.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
@@ -199,7 +191,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             # Failed, so treat only an explicit Queued as evidence of acceptance; a missing,
             # empty or unrecognised Status is NOT evidence and is reported as a failure.
             success = result.get('isSuccess')
-            status = (result.get('outputValues') or {}).get('Status') or 'Unknown'
+            status = ((result.get('outputValues') or {}).get('Status') or 'Unknown').strip()
             if success and status.lower() == 'queued':
                 self.logger.info(
                     f"Refresh queued for Decision Table '{developer_name}' - Status: {status}. "
@@ -208,7 +200,9 @@ class RefreshDecisionTable(SFDXBaseTask):
             elif success:
                 self.logger.error(
                     f"Decision Table '{developer_name}' was accepted but reported "
-                    f"Status: {status} (expected 'Queued'); treating as not queued."
+                    f"Status: {status} (expected 'Queued'); treating as not queued. "
+                    "If this is a new platform status rather than a failure, confirm with "
+                    "check_decision_table_freshness and extend the accepted set."
                 )
             else:
                 self.logger.error(f"Decision Table '{developer_name}' Refresh Process Failed")
