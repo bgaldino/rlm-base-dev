@@ -9,6 +9,8 @@
     "test:coverage": "sfdx-lwc-jest --coverage",
     "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
     "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
+    "prettier:apex": "prettier --write \"**/*.{cls,trigger}\"",
+    "prettier:verify:apex": "prettier --check \"**/*.{cls,trigger}\"",
     "lint": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\"",
     "lint:fix": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\" --fix"
   },
