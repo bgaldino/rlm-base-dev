@@ -32,6 +32,31 @@ except ImportError:
     TaskOptionsError = Exception
 
 
+def _as_name_list(value, option_name: str) -> List[str]:
+    """
+    Normalise a task option that names one or more records into a list.
+
+    ⚠ The comma split is the whole point. `cci task run ... -o developer_names "A,B,C"`
+    hands this a single string; treating it as one name silently operates on a table
+    called "A,B,C" — which does not exist — while reporting "1 decision table(s)".
+    That is what shipped before 2026-07-27, so a multi-table refresh from the CLI never
+    worked. YAML callers still pass a real list and are unaffected.
+    """
+    if isinstance(value, str):
+        names = [part.strip() for part in value.split(",")]
+    elif isinstance(value, list):
+        names = [str(part).strip() for part in value]
+    else:
+        raise TaskOptionsError(
+            f"{option_name} must be a string or list of strings, got {type(value).__name__}"
+        )
+
+    names = [name for name in names if name]
+    if not names:
+        raise TaskOptionsError(f"{option_name} was provided but contained no usable names.")
+    return names
+
+
 class ManageDecisionTables(BaseTask):
     """
     Comprehensive Decision Table management task.
@@ -41,7 +66,13 @@ class ManageDecisionTables(BaseTask):
     - Refreshing decision tables (full or incremental)
     - Listing decision tables with metadata
     """
-    
+
+    # Every operation here needs an org. Without this, BaseTask.salesforce_task defaults
+    # to False, the CLI builds no --org option, and the task silently runs against the
+    # CCI DEFAULT org instead of the one asked for (see issue #320 for the repo-wide
+    # sweep — this task was one of the 102).
+    salesforce_task = True
+
     task_options = {
         "operation": {
             "description": "Operation to perform: 'list', 'refresh', 'query', 'activate', 'deactivate', 'validate_lists'",
@@ -192,11 +223,8 @@ class ManageDecisionTables(BaseTask):
         # Filter by developer names if provided
         developer_names = self.options.get("developer_names")
         if developer_names:
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-            
+            developer_names = _as_name_list(developer_names, "developer_names")
+
             # Escape single quotes in developer names
             escaped_names = [name.replace("'", "\\'") for name in developer_names]
             names_str = "', '".join(escaped_names)
@@ -244,12 +272,8 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
         else:
-            # Convert to list if string
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-        
+            developer_names = _as_name_list(developer_names, "developer_names")
+
         is_incremental = self.options.get("is_incremental", False)
         refresh_type = "incremental" if is_incremental else "full"
         
@@ -258,17 +282,21 @@ class ManageDecisionTables(BaseTask):
         # Use Salesforce REST API to call the refreshDecisionTable action
         if not hasattr(self, 'org_config') or not self.org_config:
             raise TaskOptionsError("No org_config available")
-        
-        # Get connection and API version
-        conn = self.org_config.get_connection()
-        api_version = self.org_config.api_version
-        
+
+        # ⚠ salesforce_client, NOT org_config.get_connection(). OrgConfig inherits
+        # BaseConfig.__getattr__, which returns None for any key it does not know
+        # instead of raising — so `get_connection` resolved to None and calling it
+        # died with "'NoneType' object is not callable". This refresh path therefore
+        # never ran successfully from the day it was written; the sibling operations
+        # all use salesforce_client, which is why only refresh was affected.
+        sf = self.org_config.salesforce_client
+
         success_count = 0
         fail_count = 0
-        
+
         for developer_name in developer_names:
             try:
-                result = self._refresh_single_decision_table(conn, api_version, developer_name, is_incremental)
+                result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
                 
                 if result.get('isSuccess'):
                     success_count += 1
@@ -321,8 +349,7 @@ class ManageDecisionTables(BaseTask):
         # Resolve which list anchors to validate
         list_anchors = self.options.get("list_anchors")
         if list_anchors:
-            if isinstance(list_anchors, str):
-                list_anchors = [list_anchors]
+            list_anchors = _as_name_list(list_anchors, "list_anchors")
         else:
             list_anchors = self._get_decision_table_list_anchors()
 
@@ -399,14 +426,17 @@ class ManageDecisionTables(BaseTask):
         anchors = [k for k in custom.keys() if k.startswith("dt_") and k.endswith("_decision_tables")]
         return sorted(anchors)
     
-    def _refresh_single_decision_table(self, conn, api_version: str, developer_name: str, is_incremental: bool) -> Dict:
+    def _refresh_single_decision_table(self, sf, developer_name: str, is_incremental: bool) -> Dict:
         """
         Refresh a single decision table using the refreshDecisionTable action.
-        
+
         Uses the Salesforce REST API actions endpoint.
         """
-        endpoint = f"/services/data/v{api_version}/actions/standard/refreshDecisionTable"
-        
+        # ⚠ Relative path, deliberately. simple_salesforce's restful() joins this onto
+        # base_url, which already ends in /services/data/v<version>/ — passing an
+        # absolute path produced a doubled prefix and a 404.
+        endpoint = "actions/standard/refreshDecisionTable"
+
         payload = {
             "inputs": [
                 {
@@ -415,9 +445,8 @@ class ManageDecisionTables(BaseTask):
                 }
             ]
         }
-        
-        # Use the connection's restful method
-        result = conn.restful(endpoint, method='POST', json=payload)
+
+        result = sf.restful(endpoint, method='POST', json=payload)
         
         # Handle response format
         if isinstance(result, list):
@@ -438,10 +467,7 @@ class ManageDecisionTables(BaseTask):
                 "developer_names is required for activate/deactivate operations"
             )
 
-        if isinstance(developer_names, str):
-            developer_names = [developer_names]
-        elif not isinstance(developer_names, list):
-            raise TaskOptionsError("developer_names must be a string or list of strings")
+        developer_names = _as_name_list(developer_names, "developer_names")
 
         escaped_names = [name.replace("'", "\\'") for name in developer_names]
         names_str = "', '".join(escaped_names)

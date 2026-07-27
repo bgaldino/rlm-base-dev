@@ -4375,9 +4375,24 @@ flows:
         task: refresh_dt_rating_discovery
         when: project_config.project__custom__rating
       6:
-        task: refresh_dt_commerce
-        when: project_config.project__custom__commerce
+        # ⚠ Unconditional, and previously ABSENT ENTIRELY. refresh_dt_default_pricing
+        # existed as a task but was referenced by no flow, so the nine tables in
+        # dt_default_pricing_decision_tables were only ever refreshed by whatever else
+        # happened to touch them — the Contract_Pricing_* trio via the contract
+        # activation flow, the rest incidentally. StandardTax had no other path at all
+        # and so was never refreshed in any build: measured 2026-07-27 on a fresh TSO,
+        # where it still carried a January sync stamp inherited from the template while
+        # tax is on by default.
+        task: refresh_dt_default_pricing
       7:
+        # Gated on commerce OR tso. A TSO template ships the Commerce decision tables
+        # whether or not the commerce feature is configured, so a tso build that skipped
+        # this inherited five tables holding another org's rows (same 2026-07-27
+        # measurement). Refreshing a table whose source is empty rebuilds it as empty,
+        # which is correct — holding stale foreign rows is not.
+        task: refresh_dt_commerce
+        when: project_config.project__custom__commerce or project_config.project__custom__tso
+      8:
         task: refresh_dt_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 

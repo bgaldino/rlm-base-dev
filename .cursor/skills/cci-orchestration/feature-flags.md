@@ -52,7 +52,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 17 flow step(s) |
+| `tso` | `False` | 18 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -159,7 +159,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `commerce` (default: `False`)
 
 - `extend_context_definitions` step 3 → `extend_context_cart`
-- `refresh_all_decision_tables` step 6 → `refresh_dt_commerce`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_commerce`
 
 ### `constraints` (default: `True`)
 
@@ -288,7 +288,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
-- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
+- `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
 - `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
@@ -315,7 +315,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
-- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
+- `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
 ### `procedureplans` (default: `True`)
@@ -478,6 +478,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 7 → `assign_permission_sets`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_commerce`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 - `prepare_personas` step 8 → `assign_permission_sets`

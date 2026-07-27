@@ -5,7 +5,16 @@ from abc import abstractmethod
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
 class RefreshDecisionTable(SFDXBaseTask):
-    
+
+    # This task always needs an org. Without the flag, SFDXBaseTask leaves
+    # salesforce_task False, the CLI builds no --org option, and every
+    # refresh_dt_* task silently runs against the CCI DEFAULT org — so the
+    # obvious remediation for a stale table (`cci task run refresh_dt_commerce
+    # --org <alias>`) fails outright with "No such option: --org". Part of the
+    # repo-wide sweep tracked in issue #320; this and ManageDecisionTables are
+    # done, the rest of the 102 are not.
+    salesforce_task = True
+
     # Task options are used to set up configuration settings for this particular task.
     task_options = {
         "access_token": {
@@ -65,9 +74,16 @@ class RefreshDecisionTable(SFDXBaseTask):
         if not developer_names:
             raise ValueError("developerNames is required but was not provided or is empty")
 
-        # Convert to list if it's a string
+        # Convert to list if it's a string.
+        # ⚠ Split on commas. The flow always passes a real YAML list so this path is
+        # latent there, but `cci task run refresh_dt_rating -o developerNames "A,B"`
+        # otherwise asks the org to refresh one table literally named "A,B" — which
+        # does not exist, and (see _refresh_decision_table) only logs an error while
+        # the task still exits 0. Same fix applied in rlm_manage_decision_tables.py.
         if isinstance(developer_names, str):
-            developer_names = [developer_names]
+            developer_names = [part.strip() for part in developer_names.split(",") if part.strip()]
+            if not developer_names:
+                raise ValueError("developerNames was provided but contained no usable names")
         elif not isinstance(developer_names, list):
             raise ValueError(f"developerNames must be a string or a list of strings, but got {type(developer_names)}")
 

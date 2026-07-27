@@ -373,7 +373,9 @@ Decision table lists are defined in `cumulusci.yml` under `project.custom` as YA
 | `dt_activation_decision_tables` | Tables activated during org prepare (RLM_ProductCategoryQualification, RLM_ProductQualification, RLM_CostBookEntries) |
 | `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true`) |
 
-The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_commerce (when `commerce: true`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
+The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_default_pricing (always) → refresh_dt_commerce (when `commerce: true` **or** `tso: true`) → refresh_dt_prm_pricing (when `prm` and `prm_pricing`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
+
+> `refresh_dt_default_pricing` was **absent from this flow entirely** until 2026-07-27 — the task existed but nothing called it, so `StandardTax` was never refreshed by any build. The Commerce step is gated on `tso` as well because a TSO template ships those tables whether or not the Commerce feature is configured, and a build that skips them leaves five tables holding the template org's rows.
 
 ---
 
