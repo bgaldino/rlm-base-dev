@@ -575,16 +575,34 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         // null — so the criterion took the SKIP path, and asserting a non-null verdict
         // proved only "not refused" while claiming to prove "usable". The same vacuous
         // shape this very commit fixed twenty lines up.
+        // ⚠ It is SKIPPED, not refused — and the distinction is the whole point. A
+        // datetime is skipped because the engine's parse zone is unestablished, which
+        // widens the comparison and stays sound. Being in the deny-set would REFUSE the
+        // table instead. Asserting the reason distinguishes the two; asserting a
+        // non-null probe would not, since both leave one.
         RLM_DecisionTableManagerController.SourcePlan lmd = plan(
             table('Account', '1'),
             new List<DecisionTableSourceCriteria>{
                 criterion('LastModifiedDate', 'Equals', '2026-01-01 00:00:00', 'Literal')
             }
         );
-        Assert.areEqual('LastModifiedDate = :dtCriterion0', lmd.probe.whereClause,
-            'LastModifiedDate must stay usable, and actually TRANSLATE: ' + lmd.reason);
-        Assert.isTrue(lmd.probe.binds.get('dtCriterion0') instanceof Datetime,
-            'Bound as a Datetime, not as text.');
+        Assert.areNotEqual('Not comparable', lmd.verdict,
+            'LastModifiedDate moving IS a record edit, so it must never be refused: ' + lmd.reason);
+        Assert.areEqual(1, lmd.unreproducedCriteria.size(), 'It is skipped, not translated.');
+        Assert.isTrue(lmd.unreproducedCriteria[0].contains('timezone'),
+            'And skipped for the datetime-zone reason, not as an unwatchable field: ' +
+            lmd.unreproducedCriteria[0]);
+
+        // A DATE field still translates — only DATETIME carries the zone ambiguity.
+        RLM_DecisionTableManagerController.SourcePlan dateField = plan(
+            table('Contact', '1'),
+            new List<DecisionTableSourceCriteria>{
+                criterion('Birthdate', 'Equals', '1990-01-01', 'Literal')
+            }
+        );
+        Assert.areEqual('Birthdate = :dtCriterion0', dateField.probe.whereClause,
+            'Date.valueOf carries no timezone, so a DATE boundary is unambiguous: ' +
+            dateField.reason);
     }
 
     @isTest
@@ -1302,6 +1320,39 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
                     info.apiName + ' claims its criteria were applied, but no probe result was read.');
             }
         }
+    }
+
+    @isTest
+    static void anIncrementalRefreshIsRefusedWhereTheTableCannotDoOne() {
+        // ⚠ The platform ACCEPTS an incremental request on a table with
+        // IsIncrementalSyncEnabled = false and then syncs nothing — so the caller is
+        // told "queued" while the table stays stale. Measured false on every table this
+        // repo ships and on all 40 in a built org, which makes this the default outcome
+        // of choosing Incremental, not an edge case.
+        List<DecisionTable> existing = [
+            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
+            WHERE IsIncrementalSyncEnabled = false LIMIT 1
+        ];
+        if (existing.isEmpty()) {
+            // Nothing to assert against in this org; say so rather than pass quietly.
+            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
+            return;
+        }
+        RLM_DecisionTableManagerController.RefreshResult result =
+            RLM_DecisionTableManagerController.refreshTables(
+                new List<String>{ existing[0].DeveloperName }, true);
+
+        Assert.areEqual(0, result.queuedCount, 'Nothing may be queued.');
+        Assert.isNotNull(result.errorMessage, 'And the caller must be told why.');
+        Assert.isTrue(result.errorMessage.contains(existing[0].DeveloperName),
+            'The message must name the table so it can be re-run as a full refresh: ' +
+            result.errorMessage);
+
+        // A FULL refresh of the same table is unaffected by the gate.
+        RLM_DecisionTableManagerController.RefreshResult full =
+            RLM_DecisionTableManagerController.refreshTables(
+                new List<String>{ existing[0].DeveloperName }, false);
+        Assert.isNull(full.errorMessage, 'Full refresh must not be gated: ' + full.errorMessage);
     }
 
     @isTest

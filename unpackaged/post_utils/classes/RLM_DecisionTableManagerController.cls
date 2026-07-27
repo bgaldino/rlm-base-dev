@@ -266,7 +266,13 @@ public with sharing class RLM_DecisionTableManagerController {
     // because they are not reliably filterable.
     private static final Set<Schema.DisplayType> TEXT_FIELD_TYPES = new Set<Schema.DisplayType>{
         Schema.DisplayType.STRING, Schema.DisplayType.PICKLIST, Schema.DisplayType.EMAIL,
-        Schema.DisplayType.PHONE, Schema.DisplayType.URL, Schema.DisplayType.COMBOBOX,
+        Schema.DisplayType.PHONE, Schema.DisplayType.URL, Schema.DisplayType.COMBOBOX
+    };
+    // ⚠ NOT text, though they look it. Binding a raw String to an Id field is a repo
+    // DO NOT (.cursor/rules/apex-classes.mdc) and turns a malformed criterion into a
+    // query-time exception — which this class would report as Unknown, when it should
+    // have been a controlled refusal at translation. Coerced through Id.valueOf below.
+    private static final Set<Schema.DisplayType> ID_FIELD_TYPES = new Set<Schema.DisplayType>{
         Schema.DisplayType.ID, Schema.DisplayType.REFERENCE
     };
     private static final Set<Schema.DisplayType> NUMBER_FIELD_TYPES = new Set<Schema.DisplayType>{
@@ -1164,18 +1170,24 @@ public with sharing class RLM_DecisionTableManagerController {
             return out;
         }
         DescribeFieldResult fdr = field.getDescribe();
-        if (!fdr.isAccessible()) {
-            out.reason = 'you cannot read field "' + path + '"';
-            return out;
-        }
         // ⚠ Refused, not skipped, for the same reason a non-literal Value is: skipping
         // is sound only while membership is a function of record state, and a formula's
         // value moves when something this check cannot see moves. Applies to IsNull too
         // — the operator consumes no value, but the FIELD still shifts underneath it.
+        //
+        // ⚠ ORDER MATTERS, and it was wrong: this ran AFTER the isAccessible check
+        // below, so a formula the running user cannot read took the accessible-field
+        // exit and was SKIPPED — widening the probe around a field whose movement
+        // nothing observes. Unwatchability is a property of the field itself, not of
+        // who can see it, so it has to be decided first.
         if (movesWithoutARecordEdit(sourceObject, field)) {
             out.mustRefuse = true;
             out.reason = 'field "' + path + '" has a value that ' + UNWATCHABLE_FIELD +
                 ', so nothing here can observe it changing';
+            return out;
+        }
+        if (!fdr.isAccessible()) {
+            out.reason = 'you cannot read field "' + path + '"';
             return out;
         }
         if (!fdr.isFilterable()) {
@@ -1194,6 +1206,13 @@ public with sharing class RLM_DecisionTableManagerController {
         if (ORDERING_OPERATORS.contains(c.Operator) && !isOrderedType(fdr.getType())) {
             out.reason = 'operator "' + c.Operator + '" compares order, and ' + fdr.getType() +
                 ' has no ordering that SOQL and the decision table are guaranteed to agree on';
+            return out;
+        }
+        // Every datetime comparison, not just the ordering ones — see coerceValue. The
+        // boundary instant is what is unestablished, and equality binds one too.
+        if (fdr.getType() == Schema.DisplayType.DATETIME) {
+            out.reason = 'field "' + path + '" is a datetime, and the timezone the ' +
+                'decision-table engine reads its boundary in is not established here';
             return out;
         }
 
@@ -1429,12 +1448,23 @@ public with sharing class RLM_DecisionTableManagerController {
                 }
                 return null;
             }
+            if (ID_FIELD_TYPES.contains(fieldType)) {
+                // Throws on anything that is not a well-formed Id, which the catch turns
+                // into a skip — a refusal decided here rather than a query that fails.
+                return Id.valueOf(value);
+            }
             if (fieldType == Schema.DisplayType.DATE) {
                 return Date.valueOf(value);
             }
-            if (fieldType == Schema.DisplayType.DATETIME) {
-                return Datetime.valueOf(value);
-            }
+            // ⚠ DATETIME is NOT coerced, deliberately, and this is the same reason
+            // isOrderedType excludes it: Datetime.valueOf parses in the RUNNING USER'S
+            // timezone, and the zone the decision-table engine parses in is
+            // unestablished. Refusing only ORDERING comparisons was inconsistent — an
+            // equality bound to the wrong instant selects a different row set just as
+            // silently, and a filtered probe measuring the wrong rows can report Fresh.
+            // Falls through to null, so the criterion is skipped and the comparison
+            // widened, which is sound: a datetime field moves only when its record is
+            // written. Establish the engine's zone and this can be translated.
         } catch (Exception e) {
             // An unparseable value refuses the whole table rather than filtering on
             // something the criterion did not ask for.
@@ -1531,12 +1561,36 @@ public with sharing class RLM_DecisionTableManagerController {
 
         Set<String> requested = new Set<String>(apiNames);
         Set<String> known = new Set<String>();
+        List<String> incrementalDisabled = new List<String>();
         for (DecisionTable dt : [
-            SELECT DeveloperName FROM DecisionTable
+            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
             WHERE DeveloperName IN :requested
             WITH USER_MODE
         ]) {
             known.add(dt.DeveloperName);
+            if (dt.IsIncrementalSyncEnabled != true) {
+                incrementalDisabled.add(dt.DeveloperName);
+            }
+        }
+        // ⚠ An incremental request against a table with IsIncrementalSyncEnabled =
+        // false is accepted by the platform action and then does not sync the changed
+        // rows — so the caller sees "queued" and the table stays stale. Measured: false
+        // on every table this repo ships and on all 40 in a built org, which makes this
+        // the DEFAULT outcome of choosing Incremental rather than an edge case.
+        //
+        // Refused rather than silently downgraded to a full refresh: a full sync is a
+        // heavier operation than the caller asked for, and doing it unasked would be a
+        // different surprise. Naming the tables lets them re-run with Full.
+        if (incremental == true && !incrementalDisabled.isEmpty()) {
+            result.errorMessage = 'Incremental sync is not enabled on ' +
+                incrementalDisabled.size() + ' of the selected table(s): ' +
+                String.join(incrementalDisabled, ', ') +
+                '. An incremental refresh there is accepted and then changes nothing. ' +
+                'Run a full refresh, or enable incremental sync on the table first.';
+            result.incremental = true;
+            result.failedApiNames.addAll(incrementalDisabled);
+            result.failedCount = incrementalDisabled.size();
+            return result;
         }
         // Diff the EXPECTED set against what was found, rather than reporting on
         // the found set alone.

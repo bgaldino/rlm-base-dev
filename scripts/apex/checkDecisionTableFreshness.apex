@@ -21,6 +21,18 @@ Boolean strict = mode == 'strict' || mode == 'true';
 List<RLM_DecisionTableManagerController.DecisionTableInfo> tables =
     RLM_DecisionTableManagerController.getDecisionTables();
 
+// ⚠ No tables is NOT a pass. An org that never deployed them, or a user whose
+// permissions hide them, would otherwise fall through to "Every table is fresh" and
+// exit 0 in strict mode — a readiness gate reporting ready because it looked at
+// nothing. This is the same absence-of-evidence-as-verdict failure the controller
+// refuses everywhere else; the gate has to refuse it too.
+if (tables.isEmpty()) {
+    throw new DecisionTableFreshnessException(
+        'No decision tables were readable, so freshness could not be checked at all. '
+        + 'Either none are deployed (run prepare_rlm_org, or deploy_decision_tables), '
+        + 'or the running user cannot see them. This is NOT a clean result.');
+}
+
 Map<String, List<String>> byVerdict = new Map<String, List<String>>();
 List<String> detail = new List<String>();
 for (RLM_DecisionTableManagerController.DecisionTableInfo t : tables) {

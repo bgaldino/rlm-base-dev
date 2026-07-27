@@ -19,6 +19,16 @@ const VERDICT_UNKNOWN = 'Unknown'
 // counts as still running so the poll keeps watching rather than declaring success.
 const RUNNING_REFRESH_STATUSES = new Set(['Initiated', 'In Progress', 'Queued', 'Processing'])
 
+// ⚠ Leaving the running set is NOT the same as succeeding. Failed and
+// CompletedWithWarnings are terminal too, and treating "not running" as "done" put a
+// failed refresh behind a green "Refresh complete" toast — the one outcome a user most
+// needs to see.
+//
+// SUCCESS is the enumerated set, not failure: a status this file has never heard of
+// then reports as a problem rather than as an all-clear. Enumerating failures instead
+// would make every new platform status silently successful.
+const SUCCESS_REFRESH_STATUSES = new Set(['Completed', 'Success', 'Succeeded'])
+
 // Only Fresh and Stale are computed comparisons. Written as "is one of the two
 // established verdicts" rather than "is one of the two unclear ones" so a verdict
 // added to the controller later lands in the not-established bucket by default —
@@ -379,11 +389,63 @@ export default class RlmDecisionTableManager extends LightningElement {
             // panel reflects any status merged in by the poll loop since render.
             const apiName = event.detail.row.apiName
             this.detailRow = this.rows.find((r) => r.apiName === apiName) || event.detail.row
+            this._focusDialogOnRender = true
         }
     }
 
     handleCloseDetail() {
         this.detailRow = undefined
+        // Send focus back where it came from. Without this, closing the dialog drops
+        // the caret at the top of the document and a keyboard user has to tab all the
+        // way back to the row they were reading.
+        this._restoreFocusOnRender = true
+    }
+
+    // ---- modal focus management ----------------------------------------------
+    //
+    // Required by .cursor/rules/lwc-components.mdc for every custom modal: initial
+    // focus, a trap while open, and restoration on close. Without them a keyboard or
+    // screen-reader user stays on the controls BEHIND the overlay — the dialog is
+    // announced but unreachable, and Tab wanders through the page underneath it.
+
+    renderedCallback() {
+        if (this._focusDialogOnRender) {
+            this._focusDialogOnRender = false
+            const dialog = this.template.querySelector('section[role="dialog"]')
+            if (dialog) {
+                dialog.focus()
+            }
+        }
+        if (this._restoreFocusOnRender) {
+            this._restoreFocusOnRender = false
+            const table = this.template.querySelector('lightning-datatable')
+            if (table) {
+                table.focus()
+            }
+        }
+    }
+
+    /** Tab off the end wraps to the top of the dialog. */
+    handleFocusEscapeStart() {
+        const dialog = this.template.querySelector('section[role="dialog"]')
+        if (dialog) {
+            dialog.focus()
+        }
+    }
+
+    /** Shift+Tab off the front wraps to the dialog's last control. */
+    handleFocusEscapeEnd() {
+        const closeButton = this.template.querySelector('.slds-modal__footer lightning-button')
+        if (closeButton) {
+            closeButton.focus()
+        }
+    }
+
+    handleDetailKeydown(event) {
+        if (event.key === 'Escape') {
+            event.stopPropagation()
+            this.handleCloseDetail()
+        }
     }
 
     // ---- row details ---------------------------------------------------------
@@ -692,6 +754,16 @@ export default class RlmDecisionTableManager extends LightningElement {
         }
         this._watchedApiNames = apiNames
         this._pollAttempts = 0
+        this._pollInFlight = false
+        // Evidence that THIS refresh ran, so a stale terminal status from a previous
+        // one cannot end the watch on its own. See poll().
+        this._observedRunning = new Set()
+        this._syncDateAtQueue = new Map(
+            apiNames.map((name) => {
+                const row = this.rows.find((t) => t.apiName === name)
+                return [name, (row && row.lastSyncDate) || '']
+            })
+        )
         this.isPolling = true
         this.pollProgress = 0
         this.pollMessage = `Watching ${apiNames.length} decision table(s)…`
@@ -714,6 +786,15 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     async poll() {
+        // ⚠ Re-entrancy guard. setInterval fires again whether or not the previous
+        // tick's Apex call has returned, so a server slower than POLL_INTERVAL_MS put
+        // two polls in flight at once — both incrementing the attempt count, both able
+        // to stop polling, reload and toast. Matches the pattern already used by
+        // rlmPreProcessOrderAction.
+        if (this._pollInFlight) {
+            return
+        }
+        this._pollInFlight = true
         this._pollAttempts += 1
         try {
             const statuses = await getRefreshStatus({ apiNames: this._watchedApiNames })
@@ -723,19 +804,60 @@ export default class RlmDecisionTableManager extends LightningElement {
             // did not return cannot be confirmed finished, and treating it as done
             // would end the watch on an unverified table.
             const byApiName = new Map(statuses.map((s) => [s.apiName, s]))
-            const stillRunning = this._watchedApiNames.filter((name) => {
+            const succeeded = []
+            const failed = []
+            const stillRunning = []
+            this._watchedApiNames.forEach((name) => {
                 const row = byApiName.get(name)
-                if (!row) return true
-                return RUNNING_REFRESH_STATUSES.has(row.refreshStatus)
+                // A name the query did not return cannot be confirmed finished.
+                if (!row) {
+                    stillRunning.push(name)
+                    return
+                }
+                if (RUNNING_REFRESH_STATUSES.has(row.refreshStatus)) {
+                    this._observedRunning.add(name)
+                    stillRunning.push(name)
+                    return
+                }
+                // ⚠ A terminal status is only THIS refresh's outcome if this refresh
+                // actually started. A table sitting on a previous run's "Completed"
+                // looks finished on the very first poll, which ended the watch before
+                // the queued job had moved. Require evidence: either we saw it running,
+                // or its full-sync timestamp advanced past the snapshot taken at queue
+                // time. Neither means keep waiting.
+                const started =
+                    this._observedRunning.has(name) ||
+                    (row.lastSyncDate || '') !== (this._syncDateAtQueue.get(name) || '')
+                if (!started) {
+                    stillRunning.push(name)
+                    return
+                }
+                if (SUCCESS_REFRESH_STATUSES.has(row.refreshStatus)) {
+                    succeeded.push(name)
+                } else {
+                    // Failed, CompletedWithWarnings, or anything unrecognised that got
+                    // this far — reported as not-success rather than folded into it.
+                    failed.push(`${name} (${row.refreshStatus || 'no status'})`)
+                }
             })
 
-            const done = this._watchedApiNames.length - stillRunning.length
+            const done = succeeded.length + failed.length
             this.pollProgress = Math.round((done / this._watchedApiNames.length) * 100)
             this.pollMessage = `Refreshing — ${done} of ${this._watchedApiNames.length} finished`
 
             if (stillRunning.length === 0) {
                 this.stopPolling()
-                this.toast('Refresh complete', 'All watched decision tables finished.', 'success')
+                if (failed.length === 0) {
+                    this.toast('Refresh complete', 'All watched decision tables finished.', 'success')
+                } else {
+                    this.toast(
+                        'Refresh finished with problems',
+                        `${succeeded.length} completed · ${failed.length} did not: ${failed.join(', ')}. ` +
+                            'Open the table in Setup for the failure reason.',
+                        'error',
+                        'sticky'
+                    )
+                }
                 this.loadTables()
                 return
             }
@@ -743,11 +865,12 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (this._pollAttempts >= MAX_POLL_ATTEMPTS) {
                 this.stopPolling()
                 // Timing out is reported, never silently swallowed.
+                const alsoFailed = failed.length > 0 ? ` ${failed.length} failed: ${failed.join(', ')}.` : ''
                 this.toast(
                     'Still refreshing',
                     `Stopped watching after ${MAX_POLL_ATTEMPTS} checks. ` +
-                        `${stillRunning.length} table(s) had not finished: ${stillRunning.join(', ')}. ` +
-                        'The refresh continues in the org — reload to see the result.',
+                        `${stillRunning.length} table(s) were not confirmed finished: ${stillRunning.join(', ')}.` +
+                        `${alsoFailed} The refresh continues in the org — reload to see the result.`,
                     'warning',
                     'sticky'
                 )
@@ -757,6 +880,8 @@ export default class RlmDecisionTableManager extends LightningElement {
             this.stopPolling()
             this.errorMessage = this.readError(error)
             this.toast('Lost track of the refresh', this.errorMessage, 'error', 'sticky')
+        } finally {
+            this._pollInFlight = false
         }
     }
 

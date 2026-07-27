@@ -346,3 +346,14 @@
     border-radius: 0.15rem;
     overflow-wrap: anywhere;
 }
+
+/* Focus sentinels wrap the modal so Tab cannot leave it. Not display:none and not
+   visibility:hidden — either would make them unfocusable and the trap would do
+   nothing. Zero-size and clipped instead, so they take focus without being seen. */
+.dtm-focus-sentinel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}

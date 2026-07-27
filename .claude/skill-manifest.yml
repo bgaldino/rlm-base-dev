@@ -36,8 +36,9 @@ generated_at: "2026-05-23T00:00:00Z"
 # tree, not that they read it. The 2026-05-23 stamp did not survive that test: two
 # skills present since April and May were unlisted, the postman collection filenames
 # had never existed, and the prior-GA help corpus pointed at a directory that has
-# never been committed on any branch. `skill_manifest.py --check` does not catch any
-# of that — it resolves repo roots only. Re-stamp only after auditing the paths.
+# never been committed on any branch. `skill_manifest.py --check` did not catch any of
+# that at the time — it resolved repo roots only. It now audits every declared skill
+# and every path-shaped value, so re-stamping this date means running it.
 last_verified: "2026-07-26"
 salesforce_release_active: "262"
 salesforce_release_prior_ga: "260"

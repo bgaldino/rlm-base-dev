@@ -526,6 +526,30 @@ def _cli_check(manifest: dict[str, Any]) -> int:
     return 0 if _audit_foundations(manifest) and overall_ok else 1
 
 
+#: Where a repo-relative path can start. Anything outside this is prose, not a path.
+_PATH_ROOTS = (
+    ".agents/", ".claude/", ".cursor/", ".github/", "config/", "datasets/", "docs/",
+    "force-app/", "orgs/", "postman/", "robot/", "scripts/", "tasks/", "templates/",
+    "unpackaged/",
+)
+
+
+def _path_like_values(node: Any, where: str):
+    """Yield (location, value) for every string in a manifest subtree that names a
+    repo path. Recursive on purpose — see the caller."""
+    if isinstance(node, dict):
+        # An entry can declare itself absent; do not then demand its paths exist.
+        if node.get("status") == "not_captured":
+            return
+        for key, value in node.items():
+            yield from _path_like_values(value, f"{where}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _path_like_values(value, f"{where}[{index}]")
+    elif isinstance(node, str) and node.startswith(_PATH_ROOTS):
+        yield where, node
+
+
 def _audit_foundations(manifest: dict[str, Any]) -> bool:
     """Resolve what the Foundations section CLAIMS against the working tree.
 
@@ -563,19 +587,15 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     for name in sorted(on_disk - declared):
         problems.append(f"{name}: has a SKILL.md but is not declared — agents cannot discover it")
 
-    for name, entry in (section.get("grounding") or {}).items():
-        if not isinstance(entry, dict):
-            continue
-        if entry.get("status") == "not_captured":
-            continue  # declared absent on purpose
-        for field in ("path", "manifest", "index"):
-            rel = entry.get(field)
-            if rel and not exists(rel):
-                problems.append(f"grounding {name}.{field}: missing {rel}")
-
-    for rel in (section.get("grounding") or {}).get("postman_collections", []) or []:
+    # ⚠ Every path-shaped value, found by walking — NOT a hand-listed set of field
+    # names. The first version checked only path/manifest/index and a postman list,
+    # which meant `postman_environment` (added in the same change as the audit),
+    # `cci_reference.*` and `erd_data.query_cli` were never validated: a typo in any
+    # of them still printed "all paths resolve". A checker with a hand-maintained
+    # field list is a checker that goes stale the next time someone adds a field.
+    for where, rel in _path_like_values(section.get("grounding") or {}, "grounding"):
         if not exists(rel):
-            problems.append(f"grounding postman_collections: missing {rel}")
+            problems.append(f"{where}: missing {rel}")
 
     print()
     if problems:
