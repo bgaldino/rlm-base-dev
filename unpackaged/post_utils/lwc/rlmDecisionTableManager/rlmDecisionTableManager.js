@@ -450,6 +450,20 @@ export default class RlmDecisionTableManager extends LightningElement {
         if (event.key === 'Escape') {
             event.stopPropagation()
             this.handleCloseDetail()
+            return
+        }
+        // ⚠ The sentinels cover every position INSIDE the dialog, but not the one the
+        // dialog opens in. Initial focus sits on the section itself (tabindex="-1", so
+        // the dialog is announced rather than a control inside it), and the leading
+        // sentinel is the section's first CHILD — after it in tab order, not before.
+        // Nothing focusable precedes the section, so Shift+Tab at that first moment
+        // walks straight out into the page behind the overlay: the exact escape the
+        // trap exists to prevent, available for as long as the user has not tabbed yet.
+        // Once focus has moved inside, the sentinels take over and this is inert.
+        if (event.key === 'Tab' && event.shiftKey &&
+            event.target === this.template.querySelector('section[role="dialog"]')) {
+            event.preventDefault()
+            this.handleFocusEscapeEnd()
         }
     }
 

@@ -117,8 +117,11 @@ Three limits apply to **every** verdict, by construction:
 
 The design deliberately trades coverage for never emitting a confident wrong answer: an
 unnecessary refresh is cheap, a false all-clear is not. Over-refusing into "Not
-comparable" is the intended failure direction. The reasoning behind each refusal is
-documented in the controller's class header — read it there rather than re-deriving it.
+comparable" is the intended failure direction. The same principle settles the boundary:
+a sync stamped at the **same instant** as the newest change reads **Stale**, because a
+tie establishes no ordering — nothing says whether the sync's read snapshot included
+that write. The reasoning behind each refusal is documented in the controller's class
+header — read it there rather than re-deriving it.
 
 ## Refreshing
 

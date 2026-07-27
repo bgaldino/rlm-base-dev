@@ -377,6 +377,48 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
+    static void aSyncAtTheSAMEInstantAsTheNewestChangeIsStaleNotFresh() {
+        // ⚠ The boundary, where one character decides the verdict. LastSyncDate stamps
+        // the sync and WITNESS_FIELD stamps the row; at an exact tie nothing in either
+        // says whether the sync's read snapshot included that write. Fresh would be a
+        // confident guess in the one direction this class refuses to guess, so a tie
+        // resolves to Stale.
+        Datetime tie = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        Datetime older = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+
+        DecisionTable tied = joinedTable(tie);
+        RLM_DecisionTableManagerController.SourcePlan tiedPlan = planWithJoins(
+            tied, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo tiedInfo =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(tied);
+        RLM_DecisionTableManagerController.applySourceVerdict(tiedInfo, tied, tiedPlan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                tiedPlan.probe.key() => probeResult(tie, 5),
+                tiedPlan.joinedProbes[0].key() => probeResult(older, 3)
+            });
+        Assert.areEqual('Stale', tiedInfo.staleness,
+            'A sync at the same instant as the newest change establishes no ordering, ' +
+            'so it may not read Fresh: ' + tiedInfo.stalenessReason);
+
+        // ⚠ The control, and it earns its place: without it this test would also pass
+        // if the fixture were stale for some unrelated reason. ONE MILLISECOND of
+        // daylight — the smallest gap the platform can represent — must be enough to
+        // restore Fresh, which pins the assertion above to the tie and nothing else.
+        DecisionTable later = joinedTable(Datetime.newInstance(tie.getTime() + 1));
+        RLM_DecisionTableManagerController.SourcePlan laterPlan = planWithJoins(
+            later, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo laterInfo =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(later);
+        RLM_DecisionTableManagerController.applySourceVerdict(laterInfo, later, laterPlan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                laterPlan.probe.key() => probeResult(tie, 5),
+                laterPlan.joinedProbes[0].key() => probeResult(older, 3)
+            });
+        Assert.areEqual('Fresh', laterInfo.staleness,
+            'A sync strictly later than every change is still Fresh: ' + laterInfo.stalenessReason);
+    }
+
+    @isTest
     static void everyHopOfAColumnPathCountsAsADependency() {
         // ⚠ The live bug this pins: DomainObject names only the object owning the FINAL
         // field, so a two-hop column path leaves the INTERMEDIATE object unlisted.
@@ -427,6 +469,60 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             polymorphic, 'Task', null, 'WhatId.Name', Schema.getGlobalDescribe());
         Assert.areEqual(new Set<String>{ 'WhatId.Name' }, polymorphic.unresolvedPaths,
             'A polymorphic lookup has no single object to watch.');
+
+        // ⚠ Hops that all resolve, landing on a field that does not exist. This walked
+        // "successfully" — objects = [Account], terminal = null — and both callers then
+        // classify that null terminal with movesWithoutARecordEdit, which answers false
+        // ("nothing moves without an edit") for a field it never saw. The path was
+        // therefore watched as if fully understood, and could carry a table to Fresh on
+        // a dependency nothing ever classified. A resolved path must be resolved END TO
+        // END.
+        //
+        // DomainObject is deliberately null here: a non-null one is added to objects
+        // BEFORE the path is walked, which would mask the walk's own result and leave
+        // this asserting nothing. With it null, the walk is the only thing that can
+        // put an object in the set.
+        RLM_DecisionTableManagerController.Contributors missingTerminal =
+            new RLM_DecisionTableManagerController.Contributors();
+        RLM_DecisionTableManagerController.recordContributor(
+            missingTerminal, 'Contact', null, 'AccountId.NoSuchField', Schema.getGlobalDescribe());
+        Assert.isTrue(missingTerminal.objects.isEmpty(),
+            'A path whose final field does not exist must not be watched as understood: ' +
+            missingTerminal.objects);
+        Assert.areEqual(new Set<String>{ 'AccountId.NoSuchField' }, missingTerminal.unresolvedPaths,
+            'It is recorded as a gap instead, so the verdict declines an all-clear.');
+    }
+
+    @isTest
+    static void aCriterionEndingOnAFieldThatDoesNotExistIsRefused() {
+        // The sibling half of the missing-terminal gap: the same walk feeds criterion
+        // translation, where treating it as resolved dropped the criterion and watched
+        // Account — sound ONLY if the terminal is known not to move on its own, which
+        // is exactly what could not be determined here.
+        RLM_DecisionTableManagerController.SourcePlan missingTerminal = plan(
+            table('Contact', '1'),
+            new List<DecisionTableSourceCriteria>{
+                criterion('AccountId.NoSuchField', 'Equals', 'anything', 'Literal')
+            }
+        );
+        Assert.isNull(missingTerminal.probe,
+            'A criterion whose final field cannot be found may not be translated or dropped.');
+        Assert.areEqual('Not comparable', missingTerminal.verdict,
+            'It must refuse: ' + missingTerminal.reason);
+
+        // And the resolver itself, so the contract is pinned at the source rather than
+        // only through its two callers.
+        Assert.isNull(
+            RLM_DecisionTableManagerController.traversedObjects(
+                'AccountId.NoSuchField', Contact.SObjectType.getDescribe().fields.getMap()),
+            'Hops that resolve do not make a path resolved when the field does not exist.');
+        // The control: the same hop with a REAL terminal still resolves, so the
+        // assertion above is about the missing field and not about AccountId.
+        Assert.areEqual(
+            new List<String>{ 'Account' },
+            RLM_DecisionTableManagerController.traversedObjects(
+                'AccountId.Name', Contact.SObjectType.getDescribe().fields.getMap()),
+            'A path that resolves end to end is unaffected.');
     }
 
     @isTest
@@ -1409,6 +1505,34 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'A caller must be able to see which requested tables were not found.');
         Assert.areEqual('ZZ_No_Such_Decision_Table', result.unknownApiNames[0], 'The missing name must be named.');
         Assert.areEqual(0, result.queuedCount, 'Nothing real was requested, so nothing may be queued.');
+    }
+
+    @isTest
+    static void anUnknownNameSurvivesTheIncrementalRefusal() {
+        // ⚠ The incremental gate returns EARLY. Before this, a request mixing a real
+        // incremental-disabled table with a name that does not exist reported only the
+        // disabled table and dropped the unknown one silently — so the caller would fix
+        // the incremental problem, re-run, and still be missing a table with nothing
+        // having ever said so. Whichever way the call exits, every requested name lands
+        // in exactly one bucket.
+        List<DecisionTable> existing = [
+            SELECT DeveloperName FROM DecisionTable
+            WHERE IsIncrementalSyncEnabled = false LIMIT 1
+        ];
+        if (existing.isEmpty()) {
+            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
+            return;
+        }
+        RLM_DecisionTableManagerController.RefreshResult result =
+            RLM_DecisionTableManagerController.refreshTables(
+                new List<String>{ existing[0].DeveloperName, 'ZZ_No_Such_Decision_Table' }, true);
+
+        Assert.isNotNull(result.errorMessage,
+            'The incremental gate must still fire — this is not a test that it stopped.');
+        Assert.areEqual(new List<String>{ 'ZZ_No_Such_Decision_Table' }, result.unknownApiNames,
+            'The unknown name must survive the early return: ' + result.errorMessage);
+        Assert.isTrue(result.failedApiNames.contains(existing[0].DeveloperName),
+            'And the disabled table is still reported in its own bucket: ' + result.failedApiNames);
     }
 
     @isTest

@@ -580,7 +580,15 @@ public with sharing class RLM_DecisionTableManagerController {
             ? ''
             : ' This table also reads ' + String.join(plan.contributingObjects, ', ') + '.';
 
-        if (dt.LastSyncDate < newest) {
+        // ⚠ <=, not <. At an exact tie the ordering is NOT established: LastSyncDate
+        // stamps the sync, WITNESS_FIELD stamps the row, and nothing in the timestamps
+        // says whether the sync's read snapshot included a row written in that same
+        // millisecond. Fresh is the one verdict that cannot be walked back, so a tie
+        // resolves to Stale — the sanctioned direction, where an unnecessary refresh
+        // costs a job and a false all-clear costs a wrong price. The Fresh branch below
+        // also states the sync is "later than" the newest change, which at a tie is
+        // simply untrue.
+        if (dt.LastSyncDate <= newest) {
             // Stale stands even with an unread contributor: another unseen change could
             // only add to it.
             info.staleness = STALENESS_STALE;
@@ -1306,9 +1314,20 @@ public with sharing class RLM_DecisionTableManagerController {
             objects.add(target.getName());
             currentFields = target.fields.getMap();
         }
+        SObjectField terminal = currentFields.get(segments[segments.size() - 1].trim().toLowerCase());
+        // ⚠ A missing terminal field fails the WHOLE walk, exactly as a missing hop does
+        // above — it does not yield "resolved, with a null field". Both callers classify
+        // the terminal to decide whether watching the hops is enough, and
+        // movesWithoutARecordEdit(_, null) answers false — "nothing moves without an
+        // edit" — for a field it never saw. Handing back the hops with a null terminal
+        // therefore buys an all-clear on a dependency that was never classified. Leaving
+        // objects unset routes every caller into the branch it already has for a path it
+        // cannot follow.
+        if (terminal == null) {
+            return resolved;
+        }
         resolved.objects = objects;
-        // Null when the path names a field that does not exist on whatever it landed on.
-        resolved.terminal = currentFields.get(segments[segments.size() - 1].trim().toLowerCase());
+        resolved.terminal = terminal;
         return resolved;
     }
 
@@ -1594,6 +1613,19 @@ public with sharing class RLM_DecisionTableManagerController {
                 incrementalDisabled.add(dt.DeveloperName);
             }
         }
+        // Diff the EXPECTED set against what was found, rather than reporting on
+        // the found set alone.
+        //
+        // ⚠ Runs BEFORE the incremental gate below, which returns early. A mixed
+        // request — one real table with incremental disabled, one name that does not
+        // exist — otherwise reports the disabled table and drops the unknown name
+        // entirely, and RefreshResult's whole contract is that each name lands in
+        // exactly one bucket. Populating both is what makes a partial outcome legible.
+        for (String name : requested) {
+            if (!known.contains(name)) {
+                result.unknownApiNames.add(name);
+            }
+        }
         // ⚠ An incremental request against a table with IsIncrementalSyncEnabled =
         // false is accepted by the platform action and then does not sync the changed
         // rows — so the caller sees "queued" and the table stays stale. Measured: false
@@ -1613,13 +1645,6 @@ public with sharing class RLM_DecisionTableManagerController {
             result.failedApiNames.addAll(incrementalDisabled);
             result.failedCount = incrementalDisabled.size();
             return result;
-        }
-        // Diff the EXPECTED set against what was found, rather than reporting on
-        // the found set alone.
-        for (String name : requested) {
-            if (!known.contains(name)) {
-                result.unknownApiNames.add(name);
-            }
         }
         if (known.isEmpty()) {
             result.errorMessage = 'None of the requested decision tables exist.';
