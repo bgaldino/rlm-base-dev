@@ -104,6 +104,16 @@ def _could_not_run(out):
                           r"command not found|executable not found|timed out after", out))
 
 
+def _tier_d_coverage():
+    """The declared Tier D coverage, or None. Read rather than hardcoded so the
+    number cannot drift from the registry that states it."""
+    try:
+        reg = yaml.safe_load(RULES_FILE.read_text(encoding="utf-8"))
+        return reg.get("tier_d_coverage")
+    except Exception:
+        return None
+
+
 def _pytest_testpaths():
     """The pytest surfaces, read from pyproject.toml so this cannot drift.
 
@@ -579,10 +589,20 @@ def main():
     if not wanted or "E" in wanted:
         results += tier_e()
 
+    cov = _tier_d_coverage()
     last_tier = None
     for r in results:
         if r.tier != last_tier:
             print(f"── Tier {r.tier} " + "─" * 58)
+            # Announce partial coverage AT the tier, not in a footnote. A tier
+            # that quietly mechanises a fraction of its stated scope reads as
+            # complete, which is how an unimplemented row let three
+            # undocumented scripts through.
+            if r.tier == "D" and cov:
+                print(f"   ⚠ PARTIAL: {cov['covered_rows']} of {cov['total_rows']} "
+                      f"change-surface map rows mechanised; "
+                      f"{len(cov.get('uncovered') or [])} still manual "
+                      f"(see gate_rules.yml → tier_d_coverage)")
             last_tier = r.tier
         line = f"{_ICON[r.status]} {r.name}"
         if r.scope_note:

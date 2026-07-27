@@ -40,6 +40,43 @@
 # itself is reported SKIPPED, and a skipped rule fails the run. A check that did
 # not execute is not a pass.
 
+# Tier D is KNOWINGLY PARTIAL. The doc-consistency change-surface map has 18
+# rows; the rules below mechanise 3 of them. Declared here, and printed by
+# pre_push_audit, because a tier that silently covers a fraction of its stated
+# scope is the exact failure this gate exists to stop — and it already happened
+# once: `scripts/ai/*.py -> AGENTS.md` was an unimplemented row, so the gate
+# stayed green while its own three new scripts went undocumented.
+#
+# Uncovered rows, grouped by what they'd cost. Tracked in todo 080.
+tier_d_coverage:
+  map: ".cursor/skills/doc-consistency/SKILL.md — change-surface map"
+  total_rows: 18
+  covered_rows: 3
+  uncovered:
+    # Plain paired-change; ~8 lines each, same shape as the rules below.
+    - "tasks/*.py -> cumulusci.yml description, README Custom Tasks table"
+    - "robot/** -> robot-testing/SKILL.md task tables, patterns.md, README"
+    - "templates/ or UX assembly -> ux-assembly-retrieve.md, dynamic-ux-assembly.md"
+    - "new .cursor/skills/ file -> parent SKILL.md, AGENTS.md Sub-Files, skills README"
+    - "new scripts/*.py (top level) -> AGENTS.md Repository Layout"
+    - "new docs/guides/*.md -> README Primary Guides table"
+    - "scripts/build_harness/harness* -> build-harness SKILL + guide"
+    - "scripts/build_harness/tui or tui-cci -> tui README + build-harness SKILL"
+    - "feature flag add/rename/default -> README flag tables, AGENTS.md, feature-flags.md"
+    # Conditional — needs a content probe, not just a path pair.
+    - "orgs/*.json -> README Quick Start, only if it names specific configs"
+    - "scripts/apex/*.apex -> troubleshooting/SKILL.md, only if it references the script"
+    - "new scripts/apex/*.apex -> troubleshooting/SKILL.md + apex-scripts.mdc"
+    # Real work, deliberately deferred — dataset-wide reasoning, not a path pair.
+    - "product/SKU added -> EVERY plan CSV carrying that SKU, and each of their READMEs"
+    - "unpackaged/**/classes/*.cls behaviour change -> revenue-cloud-permissions.md
+       when the class is permission-gated, especially as its DESTRUCTIVE scope grows"
+    # Named explicitly in the todo pack as a Tier D trap: the permissions doc is
+    # hand-maintained, and a prose "(N)" count went stale while the name lists
+    # beside it stayed correct. Counts in prose are machine-checked nowhere.
+    - "docs/references/revenue-cloud-permissions.md -> parse its (N) counts against
+       the cumulusci.yml anchors they describe"
+
 rules:
   # ─────────────────────────── Tier B — AGENTS.md DO NOT ───────────────────────
   - id: post-ux-edited-directly
