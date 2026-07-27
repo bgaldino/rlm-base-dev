@@ -194,20 +194,26 @@ python --version   # Should show the latest 3.13.x patch
 
 After cloning the repository (Step 8 below), create a project-specific virtual environment. This isolates the project's Python dependencies from your system and other projects.
 
-> **If you install CumulusCI via pipx (recommended, Step 6), you do not need to manually install packages into this venv** — pipx manages CCI in its own isolated environment. Still create a venv if you want to run project scripts (`scripts/`, `tasks/`) directly outside of CCI, or if you choose `pip install cumulusci` instead.
+> **pipx manages CumulusCI itself** (Step 6) in its own isolated environment, so you never install CCI here. **The venv is still required** for anything that runs *outside* CCI — the `scripts/` and `tasks/` tooling, the offline test suites, and the pre-push gate. Install `requirements-dev.txt` into it; those tools have historically worked only because the pipx CCI environment happened to provide `requests` and `PyYAML` as its own transitive dependencies, which is a coincidence, not a contract.
 
 ```bash
-# From the repo root (uses whichever Python pyenv points to — 3.12 recommended)
+# From the repo root (uses whichever Python pyenv points to — 3.11+ required)
 python -m venv .venv
 
 # Activate the venv
 source .venv/bin/activate
 
+# Install the offline tooling dependencies (requests, PyYAML, pytest, textual)
+pip install -r requirements-dev.txt
+
 # Your prompt should now show (.venv) prefix
 # Verify
 python --version
 pip --version
+python scripts/ai/pre_push_audit.py --list   # the gate can now see its rules
 ```
+
+> **`.envrc` activates this venv automatically** once it exists, so a new terminal in the repo already has the right `python`. It stays silent when `.venv` is absent, so nothing nags you before you get here.
 
 To deactivate the venv when you're done:
 

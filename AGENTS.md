@@ -409,7 +409,35 @@ python scripts/ai/pr_review.py status <pr>                  # Automated-PR-revie
 python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
 python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
 python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README ↔ export.json/CSVs drift check (counts, ops, externalIds)
+python scripts/ai/pre_push_audit.py                         # ⭐ THE PRE-PUSH GATE — run before every push
+python scripts/ai/pre_push_audit.py --pr 317                # also require 0 unresolved threads on that PR
+python scripts/ai/pre_push_audit.py --list                  # every rule it enforces, with tier and severity
+python scripts/ai/defect_scan.py                            # Tier E alone: scan the repo for every known defect class
+python scripts/ai/defect_scan.py --emit-baseline            # print allow_list YAML pinning current matches
 ```
+
+**`scripts/ai/pre_push_audit.py` is the gate** — one command, non-zero on any
+failure, in five tiers: **A** aggregates the pass/fail gates that already exist
+(never reimplements them), **B** the DO NOT list above, **C** the
+`.cursor/rules/*.mdc` rules, **D** the doc-consistency change-surface map, **E**
+the defect-class registry. Exit **0** clean · **1** a check failed · **2** a check
+*could not run* or a review prompt is unacknowledged — 2 is deliberately louder
+than 1, because an unknown result is worse than a known bad one.
+
+Tiers B–D are declared in **`scripts/ai/gate_rules.yml`**; Tier E's classes live in
+**`scripts/ai/defect_classes.yml`** and are scanned by `defect_scan.py` over the
+**whole repo surface**, not just the diff. Add a rule to whichever registry fits
+rather than editing the runner. A rule that is not greppable without false
+positives is a `review-prompt`: it blocks until `--ack <rule-id>`, and never
+silently passes.
+
+**Environment.** These scripts run outside CumulusCI, so they need the project venv
+(README Step 5) — `python -m venv .venv && pip install -r requirements-dev.txt`.
+`scripts/ai/_gate_interpreter.py` resolves a usable interpreter
+(`RLM_PYTHON` → `$VIRTUAL_ENV` → `.venv` → `.harness/tui-venv` → pipx CCI → PATH),
+requiring **PyYAML on Python ≥ 3.11**, and re-execs into it. It never lets a
+missing dependency read as "no findings". Run interactively it will build `.venv`
+for you; from a git hook it fails fast with the command instead.
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
 

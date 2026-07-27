@@ -269,6 +269,24 @@ rules:
       `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` - it must
       report 0 errors. (Tier A runs that repo-wide too.)
 
+  - id: ai-script-added-without-agents-md
+    tier: D
+    source: ".cursor/skills/doc-consistency/SKILL.md change-surface map, row `scripts/ai/*.py`"
+    severity: important
+    detection: mechanical
+    scope: paired-change
+    # Added because this rule's ABSENCE let its own defect through: the five-tier
+    # gate itself shipped as three new scripts/ai/ files with no AGENTS.md entry,
+    # and the gate stayed green. A tool that cannot catch its own omission is the
+    # thing todo 080 exists to stop.
+    when_changed: ["scripts/ai/*.py"]
+    require_changed: ["AGENTS.md"]
+    remediation: >
+      A new or renamed script under scripts/ai/ must appear in AGENTS.md's
+      "AI Utility Scripts" section - an undocumented agent tool is one no agent
+      will run. Edit AGENTS.md only; CLAUDE.md is a symlink to it. Private
+      helpers (leading underscore) still count: say what they are for.
+
   - id: task-renamed-without-doc-sweep
     tier: D
     source: "AGENTS.md pre-merge checklist - cumulusci.yml item 2"
