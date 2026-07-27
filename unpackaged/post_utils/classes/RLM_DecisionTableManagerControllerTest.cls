@@ -434,6 +434,47 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
+    static void anUnreadableOrgCreationDateWithdrawsFreshButNotStale() {
+        // ⚠ The spin check needs the org's creation date, and orgCreatedDate() catches
+        // its own read failure and returns null. A null SKIPS the comparison rather
+        // than failing it, so a sync inherited from a template — the one thing that
+        // check exists to catch — reaches a source comparison that can report Fresh.
+        DecisionTable dt = joinedTable(Datetime.newInstance(2026, 9, 1, 0, 0, 0));
+
+        RLM_DecisionTableManagerController.DecisionTableInfo fresh =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        fresh.staleness = 'Fresh';
+        fresh.stalenessReason = 'The last full sync is later than the newest visible change.';
+        RLM_DecisionTableManagerController.withdrawFreshWhenOrgAgeUnknown(fresh, null);
+        Assert.areEqual('Not comparable', fresh.staleness,
+            'Fresh cannot stand when the check that catches an inherited sync never ran: ' +
+            fresh.stalenessReason);
+        Assert.isTrue(fresh.stalenessReason.contains('creation date could not be read'),
+            'And the reason must name the gap so someone can close it: ' + fresh.stalenessReason);
+
+        // ⚠ Stale is NOT withdrawn. A sync predating the org could only have made it
+        // more stale, so discarding a correct Stale to express doubt about Fresh would
+        // trade a useful signal for nothing.
+        RLM_DecisionTableManagerController.DecisionTableInfo stale =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        stale.staleness = 'Stale';
+        stale.stalenessReason = 'Contact was changed after the last full sync.';
+        RLM_DecisionTableManagerController.withdrawFreshWhenOrgAgeUnknown(stale, null);
+        Assert.areEqual('Stale', stale.staleness, 'Stale survives an unknown org age.');
+
+        // The control: with the org date KNOWN, Fresh is untouched — so the withdrawal
+        // is scoped to the missing date and not to Fresh generally.
+        RLM_DecisionTableManagerController.DecisionTableInfo known =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        known.staleness = 'Fresh';
+        known.stalenessReason = 'The last full sync is later than the newest visible change.';
+        RLM_DecisionTableManagerController.withdrawFreshWhenOrgAgeUnknown(
+            known, Datetime.newInstance(2026, 1, 1, 0, 0, 0));
+        Assert.areEqual('Fresh', known.staleness,
+            'A readable org date leaves Fresh alone: ' + known.stalenessReason);
+    }
+
+    @isTest
     static void everyHopOfAColumnPathCountsAsADependency() {
         // ⚠ The live bug this pins: DomainObject names only the object owning the FINAL
         // field, so a two-hop column path leaves the INTERMEDIATE object unlisted.
@@ -506,6 +547,39 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             missingTerminal.objects);
         Assert.areEqual(new Set<String>{ 'AccountId.NoSuchField' }, missingTerminal.unresolvedPaths,
             'It is recorded as a gap instead, so the verdict declines an all-clear.');
+
+        // ⚠ The SAME-OBJECT arm of that if, which the missing-terminal fix did not
+        // reach: a direct path naming a field the primary does not have. No dots, so
+        // resolvePath is never called; sourceFields.get returns null and
+        // movesWithoutARecordEdit answers false — "nothing moves without an edit" —
+        // for a field it never saw, and the column was silently treated as fully
+        // covered by the primary probe.
+        RLM_DecisionTableManagerController.Contributors noSuchOwnField =
+            new RLM_DecisionTableManagerController.Contributors();
+        RLM_DecisionTableManagerController.recordContributor(
+            noSuchOwnField, 'Contact', null, 'NoSuchFieldOnContact', Schema.getGlobalDescribe());
+        Assert.areEqual(1, noSuchOwnField.unresolvedPaths.size(),
+            'A direct path naming no real field must be recorded, not passed over: ' +
+            noSuchOwnField.unresolvedPaths);
+
+        // A blank FieldPath reaches the same lookup as get('') and must not pass either.
+        RLM_DecisionTableManagerController.Contributors blankPath =
+            new RLM_DecisionTableManagerController.Contributors();
+        RLM_DecisionTableManagerController.recordContributor(
+            blankPath, 'Contact', null, '', Schema.getGlobalDescribe());
+        Assert.areEqual(1, blankPath.unresolvedPaths.size(),
+            'A blank field path is a gap, not a covered column: ' + blankPath.unresolvedPaths);
+
+        // The control: a REAL direct field on the primary is still silently covered by
+        // the primary probe, so the guard is scoped to absent fields rather than to
+        // same-object columns generally.
+        RLM_DecisionTableManagerController.Contributors realOwnField =
+            new RLM_DecisionTableManagerController.Contributors();
+        RLM_DecisionTableManagerController.recordContributor(
+            realOwnField, 'Contact', null, 'LastName', Schema.getGlobalDescribe());
+        Assert.isTrue(realOwnField.unresolvedPaths.isEmpty(),
+            'A real own-object field needs no gap — the primary probe covers it: ' +
+            realOwnField.unresolvedPaths);
     }
 
     @isTest

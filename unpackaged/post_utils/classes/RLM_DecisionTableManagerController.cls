@@ -378,6 +378,7 @@ public with sharing class RLM_DecisionTableManagerController {
                 info.stalenessReason = 'Decision table has no source object.';
             } else {
                 applySourceVerdict(info, dt, planByTable.get(dt.Id), probeResults);
+                withdrawFreshWhenOrgAgeUnknown(info, orgCreated);
             }
             results.add(info);
         }
@@ -478,6 +479,34 @@ public with sharing class RLM_DecisionTableManagerController {
      * post-spin readiness check is to say out loud that these tables need refreshing.
      */
     @TestVisible
+    /**
+     * Withdraw FRESH when the spin check could not run.
+     *
+     * ⚠ neverBuiltInThisOrgReason needs the org's creation date, and orgCreatedDate()
+     * can come back null — its Organization read is caught, not propagated. A null
+     * there SKIPS the comparison rather than failing it, so a sync inherited from a
+     * template, which is the one thing that check exists to catch, sails through to a
+     * source comparison that can report Fresh. The timestamp is real; it is just not
+     * from here.
+     *
+     * Only FRESH is withdrawn, and that is deliberate — it mirrors how an unread
+     * contributor is handled. Stale still stands, because a sync predating the org
+     * could only have made it MORE stale, and discarding a correct Stale to express
+     * doubt about Fresh would trade a useful signal for nothing.
+     */
+    @TestVisible
+    private static void withdrawFreshWhenOrgAgeUnknown(DecisionTableInfo info, Datetime orgCreated) {
+        if (orgCreated != null || info.staleness != STALENESS_FRESH) {
+            return;
+        }
+        info.staleness = STALENESS_UNCOMPUTED;
+        info.stalenessReason = 'Nothing visible has changed since the last sync, but this ' +
+            'org\'s creation date could not be read — so a sync inherited from a template ' +
+            'cannot be told apart from one that ran here, and that is exactly the case that ' +
+            'reads fresh while the table holds rows built somewhere else. Grant read on ' +
+            'Organization, or compare by hand.';
+    }
+
     private static String neverBuiltInThisOrgReason(Datetime lastSyncDate, Datetime orgCreated) {
         if (lastSyncDate == null) {
             return 'Never fully refreshed in this org.';
@@ -860,7 +889,22 @@ public with sharing class RLM_DecisionTableManagerController {
             }
             // A same-object column: the primary probe already covers it, unless the
             // field's own value can move without the record being edited.
-            if (movesWithoutARecordEdit(primary, sourceFields.get(path.toLowerCase()))) {
+            //
+            // ⚠ The field has to EXIST before that question means anything. This is the
+            // same hole the dotted branch below had until resolvePath started failing on
+            // a missing terminal — the other arm of this very if, left behind when that
+            // was fixed. movesWithoutARecordEdit(_, null) answers false, "nothing moves
+            // without an edit", which is the safe-sounding answer for a field it never
+            // saw; a column naming a field the primary does not have was therefore
+            // treated as fully covered by the primary probe and could carry the table to
+            // Fresh. A blank FieldPath lands here too, via sourceFields.get('').
+            SObjectField ownField = sourceFields.get(path.toLowerCase());
+            if (ownField == null) {
+                found.unresolvedPaths.add((String.isBlank(path) ? '(no field path)' : path) +
+                    ' (names no field on ' + primary + ')');
+                return;
+            }
+            if (movesWithoutARecordEdit(primary, ownField)) {
                 found.unresolvedPaths.add(path + ' (' + UNWATCHABLE_FIELD + ')');
             }
             return;
