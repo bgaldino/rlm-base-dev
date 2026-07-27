@@ -32,8 +32,31 @@
    worth less than one that says so.
 6. **One artifact per reviewer per round**, named with BOTH the round and the model —
    distinct reports must never overwrite each other (see *Artifacts* below).
-7. **Read-only.** Say it explicitly: no pushing, no deploying, no file edits, no org
-   mutations. A reviewer that "helpfully" fixes things costs you the diff.
+7. **Read-only — but EXEMPT the report, explicitly.** Scope the prohibition to the
+   *reviewed code repository*, then name the one write you require. A blanket "no file
+   edits" is read literally by a well-behaved reviewer: on the round this rule came from,
+   Codex produced a complete review and then **refused to write the artifact**, because
+   nothing told it `.agents/` was a separate private repo rather than part of the code
+   under review. Its own words: *"The ambiguity comes from both files saying 'do not
+   modify files' without exempting the report."* Copy the block below verbatim into every
+   briefing, substituting the branch, round and model placeholders:
+
+   ```
+   **Code repository is read-only.** Do not modify any source, configuration,
+   documentation, or test files. Do not push, deploy, commit, stage changes, or mutate an
+   org.
+
+   **Required report exception:** write your finished review report to:
+
+   `.agents/artifacts/code-reviews/<branch>/code-review-round<N>-<model>.md`
+
+   The `.agents/` directory is a nested private artifact repository. Creating your own
+   report there is required and is the only permitted filesystem write. Do not edit the
+   briefing or overwrite another reviewer's report.
+   ```
+
+   ⚠ Both halves matter. Without the first, a reviewer "helpfully" fixes things and costs
+   you the diff. Without the second, you pay for a review you never receive as a file.
 
 ## DO NOT
 
@@ -62,7 +85,7 @@
 | Severity framing in the feature's terms | Gets the important finding first |
 | Skills to follow (`audit-review`, `REVIEW.md`, `AGENTS.md`) | Repo conventions, verification discipline |
 | Output path **including the model name** | Distinct reports survive |
-| "Read-only" | Protects the diff |
+| "Read-only" scoped to the **code repo**, plus the explicit report-write exception | Protects the diff *and* still gets you the artifact — a blanket prohibition loses the report (rule 7) |
 
 ## Artifacts
 
