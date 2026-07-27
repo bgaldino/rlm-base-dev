@@ -7,6 +7,7 @@ from extracted/maaron-billinglwc/, applying RLM namespace prefixes throughout.
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -168,6 +169,37 @@ for old_name, new_name in APEX_MAP.items():
             # meta.xml: just apply renames (class name doesn't appear here typically,
             # but apply anyway for safety)
             read_write(src_file, dst_file, transform=apply_all_renames)
+
+
+# ── 2b. Format the generated Apex ────────────────────────────────────────────
+# This repo enforces Prettier on *.cls (.prettierrc pins 4-space / 120-col for
+# Apex; `npm run prettier:verify:apex` is the check). SRC lives outside the repo
+# and is unformatted, so format what we just wrote — otherwise every regeneration
+# silently reintroduces a gate failure in the classes this script owns.
+# Only the APEX_MAP outputs are touched; the hand-authored classes alongside them
+# in post_billing_ui/classes/ are not this script's to rewrite.
+
+print("\n=== FORMAT GENERATED APEX ===")
+written_cls = [p for p in (cls_dst / f"{new}.cls" for new in APEX_MAP.values()) if p.exists()]
+
+if not written_cls:
+    print("  (no Apex classes were written — nothing to format)")
+else:
+    try:
+        proc = subprocess.run(
+            ["npx", "--no-install", "prettier", "--write", *(str(p) for p in written_cls)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode == 0:
+            print(f"  formatted {len(written_cls)} .cls file(s) with Prettier")
+        else:
+            detail = (proc.stderr or proc.stdout).strip().splitlines()
+            print(f"  WARN  prettier exited {proc.returncode}: {detail[-1] if detail else '(no output)'}")
+            print("        run `npm run prettier:apex` before committing.")
+    except FileNotFoundError:
+        print("  WARN  npx not found — run `npm run prettier:apex` before committing.")
 
 
 # ── 3. Static resources ──────────────────────────────────────────────────────
