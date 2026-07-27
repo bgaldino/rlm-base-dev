@@ -40,6 +40,35 @@
       — loadLookupTypes swallows the failure and the Lookup Type row is omitted
       from the details pane rather than showing a wrong value.
     -->
+    <!--
+      No RunFlow, and no flowAccesses, though refreshTables does start
+      RLM_Refresh_Decision_Tables_Bulk with Flow.Interview.start(). Raised in
+      review and deliberately declined — the reasoning, so it is not re-raised:
+
+      - The bridge is processType AutoLaunchedFlow, started server-side from
+        Apex. The flow-access check (RunFlow, or per-flow flowAccesses) gates
+        flows a USER launches — by URL, a lightning-flow component, a quick
+        action, a flow button. An autolaunched flow invoked from Apex runs in
+        system context and is not gated that way.
+      - The precedent that looks like a counter-example is not one.
+        RLM_BillingUI grants RunFlow for RLM_Generate_Statement_of_Account,
+        which is processType Flow — a SCREEN flow a user launches, where the
+        grant is exactly right. Different mechanism, not a parallel.
+      - RunFlow is org-wide "run ANY active flow". Granting that to a
+        least-privilege set built to refresh a decision table is the kind of
+        over-grant this file already refuses above.
+      - flowAccesses for the single flow was considered as cheap insurance and
+        rejected on deploy risk: this org silently DROPS permissions it does not
+        model (see the DecisionTable note above), and a member that fails to
+        deploy takes the whole permission set with it — a worse failure than the
+        one it guards against.
+
+      ⚠ NOT verified live as the salesrep persona — it needs a personas org this
+      project does not have (todo 78 covers it). If it turns out to be needed,
+      the symptom is contained and legible rather than silent: refreshTables
+      wraps flow.start() in try/catch and surfaces "Refresh could not be
+      started: <message>" in the component.
+    -->
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Decision Table Manager</label>
 </PermissionSet>
