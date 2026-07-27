@@ -392,6 +392,15 @@ def cmd_create(args):
     cv_id = cv_resp.json()["id"]
     print(f"  Uploaded to library: ContentVersion {cv_id}")
 
+    cv_records = _sf_query(
+        f"SELECT ContentDocumentId FROM ContentVersion WHERE Id = '{cv_id}'", args.org
+    )
+    if not cv_records:
+        print("ERROR: Could not resolve ContentDocumentId for uploaded ContentVersion",
+              file=sys.stderr)
+        sys.exit(1)
+    content_doc_id = cv_records[0]["ContentDocumentId"]
+
     dt_body = {
         "Name": args.name,
         "Type": "MicrosoftWord",
@@ -419,6 +428,26 @@ def cmd_create(args):
         sys.exit(1)
     dt_id = dt_resp.json()["id"]
     print(f"  Created DocumentTemplate: {dt_id}")
+
+    junction_resp = requests.post(
+        f"{instance_url}/services/data/v67.0/sobjects/DocumentTemplateContentDoc",
+        headers=headers,
+        json={
+            "Name": f"{dt_id[:15]}_{content_doc_id[:15]}",
+            "DocumentTemplateId": dt_id,
+            "ContentDocumentId": content_doc_id,
+            "FileStageType": "Original",
+        },
+    )
+    if junction_resp.status_code != 201:
+        print(f"ERROR: DocumentTemplateContentDoc link failed ({junction_resp.status_code}): "
+              f"{junction_resp.text}\n"
+              f"  The DocumentTemplate was created but has NO linked file — the Document "
+              f"Preview panel will show 'No file uploaded yet' and DGP generation will fail "
+              f"with 'You must specify templateContentVersionId for your Request'.",
+              file=sys.stderr)
+        sys.exit(1)
+    print(f"  Linked binary via DocumentTemplateContentDoc: {junction_resp.json()['id']}")
 
     if args.activate:
         print(f"  Activating...")

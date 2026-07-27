@@ -221,7 +221,7 @@ def poll_dgp(dgp_id, org, timeout=120):
 
         if status in ("Completed", "Success"):
             return dgp
-        elif status in ("Failed", "Error"):
+        elif status in ("Failed", "Error", "Failure"):
             return dgp
 
         time.sleep(3)

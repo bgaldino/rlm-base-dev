@@ -144,6 +144,18 @@ commands when disambiguation is needed.
   `"keepIntermediate": true` in `RequestText`.
 - `RequestText` must include `templateContentVersionId` (the 068 ID of the
   template binary). Without it, DGP returns `INVALID_INPUT`.
+- **New templates need a `DocumentTemplateContentDoc` junction record**, not
+  `ContentDocumentLink`. This is the actual DocumentTemplate↔binary linkage
+  (fields: `DocumentTemplateId`, `ContentDocumentId`, `Name` [required,
+  `{templateId:15}_{contentDocId:15}` convention], `FileStageType=Original`).
+  `docgen_template_manage.py create` creates this automatically (fixed
+  2026-07-27) — if you ever create a DocumentTemplate + ContentVersion by hand
+  (Apex, raw REST, a different script) and skip this junction, the UI shows
+  "No file uploaded yet" and DGP fails with `"Could not generate document: You
+  must specify templateContentVersionId for your Request"` even though
+  `RequestText` visibly contains that field — Salesforce's internal DGP
+  processing resolves the binary via the junction, not the literal
+  `templateContentVersionId` alone.
 
 ### Context Service DGP Contract
 

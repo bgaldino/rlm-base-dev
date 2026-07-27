@@ -7,7 +7,7 @@
     <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
-    <name>RLMQBContractTransform</name>
+    <name>RLMContractPricingTransform</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
     <type>Transform</type>
 </OmniDataTransform>
