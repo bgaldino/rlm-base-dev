@@ -575,8 +575,23 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     problems: list[str] = []
 
     def exists(rel: str) -> bool:
-        # Braces mark a template ({release}), which cannot be resolved here.
-        return "{" in rel or (root / rel).exists()
+        # ⚠ A template ({release}) cannot be resolved to ONE path, but that is not a
+        # reason to accept it unchecked — and it used to be: `"{" in rel or ...`
+        # short-circuited to True, so `docs/enablement/{release}/never-existed.md`
+        # passed and the audit still printed "all paths resolve". Unfalsifiable is
+        # exactly the defect this function's own docstring was written about, one
+        # level deeper: a check that cannot fail is not a check.
+        #
+        # A template cannot be resolved, but it CAN be falsified: expand each
+        # placeholder to a glob and require at least one real match. That still
+        # catches a renamed or deleted filename, which is the drift that actually
+        # happens; it deliberately does not verify every release has one.
+        if "{" in rel:
+            pattern = re.sub(r"\{[^}]*\}", "*", rel)
+            if pattern.startswith(("/", "~")):  # Path.glob rejects absolute patterns
+                return False
+            return any(root.glob(pattern.rstrip("/")))
+        return (root / rel).exists()
 
     declared = {s.get("id") for s in section.get("skills", []) or []}
     for entry in section.get("skills", []) or []:

@@ -206,6 +206,21 @@
     color: #5c5c5c;
 }
 
+/* ⚠ The help icons carry the caveats a native title tooltip never reaches a
+   keyboard or screen-reader user with — visibility scope, the tie rule, what a
+   zero row count does and does not prove. They sit inside the label because
+   .dtm-stat and .dtm-field are flex columns, where a sibling would take a whole
+   row. Nudged to sit on the label's baseline and inherit its weight so adding
+   them did not change the panel's density: the detail panel must not scroll. */
+.dtm-stat__label lightning-helptext,
+.dtm-field__label lightning-helptext,
+.dtm-callout__title lightning-helptext {
+    display: inline-block;
+    vertical-align: text-bottom;
+    margin-left: 0.25rem;
+    line-height: 1;
+}
+
 .dtm-stat__value {
     font-size: 1.125rem;
     font-weight: 600;

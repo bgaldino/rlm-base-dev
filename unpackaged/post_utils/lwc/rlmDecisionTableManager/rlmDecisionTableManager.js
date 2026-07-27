@@ -734,7 +734,14 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     handleStopPolling() {
         this.stopPolling()
-        this.toast('Stopped watching', 'The refresh is still running in the org. Reload to see its result.', 'info')
+        // Same over-claim as the poll timeout, for the same reason: stopping the watch
+        // establishes nothing about the refresh. It may already have finished, or
+        // failed, between the last poll and this click.
+        this.toast(
+            'Stopped watching',
+            'Any refresh already queued is unaffected by this. Reload to see the current state.',
+            'info'
+        )
     }
 
     // ---- refresh + poll ------------------------------------------------------
@@ -929,12 +936,22 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (this._pollAttempts >= MAX_POLL_ATTEMPTS) {
                 this.stopPolling()
                 // Timing out is reported, never silently swallowed.
+                //
+                // ⚠ A timeout proves only that THIS polling session could not attribute
+                // a terminal result — never that the refresh is still running. A table
+                // retried while already Failed can fail again before the first poll,
+                // leaving timestamps and status unchanged, so `started` stays false and
+                // it lands in stillRunning having already finished. Saying "the refresh
+                // continues in the org" there states an outcome nothing established —
+                // the same over-claim as a verdict that outruns its evidence. Report
+                // what is true (watching stopped, these were not confirmed) and send
+                // the user to the authoritative source.
                 const alsoFailed = failed.length > 0 ? ` ${failed.length} failed: ${failed.join(', ')}.` : ''
                 this.toast(
-                    'Still refreshing',
+                    'Stopped watching',
                     `Stopped watching after ${MAX_POLL_ATTEMPTS} checks. ` +
-                        `${stillRunning.length} table(s) were not confirmed finished: ${stillRunning.join(', ')}.` +
-                        `${alsoFailed} The refresh continues in the org — reload to see the result.`,
+                        `${stillRunning.length} table(s) could not be confirmed finished: ${stillRunning.join(', ')}.` +
+                        `${alsoFailed} Their current state is unknown from here — reload to see it.`,
                     'warning',
                     'sticky'
                 )

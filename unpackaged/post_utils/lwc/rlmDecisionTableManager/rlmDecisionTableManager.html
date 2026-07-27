@@ -37,11 +37,21 @@
                 <template for:each={summaryTiles} for:item="tile">
                     <div key={tile.key}
                          class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4 slds-p-bottom_x-small">
+                        <!-- ⚠ The help text is inside the button, not only in title=.
+                             A native title tooltip appears on mouse hover only, so a
+                             keyboard or screen-reader user never receives it — and what
+                             these particular tooltips carry is the visibility scope and
+                             the tie rule, i.e. the qualifications that stop a verdict
+                             being over-read. slds-assistive-text keeps it out of the
+                             visual layout while making it part of the button's
+                             accessible name; no id plumbing, which aria-describedby
+                             would need and LWC mangles inside a for:each. -->
                         <button type="button" class={tile.cssClass} data-verdict={tile.key}
                                 aria-pressed={tile.ariaPressed}
                                 onclick={handleTileFilter} title={tile.help}>
                             <span class="dtm-tile__count">{tile.count}</span>
                             <span class="dtm-tile__label">{tile.label}</span>
+                            <span class="slds-assistive-text">{tile.help}</span>
                         </button>
                     </div>
                 </template>
@@ -197,7 +207,9 @@
                     <!-- The three numbers the verdict is computed from. -->
                     <div class="dtm-stats">
                         <div class="dtm-stat" title={sourceRowCountExplanation}>
-                            <span class="dtm-stat__label">Source Rows</span>
+                            <span class="dtm-stat__label">Source Rows
+                                <lightning-helptext content={sourceRowCountExplanation}></lightning-helptext>
+                            </span>
                             <template if:true={hasSourceRowCount}>
                                 <span class="dtm-stat__value">
                                     <lightning-formatted-number
@@ -211,7 +223,9 @@
                         </div>
 
                         <div class="dtm-stat" title={incrementalSyncNote}>
-                            <span class="dtm-stat__label">Last Full Sync</span>
+                            <span class="dtm-stat__label">Last Full Sync
+                                <lightning-helptext content={incrementalSyncNote}></lightning-helptext>
+                            </span>
                             <template if:true={detailRow.lastSyncDate}>
                                 <span class="dtm-stat__value dtm-stat__value_date">
                                     <lightning-formatted-date-time value={detailRow.lastSyncDate}
@@ -254,13 +268,17 @@
                     <h3 class="dtm-section-title">Definition</h3>
                     <div class="dtm-grid">
                         <div class="dtm-field" title={dataSourceExplanation}>
-                            <span class="dtm-field__label">Source</span>
+                            <span class="dtm-field__label">Source
+                                <lightning-helptext content={dataSourceExplanation}></lightning-helptext>
+                            </span>
                             <span class="dtm-field__value">{dataSourceSummary}</span>
                         </div>
 
                         <div class="dtm-field"
                              title="Refreshing by usage type updates every table that shares this value.">
-                            <span class="dtm-field__label">Usage Type</span>
+                            <span class="dtm-field__label">Usage Type
+                                <lightning-helptext content="Refreshing by usage type updates every table that shares this value."></lightning-helptext>
+                            </span>
                             <span class="dtm-field__value">
                                 <lightning-icon icon-name={detailRow.usageIcon} size="xx-small"
                                     class="slds-current-color dtm-field__icon"
@@ -274,7 +292,9 @@
                                  title="This table pulls columns across a lookup from these objects, so a
                                         change in any of them can make it stale even though no row of its
                                         own source object was touched. They are checked too.">
-                                <span class="dtm-field__label">Also Reads</span>
+                                <span class="dtm-field__label">Also Reads
+                                    <lightning-helptext content="This table pulls columns across a lookup from these objects, so a change in any of them can make it stale even though no row of its own source object was touched. They are checked too."></lightning-helptext>
+                                </span>
                                 <span class="dtm-field__value">{contributingObjectsLabel}</span>
                             </div>
                         </template>
@@ -282,7 +302,9 @@
                         <template if:true={detailRow.lookupType}>
                             <div class="dtm-field"
                                  title="Decision matrices share this storage but are not listed here.">
-                                <span class="dtm-field__label">Lookup Type</span>
+                                <span class="dtm-field__label">Lookup Type
+                                    <lightning-helptext content="Decision matrices share this storage but are not listed here."></lightning-helptext>
+                                </span>
                                 <span class="dtm-field__value">{detailRow.lookupType}</span>
                             </div>
                         </template>
@@ -303,7 +325,9 @@
                         </div>
 
                         <div class="dtm-field" title={incrementalTooltip}>
-                            <span class="dtm-field__label">Incremental Sync</span>
+                            <span class="dtm-field__label">Incremental Sync
+                                <lightning-helptext content={incrementalTooltip}></lightning-helptext>
+                            </span>
                             <span class="dtm-field__value">{detailRow.incrementalLabel}</span>
                         </div>
 
@@ -325,7 +349,9 @@
                     <template if:true={hasDetailCriteria}>
                         <h3 class="dtm-section-title">Source Criteria</h3>
                         <div class={detailCriteriaClass} title={criteriaExplanation}>
-                            <p class="dtm-callout__title">{criteriaHeadline}</p>
+                            <p class="dtm-callout__title">{criteriaHeadline}
+                                <lightning-helptext content={criteriaExplanation}></lightning-helptext>
+                            </p>
                             <ul class="dtm-criteria">
                                 <template for:each={detailCriteriaItems} for:item="criterion">
                                     <li key={criterion.key}>
