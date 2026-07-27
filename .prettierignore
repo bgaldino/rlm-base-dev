@@ -10,6 +10,10 @@ unpackaged/post_ux/
 # Build harness runtime artifacts
 .harness/
 
+# SF CLI local Apex stub library — not our source. Prettier skips dot-dirs during
+# glob expansion, but pin it so a different glob or --no-ignore-path can't sweep it in.
+.sfdx/
+
 # Minified / generated assets
 **/*.min.js
 **/*.min.css
