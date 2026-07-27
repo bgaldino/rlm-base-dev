@@ -55,6 +55,11 @@ run_labels = []
 # the replacement. Label and key now sit together and move together.
 TERMINAL_CHECK = "the suite ran to completion"
 
+# ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
+# terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
+# end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
+EXPECTED_CHECKS = 87
+
 
 def check(label, condition, detail=""):
     run_labels.append(label)
@@ -91,29 +96,50 @@ def _print_summary():
     if _summary_done:
         return
     _summary_done = True
-    print("\n" + "=" * 60)
-    if TERMINAL_CHECK not in run_labels:
-        print(
-            f"ABORTED: the run stopped before the final check — {len(run_labels)} check(s) "
-            "registered. Everything after that point never ran, so a partial run proves "
-            "nothing. Fix the abort; do not delete this guard."
-        )
-        # ⚠ FORCE a nonzero status from here, because this branch can be reached on a run that
-        # would otherwise exit 0. The guards catch Exception, and SystemExit is NOT an Exception
-        # — so a driver calling sys.exit(0) escaped every guard, skipped the footer that does the
-        # exiting, and printed this accurate ABORTED warning while the process reported SUCCESS.
-        # Measured: 2 of 86 checks ran, exit 0. An automated caller would have accepted it.
-        #
-        # ⚠ os._exit, not sys.exit: sys.exit inside an atexit handler does NOT change the status
-        # — measured, it still exits 0. os._exit does, which is why the flush above it is
-        # mandatory (it bypasses buffering).
+    aborted = TERMINAL_CHECK not in run_labels
+    # ⚠ Decided BEFORE any I/O, and forced in a `finally`. Every diagnostic below is
+    # best-effort; the status change is not. An exception from `print` or from either flush
+    # used to skip the one operation that turns an escaped SystemExit(0) into a failure —
+    # measured with a stderr wrapper whose flush() raises: ABORTED printed, exit 0.
+    try:
+        print("\n" + "=" * 60)
+        if run_labels and run_labels[-1] != TERMINAL_CHECK and not aborted:
+            print(
+                f"SENTINEL NOT LAST: {run_labels[-1]!r} registered after it — the sentinel's "
+                "guarantee is void, because it can no longer prove the file ran to the end."
+            )
+        if aborted:
+            print(
+                f"ABORTED: the run stopped before the final check — {len(run_labels)} check(s) "
+                "registered. Everything after that point never ran, so a partial run proves "
+                "nothing. Fix the abort; do not delete this guard."
+            )
+        elif failures:
+            print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
+        elif len(run_labels) < EXPECTED_CHECKS:
+            # ⚠ COMPLETION and COMPLETENESS are different questions, and this file has now got
+            # each one wrong once. The arithmetic floor answered "did everything run" and was
+            # replaced by a sentinel answering "did the run reach the end" — framed as retiring
+            # a hand-kept integer, but it also dropped a capability nothing replaced. Measured:
+            # emptying the STATUS_CASES loop dropped 46 of 87 checks and the suite reported
+            # "All 41 decision-table task checks passed", exit 0. Both instruments, ordered:
+            # the abort branch owns its message, so a stale integer here can only ever produce
+            # a loud false INCOMPLETE — never a false abort, and never a silent pass.
+            print(
+                f"INCOMPLETE: {len(run_labels)} of {EXPECTED_CHECKS} checks registered. The run "
+                "reached the end but did not run everything — a check was removed, or a loop's "
+                "data went empty. Restore it; do not lower this number."
+            )
+        else:
+            print(f"All {len(run_labels)} decision-table task checks passed.")
         sys.stdout.flush()
         sys.stderr.flush()
-        os._exit(1)
-    elif failures:
-        print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
-    else:
-        print(f"All {len(run_labels)} decision-table task checks passed.")
+    finally:
+        # ⚠ os._exit, not sys.exit: sys.exit inside an atexit handler does NOT change the
+        # process status — measured, it still exits 0. os._exit does, which is what makes the
+        # flushes above mandatory (it bypasses Python-level buffering; verified through a pipe).
+        if aborted:
+            os._exit(1)
 
 
 atexit.register(_print_summary)
@@ -798,25 +824,37 @@ KNOWN_UNDECLARED = {
 # than names, because a bare `tso` alongside a valid `...project__custom__tso` would otherwise be
 # excused by sharing a segment name.
 STRING_LITERAL = re.compile(r"'[^']*'|\"[^\"]*\"")
-IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
+# ⚠ Unicode-aware start class, not [A-Za-z_]. Jinja accepts Unicode identifiers, so an
+# all-Unicode bare name matched neither the dotted-run scan nor an ASCII-only IDENTIFIER and
+# vanished from validation — measured: `when: коммерция` gave 87/87 and exit 0 while CCI's own
+# Jinja environment resolved it to falsy None and would silently skip the step. `[^\W\d]` is
+# "word character that is not a digit", i.e. any Unicode letter or underscore; `\w` is already
+# Unicode-aware in Python 3. Fifth reachable form of the same false negative.
+IDENTIFIER = re.compile(r"[^\W\d]\w*")
 JINJA_RESERVED = {"and", "or", "not", "in", "is", "if", "else", "true", "false", "none"}
 
 bad_refs = {}
 seen_undeclared = set()
 for flow_name, flow in (cci.get("flows") or {}).items():
     for key, step in ((flow or {}).get("steps") or {}).items():
-        raw_expr = (step or {}).get("when") or ""
-        if not raw_expr:
-            continue
-        # ⚠ A non-string when:. YAML parses bare `when: true` as a bool, which is truthy, so it
-        # passes the emptiness guard and then reaches a regex that needs a string. CCI compiles
-        # when: with jinja2.compile_expression, which also needs a string — so this is a repo
-        # defect in its own right, and flagging it says so where crashing the scanner would not.
-        # (`when: false` is falsy and skipped, which is why only one half of the pair shows up.)
-        if not isinstance(raw_expr, str):
+        # ⚠ Validate the RAW value BEFORE normalising emptiness. Writing
+        # `.get("when") or ""` first maps every FALSY non-string to "" and the next line skips
+        # it, so the type guard below was unreachable for exactly the value that matters.
+        # Measured: `when: false` in a real flow step produced 87/87, exit 0.
+        #
+        # ⚠ And `when: false` is not a harmless spelling. CumulusCI's runner tests
+        # `if step.when:` before compiling (flowrunner.py) — so a bool False is treated as
+        # NO GUARD AT ALL and the step runs unconditionally, which is the exact opposite of
+        # what someone writing `when: false` intends. That makes it a live repo defect, not a
+        # scanner inconvenience, so it is flagged rather than skipped.
+        raw_expr = (step or {}).get("when")
+        if raw_expr is not None and not isinstance(raw_expr, str):
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"{raw_expr!r} (when: is not a string; CCI compiles it as a Jinja expression)"
+                f"{raw_expr!r} (when: is not a string. CCI evaluates `if step.when:` before "
+                "compiling, so a bool runs this step UNGUARDED rather than gating it)"
             )
+            continue
+        if not raw_expr:
             continue
         # Blank out string literals so a quoted comparand ("Developer Edition") is not read as
         # an unresolved name. Substituting spaces keeps every other offset intact.
@@ -932,5 +970,10 @@ check("description mentions tso", "tso" in desc.lower(), desc)
 check(TERMINAL_CHECK, True)
 
 _print_summary()
-if failures or TERMINAL_CHECK not in run_labels:
+if (
+    failures
+    or TERMINAL_CHECK not in run_labels          # did not reach the end
+    or len(run_labels) < EXPECTED_CHECKS         # reached the end without running everything
+    or run_labels[-1] != TERMINAL_CHECK          # something registered after the sentinel
+):
     sys.exit(1)
