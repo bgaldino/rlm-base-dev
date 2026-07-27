@@ -222,9 +222,12 @@ cci task run manage_decision_tables --operation list --status Active
 
 ## Integration with Other Tasks
 
-### Using with RLM_Refresh_Decision_Tables Flow
+### Refreshing without the UI
 
-The `manage_decision_tables` task provides similar functionality to the `RLM_Refresh_Decision_Tables` Screen Flow (which supports All / ByUsageType / Individual modes), but can be automated:
+Decision tables are refreshed interactively from the **Decision Table Manager** on the
+Home page, which also shows a freshness verdict per table. (It replaced the
+`RLM_Refresh_Decision_Tables` screen flow, which is gone.) The `manage_decision_tables`
+task does the same job non-interactively:
 
 ```bash
 # Instead of running the flow manually, use the task:
