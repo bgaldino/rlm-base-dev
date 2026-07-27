@@ -6,6 +6,15 @@
 # GitHub honours this file automatically in its blame view.
 #
 # Only pure-mechanical, no-behaviour-change commits belong here.
+#
+# NOTE: entries must be SHAs that exist on the branch this file ships on.
+# git tolerates an unresolvable entry here silently (unlike the singular
+# --ignore-rev flag, which is fatal), so a stale SHA does not break blame --
+# it just makes this file a no-op. If these commits are ever rewritten
+# (rebase, squash-merge), update the SHAs below in the same operation.
 
 # style(apex): apply Prettier to all 114 .cls/.trigger files [formatting only]
-72bf424ef2b819f093f259fca17f967776b990bc
+10da43508dc1d786b3039cdbdac36a37f984b5a3
+
+# style(apex): apply Prettier to all 37 .apex scripts [formatting only]
+46e198a61e16765b0aa9d47b2e2266998dca566d
