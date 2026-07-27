@@ -27,9 +27,18 @@ from datetime import datetime
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
+    from cumulusci.core.utils import process_bool_arg
+    from simple_salesforce import Salesforce
 except ImportError:
     BaseTask = object
     TaskOptionsError = Exception
+    Salesforce = None
+
+    def process_bool_arg(arg):
+        """Offline fallback so this module still imports without CumulusCI."""
+        if isinstance(arg, str):
+            return arg.strip().lower() in ("true", "1", "yes", "y", "on")
+        return bool(arg)
 
 
 def _as_name_list(value, option_name: str) -> List[str]:
@@ -72,6 +81,39 @@ class ManageDecisionTables(BaseTask):
     # CCI DEFAULT org instead of the one asked for (see issue #320 for the repo-wide
     # sweep — this task was one of the 102).
     salesforce_task = True
+
+    def _update_credentials(self):
+        """
+        Refresh the OAuth token before the task runs.
+
+        ⚠ `salesforce_task = True` buys the `--org` option and the missing-org guard —
+        it does NOT bring a token refresh. Only `BaseSalesforceTask` overrides
+        `BaseTask._update_credentials`, which is a bare `pass`. For a scratch org
+        `access_token` resolves through `sfdx_info` and is always fresh, which is why a
+        scratch run never shows this; for a keychain-connected non-scratch org the stored
+        token is used as-is and can be expired. This task hits the REST API directly, so
+        per `cci-orchestration/custom-task-authoring.md` it needs the refresh.
+        """
+        self.org_config.refresh_oauth_token(self.project_config.keychain)
+
+    def _pinned_salesforce_client(self):
+        """
+        A Salesforce client on the PROJECT's API version, not the org's newest.
+
+        `org_config.salesforce_client` builds itself with `latest_api_version`, which
+        GETs /services/data and takes the last entry — so it drifts upward the moment an
+        org is upgraded ahead of the project, and the two decision-table refresh paths
+        would call the same action on different versions. Falls back to the org's client
+        only if the project pin is missing.
+        """
+        api_version = self.project_config.project__package__api_version
+        if not api_version or Salesforce is None:
+            return self.org_config.salesforce_client
+        return Salesforce(
+            instance=self.org_config.instance_url.replace("https://", ""),
+            session_id=self.org_config.access_token,
+            version=api_version,
+        )
 
     task_options = {
         "operation": {
@@ -274,7 +316,11 @@ class ManageDecisionTables(BaseTask):
         else:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-        is_incremental = self.options.get("is_incremental", False)
+        # ⚠ process_bool_arg, not the raw option. CCI hands CLI options through as
+        # STRINGS, so `-o is_incremental false` arrives as "false" — truthy — and would
+        # silently select an incremental refresh while logging "full". YAML callers pass
+        # a real bool and are unaffected.
+        is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
         refresh_type = "incremental" if is_incremental else "full"
         
         self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type} refresh)...")
@@ -289,7 +335,12 @@ class ManageDecisionTables(BaseTask):
         # died with "'NoneType' object is not callable". This refresh path therefore
         # never ran successfully from the day it was written; the sibling operations
         # all use salesforce_client, which is why only refresh was affected.
-        sf = self.org_config.salesforce_client
+        #
+        # ⚠ salesforce_client pins itself to org_config.latest_api_version — the org's
+        # NEWEST version, not this project's. Rebuild it on the project's pinned version
+        # so both decision-table refresh paths call the same action on the same API, and
+        # so the call does not drift when an org upgrades ahead of the project.
+        sf = self._pinned_salesforce_client()
 
         success_count = 0
         fail_count = 0
@@ -297,11 +348,29 @@ class ManageDecisionTables(BaseTask):
         for developer_name in developer_names:
             try:
                 result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
-                
-                if result.get('isSuccess'):
+
+                # ⚠ isSuccess means the action was ACCEPTED, not that the table was
+                # rebuilt. refreshDecisionTable is asynchronous: it returns Status
+                # 'Queued' and the work completes later (DecisionTable.RefreshStatus
+                # cycles Initiated -> Completed). Reporting "successfully refreshed" off
+                # isSuccess alone is the stale-but-claims-otherwise failure this task
+                # exists to prevent, so the log says exactly what was established —
+                # queued — and a Status the action itself reports as Failed is counted
+                # as a failure rather than a success.
+                action_status = (result.get('outputValues') or {}).get('Status') or 'Unknown'
+                if result.get('isSuccess') and action_status.lower() != 'failed':
                     success_count += 1
-                    status = result.get('outputValues', {}).get('Status', 'Unknown')
-                    self.logger.info(f"✅ Successfully refreshed '{developer_name}' - Status: {status}")
+                    self.logger.info(
+                        f"Refresh queued for '{developer_name}' - Status: {action_status}. "
+                        "Completion is asynchronous; verify with check_decision_table_freshness "
+                        "or DecisionTable.RefreshStatus."
+                    )
+                elif result.get('isSuccess'):
+                    fail_count += 1
+                    self.logger.error(
+                        f"❌ Refresh of '{developer_name}' was accepted but reported "
+                        f"Status: {action_status}"
+                    )
                 else:
                     fail_count += 1
                     errors = result.get('errors', [])
@@ -316,7 +385,9 @@ class ManageDecisionTables(BaseTask):
         
         # Summary
         self.logger.info("")
-        self.logger.info(f"Refresh Summary: {success_count} succeeded, {fail_count} failed")
+        self.logger.info(
+            f"Refresh Summary: {success_count} queued, {fail_count} failed to queue"
+        )
         
         if fail_count > 0:
             raise TaskOptionsError(f"Failed to refresh {fail_count} decision table(s). Check logs for details.")

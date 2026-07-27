@@ -371,7 +371,7 @@ Decision table lists are defined in `cumulusci.yml` under `project.custom` as YA
 | `dt_asset_decision_tables` | Asset-specific rate and adjustment tables |
 | `dt_pricing_discovery_decision_tables` | Pricing discovery and derived pricing tables |
 | `dt_activation_decision_tables` | Tables activated during org prepare (RLM_ProductCategoryQualification, RLM_ProductQualification, RLM_CostBookEntries) |
-| `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true`) |
+| `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true` **or** `tso: true`) |
 
 The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_default_pricing (always) → refresh_dt_commerce (when `commerce: true` **or** `tso: true`) → refresh_dt_prm_pricing (when `prm` and `prm_pricing`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
 

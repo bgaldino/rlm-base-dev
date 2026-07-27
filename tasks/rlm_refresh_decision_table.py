@@ -1,6 +1,7 @@
 import requests
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.utils import process_bool_arg
 from abc import abstractmethod
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
@@ -14,6 +15,23 @@ class RefreshDecisionTable(SFDXBaseTask):
     # repo-wide sweep tracked in issue #320; this and ManageDecisionTables are
     # done, the rest of the 102 are not.
     salesforce_task = True
+
+    def _update_credentials(self):
+        """
+        Refresh the OAuth token before the task runs.
+
+        ⚠ The flag above buys `--org`, NOT a token refresh. `SFDXBaseTask` descends from
+        `Command`, which — unlike `SalesforceCommand` — never sets `salesforce_task`, and
+        so inherits `BaseTask._update_credentials`, a bare `pass`. This task builds its
+        own `Authorization: Bearer` header from `org_config.access_token`, and
+        `_make_request` returns None on any non-2xx, which `_refresh_decision_table` only
+        logs. So against a keychain-connected NON-scratch org an expired token would mean
+        every table goes unrefreshed while the flow step stays green — the exact
+        stale-but-reports-success failure this file is meant to prevent. Scratch orgs
+        resolve `access_token` through `sfdx_info` and are always fresh, which is why a
+        scratch run never surfaces it.
+        """
+        self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     # Task options are used to set up configuration settings for this particular task.
     task_options = {
@@ -62,9 +80,13 @@ class RefreshDecisionTable(SFDXBaseTask):
         if isinstance(self.options, list):
             raise TypeError("self.options is a list, but it should be a dictionary. This is likely a configuration issue.")
 
-        # Safely get developerNames and isIncremental
+        # Safely get developerNames and isIncremental.
+        # ⚠ process_bool_arg: CCI passes CLI options through as STRINGS, so
+        # `-o isIncremental false` arrives as "false" — truthy — and would send a
+        # non-boolean into a REST field documented as Boolean while logging the wrong
+        # refresh mode. YAML callers pass a real bool and are unaffected.
         developer_names = self.options.get("developerNames")
-        is_incremental = self.options.get("isIncremental", False)
+        is_incremental = process_bool_arg(self.options.get("isIncremental") or False)
 
         # Debug: Print the values of developer_names and is_incremental
         self.logger.info(f"developer_names: {developer_names}")

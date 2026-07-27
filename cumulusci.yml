@@ -489,7 +489,9 @@ project:
       - RLM_CostBookEntries
 
     dt_commerce_decision_tables: &dt_commerce_decision_tables
-      # Commerce decision tables (refresh when project__custom__commerce is true)
+      # Commerce decision tables (refresh when project__custom__commerce OR
+      # project__custom__tso is true — a TSO template ships these tables whether or
+      # not the Commerce feature is configured)
       # UsageType in org: DefaultPricing
       - Price_Book_Entry_Commerce_V2
       - Price_Book_Entry_For_Unit_Price_Commerce_V1
@@ -2955,7 +2957,7 @@ tasks:
 
   refresh_dt_commerce:
     group: Revenue Lifecycle Management
-    description: Refresh Commerce Decision Tables (when commerce flag is true)
+    description: "Refresh Commerce Decision Tables. Run by refresh_all_decision_tables when the commerce OR tso flag is true — a TSO template ships these tables regardless of the commerce flag, so a TSO build must refresh them or it inherits the template org's rows."
     class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
     options:
       developerNames: *dt_commerce_decision_tables
