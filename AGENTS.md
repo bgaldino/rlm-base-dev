@@ -59,6 +59,29 @@ postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
 
+## Before you push — the mechanical gate
+
+```bash
+python scripts/ai/pre_push_audit.py          # must exit 0; add --pr <n> on an open PR
+```
+
+Install it once per clone so it runs automatically:
+
+```bash
+scripts/bash/install-git-hooks.sh
+```
+
+It enforces the DO NOT list below (Tier B), the `.cursor/rules/*.mdc` rules (Tier C),
+part of the doc-consistency map (Tier D — knowingly partial, it prints its own
+coverage), the defect-class registry (Tier E), and it runs the pass/fail gates that
+already exist (Tier A). **Exit 0** clean · **1** a check failed · **2** a check *could
+not run*, or a review prompt needs `--ack <rule-id>` — 2 is louder than 1 on purpose,
+because an unknown result is worse than a known bad one.
+
+The rules below are stated in prose for humans, but prose is not what enforces them:
+this list was already required reading every session and was still missed. Where a
+guard is mechanically checkable it is a gate rule, and the gate is what fails.
+
 ## DO NOT — Safety Guards
 
 1. **DO NOT** edit files in `unpackaged/post_ux/` — edit `templates/` instead

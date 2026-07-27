@@ -1,0 +1,112 @@
+#!/bin/sh
+# Pre-push gate — todo 080 Deliverable 3.
+#
+# Runs scripts/ai/pre_push_audit.py and refuses the push if it does not pass.
+# PR #317 took nine automated-review rounds, and rounds 4-9 were almost entirely
+# unswept instances of classes already found earlier. The tooling to prevent that
+# existed and simply was not run. Prose asking people to run it did not hold, so
+# this runs it for them.
+#
+# INSTALL (one-time, per clone):  scripts/bash/install-git-hooks.sh
+# It sets core.hooksPath to the tracked .githooks/ directory, so updates to this
+# file arrive with a normal `git pull` and never need reinstalling.
+#
+# CHAINING. Setting core.hooksPath makes git ignore .git/hooks/ entirely, so any
+# hook already installed there — git-lfs installs its pre-push there via
+# `git lfs install` — would silently stop running. This chains to it explicitly,
+# forwarding the same stdin git gave us. Chaining, never replacing.
+#
+# BYPASS. `git push --no-verify` skips this, as it skips any hook. That is
+# deliberate and left alone: an escape hatch that shows up in shell history is
+# healthier than one hidden behind an env var, and a gate with no exit is a gate
+# people uninstall. Using it is a choice you are making on the record.
+
+set -u
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) || exit 0
+case "$GIT_DIR" in /*) ;; *) GIT_DIR="$REPO_ROOT/$GIT_DIR" ;; esac
+
+# A hook runs in a non-login shell with a minimal PATH, so Homebrew, pyenv shims
+# and pipx-installed CLIs are all missing unless we put them back. Without this
+# the gate cannot find node/npx and reports its own tooling as unavailable.
+PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.pyenv/shims:$PATH"
+export PATH
+
+# git feeds pre-push "<local ref> <local sha> <remote ref> <remote sha>" lines on
+# stdin. We must read it to decide whether this is a delete, AND hand the same
+# bytes to the chained hook, so buffer it rather than consuming it.
+STDIN_FILE=$(mktemp "${TMPDIR:-/tmp}/rlm-prepush.XXXXXX") || exit 1
+trap 'rm -f "$STDIN_FILE"' EXIT INT TERM
+cat > "$STDIN_FILE"
+
+# A branch deletion has an all-zero local sha and no content to audit.
+# If EVERY ref in this push is a delete, there is nothing for the gate to say.
+HAS_CONTENT=0
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "${local_sha:-}" ] && continue
+    case "$local_sha" in
+        *[!0]*) HAS_CONTENT=1 ;;
+    esac
+done < "$STDIN_FILE"
+
+run_chained_hook() {
+    # git-lfs and friends live here; core.hooksPath means git will not call them.
+    if [ -x "$GIT_DIR/hooks/pre-push" ]; then
+        "$GIT_DIR/hooks/pre-push" "$@" < "$STDIN_FILE" || return $?
+    fi
+    return 0
+}
+
+if [ "$HAS_CONTENT" -eq 0 ]; then
+    run_chained_hook "$@"
+    exit $?
+fi
+
+AUDIT="$REPO_ROOT/scripts/ai/pre_push_audit.py"
+if [ ! -f "$AUDIT" ]; then
+    # Older branch, or a worktree predating the gate. Not a reason to block.
+    run_chained_hook "$@"
+    exit $?
+fi
+
+# Any python will do: _gate_interpreter re-execs into one that qualifies
+# (PyYAML on >= 3.11). It will NOT build a venv here — that path requires a TTY
+# or RLM_GATE_BOOTSTRAP=1, precisely so a push never blocks on a silent pip
+# install. If nothing qualifies the gate exits 2 and prints the fix.
+PYTHON=""
+for candidate in "$REPO_ROOT/.venv/bin/python" python3 python; do
+    if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then
+        PYTHON="$candidate"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "pre-push: no python found, so the gate could not run." >&2
+    echo "  A check that did not run is not a pass — refusing the push." >&2
+    echo "  Fix: python -m venv .venv && pip install -r requirements-dev.txt" >&2
+    echo "  Or:  git push --no-verify   (deliberately skipping the gate)" >&2
+    exit 1
+fi
+
+echo "pre-push: running the mechanical gate (scripts/ai/pre_push_audit.py) ..."
+"$PYTHON" "$AUDIT"
+STATUS=$?
+
+if [ "$STATUS" -eq 0 ]; then
+    run_chained_hook "$@"
+    exit $?
+fi
+
+echo "" >&2
+if [ "$STATUS" -eq 2 ]; then
+    echo "pre-push BLOCKED: a check could not run, or a review prompt is" >&2
+    echo "  unacknowledged. Neither is a pass — see the output above." >&2
+    echo "  Review prompts are cleared with:  --ack <rule-id>" >&2
+else
+    echo "pre-push BLOCKED: the gate found failures (see above)." >&2
+fi
+echo "" >&2
+echo "  Fix them, or push deliberately with:  git push --no-verify" >&2
+exit "$STATUS"

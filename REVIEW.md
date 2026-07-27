@@ -143,6 +143,25 @@ Neither improves with more pushes. So:
 - Finish local verification *before* pushing, not between pushes.
 - Never push a lone typo or comment fix; fold it into the next batch.
 
+**"Verify locally" is now a command, not a judgement call:**
+
+```bash
+python scripts/ai/pre_push_audit.py --pr <n>
+```
+
+It must exit **0**. This exists because the judgement is what failed: PR #317 ran
+to **nine** rounds, and rounds 4–9 were almost entirely unswept instances of classes
+already found in rounds 1–3 — several of them earlier fixes left half delivered. Every
+one was a metered round spent on a defect that was knowable locally, and the tooling to
+catch it already existed and simply was not run. Asking people to remember did not
+work, so the gate fails instead: five tiers, exit **1** on a failure and **2** when a
+check *could not run* or a review prompt is unacknowledged, because an unknown result is
+worse than a known bad one.
+
+Install it once per clone (`scripts/bash/install-git-hooks.sh`) and it runs on every
+push. `git push --no-verify` still bypasses it — deliberately, since a gate with no exit
+is a gate people uninstall — but that is a choice on the record, not a default.
+
 **Keep diffs small.** Beyond roughly 10,000 changed lines, automated reviewers begin
 truncating or skipping. A PR that outgrows review is a PR that ships unreviewed.
 
