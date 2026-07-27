@@ -31,8 +31,10 @@ its lookups still reflect the data.
 
 ## DO NOT
 
-- **DO NOT** `insert`/`update`/`delete` a `DecisionTable` from Apex. It is a setup
-  object and DML on it is rejected at runtime. Use Setup, the Metadata API, or the REST
+- **DO NOT** `insert`/`update`/`delete` a `DecisionTable` from Apex. It is a setup object
+  and DML on it is rejected **at compile time**, not at runtime — `DML operation Update
+  not allowed on List<DecisionTable>`. There is no exception to catch and no runtime
+  fallback to write: the class will not deploy. Use Setup, the Metadata API, or the REST
   API.
 - **DO NOT** call the `refreshDecisionTable` action from Apex. It is invocable from
   **Flow and REST only**. Apex must bridge through a flow —
@@ -174,7 +176,7 @@ triggering DML. A refresh that fails must not take the contract with it.
 
 | Fact | Consequence |
 |---|---|
-| `DecisionTable` is a setup object | Apex DML on it is rejected; in-memory test fixtures need `JSON.deserialize`. |
+| `DecisionTable` is a setup object | Apex DML on it is rejected **at compile time**, so the class will not deploy at all; in-memory test fixtures need `JSON.deserialize`. |
 | `refreshDecisionTable` is Flow/REST-invocable only | Apex bridges through a flow. |
 | `MasterLabel` is a constant | Never a table identifier. |
 | A parent edit does not touch the child's `LastModifiedDate` | Measured 200/200. This is why criteria that traverse a lookup cannot be verified from child timestamps alone. |

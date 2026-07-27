@@ -541,9 +541,17 @@ def _path_like_values(node: Any, where: str):
     """Yield (location, value) for every string in a manifest subtree that names a
     repo path. Recursive on purpose — see the caller."""
     if isinstance(node, dict):
-        # An entry can declare itself absent; do not then demand its paths exist.
-        if node.get("status") == "not_captured":
-            return
+        # ⚠ An entry that declares itself absent used to skip its WHOLE subtree, which
+        # also skipped the paths it still actively claims. The prior-GA entry is exactly
+        # that shape: status not_captured, and `partial:
+        # docs/salesforce/260/feature-index.md` — a file that does exist and is offered
+        # to consumers. Deleting or misspelling it passed --check while the audit printed
+        # "all paths resolve".
+        #
+        # The skip bought nothing anyway: an entry declaring itself absent has its
+        # path/manifest keys REMOVED from the YAML (the prior-GA comment says to restore
+        # them once captured), so there was never an absent path here to protect. Keep
+        # walking — what a not_captured entry still names, it still has to have.
         for key, value in node.items():
             yield from _path_like_values(value, f"{where}.{key}")
     elif isinstance(node, list):
