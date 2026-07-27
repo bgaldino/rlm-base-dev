@@ -372,6 +372,13 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         Assert.areEqual('Fresh', info.staleness, info.stalenessReason);
         Assert.isTrue(info.stalenessReason.contains('every object this table reads'),
             'Fresh here is the stronger claim and must say so: ' + info.stalenessReason);
+        // ⚠ And it must NOT overclaim. Probes run USER_MODE, so this compared the sync
+        // against the newest change the CALLER can see; without "visible" the sentence
+        // asserts org-wide quiet on one user's evidence. That matters now the personas
+        // build assigns this to a restricted user — and Fresh is the verdict people act
+        // on by NOT refreshing, so it is the one that must not overstate its scope.
+        Assert.isTrue(info.stalenessReason.contains('visible'),
+            'Fresh must say whose view produced it: ' + info.stalenessReason);
         Assert.isTrue(info.contributingObjects.contains('Contact'),
             'The pane needs to know what else this table depends on.');
     }

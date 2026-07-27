@@ -61,8 +61,14 @@ System.debug(LoggingLevel.ERROR, '=== Decision table freshness: ' + tables.size(
     + ' table(s) — ' + String.join(summary, ', '));
 
 if (detail.isEmpty()) {
+    // ⚠ "visible to the running user" carries the same weight here as "visible" does in
+    // the controller's Fresh reason: probes run USER_MODE, so this ran against the rows
+    // THIS user can see. It matters more headlessly than in the UI — a build gate reads
+    // as an org-wide all-clear unless it says whose view produced it.
     System.debug(LoggingLevel.ERROR, 'Every table is fresh: the last full sync is later '
-        + 'than the newest change in every object each table reads.');
+        + 'than the newest change VISIBLE TO THE RUNNING USER in every object each '
+        + 'table reads. Run this as an operator with org-wide read to make that the '
+        + 'whole org.');
 } else {
     System.debug(LoggingLevel.ERROR, 'Tables that are not fresh:\n' + String.join(detail, '\n'));
     System.debug(LoggingLevel.ERROR,

@@ -90,11 +90,21 @@
  *    the failure direction is the bad one — FRESH while stale. Unreachable for an
  *    admin with View All Data, which is the intended operator of a readiness check;
  *    reachable the moment RLM_DecisionTableManager is assigned to a restricted user
- *    in an org with private records on a source object. The verdict wording says
- *    "visible" rather than asserting org-wide emptiness so the claim matches the
- *    evidence. USER_MODE is kept deliberately: this reads no data a user could not
- *    already query, and dropping to system mode to make the wording stronger would
- *    trade a real access boundary for a cosmetic one.
+ *    in an org with private records on a source object — which the personas build
+ *    now does (`prepare_personas` step 9, user_alias: salesrep).
+ *
+ *    ⚠ EVERY verdict is therefore scoped to the caller, and every verdict says so:
+ *    the word "visible" appears in the FRESH reason and in both empty-source
+ *    reasons. That is load-bearing, not padding — it was missing from the Fresh
+ *    reason for a round, which left the one verdict people act on claiming
+ *    org-wide quiet on the evidence of one user's view. If you touch these
+ *    strings, the scope has to survive.
+ *
+ *    USER_MODE is kept deliberately: this reads no data a user could not already
+ *    query, and dropping to system mode to make the wording stronger would trade a
+ *    real access boundary for a cosmetic one. What it does NOT do is prove the
+ *    caller sees every row — nothing here checks that, so "visible" is the
+ *    strongest honest claim.
  *
  * All three can leave a genuinely stale table reading FRESH. This check catches
  * inserts and edits the caller can see, which is what a post-build readiness check
@@ -616,8 +626,13 @@ public with sharing class RLM_DecisionTableManagerController {
                 String.join(gaps, ', and ') + ' — so freshness cannot be confirmed.';
         } else {
             info.staleness = STALENESS_FRESH;
-            info.stalenessReason = 'The last full sync is later than the newest change in ' +
-                'every object this table reads.' + alsoReads + scope;
+            // ⚠ "visible" is the whole claim. Probes run USER_MODE, so this compared the
+            // sync against the newest change the CALLER can see — not against the object.
+            // Without that word this sentence asserts org-wide quiet on the evidence of
+            // one user's view, and Fresh is the verdict people act on by NOT refreshing.
+            // The empty-source reasons have always been scoped; this one was not.
+            info.stalenessReason = 'The last full sync is later than the newest visible ' +
+                'change in every object this table reads.' + alsoReads + scope;
         }
     }
 

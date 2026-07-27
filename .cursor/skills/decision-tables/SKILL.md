@@ -104,7 +104,7 @@ component does, so they cannot disagree.
 
 | Verdict | Means |
 |---|---|
-| **Fresh** | The last full sync is later than the newest change in *every* object the table reads. |
+| **Fresh** | The last full sync is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. |
 | **Stale** | Something the table reads changed after the sync. The reason names the object that drove it. |
 | **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
@@ -113,7 +113,12 @@ Three limits apply to **every** verdict, by construction:
 
 1. A **deleted** source row leaves no timestamp behind.
 2. A row edited **out of** a filter takes its timestamp with it.
-3. Probes run in `USER_MODE`, so they see only rows the running user can see.
+3. Probes run in `USER_MODE`, so they see only rows the running user can see. ⚠ **Run the
+   check as an operator with org-wide read.** A row hidden from the caller by sharing and
+   modified after the sync is invisible to the probe, and the failure direction is the bad
+   one — Fresh while stale. Every verdict says "visible" for this reason; nothing here
+   proves the caller sees every row. The Manager is on the shared Home page, so a
+   restricted persona can run it and get a verdict scoped to their own view.
 
 The design deliberately trades coverage for never emitting a confident wrong answer: an
 unnecessary refresh is cheap, a false all-clear is not. Over-refusing into "Not
