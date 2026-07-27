@@ -27,3 +27,4 @@ Id,Name
 01tWt000009CMTTAAA,QuantumBit Database (Token Commit - Tier)
 01tWt000009MTYCMAA,QuantumBit Database (Monetary Commit)
 01tWt000009QTYCMAA,QuantumBit Database (Quantity Commit)
+01tWt000009CMTBAAA,QuantumBit Database (Token Commit - Bounded)

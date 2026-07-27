@@ -282,7 +282,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
 11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1`
+   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1`
 12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
@@ -442,7 +442,13 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
-8. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UtilitiesPermset']`
+   - `user_alias`: `salesrep`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_DecisionTableManager']`
+   - `user_alias`: `salesrep`
+10. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -545,7 +551,11 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_QuantumBit']`
 5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_ExpressionSetManager']`
-6. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UtilitiesPermset']`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_DecisionTableManager']`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
 
 ---
@@ -648,7 +658,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
 3. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
-   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'RLM_ExpressionSetManager', 'OrchestrationProcessManagerPerm...`
+   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'RLM_ExpressionSetManager', 'RLM_DecisionTableManager', 'Orc...`
 
 ---
 

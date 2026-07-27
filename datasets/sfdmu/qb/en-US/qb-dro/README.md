@@ -46,7 +46,7 @@ Upsert all DRO objects in dependency order
 
 | #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
 |----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
-| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 313     | |
+| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 314     | |
 | 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 21      | Consolidated service line decomps; removed standalone QB-DB-TOKEN rules |
 | 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
 | 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
@@ -159,7 +159,7 @@ qb-dro/
 ├── README.md                            # This file
 │
 │  Source CSVs — Products
-├── Product2.csv                         # 313 records (Update only)
+├── Product2.csv                         # 314 records (Update only)
 │
 │  Source CSVs — Decomposition
 ├── ProductFulfillmentDecompRule.csv     # 21 records

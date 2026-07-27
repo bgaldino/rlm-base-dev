@@ -94,6 +94,23 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | Change skill guidance itself | Maybe | Also read `skill-authoring/SKILL.md`. |
 | Create SFDMU data plans | No | Use `sfdmu-data-plans/SKILL.md`. |
 | Use general Revenue Cloud REST APIs | Maybe | Use `rlm-business-apis/SKILL.md` for API reference. |
+| Build a **backdated** Quote→Order→**Asset** chain for usage rating | No | This harness stops at invoices. Use `usage-consumption/building-usage-assets.md`. |
+| Record or rate usage against assets | No | Use `.cursor/skills/usage-consumption/SKILL.md`. |
+
+### Adjacent tool: `scripts/build_quote_to_asset.py`
+
+Usage rating needs **assets carrying usage entitlements**, and the interesting cases
+are **backdated** so a billing period has actually closed — a state this harness does
+not produce. `scripts/build_quote_to_asset.py` builds that chain reproducibly
+(Opportunity → Quote via Place Sales Transaction → Order via `createOrdersFromQuote`
+→ activation → asset), then verifies the usage buckets.
+
+Its module docstring is the live-verified reference for **which v67.0 endpoints are
+gone** (`/commerce/sales-transactions/actions/place`,
+`/commerce/quotes/actions/create-order`,
+`/connect/revenue-management/orders/actions/activate` all return NOT_FOUND) and why
+direct `QuoteLineItem` DML is not viable for a TermDefined product. Read it before
+adding any quote-creation path to either tool.
 
 ## Source Files
 
