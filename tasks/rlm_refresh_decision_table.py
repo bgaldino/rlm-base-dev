@@ -1,8 +1,34 @@
-import requests
-from cumulusci.tasks.sfdx import SFDXBaseTask
-from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.utils import process_bool_arg
 from abc import abstractmethod
+
+# ⚠ Guarded, matching tasks/rlm_apex_file.py and the pattern
+# cci-orchestration/custom-task-authoring.md prescribes. Without this the module cannot
+# be imported without CumulusCI installed, which broke the offline suite in
+# tests/test_decision_table_tasks.py: it died on this import before a single check ran,
+# while its docstring claimed no CumulusCI install was needed. The sibling
+# rlm_manage_decision_tables.py already degraded this way; only this file did not.
+try:
+    import requests
+    from cumulusci.tasks.sfdx import SFDXBaseTask
+    from cumulusci.core.keychain import BaseProjectKeychain
+    from cumulusci.core.utils import process_bool_arg
+except ImportError:  # pragma: no cover - exercised only in the offline test environment
+    requests = None
+    SFDXBaseTask = object
+    BaseProjectKeychain = object
+
+    def process_bool_arg(arg):
+        """Offline fallback mirroring cumulusci.core.utils.process_bool_arg exactly,
+        including the TypeError on an uninterpretable value."""
+        if isinstance(arg, (int, bool)):
+            return bool(arg)
+        if arg is None:
+            return False
+        if isinstance(arg, str):
+            if arg.lower() in ("yes", "y", "true", "on", "1"):
+                return True
+            if arg.lower() in ("no", "n", "false", "off", "0"):
+                return False
+        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
 class RefreshDecisionTable(SFDXBaseTask):
@@ -31,7 +57,11 @@ class RefreshDecisionTable(SFDXBaseTask):
         resolve `access_token` through `sfdx_info` and are always fresh, which is why a
         scratch run never surfaces it.
         """
-        self.org_config.refresh_oauth_token(self.project_config.keychain)
+        # save_if_changed, matching BaseSalesforceTask. refresh_oauth_token also
+        # reloads user and org info; without the wrapper that work is discarded at
+        # process exit and the keychain-updated log line never appears.
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     # Task options are used to set up configuration settings for this particular task.
     task_options = {
@@ -141,13 +171,30 @@ class RefreshDecisionTable(SFDXBaseTask):
             else:
                 raise TypeError(f"Unexpected response type: {type(response)}")
 
-            # Process the result
+            # Process the result.
+            #
+            # ⚠ isSuccess means the action was ACCEPTED, not that the table was rebuilt —
+            # refreshDecisionTable is asynchronous. This used to print "Refresh Process
+            # Success: True" and then "Refresh Status: Queued" on the very next line, a
+            # self-contradicting pair that an operator scrolling a 32-step build log reads
+            # as "done". This is the path EVERY refresh_dt_* task runs, so the honest
+            # wording matters more here than in the manual task.
+            #
+            # ⚠ Fail closed on the status. Salesforce documents the output as Queued or
+            # Failed, so treat only an explicit Queued as evidence of acceptance; a missing,
+            # empty or unrecognised Status is NOT evidence and is reported as a failure.
             success = result.get('isSuccess')
-            if success:
-                self.logger.info(f"Decision Table '{developer_name}' Refresh Process Success: {success}")
-                status = result.get('outputValues', {}).get('Status')
-                if status:
-                    self.logger.info(f"Refresh Status: {status}")
+            status = (result.get('outputValues') or {}).get('Status') or 'Unknown'
+            if success and status.lower() == 'queued':
+                self.logger.info(
+                    f"Refresh queued for Decision Table '{developer_name}' - Status: {status}. "
+                    "Completion is asynchronous; verify with check_decision_table_freshness."
+                )
+            elif success:
+                self.logger.error(
+                    f"Decision Table '{developer_name}' was accepted but reported "
+                    f"Status: {status} (expected 'Queued'); treating as not queued."
+                )
             else:
                 self.logger.error(f"Decision Table '{developer_name}' Refresh Process Failed")
                 errors = result.get('errors', [])

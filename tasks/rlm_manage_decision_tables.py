@@ -35,10 +35,25 @@ except ImportError:
     Salesforce = None
 
     def process_bool_arg(arg):
-        """Offline fallback so this module still imports without CumulusCI."""
+        """
+        Offline fallback so this module still imports without CumulusCI.
+
+        ⚠ Mirrors cumulusci.core.utils.process_bool_arg deliberately, INCLUDING the
+        TypeError on an uninterpretable value. An earlier version returned bool(arg)
+        for anything unrecognised, so "maybe" became True offline and raised under the
+        real helper — a fallback that disagrees with the thing it stands in for makes
+        any test using it prove the wrong thing.
+        """
+        if isinstance(arg, (int, bool)):
+            return bool(arg)
+        if arg is None:
+            return False
         if isinstance(arg, str):
-            return arg.strip().lower() in ("true", "1", "yes", "y", "on")
-        return bool(arg)
+            if arg.lower() in ("yes", "y", "true", "on", "1"):
+                return True
+            if arg.lower() in ("no", "n", "false", "off", "0"):
+                return False
+        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 def _as_name_list(value, option_name: str) -> List[str]:
@@ -94,7 +109,11 @@ class ManageDecisionTables(BaseTask):
         token is used as-is and can be expired. This task hits the REST API directly, so
         per `cci-orchestration/custom-task-authoring.md` it needs the refresh.
         """
-        self.org_config.refresh_oauth_token(self.project_config.keychain)
+        # save_if_changed, matching BaseSalesforceTask. refresh_oauth_token also
+        # reloads user and org info; without the wrapper that work is discarded at
+        # process exit and the keychain-updated log line never appears.
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     def _pinned_salesforce_client(self):
         """
@@ -102,18 +121,42 @@ class ManageDecisionTables(BaseTask):
 
         `org_config.salesforce_client` builds itself with `latest_api_version`, which
         GETs /services/data and takes the last entry — so it drifts upward the moment an
-        org is upgraded ahead of the project, and the two decision-table refresh paths
-        would call the same action on different versions. Falls back to the org's client
-        only if the project pin is missing.
+        org is upgraded ahead of the project.
+
+        ⚠ Use this for EVERY call site in this class, not just the refresh. An earlier
+        version pinned only the refresh, which left the task querying DecisionTable on
+        the org's newest version and — worse — performing its only WRITE
+        (`sf.DecisionTable.update`, the activate/deactivate operations) there too. Writes
+        are exactly where an unannounced version bump is most likely to change validation
+        or required-field behaviour. `_sf` below is the single client all three share.
+
+        The instance normalisation is character-for-character what CCI's own
+        `OrgConfig.salesforce_client` does, so My Domain / sandbox / enhanced-domain
+        hostnames behave exactly as they do under the unpinned client.
         """
         api_version = self.project_config.project__package__api_version
         if not api_version or Salesforce is None:
+            # ⚠ Say so. A fix that silently degrades is the "stops the damage but does
+            # not propagate the signal" shape REVIEW.md calls out. Unreachable in this
+            # repo today (cumulusci.yml pins api_version: "67.0", a truthy string), which
+            # is precisely why it would go unnoticed if it ever became reachable.
+            self.logger.warning(
+                "No project api_version pin available; falling back to the org's latest "
+                "API version. Decision-table calls are NOT pinned to the project version."
+            )
             return self.org_config.salesforce_client
         return Salesforce(
             instance=self.org_config.instance_url.replace("https://", ""),
             session_id=self.org_config.access_token,
             version=api_version,
         )
+
+    @property
+    def _sf(self):
+        """The pinned client, built once per task run and reused by every operation."""
+        if getattr(self, "_sf_client", None) is None:
+            self._sf_client = self._pinned_salesforce_client()
+        return self._sf_client
 
     task_options = {
         "operation": {
@@ -219,7 +262,7 @@ class ManageDecisionTables(BaseTask):
             
             # Get Salesforce connection - DecisionTable is a Tooling API object
             # Try using salesforce_client first (works for some Tooling API objects)
-            sf = self.org_config.salesforce_client
+            sf = self._sf
             
             # Build SOQL query
             soql = self._build_soql_query()
@@ -340,7 +383,7 @@ class ManageDecisionTables(BaseTask):
         # NEWEST version, not this project's. Rebuild it on the project's pinned version
         # so both decision-table refresh paths call the same action on the same API, and
         # so the call does not drift when an org upgrades ahead of the project.
-        sf = self._pinned_salesforce_client()
+        sf = self._sf
 
         success_count = 0
         fail_count = 0
@@ -351,25 +394,36 @@ class ManageDecisionTables(BaseTask):
 
                 # ⚠ isSuccess means the action was ACCEPTED, not that the table was
                 # rebuilt. refreshDecisionTable is asynchronous: it returns Status
-                # 'Queued' and the work completes later (DecisionTable.RefreshStatus
-                # cycles Initiated -> Completed). Reporting "successfully refreshed" off
-                # isSuccess alone is the stale-but-claims-otherwise failure this task
-                # exists to prevent, so the log says exactly what was established —
-                # queued — and a Status the action itself reports as Failed is counted
-                # as a failure rather than a success.
+                # 'Queued' and the work completes later. Reporting "successfully
+                # refreshed" off isSuccess alone is the stale-but-claims-otherwise
+                # failure this task exists to prevent, so the log says exactly what was
+                # established — queued.
+                #
+                # ⚠ Fail CLOSED on the status. Salesforce documents the output as Queued
+                # or Failed, so only an explicit Queued is evidence of acceptance; a
+                # missing, empty or unrecognised Status (including the 'Unknown'
+                # fallback below) is not evidence and is counted as a failure. An
+                # earlier version accepted "anything but Failed", which let a malformed
+                # or version-drifted response claim a queue that never happened.
+                #
+                # ⚠ Points at check_decision_table_freshness ONLY. Do not add
+                # DecisionTable.RefreshStatus here — pricing-wiring/SKILL.md rules it out
+                # as a detector, because it lives on a table record and so says nothing
+                # for the failure that actually occurs (an unresolvable name leaves no
+                # record to stamp). LastSyncDate, which the freshness check uses, is the
+                # one signal that holds for every shape.
                 action_status = (result.get('outputValues') or {}).get('Status') or 'Unknown'
-                if result.get('isSuccess') and action_status.lower() != 'failed':
+                if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
                     self.logger.info(
                         f"Refresh queued for '{developer_name}' - Status: {action_status}. "
-                        "Completion is asynchronous; verify with check_decision_table_freshness "
-                        "or DecisionTable.RefreshStatus."
+                        "Completion is asynchronous; verify with check_decision_table_freshness."
                     )
                 elif result.get('isSuccess'):
                     fail_count += 1
                     self.logger.error(
                         f"❌ Refresh of '{developer_name}' was accepted but reported "
-                        f"Status: {action_status}"
+                        f"Status: {action_status} (expected 'Queued'); treating as not queued."
                     )
                 else:
                     fail_count += 1
@@ -386,11 +440,17 @@ class ManageDecisionTables(BaseTask):
         # Summary
         self.logger.info("")
         self.logger.info(
-            f"Refresh Summary: {success_count} queued, {fail_count} failed to queue"
+            f"Refresh Summary: {success_count} queued, {fail_count} not queued"
         )
         
         if fail_count > 0:
-            raise TaskOptionsError(f"Failed to refresh {fail_count} decision table(s). Check logs for details.")
+            # "not queued", not "failed to refresh" — this task never observes a refresh
+            # completing, so it cannot claim one failed. It covers both a rejected request
+            # and one accepted with a Status other than Queued.
+            raise TaskOptionsError(
+                f"Failed to queue a refresh for {fail_count} decision table(s). "
+                "Check logs for details."
+            )
 
     def _validate_lists(self):
         """
@@ -546,7 +606,7 @@ class ManageDecisionTables(BaseTask):
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
             f"WHERE DeveloperName IN ('{names_str}')"
         )
-        sf = self.org_config.salesforce_client
+        sf = self._sf
         records = sf.query(soql).get("records", [])
         if not records:
             raise TaskOptionsError(
