@@ -13,6 +13,7 @@ Modelled on `tests/test_rlm_apex_file.py`, which exists solely because
 FileBasedAnonymousApexTask shipped with `salesforce_task = False`. That defect class
 then recurred twice more in this feature, which is what this file is for.
 """
+import atexit
 import importlib.util
 import re
 import sys
@@ -45,13 +46,9 @@ def load_task_module(stem):
 failures = []
 run_labels = []
 
-# ⚠ A floor, so a TRUNCATED run cannot read as a clean one. Every driver is guarded, but if a
-# future unguarded raise aborts the module the aggregator's summary never prints and nothing
-# states how many checks should have run — a human sees one traceback, fixes it, re-runs, and
-# never learns that the aborted run validated nothing past that line. Measured once: a single
-# malformed log call stopped the file at 60 of 71 and silently dropped the ENTIRE flow-shape
-# section, which is the wiring this suite exists to protect. Raise this when you add checks.
-MINIMUM_CHECKS = 86
+# The last check in this file. Its presence in run_labels is what proves the module ran to
+# completion — see _print_summary.
+TERMINAL_CHECK = "description mentions tso"
 
 
 def check(label, condition, detail=""):
@@ -61,6 +58,48 @@ def check(label, condition, detail=""):
     else:
         print(f"  FAIL  {label}{(' — ' + detail) if detail else ''}")
         failures.append(label)
+
+
+_summary_done = False
+
+
+def _print_summary():
+    """
+    Final accounting, registered with atexit so it runs even when a driver raises.
+
+    ⚠ A SENTINEL, not an arithmetic floor. The floor this replaces asked "did enough checks
+    run", which is the wrong question in both directions. It reported a *guarded* raise as
+    "Something aborted the module — the checks BELOW never executed", both clauses false: the
+    guard had worked, and the terminal check had run and passed four lines above the message
+    denying it. It also exited before the FAILED summary, so the run never named what broke —
+    sending a maintainer to hunt an abort that did not exist, with the only advice being "fix
+    the abort, do not lower the floor". And it needed a hand-kept integer that goes slack the
+    moment someone adds a check without bumping it.
+
+    ⚠ atexit is the load-bearing part. The floor's own check sat at the BOTTOM of the file, so
+    an unguarded driver that raised skipped it entirely — measured: a raising driver stopped
+    the run after 2 of 86 checks with no accounting printed at all, which is exactly the
+    silent-truncation shape the floor was added to prevent. Registered at exit, this reports
+    the abort no matter where it happens.
+    """
+    global _summary_done
+    if _summary_done:
+        return
+    _summary_done = True
+    print("\n" + "=" * 60)
+    if TERMINAL_CHECK not in run_labels:
+        print(
+            f"ABORTED: the run stopped before the final check — {len(run_labels)} check(s) "
+            "registered. Everything after that point never ran, so a partial run proves "
+            "nothing. Fix the abort; do not delete this guard."
+        )
+    elif failures:
+        print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
+    else:
+        print(f"All {len(run_labels)} decision-table task checks passed.")
+
+
+atexit.register(_print_summary)
 
 
 # ---------------------------------------------------------------------------
@@ -193,14 +232,22 @@ def credentials_hook_events(cls):
     return events, task.org_config.refreshed_with is sentinel
 
 
+# ⚠ GUARDED. An unguarded driver that raises aborts the module, and the accounting
+# below is registered with atexit precisely because it could not otherwise report
+# that. Measured: a raising driver stopped the run after 2 of 86 checks. A guard
+# here turns that into a named FAIL and lets every later check still run.
 for cls in (ManageDecisionTables, RefreshDecisionTable):
-    events, right_keychain = credentials_hook_events(cls)
-    check(f"{cls.__name__}._update_credentials refreshes with the keychain", right_keychain)
-    check(
-        f"{cls.__name__} refreshes INSIDE save_if_changed (enter→refresh→exit)",
-        events == ["enter", "refresh", "exit"],
-        str(events),
-    )
+    try:
+        events, right_keychain = credentials_hook_events(cls)
+        check(f"{cls.__name__}._update_credentials refreshes with the keychain", right_keychain)
+        check(
+            f"{cls.__name__} refreshes INSIDE save_if_changed (enter→refresh→exit)",
+            events == ["enter", "refresh", "exit"],
+            str(events),
+        )
+    except Exception as exc:
+        check(f"{cls.__name__}._update_credentials refreshes with the keychain", False,
+              f"driver raised {type(exc).__name__}: {exc}")
 
 # ---------------------------------------------------------------------------
 # 1b. The pinned-client invariant. Every operation must go through `_sf` so calls
@@ -256,10 +303,13 @@ except Exception as exc:
 # ---------------------------------------------------------------------------
 print("\n[2] _as_name_list splits, trims and rejects blanks")
 
-check('"A,B,C" splits into three', _as_name_list("A,B,C", "x") == ["A", "B", "C"])
-check('" A , B " trims', _as_name_list(" A , B ", "x") == ["A", "B"])
-check("a real list passes through", _as_name_list(["A", "B"], "x") == ["A", "B"])
-check("single name still works", _as_name_list("A", "x") == ["A"])
+try:  # GUARDED — see the note in section 1
+    check('"A,B,C" splits into three', _as_name_list("A,B,C", "x") == ["A", "B", "C"])
+    check('" A , B " trims', _as_name_list(" A , B ", "x") == ["A", "B"])
+    check("a real list passes through", _as_name_list(["A", "B"], "x") == ["A", "B"])
+    check("single name still works", _as_name_list("A", "x") == ["A"])
+except Exception as exc:
+    check("_as_name_list positive cases ran", False, f"raised {type(exc).__name__}: {exc}")
 
 for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5, "wrong type")):
     try:
@@ -276,9 +326,12 @@ print("\n[3] is_incremental coerces string CLI input")
 
 process_bool_arg = _manage.process_bool_arg
 
-check('"false" -> False', process_bool_arg("false") is False)
-check('"true"  -> True', process_bool_arg("true") is True)
-check("False   -> False", process_bool_arg(False) is False)
+try:  # GUARDED — see the note in section 1
+    check('"false" -> False', process_bool_arg("false") is False)
+    check('"true"  -> True', process_bool_arg("true") is True)
+    check("False   -> False", process_bool_arg(False) is False)
+except Exception as exc:
+    check("process_bool_arg positive cases ran", False, f"raised {type(exc).__name__}: {exc}")
 
 # The offline fallback must match CumulusCI's real helper, INCLUDING raising on an
 # uninterpretable value. A fallback that disagrees makes every check above prove the
@@ -338,8 +391,12 @@ for label, fn in (("ManageDecisionTables", manage_payload_for), ("RefreshDecisio
 # The refresh module keeps its OWN offline fallback. Testing only the manage module's copy
 # leaves the other free to drift back to plain truthiness while all checks stay green.
 for mod_label, fn in (("manage", _manage.process_bool_arg), ("refresh", _refresh.process_bool_arg)):
-    ok = fn("false") is False and fn("true") is True and fn(0) is False
-    check(f"{mod_label} fallback vocabulary matches CCI", ok)
+    try:  # GUARDED — see the note in section 1
+        ok = fn("false") is False and fn("true") is True and fn(0) is False
+        check(f"{mod_label} fallback vocabulary matches CCI", ok)
+    except Exception as exc:
+        check(f"{mod_label} fallback vocabulary matches CCI", False,
+              f"raised {type(exc).__name__}: {exc}")
     try:
         fn("maybe")
         check(f"{mod_label} fallback raises on an uninterpretable value", False, "returned")
@@ -648,12 +705,16 @@ expected = {(False, False): False, (False, True): True, (True, False): True, (Tr
 if not when:
     check("refresh_dt_commerce has a when: expression", False, "step absent or unguarded")
 else:
-    actual = {pair: evaluate_when(when, *pair) for pair in expected}
-    check(
-        f"refresh_dt_commerce truth table is commerce OR tso [{engine}]",
-        actual == expected,
-        f"{when} -> {actual}",
-    )
+    try:  # GUARDED — an uncompilable when: would otherwise abort the whole module here
+        actual = {pair: evaluate_when(when, *pair) for pair in expected}
+        check(
+            f"refresh_dt_commerce truth table is commerce OR tso [{engine}]",
+            actual == expected,
+            f"{when} -> {actual}",
+        )
+    except Exception as exc:
+        check(f"refresh_dt_commerce truth table is commerce OR tso [{engine}]", False,
+              f"evaluating {when!r} raised {type(exc).__name__}: {exc}")
     # ⚠ Pin the OPERAND SET as well as the truth table. A third flag ORed into the gate
     # leaves all four rows unchanged — it only ever widens the condition — so the truth
     # table alone cannot see it. This check is engine-independent and sees it immediately.
@@ -742,6 +803,20 @@ for flow_name, flow in (cci.get("flows") or {}).items():
                     f"{run} (chained past <namespace>.<attribute>; the tail resolves to Undefined)"
                 )
                 continue
+            # ⚠ Reject a SUBSCRIPT OR CALL after an otherwise-valid reference. The dotted-run
+            # scan consumes `org_config.scratch` and the unconsumed-identifier pass sees nothing
+            # left, because the quoted key was blanked and an integer index has no identifier at
+            # all — so `org_config.scratch["bogus"]` and `org_config.scratch[0]` were reported
+            # clean. Measured: the whole suite passed 86/86 on the first form. Jinja2 resolves
+            # each to a falsy undefined and silently skips the step, which is the same
+            # false-negative class as the 3-deep chain and the bracket-rooted forms before it.
+            tail = expr[match.end():].lstrip()
+            if tail[:1] in ("[", "("):
+                bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                    f"{run}{tail[:1]} (subscript or call after a reference; the suffix "
+                    "resolves to Undefined and this scan does not model it)"
+                )
+                continue
             namespace, attribute = segments
             if namespace == "org_config":
                 if run in ALLOWED_ORG_CONFIG_REFS:
@@ -767,8 +842,9 @@ for flow_name, flow in (cci.get("flows") or {}).items():
             if match.group(0).lower() in JINJA_RESERVED:
                 continue
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"{match.group(0)} (bare or bracketed name in {raw_expr!r}; "
-                "not a resolvable <namespace>.<attribute>)"
+                f"{match.group(0)} in {raw_expr!r}: not consumed as <namespace>.<attribute> — "
+                "a bare name, a bracketed subscript, or a Jinja filter/test this scan does not "
+                "model. If it is a filter, add it to JINJA_RESERVED; if it is a name, fix it."
             )
 
 check(
@@ -798,15 +874,6 @@ print("\n[5] the Commerce task description reflects the tso gate")
 desc = cci["tasks"]["refresh_dt_commerce"]["description"]
 check("description mentions tso", "tso" in desc.lower(), desc)
 
-print("\n" + "=" * 60)
-if len(run_labels) < MINIMUM_CHECKS:
-    print(
-        f"TRUNCATED: only {len(run_labels)} of at least {MINIMUM_CHECKS} checks ran. "
-        "Something aborted the module — the checks BELOW the abort never executed, so a "
-        "green-looking partial run proves nothing. Fix the abort, do not lower the floor."
-    )
+_print_summary()
+if failures or TERMINAL_CHECK not in run_labels:
     sys.exit(1)
-if failures:
-    print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
-    sys.exit(1)
-print(f"All {len(run_labels)} decision-table task checks passed.")
