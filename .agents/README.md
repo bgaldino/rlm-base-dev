@@ -5,6 +5,26 @@ start from the same project contract and then opt into more specific guidance.
 The path names reflect the tools that introduced each file, but most of the
 content is intentionally reusable across agents.
 
+## Before picking up work — the todo tracker
+
+Open work items live in the **private** artifacts repo, not in this one, because most
+carry detail that cannot be public (org aliases, unreleased-release work, investigations
+with retracted conclusions). If `.agents/artifacts/` is empty on this workstation, clone
+it first — otherwise you will not see what is in flight, or what is already claimed:
+
+```bash
+git clone https://github.com/bgaldino/rlm-base-artifacts.git .agents/artifacts
+```
+
+Then read **`.agents/artifacts/todos/INDEX.md`** for the current state and
+**`.agents/artifacts/todos/README.md`** for the claim protocol. Work is coordinated across
+three workstations, so **claim an item and push the claim before starting** — that is what
+turns a simultaneous start into a rejected push instead of duplicated effort.
+
+Public-safe items are also GitHub issues on `bgaldino/rlm-base-dev`; the issue is the
+pointer and the todo pack is the payload. A session-local task list (e.g. Claude Code's
+task tool) is **never** the record of anything that outlives the session.
+
 ## Canonical stack
 
 1. **`AGENTS.md` — root safety and project contract**

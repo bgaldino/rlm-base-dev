@@ -684,8 +684,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### Decision Table Refresh Tasks
 
+See [Decision Tables](.cursor/skills/decision-tables/SKILL.md) for when a refresh is
+required, why a stale lookup shows up as wrong pricing, and what each freshness verdict
+means.
+
 | Task Name | Module | Description |
 |-----------|--------|-------------|
+| `check_decision_table_freshness` | `rlm_apex_file.py` | Report whether each decision table still reflects its source data, with a reason per table. No org changes. Add `-o param1 strict` to fail the build on any stale table |
 | `refresh_dt_rating` | `rlm_refresh_decision_table.py` | Refresh rating decision tables |
 | `refresh_dt_rating_discovery` | `rlm_refresh_decision_table.py` | Refresh rating discovery decision tables |
 | `refresh_dt_default_pricing` | `rlm_refresh_decision_table.py` | Refresh default pricing decision tables |
