@@ -20,6 +20,7 @@ Usage, as the FIRST thing a gate script does — before importing yaml:
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -54,10 +55,23 @@ def _candidates():
         str(REPO_ROOT / ".venv" / "bin" / "python"),
         str(REPO_ROOT / ".harness" / "tui-venv" / "bin" / "python"),
         str(Path.home() / ".local/pipx/venvs/cumulusci/bin/python"),
-        "/usr/bin/python3",
-        "/opt/homebrew/bin/python3",
     ]
-    return out
+    # PATH-resolved python. On a set-up workstation .envrc puts the pyenv shims
+    # on PATH, so these are the pinned 3.13 - and they are what makes
+    # _bootstrap_venv reachable at all, since without them a clone with no
+    # .venv and no pipx has nothing new enough to build a venv FROM.
+    for exe in ("python3", "python"):
+        found = shutil.which(exe)
+        if found:
+            out.append(found)
+    out += ["/usr/bin/python3", "/opt/homebrew/bin/python3"]
+    # De-duplicate, preserving priority order.
+    seen, ordered = set(), []
+    for c in out:
+        if c and c not in seen:
+            seen.add(c)
+            ordered.append(c)
+    return ordered
 
 
 #: Minimum Python for the gate scripts. Matches pyproject's
@@ -84,6 +98,49 @@ def _usable(version_info=None):
         return True
     except ImportError:
         return False
+
+
+def _bootstrap_venv():
+    """Create .venv and install requirements-dev.txt. Returns its python, or None.
+
+    WHERE this may run is the whole design. Installing packages is the right fix
+    for a fresh clone, and this repo already does it elsewhere - ./tui-cci builds
+    .harness/tui-venv on first run. But a `git push` that blocks for a silent
+    90 seconds while pip downloads reads as a broken hook, and the reflex it
+    trains is `--no-verify`, which defeats the gate entirely.
+
+    So: bootstrap when a human is watching (a TTY) or asked for it explicitly
+    (RLM_GATE_BOOTSTRAP=1). The pre-push hook sets neither, and instead fails
+    fast with the exact command. The slow path only happens interactively.
+    """
+    if not (sys.stdout.isatty() or os.environ.get("RLM_GATE_BOOTSTRAP") == "1"):
+        return None
+    req = REPO_ROOT / "requirements-dev.txt"
+    if not req.exists():
+        return None
+
+    venv_py = REPO_ROOT / ".venv" / "bin" / "python"
+    base = None
+    for cand in _candidates():
+        if cand and Path(cand).exists() and str(cand) != str(venv_py):
+            probe = subprocess.run(
+                [cand, "-c", "import sys; sys.exit(0 if sys.version_info >= {} "
+                             "else 9)".format(_MIN_PY)], capture_output=True)
+            if probe.returncode == 0:
+                base = cand
+                break
+    if not base:
+        return None
+
+    if not venv_py.exists():
+        sys.stderr.write(f"gate: creating .venv with {base} ...\n")
+        if subprocess.run([base, "-m", "venv", str(REPO_ROOT / ".venv")]).returncode:
+            return None
+    sys.stderr.write("gate: installing requirements-dev.txt (first run only) ...\n")
+    if subprocess.run([str(venv_py), "-m", "pip", "install", "-q", "-r",
+                       str(req)]).returncode:
+        return None
+    return str(venv_py) if venv_py.exists() else None
 
 
 def ensure_pyyaml(script_path):
@@ -114,6 +171,12 @@ def ensure_pyyaml(script_path):
         probe = subprocess.run([cand, "-c", _PROBE], capture_output=True)
         if probe.returncode == 0:
             os.execv(cand, [cand, str(Path(script_path).resolve())] + sys.argv[1:])
+
+    # Nothing on disk qualifies. If a human is watching, build the venv the
+    # README prescribes rather than just telling them to.
+    boot = _bootstrap_venv()
+    if boot:
+        os.execv(boot, [boot, str(Path(script_path).resolve())] + sys.argv[1:])
 
     need = ".".join(str(n) for n in _MIN_PY)
     sys.stderr.write(
