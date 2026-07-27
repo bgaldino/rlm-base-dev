@@ -130,6 +130,28 @@ for cls in (ManageDecisionTables, RefreshDecisionTable):
     )
 
 # ---------------------------------------------------------------------------
+# 1b. The pinned-client invariant. Every operation must go through `_sf` so calls
+#     use the PROJECT's api_version, not whatever the org has drifted up to. An
+#     earlier version pinned only the refresh, leaving the query and the only
+#     WRITE unpinned.
+# ---------------------------------------------------------------------------
+print("\n[1b] only the sanctioned fallback bypasses the pinned client")
+
+_manage_src = (REPO / "tasks" / "rlm_manage_decision_tables.py").read_text()
+_unpinned_uses = _manage_src.count("self.org_config.salesforce_client")
+
+# ⚠ A comment asking a future author to use self._sf is advisory; this makes it checkable.
+# The one sanctioned use of the unpinned client is the LOGGED fallback inside
+# _pinned_salesforce_client. A second occurrence means an operation was added that bypasses
+# the pin — and it would work perfectly until an org is upgraded ahead of the project,
+# which is exactly when nobody is looking at this file.
+check(
+    "only the pinned fallback touches org_config.salesforce_client",
+    _unpinned_uses == 1,
+    f"found {_unpinned_uses} uses, expected 1",
+)
+
+# ---------------------------------------------------------------------------
 # 2. Name normalisation. A comma-separated CLI string used to become ONE name.
 # ---------------------------------------------------------------------------
 print("\n[2] _as_name_list splits, trims and rejects blanks")
@@ -181,6 +203,24 @@ class _SilentLogger:
 
     def error(self, *a, **k):
         pass
+
+
+class _CapturingLogger:
+    """Records what a task told the operator, per level."""
+
+    def __init__(self):
+        self.infos = []
+        self.warnings = []
+        self.errors = []
+
+    def info(self, msg, *a, **k):
+        self.infos.append(str(msg))
+
+    def warning(self, msg, *a, **k):
+        self.warnings.append(str(msg))
+
+    def error(self, msg, *a, **k):
+        self.errors.append(str(msg))
 
 
 class _Recorder:
@@ -240,22 +280,41 @@ for mod_label, fn in (("manage", _manage.process_bool_arg), ("refresh", _refresh
 #     else, including a missing outputValues or an unrecognised value, is a
 #     failure. Round 2 shipped "anything but Failed", which let the code's own
 #     'Unknown' fallback claim a queue that never happened.
+#
+#     ⚠ Drive BOTH classes. Each carries its own copy of this gate, and the copy
+#     in RefreshDecisionTable is the one every refresh_dt_* step of every build
+#     runs. Exercising only the manual task left the build path's gate free to be
+#     deleted with every check still green — which is the same shape as the
+#     original defect, one level up.
 # ---------------------------------------------------------------------------
-print("\n[3b] the status gate accepts ONLY an explicit Queued")
+print("\n[3b] the status gate accepts ONLY an explicit Queued — in BOTH classes")
 
 STATUS_CASES = [
     ({"isSuccess": True, "outputValues": {"Status": "Queued"}}, True, "Queued"),
     ({"isSuccess": True, "outputValues": {"Status": "queued"}}, True, "queued (case)"),
+    ({"isSuccess": True, "outputValues": {"Status": " Queued "}}, True, "Queued (whitespace)"),
     ({"isSuccess": True, "outputValues": {"Status": "Failed"}}, False, "Failed"),
     ({"isSuccess": True, "outputValues": {"Status": "Accepted"}}, False, "unrecognised status"),
+    ({"isSuccess": True, "outputValues": {"Status": "   "}}, False, "whitespace-only Status"),
     ({"isSuccess": True, "outputValues": {}}, False, "missing Status"),
     ({"isSuccess": True}, False, "missing outputValues"),
     ({"isSuccess": False, "errors": [{"message": "nope"}]}, False, "isSuccess False"),
 ]
 
+QUEUE_FAILURE_MESSAGE = "Failed to queue a refresh"
+
 
 def manage_counts_success(response):
-    """Drive ManageDecisionTables._refresh_decision_tables and report whether it counted a queue."""
+    """
+    Drive ManageDecisionTables._refresh_decision_tables; report whether it counted a queue.
+
+    ⚠ Assert on the REASON, not merely that something raised. A bare
+    `except Exception: return False` returns the expected answer for every not-queued case
+    even when the method is broken outright — an AttributeError from a renamed internal
+    reads exactly like a working fail-closed gate, so most of these checks would pass under
+    a total breakage. Anything that is not the queue-failure exception is re-raised for the
+    caller to record as a FAIL.
+    """
     task = object.__new__(ManageDecisionTables)
     task.options = {"developer_names": "A_Table", "is_incremental": False}
     task.logger = _SilentLogger()
@@ -265,17 +324,58 @@ def manage_counts_success(response):
     try:
         ManageDecisionTables._refresh_decision_tables(task)
         return True  # no raise => fail_count was 0 => it counted a queue
-    except Exception:
-        return False  # raises "Failed to queue a refresh for N" when fail_count > 0
+    except Exception as exc:
+        if QUEUE_FAILURE_MESSAGE not in str(exc):
+            raise
+        return False
+
+
+def refresh_errors_for(response):
+    """
+    Drive the BUILD PATH gate — RefreshDecisionTable._refresh_decision_table — and return
+    the error lines it logged.
+
+    That method deliberately does not raise (exit-0 behaviour is coupled to the
+    unconditional default-pricing flow step; see todo pack 049), so acceptance is
+    observable only as the ABSENCE of an error log. Asserting on that rather than on
+    wording keeps the check alive when the message is reworded.
+    """
+    task = object.__new__(RefreshDecisionTable)
+    logger = _CapturingLogger()
+    task.logger = logger
+    task._build_url_and_headers = lambda endpoint: ("https://example.invalid/x", {})
+    task._make_request = lambda method, url, **kwargs: response
+    RefreshDecisionTable._refresh_decision_table(task, "A_Table", False)
+    return logger.errors
 
 
 for response, should_queue, label in STATUS_CASES:
-    got = manage_counts_success(response)
-    check(
-        f"ManageDecisionTables treats {label} as {'queued' if should_queue else 'NOT queued'}",
-        got is should_queue,
-        f"counted queued={got}",
-    )
+    verdict = "queued" if should_queue else "NOT queued"
+
+    manage_label = f"ManageDecisionTables treats {label} as {verdict}"
+    try:
+        got = manage_counts_success(response)
+        check(manage_label, got is should_queue, f"counted queued={got}")
+    except Exception as exc:
+        check(manage_label, False, f"unexpected {type(exc).__name__}: {exc}")
+
+    refresh_label = f"RefreshDecisionTable treats {label} as {verdict}"
+    try:
+        errors = refresh_errors_for(response)
+        check(refresh_label, (not errors) is should_queue, f"errors={errors}")
+    except Exception as exc:
+        check(refresh_label, False, f"unexpected {type(exc).__name__}: {exc}")
+
+# ⚠ The 'Unknown' sentinel must be applied AFTER the strip. '   ' is truthy, so an
+# `or 'Unknown'` placed before .strip() never fires and the operator message renders a
+# blank where the status belongs — at the exact moment the gate is trying to explain
+# itself. Both classes normalise identically; this pins the rendering, not just the verdict.
+blank_status_errors = refresh_errors_for({"isSuccess": True, "outputValues": {"Status": "   "}})
+check(
+    "a whitespace-only Status renders as Unknown, not blank",
+    bool(blank_status_errors) and "Unknown" in blank_status_errors[0],
+    str(blank_status_errors),
+)
 
 # ---------------------------------------------------------------------------
 # 4. Flow shape. A draft of this very change created a duplicate step key, and
@@ -287,6 +387,7 @@ print("\n[4] refresh_all_decision_tables step keys are contiguous and complete")
 with open(REPO / "cumulusci.yml") as fh:
     cci = yaml.safe_load(fh)
 
+declared_flags = set(cci["project"]["custom"])
 steps = cci["flows"]["refresh_all_decision_tables"]["steps"]
 keys = sorted(steps)
 check("step keys are 1..N contiguous", keys == list(range(1, len(keys) + 1)), str(keys))
@@ -328,21 +429,39 @@ except ImportError:  # jinja2 ships with CumulusCI; absent in the bare offline e
 
 
 def _flag_ctx(commerce_flag, tso_flag):
+    """
+    A project_config stand-in carrying EVERY declared flag, defaulting False.
+
+    ⚠ Every flag, not only the two under test. Populate just commerce and tso and a THIRD
+    flag added to the gate is Undefined under Jinja2 — falsy, silently ignored, truth table
+    unchanged, check still PASSES — while the offline eval fallback raises AttributeError.
+    Same edit, opposite verdicts, and the faithful engine is the one that waves it through.
+    Declaring them all makes both engines agree; the exact-flag-set check below then catches
+    the edit in either environment.
+    """
     class _Custom:
         pass
 
     custom = _Custom()
+    for flag in declared_flags:
+        setattr(custom, f"project__custom__{flag}", False)
     setattr(custom, "project__custom__commerce", commerce_flag)
     setattr(custom, "project__custom__tso", tso_flag)
     return custom
 
 
 def evaluate_when(expr, commerce_flag, tso_flag):
-    """Evaluate a cumulusci `when:` expression, in CCI's engine where available."""
+    """
+    Evaluate a cumulusci `when:` expression, in CCI's engine where available.
+
+    ⚠ The `eval` is not an injection surface: `expr` is read from this repository's own
+    cumulusci.yml, `__builtins__` is stripped, and the only name in scope is the local
+    flag stand-in. It is the offline fallback for Jinja2, nothing more.
+    """
     ctx = _flag_ctx(commerce_flag, tso_flag)
     if _jinja_env is not None:
         return bool(_jinja_env.compile_expression(expr)(project_config=ctx))
-    return bool(eval(expr, {"__builtins__": {}}, {"project_config": ctx}))
+    return bool(eval(expr, {"__builtins__": {}}, {"project_config": ctx}))  # noqa: S307
 
 
 engine = "jinja2 (CCI's own)" if _jinja_env is not None else "eval fallback — jinja2 absent"
@@ -356,22 +475,61 @@ else:
         actual == expected,
         f"{when} -> {actual}",
     )
+    # ⚠ Pin the OPERAND SET as well as the truth table. A third flag ORed into the gate
+    # leaves all four rows unchanged — it only ever widens the condition — so the truth
+    # table alone cannot see it. This check is engine-independent and sees it immediately.
+    check(
+        "the refresh_dt_commerce gate references exactly commerce and tso",
+        set(re.findall(r"project__custom__(\w+)", when)) == {"commerce", "tso"},
+        when,
+    )
 
 # ⚠ The one thing Jinja2 swallows silently is a flag name that does not exist: it is
 # Undefined, therefore falsy, therefore the step never runs — and nothing errors. That is
 # bit-for-bit the bug this branch exists to fix, so a typo in any `when:` would reintroduce
 # it invisibly. Checked by name against the real flag list, which needs no engine at all.
-declared_flags = set(cci["project"]["custom"])
+#
+# ⚠ Match the WHOLE reference, not just `project__custom__<name>`. A malformed PREFIX —
+# `project__custom_rating`, one underscore short — produces no match for the narrow pattern,
+# so an unknown-flag scan finds nothing to complain about and the typo sails through as a
+# falsy Undefined. Extracting every `<namespace>.<attribute>` and requiring project_config
+# attributes to be exactly `project__custom__<declared flag>` closes that hole.
+#
+# ⚠ Scanned across EVERY flow, not just this one. The marginal cost is one extra loop and
+# widening it is what found the psg_debug defect below on the first run.
+ALLOWED_NAMESPACES = {"org_config"}  # CCI-defined (org_type, scratch); not project-declared
+
+# ⚠ PRE-EXISTING on main, not introduced by this branch. `psg_debug` is referenced by two
+# steps of assign_feature_permission_sets and is absent from project.custom, so both
+# evaluate `<flag> and Undefined` -> False in every org and have never run. Listed here so
+# this check can be enforced NOW rather than after that question is settled — and so the
+# defect cannot be quietly forgotten. Tracked as issue #331. Removing the name from this
+# set is the verification that the issue is fixed: with it gone, this check fails until the
+# flag is declared or the steps are deleted. Any NEW undeclared flag already fails today.
+KNOWN_UNDECLARED = {"psg_debug"}
+
 bad_refs = {}
-for key, step in steps.items():
-    expr = step.get("when") or ""
-    unknown = set(re.findall(r"project__custom__(\w+)", expr)) - declared_flags
-    if unknown:
-        bad_refs[key] = sorted(unknown)
+for flow_name, flow in (cci.get("flows") or {}).items():
+    for key, step in ((flow or {}).get("steps") or {}).items():
+        expr = (step or {}).get("when") or ""
+        if not expr:
+            continue
+        for namespace, attribute in re.findall(r"(\w+)\.(\w+)", expr):
+            if namespace in ALLOWED_NAMESPACES:
+                continue
+            flag = (
+                attribute[len("project__custom__"):]
+                if attribute.startswith("project__custom__")
+                else None
+            )
+            if flag in declared_flags or flag in KNOWN_UNDECLARED:
+                continue
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(f"{namespace}.{attribute}")
+
 check(
-    "every when: in the flow references only declared flags",
+    f"every when: across all {len(cci.get('flows') or {})} flows references only declared flags",
     not bad_refs,
-    f"unknown flags: {bad_refs}",
+    f"bad references: {bad_refs}",
 )
 
 # ---------------------------------------------------------------------------

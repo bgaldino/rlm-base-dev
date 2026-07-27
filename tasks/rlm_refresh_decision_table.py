@@ -190,19 +190,27 @@ class RefreshDecisionTable(SFDXBaseTask):
             # ⚠ Fail closed on the status. Salesforce documents the output as Queued or
             # Failed, so treat only an explicit Queued as evidence of acceptance; a missing,
             # empty or unrecognised Status is NOT evidence and is reported as a failure.
+            #
+            # ⚠ Sentinel AFTER the strip. A whitespace-only Status is truthy, so
+            # `or 'Unknown'` never fires and .strip() leaves '' — the operator reads
+            # "Status:  (expected 'Queued')" and learns nothing. Kept identical to the
+            # same gate in rlm_manage_decision_tables.py; the two must not drift.
             success = result.get('isSuccess')
-            status = ((result.get('outputValues') or {}).get('Status') or 'Unknown').strip()
+            status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
             if success and status.lower() == 'queued':
                 self.logger.info(
                     f"Refresh queued for Decision Table '{developer_name}' - Status: {status}. "
-                    "Completion is asynchronous; verify with check_decision_table_freshness."
+                    "Completion is asynchronous; verify with check_decision_table_freshness "
+                    "AFTER the job completes — a queued refresh has not yet advanced "
+                    "LastSyncDate, so checking now returns the PRE-refresh verdict."
                 )
             elif success:
                 self.logger.error(
                     f"Decision Table '{developer_name}' was accepted but reported "
                     f"Status: {status} (expected 'Queued'); treating as not queued. "
                     "If this is a new platform status rather than a failure, confirm with "
-                    "check_decision_table_freshness and extend the accepted set."
+                    "check_decision_table_freshness once any queued job completes, then "
+                    "extend the accepted set."
                 )
             else:
                 self.logger.error(f"Decision Table '{developer_name}' Refresh Process Failed")

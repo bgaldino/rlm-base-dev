@@ -253,7 +253,10 @@ class ManageDecisionTables(BaseTask):
                     # Parse ISO format datetime
                     dt_obj = datetime.fromisoformat(last_sync.replace('Z', '+00:00'))
                     last_sync = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
-                except:
+                except Exception:
+                    # Cosmetic only — an unparseable stamp is printed raw rather than
+                    # failing a listing. `except Exception:` not a bare `except:`, which
+                    # would also swallow KeyboardInterrupt.
                     pass
             
             self.logger.info(f"{dev_name:<50} {status:<10} {usage_type:<28} {last_sync:<25} {setup_name:<50}")
@@ -413,12 +416,18 @@ class ManageDecisionTables(BaseTask):
                 # for the failure that actually occurs (an unresolvable name leaves no
                 # record to stamp). LastSyncDate, which the freshness check uses, is the
                 # one signal that holds for every shape.
-                action_status = ((result.get('outputValues') or {}).get('Status') or 'Unknown').strip()
+                # ⚠ Sentinel AFTER the strip, not before. A whitespace-only Status is
+                # truthy, so `or 'Unknown'` never fires and .strip() then leaves '' —
+                # printing "Status:  (expected 'Queued')" and telling the operator
+                # nothing at the exact moment the gate is trying to explain itself.
+                action_status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
                 if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
                     self.logger.info(
                         f"Refresh queued for '{developer_name}' - Status: {action_status}. "
-                        "Completion is asynchronous; verify with check_decision_table_freshness."
+                        "Completion is asynchronous; verify with check_decision_table_freshness "
+                        "AFTER the job completes — a queued refresh has not yet advanced "
+                        "LastSyncDate, so checking now returns the PRE-refresh verdict."
                     )
                 elif result.get('isSuccess'):
                     fail_count += 1
@@ -426,7 +435,8 @@ class ManageDecisionTables(BaseTask):
                         f"❌ Refresh of '{developer_name}' was accepted but reported "
                         f"Status: {action_status} (expected 'Queued'); treating as not queued. "
                         "If this is a new platform status rather than a failure, confirm with "
-                        "check_decision_table_freshness and extend the accepted set."
+                        "check_decision_table_freshness once any queued job completes, then "
+                        "extend the accepted set."
                     )
                 else:
                     fail_count += 1
