@@ -135,8 +135,8 @@ This will kickoff the process which will take roughly 2-10 minutes.
 :::
 ::: {.column}
 ### Refresh Decision Tables
-In the meantime, navigate back to the Revenue Cloud App Homepage and find the RC Refresh Decision Tables section.
-Click Next twice and then Finish to refresh all of the decision tables in the org.
+In the meantime, navigate back to the Revenue Cloud App Homepage and find the **Decision Table Manager** section.
+It lists every decision table with a freshness verdict. Click **Refresh all shown** — that is the direct replacement for the old refresh-all flow, and it is enabled straight away. (**Refresh selected** stays disabled until you tick rows, and **Refresh stale only** until something is actually stale.) The component then polls until they finish.
 **262 NOTE:** with CSV-Based Decision Tables now GA, you can also upload custom CSV-sourced DTs (max 100K rows per CSV DT, 500 CSV DTs per org). See `feature-index.md` Pricing section.
 ![placeholder][img-PLACEHOLDER-refresh-decision-tables]
 :::

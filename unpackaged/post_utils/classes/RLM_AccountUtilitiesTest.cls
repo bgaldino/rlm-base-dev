@@ -50,13 +50,14 @@
 @IsTest
 private without sharing class RLM_AccountUtilitiesTest {
     // `without sharing` per .cursor/rules/apex-classes.mdc, which requires an explicit
-    // keyword on every class. It is the behaviour-preserving choice here, not a
-    // convenience: RLM_AccountUtilities declares no sharing keyword, so when it is
-    // entered directly -- as it is from its Flow invocable -- it runs in system mode.
-    // A test entry point declared `with sharing` (or `inherited sharing`, which
-    // defaults to `with sharing` at an entry point) would push the utility into a
-    // sharing context it never runs in, so the tests would exercise behaviour the
-    // demo reset does not have.
+    // keyword on every class. It matches the class under test: RLM_AccountUtilities is
+    // itself declared `without sharing`, deliberately, so that the reset can clear an
+    // account's entire related graph including records owned by other users. Declaring
+    // this entry point `with sharing` (or `inherited sharing`, which behaves as
+    // `with sharing` at an entry point) would not change the utility's own context —
+    // it pins its own — but it would make the fixtures run under sharing while the
+    // code under test does not, which is a needless divergence from how the demo
+    // reset actually runs.
 
     private static Account newAccount() {
         Account a = new Account(Name = 'RLM Utilities Test Account');
