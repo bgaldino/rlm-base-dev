@@ -43,14 +43,87 @@ def load_task_module(stem):
 
 
 failures = []
+run_labels = []
+
+# ⚠ A floor, so a TRUNCATED run cannot read as a clean one. Every driver is guarded, but if a
+# future unguarded raise aborts the module the aggregator's summary never prints and nothing
+# states how many checks should have run — a human sees one traceback, fixes it, re-runs, and
+# never learns that the aborted run validated nothing past that line. Measured once: a single
+# malformed log call stopped the file at 60 of 71 and silently dropped the ENTIRE flow-shape
+# section, which is the wiring this suite exists to protect. Raise this when you add checks.
+MINIMUM_CHECKS = 86
 
 
 def check(label, condition, detail=""):
+    run_labels.append(label)
     if condition:
         print(f"  PASS  {label}")
     else:
         print(f"  FAIL  {label}{(' — ' + detail) if detail else ''}")
         failures.append(label)
+
+
+# ---------------------------------------------------------------------------
+# Test doubles. Defined up front because checks in EVERY section below drive a
+# task against them — an earlier version placed _CapturingLogger in section 3, so a
+# section-1b check that used it raised NameError before it could assert anything.
+# ---------------------------------------------------------------------------
+class _SilentLogger:
+    def info(self, *a, **k):
+        pass
+
+    def warning(self, *a, **k):
+        pass
+
+    def error(self, *a, **k):
+        pass
+
+
+class _CapturingLogger:
+    """
+    Records what a task told the operator, per level.
+
+    ⚠ Interpolate %-style args. Both task modules mix f-strings with lazy
+    `logger.info("  %s (%d): %s", ut, len(dts), ...)` formatting, and capturing only the
+    template would silently drop every value — a check on the rendered text would then be
+    asserting against `%s` placeholders and passing for the wrong reason.
+    """
+
+    def __init__(self):
+        self.infos = []
+        self.warnings = []
+        self.errors = []
+        self.debugs = []
+
+    @staticmethod
+    def _render(msg, args):
+        """
+        Render exactly as stdlib logging does — including RAISING on a bad format.
+
+        ⚠ Do NOT swallow the error. `LogRecord.getMessage()` is `msg % self.args` and raises
+        on a mismatch; verified: `LogRecord(..., "Refresh queued for %d", ("A_Table",))`
+        raises TypeError. Returning the raw template instead would let a malformed
+        production call PASS a substring assertion, because the literal half of the template
+        survives — `"Refresh queued for %d"` still contains "Refresh queued". A test double
+        that is more forgiving than production hides exactly the bug it should surface.
+
+        ⚠ Skipping interpolation when args is empty is stdlib behaviour, not a divergence:
+        `LogRecord(..., "100%% sure", ())` renders "100%% sure" unchanged. Verified.
+        """
+        text = str(msg)
+        return text % args if args else text
+
+    def info(self, msg, *a, **k):
+        self.infos.append(self._render(msg, a))
+
+    def warning(self, msg, *a, **k):
+        self.warnings.append(self._render(msg, a))
+
+    def error(self, msg, *a, **k):
+        self.errors.append(self._render(msg, a))
+
+    def debug(self, msg, *a, **k):
+        self.debugs.append(self._render(msg, a))
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +226,31 @@ check(
     f"found {_unpinned_uses} uses, expected 1",
 )
 
+# ⚠ Drive the fallback branch itself. That branch exists because of the round-4 finding that a
+# silent degradation is "a fix that stops the damage but does not propagate the signal" — and
+# until now the signal-propagation fix was the unverified part. Unreachable in this repo
+# (api_version is pinned to a truthy "67.0"), which is exactly why it would rot unnoticed.
+# This is also the first reader of _CapturingLogger.warnings.
+try:
+    _unpinned_task = object.__new__(ManageDecisionTables)
+    _unpinned_task.logger = _CapturingLogger()
+    _unpinned_task.project_config = type("_P", (), {"project__package__api_version": None})()
+    _unpinned_task.org_config = type("_O", (), {"salesforce_client": "sentinel-client"})()
+    _returned = ManageDecisionTables._pinned_salesforce_client(_unpinned_task)
+    check(
+        "an absent api_version pin WARNS instead of degrading silently",
+        any("NOT pinned" in w for w in _unpinned_task.logger.warnings),
+        str(_unpinned_task.logger.warnings),
+    )
+    check(
+        "and still returns a usable client rather than None",
+        _returned == "sentinel-client",
+        repr(_returned),
+    )
+except Exception as exc:
+    check("an absent api_version pin WARNS instead of degrading silently", False,
+          f"driver raised {type(exc).__name__}: {exc}")
+
 # ---------------------------------------------------------------------------
 # 2. Name normalisation. A comma-separated CLI string used to become ONE name.
 # ---------------------------------------------------------------------------
@@ -194,64 +292,6 @@ except TypeError:
 # ⚠ Exercise the TASK CALL SITES, not just the helper. Deleting the process_bool_arg
 # call from either task leaves the three checks above green while "false" once again
 # reaches the payload as a truthy string.
-
-
-class _SilentLogger:
-    def info(self, *a, **k):
-        pass
-
-    def warning(self, *a, **k):
-        pass
-
-    def error(self, *a, **k):
-        pass
-
-
-class _CapturingLogger:
-    """
-    Records what a task told the operator, per level.
-
-    ⚠ Interpolate %-style args. Both task modules mix f-strings with lazy
-    `logger.info("  %s (%d): %s", ut, len(dts), ...)` formatting, and capturing only the
-    template would silently drop every value — a check on the rendered text would then be
-    asserting against `%s` placeholders and passing for the wrong reason.
-    """
-
-    def __init__(self):
-        self.infos = []
-        self.warnings = []
-        self.errors = []
-        self.debugs = []
-
-    @staticmethod
-    def _render(msg, args):
-        """
-        Render exactly as stdlib logging does — including RAISING on a bad format.
-
-        ⚠ Do NOT swallow the error. `LogRecord.getMessage()` is `msg % self.args` and raises
-        on a mismatch; verified: `LogRecord(..., "Refresh queued for %d", ("A_Table",))`
-        raises TypeError. Returning the raw template instead would let a malformed
-        production call PASS a substring assertion, because the literal half of the template
-        survives — `"Refresh queued for %d"` still contains "Refresh queued". A test double
-        that is more forgiving than production hides exactly the bug it should surface.
-
-        ⚠ Skipping interpolation when args is empty is stdlib behaviour, not a divergence:
-        `LogRecord(..., "100%% sure", ())` renders "100%% sure" unchanged. Verified.
-        """
-        text = str(msg)
-        return text % args if args else text
-
-    def info(self, msg, *a, **k):
-        self.infos.append(self._render(msg, a))
-
-    def warning(self, msg, *a, **k):
-        self.warnings.append(self._render(msg, a))
-
-    def error(self, msg, *a, **k):
-        self.errors.append(self._render(msg, a))
-
-    def debug(self, msg, *a, **k):
-        self.debugs.append(self._render(msg, a))
 
 
 class _Recorder:
@@ -340,9 +380,9 @@ STATUS_CASES = [
 QUEUE_FAILURE_MESSAGE = "Failed to queue a refresh"
 
 
-def manage_counts_success(response):
+def manage_result_for(response):
     """
-    Drive ManageDecisionTables._refresh_decision_tables; report whether it counted a queue.
+    Drive ManageDecisionTables._refresh_decision_tables; return (logger, counted_a_queue).
 
     ⚠ Assert on the REASON, not merely that something raised. A bare
     `except Exception: return False` returns the expected answer for every not-queued case
@@ -350,20 +390,27 @@ def manage_counts_success(response):
     reads exactly like a working fail-closed gate, so most of these checks would pass under
     a total breakage. Anything that is not the queue-failure exception is re-raised for the
     caller to record as a FAIL.
+
+    ⚠ Returns the logger as well as the verdict, and the caller asserts on BOTH. An earlier
+    version discarded the log entirely, so the manual task could announce a queue for the
+    wrong table with a fabricated status and every check stayed green — the same hole round 6
+    closed on the build path, left open on this one. That asymmetry is this branch's most
+    persistent shape: fix one class, leave the sibling lying.
     """
     task = object.__new__(ManageDecisionTables)
     task.options = {"developer_names": "A_Table", "is_incremental": False}
-    task.logger = _SilentLogger()
+    logger = _CapturingLogger()
+    task.logger = logger
     task.org_config = object()
     task._sf_client = object()
     task._refresh_single_decision_table = lambda sf, name, inc: response
     try:
         ManageDecisionTables._refresh_decision_tables(task)
-        return True  # no raise => fail_count was 0 => it counted a queue
+        return logger, True  # no raise => fail_count was 0 => it counted a queue
     except Exception as exc:
         if QUEUE_FAILURE_MESSAGE not in str(exc):
             raise
-        return False
+        return logger, False
 
 
 def refresh_logs_for(response):
@@ -397,8 +444,26 @@ for response, should_queue, label in STATUS_CASES:
 
     manage_label = f"ManageDecisionTables treats {label} as {verdict}"
     try:
-        got = manage_counts_success(response)
+        manage_logs, got = manage_result_for(response)
         check(manage_label, got is should_queue, f"counted queued={got}")
+
+        # ⚠ Symmetric with the build path below. Round 6 pinned the announcement on
+        # RefreshDecisionTable and left this class asserting nothing about its own log, so it
+        # could announce a queue for the wrong table with a fabricated status and stay green.
+        # Both classes now get the same two checks.
+        manage_announced = any("Refresh queued" in m for m in manage_logs.infos)
+        check(
+            f"ManageDecisionTables announces a queue for {label} ONLY when it queued",
+            manage_announced is should_queue,
+            f"announced={manage_announced} infos={manage_logs.infos}",
+        )
+        if should_queue:
+            manage_status = ((response.get("outputValues") or {}).get("Status") or "").strip()
+            check(
+                f"the manage {label} announcement names the table and the rendered status",
+                any("A_Table" in m and f"Status: {manage_status}" in m for m in manage_logs.infos),
+                str(manage_logs.infos),
+            )
     except Exception as exc:
         check(manage_label, False, f"unexpected {type(exc).__name__}: {exc}")
 
@@ -437,12 +502,22 @@ for response, should_queue, label in STATUS_CASES:
 # `or 'Unknown'` placed before .strip() never fires and the operator message renders a
 # blank where the status belongs — at the exact moment the gate is trying to explain
 # itself. Both classes normalise identically; this pins the rendering, not just the verdict.
-blank_status_errors = refresh_logs_for({"isSuccess": True, "outputValues": {"Status": "   "}}).errors
-check(
-    "a whitespace-only Status renders as Unknown, not blank",
-    bool(blank_status_errors) and "Unknown" in blank_status_errors[0],
-    str(blank_status_errors),
-)
+#
+# ⚠ GUARDED, like every other driver call. `_render` raises on a bad format (deliberately —
+# it matches LogRecord.getMessage()), and an unguarded driver at module level turns that raise
+# into an abort that silently drops every check below it. Measured: one malformed log call on a
+# driven path stopped the run at 60 of 71, and the 11 lost were the entire flow-shape section —
+# the checks guarding the very wiring defect this branch exists to fix.
+try:
+    blank_status_errors = refresh_logs_for({"isSuccess": True, "outputValues": {"Status": "   "}}).errors
+    check(
+        "a whitespace-only Status renders as Unknown, not blank",
+        bool(blank_status_errors) and "Unknown" in blank_status_errors[0],
+        str(blank_status_errors),
+    )
+except Exception as exc:
+    check("a whitespace-only Status renders as Unknown, not blank", False,
+          f"driver raised {type(exc).__name__}: {exc}")
 
 # ⚠ The two classes carry SEPARATE copies of the async guidance, and "the build path and the
 # manual path said different things" was round 2's top finding. A comment saying they must not
@@ -457,37 +532,29 @@ GUIDANCE_START = "Completion is asynchronous;"
 _QUEUED = {"isSuccess": True, "outputValues": {"Status": "Queued"}}
 
 
-def manage_logs_for(response):
-    """Drive ManageDecisionTables._refresh_decision_tables and return what it logged."""
-    task = object.__new__(ManageDecisionTables)
-    task.options = {"developer_names": "A_Table", "is_incremental": False}
-    logger = _CapturingLogger()
-    task.logger = logger
-    task.org_config = object()
-    task._sf_client = object()
-    task._refresh_single_decision_table = lambda sf, name, inc: response
-    try:
-        ManageDecisionTables._refresh_decision_tables(task)
-    except Exception as exc:
-        if QUEUE_FAILURE_MESSAGE not in str(exc):
-            raise
-    return logger
-
-
 def _guidance(logger):
+    """Return the guidance clause of the first info line that carries it, else None."""
     for message in logger.infos:
-        if GUIDANCE_START in message:
-            return message[message.index(GUIDANCE_START):]
+        _, marker, tail = message.partition(GUIDANCE_START)
+        if marker:
+            return marker + tail
     return None
 
 
-_manage_guidance = _guidance(manage_logs_for(_QUEUED))
-_refresh_guidance = _guidance(refresh_logs_for(_QUEUED))
-check(
-    "both classes render byte-identical async guidance",
-    _manage_guidance is not None and _manage_guidance == _refresh_guidance,
-    f"manage={_manage_guidance!r} refresh={_refresh_guidance!r}",
-)
+# ⚠ GUARDED — see the note above the whitespace driver. These two calls previously sat bare at
+# module level, so a `_render` raise here aborted the file and took the whole flow-shape section
+# with it.
+try:
+    _manage_guidance = _guidance(manage_result_for(_QUEUED)[0])
+    _refresh_guidance = _guidance(refresh_logs_for(_QUEUED))
+    check(
+        "both classes render byte-identical async guidance",
+        _manage_guidance is not None and _manage_guidance == _refresh_guidance,
+        f"manage={_manage_guidance!r} refresh={_refresh_guidance!r}",
+    )
+except Exception as exc:
+    check("both classes render byte-identical async guidance", False,
+          f"driver raised {type(exc).__name__}: {exc}")
 
 # ---------------------------------------------------------------------------
 # 4. Flow shape. A draft of this very change created a duplicate step key, and
@@ -640,14 +707,35 @@ KNOWN_UNDECLARED = {
 # it claims to validate does not resolve. Measured by both reviewers in round 6: zero failures.
 # A chain rooted at an UNKNOWN namespace was always caught; the hole was chains rooted at a
 # name the check recognises. Anything beyond <namespace>.<attribute> is now rejected outright.
+# ⚠ Dot notation is not the only way to reach a name, and the forms the scan cannot parse are
+# the ones that vanish from validation entirely. `project_config["project__custom__ts0"]`,
+# `org_config["scrtch"]` and a bare `commmerce` produce ZERO matches for the dotted-run pattern,
+# so bad_refs stays empty while Jinja2 resolves each to a falsy undefined and silently skips the
+# step. Verified live 2026-07-27: all three evaluate to None. Same false-negative class as the
+# 3-deep chain, not the known safe-direction string/float false positive.
+#
+# So: fail closed on ANY identifier the dotted-run scan did not consume. Spans are tracked rather
+# than names, because a bare `tso` alongside a valid `...project__custom__tso` would otherwise be
+# excused by sharing a segment name.
+STRING_LITERAL = re.compile(r"'[^']*'|\"[^\"]*\"")
+IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
+JINJA_RESERVED = {"and", "or", "not", "in", "is", "if", "else", "true", "false", "none"}
+
 bad_refs = {}
 seen_undeclared = set()
 for flow_name, flow in (cci.get("flows") or {}).items():
     for key, step in ((flow or {}).get("steps") or {}).items():
-        expr = (step or {}).get("when") or ""
-        if not expr:
+        raw_expr = (step or {}).get("when") or ""
+        if not raw_expr:
             continue
-        for run in re.findall(r"\b\w+(?:\.\w+)+", expr):
+        # Blank out string literals so a quoted comparand ("Developer Edition") is not read as
+        # an unresolved name. Substituting spaces keeps every other offset intact.
+        expr = STRING_LITERAL.sub(lambda m: " " * len(m.group(0)), raw_expr)
+
+        consumed_spans = []
+        for match in re.finditer(r"\b\w+(?:\.\w+)+", expr):
+            consumed_spans.append(match.span())
+            run = match.group(0)
             segments = run.split(".")
             if len(segments) > 2:
                 bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
@@ -669,6 +757,19 @@ for flow_name, flow in (cci.get("flows") or {}).items():
                     seen_undeclared.add((flow_name, key, flag))
                     continue
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(run)
+
+        # Anything identifier-shaped that the dotted-run scan did not cover: a bracketed
+        # subscript, a bare name, or any access form this check cannot parse. Fail closed —
+        # an unsupported form must not be able to disappear from validation.
+        for match in IDENTIFIER.finditer(expr):
+            if any(start <= match.start() < end for start, end in consumed_spans):
+                continue
+            if match.group(0).lower() in JINJA_RESERVED:
+                continue
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{match.group(0)} (bare or bracketed name in {raw_expr!r}; "
+                "not a resolvable <namespace>.<attribute>)"
+            )
 
 check(
     f"every when: across all {len(cci.get('flows') or {})} flows resolves to a real name",
@@ -698,7 +799,14 @@ desc = cci["tasks"]["refresh_dt_commerce"]["description"]
 check("description mentions tso", "tso" in desc.lower(), desc)
 
 print("\n" + "=" * 60)
-if failures:
-    print(f"{len(failures)} FAILED: {', '.join(failures)}")
+if len(run_labels) < MINIMUM_CHECKS:
+    print(
+        f"TRUNCATED: only {len(run_labels)} of at least {MINIMUM_CHECKS} checks ran. "
+        "Something aborted the module — the checks BELOW the abort never executed, so a "
+        "green-looking partial run proves nothing. Fix the abort, do not lower the floor."
+    )
     sys.exit(1)
-print("All decision-table task checks passed.")
+if failures:
+    print(f"{len(failures)} FAILED ({len(run_labels)} ran): {', '.join(failures)}")
+    sys.exit(1)
+print(f"All {len(run_labels)} decision-table task checks passed.")
