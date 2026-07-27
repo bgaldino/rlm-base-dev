@@ -22,10 +22,31 @@
  * - Maintain referential integrity
  * - Handle complex multi-level hierarchies
  * 
+ * ⚠ Sharing: `without sharing`, declared deliberately rather than left implicit.
+ * The invocable's job is to clear an account's ENTIRE related graph so a demo
+ * account can be rebuilt, and that graph routinely contains records owned by
+ * other users — the integration user, an admin, another persona. Under
+ * `with sharing` a non-admin assignee would delete only the records they can
+ * see and silently leave the rest, producing a half-reset account that looks
+ * successful: worse than refusing. The repo's Apex rules permit `without
+ * sharing` for exactly this case provided the reason is documented, which is
+ * what this note is. Access is instead controlled at the grant: the class is
+ * reachable only through RLM_UtilitiesPermset, which is assigned deliberately
+ * and kept separate from the component permission sets for this reason.
+ *
+ * Previously this class declared NO sharing keyword, so it inherited whichever
+ * context called it. An omitted keyword is NOT equivalent to `without sharing` in
+ * general — from a `with sharing` caller it would have run WITH sharing. It is
+ * equivalent for this class's actual callers, which is why pinning it changes
+ * nothing today: every production entry is the Flow invocable, and the only Apex
+ * caller is RLM_AccountUtilitiesTest, itself `without sharing`. Adding a caller
+ * that runs with sharing would previously have silently changed the reset's
+ * behaviour; now it cannot.
+ *
  * @author John Rozsits, Brian Galdino, Anthropic Claude 4 Sonnet
  * @date 2025-06-10
  */
-public class RLM_AccountUtilities {
+public without sharing class RLM_AccountUtilities {
     // Constants
     private static final Integer BATCH_SIZE = 200;
 

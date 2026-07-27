@@ -298,6 +298,8 @@ that topic.
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
+| Refresh/diagnose/verify **decision tables**; wire an automatic refresh at the right moment; why a lookup is stale | `.cursor/skills/decision-tables/SKILL.md` |
+| Find, claim, or close a durable **todo** across workstations and agents (`/rlm-todos`) | `.cursor/skills/todo-tracker/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -340,6 +342,7 @@ Read the sub-file only when you need that specific detail:
 | `repo-integration/dependency-ordering.md` | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map |
 | `robot-testing/patterns.md` | Robot Testing | Shadow DOM code, keyword reference, test authoring |
 | `robot-testing/setup-ui-shadow-dom.md` | Robot Testing | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
+| `audit-review/external-review-briefing.md` | Audit Review | Commissioning a review from another agent/model: local-ref framing, the do-not-re-report list, per-feature severity, adjudicating two reviewers, artifact naming that keeps their reports distinct |
 | `repo-integration/ux-assembly-retrieve.md` | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow |
 | `cci-orchestration/custom-task-authoring.md` | CCI Orchestration | Python task class patterns and examples |
 | `cci-orchestration/tasks-reference.md` | CCI Orchestration | Auto-generated task listing (regenerate after edits) |

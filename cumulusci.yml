@@ -255,6 +255,7 @@ project:
       - ERIBasic
       - RLM_UtilitiesPermset
       - RLM_ExpressionSetManager
+      - RLM_DecisionTableManager
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -327,6 +328,17 @@ project:
       # invocable deletes account-related orders/assets/contracts/invoices —
       # destructive access this component does not need.
       - RLM_ExpressionSetManager
+
+    ps_decision_table_manager: &ps_decision_table_manager
+      # Decision Table Manager component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Deliberately NOT
+      # RLM_UtilitiesPermset, for the same reason as the Expression Set Manager:
+      # that set grants RLM_AccountUtilities' destructive invocable, which
+      # refreshing a decision table does not need. Grants class access only —
+      # the objects the controller reads are either not perm-set-grantable
+      # (DecisionTable, DecisionTableSourceCriteria, Organization) or already
+      # granted by the standard Revenue Cloud sets (CalculationMatrix).
+      - RLM_DecisionTableManager
 
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
@@ -2385,6 +2397,21 @@ tasks:
     options:
       path: scripts/apex/validateMulticurrencyRates.apex
 
+  check_decision_table_freshness:
+    group: Revenue Lifecycle Management
+    description: >
+      Report every decision table's freshness verdict headlessly — the same
+      comparison the Decision Table Manager component shows, without a browser.
+      A table is Stale when any object it reads changed after its last full sync,
+      including objects it only pulls columns from. "Not comparable" means the
+      check refused to guess (usually an unreproducible source criterion), which
+      is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale
+      table — off by default, because a build that loads data after its refresh
+      step will legitimately show stale tables. Requires post_utils deployed.
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
+    options:
+      path: scripts/apex/checkDecisionTableFreshness.apex
+
   validate_billing_structure:
     group: Revenue Lifecycle Management
     description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
@@ -3902,6 +3929,15 @@ flows:
         options:
           api_names: *ps_account_utilities
       7:
+        # And the third: the Decision Table Manager on the Home page. Without
+        # this its accordion section renders for a persona user and every action
+        # fails on Apex class access. The tso flow assigns it via
+        # rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_decision_table_manager
+      8:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:

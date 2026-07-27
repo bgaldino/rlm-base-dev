@@ -32,7 +32,13 @@
 
 manifest_version: 2
 generated_at: "2026-05-23T00:00:00Z"
-last_verified: "2026-05-23"
+# ⚠ last_verified means someone RESOLVED every path in this file against the working
+# tree, not that they read it. The 2026-05-23 stamp did not survive that test: two
+# skills present since April and May were unlisted, the postman collection filenames
+# had never existed, and the prior-GA help corpus pointed at a directory that has
+# never been committed on any branch. `skill_manifest.py --check` does not catch any
+# of that — it resolves repo roots only. Re-stamp only after auditing the paths.
+last_verified: "2026-07-26"
 salesforce_release_active: "262"
 salesforce_release_prior_ga: "260"
 api_version_active: "v67.0"
@@ -156,6 +162,46 @@ foundations:
       caveats:
         - "Pinned to Release 262 / API v67.0"
         - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
+
+    - id: pricing-wiring
+      path: .cursor/skills/pricing-wiring/SKILL.md
+      purpose: "Setup order and layering for pricing that spans recipes, recipe table mappings, pricing procedures (Expression Sets), procedure plans and plan overlays — written generically so a feature pack can reuse the pattern without redesigning the order"
+      consumed_by_pmos: []
+      provenance: hand-authored from the PRM pricing layering work
+      caveats:
+        - "Pinned to Release 262 / API v67.0"
+        - "A decision-table-backed lookup must be refreshed when its source CRITERIA become true, not when the triggering row is written — see decision-tables"
+
+    - id: build-harness
+      path: .cursor/skills/build-harness/SKILL.md
+      purpose: "Local build harness for prepare_rlm_org: profiling and test runs, .harness/runs artifacts, checkpoint resume, and the CCI Build Manager TUI including its scratch-org creation path"
+      consumed_by_pmos: []
+      provenance: hand-authored from scripts/build_harness
+      tooling:
+        - scripts/build_harness
+      caveats:
+        - "Local-only tooling; run artifacts under .harness/ are not tracked"
+
+    - id: decision-tables
+      path: .cursor/skills/decision-tables/SKILL.md
+      purpose: "Decision tables as caches with no invalidation: refreshing, headless freshness verdicts, the criteria-timing rule for automatic refreshes, and the platform facts (setup-object DML, Flow/REST-only refresh action, DomainObject's 'null' string and multi-hop FieldPath) that each cost a debugging cycle"
+      consumed_by_pmos: []
+      provenance: hand-authored from RLM_DecisionTableManagerController + live verification on a scratch org (40 tables) + the PR #315 timing regression
+      tooling:
+        - scripts/apex/checkDecisionTableFreshness.apex
+      caveats:
+        - "Pinned to Release 262 / API v67.0"
+        - "check_decision_table_freshness requires post_utils deployed; it delegates to RLM_DecisionTableManagerController rather than recomputing freshness"
+        - "A table's OWN row count is not queryable — DecisionTableDataset/Recordset reject aggregates and partial filters. Only source counts exist"
+
+    - id: todo-tracker
+      path: .cursor/skills/todo-tracker/SKILL.md
+      purpose: "Durable work items across three workstations and multiple agents: the claim-before-you-work protocol whose push is the lock, enforced closeout, and the public-issue vs private-pack split"
+      consumed_by_pmos: []
+      provenance: hand-authored alongside the tracker itself
+      caveats:
+        - "The packs live in the PRIVATE rlm-base-artifacts repo, cloned to .agents/artifacts/. Without that clone the tooling does not exist on the workstation"
+        - "bgaldino/rlm-base-dev is PUBLIC — GitHub issues carry public-safe summaries only"
 
     - id: context-service
       path: .cursor/skills/context-service/SKILL.md
@@ -343,9 +389,15 @@ foundations:
       refresh_task: snapshot_salesforce_help
 
     help_corpus_prior_ga:
-      path: docs/salesforce/260/help/articles/
-      manifest: docs/salesforce/260/help/manifest.json
+      # ⚠ NOT CAPTURED. This advertised docs/salesforce/260/help/{articles,manifest.json}
+      # until 2026-07-26; neither path has ever existed, on main or on release/260 or
+      # anywhere in history. A consumer resolving it got a miss, not prior-GA content.
+      # docs/salesforce/260/ holds only feature-index.md and release-notes-pricing.md.
+      # Run snapshot_salesforce_help against a 260 org to populate it, then restore the
+      # path/manifest keys.
+      status: not_captured
       release: "260"
+      partial: docs/salesforce/260/feature-index.md
 
     erd_data:
       path: docs/erds/erd-data.json
@@ -391,9 +443,11 @@ foundations:
       flags: .cursor/skills/cci-orchestration/feature-flags.md
       refresh_script: scripts/ai/generate_cci_reference.py
 
+    # Corrected 2026-07-26: the two filenames advertised here never existed in postman/.
     postman_collections:
-      - postman/Salesforce_RLM_v260.postman_collection.json
-      - postman/Revenue_Cloud_Advanced.postman_collection.json
+      - postman/Agentforce Revenue Management APIs.postman_collection.json
+      - postman/Agentforce Revenue Management APIs (v66.0).postman_collection.json
+    postman_environment: postman/Agentforce Revenue Management v66.0.postman_environment.json
     postman_v67_status: needs_refresh
 
 # ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──

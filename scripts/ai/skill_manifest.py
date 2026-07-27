@@ -522,7 +522,71 @@ def _cli_check(manifest: dict[str, Any]) -> int:
         else:
             tag = "OK-OPT" if is_optional else "OK"
             print(f"  [{tag:6s}] {key}: {resolved.path}")
-    return 0 if overall_ok else 1
+
+    return 0 if _audit_foundations(manifest) and overall_ok else 1
+
+
+def _audit_foundations(manifest: dict[str, Any]) -> bool:
+    """Resolve what the Foundations section CLAIMS against the working tree.
+
+    ⚠ Clone discovery succeeding says nothing about whether the manifest is true.
+    Before this audit existed, ``--check`` printed OK for two months while two
+    skills present since April and May went unadvertised, the postman collection
+    filenames named files that had never existed, and the prior-GA help corpus
+    pointed at a directory never committed on any branch. A check that cannot
+    fail is not a check.
+
+    PMOS is deliberately not audited: its clone is optional and usually absent,
+    so every path would miss for a reason that is not drift.
+    """
+    section = manifest.get("foundations", {})
+    resolved: RepoLocation | None = section.get("_resolved")
+    if resolved is None or resolved.path is None:
+        return True  # nothing to audit against; the clone check already reported it
+    root = Path(resolved.path)
+
+    problems: list[str] = []
+
+    def exists(rel: str) -> bool:
+        # Braces mark a template ({release}), which cannot be resolved here.
+        return "{" in rel or (root / rel).exists()
+
+    declared = {s.get("id") for s in section.get("skills", []) or []}
+    for entry in section.get("skills", []) or []:
+        for rel in [entry.get("path")] + list(entry.get("sub_skills") or []) + list(
+            entry.get("tooling") or []
+        ):
+            if rel and not exists(rel):
+                problems.append(f"skill {entry.get('id')}: missing {rel}")
+
+    on_disk = {p.parent.name for p in sorted(root.glob(".cursor/skills/*/SKILL.md"))}
+    for name in sorted(on_disk - declared):
+        problems.append(f"{name}: has a SKILL.md but is not declared — agents cannot discover it")
+
+    for name, entry in (section.get("grounding") or {}).items():
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("status") == "not_captured":
+            continue  # declared absent on purpose
+        for field in ("path", "manifest", "index"):
+            rel = entry.get(field)
+            if rel and not exists(rel):
+                problems.append(f"grounding {name}.{field}: missing {rel}")
+
+    for rel in (section.get("grounding") or {}).get("postman_collections", []) or []:
+        if not exists(rel):
+            problems.append(f"grounding postman_collections: missing {rel}")
+
+    print()
+    if problems:
+        print(f"  [ERROR] foundations manifest does not match the working tree "
+              f"({len(problems)} problem(s)):")
+        for problem in problems:
+            print(f"          - {problem}")
+        return False
+    print(f"  [OK    ] foundations manifest matches the working tree "
+          f"({len(declared)} skills declared, all paths resolve)")
+    return True
 
 
 def _cli_list_skills(manifest: dict[str, Any], repo: str) -> int:

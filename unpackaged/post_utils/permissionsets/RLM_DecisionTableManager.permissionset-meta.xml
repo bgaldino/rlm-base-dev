@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Everything the rlmDecisionTableManager component needs, and nothing else.
+
+      Deliberately separate from RLM_UtilitiesPermset: that set also grants
+      RLM_AccountUtilities, whose invocable deletes account-related orders,
+      assets, contracts, invoices, quotes and opportunities. Assigning it just to
+      let someone refresh a decision table would hand them destructive Apex
+      access, so this component gets its own least-privilege set — the same
+      reasoning that gave RLM_ExpressionSetManager its own.
+    -->
+    <classAccesses>
+        <apexClass>RLM_DecisionTableManagerController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!--
+      No objectPermissions, and that is the correct answer rather than an
+      omission. Verified on a live org (2026-07-26, rlm-base__usagetest) against
+      every object the controller's USER_MODE queries read:
+
+      - DecisionTable, DecisionTableSourceCriteria and Organization hold ZERO
+        ObjectPermissions rows org-wide, so object perms on them are silently
+        dropped on deploy and their read is governed by platform/setup access,
+        not perm-set object perms. Same class of platform entity as the
+        ContextDefinition/ExpressionSetDefinition exception documented in
+        RLM_ExpressionSetManager.
+      - CalculationMatrix (read for the Lookup Type field) DOES model object
+        perms, and read is already granted by the standard Revenue Cloud sets a
+        build assigns anyway — RLM_PSL, RLM_NGP, RLM_PCM, RLM_USG,
+        RLM_Product_and_Pricing_Admin, RLM_Sales_Operations and the
+        UnifiedCatalog PSLs. Re-granting it here would duplicate an existing
+        grant for no gain, and an over-grant is its own audit finding.
+
+      No fieldPermissions either: every field these queries select is
+      permissionable=false, so object access covers them. Declaring them would
+      fail to deploy or over-grant.
+
+      If CalculationMatrix read is ever missing, the component degrades honestly
+      — loadLookupTypes swallows the failure and the Lookup Type row is omitted
+      from the details pane rather than showing a wrong value.
+    -->
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Decision Table Manager</label>
+</PermissionSet>

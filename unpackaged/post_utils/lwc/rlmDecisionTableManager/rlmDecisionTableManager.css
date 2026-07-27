@@ -1,0 +1,348 @@
+/*
+ * Styling for rlmDecisionTableManager.
+ *
+ * The flow this component replaces could not be styled at all: the Flow datatable
+ * ignores column cellAttributes, so row text stayed at its default size and long
+ * API names wrapped to three lines in a narrow region. Owning the markup is what
+ * makes the type scale and the column behaviour controllable here.
+ */
+
+.dtm-card {
+    container-type: inline-size;
+}
+
+/* Summary tiles ------------------------------------------------------------ */
+
+.dtm-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e5e5;
+    border-left: 3px solid #c9c7c5;
+    border-radius: 0.25rem;
+    background: #ffffff;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.dtm-tile:hover,
+.dtm-tile:focus {
+    background: #f3f3f3;
+}
+
+.dtm-tile.is-active {
+    background: #eef4ff;
+    border-color: #0176d3;
+}
+
+.dtm-tile__count {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-weight: 600;
+    color: #181818;
+}
+
+.dtm-tile__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5c5c5c;
+}
+
+/* Accent per verdict, so the counts read at a glance rather than by label. */
+.dtm-tile_total { border-left-color: #0176d3; }
+.dtm-tile_fresh { border-left-color: #2e844a; }
+.dtm-tile_stale { border-left-color: #ba0517; }
+/* Neutral, not amber: the in-cell verdict renders grey because SLDS ships no global
+   warning text colour and component CSS cannot reach into lightning-datatable's
+   shadow DOM. The tile matches what the rows can actually show. */
+.dtm-tile_unclear { border-left-color: #939393; }
+
+/* Table -------------------------------------------------------------------- */
+
+/*
+ * Smaller row text than the SLDS default. This is the change the Flow datatable
+ * silently ignored; here it applies because the markup is ours.
+ */
+.dtm-table {
+    --slds-c-datatable-cell-font-size: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.dtm-table-wrap {
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+}
+
+/*
+ * No per-cell verdict colours here. Component-scoped CSS does not cross into
+ * lightning-datatable's shadow DOM — classes defined in this file rendered every
+ * cell default grey. The columns use global SLDS classes instead
+ * (slds-text-color_success + slds-current-color, so the icon inherits the text
+ * colour), which is why there is nothing to define locally.
+ */
+
+/*
+ * Narrow containers: the component is usable in a sidebar region even though the
+ * main region is where it belongs. Stacking the tiles keeps the counts legible
+ * instead of crushing four across.
+ */
+@container (max-width: 480px) {
+    .dtm-tile__count {
+        font-size: 1.1rem;
+    }
+    .dtm-tile__label {
+        font-size: 0.65rem;
+    }
+}
+
+/* Row details ------------------------------------------------------------- */
+
+/*
+ * Unlike the table, this markup is the component's own, so these styles actually
+ * apply — nothing here has to cross a base component's shadow DOM. That is what
+ * makes real verdict colour possible in the panel but not in the datatable cells.
+ */
+
+.dtm-detail__header {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+/* Sits beside the API name in the header rather than taking its own block. */
+.dtm-detail__api {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+}
+
+/*
+ * A flex item will not shrink below its min-content width without this, so the
+ * long API name was setting a floor on the header's width and pushing the whole
+ * modal wider than a narrow viewport — the panel overflowed sideways and the chip
+ * was clipped off the left edge. min-width:0 lets overflow-wrap on .dtm-code
+ * actually break the name instead.
+ */
+.dtm-detail__api > * {
+    min-width: 0;
+}
+
+.dtm-detail__desc {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #5c5c5c;
+}
+
+/* Verdict banner ----------------------------------------------------------- */
+
+.dtm-verdict {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.25rem;
+    border-left: 4px solid currentColor;
+    margin-bottom: 0.75rem;
+}
+
+.dtm-verdict__icon {
+    flex: 0 0 auto;
+    margin-top: 0.0625rem;
+}
+
+.dtm-verdict__body {
+    min-width: 0;
+}
+
+.dtm-verdict__label {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: currentColor;
+}
+
+/* The reason is the part people act on, so it stays neutral and readable rather
+   than inheriting the banner's accent colour. */
+.dtm-verdict__reason {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #3e3e3c;
+    margin-top: 0.125rem;
+}
+
+.dtm-verdict_fresh { color: #2e844a; background: #ebf7ee; }
+.dtm-verdict_stale { color: #ba0517; background: #fdeced; }
+.dtm-verdict_unclear { color: #5c5c5c; background: #f3f3f3; }
+
+/* Stat strip --------------------------------------------------------------- */
+
+.dtm-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.dtm-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+    background: #fafaf9;
+    min-width: 0;
+}
+
+.dtm-stat__label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5c5c5c;
+}
+
+.dtm-stat__value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #181818;
+}
+
+/* Dates need to fit three-across without truncating, so they run smaller than a
+   bare count does. */
+.dtm-stat__value_date {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.dtm-stat__value_none {
+    color: #939393;
+    font-weight: 500;
+}
+
+.dtm-stat__note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: #5c5c5c;
+}
+
+/* Definition grid ---------------------------------------------------------- */
+
+.dtm-section-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5c5c5c;
+    padding-bottom: 0.1875rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+/* Three across, not two. The values are short, and the extra column is what buys
+   the vertical room to fit without a scrollbar. */
+.dtm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.625rem 1rem;
+    margin-bottom: 0.875rem;
+}
+
+.dtm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.dtm-field__label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5c5c5c;
+}
+
+.dtm-field__value {
+    font-size: 0.8125rem;
+    color: #181818;
+    overflow-wrap: anywhere;
+}
+
+.dtm-field__icon {
+    margin-right: 0.25rem;
+    color: #5c5c5c;
+}
+
+.dtm-field__note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: #5c5c5c;
+}
+
+/* Callouts ----------------------------------------------------------------- */
+
+.dtm-callout {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    border-left: 3px solid #939393;
+    background: #f3f3f3;
+    margin-bottom: 0.75rem;
+}
+
+.dtm-callout__title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #181818;
+    margin-bottom: 0.25rem;
+}
+
+.dtm-callout__note {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: #5c5c5c;
+    margin-top: 0.375rem;
+}
+
+/* Applied criteria scoped the verdict; unapplied ones explain why there is none.
+   Different meanings, so different accents. */
+.dtm-callout_applied { border-left-color: #2e844a; background: #ebf7ee; }
+.dtm-callout_muted { border-left-color: #939393; background: #f3f3f3; }
+.dtm-callout_error { border-left-color: #ba0517; background: #fdeced; }
+
+.dtm-criteria {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Narrow viewports: the modal is a fixed overlay, so it is outside .dtm-card and
+   a container query would never fire — this has to be a media query. */
+/* The modal is a fixed overlay, so it sits outside .dtm-card and a container query
+   would never fire — this has to be a media query. Columns drop before text wraps,
+   because wrapping is what reintroduces the scrollbar. */
+@media (max-width: 1024px) {
+    .dtm-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .dtm-stats,
+    .dtm-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.dtm-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    background: #f3f3f3;
+    padding: 0.05rem 0.25rem;
+    border-radius: 0.15rem;
+    overflow-wrap: anywhere;
+}

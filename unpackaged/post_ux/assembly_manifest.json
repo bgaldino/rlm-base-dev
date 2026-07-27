@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-07-08T17:29:25.811495Z",
+  "assembled_at": "2026-07-26T20:22:55.312695Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -282,13 +282,7 @@
       "name": "RLM_Home_Page_Default.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Home_Page_Default.flexipage-meta.xml",
-      "patches": [
-        {
-          "feature": "utils",
-          "patch_type": "add_component",
-          "description": "add component: rlmExpressionSetManager"
-        }
-      ]
+      "patches": []
     },
     {
       "type": "flexipage",

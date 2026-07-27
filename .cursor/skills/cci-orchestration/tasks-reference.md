@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**272 tasks** across **10 groups**.
+**273 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*163 task(s)*
+*164 task(s)*
 
 ### `activate_agents`
 
@@ -1341,6 +1341,18 @@
 
 - `api_names`: `['RLM_Sales_Representative']`
 - `user_alias`: `salesrep`
+
+---
+
+### `check_decision_table_freshness`
+
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed after its last full sync, including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/checkDecisionTableFreshness.apex`
 
 ---
 

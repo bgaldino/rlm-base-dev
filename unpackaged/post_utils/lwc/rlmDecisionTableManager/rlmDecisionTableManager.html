@@ -1,0 +1,343 @@
+<template>
+    <article class="slds-card dtm-card">
+        <!-- Header -->
+        <div class="slds-card__header slds-grid slds-wrap slds-grid_vertical-align-center">
+            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:decision" size="small"></lightning-icon>
+                </div>
+                <div class="slds-media__body slds-has-flexi-truncate">
+                    <h2 class="slds-card__header-title">
+                        <span class="slds-text-heading_small">Decision Table Manager</span>
+                    </h2>
+                    <!-- ⚠ Keep this true to what the controller actually checks. It said
+                         "a table is stale when its SOURCE changed", which stopped being
+                         the whole rule once contributing objects and the template-spin
+                         check were added — and a header that overstates the check is the
+                         same defect as a verdict that does. -->
+                    <p class="slds-text-body_small slds-text-color_weak">
+                        Stale means something changed since the last full sync — in the table's own source
+                        or in any object it reads across. A sync older than this org means the table came
+                        from a template and has never been built here. Open a row for what was checked
+                        and what could not be.
+                    </p>
+                </div>
+            </header>
+            <div class="slds-no-flex">
+                <lightning-button-icon icon-name="utility:refresh" variant="border-filled"
+                    alternative-text="Reload table list" title="Reload table list"
+                    onclick={handleReload} disabled={isBusy}></lightning-button-icon>
+            </div>
+        </div>
+
+        <div class="slds-card__body slds-card__body_inner">
+
+            <!-- Summary tiles -->
+            <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_small">
+                <template for:each={summaryTiles} for:item="tile">
+                    <div key={tile.key}
+                         class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4 slds-p-bottom_x-small">
+                        <button type="button" class={tile.cssClass} data-verdict={tile.key}
+                                onclick={handleTileFilter} title={tile.help}>
+                            <span class="dtm-tile__count">{tile.count}</span>
+                            <span class="dtm-tile__label">{tile.label}</span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Refresh-in-progress banner -->
+            <template if:true={isPolling}>
+                <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_small" role="status">
+                    <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                        <div class="slds-col slds-grow">
+                            <span class="slds-text-body_small">{pollMessage}</span>
+                            <lightning-progress-bar value={pollProgress} size="small"
+                                variant="circular"></lightning-progress-bar>
+                        </div>
+                        <div class="slds-col slds-no-flex slds-p-left_small">
+                            <lightning-button label="Stop watching" variant="neutral"
+                                onclick={handleStopPolling}></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Error -->
+            <template if:true={errorMessage}>
+                <div class="slds-box slds-box_x-small slds-theme_error slds-m-bottom_small" role="alert">
+                    <span class="slds-text-body_small">{errorMessage}</span>
+                </div>
+            </template>
+
+            <!-- Toolbar -->
+            <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_x-small">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-p-bottom_x-small">
+                    <lightning-input type="search" label="Search" variant="label-hidden"
+                        placeholder="Search name, API name or source object"
+                        value={searchTerm} onchange={handleSearch}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_4-of-12 slds-p-bottom_x-small">
+                    <lightning-combobox label="Usage type" variant="label-hidden"
+                        value={usageTypeFilter} options={usageTypeOptions}
+                        onchange={handleUsageTypeFilter}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
+                    <lightning-input type="toggle" label="Incremental refresh"
+                        message-toggle-active="Incremental" message-toggle-inactive="Full refresh"
+                        checked={useIncremental} onchange={handleIncrementalToggle}></lightning-input>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_small">
+                <div class="slds-col slds-no-flex slds-p-right_x-small slds-p-bottom_x-small">
+                    <lightning-button variant="brand" label={refreshSelectedLabel}
+                        icon-name="utility:refresh" onclick={handleRefreshSelected}
+                        disabled={isRefreshSelectedDisabled}></lightning-button>
+                </div>
+                <div class="slds-col slds-no-flex slds-p-right_x-small slds-p-bottom_x-small">
+                    <lightning-button variant="neutral" label={refreshVisibleLabel}
+                        onclick={handleRefreshVisible} disabled={isRefreshVisibleDisabled}></lightning-button>
+                </div>
+                <div class="slds-col slds-no-flex slds-p-bottom_x-small">
+                    <lightning-button variant="neutral" label="Refresh stale only"
+                        onclick={handleRefreshStale} disabled={isRefreshStaleDisabled}></lightning-button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <template if:true={isLoading}>
+                <div class="slds-is-relative slds-p-around_large">
+                    <lightning-spinner alternative-text="Loading decision tables"
+                        size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasRows}>
+                    <div class="dtm-table-wrap">
+                        <lightning-datatable
+                            key-field="apiName"
+                            data={visibleRows}
+                            columns={columns}
+                            selected-rows={selectedApiNames}
+                            onrowselection={handleRowSelection}
+                            sorted-by={sortedBy}
+                            sorted-direction={sortedDirection}
+                            onsort={handleSort}
+                            onrowaction={handleRowAction}
+                            column-widths-mode="auto"
+                            hide-checkbox-column={isPolling}
+                            class="dtm-table">
+                        </lightning-datatable>
+                    </div>
+                    <p class="slds-text-body_small slds-text-color_weak slds-p-top_x-small">
+                        {rowCountSummary}
+                    </p>
+                </template>
+                <template if:false={hasRows}>
+                    <div class="slds-illustration slds-illustration_small slds-p-around_medium
+                                slds-text-align_center">
+                        <p class="slds-text-body_regular slds-text-color_weak">{emptyMessage}</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </article>
+
+    <!--
+      Row details. Ordered by the question people actually open this to answer:
+      the verdict first and in plain language, then the numbers behind it, then
+      what the table IS, then the criteria that scoped the comparison.
+
+      The target is no scrolling at the default modal size on a normal desktop —
+      that is why the definition fields are three across with their long
+      explanations moved into title tooltips rather than printed under each value,
+      and why the grid drops columns before its text wraps. An outlier with an
+      unusually long description or many criteria may still scroll, which is fine;
+      the common case should not. Anything added here spends vertical room, so
+      check it against a table with source criteria before assuming it fits.
+    -->
+    <template if:true={detailRow}>
+        <section role="dialog" tabindex="-1" aria-modal="true"
+                 aria-labelledby="dtm-detail-heading" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header dtm-detail__header">
+                    <h2 id="dtm-detail-heading" class="slds-modal__title slds-hyphenate">
+                        {detailRow.label}
+                    </h2>
+                    <p class="dtm-detail__api">
+                        <code class="dtm-code">{detailRow.apiName}</code>
+                        <template if:true={detailRow.description}>
+                            <span class="dtm-detail__desc">{detailRow.description}</span>
+                        </template>
+                    </p>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium dtm-detail">
+
+                    <!-- The verdict, stated before anything that qualifies it. -->
+                    <div class={detailVerdictClass}>
+                        <lightning-icon icon-name={detailRow.stalenessIcon} size="small"
+                            class="slds-current-color dtm-verdict__icon"
+                            alternative-text={detailRow.staleness}></lightning-icon>
+                        <div class="dtm-verdict__body">
+                            <p class="dtm-verdict__label">{detailRow.staleness}</p>
+                            <p class="dtm-verdict__reason">{detailRow.stalenessReason}</p>
+                        </div>
+                    </div>
+
+                    <!-- The three numbers the verdict is computed from. -->
+                    <div class="dtm-stats">
+                        <div class="dtm-stat" title={sourceRowCountExplanation}>
+                            <span class="dtm-stat__label">Source Rows</span>
+                            <template if:true={hasSourceRowCount}>
+                                <span class="dtm-stat__value">
+                                    <lightning-formatted-number
+                                        value={detailRow.sourceRowCount}></lightning-formatted-number>
+                                </span>
+                            </template>
+                            <template if:false={hasSourceRowCount}>
+                                <span class="dtm-stat__value dtm-stat__value_none">&mdash;</span>
+                            </template>
+                            <span class="dtm-stat__note">{sourceRowCountNote}</span>
+                        </div>
+
+                        <div class="dtm-stat" title={incrementalSyncNote}>
+                            <span class="dtm-stat__label">Last Full Sync</span>
+                            <template if:true={detailRow.lastSyncDate}>
+                                <span class="dtm-stat__value dtm-stat__value_date">
+                                    <lightning-formatted-date-time value={detailRow.lastSyncDate}
+                                        year="numeric" month="short" day="2-digit"
+                                        hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                </span>
+                            </template>
+                            <template if:false={detailRow.lastSyncDate}>
+                                <span class="dtm-stat__value dtm-stat__value_none">Never</span>
+                            </template>
+                            <span class="dtm-stat__note">{incrementalShortNote}</span>
+                        </div>
+
+                        <div class="dtm-stat">
+                            <span class="dtm-stat__label">Newest Source Change</span>
+                            <template if:true={detailRow.sourceNewestChange}>
+                                <span class="dtm-stat__value dtm-stat__value_date">
+                                    <lightning-formatted-date-time value={detailRow.sourceNewestChange}
+                                        year="numeric" month="short" day="2-digit"
+                                        hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                </span>
+                                <span class="dtm-stat__note">An older sync means stale.</span>
+                            </template>
+                            <template if:false={detailRow.sourceNewestChange}>
+                                <span class="dtm-stat__value dtm-stat__value_none">&mdash;</span>
+                                <span class="dtm-stat__note">Nothing to compare against.</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <template if:true={detailRow.refreshFailureReason}>
+                        <div class="dtm-callout dtm-callout_error">
+                            <p class="dtm-callout__title">Last refresh failed</p>
+                            <p class="dtm-callout__note">{detailRow.refreshFailureReason}</p>
+                        </div>
+                    </template>
+
+                    <!-- Three across, values only. The explanations live in title
+                         tooltips so the panel still fits without scrolling. -->
+                    <h3 class="dtm-section-title">Definition</h3>
+                    <div class="dtm-grid">
+                        <div class="dtm-field" title={dataSourceExplanation}>
+                            <span class="dtm-field__label">Source</span>
+                            <span class="dtm-field__value">{dataSourceSummary}</span>
+                        </div>
+
+                        <div class="dtm-field"
+                             title="Refreshing by usage type updates every table that shares this value.">
+                            <span class="dtm-field__label">Usage Type</span>
+                            <span class="dtm-field__value">
+                                <lightning-icon icon-name={detailRow.usageIcon} size="xx-small"
+                                    class="slds-current-color dtm-field__icon"
+                                    alternative-text=""></lightning-icon>
+                                {detailRow.usageType}
+                            </span>
+                        </div>
+
+                        <template if:true={hasContributingObjects}>
+                            <div class="dtm-field"
+                                 title="This table pulls columns across a lookup from these objects, so a
+                                        change in any of them can make it stale even though no row of its
+                                        own source object was touched. They are checked too.">
+                                <span class="dtm-field__label">Also Reads</span>
+                                <span class="dtm-field__value">{contributingObjectsLabel}</span>
+                            </div>
+                        </template>
+
+                        <template if:true={detailRow.lookupType}>
+                            <div class="dtm-field"
+                                 title="Decision matrices share this storage but are not listed here.">
+                                <span class="dtm-field__label">Lookup Type</span>
+                                <span class="dtm-field__value">{detailRow.lookupType}</span>
+                            </div>
+                        </template>
+
+                        <div class="dtm-field">
+                            <span class="dtm-field__label">Table Type</span>
+                            <span class="dtm-field__value">{tableTypeSummary}</span>
+                        </div>
+
+                        <div class="dtm-field">
+                            <span class="dtm-field__label">Matching</span>
+                            <span class="dtm-field__value">{matchingSummary}</span>
+                        </div>
+
+                        <div class="dtm-field">
+                            <span class="dtm-field__label">Status</span>
+                            <span class="dtm-field__value">{tableStatusSummary}</span>
+                        </div>
+
+                        <div class="dtm-field" title={incrementalTooltip}>
+                            <span class="dtm-field__label">Incremental Sync</span>
+                            <span class="dtm-field__value">{detailRow.incrementalLabel}</span>
+                        </div>
+
+                        <template if:true={detailRow.uploadStatus}>
+                            <div class="dtm-field">
+                                <span class="dtm-field__label">Upload Status</span>
+                                <span class="dtm-field__value">{detailRow.uploadStatus}</span>
+                            </div>
+                        </template>
+
+                        <template if:true={detailRow.dataSpaceName}>
+                            <div class="dtm-field">
+                                <span class="dtm-field__label">Data Space</span>
+                                <span class="dtm-field__value">{detailRow.dataSpaceName}</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <template if:true={hasDetailCriteria}>
+                        <h3 class="dtm-section-title">Source Criteria</h3>
+                        <div class={detailCriteriaClass} title={criteriaExplanation}>
+                            <p class="dtm-callout__title">{criteriaHeadline}</p>
+                            <ul class="dtm-criteria">
+                                <template for:each={detailCriteriaItems} for:item="criterion">
+                                    <li key={criterion.key}>
+                                        <code class="dtm-code">{criterion.text}</code>
+                                    </li>
+                                </template>
+                            </ul>
+                            <p class="dtm-callout__note">{criteriaShortNote}</p>
+                        </div>
+                    </template>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="brand" label="Close"
+                        onclick={handleCloseDetail}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+</template>
