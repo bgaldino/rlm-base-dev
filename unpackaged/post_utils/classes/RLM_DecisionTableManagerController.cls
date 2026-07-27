@@ -81,11 +81,18 @@
  * costs no verdicts today; it is a guard against a criterion that has not been
  * authored yet.
  *
- * Three limits apply to every verdict, including the unfiltered ones, because a
- * probe only sees rows that still exist and that the caller is allowed to read:
+ * Two limits apply to every verdict, including the unfiltered ones, because a
+ * probe only sees rows that still exist and that the caller is allowed to read.
+ * A third is listed and CLOSED, so nobody reopens it:
  *
  * 1. A DELETED source row leaves no timestamp behind.
- * 2. A row edited OUT of a filter takes its timestamp with it.
+ * 2. ⚠ CLOSED, and left here so it is not reintroduced. A row edited OUT of a
+ *    filter takes its timestamp with it, so a filtered probe stops seeing it while
+ *    the table still holds the copy made before the edit — a false FRESH. The
+ *    unfiltered probe that disambiguates a zero count is now also folded into the
+ *    change comparison, so the edit is seen. The cost is over-reporting Stale when
+ *    a row the table EXCLUDES changes, which is the sanctioned direction. Do not
+ *    "optimise" the comparison back onto the filtered probe alone.
  * 3. ⚠ Probes run in USER_MODE from a `with sharing` class, so both the count and
  *    the newest change are computed over the rows the RUNNING USER can see. A row
  *    hidden by sharing and modified after the sync is invisible to the probe, and
@@ -108,7 +115,7 @@
  *    caller sees every row — nothing here checks that, so "visible" is the
  *    strongest honest claim.
  *
- * All three can leave a genuinely stale table reading FRESH. This check catches
+ * The two that remain open can leave a genuinely stale table reading FRESH. This check catches
  * inserts and edits the caller can see, which is what a post-build readiness check
  * is for; it is not a substitute for refreshing after a known data load.
  *
@@ -575,9 +582,16 @@ public with sharing class RLM_DecisionTableManagerController {
         }
         info.criteriaApplied = plan.filtered;
 
-        // A filtered probe compares only the rows the table actually holds, so say so
-        // — a verdict computed over a subset must not read as if it covered the object.
-        String scope = plan.filtered ? ' Compared against rows matching the source criteria.' : '';
+        // ⚠ The COUNT is filtered; the newest-change comparison is not. Those are two
+        // different scopes on one verdict and the sentence has to carry both, or it
+        // repeats the mistake of a summary that drops a qualification its detail keeps.
+        // The count answers "how many rows feed this table" and the comparison has to
+        // see rows edited OUT of the filter, which the filtered probe cannot.
+        String scope = plan.filtered
+            ? ' Row count covers only rows matching the source criteria; the change ' +
+              'comparison covers the whole object, so a row edited out of the filter ' +
+              'still counts.'
+            : '';
         if (!plan.unreproducedCriteria.isEmpty()) {
             // Say it plainly: the comparison covered more rows than the table holds, so
             // a Stale here may belong to a row the table excludes. Fresh is unaffected.
@@ -613,6 +627,31 @@ public with sharing class RLM_DecisionTableManagerController {
             if (joinedResult.newest != null && joinedResult.newest > newest) {
                 newest = joinedResult.newest;
                 driver = joined.objectName;
+            }
+        }
+        // ⚠ A row edited OUT of the filter takes its timestamp with it: the filtered
+        // probe stops seeing it the moment the edit lands, while the decision table
+        // still holds the copy made before it. That was limit 2 in the header, a
+        // documented FALSE FRESH, and it is closed here rather than described — the
+        // unfiltered probe needed to close it is already planned and already run for
+        // every filtered table, purely to disambiguate a zero count.
+        //
+        // The cost is over-reporting Stale when a row the table EXCLUDES changes, which
+        // is the sanctioned direction and the same trade the unreproduced-criteria path
+        // already makes. Measured on this build: of 40 tables only 5 carry criteria, and
+        // only 2 of those reproduce into a filter at all — the other three filter on
+        // traversals, which are dropped and watched instead. So this widens the
+        // comparison for two tables and closes a false Fresh for both.
+        if (plan.filtered) {
+            ProbeResult wholeObject = plan.unfilteredProbe == null
+                ? null
+                : probeResults.get(plan.unfilteredProbe.key());
+            if (wholeObject == null || !wholeObject.ran) {
+                // Fresh must not stand on a filtered probe alone; say which read is missing.
+                unread.add(dt.SourceObject + ' (unfiltered, to catch rows edited out of the filter)');
+            } else if (wholeObject.newest != null && wholeObject.newest > newest) {
+                newest = wholeObject.newest;
+                driver = dt.SourceObject;
             }
         }
         info.sourceNewestChange = newest;

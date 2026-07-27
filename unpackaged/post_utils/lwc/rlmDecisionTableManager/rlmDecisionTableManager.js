@@ -445,16 +445,27 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     renderedCallback() {
         if (this._focusDialogOnRender) {
-            this._focusDialogOnRender = false
+            // Same rule as the restore below: the request survives until it is met.
+            // Reachable today only if the dialog is not in this render, which the
+            // detailRow guard should prevent — kept symmetric so the two cannot drift,
+            // since the sibling's version of this was a real bug.
             const dialog = this.template.querySelector('section[role="dialog"]')
             if (dialog) {
+                this._focusDialogOnRender = false
                 dialog.focus()
             }
         }
         if (this._restoreFocusOnRender) {
-            this._restoreFocusOnRender = false
+            // ⚠ Clear the flag only once focus has actually landed. The datatable is
+            // absent while loadTables() shows the spinner, and poll completion calls
+            // loadTables() — so closing the dialog during that window used to consume
+            // the request against a table that was not there yet, and the render that
+            // finally brought it back had nothing left asking for focus. The keyboard
+            // user was returned to the top of the document, which is the outcome this
+            // whole mechanism exists to avoid.
             const table = this.template.querySelector('lightning-datatable')
             if (table) {
+                this._restoreFocusOnRender = false
                 table.focus()
             }
         }
@@ -700,10 +711,15 @@ export default class RlmDecisionTableManager extends LightningElement {
         if (!this.isVerdictEstablished) {
             return 'These were applied, but the result could not be interpreted — see the reason above.'
         }
+        // ⚠ The ROW COUNT is scoped to these criteria; the CHANGE COMPARISON is not.
+        // It reads the whole object on purpose, so a row edited OUT of the filter —
+        // which takes its timestamp with it and would otherwise read Fresh while the
+        // table still holds the pre-edit copy — is still seen.
         return this.unreproducedCount > 0
-            ? `The verdict above covers these rows plus more: ${this.unreproducedCount} could ` +
-                  'not be reproduced.'
-            : 'The verdict above covers only these rows.'
+            ? `The row count above covers these rows; ${this.unreproducedCount} could not be ` +
+                  'reproduced, so the comparison covers more still.'
+            : 'The row count above covers only these rows. The change comparison covers ' +
+                  'the whole object, so a row edited out of the filter still counts.'
     }
 
     // The same criteria mean different things depending on what the check could do
@@ -725,8 +741,9 @@ export default class RlmDecisionTableManager extends LightningElement {
         if (this.detailRow.criteriaApplied) {
             return this.unreproducedCount > 0
                 ? `${this.unreproducedCount} of these could not be reproduced. ${widened}`
-                : 'These filters were applied to the freshness check, so any verdict above ' +
-                      'reflects only the rows that match them.'
+                : 'These filters were applied to the row count. The change comparison ' +
+                      'deliberately ignores them and reads the whole object, so a row ' +
+                      'edited out of the filter cannot hide its own timestamp.'
         }
         if (this.unreproducedCount > 0) {
             return `None of these reached the query. ${widened}`

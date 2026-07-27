@@ -111,10 +111,16 @@ component does, so they cannot disagree.
 | **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
 
-Three limits apply to **every** verdict, by construction:
+Two limits apply to **every** verdict, by construction. A third is listed and **closed**,
+so it is not reintroduced:
 
 1. A **deleted** source row leaves no timestamp behind.
-2. A row edited **out of** a filter takes its timestamp with it.
+2. ✅ **Closed.** A row edited **out of** a filter takes its timestamp with it, so a
+   filtered probe stops seeing it while the table still holds the copy made before the
+   edit — a false Fresh. The unfiltered probe is now folded into the change comparison,
+   so the edit is seen. The cost is over-reporting Stale when a row the table *excludes*
+   changes, which is the sanctioned direction. A filtered table's **row count** still
+   covers only matching rows; its **change comparison** covers the whole object.
 3. Probes run in `USER_MODE`, so they see only rows the running user can see. ⚠ **Run the
    check as an operator with org-wide read.** A row hidden from the caller by sharing and
    modified after the sync is invisible to the probe, and the failure direction is the bad
