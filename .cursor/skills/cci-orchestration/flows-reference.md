@@ -558,10 +558,12 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RebuildSearchIndex']`
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
-   - `api_names`: `['RLM_UsageControllers']`
+   - `api_names`: `['RLM_UsageUploader']`
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageOrchestration']`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_UsageDatatables']`
-11. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+13. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
 
 ---
