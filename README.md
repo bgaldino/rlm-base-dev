@@ -770,18 +770,25 @@ End-to-end UI tests validate the Quote-to-Order sales workflow via Robot Framewo
 | `robot_order_from_quote` | `order_from_quote.robot` | Part 2: Add Products + Create Order + Activate + Verify Assets |
 | `robot_reset_account` | `reset_account.robot` | Reset test Account (clear transactional data) |
 
+⚠ **The `robot_*` tasks reject `--org`** (`Error: No such option: --org`, issue #320) — they run
+against the **CCI default org**, so select it first. Their feature flags also come from
+`cumulusci.yml` defaults rather than the org.
+
 ```bash
+# Select the target org FIRST — the robot tasks do not take --org
+cci org default beta
+
 # Full flow (headless)
-cci task run robot_e2e --org beta
+cci task run robot_e2e
 
 # Full flow (headed + CDP debug + pause points)
-cci task run robot_e2e_debug -o pause_for_recording true --org beta
+cci task run robot_e2e_debug -o pause_for_recording true
 
 # Modular: setup quote only
-cci task run robot_setup_quote --org beta
+cci task run robot_setup_quote
 
 # Modular: order from existing quote
-cci task run robot_order_from_quote --org beta
+cci task run robot_order_from_quote
 ```
 
 ### App Launcher

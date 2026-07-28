@@ -80,7 +80,7 @@ org, state that explicitly and mark the change **unverified** (PR label
 
 | Robot File | Flow | Prerequisite |
 |-----------|------|-------------|
-| `quote_to_order` | Full Reset→Opp→Quote→Products→Order→Assets | `prepare_rlm_org` with `qb=true` |
+| `quote_to_order` | Full Reset→Opp→Quote→Products→**Configure bundle**→Order→Assets→**Renewal Opp** | `prepare_rlm_org` with `qb=true` |
 | `setup_quote` | Part 1: Reset→Opp→Quote | Same |
 | `order_from_quote` | Part 2: Products→Order→Assets | A Quote must exist |
 | `reset_account` | Reset Account via QuickAction | An account must exist |
@@ -99,10 +99,19 @@ not to copy generic Selenium), read
 
 ### Running tests
 
+⚠ **`robot_e2e` and `robot_e2e_debug` REJECT `--org`** (`Error: No such option: --org`,
+issue #320). They run against the **CCI default org** — set it first with
+`cci org default <alias>`. Verified 2026-07-28; the previous version of this block showed
+`--org beta` on all three lines, none of which could ever have run.
+
+⚠ Their **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org
+still gets `TSO:false`. Only `QB` is consumed by the suites today.
+
 ```bash
-cci task run robot_e2e --org beta              # headless
-cci task run robot_e2e_debug --org beta         # headed + CDP port 9222
-cci task run robot_e2e_debug -o pause_for_recording true --org beta  # with pauses
+cci org default beta                                     # select the target org FIRST
+cci task run robot_e2e                                   # headless
+cci task run robot_e2e_debug                             # headed + CDP port 9222
+cci task run robot_e2e_debug -o pause_for_recording true  # with pauses
 ```
 
 ---
