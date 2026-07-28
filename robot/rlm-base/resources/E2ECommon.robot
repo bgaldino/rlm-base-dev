@@ -689,28 +689,121 @@ _Click Browse Catalogs Via JS
     END
 
 Select Catalog By Name
-    [Documentation]    Selects a catalog by name in the All Catalogs datatable and clicks Next.
-    ...    The datatable uses radio buttons for single selection. Each row has
-    ...    data-cell-value on the Name <th> element matching the catalog name.
-    ...    Also handles a late-arriving Choose Price Book modal (race condition).
+    [Documentation]    Ensures ${catalog_name} is the active catalog in Browse Products.
+    ...
+    ...    Browse Catalogs opens STRAIGHT INTO Browse Products with a catalog already
+    ...    selected — there is no catalog-picker step and no Next button. The catalog is
+    ...    shown, and switched, via a combobox in the toolbar. This keyword therefore
+    ...    DETECTS the current state rather than assuming a picker:
+    ...
+    ...    1. already on the wanted catalog -> nothing to do (the common case)
+    ...    2. a different catalog is active -> switch via the combobox
+    ...    3. a radio datatable IS present -> fall back to the legacy picker path
+    ...
+    ...    ⚠ Verified live 2026-07-28 against a TSO org: opening Browse Catalogs landed
+    ...    directly on "Catalog: QuantumBit Software" with a combobox, 0 catalog radio rows,
+    ...    and no Next button. The previous version looked for a `tr[data-row-key-value]`
+    ...    whose `th[data-cell-value]` matched the catalog name; the 243 `data-cell-value`
+    ...    cells on that screen are PRODUCT cells, so it scanned the product table, matched
+    ...    nothing and timed out after 30s. The suite had been failing on its first step,
+    ...    which is why it produced no regression signal at all.
+    ...
+    ...    Case 3 is kept deliberately: it is not known whether every org shape and release
+    ...    skips the picker, and deleting the old path would trade one blind assumption for
+    ...    another.
     [Arguments]    ${catalog_name}
     Wait Until Keyword Succeeds    30s    3s    _Dismiss Or Select Catalog    ${catalog_name}
-    Sleep    2s    reason=Allow selection to register
-    # Click Next in the flow navigation bar
-    Save Modal    Next
     Sleep    5s    reason=Allow catalog selection to process
 
 _Dismiss Or Select Catalog
-    [Documentation]    Internal keyword — dismisses any Price Book modal, then selects the catalog.
-    ...    If the Price Book modal is still showing, dismiss it and fail (will retry).
+    [Documentation]    Internal keyword — dismisses any Price Book modal, then makes sure the
+    ...    wanted catalog is active by whichever mechanism this UI presents.
     [Arguments]    ${catalog_name}
     # Check for and dismiss Price Book modal if it appeared late
     _Dismiss Price Book Modal If Present
-    # Now try to select the catalog
-    _Select Catalog Radio Via JS    ${catalog_name}
+    ${state}=    _Ensure Catalog Active Via JS    ${catalog_name}
+    Log    Catalog selection state: ${state}
+    IF    "${state}" == "not_found"
+        Capture Step Screenshot    catalog_not_found
+        Fail    msg=Catalog "${catalog_name}" is neither active, nor offered by a combobox, nor present as a picker row (will retry).
+    END
+    # The legacy picker is a wizard step; only that path has a Next button.
+    IF    "${state}" == "selected_legacy_radio"
+        Sleep    2s    reason=Allow selection to register
+        Save Modal    Next
+    END
+
+_Ensure Catalog Active Via JS
+    [Documentation]    Internal keyword — makes ${catalog_name} the active catalog and reports HOW.
+    ...    Returns one of: already_active | switched_via_combobox | selected_legacy_radio | not_found.
+    ...    Only the legacy path needs a follow-up Next click, so the caller branches on this.
+    [Arguments]    ${catalog_name}
+    ${result}=    Execute JavaScript
+    ...    return (function(name){
+    ...        function deepAll(root, out, depth){
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll('*');
+    ...            for (var i = 0; i < els.length; i++) {
+    ...                out.push(els[i]);
+    ...                if (els[i].shadowRoot) deepAll(els[i].shadowRoot, out, depth + 1);
+    ...            }
+    ...            return out;
+    ...        }
+    ...        function isCombo(el){
+    ...            if (!el.getAttribute) return false;
+    ...            if (el.getAttribute('role') === 'combobox') return true;
+    ...            return el.tagName === 'BUTTON' && !!el.getAttribute('aria-haspopup');
+    ...        }
+    ...        var all = deepAll(document, [], 0);
+    ...        /* 1. Is it already the active catalog? Combobox text, or the "Catalog: X" header. */
+    ...        for (var i = 0; i < all.length; i++) {
+    ...            if (isCombo(all[i]) && (all[i].textContent || '').trim() === name) return 'already_active';
+    ...        }
+    ...        for (var i = 0; i < all.length; i++) {
+    ...            var el = all[i];
+    ...            if (el.children.length !== 0) continue;
+    ...            var t = (el.textContent || '').trim();
+    ...            if (t.indexOf('Catalog:') === 0 && t.indexOf(name) >= 0) return 'already_active';
+    ...        }
+    ...        /* 2. A different catalog is active — open the combobox and pick this one. */
+    ...        for (var i = 0; i < all.length; i++) {
+    ...            if (!isCombo(all[i])) continue;
+    ...            all[i].click();
+    ...            var after = deepAll(document, [], 0);
+    ...            for (var j = 0; j < after.length; j++) {
+    ...                var opt = after[j];
+    ...                var role = opt.getAttribute ? opt.getAttribute('role') : null;
+    ...                if (role !== 'option' && opt.tagName !== 'LI' && role !== 'menuitem') continue;
+    ...                if ((opt.textContent || '').trim() === name) { opt.click(); return 'switched_via_combobox'; }
+    ...            }
+    ...        }
+    ...        /* 3. Legacy picker: a radio datatable whose row names the catalog. */
+    ...        var rows = [];
+    ...        for (var i = 0; i < all.length; i++) {
+    ...            if (all[i].tagName === 'TR' && all[i].hasAttribute && all[i].hasAttribute('data-row-key-value')) rows.push(all[i]);
+    ...        }
+    ...        for (var i = 0; i < rows.length; i++) {
+    ...            var cell = rows[i].querySelector('th[data-cell-value="' + name + '"]');
+    ...            var th = rows[i].querySelector('th[data-label="Name"]');
+    ...            var matches = cell || (th && (th.textContent || '').indexOf(name) >= 0);
+    ...            if (!matches) continue;
+    ...            var radios = [];
+    ...            var within = deepAll(rows[i], [], 0);
+    ...            for (var k = 0; k < within.length; k++) {
+    ...                if (within[k].tagName === 'INPUT' && within[k].type === 'radio') radios.push(within[k]);
+    ...            }
+    ...            if (radios.length > 0) { radios[0].click(); return 'selected_legacy_radio'; }
+    ...        }
+    ...        return 'not_found';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${catalog_name}
+    RETURN    ${result}
 
 _Select Catalog Radio Via JS
-    [Documentation]    Internal keyword — finds the catalog row and clicks its radio button.
+    [Documentation]    ⚠ SUPERSEDED by _Ensure Catalog Active Via JS, and no longer called.
+    ...    Kept only because its shadow-DOM row/radio traversal is the reference for the
+    ...    legacy picker; delete it once a release is confirmed to have dropped that UI.
+    ...    Internal keyword — finds the catalog row and clicks its radio button.
     ...    Traverses shadow DOM to find datatable rows inside LWC components.
     [Arguments]    ${catalog_name}
     ${result}=    Execute JavaScript
@@ -949,11 +1042,59 @@ _Click Add Button For Product
     END
 
 Click Save Quote In Catalog
-    [Documentation]    Clicks the "Save Quote" button in the Browse Catalogs modal.
-    ...    Waits for the button to become enabled before clicking.
-    ...    The button has data-id="objectActionButton" and title="Save Quote".
-    Wait Until Keyword Succeeds    30s    3s    _Click Save Quote Via JS
+    [Documentation]    Commits the catalog session and dismisses the Browse Products modal.
+    ...
+    ...    ⚠ There is NO "Save Quote" button in the current UI. `Add Product By Name` clicks
+    ...    the product row's own Add button, which writes the quote lines immediately — so by
+    ...    the time we get here the work is already done and the modal only needs closing.
+    ...    Verified live 2026-07-28: at this point the modal header read "View Quote Lines (5)"
+    ...    and the quote behind it showed 5 items / Grand Total USD 91,000.00, while the only
+    ...    footer control was "Close". The previous version waited 30s for
+    ...    `title="Save Quote"` / `data-id="objectActionButton"`, which does not exist, and
+    ...    failed the run AFTER the products had been successfully added.
+    ...
+    ...    Legacy "Save Quote" is still tried first so an older UI keeps working.
+    Wait Until Keyword Succeeds    30s    3s    _Commit And Close Catalog Modal
     Sleep    5s    reason=Allow quote to save and modal to close
+
+_Commit And Close Catalog Modal
+    [Documentation]    Internal keyword — clicks legacy "Save Quote" if present, else "Close".
+    ...    Returns via Fail/retry if neither is clickable yet.
+    ${result}=    Execute JavaScript
+    ...    return (function(){
+    ...        function deepButtons(root, out, depth){
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll('*');
+    ...            for (var i = 0; i < els.length; i++) {
+    ...                var el = els[i];
+    ...                if (el.tagName === 'BUTTON' || (el.getAttribute && el.getAttribute('role') === 'button')) out.push(el);
+    ...                if (el.shadowRoot) deepButtons(el.shadowRoot, out, depth + 1);
+    ...            }
+    ...            return out;
+    ...        }
+    ...        function usable(b){ return !b.disabled && b.getAttribute('aria-disabled') !== 'true'; }
+    ...        var btns = deepButtons(document, [], 0);
+    ...        /* 1. Legacy save button, if this org still has one. */
+    ...        for (var i = 0; i < btns.length; i++) {
+    ...            var b = btns[i];
+    ...            if (!usable(b)) continue;
+    ...            if (b.getAttribute('title') === 'Save Quote' || (b.textContent || '').trim() === 'Save Quote') {
+    ...                b.click(); return 'saved_legacy';
+    ...            }
+    ...        }
+    ...        /* 2. Current UI: products are already on the quote, so just close. */
+    ...        for (var i = 0; i < btns.length; i++) {
+    ...            var b = btns[i];
+    ...            if (!usable(b)) continue;
+    ...            if ((b.textContent || '').trim() === 'Close') { b.click(); return 'closed'; }
+    ...        }
+    ...        return 'no_commit_control';
+    ...    })()
+    Log    Catalog modal commit: ${result}
+    IF    "${result}" == "no_commit_control"
+        Capture Step Screenshot    save_quote_not_found
+        Fail    msg=Neither a "Save Quote" nor a "Close" control was clickable in the catalog modal (will retry).
+    END
 
 _Click Save Quote Via JS
     [Documentation]    Internal keyword — finds and clicks Save Quote button via JS.
