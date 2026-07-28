@@ -11,12 +11,19 @@ Revenue Cloud App
   -> Reset Account (clear transactional data)
   -> Create Opportunity (QuickAction)
   -> Create Quote (QuickAction / Flow)
-  -> Browse Catalogs -> Select Catalog -> Search Product -> Add -> Save Quote
+  -> Browse Catalogs -> Select Catalog -> Search Product -> Add -> Close
+  -> Configure Bundle Line (row actions -> Configure -> tick option -> Save & Exit)
   -> Create Order (Select Single Order -> Finish)
   -> Activate Order (confirm dialog)
   -> Verify Assets on Account (async poll)
-  -> Screenshot Assets tab
+  -> Verify Renewal Opportunity Includes Product (async poll)   <- the issue #63 detector
 ```
+
+⚠ **The last step is not decoration.** The renewal Opportunity is written by
+`RLM_CreateUpdateRenewalOpportunities`, a **PlatformEvent**-triggered flow: when it fails, the
+Order still reaches `Activated`, no error toast appears and no `AsyncApexJob` is marked Failed.
+Asserting the Order status therefore cannot detect that class of bug — asserting the flow's
+**output** is the only thing that can.
 
 The flow is also available as two modular tests that can be run independently:
 
@@ -88,24 +95,34 @@ tasks/
 
 ## Running Tests
 
+⚠ **Every `robot_*` task REJECTS `--org`** (`Error: No such option: --org`, issue #320) — they run
+against the **CCI default org**, so select it first with `cci org default <alias>`. Verified
+2026-07-28 against all six tasks.
+
+⚠ Their **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org still
+gets `TSO:false`. Only `QB` is consumed by the suites today.
+
 ```bash
+# Select the target org FIRST — the robot tasks do not take --org
+cci org default beta
+
 # Full Quote-to-Order flow (headless)
-cci task run robot_e2e --org beta
+cci task run robot_e2e
 
 # Full flow — headed with CDP debugging (connect via chrome://inspect)
-cci task run robot_e2e_debug --org beta
+cci task run robot_e2e_debug
 
 # Full flow — headed with pause points for DOM inspection
-cci task run robot_e2e_debug -o pause_for_recording true --org beta
+cci task run robot_e2e_debug -o pause_for_recording true
 
 # Part 1 only: Reset Account + Create Opportunity + Create Quote
-cci task run robot_setup_quote --org beta
+cci task run robot_setup_quote
 
 # Part 2 only: Add Products + Create Order + Activate + Verify Assets
-cci task run robot_order_from_quote --org beta
+cci task run robot_order_from_quote
 
 # Reset Account only
-cci task run robot_reset_account --org beta
+cci task run robot_reset_account
 
 # Override test data (run Robot directly to pass --variable)
 robot -v TEST_ACCOUNT_NAME:"Acme Corp" -v ORG_ALIAS:beta robot/rlm-base/tests/e2e
@@ -307,7 +324,8 @@ robot_my_test:
   Pause points are placed before each major step (Reset, Create Opportunity, Create Quote, Browse Catalogs, Create Order, Activate Order) and after final verification. They have no effect in headless mode (`PAUSE_FOR_RECORDING` defaults to `false`).
 - **Screenshots** — every step captures a screenshot; check `results/e2e_<timestamp>/log.html`.
 - **Shadow DOM inspection** — in Chrome DevTools, enable "Show user agent shadow DOM" in Settings to see shadow roots in the Elements panel.
-- **Test isolation** — run `cci task run robot_reset_account --org beta` to clear transactional data before re-running.
+- **Test isolation** — `cci org default beta` then `cci task run robot_reset_account` to clear transactional data before re-running (the task takes no `--org`).
+- **`*_retry` screenshots are NOT failures** — the configurator's menu items, tabs and footer each miss on their first attempt and succeed on a retry. `configurator_tab_retry.png` in a results folder is normal for a passing run.
 
 ## Keyword Reference (E2ECommon.robot)
 
@@ -333,10 +351,20 @@ robot_my_test:
 | Keyword | Arguments | Description |
 |---------|-----------|-------------|
 | `Click Browse Catalogs` | | Clicks Browse Catalogs, handles Price Book modal |
-| `Select Catalog By Name` | catalog_name | Selects catalog radio + clicks Next |
+| `Select Catalog By Name` | catalog_name | Ensures the catalog is active. The current UI lands **pre-selected** with a combobox — only the legacy radio path clicks Next |
 | `Search Product In Catalog` | product_name | Types product name + presses Enter |
-| `Add Product By Name` | product_name | Clicks Add on the matching product row |
-| `Click Save Quote In Catalog` | | Clicks Save Quote (waits for enabled state) |
+| `Add Product By Name` | product_name | Clicks Add on the matching product row — this **writes the quote lines immediately** |
+| `Click Save Quote In Catalog` | | Commits and closes. ⚠ There is **no "Save Quote" button** in the current UI; the lines are already written, so this clicks **Close** (legacy Save Quote is still tried first) |
+
+### Bundle Configurator
+| Keyword | Arguments | Description |
+|---------|-----------|-------------|
+| `Configure Bundle Line` | quote_id, line_name, option_name, tab_label= | Opens the configurator on a bundle **parent** line, ticks an option, commits with **Save & Exit** |
+
+⚠ The configurator is reached from the **row-level actions dropdown on the right of each line**
+("Show Actions" → Configure) — not a gear icon. **Configure the bundle parent only.** The DOM
+contract (ag-Grid split containers joined by `row-id`, async menu render, shadow-boundary text)
+is documented in `.cursor/skills/robot-testing/patterns.md`.
 
 ### Async / API
 | Keyword | Arguments | Description |

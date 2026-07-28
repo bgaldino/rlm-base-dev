@@ -250,8 +250,65 @@ Most interaction keywords try strategies in order:
 | Flows | `Advance Through Flow Screens` |
 | Browse Catalogs | `Click Browse Catalogs`, `Select Catalog By Name`, `Search Product In Catalog`, `Add Product By Name` |
 | Composite | `Reset Test Account`, `Create Opportunity From Account`, `Create Quote From Opportunity`, `Create Order From Quote`, `Activate Order` |
-| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API` |
+| Bundle Configurator | `Configure Bundle Line` (+ internals `_Open Line Action Menu`, `_Click Line Action`, `_Select Configurator Tab`, `_Select Configurator Option`, `_Commit Configurator`) |
+| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API`, `Verify Renewal Opportunity Includes Product` |
 | Utilities | `Capture Step Screenshot`, `Dismiss Toast If Present`, `Pause For Recording If Enabled` |
+
+---
+
+## Quote line grid (ag-Grid) — the split-container join
+
+The Quote/Order line grid is **ag-Grid**, and a single logical row is rendered as **two DOM
+rows in two different containers**:
+
+| container | carries |
+|---|---|
+| `.ag-pinned-left-cols-container` | the **product name** (`Product ID : <name>`) |
+| `.ag-center-cols-container` | the **row action menu** (`industries_common-datagrid-row-action`) |
+
+They share only `div[role="row"][row-id="<QuoteLineItem Id>"]`. To act on the row for a named
+product: resolve `row-id` from the pinned-left row, then find the row with that id that actually
+contains a row-action.
+
+⚠ **`ag-row-level-0` does NOT identify a bundle parent — the grid is FLAT.** Every row, children
+included, is level 0. Match on the product name, never on hierarchy level.
+
+Row actions: `industries_common-datagrid-row-action` → `lightning-button-menu` → `button`
+(assistive text "Show Actions"); items are `lightning-menu-item` → `a[role="menuitem"]`
+(**View / Clone / Configure / Delete**).
+
+⚠ **Menu items render ASYNCHRONOUSLY** — querying in the same JS tick as the trigger click
+returns zero items. Opening the menu and clicking an item must be **separate retried keywords**.
+
+### Product configurator (a modal, not a navigation)
+
+`lightning-overlay-container` → `lightning-modal` → `runtime_revenue_configurator-container`.
+
+- Tabs: `a[role="tab"][data-label="<Group Name>"]`
+- Options: `runtime_industries_cfg-option` (each has `data-option-id` and a checkbox)
+- Commit: `button` with text **`Save & Exit`** — saves *and* closes; there is no separate close
+- All tabs' options are in the DOM at once (the tab only controls visibility), but a
+  newly-selected tab's options still render async — retry after the tab click
+- A programmatic `checkbox.click()` **does** drive the LWC
+
+⚠ **`textContent` does NOT cross shadow boundaries**, and an option renders its product name
+inside a *nested* shadow root — so a plain `textContent` match finds nothing and the option looks
+absent. A shadow-walking text extractor is **required**, not defensive coding.
+
+---
+
+## ⚠ `Execute JavaScript` continuation lines are joined WITHOUT newlines
+
+SeleniumLibrary concatenates the `...` continuation arguments with **no separator**, so the whole
+JS block becomes one line. Two consequences that silently corrupt a script:
+
+1. **Use `/* */` block comments only.** A `//` comment swallows the entire rest of the script.
+2. **Semicolon-terminate every statement.** `var a = 1` followed by `var b = 2` becomes
+   `var a = 1var b = 2`.
+
+Also **avoid regex literals containing backslashes** in `.robot` arguments — Robot's own escape
+processing makes `/\s+/` ambiguous. Prefer a `charCodeAt`-based whitespace check (see
+`_Select Configurator Option`) or drop the normalisation.
 
 ---
 
