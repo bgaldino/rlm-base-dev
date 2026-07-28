@@ -12,7 +12,12 @@
      create fields. Seven fields are omitted: three required (ActivityDate, UsageType, Status)
      per Salesforce platform rules, and three non-permissionable (AccountId, ReferenceRecordId,
      UsageResourceId). Object permissions include parent-lookup dependencies (Account, Product2,
-     RateCard, RateCardEntry) required by the platform for child object access. -->
+     RateCard, RateCardEntry) required by the platform for child object access.
+
+     Note: All 13 READ object grants overlap with the RLM_USG permission set group (always
+     assigned). The only incremental permission is TransactionJournal CREATE. READ grants are
+     retained to make this set self-sufficient if assigned standalone (partial builds, manual
+     assignment, or future PSG changes). Salesforce automatically deduplicates permissions. -->
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
         <apexClass>RLM_UsageOrchestrationController</apexClass>
