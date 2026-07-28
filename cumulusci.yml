@@ -257,6 +257,8 @@ project:
       - RLM_ExpressionSetManager
       - RLM_DecisionTableManager
       - RLM_RebuildSearchIndex
+      - RLM_UsageControllers
+      - RLM_UsageDatatables
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -352,6 +354,25 @@ project:
       # access, the RLM_SessionId page and ApiEnabled — no object permissions,
       # because the class runs no SOQL and no DML.
       - RLM_RebuildSearchIndex
+
+    ps_usage_controllers: &ps_usage_controllers
+      # Usage Controllers (post_utils, deployed via deploy_post_utils). Grants
+      # class access to RLM_UsageOrchestrationController (starts autolaunched flows
+      # for usage orchestration, no DML/SOQL) and RLM_UsageUploaderController
+      # (inserts TransactionJournal for usage upload, reads usage-related objects).
+      # Uploader needs TransactionJournal CREATE plus READ on Asset, UsageResource,
+      # UnitOfMeasure, and related usage objects. Neither controller calls
+      # getApiSessionId(), so no pageAccesses or ApiEnabled grant needed (unlike
+      # RLM_RebuildSearchIndex and RLM_ExpressionSetManager).
+      - RLM_UsageControllers
+
+    ps_usage_datatables: &ps_usage_datatables
+      # Usage Datatables component (post_utils, deployed via deploy_post_utils).
+      # Grants class access to RLM_UsageDataController plus READ on usage objects
+      # and fields for the rlmUsageDataTable LWC. Third usage-area component;
+      # previously deploy-only, now assigned to close the persona gap on all three
+      # usage LWCs in one PR (#318, #319).
+      - RLM_UsageDatatables
 
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
@@ -3959,6 +3980,22 @@ flows:
         options:
           api_names: *ps_rebuild_search_index
       9:
+        # Fifth and sixth: the two usage controllers (RLM_UsageOrchestrationController,
+        # RLM_UsageUploaderController) and the usage datatables viewer
+        # (RLM_UsageDataController). Same persona gap — all three were deployed by
+        # deploy_post_utils but never assigned anywhere in the repo, so their LWC
+        # components worked only for an admin. The tso flow assigns both via
+        # rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_usage_controllers
+      10:
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_usage_datatables
+      11:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:

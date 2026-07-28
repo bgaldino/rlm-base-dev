@@ -5,7 +5,7 @@
  * Tests all CRUD operations for usage uploading on Revenue Cloud assets.
  */
 @IsTest
-private class RLM_UsageUploaderControllerTest {
+private with sharing class RLM_UsageUploaderControllerTest {
 
     /**
      * Creates test data: Account, Product, UoM, UsageResource, ProductUsageResource, Asset
