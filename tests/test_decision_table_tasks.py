@@ -1099,59 +1099,106 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         if not bad_refs.get(f"{flow_name}[{key}]"):
             clean_exprs.append((flow_name, key, raw_expr, expr))
 
-# ⚠ A guard whose value cannot VARY is not a guard either. Round 13 required the expression to
-# NAME a namespace, which is syntactic; what is being defended is semantic — does the flag change
-# the outcome. Measured at 87/87, exit 0 before this pass:
+# ⚠ A guard whose value cannot VARY is not a guard. Round 13 required the expression to NAME a
+# namespace, which is syntactic; what is defended is semantic — does the input change the answer.
 #
-#     <flag> and false          -> False for every flag value   (silent skip, always)
-#     <flag> and not <flag>     -> False for every flag value   (silent skip, always)
-#     not <flag> or true        -> True  for every flag value   (always runs)
-#     <flag> == <flag>          -> True  for every flag value   (always runs)
+#     <flag> and false          <flag> and not <flag>          <flag> == "yes"
+#     not <flag> or true        org_type == "X" and false      scratch and not scratch
 #
-# `<flag> and false` is the plausible one: appending `and false` disables a step while leaving
-# the original guard visible, which is exactly what someone does when they intend to restore it.
-# Deleting the line loses that information, so this is the LESS effortful edit, not the more.
+# All fold to a constant, so the step always runs or is always skipped. `<flag> and false` is the
+# plausible authoring path: it disables a step while leaving the original guard visible to
+# restore, which is LESS work than deleting the line.
 #
-# ⚠ Enumerate every combination, not just all-False/all-True. `a and not b` is a legitimate guard
-# that is invariant under both uniform assignments and varies only at (a=True, b=False) — testing
-# the two extremes alone would reject it. Expressions naming org_config.org_type are skipped: it
-# is string-valued, so `org_type != "Developer Edition"` is invariant over booleans while being a
-# perfectly real guard.
+# ⚠ This pass FAILS CLOSED. Its first version skipped anything it could not analyse — an
+# unsupported shape, too many variables, or any evaluation error — and every skip was silent.
+# Measured on the CumulusCI-less interpreter the module docstring tells you to use, five
+# constant-folding forms including `<flag> and false` passed at 89/89, exit 0: Python has no
+# `true`/`false`/`none`, so `eval` raised NameError and the bare `except` swallowed it. The skip
+# was not the edge case, it was the COMMON case. Anything unanalysable is now reported.
+#
+# ⚠ Evaluate raw_expr, not the string-blanked `expr`. Blanking turns `<flag> == "yes"` into a
+# syntax error, which the old `except` then swallowed — so a bool compared to a string, which is
+# constant False, went unchecked.
+#
+# ⚠ Enumerate real domains, not booleans-for-everything. project.custom holds 81 strings and 40
+# lists as well as 41 bools, and org_type is string-valued — forcing those to True/False both
+# invents false positives and misses real constants. Each reference gets the values it can
+# actually take: bools -> {False, True}; anything else -> its declared value plus a sentinel that
+# equals nothing; org_type -> the literals compared against in the expression, plus a sentinel.
+#
+# ⚠ Enumerate COMBINATIONS, not the two uniform assignments. `a and not b` is a real guard,
+# invariant under all-False and all-True, varying only at (a=True, b=False).
 import itertools
 
-for flow_name, key, raw_expr, expr in clean_exprs:
-    if "org_type" in expr:
-        continue
-    names = sorted(set(re.findall(r"project__custom__(\w+)", expr)))
+CUSTOM_VALUES = cci["project"]["custom"]
+_SENTINEL = object()
+
+
+def _flag_domain(name):
+    value = CUSTOM_VALUES.get(name)
+    return [False, True] if isinstance(value, bool) or value is None else [value, _SENTINEL]
+
+
+def _org_type_domain(expr):
+    literals = [a or b for a, b in re.findall(r"'([^']*)'|\"([^\"]*)\"", expr)]
+    return list(dict.fromkeys(literals))[:3] + [_SENTINEL]
+
+
+def _evaluate(expr, flag_values, scratch, org_type):
+    """Evaluate one assignment. Raises on anything this harness cannot model."""
+    custom = type("_P", (), {})()
+    for flag in declared_flags:
+        setattr(custom, f"project__custom__{flag}", CUSTOM_VALUES.get(flag))
+    for flag, value in flag_values.items():
+        setattr(custom, f"project__custom__{flag}", value)
+    org = type("_O", (), {"scratch": scratch, "org_type": org_type})()
+    if _jinja_env is not None:
+        return bool(_jinja_env.compile_expression(expr)(project_config=custom, org_config=org))
+    # ⚠ Supply Jinja's constants. Python has none of them, so without this the fallback raises
+    # NameError on the exact expressions this pass exists to catch.
+    return bool(eval(expr, {"__builtins__": {}},
+                     {"project_config": custom, "org_config": org,
+                      "true": True, "false": False, "none": None}))
+
+
+def _verdicts(expr):
+    """Every verdict this expression can produce. Raises if it cannot be enumerated."""
+    flags = sorted(set(re.findall(r"project__custom__(\w+)", expr)))
     uses_scratch = bool(re.search(r"\borg_config\.scratch\b", expr))
-    if not names or len(names) + uses_scratch > 6:
-        continue
+    uses_org_type = bool(re.search(r"\borg_config\.org_type\b", expr))
+    if not (flags or uses_scratch or uses_org_type):
+        raise ValueError("references nothing enumerable")
+    if len(flags) + uses_scratch + uses_org_type > 8:
+        raise ValueError(f"{len(flags) + uses_scratch + uses_org_type} variables — beyond the cap")
+    domains = [_flag_domain(f) for f in flags]
+    scratches = [False, True] if uses_scratch else [None]
+    org_types = _org_type_domain(expr) if uses_org_type else [None]
+    return {
+        _evaluate(expr, dict(zip(flags, combo)), scratch, org_type)
+        for combo in itertools.product(*domains) if True
+        for scratch in scratches
+        for org_type in org_types
+    } if domains else {
+        _evaluate(expr, {}, scratch, org_type)
+        for scratch in scratches for org_type in org_types
+    }
 
-    def _verdict(assignment, scratch):
-        custom = type("_P", (), {})()
-        for flag in declared_flags:
-            setattr(custom, f"project__custom__{flag}", False)
-        for flag, val in zip(names, assignment):
-            setattr(custom, f"project__custom__{flag}", val)
-        org = type("_O", (), {"scratch": scratch})()
-        if _jinja_env is not None:
-            return bool(_jinja_env.compile_expression(expr)(project_config=custom, org_config=org))
-        return bool(eval(expr, {"__builtins__": {}}, {"project_config": custom, "org_config": org}))
 
+for flow_name, key, raw_expr, expr in clean_exprs:
     try:
-        verdicts = {
-            _verdict(combo, scratch)
-            for combo in itertools.product([False, True], repeat=len(names))
-            for scratch in ([False, True] if uses_scratch else [False])
-        }
-    except Exception:
-        continue  # unevaluable here; the reference checks above already vetted the names
-
+        verdicts = _verdicts(raw_expr)
+    except Exception as exc:
+        bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+            f"{raw_expr!r} could not be checked for invariance ({type(exc).__name__}: {exc}). "
+            "Reported rather than skipped: a guard this harness cannot evaluate is a guard "
+            "nothing is checking, and silent skips are how constant guards got through before."
+        )
+        continue
     if len(verdicts) == 1:
         always = "always runs" if verdicts.pop() else "is always skipped"
         bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-            f"{raw_expr!r} names a flag but its value cannot vary — every combination of the "
-            f"flags it references gives the same answer, so the step {always}. That is a "
+            f"{raw_expr!r} names a reference but its value cannot vary — every combination of "
+            f"the inputs it references gives the same answer, so the step {always}. That is a "
             "constant wearing a guard's clothes."
         )
 
@@ -1182,16 +1229,58 @@ check(
 # for issue #333 being latent rather than live. Measured before this check: deleting all four
 # `when:` clauses from prepare_collections gave 87/87, exit 0, at which point CCI discards the
 # allowlisted parent guard and runs four tasks unconditionally.
+# ⚠ The child must IMPLY the parent, not merely carry some guard. "Has a when:" was too weak:
+# replacing all four prepare_collections child guards with an unrelated flag passed 89/89, and so
+# did widening one to `collections or rating`. In both cases rating=true, collections=false runs
+# child work the discarded parent guard was meant to suppress — which contradicts the exact
+# safety basis the allowlist rests on. Implication is decidable with the same enumeration the
+# invariance pass uses: for every assignment where the child fires, the parent must fire too.
+def _implies(child_expr, parent_expr):
+    combined = f"({child_expr}) and ({parent_expr})"
+    flags = sorted(set(re.findall(r"project__custom__(\w+)", combined)))
+    uses_scratch = bool(re.search(r"\borg_config\.scratch\b", combined))
+    uses_org_type = bool(re.search(r"\borg_config\.org_type\b", combined))
+    if len(flags) + uses_scratch + uses_org_type > 8:
+        raise ValueError("beyond the enumeration cap")
+    domains = [_flag_domain(f) for f in flags] or [[None]]
+    for combo in itertools.product(*domains):
+        values = dict(zip(flags, combo)) if flags else {}
+        for scratch in ([False, True] if uses_scratch else [None]):
+            for org_type in (_org_type_domain(combined) if uses_org_type else [None]):
+                if _evaluate(child_expr, values, scratch, org_type) and not _evaluate(
+                    parent_expr, values, scratch, org_type
+                ):
+                    return False
+    return True
+
+
 unguarded_children = {}
 for (parent, step_key), child_flow in KNOWN_FLOW_GUARDS.items():
+    site = f"{parent}[{step_key}] -> {child_flow}"
+    parent_when = (((cci.get("flows") or {}).get(parent) or {}).get("steps") or {}).get(step_key, {})
+    parent_when = parent_when.get("when") if isinstance(parent_when, dict) else None
     kids = ((cci.get("flows") or {}).get(child_flow) or {}).get("steps") or {}
-    bare = [k for k, st in kids.items() if not (isinstance(st, dict) and st.get("when"))]
-    if bare or not kids:
-        unguarded_children[f"{parent}[{step_key}] -> {child_flow}"] = bare or "no steps"
+    if not kids or not isinstance(parent_when, str):
+        unguarded_children[site] = "no steps" if not kids else "parent when: is missing or not a string"
+        continue
+    problems = []
+    for k, st in kids.items():
+        child_when = st.get("when") if isinstance(st, dict) else None
+        if not isinstance(child_when, str) or not child_when.strip():
+            problems.append(f"step {k}: no guard")
+            continue
+        try:
+            if not _implies(child_when, parent_when):
+                problems.append(f"step {k}: {child_when!r} does not imply the parent guard")
+        except Exception as exc:
+            problems.append(f"step {k}: guard not checkable ({type(exc).__name__}: {exc})")
+    if problems:
+        unguarded_children[site] = problems
 check(
-    "every allowlisted flow guard is backed by children that all re-guard",
+    "every allowlisted flow guard is backed by children whose guards imply it",
     not unguarded_children,
-    f"these children would run UNGUARDED (CCI discards the parent when:): {unguarded_children}",
+    f"these children could run when the discarded parent guard says they should not: "
+    f"{unguarded_children}",
 )
 
 check(
