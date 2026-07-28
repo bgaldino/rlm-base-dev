@@ -1,16 +1,18 @@
 """
-Extract all mustache tokens from a .docx template.
+Extract all mustache tokens from a .docx or .pptx template.
 
-Parses paragraphs, tables, headers, and footers for:
+Parses paragraphs/tables (Word: document, headers, footers; PowerPoint:
+slides, slide masters/layouts) for:
   - {{field}} — simple value tokens
   - {{#Section}} / {{/Section}} — repeating block boundaries
   - {{IMG_name}} — dynamic image tokens
 
 Outputs a structured report useful for validating alignment between
-a .docx template and its Transform ODT output keys.
+a template and its Transform ODT output keys.
 
 Usage:
   python scripts/docgen/docgen_template_extract_tokens.py /path/to/template.docx
+  python scripts/docgen/docgen_template_extract_tokens.py /path/to/template.pptx
   python scripts/docgen/docgen_template_extract_tokens.py /path/to/template.docx --json
   python scripts/docgen/docgen_template_extract_tokens.py /path/to/template.docx --validate-transform RLMQuoteProposalTransform --org dev-scratch
 """
@@ -28,19 +30,11 @@ from _soql import soql_escape
 
 
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+DRAWING_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 TOKEN_RE = re.compile(r"\{\{([^}]+)\}\}")
 
 
-def extract_text_from_xml(xml_content):
-    root = ET.fromstring(xml_content)
-    texts = []
-    for elem in root.iter(f"{{{WORD_NS}}}t"):
-        if elem.text:
-            texts.append(elem.text)
-    return "".join(texts)
-
-
-def extract_paragraphs_from_xml(xml_content):
+def extract_paragraphs_from_word_xml(xml_content):
     root = ET.fromstring(xml_content)
     paragraphs = []
     for para in root.iter(f"{{{WORD_NS}}}p"):
@@ -53,7 +47,36 @@ def extract_paragraphs_from_xml(xml_content):
     return paragraphs
 
 
-def extract_tokens_from_docx(docx_path):
+def extract_paragraphs_from_drawingml_xml(xml_content):
+    root = ET.fromstring(xml_content)
+    paragraphs = []
+    for para in root.iter(f"{{{DRAWING_NS}}}p"):
+        runs = []
+        for t in para.iter(f"{{{DRAWING_NS}}}t"):
+            if t.text:
+                runs.append(t.text)
+        if runs:
+            paragraphs.append("".join(runs))
+    return paragraphs
+
+
+def _select_parts(namelist, file_type):
+    if file_type == "pptx":
+        return [
+            name for name in namelist
+            if name.endswith(".xml") and name.startswith("ppt/slides/slide")
+        ]
+    return [
+        name for name in namelist
+        if name.endswith(".xml") and (
+            "document" in name
+            or "header" in name
+            or "footer" in name
+        )
+    ]
+
+
+def extract_tokens_from_template(template_path):
     tokens = {
         "fields": [],
         "sections_open": [],
@@ -62,28 +85,28 @@ def extract_tokens_from_docx(docx_path):
         "all": [],
     }
 
+    suffix = Path(template_path).suffix.lower().lstrip(".")
+    file_type = "pptx" if suffix == "pptx" else "docx"
+    paragraph_extractor = (
+        extract_paragraphs_from_drawingml_xml if file_type == "pptx"
+        else extract_paragraphs_from_word_xml
+    )
+
     try:
-        with zipfile.ZipFile(docx_path, "r") as z:
-            parts = []
-            for name in z.namelist():
-                if name.endswith(".xml") and (
-                    "document" in name
-                    or "header" in name
-                    or "footer" in name
-                ):
-                    parts.append(name)
+        with zipfile.ZipFile(template_path, "r") as z:
+            parts = _select_parts(z.namelist(), file_type)
 
             all_text = ""
             for part in parts:
                 content = z.read(part)
-                paragraphs = extract_paragraphs_from_xml(content)
+                paragraphs = paragraph_extractor(content)
                 all_text += "\n".join(paragraphs) + "\n"
 
     except zipfile.BadZipFile:
-        print(f"ERROR: '{docx_path}' is not a valid .docx file", file=sys.stderr)
+        print(f"ERROR: '{template_path}' is not a valid .docx/.pptx file", file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
-        print(f"ERROR: File not found: '{docx_path}'", file=sys.stderr)
+        print(f"ERROR: File not found: '{template_path}'", file=sys.stderr)
         sys.exit(1)
 
     seen = set()
@@ -168,9 +191,9 @@ def validate_against_transform(tokens, odt_name, org):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract mustache tokens from a .docx template"
+        description="Extract mustache tokens from a .docx or .pptx template"
     )
-    parser.add_argument("docx", help="Path to .docx template file")
+    parser.add_argument("template", help="Path to .docx or .pptx template file")
     parser.add_argument(
         "--json", action="store_true", dest="json_output", help="Output as JSON"
     )
@@ -182,13 +205,13 @@ def main():
     parser.add_argument("--org", help="SF CLI target org (required with --validate-transform)")
     args = parser.parse_args()
 
-    tokens = extract_tokens_from_docx(args.docx)
+    tokens = extract_tokens_from_template(args.template)
 
     if args.json_output:
         print(json.dumps(tokens, indent=2))
         return
 
-    print(f"Template: {args.docx}")
+    print(f"Template: {args.template}")
     print(f"Total unique tokens: {len(tokens['all'])}")
 
     if tokens["fields"]:

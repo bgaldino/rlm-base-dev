@@ -6,8 +6,8 @@ returns the generated ContentDocument ID(s). Supports both ODT-based and
 ContextService-based templates.
 
 This enables end-to-end template testing from the CLI: verify that an
-Extract + Transform + .docx template produces a valid document, without
-needing to click through the UI.
+Extract + Transform + .docx/.pptx template produces a valid document,
+without needing to click through the UI.
 
 Usage:
   python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
@@ -19,7 +19,7 @@ Options:
   --title       Custom document filename (default: auto-generated)
   --json        Output full DGP record as JSON on completion
   --timeout     Max seconds to wait for generation (default: 120)
-  --no-convert  Generate .docx only (skip PDF conversion)
+  --no-convert  Generate the template-format file only (skip PDF conversion)
   --dry-run     Resolve the template and print the DGP payload without creating it
 """
 import argparse
@@ -236,7 +236,8 @@ def extract_content_ids(response_text):
 
     ResponseText format is comma-separated ContentVersion IDs (068 prefix):
       "068xx000001ABC,068xx000001DEF"
-    First ID is typically the .docx (intermediate), second is the .pdf (final).
+    First ID is typically the intermediate template-format file (.docx/.pptx),
+    second is the .pdf (final).
     """
     if not response_text:
         return []
@@ -266,7 +267,7 @@ def main():
     parser.add_argument("--timeout", type=int, default=120,
                         help="Max seconds to poll (default: 120)")
     parser.add_argument("--no-convert", action="store_true",
-                        help="Generate .docx only, skip PDF conversion")
+                        help="Generate the template-format file only, skip PDF conversion")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the DGP payload without creating a DocumentGenerationProcess")
 

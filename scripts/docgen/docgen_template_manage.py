@@ -37,6 +37,18 @@ except ImportError:
 
 LIBRARY_DEV_NAME = "DocgenDocumentTemplateLibrary"
 
+FILE_EXT_TO_TYPE = {
+    "docx": "MicrosoftWord",
+    "pptx": "MicrosoftPowerpoint",
+}
+
+
+def _file_ext_and_type(file_path):
+    """Derive the PathOnClient extension and DocumentTemplate Type from a file's extension."""
+    ext = os.path.splitext(file_path)[1].lstrip(".").lower()
+    return ext, FILE_EXT_TO_TYPE.get(ext, "MicrosoftWord")
+
+
 TEMPLATE_FIELDS = (
     "Id, Name, VersionNumber, IsActive, Status, Type, UsageType, "
     "ExtractOmniDataTransformName, MapperOmniDataTransformName, "
@@ -207,14 +219,14 @@ def _find_content_doc(template_name, library_id, org, content_doc_id_override=No
 
 
 def _validate_file(file_path):
-    """Validate that the file exists and is a valid ZIP (DOCX)."""
+    """Validate that the file exists and is a valid ZIP (DOCX/PPTX)."""
     if not os.path.exists(file_path):
         print(f"ERROR: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
     with open(file_path, "rb") as f:
         magic = f.read(4)
     if magic != b"PK\x03\x04":
-        print(f"ERROR: File is not a valid ZIP/DOCX: {file_path}", file=sys.stderr)
+        print(f"ERROR: File is not a valid ZIP/DOCX/PPTX: {file_path}", file=sys.stderr)
         sys.exit(1)
     return os.path.getsize(file_path)
 
@@ -333,13 +345,14 @@ def cmd_upload(args):
     with open(args.file, "rb") as f:
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
+    file_ext, _ = _file_ext_and_type(args.file)
     resp = requests.post(
         f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={
             "ContentDocumentId": doc_id,
             "Title": template["Name"],
-            "PathOnClient": f"{template['Name']}.docx",
+            "PathOnClient": f"{template['Name']}.{file_ext}",
             "VersionData": version_data,
         },
     )
@@ -353,7 +366,7 @@ def cmd_upload(args):
 
 
 def cmd_create(args):
-    """Create a new DocumentTemplate and upload the .docx to the library."""
+    """Create a new DocumentTemplate and upload the .docx/.pptx to the library."""
     file_size = _validate_file(args.file)
     library_id = _find_library(args.org)
 
@@ -375,12 +388,13 @@ def cmd_create(args):
     with open(args.file, "rb") as f:
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
+    file_ext, dt_type = _file_ext_and_type(args.file)
     cv_resp = requests.post(
         f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
         headers=headers,
         json={
             "Title": args.name,
-            "PathOnClient": f"{args.name}.docx",
+            "PathOnClient": f"{args.name}.{file_ext}",
             "VersionData": version_data,
             "FirstPublishLocationId": library_id,
         },
@@ -403,7 +417,7 @@ def cmd_create(args):
 
     dt_body = {
         "Name": args.name,
-        "Type": "MicrosoftWord",
+        "Type": dt_type,
         "TokenMappingType": "JSON",
         "Status": "Draft",
         "IsActive": False,
@@ -523,13 +537,14 @@ def cmd_replace(args):
     with open(args.file, "rb") as f:
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
+    file_ext, _ = _file_ext_and_type(args.file)
     resp = requests.post(
         f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={
             "ContentDocumentId": doc_id,
             "Title": template["Name"],
-            "PathOnClient": f"{template['Name']}.docx",
+            "PathOnClient": f"{template['Name']}.{file_ext}",
             "VersionData": version_data,
         },
     )
@@ -557,7 +572,7 @@ def cmd_replace(args):
 
 
 def cmd_download(args):
-    """Download a template .docx or any ContentVersion by ID."""
+    """Download a template's source file (.docx/.pptx) or any ContentVersion by ID."""
     instance_url, token = _get_rest_auth(args.org)
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -579,7 +594,7 @@ def cmd_download(args):
         library_id = _find_library(args.org)
         doc_id = _find_content_doc(template["Name"], library_id, args.org)
         cv_records = _sf_query(
-            f"SELECT Id FROM ContentVersion "
+            f"SELECT Id, FileExtension FROM ContentVersion "
             f"WHERE ContentDocumentId = '{doc_id}' "
             f"ORDER BY VersionNumber DESC LIMIT 1", args.org
         )
@@ -588,7 +603,8 @@ def cmd_download(args):
                   file=sys.stderr)
             sys.exit(1)
         cv_id = cv_records[0]["Id"]
-        default_filename = f"{template['Name']}.docx"
+        ext = cv_records[0].get("FileExtension", "bin")
+        default_filename = f"{template['Name']}.{ext}"
     else:
         print("ERROR: Specify --template <name> or --version-id <068XXXXXXXXXXXXAAA>",
               file=sys.stderr)
@@ -647,7 +663,7 @@ def main():
     # upload
     up_p = subparsers.add_parser("upload", help="Upload new binary to existing template")
     up_p.add_argument("name", help="Template name or Id")
-    up_p.add_argument("file", help="Path to .docx or .dt file")
+    up_p.add_argument("file", help="Path to .docx, .pptx, or .dt file")
     up_p.add_argument("--org", required=True, help="SF CLI target org alias")
     up_p.add_argument("--template-id", help="Explicit template Id for disambiguation")
     up_p.add_argument("--content-doc-id", help="Explicit ContentDocument Id (069...)")
@@ -655,7 +671,7 @@ def main():
     # create
     cr_p = subparsers.add_parser("create", help="Create new template + upload file")
     cr_p.add_argument("name", help="Template name")
-    cr_p.add_argument("file", help="Path to .docx or .dt file")
+    cr_p.add_argument("file", help="Path to .docx, .pptx, or .dt file")
     cr_p.add_argument("--org", required=True, help="SF CLI target org alias")
     cr_p.add_argument("--extract-odt", help="Extract ODT name")
     cr_p.add_argument("--transform-odt", help="Transform ODT name")
@@ -678,14 +694,14 @@ def main():
     # replace
     rep_p = subparsers.add_parser("replace", help="Full lifecycle: deactivate -> upload -> reactivate")
     rep_p.add_argument("name", help="Template name or Id")
-    rep_p.add_argument("file", help="Path to .docx or .dt file")
+    rep_p.add_argument("file", help="Path to .docx, .pptx, or .dt file")
     rep_p.add_argument("--org", required=True, help="SF CLI target org alias")
     rep_p.add_argument("--template-id", help="Explicit template Id for disambiguation")
     rep_p.add_argument("--content-doc-id", help="Explicit ContentDocument Id (069...)")
 
     # download
-    dl_p = subparsers.add_parser("download", help="Download template .docx or ContentVersion")
-    dl_p.add_argument("--template", help="Template name to download source .docx")
+    dl_p = subparsers.add_parser("download", help="Download template source file or ContentVersion")
+    dl_p.add_argument("--template", help="Template name to download source file (.docx/.pptx)")
     dl_p.add_argument("--version-id", help="ContentVersion Id (068XXXXXXXXXXXXAAA) to download directly")
     dl_p.add_argument("--org", required=True, help="SF CLI target org alias")
     dl_p.add_argument("--output", "-o", help="Output file path")
