@@ -66,12 +66,13 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
 | 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
-| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 14 |
+| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
 | 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 616      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
 **Other notes:**
+- ⚠ `PricebookEntryDerivedPrice.csv` is **intentionally header-only (0 records)** as of 2026-07-28. Its 14 rows all belonged to `QB-SUPP-2000` (Software Maintenance), which is now **fixed-price** instead of derived: activating an order that contained it failed with *"Your formula must contain the following fixed variables: UnitPrice, TotalPrice, ListPrice and HeaderTotal."* (issue #63). **Keep the object in `export.json`** — removing it would change the delete ordering. Two rules follow from this and must move together if derived pricing is ever restored: a derived product carries `UnitPrice = 0` in every currency (so re-adding formula rows without zeroing the prices double-counts, and deleting them without setting prices makes the product **free**), and `PricebookEntry.IsDerived` is system-maintained from this object but **evaluated at INSERT only** — a fresh build is correct by construction, an existing org needs its entries deleted and reinserted. Restoration is tracked in the private artifacts tracker as pack 089.
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Upsert` with `WHERE ContractId = NULL` on the direct-field `Name` externalId, ordered **before** the child adjustments. There is **one schedule per type** (Attribute / Bundle / Volume), USD (corporate) — exactly what the platform seeds, so Upsert matches the seeded rows (no duplicates). Do **not** create per-currency schedule variants: `PriceAdjustmentTier` / `AttributeBasedAdjustment` / `BundleBasedAdjustment` of every currency reference this single schedule by `PriceAdjustmentSchedule.Name` and are disambiguated by their own `CurrencyIsoCode` at pricing time. The pricing procedure pins each adjustment step to one schedule Id via `find_replace` (`… WHERE name = 'Standard …' LIMIT 1`), so duplicating the schedule per currency makes non-USD adjustment lookups resolve nothing
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
@@ -194,7 +195,7 @@ qb-pricing/
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
 ├── PricebookEntry.csv                   # 1862 records
-├── PricebookEntryDerivedPrice.csv       # 14 records
+├── PricebookEntryDerivedPrice.csv       # 0 records (header only — see note below)
 │
 │  Source CSVs — Price Adjustments
 ├── PriceAdjustmentSchedule.csv          # 3 records (Upsert) — one per type, USD; shared by all currencies
