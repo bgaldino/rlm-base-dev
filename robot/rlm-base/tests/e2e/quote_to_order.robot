@@ -60,6 +60,15 @@ Quote To Order
     Add Products Via Browse Catalogs    ${QUOTE_ID}    ${TEST_CATALOG_NAME}    ${TEST_PRODUCT_NAME}
     Capture Step Screenshot    03_products_added
 
+    # Configure the bundle PARENT and select the non-default maintenance component.
+    # Adding the bundle alone does NOT reach the configurator, which is why issue #63 —
+    # a Renewal Opportunity flow failure on a formerly derived-priced product — survived
+    # this suite. See Configure Bundle Line for the DOM contract.
+    Pause For Recording If Enabled    Products added. About to configure the bundle.
+    Configure Bundle Line    ${QUOTE_ID}    ${TEST_PRODUCT_NAME}
+    ...    ${TEST_BUNDLE_OPTION_NAME}    ${TEST_BUNDLE_OPTION_TAB}
+    Capture Step Screenshot    03b_bundle_configured
+
     # Create Order
     Pause For Recording If Enabled    Products added. About to Create Order.
     ${order_id}=    Create Order From Quote    ${QUOTE_ID}
@@ -76,6 +85,14 @@ Quote To Order
     Navigate To Account    ${ACCOUNT_ID}
     Click Record Page Tab    Assets
     Capture Step Screenshot    05_assets_tab
+
+    # ⚠ The issue-#63 detector. Must come AFTER activation, and it is not redundant with the
+    # Order status: the renewal flow is PlatformEvent-triggered, so it fails silently and the
+    # Order still reaches Activated. This assertion is the only thing here that can fail when
+    # a configured bundle component breaks the renewal flow.
+    Verify Renewal Opportunity Includes Product    ${ACCOUNT_ID}    ${TEST_BUNDLE_OPTION_NAME}
+    Capture Step Screenshot    06_renewal_opportunity_verified
+
     Pause For Recording If Enabled    Assets verified. Quote-to-Order complete.
     Log    Quote-to-Order E2E test PASSED.
 

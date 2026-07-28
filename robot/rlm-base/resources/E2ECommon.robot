@@ -1135,6 +1135,270 @@ _Click Save Quote Via JS
         Fail    msg=Save Quote button found but still disabled (will retry).
     END
 
+# ── Bundle Configurator ────────────────────────────────────────────
+
+Configure Bundle Line
+    [Documentation]    Opens the product configurator on a bundle PARENT quote line, selects an
+    ...    optional component, and commits with "Save & Exit".
+    ...
+    ...    ⚠ The configurator is reached from the row-level actions dropdown on the RIGHT of each
+    ...    line ("Show Actions" → Configure). It is NOT a gear icon and NOT the "+" affordance
+    ...    beside it.
+    ...    ⚠ Configure the BUNDLE PARENT only. Child lines carry their own action menus; opening
+    ...    one of those configures the wrong product.
+    ...
+    ...    Every selector below was read off the live DOM on 2026-07-28, not inferred.
+    ...
+    ...    ⚠ The retries here are LOAD-BEARING, not padding: on a live run the menu items, the
+    ...    modal tabs and the modal footer each miss on their first attempt and succeed on a
+    ...    later one. Screenshots from those attempts are suffixed `_retry` — seeing
+    ...    `configurator_tab_retry.png` in a results folder does NOT mean the run failed.
+    [Arguments]    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}=${EMPTY}
+    Navigate To Quote    ${quote_id}
+    Wait Until Keyword Succeeds    60s    3s    _Open Line Action Menu    ${line_name}
+    Wait Until Keyword Succeeds    30s    2s    _Click Line Action    Configure
+    Capture Step Screenshot    configurator_opened
+    IF    "${tab_label}" != "${EMPTY}"
+        Wait Until Keyword Succeeds    60s    3s    _Select Configurator Tab    ${tab_label}
+    END
+    Wait Until Keyword Succeeds    60s    3s    _Select Configurator Option    ${option_name}
+    Capture Step Screenshot    configurator_option_selected
+    Wait Until Keyword Succeeds    30s    3s    _Commit Configurator
+    Sleep    8s    reason=Allow the configuration to commit and the quote to reprice
+    Capture Step Screenshot    configurator_saved
+
+_Open Line Action Menu
+    [Documentation]    Internal keyword — opens the row-level actions dropdown for a quote line.
+    ...
+    ...    The line grid is ag-Grid. The product name lives in the pinned-LEFT row container and
+    ...    the action menu in the CENTRE container; the two are joined only by a shared `row-id`,
+    ...    so we resolve the id from the name first and then find the matching centre row.
+    ...    ⚠ Hierarchy level does NOT identify the bundle parent — every row is `ag-row-level-0`,
+    ...    children included. Match on the product name.
+    [Arguments]    ${line_name}
+    ${result}=    Execute JavaScript
+    ...    return (function(name){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        var rows = deepAll(document, 'div[role="row"][row-id]', [], 0);
+    ...        var rowId = null;
+    ...        for (var i = 0; i < rows.length; i++) {
+    ...            if ((rows[i].innerText || '').indexOf(name) !== -1) {
+    ...                rowId = rows[i].getAttribute('row-id');
+    ...                break;
+    ...            }
+    ...        }
+    ...        if (!rowId) { return 'line_not_found'; }
+    ...        for (var k = 0; k < rows.length; k++) {
+    ...            if (rows[k].getAttribute('row-id') !== rowId) { continue; }
+    ...            var action = rows[k].querySelector('industries_common-datagrid-row-action');
+    ...            if (!action || !action.shadowRoot) { continue; }
+    ...            var menu = action.shadowRoot.querySelector('lightning-button-menu');
+    ...            if (!menu || !menu.shadowRoot) { continue; }
+    ...            var btn = menu.shadowRoot.querySelector('button');
+    ...            if (!btn) { continue; }
+    ...            btn.click();
+    ...            return 'menu_opened';
+    ...        }
+    ...        return 'row_action_not_found';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${line_name}
+    Log    Open line action menu: ${result}
+    IF    "${result}" != "menu_opened"
+        Capture Step Screenshot    line_action_menu_retry
+        Fail    msg=Could not open the actions menu for quote line "${line_name}" (${result}) (will retry).
+    END
+
+_Click Line Action
+    [Documentation]    Internal keyword — clicks a named item in the open row-action menu.
+    ...
+    ...    ⚠ The menu items are rendered ASYNCHRONOUSLY after the trigger is clicked — they do
+    ...    not exist in the same JS tick. That is why this is a separate, retried keyword rather
+    ...    than part of _Open Line Action Menu. Verified live 2026-07-28: querying immediately
+    ...    after the click returns zero items.
+    [Arguments]    ${action_label}
+    ${result}=    Execute JavaScript
+    ...    return (function(label){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        var items = deepAll(document, 'lightning-menu-item', [], 0);
+    ...        var seen = [];
+    ...        for (var i = 0; i < items.length; i++) {
+    ...            var a = items[i].shadowRoot ? items[i].shadowRoot.querySelector('a[role="menuitem"]') : null;
+    ...            if (!a) { continue; }
+    ...            var t = (a.textContent || '').trim();
+    ...            seen.push(t);
+    ...            if (t === label) {
+    ...                a.click();
+    ...                return 'clicked';
+    ...            }
+    ...        }
+    ...        return 'not_found:[' + seen.join('|') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${action_label}
+    Log    Click line action: ${result}
+    IF    "${result}" != "clicked"
+        Fail    msg=Row action "${action_label}" not clickable yet (${result}) (will retry).
+    END
+
+_Select Configurator Tab
+    [Documentation]    Internal keyword — selects an option-group tab inside the configurator by
+    ...    its `data-label`. Retried because the modal takes several seconds to render.
+    [Arguments]    ${tab_label}
+    ${result}=    Execute JavaScript
+    ...    return (function(label){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        var tabs = deepAll(document, 'a[role="tab"]', [], 0);
+    ...        var seen = [];
+    ...        for (var i = 0; i < tabs.length; i++) {
+    ...            var l = tabs[i].getAttribute('data-label');
+    ...            if (!l) { continue; }
+    ...            seen.push(l);
+    ...            if (l === label) {
+    ...                tabs[i].click();
+    ...                return 'tab_selected';
+    ...            }
+    ...        }
+    ...        return 'tab_not_found:[' + seen.join('|') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${tab_label}
+    Log    Select configurator tab: ${result}
+    IF    "${result}" != "tab_selected"
+        Capture Step Screenshot    configurator_tab_retry
+        Fail    msg=Configurator tab "${tab_label}" not found (${result}) (will retry).
+    END
+
+_Select Configurator Option
+    [Documentation]    Internal keyword — ticks an optional component's checkbox in the
+    ...    configurator. Idempotent: an already-selected option is a success, not a re-click.
+    ...
+    ...    ⚠ `textContent` does NOT cross shadow boundaries, and each option renders its product
+    ...    name inside a nested shadow root — so a plain textContent match finds nothing and the
+    ...    option looks absent. The deepText walker below is required, not defensive coding.
+    ...    ⚠ The option list for a tab renders asynchronously after the tab is selected, so this
+    ...    is retried.
+    [Arguments]    ${option_name}
+    ${result}=    Execute JavaScript
+    ...    return (function(name){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        function deepText(node, depth) {
+    ...            if (depth > 25) return '';
+    ...            var t = '';
+    ...            var kids = node.childNodes;
+    ...            for (var i = 0; i < kids.length; i++) {
+    ...                var c = kids[i];
+    ...                if (c.nodeType === 3) { t += c.textContent + ' '; }
+    ...                else if (c.nodeType === 1) {
+    ...                    if (c.shadowRoot) { t += deepText(c.shadowRoot, depth + 1); }
+    ...                    t += deepText(c, depth + 1);
+    ...                }
+    ...            }
+    ...            return t;
+    ...        }
+    ...        function squash(s) {
+    ...            var out = '';
+    ...            var prevWasSpace = false;
+    ...            for (var i = 0; i < s.length; i++) {
+    ...                var code = s.charCodeAt(i);
+    ...                var isSpace = (code === 32 || code === 9 || code === 10 || code === 13);
+    ...                if (isSpace) {
+    ...                    if (!prevWasSpace && out.length > 0) { out += ' '; }
+    ...                    prevWasSpace = true;
+    ...                } else {
+    ...                    out += s.charAt(i);
+    ...                    prevWasSpace = false;
+    ...                }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        var opts = deepAll(document, 'runtime_industries_cfg-option', [], 0);
+    ...        var seen = [];
+    ...        for (var i = 0; i < opts.length; i++) {
+    ...            var root = opts[i].shadowRoot || opts[i];
+    ...            var txt = squash(deepText(root, 0));
+    ...            seen.push(txt.slice(0, 30));
+    ...            if (txt.indexOf(name) === -1) { continue; }
+    ...            var cb = deepAll(root, 'input[type="checkbox"]', [], 0)[0];
+    ...            if (!cb) { return 'option_has_no_checkbox'; }
+    ...            if (cb.checked) { return 'already_selected'; }
+    ...            cb.click();
+    ...            return cb.checked ? 'selected' : 'click_did_not_take';
+    ...        }
+    ...        return 'option_not_found:[' + seen.join('|') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${option_name}
+    Log    Select configurator option: ${result}
+    IF    "${result}" != "selected" and "${result}" != "already_selected"
+        Capture Step Screenshot    configurator_option_retry
+        Fail    msg=Could not select configurator option "${option_name}" (${result}) (will retry).
+    END
+
+_Commit Configurator
+    [Documentation]    Internal keyword — commits the configuration via "Save & Exit".
+    ...    ⚠ "Save & Exit" both saves and closes; there is no separate close step.
+    ${result}=    Execute JavaScript
+    ...    return (function(){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        var btns = deepAll(document, 'button', [], 0);
+    ...        for (var i = 0; i < btns.length; i++) {
+    ...            var b = btns[i];
+    ...            if (b.disabled || b.getAttribute('aria-disabled') === 'true') { continue; }
+    ...            if ((b.textContent || '').trim() === 'Save & Exit') {
+    ...                b.click();
+    ...                return 'committed';
+    ...            }
+    ...        }
+    ...        return 'commit_button_not_found';
+    ...    })()
+    Log    Commit configurator: ${result}
+    IF    "${result}" != "committed"
+        Capture Step Screenshot    configurator_commit_retry
+        Fail    msg=Configurator "Save & Exit" not clickable (${result}) (will retry).
+    END
+
 # ── Setup Helpers ──────────────────────────────────────────────────
 
 Lookup Test Account
@@ -1385,3 +1649,30 @@ Verify Assets Exist On Account
     Log    Asset count: ${asset_count}
     Should Be True    ${asset_count} > 0
     ...    msg=No assets yet on Account ${account_id} (will retry).
+
+Verify Renewal Opportunity Includes Product
+    [Documentation]    Asserts the renewal Opportunity produced on order activation carries a
+    ...    line for ${product_name}. Polls, because the flow is asynchronous.
+    ...
+    ...    ⚠ THIS is the assertion that detects issue #63 — the Order status does NOT.
+    ...    The renewal is created by `RLM_CreateUpdateRenewalOpportunities`, whose TriggerType is
+    ...    **PlatformEvent**. When it fails, the Order still reaches Activated, no error toast
+    ...    appears, and no AsyncApexJob is marked Failed — the only observable is that the flow's
+    ...    output never arrives. A test that stops at "Order is Activated" therefore PASSES while
+    ...    #63 is live, which is precisely how #63 survived.
+    ...
+    ...    Live evidence 2026-07-28: activation at 20:07:54 produced 6 assets at 20:07:57 and the
+    ...    renewal Opportunity at 20:08:00 with 5 lines including Software Maintenance @ 5400.
+    ...    The preceding run, whose order had no maintenance line, produced 4 (28,500 vs 33,900 —
+    ...    a difference of exactly 5,400).
+    ...
+    ...    Relies on `Reset Test Account` having cleared prior Opportunities, so any matching
+    ...    line on this Account belongs to this run.
+    [Arguments]    ${account_id}    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${account_id}
+    ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${product_id}
+    ${line_id}=    Wait For Related Record Via API
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    Log    Renewal opportunity line for ${product_name}: ${line_id}
+    RETURN    ${line_id}
