@@ -102,20 +102,27 @@ def _print_summary():
         # Appending a new numbered section after the footer is the natural edit, and it was the
         # one edit that switched off the accounting for everything it added.
         if _summary_at is not None and len(run_labels) != _summary_at:
-            # ⚠ RETRACT the summary explicitly. It was computed before these checks existed, so
-            # it is now wrong — and leaving a stale "All N passed" as the last word a reader
-            # trusts is the same self-contradicting pair this branch spent four rounds removing
-            # from the task logs. Say which line is void, not just that something is amiss.
-            print(
-                f"CHECKS AFTER THE FOOTER: {len(run_labels) - _summary_at} check(s) registered "
-                "after the accounting closed — never counted, never gated the exit status. "
-                "THE SUMMARY ABOVE IS VOID: it was computed before these ran"
-                + (f", and {len(failures)} check(s) failed." if failures else ".")
-                + " Move them above `_print_summary()`."
-            )
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os._exit(1)
+            # ⚠ Same try/finally as the main path, for the same measured reason. This branch
+            # printed and flushed BEFORE forcing the status, so a raising flush skipped the
+            # os._exit entirely — measured: stale summary, FAIL line, retraction all printed,
+            # process exited 0. That is the round-10 regression reappearing in the path added
+            # to fix round 11. Diagnostics best-effort; the status is not.
+            try:
+                # ⚠ RETRACT the summary explicitly. It was computed before these checks existed,
+                # so it is now wrong — and leaving a stale "All N passed" as the last word a
+                # reader trusts is the same self-contradicting pair this branch spent four
+                # rounds removing from the task logs. Say which line is void.
+                print(
+                    f"CHECKS AFTER THE FOOTER: {len(run_labels) - _summary_at} check(s) "
+                    "registered after the accounting closed — never counted, never gated the "
+                    "exit status. THE SUMMARY ABOVE IS VOID: it was computed before these ran"
+                    + (f", and {len(failures)} check(s) failed." if failures else ".")
+                    + " Move them above `_print_summary()`."
+                )
+                sys.stdout.flush()
+                sys.stderr.flush()
+            finally:
+                os._exit(1)
         return
     _summary_done = True
     _summary_at = len(run_labels)
@@ -165,9 +172,11 @@ def _print_summary():
             # a loud false INCOMPLETE — never a false abort, and never a silent pass.
             print(
                 f"CHECK COUNT: {len(run_labels)} registered, expected exactly {EXPECTED_CHECKS}. "
-                "Fewer means a check was removed or a loop's data went empty — restore it. More "
-                "means checks were added without raising EXPECTED_CHECKS — raise it, or the "
-                "floor goes stale and a later deletion passes unnoticed."
+                "Fewer means a check was removed, a loop's data went empty, OR a check sits "
+                "BELOW `_print_summary()` and has not run yet — the last is the likely one if "
+                "you just raised this number. More means checks were added without raising "
+                "EXPECTED_CHECKS — raise it, or the count goes stale and a later deletion "
+                "passes unnoticed."
             )
         else:
             print(f"All {len(run_labels)} decision-table task checks passed.")
@@ -919,6 +928,19 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # an unresolved name. Substituting spaces keeps every other offset intact.
         expr = STRING_LITERAL.sub(lambda m: " " * len(m.group(0)), raw_expr)
 
+        # ⚠ A bare keyword is not a flag reference. The exemption list above is needed for real
+        # expressions (`a and b`, `not x`), but it is unconditional — so a `when:` consisting
+        # ONLY of a reserved word passed. Measured against CCI's own Jinja environment: `none`,
+        # `and`, `or`, `if`, `in`, `is`, `else` and `false` all resolve to a falsy constant, so
+        # the step is silently skipped — eight of the ten spellings land on the exact consequence
+        # this scan exists to catch.
+        if raw_expr.strip().lower() in JINJA_RESERVED:
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"{raw_expr!r} is a bare Jinja keyword, not a flag reference — it resolves to a "
+                "constant, so the step is either always skipped or always run"
+            )
+            continue
+
         # ⚠ Reject SUBSCRIPTS OUTRIGHT, and a call applied to a grouped expression. The previous
         # rule looked only at the character immediately after each dotted match, so a closing
         # delimiter hid the suffix: `(org_config.scratch)["bogus"]` and `[org_config.scratch][1]`
@@ -991,7 +1013,13 @@ for flow_name, flow in (cci.get("flows") or {}).items():
             scrubbed[start:end] = " " * (end - start)
         for match in UNMODELLED_TOKEN.finditer("".join(scrubbed)):
             token = match.group(0)
-            if token.lower() in JINJA_RESERVED or token.isdigit():
+            # ⚠ EXACT spelling, and ASCII digits only. `.lower()` exempted `NONE`, `AND`, `Not`
+            # and friends, which Jinja does NOT accept as keywords — it resolves them as
+            # undefined names, i.e. falsy, i.e. the guarded step is silently skipped. Measured at
+            # 87/87, exit 0. `str.isdigit()` is Unicode-wide and exempted `٣`, `²`, `①`, `３`,
+            # none of which are valid Jinja numerals; that direction is loud (TemplateSyntaxError)
+            # rather than silent, but it is the same alphabet approximation this scan abandoned.
+            if token in JINJA_RESERVED or (token.isascii() and token.isdigit()):
                 continue
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
                 f"{token} in {raw_expr!r}: not consumed as <namespace>.<attribute> — a bare "
@@ -1034,7 +1062,7 @@ _print_summary()
 if (
     failures
     or TERMINAL_CHECK not in run_labels          # did not reach the end
-    or len(run_labels) < EXPECTED_CHECKS         # reached the end without running everything
+    or len(run_labels) != EXPECTED_CHECKS        # exact, matching the summary — see below
     or run_labels[-1] != TERMINAL_CHECK          # something registered after the sentinel
 ):
     sys.exit(1)
