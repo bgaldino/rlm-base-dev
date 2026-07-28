@@ -6,6 +6,11 @@ This document provides working examples for the `manage_decision_tables` Cumulus
 
 Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh** (full or incremental), **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
 
+> **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
+> `--org <cci_alias>`. The examples below omit it and therefore run against your **default**
+> CCI org — pass `--org` to target another. (Both task classes rejected `--org` until
+> 2026-07-27; if you find a doc still saying they take no `--org` flag, it is stale.)
+
 ### Basic Operations
 
 #### 1. List All Active Decision Tables (with UsageType)
