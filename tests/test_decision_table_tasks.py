@@ -1134,18 +1134,100 @@ CUSTOM_VALUES = cci["project"]["custom"]
 _SENTINEL = object()
 
 
-def _flag_domain(name):
+_LITERAL = re.compile(r"'([^']*)'|\"([^\"]*)\"")
+
+# ⚠ Assignments enumerated per expression. A BOUND, not a truncation — exceeding it raises, and
+# the caller REPORTS it. Set to 2**8 so it AGREES with the 8-variable cap enforced below rather
+# than contradicting it: eight bool flags is exactly 256, so every clause the variable cap admits
+# is enumerable, and only genuinely wide string domains breach this one. Two bounds that disagree
+# means the stricter one silently owns the limit while the looser one documents a lie. Largest
+# live enumeration today is 32 (prepare_billing[3], five flags).
+ENUM_CAP = 256
+
+
+def _literals_in(expr):
+    return [a or b for a, b in _LITERAL.findall(expr)]
+
+
+def _flag_domain(name, expr=""):
+    """
+    The values a flag can actually take, as far as this expression can distinguish them.
+
+    ⚠ A domain must be the VALUE SPACE, not a token standing in for it. The previous
+    `[declared_value, object()]` was neither, and it failed in BOTH directions — measured
+    round 16, on both interpreters:
+
+      FALSE POSITIVE — `<flag> == "acme"` on a flag declared `'qb'` was reported as a constant,
+      because "acme" was never in the domain. That is precisely how you gate a step on a
+      NON-default value, so the pass rejected the guard for the crime of not being the default,
+      and pushed the author toward the shapes it could not check. Same for a bare string or
+      list flag (no falsy member) and for any numeric comparison (`TypeError` against a bare
+      `object()`, reported as though the GUARD were malformed).
+
+      FALSE NEGATIVE — `_implies` reuses this domain, so a child guard `== "qb" or == "acme"`
+      under parent `== "qb"` passed 89/89 while firing at `product_dataset='acme'`, where the
+      parent does not. A child running in exactly the org the discarded parent guard excluded
+      is the precise safety basis the whole allowlist rests on. That is the dangerous
+      direction, and it is the same defect class round 15's check was added to close — one
+      type along. "Has a guard" was too weak; "implies over an incomplete domain" is too weak
+      in the same way.
+
+    Harvesting the literals the expression actually compares against, plus a falsy stand-in of
+    the declared type, closes both at once.
+    """
     value = CUSTOM_VALUES.get(name)
-    return [False, True] if isinstance(value, bool) or value is None else [value, _SENTINEL]
+    if isinstance(value, bool):
+        return [False, True]
+    # ⚠ None carries None ITSELF, not just the bools it might later become. An absent key and a
+    # key declared null are indistinguishable to CCI — BaseConfig.lookup() returns None for
+    # both — so `<flag> is none` is a real guard that varies. Enumerated over {False, True}
+    # alone it produced one verdict and was reported as always skipped.
+    if value is None:
+        return [None, False, True]
+    falsy = "" if isinstance(value, str) else ([] if isinstance(value, list) else 0)
+    domain, seen = [], set()
+    for candidate in [value, falsy, *_literals_in(expr)]:
+        if repr(candidate) not in seen:
+            seen.add(repr(candidate))
+            domain.append(candidate)
+    return domain
 
 
 def _org_type_domain(expr):
-    literals = [a or b for a, b in re.findall(r"'([^']*)'|\"([^\"]*)\"", expr)]
-    return list(dict.fromkeys(literals))[:3] + [_SENTINEL]
+    # ⚠ NO silent truncation. The `[:3]` slice this replaces let a four-literal implication
+    # violation through at 89/89 on BOTH interpreters — parent `!= "D"`, children
+    # `in ("A","B","C","D")`, and "D" was simply never evaluated, so the counterexample was
+    # discarded before it could be found. A domain that quietly drops a value is the same
+    # failure as a check that quietly skips, which is what round 15 was spent removing. The
+    # size bound now lives in _enumerate, where breaching it RAISES and gets reported.
+    return list(dict.fromkeys(_literals_in(expr))) + [_SENTINEL]
+
+
+def _enumerate(domains, scratches, org_types):
+    """Assignment count, or raise. Bounded loudly rather than trimmed silently."""
+    size = len(scratches) * len(org_types)
+    for domain in domains:
+        size *= len(domain)
+    if size > ENUM_CAP:
+        raise ValueError(f"{size} assignments to enumerate — beyond the cap of {ENUM_CAP}")
+    return size
 
 
 def _evaluate(expr, flag_values, scratch, org_type):
     """Evaluate one assignment. Raises on anything this harness cannot model."""
+    # ⚠ Reject Jinja's `~` on BOTH engines, so the two agree. It is a SyntaxError to `eval` and
+    # there is no overload path (Python's `~` is unary), so it cannot be modelled without a
+    # parser — and expression string-surgery is the thing three separate findings have been
+    # about. Left unhandled it produced the one measured divergence in this pass: `<flag> ~ ""
+    # == "qb"` passed under jinja2 and was reported without it. That direction is SAFE, and it
+    # is still wrong: a suite whose verdict depends on which interpreter ran it cannot be used
+    # to compare interpreters, which is the whole basis of running it under both. Rejecting
+    # uniformly costs a guard shape no live clause uses (0 of 198) and buys agreement.
+    if "~" in expr:
+        raise ValueError(
+            "uses Jinja's `~` concatenation, which this harness models on neither engine — "
+            "rewrite the comparison without it, or compare the flag directly"
+        )
     custom = type("_P", (), {})()
     for flag in declared_flags:
         setattr(custom, f"project__custom__{flag}", CUSTOM_VALUES.get(flag))
@@ -1170,17 +1252,19 @@ def _verdicts(expr):
         raise ValueError("references nothing enumerable")
     if len(flags) + uses_scratch + uses_org_type > 8:
         raise ValueError(f"{len(flags) + uses_scratch + uses_org_type} variables — beyond the cap")
-    domains = [_flag_domain(f) for f in flags]
+    domains = [_flag_domain(f, expr) for f in flags]
     scratches = [False, True] if uses_scratch else [None]
     org_types = _org_type_domain(expr) if uses_org_type else [None]
+    _enumerate(domains, scratches, org_types)
+    # ⚠ No `if domains else` second branch. `itertools.product(*[])` yields exactly `[()]` and
+    # `dict(zip([], ()))` is `{}`, so this comprehension already produces the single empty
+    # assignment the removed branch produced — verified by execution. It was a duplicated
+    # _evaluate call site that could drift from this one.
     return {
         _evaluate(expr, dict(zip(flags, combo)), scratch, org_type)
-        for combo in itertools.product(*domains) if True
+        for combo in itertools.product(*domains)
         for scratch in scratches
         for org_type in org_types
-    } if domains else {
-        _evaluate(expr, {}, scratch, org_type)
-        for scratch in scratches for org_type in org_types
     }
 
 
@@ -1242,11 +1326,17 @@ def _implies(child_expr, parent_expr):
     uses_org_type = bool(re.search(r"\borg_config\.org_type\b", combined))
     if len(flags) + uses_scratch + uses_org_type > 8:
         raise ValueError("beyond the enumeration cap")
-    domains = [_flag_domain(f) for f in flags] or [[None]]
+    # ⚠ Pass `combined`, so the literals BOTH sides compare against are in the domain. Without
+    # it the child's own comparands were invisible here, and a child firing at a value the
+    # parent excludes returned True — the round-16 false negative.
+    domains = [_flag_domain(f, combined) for f in flags] or [[None]]
+    scratches = [False, True] if uses_scratch else [None]
+    org_types = _org_type_domain(combined) if uses_org_type else [None]
+    _enumerate(domains, scratches, org_types)
     for combo in itertools.product(*domains):
         values = dict(zip(flags, combo)) if flags else {}
-        for scratch in ([False, True] if uses_scratch else [None]):
-            for org_type in (_org_type_domain(combined) if uses_org_type else [None]):
+        for scratch in scratches:
+            for org_type in org_types:
                 if _evaluate(child_expr, values, scratch, org_type) and not _evaluate(
                     parent_expr, values, scratch, org_type
                 ):
