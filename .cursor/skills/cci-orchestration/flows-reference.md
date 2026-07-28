@@ -673,8 +673,9 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 3. **task** `refresh_dt_asset`  `when: project_config.project__custom__rating`
 4. **task** `refresh_dt_rating`  `when: project_config.project__custom__rating`
 5. **task** `refresh_dt_rating_discovery`  `when: project_config.project__custom__rating`
-6. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce`
-7. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `refresh_dt_default_pricing`
+7. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce or project_config.project__custom__tso`
+8. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
