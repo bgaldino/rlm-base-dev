@@ -417,6 +417,18 @@ After a formula builds an array, map it to the template:
 
 ## Validation Checks
 
+### Two scripts do checks 3–6 for you
+
+```bash
+python scripts/docgen/docgen_odt_validate.py <name_or_id> --org <alias>    # null OutputObjectName, duplicate items, dot-vs-colon notation
+python scripts/docgen/docgen_odt_compare.py <source> <target> --org <alias> # diff two ODTs item-by-item
+```
+
+`docgen_odt_validate.py` mechanises the "Before generation" list below —
+run it before hand-checking. `docgen_odt_compare.py` is the tool for "this ODT
+worked and that one does not": it diffs them item by item rather than by eye.
+(Install deps first: `pip install -r scripts/docgen/requirements.txt`.)
+
 ### Before generation
 
 1. Both ODTs are Active (`IsActive: true`)

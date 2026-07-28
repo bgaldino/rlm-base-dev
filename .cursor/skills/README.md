@@ -63,7 +63,9 @@ For the full lifecycle checklist, read `skill-authoring/SKILL.md`.
 ## File-Specific Rules (Cursor Only)
 
 Rules in `.cursor/rules/` auto-inject when Cursor edits matching files.
-Non-Cursor agents can read these files directly or use the equivalent skill:
+Non-Cursor agents can read these files directly or use the equivalent skill.
+**This table is canonical** — `AGENTS.md` points here rather than carrying a copy,
+because the two drifted (it listed 12 rows, this listed 9).
 
 | Rule | Triggers On | Equivalent Skill |
 |------|-------------|------------------|
@@ -76,3 +78,6 @@ Non-Cursor agents can read these files directly or use the equivalent skill:
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 | `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
 | `context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` |
+| `analysis-artifacts.mdc` | *(always applies)* | *(stand-alone — AI-generated analysis artifacts go to `.agents/artifacts/`, **never** the public repo)* |
+| `apex-classes.mdc` | `unpackaged/**/*.cls`, `force-app/**/*.cls` | *(stand-alone — sharing keywords, `Id.valueOf` validation, SOQL safety, test patterns; complements `repo-integration/SKILL.md` for placement)* |
+| `lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}`, `force-app/**/lwc/**/*.{html,js}` | *(stand-alone — template syntax, ARIA/accessibility, performance, error messages; complements `repo-integration/SKILL.md` for placement)* |
