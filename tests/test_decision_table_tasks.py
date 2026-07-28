@@ -849,6 +849,18 @@ ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 # flag in all 198 clauses across 46 flows — measured: re-gating refresh_dt_prm_pricing onto
 # psg_debug, which would silently stop that step running in any org, broke zero checks. These
 # two sites are forgiven; a third reference anywhere is a failure.
+# ⚠ PRE-EXISTING on main. Seven steps carry a `when:` on a `flow:` reference, which CCI
+# discards (see the check below). All seven are behaviourally safe TODAY because every child
+# step re-guards on the same flag — measured: 4/4, 3/3, 10/10, 2/2, 3/3, 6/6 and 7/7 children
+# guarded. So this is a latent-placement defect, not a live one, and it is allowlisted rather
+# than fixed here: the product code on this branch has been unchanged for eight review rounds
+# and this is not decision-table work. Tracked as issue #333. An EIGHTH such placement fails.
+KNOWN_FLOW_GUARDS = {
+    ("prepare_rlm_org", 14), ("prepare_rlm_org", 27), ("prepare_rlm_org", 28),
+    ("prepare_rlm_org", 29), ("prepare_rlm_org", 30),
+    ("prepare_prm", 10), ("prepare_prm_pricing", 2),
+}
+
 KNOWN_UNDECLARED = {
     ("assign_feature_permission_sets", 1, "psg_debug"),
     ("assign_feature_permission_sets", 4, "psg_debug"),
@@ -916,6 +928,20 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # leave one leg standing.
         if "when" not in (step or {}):
             continue
+
+        # ⚠ CCI DISCARDS a `when:` on a nested-flow step. `FlowCoordinator._visit_step` copies
+        # `when=step_config.get("when")` into the StepSpec inside its `if "task"` branch ONLY;
+        # the `if "flow"` branch recursively expands the child steps and never reads the parent
+        # guard. Verified in the installed CumulusCI source. So the guard is silently dropped and
+        # the child flow runs unconditionally — a guarded step that is not guarded, which is this
+        # suite's whole subject.
+        if "flow" in step and (flow_name, key) not in KNOWN_FLOW_GUARDS:
+            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                f"when: on a `flow:` step (-> {step['flow']!r}). CCI reads `when` only for `task:` "
+                "steps, so this guard is DISCARDED and the child flow runs unconditionally. "
+                "Guard the child steps instead."
+            )
+            continue
         raw_expr = step["when"]
         if not isinstance(raw_expr, str) or not raw_expr.strip():
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
@@ -928,16 +954,30 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # an unresolved name. Substituting spaces keeps every other offset intact.
         expr = STRING_LITERAL.sub(lambda m: " " * len(m.group(0)), raw_expr)
 
-        # ⚠ A bare keyword is not a flag reference. The exemption list above is needed for real
-        # expressions (`a and b`, `not x`), but it is unconditional — so a `when:` consisting
-        # ONLY of a reserved word passed. Measured against CCI's own Jinja environment: `none`,
-        # `and`, `or`, `if`, `in`, `is`, `else` and `false` all resolve to a falsy constant, so
-        # the step is silently skipped — eight of the ten spellings land on the exact consequence
-        # this scan exists to catch.
-        if raw_expr.strip().lower() in JINJA_RESERVED:
+        # ⚠ A guard that references no flag is not a guard. Round 12 rejected a `when:` that was
+        # exactly one reserved word; add a second token and it fell through, because every token
+        # was reserved or numeric so the scan below found nothing unconsumed. Measured against
+        # CCI's own Jinja environment — each of these passed the suite at 87/87, exit 0:
+        #
+        #     not true       -> False     false or false -> False     1 == 2  -> False
+        #     none or none   -> None      (none)         -> None      '"off"' -> 'off'
+        #
+        # `not true` is the realistic one: it is a recognisable way to disable a step by hand
+        # while debugging, and it reads as "this step is off". Under flowrunner it is a non-empty
+        # STRING, so it passes `if step.when:`, compiles, and evaluates false — the step is
+        # SILENTLY SKIPPED. That is the failure this whole branch exists to prevent, and it is a
+        # different mechanism from round 11's `when: false`, which is a YAML bool caught by the
+        # type guard above.
+        #
+        # This subsumes the bare-keyword check it replaces, so JINJA_RESERVED now has exactly one
+        # reading again. It is stricter than any alphabet rule rather than another approximation
+        # of one: an expression naming neither namespace cannot be a flag guard, whatever it is
+        # spelled with. Verified against all 198 live clauses — every one names a namespace.
+        if not re.search(r"\b(?:project_config|org_config)\b", expr):
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"{raw_expr!r} is a bare Jinja keyword, not a flag reference — it resolves to a "
-                "constant, so the step is either always skipped or always run"
+                f"{raw_expr!r} references no flag — every token is a Jinja constant or operator, "
+                "so this folds to a fixed value and the step is either always skipped or always "
+                "run. A when: that names neither project_config nor org_config is not a guard."
             )
             continue
 
