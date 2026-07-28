@@ -8,11 +8,11 @@
 
      RLM_UsageUploaderController: Inserts TransactionJournal records (usage upload) and
      reads usage-related objects. Controller uses Security.stripInaccessible(CREATABLE, ...)
-     on TransactionJournal insert, so editable fieldPermissions below grant the nillable
-     create fields. Required fields (ActivityDate, UsageType, Status) are omitted per
-     Salesforce platform rules — they cannot be listed in permission sets and are accessible
-     without explicit grants. Object permissions include parent-lookup dependencies (Account,
-     Product2, RateCard, RateCardEntry) required by the platform for child object access. -->
+     on TransactionJournal insert, so editable fieldPermissions below grant the permissionable
+     create fields. Seven fields are omitted: three required (ActivityDate, UsageType, Status)
+     per Salesforce platform rules, and three non-permissionable (AccountId, ReferenceRecordId,
+     UsageResourceId). Object permissions include parent-lookup dependencies (Account, Product2,
+     RateCard, RateCardEntry) required by the platform for child object access. -->
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
         <apexClass>RLM_UsageOrchestrationController</apexClass>
@@ -22,22 +22,8 @@
         <apexClass>RLM_UsageUploaderController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <!-- TransactionJournal nillable create fields (controller uses Security.stripInaccessible CREATABLE) -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>TransactionJournal.AccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>TransactionJournal.ReferenceRecordId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>TransactionJournal.UsageResourceId</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <!-- TransactionJournal permissionable create fields (controller uses Security.stripInaccessible CREATABLE).
+         Three fields (AccountId, ReferenceRecordId, UsageResourceId) are non-permissionable and omitted. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>TransactionJournal.Quantity</field>
