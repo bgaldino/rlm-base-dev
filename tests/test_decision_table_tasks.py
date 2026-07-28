@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 87
+EXPECTED_CHECKS = 89
 
 
 def check(label, condition, detail=""):
@@ -855,10 +855,31 @@ ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 # guarded. So this is a latent-placement defect, not a live one, and it is allowlisted rather
 # than fixed here: the product code on this branch has been unchanged for eight review rounds
 # and this is not decision-table work. Tracked as issue #333. An EIGHTH such placement fails.
+#
+# ⚠ Keyed to the CHILD FLOW, not just the coordinate, and checked for equality below. A bare
+# positional tuple rots four ways and only ONE of them is loud:
+#
+#   guard removed from the step (i.e. #333 fixed properly here)  -> silent
+#   step deleted                                                 -> silent
+#   `flow:` becomes `task:`                                      -> silent
+#   step renumbered                                              -> LOUD
+#
+# All three silent paths leave a stale tuple that then forgives whatever nested-flow step later
+# occupies that slot. Measured as two edits, each individually correct: fix site 29 properly,
+# then land a NEW misplaced guard there — 87/87, exit 0. Binding the child name also stops a
+# swapped child from inheriting the exemption (measured: swapping in another flow passed).
+#
+# This is the KNOWN_UNDECLARED equality reasoning, which was already written down in this file
+# for issue #331 and did not travel to the set added for #333. A protection added to one
+# exemption set does not travel to the next one somebody adds.
 KNOWN_FLOW_GUARDS = {
-    ("prepare_rlm_org", 14), ("prepare_rlm_org", 27), ("prepare_rlm_org", 28),
-    ("prepare_rlm_org", 29), ("prepare_rlm_org", 30),
-    ("prepare_prm", 10), ("prepare_prm_pricing", 2),
+    ("prepare_rlm_org", 14): "prepare_collections",
+    ("prepare_rlm_org", 27): "prepare_large_stx",
+    ("prepare_rlm_org", 28): "prepare_personas",
+    ("prepare_rlm_org", 29): "prepare_ux",
+    ("prepare_rlm_org", 30): "prepare_inapp",
+    ("prepare_prm", 10): "prepare_prm_pricing",
+    ("prepare_prm_pricing", 2): "deploy_post_prm_pricing",
 }
 
 KNOWN_UNDECLARED = {
@@ -899,6 +920,8 @@ JINJA_RESERVED = {"and", "or", "not", "in", "is", "if", "else", "true", "false",
 
 bad_refs = {}
 seen_undeclared = set()
+seen_flow_guards = {}
+clean_exprs = []
 for flow_name, flow in (cci.get("flows") or {}).items():
     for key, step in ((flow or {}).get("steps") or {}).items():
         # ⚠ Validate the RAW value BEFORE normalising emptiness. Writing
@@ -935,13 +958,19 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # guard. Verified in the installed CumulusCI source. So the guard is silently dropped and
         # the child flow runs unconditionally — a guarded step that is not guarded, which is this
         # suite's whole subject.
-        if "flow" in step and (flow_name, key) not in KNOWN_FLOW_GUARDS:
-            bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
-                f"when: on a `flow:` step (-> {step['flow']!r}). CCI reads `when` only for `task:` "
-                "steps, so this guard is DISCARDED and the child flow runs unconditionally. "
-                "Guard the child steps instead."
-            )
-            continue
+        if "flow" in step:
+            if KNOWN_FLOW_GUARDS.get((flow_name, key)) == step["flow"]:
+                # ⚠ Exempt from the PLACEMENT rule only. Deliberately no `continue`: an
+                # allowlisted site still falls through to the type, blank, reference and token
+                # checks, so a bogus flag or a null value at one of these slots is still caught.
+                seen_flow_guards[(flow_name, key)] = step["flow"]
+            else:
+                bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+                    f"when: on a `flow:` step (-> {step['flow']!r}). CCI reads `when` only for "
+                    "`task:` steps, so this guard is DISCARDED and the child flow runs "
+                    "unconditionally. Guard the child steps instead."
+                )
+                continue
         raw_expr = step["when"]
         if not isinstance(raw_expr, str) or not raw_expr.strip():
             bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
@@ -1067,6 +1096,65 @@ for flow_name, flow in (cci.get("flows") or {}).items():
                 "filter, add it to JINJA_RESERVED; if it is a name, fix it."
             )
 
+        if not bad_refs.get(f"{flow_name}[{key}]"):
+            clean_exprs.append((flow_name, key, raw_expr, expr))
+
+# ⚠ A guard whose value cannot VARY is not a guard either. Round 13 required the expression to
+# NAME a namespace, which is syntactic; what is being defended is semantic — does the flag change
+# the outcome. Measured at 87/87, exit 0 before this pass:
+#
+#     <flag> and false          -> False for every flag value   (silent skip, always)
+#     <flag> and not <flag>     -> False for every flag value   (silent skip, always)
+#     not <flag> or true        -> True  for every flag value   (always runs)
+#     <flag> == <flag>          -> True  for every flag value   (always runs)
+#
+# `<flag> and false` is the plausible one: appending `and false` disables a step while leaving
+# the original guard visible, which is exactly what someone does when they intend to restore it.
+# Deleting the line loses that information, so this is the LESS effortful edit, not the more.
+#
+# ⚠ Enumerate every combination, not just all-False/all-True. `a and not b` is a legitimate guard
+# that is invariant under both uniform assignments and varies only at (a=True, b=False) — testing
+# the two extremes alone would reject it. Expressions naming org_config.org_type are skipped: it
+# is string-valued, so `org_type != "Developer Edition"` is invariant over booleans while being a
+# perfectly real guard.
+import itertools
+
+for flow_name, key, raw_expr, expr in clean_exprs:
+    if "org_type" in expr:
+        continue
+    names = sorted(set(re.findall(r"project__custom__(\w+)", expr)))
+    uses_scratch = bool(re.search(r"\borg_config\.scratch\b", expr))
+    if not names or len(names) + uses_scratch > 6:
+        continue
+
+    def _verdict(assignment, scratch):
+        custom = type("_P", (), {})()
+        for flag in declared_flags:
+            setattr(custom, f"project__custom__{flag}", False)
+        for flag, val in zip(names, assignment):
+            setattr(custom, f"project__custom__{flag}", val)
+        org = type("_O", (), {"scratch": scratch})()
+        if _jinja_env is not None:
+            return bool(_jinja_env.compile_expression(expr)(project_config=custom, org_config=org))
+        return bool(eval(expr, {"__builtins__": {}}, {"project_config": custom, "org_config": org}))
+
+    try:
+        verdicts = {
+            _verdict(combo, scratch)
+            for combo in itertools.product([False, True], repeat=len(names))
+            for scratch in ([False, True] if uses_scratch else [False])
+        }
+    except Exception:
+        continue  # unevaluable here; the reference checks above already vetted the names
+
+    if len(verdicts) == 1:
+        always = "always runs" if verdicts.pop() else "is always skipped"
+        bad_refs.setdefault(f"{flow_name}[{key}]", []).append(
+            f"{raw_expr!r} names a flag but its value cannot vary — every combination of the "
+            f"flags it references gives the same answer, so the step {always}. That is a "
+            "constant wearing a guard's clothes."
+        )
+
 check(
     f"every when: across all {len(cci.get('flows') or {})} flows resolves to a real name",
     not bad_refs,
@@ -1079,6 +1167,33 @@ check(
 # the flag, closed by DELETING both steps, or the steps RELOCATED. Each leaves a stale tuple
 # that silently forgives whatever later occupies that flow/step slot. A disjointness check
 # saw only the first. Measured: deleting the two dead references broke zero checks.
+# ⚠ EQUALITY, for the same reason as KNOWN_UNDECLARED below — and this set did not inherit it
+# when it was added a round later. Three of its four rot paths are silent, and a stale tuple then
+# forgives a genuinely NEW misplaced guard at that slot.
+check(
+    "KNOWN_FLOW_GUARDS matches the live misplaced guards exactly — no stale or missing entry",
+    seen_flow_guards == KNOWN_FLOW_GUARDS,
+    f"stale, delete these: {sorted(set(KNOWN_FLOW_GUARDS) - set(seen_flow_guards))}; "
+    f"unlisted or child changed: {sorted(set(seen_flow_guards.items()) - set(KNOWN_FLOW_GUARDS.items()))}",
+)
+
+# ⚠ Enforce the CONTRACT that makes each exemption safe, not just its coordinate. These seven are
+# forgiven only because every child step re-guards on the same flag — that is the entire argument
+# for issue #333 being latent rather than live. Measured before this check: deleting all four
+# `when:` clauses from prepare_collections gave 87/87, exit 0, at which point CCI discards the
+# allowlisted parent guard and runs four tasks unconditionally.
+unguarded_children = {}
+for (parent, step_key), child_flow in KNOWN_FLOW_GUARDS.items():
+    kids = ((cci.get("flows") or {}).get(child_flow) or {}).get("steps") or {}
+    bare = [k for k, st in kids.items() if not (isinstance(st, dict) and st.get("when"))]
+    if bare or not kids:
+        unguarded_children[f"{parent}[{step_key}] -> {child_flow}"] = bare or "no steps"
+check(
+    "every allowlisted flow guard is backed by children that all re-guard",
+    not unguarded_children,
+    f"these children would run UNGUARDED (CCI discards the parent when:): {unguarded_children}",
+)
+
 check(
     "KNOWN_UNDECLARED matches the live exemptions exactly — no stale or missing entry",
     seen_undeclared == KNOWN_UNDECLARED,
