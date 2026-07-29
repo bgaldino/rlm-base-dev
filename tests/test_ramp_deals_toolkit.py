@@ -44,6 +44,14 @@ from scripts.ramp_deals._verify import (  # noqa: E402
     classify_status,
     verify_quote,
 )
+from scripts.ramp_deals import _payload, _resolve  # noqa: E402
+from scripts.ramp_deals._resolve import ResolveError  # noqa: E402
+from scripts.ramp_deals._lifecycle import (  # noqa: E402
+    RampLifecycle,
+    RampLifecycleError,
+    _extract_id,
+)
+from scripts.ramp_deals._schedule import build_schedule  # noqa: E402
 
 _PASS = 0
 _FAIL = 0
@@ -327,10 +335,219 @@ def test_verify_quote():
     check("TCV check skipped when override set", r.passed, r.format_report())
 
 
+# --------------------------------------------------------------------------- #
+# _resolve + _lifecycle (against a fake transport — no org)
+# --------------------------------------------------------------------------- #
+
+class FakeTransport:
+    """Stand-in for _client.Transport: canned SOQL answers + recorded connect calls.
+
+    ``soql_map`` maps a substring-of-query → the records list to return (first
+    matching substring wins). ``connect`` appends (method, path, body) to
+    ``self.calls`` and returns ``connect_return`` (or a value popped from a queue).
+    """
+
+    def __init__(self, soql_map=None, connect_return=None, soql_default=None,
+                 dry_run=False):
+        self.soql_map = soql_map or {}
+        self.soql_default = soql_default
+        self.connect_return = connect_return or {}
+        self.dry_run = dry_run
+        self.logger = lambda *a, **k: None
+        self.calls = []
+        self.soql_log = []
+
+    def soql(self, query):
+        self.soql_log.append(query)
+        for needle, rows in self.soql_map.items():
+            if needle in query:
+                return rows
+        if self.soql_default is not None:
+            return self.soql_default
+        return []
+
+    def connect(self, method, path, body=None, **kwargs):
+        self.calls.append((method, path, body))
+        return self.connect_return
+
+
+def test_resolve():
+    print("test_resolve")
+    t = FakeTransport(soql_map={
+        "FROM Account": [{"Id": "001acc"}],
+        "IsStandard = true": [{"Id": "01sstd"}],
+        "FROM Pricebook2 WHERE Name": [{"Id": "01spb"}],
+        "StockKeepingUnit": [{"Id": "01tprod"}],
+        "FROM PricebookEntry": [{"Id": "01uPBE", "UnitPrice": 42.0}],
+    })
+    check("resolve account", _resolve.resolve_account_id("Acme", transport=t) == "001acc")
+    check("resolve standard pricebook",
+          _resolve.resolve_standard_pricebook_id(transport=t) == "01sstd")
+    check("resolve product by SKU",
+          _resolve.resolve_product_id("SKU-1", transport=t) == "01tprod")
+    pbe = _resolve.resolve_pricebook_entry(product_id="01tprod", pricebook_id="01spb",
+                                           transport=t)
+    check("resolve PBE id+price", pbe == {"Id": "01uPBE", "UnitPrice": 42.0}, str(pbe))
+
+    # Not-found and ambiguous.
+    empty = FakeTransport(soql_default=[])
+    check("account not found raises",
+          _raises(ResolveError, _resolve.resolve_account_id, "Nope", transport=empty))
+    dup = FakeTransport(soql_map={"FROM Account": [{"Id": "a"}, {"Id": "b"}]})
+    check("ambiguous account raises",
+          _raises(ResolveError, _resolve.resolve_account_id, "Dup", transport=dup))
+
+    # Line resolution fills Product2Id / PricebookEntryId / UnitPrice and drops helper keys.
+    line = _resolve.resolve_line_ids({"sku": "SKU-1", "Quantity": 2}, pricebook_id="01spb",
+                                     transport=t)
+    check("line gains Product2Id", line["Product2Id"] == "01tprod")
+    check("line gains PricebookEntryId", line["PricebookEntryId"] == "01uPBE")
+    check("line defaults UnitPrice from PBE", line["UnitPrice"] == 42.0)
+    check("line keeps Quantity", line["Quantity"] == 2)
+    check("line drops 'sku' helper key", "sku" not in line)
+    check("line with neither id nor sku raises",
+          _raises(ResolveError, _resolve.resolve_line_ids, {"Quantity": 1},
+                  pricebook_id="01spb", transport=t))
+
+    # read_quote stitches groups + lines into the _verify shape.
+    rq = FakeTransport(soql_map={
+        "FROM Quote WHERE Id": [{
+            "Id": "0Qx", "TotalPrice": 200.0, "TotalPriceOverride": None,
+            "QuoteLineGroups": {"records": [
+                {"Id": "g1", "IsRamped": True, "SegmentType": "Yearly", "SortOrder": 1,
+                 "StartDate": "2026-01-01", "EndDate": "2026-12-31"},
+            ]}}],
+        "FROM QuoteLineItem": [
+            {"Id": "l1", "Product2Id": "01tprod", "QuoteLineGroupId": "g1",
+             "RampIdentifier": "RDI1", "SegmentIdentifier": "SEG1", "TotalPrice": 200.0},
+        ],
+    })
+    quote = _resolve.read_quote("0Qx", transport=rq)
+    check("read_quote top-level shape",
+          quote["Id"] == "0Qx" and quote["TotalPrice"] == 200.0)
+    check("read_quote nests one group", len(quote["groups"]) == 1)
+    check("read_quote stitches line under its group",
+          quote["groups"][0]["lines"][0]["SegmentIdentifier"] == "SEG1")
+    # The read-back must satisfy verify_quote (proves the shapes agree).
+    check("read_quote output passes verify_quote",
+          verify_quote(quote, expected_segments=1).passed)
+    check("read_quote of missing quote raises",
+          _raises(ResolveError, _resolve.read_quote, "nope",
+                  transport=FakeTransport(soql_default=[])))
+
+
+def test_lifecycle_extract_id():
+    print("test_lifecycle_extract_id")
+    # graphs[].graphResponse.compositeResponse[]
+    resp = {"graphs": [{"graphResponse": {"compositeResponse": [
+        {"referenceId": "refQuote", "body": {"id": "0Qnew"}},
+        {"referenceId": "refGroup", "body": {"id": "g1new"}},
+    ]}}]}
+    check("extract quote id from graphs shape", _extract_id(resp, "refQuote") == "0Qnew")
+    check("extract group id from graphs shape", _extract_id(resp, "refGroup") == "g1new")
+    # flat compositeResponse
+    check("extract from flat compositeResponse",
+          _extract_id({"compositeResponse": [{"referenceId": "refQuote",
+                                              "id": "0Qflat"}]}, "refQuote") == "0Qflat")
+    # direct map
+    check("extract from direct map", _extract_id({"refQuote": "0Qmap"}, "refQuote") == "0Qmap")
+    check("missing ref returns None", _extract_id({"graphs": []}, "refQuote") is None)
+
+
+def test_lifecycle_polling():
+    print("test_lifecycle_polling")
+    # Success on first poll.
+    t = FakeTransport(soql_map={
+        "CalculationStatus FROM Quote": [{"CalculationStatus": "CompletedWithTax"}]})
+    lc = RampLifecycle(t, sleep=lambda *_: None)
+    check("settled returns success status", lc.wait_until_settled("0Qx") == "CompletedWithTax")
+
+    # Failure raises.
+    tf = FakeTransport(soql_map={
+        "CalculationStatus FROM Quote": [{"CalculationStatus": "CloneFailed"}]})
+    check("failure status raises",
+          _raises(RampLifecycleError, RampLifecycle(tf, sleep=lambda *_: None).wait_until_settled, "0Qx"))
+
+    # Unknown raises (does not silently pass).
+    tu = FakeTransport(soql_map={
+        "CalculationStatus FROM Quote": [{"CalculationStatus": "SomethingNew"}]})
+    check("unknown status raises",
+          _raises(RampLifecycleError, RampLifecycle(tu, sleep=lambda *_: None).wait_until_settled, "0Qx"))
+
+    # In-flight forever → times out.
+    ti = FakeTransport(soql_map={
+        "CalculationStatus FROM Quote": [{"CalculationStatus": "PriceCalculationInProgress"}]})
+    lc_timeout = RampLifecycle(ti, sleep=lambda *_: None, max_wait_seconds=10,
+                               poll_interval_seconds=5)
+    check("perpetual in-flight times out",
+          _raises(RampLifecycleError, lc_timeout.wait_until_settled, "0Qx"))
+
+    # Dry-run short-circuits with no poll at all.
+    td = FakeTransport(dry_run=True)
+    check("dry-run returns nominal status without polling",
+          RampLifecycle(td).wait_until_settled("0Qx") == "CompletedWithPricing")
+    check("dry-run issued no SOQL", td.soql_log == [])
+
+
+def test_lifecycle_build():
+    print("test_lifecycle_build")
+    schedule = build_schedule(start_date="2026-01-01", segment_type="Yearly",
+                              segment_count=3)
+    # place returns ids; every settle poll succeeds; clone-source re-read returns a group.
+    t = FakeTransport(
+        soql_map={
+            "CalculationStatus FROM Quote": [{"CalculationStatus": "CompletedWithPricing"}],
+            "IsRamped = true ORDER BY SortOrder DESC": [{"Id": "gLast", "SortOrder": 3}],
+            "FROM Quote WHERE Id": [{
+                "Id": "0Qx", "TotalPrice": 300.0, "TotalPriceOverride": None,
+                "QuoteLineGroups": {"records": [
+                    {"Id": "g1", "IsRamped": True, "SegmentType": "Yearly", "SortOrder": 1,
+                     "StartDate": "2026-01-01", "EndDate": "2026-12-31"},
+                    {"Id": "g2", "IsRamped": True, "SegmentType": "Yearly", "SortOrder": 2,
+                     "StartDate": "2027-01-01", "EndDate": "2027-12-31"},
+                    {"Id": "g3", "IsRamped": True, "SegmentType": "Yearly", "SortOrder": 3,
+                     "StartDate": "2028-01-01", "EndDate": "2028-12-31"},
+                ]}}],
+            "FROM QuoteLineItem": [
+                {"Id": f"l{i}", "Product2Id": "01tprod", "QuoteLineGroupId": g,
+                 "RampIdentifier": "RDI1", "SegmentIdentifier": f"SEG{i}",
+                 "TotalPrice": 100.0}
+                for i, g in enumerate(("g1", "g2", "g3"), start=1)
+            ],
+        },
+        connect_return={"graphs": [{"graphResponse": {"compositeResponse": [
+            {"referenceId": "refQuote", "body": {"id": "0Qx"}},
+            {"referenceId": "refGroup", "body": {"id": "g1"}},
+        ]}}]},
+    )
+    lc = RampLifecycle(t, sleep=lambda *_: None)
+    out = lc.build_ramped_quote(
+        account_id="001acc", pricebook_id="01spb",
+        lines=[{"Product2Id": "01tprod", "PricebookEntryId": "01uPBE",
+                "UnitPrice": 100.0, "Quantity": 1}],
+        schedule=schedule)
+    check("build returns the quote id", out["quote_id"] == "0Qx", str(out))
+    check("build verified the quote", out["verify"] and out["verify"]["passed"])
+    # 1 place + 1 EditGroup + 2 clones = 4 connect calls.
+    check("issued place + EditGroup + 2 clones", len(t.calls) == 4, str(len(t.calls)))
+    check("first call is place",
+          t.calls[0][1] == _payload.PLACE_PATH and t.calls[0][0] == "POST")
+    check("last two calls are clones",
+          all(c[1] == _payload.CLONE_PATH for c in t.calls[2:]))
+
+    # Empty schedule rejected.
+    check("empty schedule raises",
+          _raises(RampLifecycleError, lc.build_ramped_quote, account_id="001acc",
+                  pricebook_id="01spb", lines=[{"Product2Id": "x", "PricebookEntryId": "y",
+                                                "UnitPrice": 1, "Quantity": 1}],
+                  schedule=[]))
+
+
 def main():
     for fn in (test_schedule, test_payload_place_create, test_payload_edit_group,
                test_payload_clone_and_actions, test_verify_status_sets,
-               test_verify_quote):
+               test_verify_quote, test_resolve, test_lifecycle_extract_id,
+               test_lifecycle_polling, test_lifecycle_build):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0
