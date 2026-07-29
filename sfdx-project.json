@@ -22,6 +22,8 @@
     { "path": "unpackaged/post_dro" },
     { "path": "unpackaged/post_exp_customer" },
     { "path": "unpackaged/post_guidedselling" },
+    { "path": "unpackaged/post_home_services" },
+    { "path": "unpackaged/post_home_services_site" },
     { "path": "unpackaged/post_large_stx" },
     { "path": "unpackaged/post_payments" },
     { "path": "unpackaged/post_payments_settings" },

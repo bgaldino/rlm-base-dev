@@ -398,12 +398,13 @@ The following table shows the sequence of all permission-related steps across th
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
 | 28.8 | `prepare_personas` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
 | 28.9 | `prepare_personas` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
+| 29.2 | `prepare_home_services` | `RLM_HomeServices` | `home_services` |
 
 ---
 
 ## Persona PSGs (Optional)
 
-Persona PSGs provide role-based permission groupings for end users. They are deployed by `prepare_personas`, which runs as **step 28 of `prepare_rlm_org`** when the `personas` flag is on (and can also be run standalone via `cci flow run prepare_personas`). Metadata lives in `unpackaged/post_personas/`.
+Persona PSGs provide role-based permission groupings for end users. They are deployed by `prepare_personas`, which runs as **step 28 of `prepare_rlm_org`** when the `personas` flag is on (and can also be run standalone via `cci flow run prepare_personas`). Metadata lives in `unpackaged/post_personas/`. Immediately after it, step 29 runs `prepare_home_services` when the `home_services` flag is on.
 
 | Persona PSG | Label | Permission Sets |
 |---|---|---|
@@ -437,6 +438,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
 | `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` |
+| `home_services` | -- | -- | `RLM_HomeServices` |
 | `billing` + `psg_debug` | -- | -- | 10 billing PS (debug) |
 | `tso` + `psg_debug` | -- | -- | 4 PCM PS (debug) |
 

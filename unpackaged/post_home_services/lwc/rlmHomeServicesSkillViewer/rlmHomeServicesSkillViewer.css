@@ -1,0 +1,33 @@
+.file-row {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.25rem;
+}
+
+.file-name {
+    font-weight: 600;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+}
+
+.note-box {
+    display: inline-flex;
+    align-items: center;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.scroll-area {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.download-footer {
+    border-top: 1px solid #dddbda;
+}

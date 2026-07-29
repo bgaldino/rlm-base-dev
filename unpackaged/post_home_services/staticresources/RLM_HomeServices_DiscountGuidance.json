@@ -1,0 +1,13 @@
+{
+  "title": "Discount Guidance",
+  "intro": "Start with 10% discount if customer doesn't accept list price.",
+  "increments": "Increments of 5-10% can be added at your discretion.",
+  "maxDiscount": 40,
+  "maxNote": "40% is the MAXIMUM allowed discount.",
+  "steps": [
+    { "range": "10%", "note": "Starting point when list price is declined" },
+    { "range": "15-20%", "note": "First increment" },
+    { "range": "25-30%", "note": "Second increment" },
+    { "range": "35-40%", "note": "No Discount over 40% allowed" }
+  ]
+}

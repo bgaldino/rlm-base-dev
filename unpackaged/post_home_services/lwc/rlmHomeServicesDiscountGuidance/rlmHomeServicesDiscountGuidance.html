@@ -1,0 +1,33 @@
+<template>
+    <div class="guidance-container">
+        <template lwc:if={isLoading}>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+        <template lwc:elseif={hasError}>
+            <div class="error-state">
+                <p>{error}</p>
+            </div>
+        </template>
+        <template lwc:elseif={hasGuidance}>
+            <div class="guidance-card">
+                <h3 class="guidance-title">{title}</h3>
+                <ul class="guidance-list">
+                    <li class="guidance-item">{guidance.intro}</li>
+                    <li class="guidance-item">{guidance.increments}</li>
+                    <li class="guidance-item guidance-max">{guidance.maxNote}</li>
+                </ul>
+                <div class="guidance-ladder" lwc:if={steps}>
+                    <h4 class="ladder-title">Discount Ladder</h4>
+                    <template for:each={steps} for:item="step">
+                        <div key={step.key} class="ladder-step">
+                            <span class="ladder-range">{step.range}</span>
+                            <span class="ladder-note">{step.note}</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

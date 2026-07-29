@@ -18,7 +18,7 @@ control order):
 
 The `force-app/` Admin profile is **classAccesses only**:
 - Step 5 (`deploy_full`): profile with no layout assignments
-- Step 29 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
+- Step 30 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
 
 ### Object metadata strip-and-build
 
@@ -26,7 +26,7 @@ These standard objects have `actionOverrides` and `compactLayoutAssignment`
 in `templates/objects/base/` (NOT `force-app/`):
 - Asset, Quote, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem
 
-They deploy at step 29 after referenced flexipages exist. The `force-app/`
+They deploy at step 30 after referenced flexipages exist. The `force-app/`
 paths are forceignored.
 
 ### Metadata dependencies
@@ -129,9 +129,10 @@ Reverse dependency order (children before parents):
 | 26 | prepare_pricing_discovery | Pricing discovery refresh |
 | 27 | prepare_large_stx | Large-deal sales-transaction metadata (when `large_stx`) |
 | 28 | prepare_personas | Persona profiles + PSGs + Sales Rep scratch user (when `personas`) |
-| 29 | prepare_ux | UX assembly + deploy (when `ux`) |
-| 30 | prepare_inapp | In-App Learning framework + PSet + content dataset (when `inapp`) |
-| 31 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
-| 32 | refresh_all_decision_tables | DT cache refresh |
-| 33 | rebuild_search_index | PCM catalog search index build (async) |
-| 34 | stamp_git_commit | Always last |
+| 29 | prepare_home_services | Home Services app + enhanced-LWR signup site lifecycle (when `home_services && billing_ui`) |
+| 30 | prepare_ux | UX assembly + deploy (when `ux`) |
+| 31 | prepare_inapp | In-App Learning framework + PSet + content dataset (when `inapp`) |
+| 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
+| 33 | refresh_all_decision_tables | DT cache refresh |
+| 34 | rebuild_search_index | PCM catalog search index build (async) |
+| 35 | stamp_git_commit | Always last |

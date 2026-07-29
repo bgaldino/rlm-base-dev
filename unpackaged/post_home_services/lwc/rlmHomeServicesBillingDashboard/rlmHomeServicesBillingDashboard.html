@@ -1,0 +1,186 @@
+<template>
+    <div class="dashboard-container">
+
+        <!-- ── Loading / Error states ───────────────────────────── -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading billing dashboard" size="medium"></lightning-spinner>
+        </template>
+
+        <template if:true={hasError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                <span class="slds-assistive-text">Error</span>
+                <p>{errorMessage}</p>
+            </div>
+        </template>
+
+        <!-- ── No BSG fallback ───────────────────────────────────── -->
+        <template if:true={noBsg}>
+            <div class="slds-box slds-theme_shade slds-m-around_medium">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    No Billing Schedule Group found for this account.
+                </p>
+            </div>
+        </template>
+
+        <!-- ── Main dashboard (rendered once BSG is resolved) ───── -->
+        <template if:true={bsgId}>
+
+            <!-- ════════════════════════════════════════════════════
+                 SECTION 1 — Billing Milestone Plan Items (collapsible)
+            ═════════════════════════════════════════════════════ -->
+            <div class="slds-card slds-m-bottom_medium">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure slds-media__figure_fixed-width">
+                            <lightning-icon icon-name="standard:task" size="small"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Billing Milestone Plan Items</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body">
+                    <template if:true={hasMilestoneItems}>
+                        <div class="table-scroll">
+                            <lightning-datatable
+                                key-field="Id"
+                                data={visibleMilestoneItems}
+                                columns={milestoneColumns}
+                                hide-checkbox-column
+                                sorted-by={milestoneSortedBy}
+                                sorted-direction={milestoneSortDirection}
+                                onsort={handleMilestoneSort}>
+                            </lightning-datatable>
+                        </div>
+                        <!-- Expand / Collapse toggle -->
+                        <template if:true={hasMoreMilestones}>
+                            <div class="slds-card__footer">
+                                <button
+                                    class="slds-button slds-button_base milestone-toggle"
+                                    onclick={toggleMilestones}>
+                                    <lightning-icon
+                                        icon-name={milestoneToggleIcon}
+                                        size="xx-small"
+                                        class="slds-m-right_x-small">
+                                    </lightning-icon>
+                                    {milestoneToggleLabel}
+                                </button>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={hasMilestoneItems}>
+                        <div class="slds-box slds-theme_shade slds-m-around_small">
+                            <p class="slds-text-body_regular slds-text-color_weak">No milestone plan items found.</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════
+                 SECTION 2 — Combined Timeline View
+            ═════════════════════════════════════════════════════ -->
+            <div class="slds-card slds-m-bottom_medium">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure slds-media__figure_fixed-width">
+                            <lightning-icon icon-name="standard:timesheet" size="small"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Billing Schedule Timeline</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body slds-card__body_inner">
+                    <template for:each={bsgList} for:item="bsg">
+                        <div key={bsg.id} class="slds-m-bottom_large">
+                            <h3 class="slds-text-heading_small slds-m-bottom_x-small">{bsg.productName}</h3>
+                            <c-rlm-bsg-schedules-timeline record-id={bsg.id}></c-rlm-bsg-schedules-timeline>
+
+                            <div class="slds-m-top_medium timeline-divider"></div>
+
+                            <!-- Consolidated Billing Timeline — clipped below Billing Completion visual -->
+                            <div class="consolidated-clip">
+                                <c-rlm-bsg-consolidated-timeline record-id={bsg.id}></c-rlm-bsg-consolidated-timeline>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════
+                 SECTION 3 — Invoices
+            ═════════════════════════════════════════════════════ -->
+            <div class="slds-card slds-m-bottom_medium">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure slds-media__figure_fixed-width">
+                            <lightning-icon icon-name="standard:invoice" size="small"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Invoices</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body">
+                    <template if:true={hasInvoices}>
+                        <div class="table-scroll">
+                            <lightning-datatable
+                                key-field="Id"
+                                data={invoiceRecords}
+                                columns={invoiceColumns}
+                                hide-checkbox-column>
+                            </lightning-datatable>
+                        </div>
+                    </template>
+                    <template if:false={hasInvoices}>
+                        <div class="slds-box slds-theme_shade slds-m-around_small">
+                            <p class="slds-text-body_regular slds-text-color_weak">No invoices found.</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════
+                 SECTION 4 — Saved Payment Methods
+            ═════════════════════════════════════════════════════ -->
+            <div class="slds-card slds-m-bottom_medium">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure slds-media__figure_fixed-width">
+                            <lightning-icon icon-name="standard:payment_gateway" size="small"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Saved Payment Methods</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body">
+                    <template if:true={hasPaymentMethods}>
+                        <div class="table-scroll">
+                            <lightning-datatable
+                                key-field="Id"
+                                data={paymentRecords}
+                                columns={paymentColumns}
+                                hide-checkbox-column>
+                            </lightning-datatable>
+                        </div>
+                    </template>
+                    <template if:false={hasPaymentMethods}>
+                        <div class="slds-box slds-theme_shade slds-m-around_small">
+                            <p class="slds-text-body_regular slds-text-color_weak">No saved payment methods found.</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </template>
+    </div>
+</template>

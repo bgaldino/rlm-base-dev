@@ -1,0 +1,249 @@
+/* ── Card shell — border/chrome provided by lightning-card ───────────────────── */
+.prospect-card {
+    padding : 0.75rem 1rem 0.75rem;
+}
+
+/* ── Card title ──────────────────────────────────────────────────────────────── */
+.card-title {
+    text-align     : center;
+    font-size      : 1.25rem;
+    font-weight    : 700;
+    letter-spacing : 0.4px;
+    color          : var(--slds-g-color-neutral-base-10, #1b1b1b);
+    padding-bottom : 0.125rem;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────────── */
+.card-divider {
+    border-top : 1px solid var(--slds-g-color-neutral-base-80, #e0e5ee);
+    margin     : 1rem 0;
+}
+
+/* ── Header row ──────────────────────────────────────────────────────────────── */
+.header-row {
+    gap : 0.75rem;
+}
+
+.contact-name {
+    font-weight   : 600;
+    margin-bottom : 0.125rem;
+}
+
+.contact-meta {
+    font-size : 0.8125rem;
+}
+
+.meta-separator {
+    color : var(--slds-g-color-neutral-base-50, #aeaeae);
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────────────────── */
+.prospect-avatar {
+    width           : 2.75rem;
+    height          : 2.75rem;
+    border-radius   : 50%;
+    background      : var(--slds-g-color-brand-base-50, #0176d3);
+    display         : flex;
+    align-items     : center;
+    justify-content : center;
+    flex-shrink     : 0;
+}
+
+.prospect-avatar__initials {
+    color       : #ffffff;
+    font-size   : 0.9375rem;
+    font-weight : 700;
+    line-height : 1;
+    letter-spacing: 0.5px;
+}
+
+/* ── Status pill ─────────────────────────────────────────────────────────────── */
+.stage-pill {
+    display         : inline-flex;
+    align-items     : center;
+    padding         : 0.1875rem 0.625rem;
+    border-radius   : 999px;
+    font-size       : 0.75rem;
+    font-weight     : 600;
+    letter-spacing  : 0.2px;
+    background      : var(--slds-g-color-brand-base-95, #eaf4ff);
+    color           : var(--slds-g-color-brand-base-40, #0b5cab);
+    border          : 1px solid var(--slds-g-color-brand-base-80, #b0d4f5);
+    white-space     : nowrap;
+}
+
+/* ── Value stats ─────────────────────────────────────────────────────────────── */
+.stats-row {
+    gap : 0;
+}
+
+.stat-block {
+    padding : 0 1.25rem 0 0;
+}
+
+.stat-block_bordered {
+    padding      : 0 1.25rem;
+    border-left  : 1px solid var(--slds-g-color-neutral-base-80, #e0e5ee);
+}
+
+.stat-label {
+    font-size      : 0.6875rem;
+    font-weight    : 600;
+    letter-spacing : 0.6px;
+    text-transform : uppercase;
+    color          : var(--slds-g-color-neutral-base-40, #6e6e6e);
+    margin-bottom  : 0.25rem;
+}
+
+.stat-value {
+    font-size   : 1.375rem;
+    font-weight : 600;
+    color       : var(--slds-g-color-neutral-base-10, #1b1b1b);
+    line-height : 1.2;
+}
+
+.stat-value_accent {
+    color : var(--slds-g-color-success-base-40, #2e844a);
+}
+
+/* ── Journey stage tracker ───────────────────────────────────────────────────── */
+.journey-section {
+    padding-bottom : 0.25rem;
+}
+
+.section-label {
+    font-size      : 0.6875rem;
+    font-weight    : 600;
+    letter-spacing : 0.6px;
+    text-transform : uppercase;
+    color          : var(--slds-g-color-neutral-base-40, #6e6e6e);
+    margin-bottom  : 0.75rem;
+}
+
+.stage-tracker {
+    display     : flex;
+    align-items : flex-start;
+    gap         : 0;
+}
+
+.stage-item {
+    display        : flex;
+    flex-direction : column;
+    align-items    : flex-start;
+    flex           : 1;
+}
+
+/* Node + connector line in a single row */
+.stage-node-row {
+    display     : flex;
+    align-items : center;
+    width       : 100%;
+    margin-bottom : 0.375rem;
+}
+
+.stage-node {
+    width           : 1.5rem;
+    height          : 1.5rem;
+    border-radius   : 50%;
+    border          : 2px solid var(--slds-g-color-neutral-base-60, #c9c9c9);
+    background      : var(--slds-g-color-neutral-base-100, #ffffff);
+    display         : flex;
+    align-items     : center;
+    justify-content : center;
+    flex-shrink     : 0;
+    position        : relative;
+}
+
+.stage-node_complete {
+    background    : var(--slds-g-color-success-base-40, #2e844a);
+    border-color  : var(--slds-g-color-success-base-40, #2e844a);
+    color         : #ffffff;
+}
+
+.stage-node_active {
+    border-color  : var(--slds-g-color-brand-base-50, #0176d3);
+    border-width  : 2.5px;
+}
+
+.stage-node_active::after {
+    content       : '';
+    display       : block;
+    width         : 0.5rem;
+    height        : 0.5rem;
+    border-radius : 50%;
+    background    : var(--slds-g-color-brand-base-50, #0176d3);
+}
+
+.check-icon {
+    width  : 0.75rem;
+    height : 0.75rem;
+}
+
+/* Connecting line between nodes */
+.stage-connector {
+    flex         : 1;
+    height       : 2px;
+    background   : var(--slds-g-color-neutral-base-80, #e0e5ee);
+    margin-left  : 2px;
+}
+
+/* Stage labels */
+.stage-label {
+    font-size   : 0.75rem;
+    color       : var(--slds-g-color-neutral-base-40, #6e6e6e);
+    line-height : 1.3;
+    padding-right: 0.5rem;
+}
+
+.stage-label_active {
+    font-weight : 600;
+    color       : var(--slds-g-color-neutral-base-10, #1b1b1b);
+}
+
+/* ── Service tiles ───────────────────────────────────────────────────────────── */
+.services-section {
+    padding-bottom : 0.25rem;
+}
+
+.services-grid {
+    display               : grid;
+    grid-template-columns : repeat(auto-fill, minmax(7rem, 1fr));
+    gap                   : 0.625rem;
+}
+
+.service-tile {
+    border        : 1px solid var(--slds-g-color-neutral-base-80, #e0e5ee);
+    border-radius : 0.375rem;
+    padding       : 0.625rem 0.75rem;
+    background    : var(--slds-g-color-neutral-base-100, #ffffff);
+}
+
+.service-tile__img {
+    width         : 2rem;
+    height        : 2rem;
+    object-fit    : contain;
+    border-radius : 0.25rem;
+    margin-bottom : 0.375rem;
+    display       : block;
+}
+
+.service-tile__icon-placeholder {
+    width         : 2rem;
+    height        : 2rem;
+    border-radius : 0.25rem;
+    background    : var(--slds-g-color-neutral-base-90, #f3f3f3);
+    margin-bottom : 0.375rem;
+}
+
+.service-tile__name {
+    font-size   : 0.8125rem;
+    font-weight : 600;
+    color       : var(--slds-g-color-neutral-base-10, #1b1b1b);
+    line-height : 1.3;
+    margin-bottom : 0.125rem;
+}
+
+.service-tile__price {
+    font-size : 0.75rem;
+    color     : var(--slds-g-color-neutral-base-40, #6e6e6e);
+}

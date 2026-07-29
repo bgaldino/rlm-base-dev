@@ -1,0 +1,238 @@
+.contract-viewport {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    background-color: #f3f3f3;
+}
+
+.contract-wrapper {
+    width: 768px;
+    height: 1024px;
+    flex-shrink: 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    background-color: #f3f3f3;
+}
+
+.agreement-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.agreement-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dddbda;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+.agreement-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #181818;
+}
+
+.card-body {
+    padding: 0.75rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.state-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 8rem;
+}
+
+.state-wrap.error {
+    color: #ba0517;
+    font-size: 0.875rem;
+    padding: 1rem;
+}
+
+.signed-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    background-color: #ecfdf3;
+    border: 1px solid #3ba755;
+    font-size: 0.875rem;
+}
+
+.signed-banner-label {
+    font-weight: 700;
+    color: #22674e;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+}
+
+.signed-banner-text {
+    color: #181818;
+}
+
+.contract-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.contract-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    background: #fafaf9;
+}
+
+.contract-paper {
+    padding: 1.5rem 1.75rem 2rem;
+    max-width: 42rem;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.contract-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 1.25rem;
+    color: #080707;
+    letter-spacing: 0.02em;
+}
+
+.contract-section {
+    margin-bottom: 1.25rem;
+}
+
+.contract-section:last-child {
+    margin-bottom: 0;
+}
+
+.contract-heading {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    color: #3e3e3c;
+}
+
+.contract-section p {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #3e3e3c;
+}
+
+.contract-list {
+    margin: 0.25rem 0 0.5rem 1.25rem;
+    padding: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #3e3e3c;
+}
+
+.contract-list li {
+    margin-bottom: 0.25rem;
+}
+
+.dynamic {
+    font-weight: 600;
+    color: #014486;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.service-address {
+    margin-top: 0.25rem;
+}
+
+.contract-acceptance {
+    border-top: 1px solid #dddbda;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.signature-block {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background: #fafaf9;
+    border-radius: 0.25rem;
+    border: 1px dashed #c9c7c5;
+}
+
+.signature-block.signed {
+    border-style: solid;
+    border-color: #3ba755;
+    background: #f3fcf6;
+}
+
+.sig-placeholder {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.875rem;
+    margin: 0.35rem 0;
+}
+
+.sig-line {
+    margin: 0.35rem 0;
+    font-size: 0.875rem;
+}
+
+.sig-label {
+    color: #706e6b;
+    margin-right: 0.35rem;
+}
+
+.sig-value {
+    font-weight: 600;
+    color: #080707;
+}
+
+.sign-panel {
+    flex-shrink: 0;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dddbda;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sign-input {
+    max-width: 24rem;
+}
+
+.sign-panel-note {
+    font-size: 0.8125rem;
+    color: #706e6b;
+    margin: 0;
+}

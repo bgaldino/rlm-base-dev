@@ -1,0 +1,63 @@
+{
+  "type" : "sfdc_cms__view",
+  "title" : "Too Many Requests",
+  "contentBody" : {
+    "component" : {
+      "children" : [ {
+        "children" : [ {
+          "attributes" : {
+            "backgroundImageConfig" : "",
+            "backgroundImageOverlay" : "rgba(0,0,0,0)",
+            "componentSpacerSize" : "",
+            "dxpStyle" : { },
+            "layoutDirectionDesktop" : "row",
+            "layoutDirectionMobile" : "column",
+            "layoutDirectionTablet" : "column",
+            "maxContentWidth" : "",
+            "sectionColumnGutterWidth" : "",
+            "sectionConfig" : "{\"UUID\":\"b1dcaf74-a39d-491b-a42d-139570ae6e8b\",\"columns\":[{\"UUID\":\"72c4de41-25fb-427e-9549-ae42b37ed8a3\",\"columnName\":\"Column 1\",\"columnKey\":\"col1\",\"columnWidth\":\"12\",\"seedComponents\":null}]}",
+            "sectionMinHeight" : "",
+            "sectionVerticalAlign" : "flex-start"
+          },
+          "children" : [ {
+            "children" : [ {
+              "attributes" : {
+                "dxpStyle" : { },
+                "imageInfos" : "",
+                "richTextValue" : "<div style=\"display: flex; align-items: center; flex-direction: column; margin: 60px 25px 30px 25px;\">\n\t<div style=\"background-image: url(assets/img/tooManyRequests.svg); background-size: contain; height: 350px; width: 100%; background-repeat: no-repeat; background-position: center;\"></div>\n</div>\n<div style=\"margin: 0 25px; text-align: center;\">\n\t<h1 class=\"slds-text-heading_large\">Looks like the site is experiencing higher than usual demand&#8230;</h1>\n\t<p class=\"slds-text-heading_small\">Don't go anywhere. We'll redirect you in a moment.</p>\n</div>"
+              },
+              "definition" : "community_builder:htmlEditor",
+              "id" : "ad1ec99b-f801-46da-9c8a-1ce06fc67b72",
+              "type" : "component"
+            }, {
+              "attributes" : {
+                "dxpStyle" : { }
+              },
+              "definition" : "experience_availability:autoRefresh",
+              "id" : "6e9ffed9-06ae-4dbb-ae59-7889c9e718ce",
+              "type" : "component"
+            } ],
+            "id" : "72c4de41-25fb-427e-9549-ae42b37ed8a3",
+            "name" : "col1",
+            "title" : "Column 1",
+            "type" : "region"
+          } ],
+          "definition" : "community_layout:section",
+          "id" : "b1dcaf74-a39d-491b-a42d-139570ae6e8b",
+          "type" : "component"
+        } ],
+        "id" : "9a6aa886-8d90-42e5-9426-c55a9f349249",
+        "name" : "content",
+        "title" : "Content",
+        "type" : "region"
+      } ],
+      "definition" : "community_layout:sldsFlexibleLayout",
+      "id" : "a7382f9f-205e-4b7c-881a-ee6428683bfe",
+      "type" : "component"
+    },
+    "dataProviders" : [ ],
+    "themeLayoutType" : "ServiceNotAvailable",
+    "viewType" : "too-many-requests"
+  },
+  "urlName" : "too-many-requests"
+}

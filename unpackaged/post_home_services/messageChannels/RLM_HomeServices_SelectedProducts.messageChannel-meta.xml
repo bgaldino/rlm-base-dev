@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Carries selected pricebook entry IDs from the product carousel to the signup form.</description>
+    <isExposed>true</isExposed>
+    <lightningMessageFields>
+        <description>Array of selected PricebookEntry Ids</description>
+        <fieldName>pricebookEntryIds</fieldName>
+    </lightningMessageFields>
+    <masterLabel>RLM Selected Products</masterLabel>
+</LightningMessageChannel>

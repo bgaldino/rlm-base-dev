@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **40 YAML anchors** under `project.custom`.
+**42 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,10 +16,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
+| `billing` | `True` | 23 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
-| `billing_ui` | `True` | 4 flow step(s) |
+| `billing_ui` | `True` | 5 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
 | `clm` | `True` | 4 flow step(s) |
@@ -32,6 +32,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 5 flow step(s) |
+| `home_services` | `False` | 10 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
@@ -88,6 +89,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing` (default: `True`)
 
+- `prepare_rlm_org` step 29 → `prepare_home_services`
 - `assign_feature_permission_sets` step 4 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
@@ -123,6 +125,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing_ui` (default: `True`)
 
+- `prepare_rlm_org` step 29 → `prepare_home_services`
 - `prepare_billing` step 8 → `enable_timeline`
 - `prepare_billing` step 11 → `deploy_post_billing_ui`
 - `prepare_billing` step 12 → `assign_permission_sets`
@@ -224,9 +227,22 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_guidedselling` step 5 → `configure_search_index`
 
+### `home_services` (default: `False`)
+
+- `prepare_rlm_org` step 29 → `prepare_home_services`
+- `prepare_home_services` step 1 → `create_home_services_community`
+- `prepare_home_services` step 2 → `deploy_post_home_services`
+- `prepare_home_services` step 3 → `patch_home_services_network_email_for_deploy`
+- `prepare_home_services` step 4 → `patch_home_services_site_for_deploy`
+- `prepare_home_services` step 5 → `deploy_post_home_services_site`
+- `prepare_home_services` step 6 → `revert_home_services_network_email_after_deploy`
+- `prepare_home_services` step 7 → `revert_home_services_site_after_deploy`
+- `prepare_home_services` step 8 → `publish_community`
+- `prepare_home_services` step 9 → `assign_permission_sets`
+
 ### `inapp` (default: `False`)
 
-- `prepare_rlm_org` step 30 → `prepare_inapp`
+- `prepare_rlm_org` step 31 → `prepare_inapp`
 - `prepare_inapp` step 1 → `deploy_post_inapp`
 - `prepare_inapp` step 2 → `assign_permission_sets`
 - `prepare_inapp` step 3 → `load_inapp_dataset`
@@ -486,7 +502,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_ux`
+- `prepare_rlm_org` step 30 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
@@ -755,6 +771,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_Guided_Selling`
+
+### `ps_home_services`
+
+*1 items:*
+
+- `RLM_HomeServices`
 
 ### `ps_inapp`
 

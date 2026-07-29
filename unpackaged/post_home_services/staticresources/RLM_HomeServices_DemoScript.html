@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Services ARM Demo — Script &amp; Click Path</title>
+<style>
+    :root {
+        --hs-blue: #0250d9;
+        --hs-blue-dark: #032d60;
+        --hs-ink: #16325c;
+        --hs-text: #3e3e3c;
+        --hs-weak: #706e6b;
+        --hs-border: #dddbda;
+        --hs-shade: #f3f2f2;
+        --hs-track-bg: #eef4ff;
+        --hs-track-border: #0250d9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: "Salesforce Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--hs-text);
+        line-height: 1.55;
+        margin: 0;
+        padding: 1.5rem 1.75rem 3rem;
+        background: #ffffff;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .doc-header {
+        border-bottom: 3px solid var(--hs-blue);
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .doc-header h1 {
+        color: var(--hs-blue-dark);
+        font-size: 1.65rem;
+        margin: 0 0 0.35rem;
+    }
+
+    .doc-header p {
+        color: var(--hs-weak);
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .opening {
+        background: var(--hs-track-bg);
+        border-left: 4px solid var(--hs-track-border);
+        border-radius: 0 6px 6px 0;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .opening .label {
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--hs-blue);
+        margin: 0 0 0.4rem;
+    }
+
+    .opening p.quote {
+        margin: 0;
+        font-style: italic;
+        color: var(--hs-ink);
+        font-size: 1rem;
+    }
+
+    .phase {
+        border: 1px solid var(--hs-border);
+        border-radius: 8px;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+
+    .phase-head {
+        background: var(--hs-shade);
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--hs-border);
+    }
+
+    .phase-head h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: var(--hs-blue-dark);
+    }
+
+    .phase-head .badge {
+        display: inline-block;
+        background: var(--hs-blue);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.12rem 0.5rem;
+        border-radius: 10px;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+
+    .phase-body {
+        padding: 0.9rem 1.1rem 1.1rem;
+    }
+
+    .subhead {
+        font-weight: 700;
+        color: var(--hs-ink);
+        margin: 0.9rem 0 0.35rem;
+        font-size: 0.95rem;
+    }
+
+    .subhead:first-child { margin-top: 0; }
+
+    .steps {
+        margin: 0.25rem 0 0.5rem;
+        padding-left: 1.25rem;
+    }
+
+    .steps li { margin-bottom: 0.3rem; }
+
+    .track {
+        background: var(--hs-track-bg);
+        border-left: 4px solid var(--hs-track-border);
+        border-radius: 0 6px 6px 0;
+        padding: 0.7rem 0.9rem;
+        margin: 0.6rem 0 0.2rem;
+    }
+
+    .track .label {
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--hs-blue);
+        margin: 0 0 0.3rem;
+    }
+
+    .track p.quote {
+        margin: 0;
+        font-style: italic;
+        color: var(--hs-ink);
+    }
+
+    .track.none {
+        background: var(--hs-shade);
+        border-left-color: var(--hs-weak);
+    }
+
+    .track.none .label { color: var(--hs-weak); }
+
+    .track.none p { font-style: normal; color: var(--hs-weak); margin: 0; }
+
+    code {
+        background: var(--hs-shade);
+        border-radius: 3px;
+        padding: 0.05rem 0.3rem;
+        font-size: 0.88em;
+    }
+
+    .result {
+        font-weight: 600;
+        color: #2e844a;
+    }
+
+    footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--hs-border);
+        color: var(--hs-weak);
+        font-size: 0.82rem;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Home Services ARM Demo — Script &amp; Click Path</h1>
+    <p>End-to-end walk-through of the Agentforce Revenue Management (ARM) Home Services demo flow.</p>
+</div>
+
+<div class="opening">
+    <p class="label">Opening Talk Track</p>
+    <p class="quote">"This is a walk-through of the Home Services ARM demo flow. We'll start with the customer expressing interest in a service and completing a sign-up form. Next, we'll see how ARM empowers our field sellers to quickly create a quote, add discounts, and get a signed contract — all without slowing down the velocity of the sales process. After the contract is signed, we'll see how billing schedules are generated on the order so we know when to bill the customer, what to bill for, and how to bill. Since this is a recurring monthly service, we'll see how assigned and completed work orders update billing milestones to release billing holds. Finally, as invoices are created and posted, we'll get a complete picture of what's been billed and what still remains, using the billing timeline dashboard."</p>
+</div>
+
+<!-- PHASE 0 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 0</span>Setup / context (pre-demo)</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Home Services app &gt; <strong>Home Service Demo</strong> tab shows the "Home Services RCA Demo Guide" (tabs: Home Service Demo / Demo build Agent Skill / Demo Script - Click Path).</li>
+            <li>Note: product/pricing data is pre-seeded per demo by the AI Skill.</li>
+            <li>Run left-to-right across the guide tabs.</li>
+        </ul>
+        <div class="track none">
+            <p class="label">Talk track</p>
+            <p>None (pre-demo setup, off-script).</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 0.5 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 0.5</span>Open the two working tabs (pre-demo)</h2>
+    </div>
+    <div class="phase-body">
+        <p>Set up two browser tabs so you can switch between the customer and rep perspectives without navigating mid-demo:</p>
+        <p class="subhead">Tab A — Signup site (customer view)</p>
+        <ul class="steps">
+            <li>Open the <code>RLM_HomeServices_CustSignUp</code> Experience site (Setup &gt; Digital Experiences &gt; All Sites &gt; site URL, or App Launcher &gt; search "Home").</li>
+            <li>Leave it on the landing page.</li>
+        </ul>
+        <p class="subhead">Tab B — Accounts list (rep view)</p>
+        <ul class="steps">
+            <li>In the Home Services app, open the <strong>Accounts</strong> tab and select the <strong>New This Week</strong> list view.</li>
+            <li>Keep this ready so the new account appears after signup.</li>
+        </ul>
+        <div class="track none">
+            <p class="label">Talk track</p>
+            <p>None (pre-demo setup).</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 1 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 1</span>Prospect self-service signup (Experience Cloud)</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Switch to <strong>Tab A</strong> (the signup site opened in Phase 0.5).</li>
+            <li>On the landing page, browse the Products carousel.</li>
+            <li>Check <strong>Select</strong> on one service.</li>
+            <li>Fill the Customer Signup form (name, street/city/state/postal/country, phone, email — enter whatever customer name you want for this demo).</li>
+            <li>Click <strong>Submit</strong>.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"Our potential customer is looking at our service offerings on the web — though the same process could be done in person on a mobile device at a local event. After selecting the service they're interested in, the customer simply enters their contact information and submits the form, which kicks off the sales process."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 2</span>Rep picks up the lead (Home Services app)</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Switch to <strong>Tab B</strong> (the New This Week list view from Phase 0.5) and refresh.</li>
+            <li>The new account now appears &gt; open it.</li>
+            <li>Call out <strong>Revenue Potential</strong> (Monthly / Annual / 3-Year LTV) and the <strong>Customer Journey</strong> path.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"As a field seller, I can see any new accounts that have been assigned to me — here's the customer who was just created this week. Looking at their account, I can see the potential revenue projections: the recurring monthly service translates to a meaningful annual value and a substantial three-year customer lifetime value. This has all been derived automatically from the service the customer expressed interest in when they completed the sign-up form."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 3</span>Opportunity</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Open the auto-created Opportunity (named <code>&lt;Customer Name&gt; - Self Service</code>, with the selected service auto-attached under Products).</li>
+            <li>Advance stage on the path (New Inquiry &gt; On-site Assessment).</li>
+            <li>Mark Stage as Complete &rarr; <span class="result">"Stage changed successfully"</span>.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"From the opportunity record, I can see the service the customer is interested in. Once I've coordinated a date and time to meet with them, I'll update the opportunity stage to On-site Assessment — and a quote is automatically created for me."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 4</span>Quote (configure, present, negotiate discount)</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Configure the quote</p>
+        <ul class="steps">
+            <li>Open the Quote. Show Bill To / Billing Address Verification (map).</li>
+            <li>On the <strong>Quoted Services</strong> tab, click <strong>Add-ons</strong> on the bundle line &gt; toggle an optional add-on on &gt; <strong>Done</strong> (total updates).</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track (setup)</p>
+            <p class="quote">"While I'm on site, I'll access the quote and verify the customer's information, billing and service address, and preferred billing frequency. I can also see the guidance for our company's discounting policy — which means time doesn't get a chance to kill the deal because I'm stuck calling a manager for discount approval. During my conversation, the customer mentioned they're interested in adding another service, so I'll add that optional service to the quote."</p>
+        </div>
+
+        <p class="subhead">Present list pricing first</p>
+        <ul class="steps">
+            <li>Open the <strong>Service Proposal</strong> tab and walk the customer through the customer-facing Pricing/Billing summary at full list price (no discount yet).</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"Now I'm ready to present the numbers. I'll open the service proposal presentation viewer and present the offer directly from my mobile device. Here we can see the annual cost for each service, the total price, and what the invoice amount would be depending on whether they choose monthly, quarterly, or annual billing."</p>
+        </div>
+
+        <p class="subhead">Customer asks about discounts</p>
+        <div class="track">
+            <p class="label">Talk track</p>
+            <p class="quote">"The customer is interested but feels the cost is a little high and asks whether any discounts are available."</p>
+        </div>
+
+        <p class="subhead">Apply discount per guidance</p>
+        <ul class="steps">
+            <li>Return to the <strong>Quoted Services</strong> tab, reference the Discount Guidance / Discount Ladder (e.g. 10% start, 40% max).</li>
+            <li>Click <strong>Edit</strong> on a line &gt; Discount type <strong>Percent</strong> &gt; enter a discount % within guidance &gt; <strong>Save</strong> (<span class="result">"Line updated and repriced"</span>).</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"Using the discount guidance, I'll start with a 10% discount on both services."</p>
+        </div>
+
+        <p class="subhead">Re-present the proposal</p>
+        <ul class="steps">
+            <li>Reopen the <strong>Service Proposal</strong> tab to show the updated, discounted pricing.</li>
+            <li>This can loop — the customer may push for more, the rep adjusts again within the ladder and re-presents — before agreement.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"After applying the discount, I can show the updated numbers in real time."</p>
+        </div>
+
+        <p class="subhead">Accept the quote</p>
+        <ul class="steps">
+            <li>Once the customer accepts, Mark Status as Complete &rarr; <span class="result">Accepted</span>.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"The customer reviews the new pricing and decides they're ready to sign up. By simply updating the quote status to Accepted, a contract is automatically generated for me."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 5 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 5</span>Contract &amp; e-sign</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Contract auto-created (Draft, 12-month term).</li>
+            <li><strong>Review And Sign</strong> tab &gt; scroll to Acceptance &gt; check "I have read and agree..." &gt; type the customer's full name to sign &gt; <strong>Sign agreement</strong> &rarr; <span class="result">"Agreement signed"</span> (contract activated).</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"The next thing I need to do is get the customer to sign their service contract. It's now ready for them to review and sign. With the contract signed, I thank the customer for their time and for the opportunity to earn their business. Next, we'll see how operations can validate the order and how the billing schedules that were created will tell the system when and what to invoice for."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 6 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 6</span>Order &amp; billing schedules</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Order auto-created / Activated.</li>
+            <li>Show Order Summary, Billing Schedules (100% billing %), Order Products, and Billing Schedule Groups (active, pending amount) on BillingMilestonePlan.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"On the order record, the operations team can review and validate the customer's information, service address, and the services they've contracted. We can see the customer is the responsible party for payment — but if someone else were paying on their behalf, we could create a billing profile for that person to receive the invoices. Finally, we can see a billing schedule was created for each service, and both are set to milestone billing — meaning that until the monthly service has actually been performed, there's a billing hold."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 7 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 7</span>Service delivery (Field Service mobile)</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Back on the account (related lists now populated: Orders, Contracts, Assets; Billing Milestone Plan Items "Waiting for Milestone Accomplishment").</li>
+            <li>Click <strong>Complete Monthly Service</strong> &gt; mobile Field Service mockup (technician on-site, map) &gt; <strong>Complete Work Order</strong>.</li>
+            <li>Select Service Month (e.g. Month 1) &gt; <span class="result">"Service Recorded / invoice generation in progress"</span> &rarr; milestone status "Ready for Invoicing".</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"On the account record, we can see the billing milestone plan items for each service have been created, and both are waiting for the first month's service to be completed before the billing hold is released. Now imagine I'm part of the crew assigned a work order to perform the service. From the field service app, I can access my work order, view my scheduled time, and get turn-by-turn directions — I can even send the customer an automated text if I'm running late. Once the service has been performed, I close out my work order: I select the service month and service date, add any notes about the appointment, and the work order is now closed."</p>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 8 -->
+<div class="phase">
+    <div class="phase-head">
+        <h2><span class="badge">Phase 8</span>Invoicing &amp; billing rollup</h2>
+    </div>
+    <div class="phase-body">
+        <p class="subhead">Click path</p>
+        <ul class="steps">
+            <li>Click <strong>Generate Invoices</strong> &gt; leave Target/Invoice Date at its default (today's date) — always use the default regardless of the actual day of the demo.</li>
+            <li>Set Status <strong>Posted</strong> &gt; <strong>Generate</strong> &rarr; <span class="result">"Generating invoices..."</span>.</li>
+            <li>Close the notification toast, then refresh the browser for the updates to appear.</li>
+            <li>Milestone status &rarr; "Invoiced"; the Invoices related list shows the new invoice (Posted).</li>
+            <li>Consolidated Billing Timeline updates its billing-completion %.</li>
+        </ul>
+        <div class="track">
+            <p class="label">Proposed talk track</p>
+            <p class="quote">"Back on the account record, the milestone plan items have updated to Ready for Invoicing. Normally invoicing is automated with an invoice scheduler, but for demo purposes I'll manually generate and post this invoice. Once it's generated, I can see the invoicing event reflected on my billing dashboard: the milestone billing schedule for the service, the total billing amount, the amount billed so far, the amount remaining, and the billing completion percentage. The same billing data is available for each service. As we continue billing for subsequent service periods, we can see the list of invoices, any saved payment methods — and if there's a saved payment method, we can even automate taking a payment, all with Agentforce Revenue Management."</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    Home Services ARM Demo — Script &amp; Click Path
+</footer>
+
+</body>
+</html>

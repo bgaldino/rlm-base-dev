@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_HomeServices_Quote</fullName>
+    <active>true</active>
+    <label>RLM_HomeServices_Quote</label>
+    <picklistValues>
+        <picklist>RLM_Approval_Status__c</picklist>
+        <values>
+            <fullName>Approved</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pending</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Recalled</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Rejected</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>RLM_HomeServices_PreferredBillingFreq__c</picklist>
+        <values>
+            <fullName>Annual</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Monthly</fullName>
+            <default>true</default>
+        </values>
+        <values>
+            <fullName>Quarterly</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>RLM_Payment_Terms__c</picklist>
+        <values>
+            <fullName>Net 30</fullName>
+            <default>true</default>
+        </values>
+        <values>
+            <fullName>Net 45</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Net 60</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Net 90</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Status</picklist>
+        <values>
+            <fullName>Accepted</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Denied</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Draft</fullName>
+            <default>true</default>
+        </values>
+    </picklistValues>
+</RecordType>

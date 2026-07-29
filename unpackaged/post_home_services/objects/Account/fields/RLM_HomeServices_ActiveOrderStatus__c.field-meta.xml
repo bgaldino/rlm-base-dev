@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_HomeServices_ActiveOrderStatus__c</fullName>
+    <description>Set by flow. Value is Active when at least one Activated Order exists on this Account, otherwise Prospect. Used by flexipage component visibility rules on the RLM_HomeServices record page.</description>
+    <externalId>false</externalId>
+    <label>RLM HomeServices Active Order Status</label>
+    <length>10</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

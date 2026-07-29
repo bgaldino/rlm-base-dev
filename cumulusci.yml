@@ -142,6 +142,7 @@ project:
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
     inapp: false              # In-App Learning navigation framework (post_inapp + datasets/sfdmu/inapp). Opt-in: overrides the org Home page.
+    home_services: false      # Home Services demo app + public signup site. Opt-in; requires billing_ui.
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -403,6 +404,10 @@ project:
     ps_inapp: &ps_inapp
       # In-App Learning framework permission set
       - RLM_Learning
+
+    ps_home_services: &ps_home_services
+      # Home Services demo app permission set
+      - RLM_HomeServices
 
     ps_persona_sales_rep: &ps_persona_sales_rep
       # Persona sales rep-specific permission sets
@@ -1527,6 +1532,64 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_inapp
+
+  deploy_post_home_services:
+    group: Revenue Lifecycle Management
+    description: Deploy Home Services application dependencies (objects, record types, LWC, Apex, flexipages, and flows) before its Experience site
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_home_services
+
+  create_home_services_community:
+    group: Revenue Lifecycle Management
+    description: Create the Home Services public signup Experience Cloud site if it does not already exist
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    options:
+      name: "RLM_HomeServices_CustSignUp"
+      description: "RLM Home Services Customer Signup"
+      template: "Build Your Own (LWR)"
+      url_path_prefix: "vforcesite"
+      skip_existing: true
+
+  patch_home_services_network_email_for_deploy:
+    group: Revenue Lifecycle Management
+    description: Patch the Home Services Network placeholder with the target org's immutable sender address before site deployment
+    class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
+    options:
+      placeholder_email: home-services-network-sender@example.com
+      network_name: RLM_HomeServices_CustSignUp
+      network_meta_xml_path: unpackaged/post_home_services_site/networks/RLM_HomeServices_CustSignUp.network-meta.xml
+
+  revert_home_services_network_email_after_deploy:
+    group: Revenue Lifecycle Management
+    description: Restore the non-PII sender placeholder in Home Services Network metadata after deployment
+    class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
+    options:
+      placeholder_email: home-services-network-sender@example.com
+      network_meta_xml_path: unpackaged/post_home_services_site/networks/RLM_HomeServices_CustSignUp.network-meta.xml
+
+  patch_home_services_site_for_deploy:
+    group: Revenue Lifecycle Management
+    description: Patch Home Services CustomSite owner placeholders with the target org user before deployment
+    class_path: tasks.rlm_community.PatchPaymentsSiteForDeploy
+    options:
+      placeholder_username: home-services-site-admin@example.com
+      site_meta_xml_path: unpackaged/post_home_services_site/sites/RLM_HomeServices_CustSignUp.site-meta.xml
+
+  revert_home_services_site_after_deploy:
+    group: Revenue Lifecycle Management
+    description: Restore the non-PII owner placeholders in Home Services CustomSite metadata after deployment
+    class_path: tasks.rlm_community.RevertPaymentsSiteAfterDeploy
+    options:
+      placeholder_username: home-services-site-admin@example.com
+      site_meta_xml_path: unpackaged/post_home_services_site/sites/RLM_HomeServices_CustSignUp.site-meta.xml
+
+  deploy_post_home_services_site:
+    group: Revenue Lifecycle Management
+    description: Deploy the Home Services enhanced LWR site configuration, Network, CustomSite, and DigitalExperienceBundle
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_home_services_site
 
   load_inapp_dataset:
     group: Revenue Lifecycle Management
@@ -3702,18 +3765,21 @@ flows:
         flow: prepare_personas
         when: project_config.project__custom__personas
       29:
+        flow: prepare_home_services
+        when: project_config.project__custom__home_services and project_config.project__custom__billing_ui
+      30:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      30:
+      31:
         flow: prepare_inapp
         when: project_config.project__custom__inapp
-      31:
-        flow: prepare_scratch
       32:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       33:
-        task: rebuild_search_index
+        flow: refresh_all_decision_tables
       34:
+        task: rebuild_search_index
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4004,6 +4070,42 @@ flows:
       3:
         task: load_inapp_dataset
         when: project_config.project__custom__inapp
+
+  prepare_home_services:
+    group: Revenue Lifecycle Management
+    description: Create, configure, publish, and permission the Home Services demo app and public signup site
+    steps:
+      1:
+        task: create_home_services_community
+        when: project_config.project__custom__home_services
+      2:
+        task: deploy_post_home_services
+        when: project_config.project__custom__home_services
+      3:
+        task: patch_home_services_network_email_for_deploy
+        when: project_config.project__custom__home_services
+      4:
+        task: patch_home_services_site_for_deploy
+        when: project_config.project__custom__home_services
+      5:
+        task: deploy_post_home_services_site
+        when: project_config.project__custom__home_services
+      6:
+        task: revert_home_services_network_email_after_deploy
+        when: project_config.project__custom__home_services
+      7:
+        task: revert_home_services_site_after_deploy
+        when: project_config.project__custom__home_services
+      8:
+        task: publish_community
+        when: project_config.project__custom__home_services
+        options:
+          name: "RLM_HomeServices_CustSignUp"
+      9:
+        task: assign_permission_sets
+        when: project_config.project__custom__home_services
+        options:
+          api_names: *ps_home_services
 
   prepare_large_stx:
     group: Revenue Lifecycle Management

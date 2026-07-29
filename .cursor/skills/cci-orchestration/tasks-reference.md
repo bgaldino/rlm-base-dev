@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **10 groups**.
+**280 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*171 task(s)*
 
 ### `activate_agents`
 
@@ -1501,6 +1501,22 @@
 
 ---
 
+### `create_home_services_community`
+
+**Description:** Create the Home Services public signup Experience Cloud site if it does not already exist
+
+**Class:** `cumulusci.tasks.salesforce.CreateCommunity`
+
+**Options:**
+
+- `name`: `RLM_HomeServices_CustSignUp`
+- `description`: `RLM Home Services Customer Signup`
+- `template`: `Build Your Own (LWR)`
+- `url_path_prefix`: `vforcesite`
+- `skip_existing`: `True`
+
+---
+
 ### `create_personas_sales_rep_user`
 
 **Description:** Create the Sales Rep persona user from config/users/sales-rep-def.json with the RLM Sales Representative profile. On scratch orgs uses `sf org create user`, which registers the sf auth alias 'sales-rep-user' (usable as `--target-org sales-rep-user`). On non-scratch orgs (production, developer edition, sandbox) inserts a User sObject via REST and sets a password via the REST User password resource (never logged; supply via the 'password' option or RLM_PERSONA_USER_PASSWORD env var to use a known value) — no sf auth alias is created in that case. Idempotent: skips creation when a matching user already exists. Appends a unique username suffix to avoid conflicts.
@@ -1887,6 +1903,30 @@
 **Options:**
 
 - `path`: `unpackaged/post_guidedselling`
+
+---
+
+### `deploy_post_home_services`
+
+**Description:** Deploy Home Services application dependencies (objects, record types, LWC, Apex, flexipages, and flows) before its Experience site
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_home_services`
+
+---
+
+### `deploy_post_home_services_site`
+
+**Description:** Deploy the Home Services enhanced LWR site configuration, Network, CustomSite, and DigitalExperienceBundle
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_home_services_site`
 
 ---
 
@@ -2813,6 +2853,33 @@
 
 ---
 
+### `patch_home_services_network_email_for_deploy`
+
+**Description:** Patch the Home Services Network placeholder with the target org's immutable sender address before site deployment
+
+**Class:** `tasks.rlm_community.PatchNetworkEmailForDeploy`
+
+**Options:**
+
+- `placeholder_email`: `home-services-network-sender@example.com`
+- `network_name`: `RLM_HomeServices_CustSignUp`
+- `network_meta_xml_path`: `unpackaged/post_home_services_site/networks/RLM_HomeServices_CustSignUp.network-meta.xml`
+
+---
+
+### `patch_home_services_site_for_deploy`
+
+**Description:** Patch Home Services CustomSite owner placeholders with the target org user before deployment
+
+**Class:** `tasks.rlm_community.PatchPaymentsSiteForDeploy`
+
+**Options:**
+
+- `placeholder_username`: `home-services-site-admin@example.com`
+- `site_meta_xml_path`: `unpackaged/post_home_services_site/sites/RLM_HomeServices_CustSignUp.site-meta.xml`
+
+---
+
 ### `patch_payments_site_for_deploy`
 
 **Description:** Patch Payments_Webhook.site-meta.xml with the org's actual admin username before deploy. Required because siteAdmin and siteGuestRecordDefaultOwner are immutable after site creation and the committed XML contains a placeholder username.
@@ -3002,6 +3069,32 @@
 **Options:**
 
 - `path`: `unpackaged/pre/5_decisiontables`
+
+---
+
+### `revert_home_services_network_email_after_deploy`
+
+**Description:** Restore the non-PII sender placeholder in Home Services Network metadata after deployment
+
+**Class:** `tasks.rlm_community.RevertNetworkEmailAfterDeploy`
+
+**Options:**
+
+- `placeholder_email`: `home-services-network-sender@example.com`
+- `network_meta_xml_path`: `unpackaged/post_home_services_site/networks/RLM_HomeServices_CustSignUp.network-meta.xml`
+
+---
+
+### `revert_home_services_site_after_deploy`
+
+**Description:** Restore the non-PII owner placeholders in Home Services CustomSite metadata after deployment
+
+**Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+**Options:**
+
+- `placeholder_username`: `home-services-site-admin@example.com`
+- `site_meta_xml_path`: `unpackaged/post_home_services_site/sites/RLM_HomeServices_CustSignUp.site-meta.xml`
 
 ---
 

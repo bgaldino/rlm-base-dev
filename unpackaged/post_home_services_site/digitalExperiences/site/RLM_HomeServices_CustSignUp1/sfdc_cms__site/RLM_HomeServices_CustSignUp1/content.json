@@ -1,0 +1,8 @@
+{
+  "type" : "sfdc_cms__site",
+  "title" : "RLM_HomeServices_CustSignUp",
+  "contentBody" : {
+    "authenticationType" : "AUTHENTICATED_WITH_PUBLIC_ACCESS_ENABLED"
+  },
+  "urlName" : "rlm-homeservices-custsignup"
+}

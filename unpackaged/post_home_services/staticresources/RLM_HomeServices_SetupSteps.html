@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Required Demo Setup Steps</title>
+<style>
+  body {
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    font-size: 14px;
+    color: #080707;
+    line-height: 1.7;
+    margin: 0;
+    padding: 16px 24px;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 14px;
+    border-bottom: 2px solid #0070d2;
+    padding-bottom: 8px;
+  }
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #032d60;
+    margin: 20px 0 6px;
+  }
+  p {
+    margin: 8px 0;
+  }
+  ol {
+    padding-left: 24px;
+    margin: 8px 0 12px;
+  }
+  ol.sub {
+    list-style-type: lower-alpha;
+    margin: 5px 0;
+  }
+  ol.subsub {
+    list-style-type: lower-roman;
+    margin: 5px 0;
+  }
+  li {
+    margin-bottom: 6px;
+  }
+  strong {
+    font-weight: 600;
+  }
+  .callout {
+    color: #c23934;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<h1>Required Demo Setup Steps</h1>
+<ol>
+  <li>Refresh the Decision Tables &ndash; use the decision table refresh widget directly below &ndash; ensure the toggle is off &amp; say <strong>"Full Refresh"</strong> directly below the toggle. Click the <strong>"Next"</strong> button and then the <strong>"Finish"</strong> button.</li>
+  <li>From the Setup Menu use the Quick Find to search for <strong>"Product Discovery Settings"</strong></li>
+  <li>Scroll to the <strong>"Select Default Catalog"</strong>, deselect the existing catalog and select the newly created catalog. The new catalog will be named after the company the agent researched.</li>
+  <li>Under the <strong>"Search Settings"</strong> section, click the <strong>"Create Full Index"</strong> button. On the next screen, click the <strong>"Rebuild Index"</strong> from the modal select <strong>"Full Index Rebuild"</strong> then click the <strong>"Rebuild"</strong> button. <span class="callout">**This process can take up to 15 minutes, refresh the screen to see status updates.**</span></li>
+  <li>After the index rebuild is complete, verify the pricing &amp; catalog index were successful.
+    <ol class="sub">
+      <li>From the <strong>"Quotes"</strong> create a new quote &ndash; only needs a generic name</li>
+      <li>From the Quote record, click the <strong>"Browse Catalogs"</strong> button
+        <ol class="subsub">
+          <li>You should see your company's catalog and all of the products and pricing that the agent skill created.</li>
+          <li>Delete the quote record</li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+  <li>From the <strong>"Products"</strong> tab
+    <ol class="sub">
+      <li>Create a filter for the <strong>"All Products"</strong> list view
+        <ol class="subsub">
+          <li>Create Date = TODAY</li>
+        </ol>
+      </li>
+      <li>Select 3-4 products that you want displayed on the Experience site.
+        <ol class="subsub">
+          <li>From the product record select the <strong>"RLM Display In Self Service"</strong> checkbox under the <strong>Digital Experience Site</strong> section.</li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+  <li>From the <strong>"Accounts"</strong> tab
+    <ol class="sub">
+      <li>Select the <strong>"New This Week"</strong> list view and pin it.</li>
+    </ol>
+  </li>
+</ol>
+</body>
+</html>

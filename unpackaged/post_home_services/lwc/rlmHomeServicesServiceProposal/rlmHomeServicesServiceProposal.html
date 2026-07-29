@@ -1,0 +1,98 @@
+<template>
+    <div class="proposal-viewport">
+        <div class="proposal-wrapper">
+            <template lwc:if={hasData}>
+                <div class="proposal-container" style={containerStyle}>
+                    <header class="proposal-header">
+                        <h1 class="proposal-title">Service Proposal</h1>
+                        <p class="client-name">Prepared for {clientName}</p>
+                        <p class="client-address" lwc:if={billingStreet}>{billingStreet}</p>
+                    </header>
+
+                    <div class="proposal-body">
+                        <div class="services-column">
+                            <template for:each={lineItems} for:item="item">
+                                <div key={item.key} class="service-card">
+                                    <div class="service-info">
+                                        <h3 class="service-name">{item.name}</h3>
+                                        <p class="service-description" lwc:if={item.description}>{item.description}</p>
+                                    </div>
+                                    <div class="service-pricing">
+                                        <div class="price-row">
+                                            <span class="price-label">List Price</span>
+                                            <span class="price-value">{item.formattedListPrice}</span>
+                                        </div>
+                                        <div class="price-row" lwc:if={item.hasPromotion}>
+                                            <span class="price-label">Promotion</span>
+                                            <span class="price-value discount">{item.formattedPromotion}</span>
+                                        </div>
+                                        <div class="price-row" lwc:if={item.hasCustomerDiscount}>
+                                            <span class="price-label">Customer Discount</span>
+                                            <span class="price-value discount">{item.formattedCustomerDiscount}</span>
+                                        </div>
+                                        <div class="price-row final">
+                                            <span class="price-label">Final Price</span>
+                                            <span class="price-value final">{item.formattedFinalPrice}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="summary-column">
+                            <div class="summary-card">
+                                <h3 class="summary-title">Pricing Summary</h3>
+                                <div class="summary-row">
+                                    <span class="summary-label">Services Total</span>
+                                    <span class="summary-value">{formattedServicesTotal}</span>
+                                </div>
+                                <div class="summary-row" lwc:if={hasPromotionsTotal}>
+                                    <span class="summary-label">Promotions</span>
+                                    <span class="summary-value discount">{formattedPromotionsTotal}</span>
+                                </div>
+                                <div class="summary-row" lwc:if={hasDiscountsTotal}>
+                                    <span class="summary-label">Discounts</span>
+                                    <span class="summary-value discount">{formattedDiscountsTotal}</span>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="summary-row" lwc:if={hasTax}>
+                                    <span class="summary-label">Tax</span>
+                                    <span class="summary-value">{formattedTax}</span>
+                                </div>
+                                <div class="summary-row final">
+                                    <span class="summary-label">Total Investment</span>
+                                    <span class="summary-value final">{formattedGrandTotal}</span>
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <h3 class="summary-title">Billing Summary</h3>
+                                <div class="summary-row">
+                                    <span class="summary-label">Monthly</span>
+                                    <span class="summary-value">{formattedMonthlyBilling}</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="summary-label">Quarterly</span>
+                                    <span class="summary-value">{formattedQuarterlyBilling}</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="summary-label">Annual</span>
+                                    <span class="summary-value">{formattedAnnualBilling}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template lwc:elseif={error}>
+                <div class="error-state">
+                    <p>{error}</p>
+                </div>
+            </template>
+            <template lwc:else>
+                <div class="loading-state">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,79 @@
+.guidance-container {
+    min-height: 120px;
+}
+
+.guidance-card {
+    background: #fafaf9;
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.guidance-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #181818;
+    margin: 0 0 1rem 0;
+}
+
+.guidance-list {
+    margin: 0 0 1rem 0;
+    padding-left: 1.25rem;
+}
+
+.guidance-item {
+    font-size: 0.875rem;
+    color: #3e3e3c;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.guidance-item.guidance-max {
+    font-weight: 600;
+    color: #c23934;
+}
+
+.guidance-ladder {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 1rem;
+}
+
+.ladder-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #706e6b;
+    margin: 0 0 0.5rem 0;
+}
+
+.ladder-step {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8125rem;
+    color: #3e3e3c;
+    margin-bottom: 0.35rem;
+}
+
+.ladder-range {
+    font-weight: 600;
+    color: #181818;
+    min-width: 4rem;
+}
+
+.ladder-note {
+    color: #706e6b;
+}
+
+.loading-state,
+.error-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 120px;
+}
+
+.error-state p {
+    color: #c23934;
+    font-size: 0.9375rem;
+}

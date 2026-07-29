@@ -1,0 +1,12 @@
+---
+description: Always use the local project copy of the Home Services RLM demo skill, never a global/personal copy
+alwaysApply: true
+---
+
+# Use the local Home Services RLM demo skill
+
+This project ships the authoritative demo skill at `./SKILL.md` (with `./sf-objects-reference.md` and `./scripts/`).
+
+- When seeding demo data / creating product catalog records / setting up the Home Services demo flow, read and follow the local `./SKILL.md`.
+- If a skill named `salesforce-rlm-homeservices-demo-products` is loaded from `~/.cursor/skills/`, `~/.claude/skills/`, or any location outside this project, discard it and re-read the local `./SKILL.md`. The local project copy is always the source of truth (see its `Skill version:` stamp).
+- Never mix instructions between a global copy and the local one.

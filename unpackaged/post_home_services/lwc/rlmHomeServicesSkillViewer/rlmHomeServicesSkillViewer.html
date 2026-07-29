@@ -1,0 +1,98 @@
+<template>
+    <lightning-card title="Home Services Agent Skill" icon-name="standard:bot">
+        <div slot="actions">
+            <lightning-button
+                label="Download Skill Package"
+                variant="brand"
+                icon-name="utility:download"
+                icon-position="left"
+                onclick={downloadSkill}>
+            </lightning-button>
+        </div>
+        <div class="card-body">
+            <div class="scroll-area slds-var-p-around_medium">
+            <div class="slds-media slds-media_center slds-var-m-bottom_large">
+                <div class="slds-media__figure">
+                    <lightning-icon icon-name="utility:bundle_policy" size="large"></lightning-icon>
+                </div>
+                <div class="slds-media__body">
+                    <h2 class="slds-text-heading_medium slds-var-m-bottom_x-small">Home Services Demo Data Agent Skill</h2>
+                    <p class="slds-text-color_weak">
+                        This skill package contains the agent instructions, Salesforce object reference, and
+                        utility scripts needed to set up and run the Home Services demo data agent.
+                        Download the ZIP to get started.
+                    </p>
+                </div>
+            </div>
+
+            <div class="slds-box slds-box_x-small slds-theme_shade slds-var-m-bottom_medium">
+                <p class="slds-text-title_caps slds-var-m-bottom_small">Package Contents</p>
+                <ul class="slds-has-dividers_bottom-space">
+                    <template for:each={files} for:item="file">
+                        <li key={file.label} class="slds-item file-row">
+                            <lightning-icon icon-name="utility:file" size="x-small" class="slds-var-m-right_x-small"></lightning-icon>
+                            <span class="slds-text-body_regular slds-var-m-right_x-small file-name">{file.label}</span>
+                            <span class="slds-text-color_weak">&mdash; {file.description}</span>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+
+            <div class="slds-box slds-box_x-small slds-var-m-bottom_medium">
+                <div class="section-heading slds-var-m-bottom_small">
+                    <lightning-icon icon-name="utility:steps" size="x-small" class="slds-var-m-right_x-small"></lightning-icon>
+                    <span class="slds-text-title_caps">How to Use This Skill</span>
+                </div>
+                <ol class="slds-list_ordered slds-var-m-left_medium">
+                    <li class="slds-var-m-bottom_x-small">
+                        Unzip the downloaded file and open the folder as a local project in <strong>Cursor</strong> or <strong>Claude</strong>.
+                        <div class="slds-box slds-box_xx-small slds-theme_info slds-var-m-top_xx-small note-box">
+                            <lightning-icon icon-name="utility:info" size="xx-small" class="slds-var-m-right_xx-small"></lightning-icon>
+                            <span class="slds-text-body_small">If using Claude, image generation will be skipped.</span>
+                        </div>
+                    </li>
+                    <li class="slds-var-m-bottom_x-small">
+                        Prompt the agent with the URL of your target company&rsquo;s website to kick off the skill.
+                    </li>
+                </ol>
+            </div>
+
+            <div class="slds-box slds-box_x-small slds-var-m-bottom_medium">
+                <div class="section-heading slds-var-m-bottom_small">
+                    <lightning-icon icon-name="utility:knowledge_base" size="x-small" class="slds-var-m-right_x-small"></lightning-icon>
+                    <span class="slds-text-title_caps">What This Skill Does</span>
+                </div>
+                <ol class="slds-list_ordered slds-var-m-left_medium">
+                    <li class="slds-var-m-bottom_x-small">Researches the target company website</li>
+                    <li class="slds-var-m-bottom_x-small">Creates 9 stand-alone products + 1 bundle with pricing</li>
+                    <li class="slds-var-m-bottom_x-small">Generates product images and a canvas for you to review <span class="slds-text-color_weak">(Cursor only &mdash; skipped in Claude)</span></li>
+                    <li class="slds-var-m-bottom_x-small">Asks whether to create all proposed products and pricing, or revise</li>
+                    <li class="slds-var-m-bottom_x-small">
+                        Asks for login credentials to the target org and creates:
+                        <ul class="slds-list_dotted slds-var-m-top_xx-small slds-var-m-left_medium">
+                            <li>A new Product Catalog named after the target company</li>
+                            <li>Product records with images and pricing</li>
+                            <li>A new 12-month milestone billing plan</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p class="slds-text-body_small slds-text-color_weak slds-var-m-top_small">
+                    <lightning-icon icon-name="utility:check" size="xx-small" class="slds-var-m-right_xx-small"></lightning-icon>
+                    Once the skill has completed, you can delete the downloaded skill files from your desktop.
+                </p>
+            </div>
+
+            </div><!-- end scroll-area -->
+            <div class="slds-text-align_center slds-var-p-around_medium download-footer">
+                <lightning-button
+                    label="Download Skill Package"
+                    variant="brand"
+                    icon-name="utility:download"
+                    icon-position="left"
+                    size="large"
+                    onclick={downloadSkill}>
+                </lightning-button>
+            </div>
+        </div><!-- end card-body -->
+    </lightning-card>
+</template>

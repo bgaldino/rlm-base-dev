@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>RLM Home Services Mobile Quote Editor</masterLabel>
+    <description>Mobile-first editor for Quote line items that reprices and configures through native RLM.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Quote</object>
+            </objects>
+            <property
+                name="headerTitle"
+                type="String"
+                label="Header Title"
+                default="Quoted Services"
+                description="Heading shown at the top of the editor."/>
+            <property
+                name="configFlowApiName"
+                type="String"
+                label="Product Configuration Flow API Name"
+                description="Reserved / unused. Retained because Salesforce blocks removing design attributes from a component already placed on a Lightning page."/>
+            <property
+                name="configOrigin"
+                type="String"
+                label="Configurator Origin"
+                description="Reserved / unused. Retained because Salesforce blocks removing design attributes from a component already placed on a Lightning page."/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,114 @@
+<template>
+  <div class="signup-with-products">
+    <div class="products-column">
+      <lightning-card title="Products" icon-name="standard:product">
+        <template lwc:if={hasProducts}>
+          <div class="products-wrapper">
+            <button
+              type="button"
+              class="scroll-btn scroll-btn-left"
+              aria-label="Scroll left"
+              onclick={handleScrollLeft}
+            >
+              <lightning-icon
+                icon-name="utility:chevronleft"
+                alternative-text="Previous"
+                size="medium"
+              ></lightning-icon>
+            </button>
+            <div
+              class="product-cards-scroll"
+              role="region"
+              aria-label="Product cards"
+            >
+              <div class="product-cards" lwc:ref="cardsContainer">
+                <template for:each={productCards} for:item="card">
+                  <div
+                    key={card.productId}
+                    class="product-card"
+                    data-product-id={card.productId}
+                    data-pricebook-entry-id={card.pricebookEntryId}
+                  >
+                    <div class="product-image">
+                      <template lwc:if={card.showImage}>
+                        <img
+                          src={card.displayUrl}
+                          alt={card.name}
+                          onerror={handleImageError}
+                          data-card-id={card.productId}
+                        />
+                      </template>
+                      <template lwc:else>
+                        <div class="placeholder-image">No image</div>
+                      </template>
+                    </div>
+                    <div class="product-details">
+                      <h3 class="product-name">{card.name}</h3>
+                      <p class="product-description">{card.description}</p>
+                      <p class="product-price">
+                        List price: {card.formattedPrice}
+                      </p>
+                      <lightning-input
+                        type="checkbox"
+                        label={card.selectLabel}
+                        checked={card.selected}
+                        onchange={handleSelect}
+                        data-pricebook-entry-id={card.pricebookEntryId}
+                      ></lightning-input>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="scroll-btn scroll-btn-right"
+              aria-label="Scroll right"
+              onclick={handleScrollRight}
+            >
+              <lightning-icon
+                icon-name="utility:chevronright"
+                alternative-text="Next"
+                size="medium"
+              ></lightning-icon>
+            </button>
+          </div>
+        </template>
+        <template lwc:else>
+          <p class="no-products">No products available for self-service.</p>
+        </template>
+      </lightning-card>
+    </div>
+    <div class="form-column">
+      <lightning-card title="Customer Signup" icon-name="standard:contact">
+        <div class="slds-p-around_medium">
+          <div class="form-section">
+            <template for:each={formFields} for:item="field">
+              <lightning-input
+                key={field.name}
+                type={field.type}
+                label={field.label}
+                required={field.required}
+                value={field.value}
+                data-field={field.name}
+                onchange={handleFormChange}
+              >
+              </lightning-input>
+            </template>
+            <div class="slds-m-top_medium">
+              <lightning-button
+                variant="brand"
+                label="Submit"
+                onclick={handleSubmit}
+                disabled={submitDisabled}
+              ></lightning-button>
+            </div>
+          </div>
+          <template lwc:if={message}>
+            <div class={messageClass} role="alert">{message}</div>
+          </template>
+        </div>
+      </lightning-card>
+    </div>
+  </div>
+</template>

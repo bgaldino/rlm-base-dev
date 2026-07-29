@@ -1,0 +1,846 @@
+/* ── Phone Device Frame ──────────────────────────────── */
+.phone-device {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #1c1c1e;
+    border-radius: 52px;
+    padding: 14px 10px 10px;
+    position: relative;
+    box-shadow:
+        0 0 0 1px #3a3a3c,
+        0 24px 64px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    height: 760px;
+}
+
+/* Mute switch */
+.phone-btn-mute {
+    position: absolute;
+    left: -4px;
+    top: 112px;
+    width: 4px;
+    height: 28px;
+    background: #3a3a3c;
+    border-radius: 3px 0 0 3px;
+}
+
+/* Volume up */
+.phone-btn-vol-up {
+    position: absolute;
+    left: -4px;
+    top: 158px;
+    width: 4px;
+    height: 48px;
+    background: #3a3a3c;
+    border-radius: 3px 0 0 3px;
+}
+
+/* Volume down */
+.phone-btn-vol-down {
+    position: absolute;
+    left: -4px;
+    top: 216px;
+    width: 4px;
+    height: 48px;
+    background: #3a3a3c;
+    border-radius: 3px 0 0 3px;
+}
+
+/* Power button */
+.phone-btn-power {
+    position: absolute;
+    right: -4px;
+    top: 170px;
+    width: 4px;
+    height: 68px;
+    background: #3a3a3c;
+    border-radius: 0 3px 3px 0;
+}
+
+/* ── Screen Area ─────────────────────────────────────── */
+.phone-screen-area {
+    background: #f4f6f9;
+    border-radius: 42px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ── Dynamic Island ──────────────────────────────────── */
+.dynamic-island {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 118px;
+    height: 34px;
+    background: #1c1c1e;
+    border-radius: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    gap: 6px;
+}
+
+.di-camera {
+    width: 10px;
+    height: 10px;
+    background: #2a2a2c;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── Status Bar ──────────────────────────────────────── */
+.phone-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 26px 6px;
+    height: 52px;
+}
+
+.status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #16325c;
+    letter-spacing: -0.3px;
+}
+
+.status-icons {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* Signal bars */
+.signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 13px;
+}
+
+.bar {
+    width: 3px;
+    background: #16325c;
+    border-radius: 1px;
+}
+
+.bar-1 { height: 4px; }
+.bar-2 { height: 7px; }
+.bar-3 { height: 10px; }
+.bar-4 { height: 13px; opacity: 0.3; }
+
+/* WiFi icon */
+.wifi-icon {
+    position: relative;
+    width: 15px;
+    height: 12px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.wifi-arc {
+    position: absolute;
+    border-radius: 50%;
+    border-top: 2px solid #16325c;
+    border-left: transparent;
+    border-right: transparent;
+    border-bottom: transparent;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.wifi-arc-sm {
+    width: 4px;
+    height: 4px;
+    bottom: 3px;
+}
+
+.wifi-arc-md {
+    width: 8px;
+    height: 8px;
+    bottom: 1px;
+}
+
+.wifi-arc-lg {
+    width: 13px;
+    height: 13px;
+    bottom: -1px;
+    opacity: 0.35;
+}
+
+.wifi-dot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2.5px;
+    height: 2.5px;
+    background: #16325c;
+    border-radius: 50%;
+}
+
+/* Battery icon */
+.battery-icon {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.battery-body {
+    width: 22px;
+    height: 11px;
+    border: 1.5px solid #16325c;
+    border-radius: 2.5px;
+    padding: 1.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.battery-fill {
+    width: 78%;
+    height: 100%;
+    background: #16325c;
+    border-radius: 1px;
+}
+
+.battery-tip {
+    width: 2px;
+    height: 5px;
+    background: #16325c;
+    border-radius: 0 1px 1px 0;
+    opacity: 0.6;
+}
+
+/* ── Phone Content Area ──────────────────────────────── */
+.phone-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Home Indicator ──────────────────────────────────── */
+.phone-home-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0 14px;
+    background: transparent;
+}
+
+.home-indicator {
+    width: 130px;
+    height: 5px;
+    background: #1c1c1e;
+    border-radius: 3px;
+    opacity: 0.2;
+}
+
+/* ── Mobile App Wrapper ─────────────────────────────── */
+.mobile-app-wrapper {
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    background: #f4f6f9;
+}
+
+/* ── Loading Overlay ────────────────────────────────── */
+.loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+}
+
+.loading-text {
+    color: #5a6872;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* ── App Header ─────────────────────────────────────── */
+.app-header {
+    background: linear-gradient(135deg, #0070d2 0%, #005fb2 100%);
+    padding: 20px 16px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-logo {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    color: white;
+}
+
+.app-subtitle {
+    font-size: 12px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+}
+
+.header-badge {
+    display: flex;
+    align-items: center;
+}
+
+.tech-badge {
+    --slds-c-badge-color-background: rgba(255,255,255,0.2);
+    --slds-c-badge-text-color: white;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+/* ── Technician Info Bar ────────────────────────────── */
+.tech-info-bar {
+    background: #8a1046;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.tech-avatar {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tech-details {
+    flex: 1;
+}
+
+.tech-name {
+    display: block;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tech-role {
+    display: block;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 11px;
+}
+
+.tech-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #04e571;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(4, 229, 113, 0.6);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-text {
+    color: #04e571;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ── Job Card ────────────────────────────────────────── */
+.job-card {
+    background: white;
+    margin: 12px 12px 8px;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #0070d2;
+}
+
+.job-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.job-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0070d2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.customer-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #16325c;
+    margin: 0 0 4px;
+}
+
+.customer-address {
+    font-size: 13px;
+    color: #5a6872;
+    margin: 0 0 10px;
+}
+
+.job-date-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.job-date {
+    font-size: 12px;
+    color: #5a6872;
+    font-weight: 500;
+}
+
+/* ── Service Form ────────────────────────────────────── */
+.service-form {
+    background: white;
+    margin: 8px 12px;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.form-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #16325c;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e8e8e8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-field {
+    margin-bottom: 14px;
+}
+
+.month-select {
+    --slds-c-select-sizing-border-radius: 8px;
+}
+
+.notes-field {
+    --slds-c-textarea-sizing-border-radius: 8px;
+}
+
+/* ── Error Banner ────────────────────────────────────── */
+.error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fef1ee;
+    border: 1px solid #c23934;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #c23934;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* ── Action Bar ──────────────────────────────────────── */
+.action-bar {
+    display: flex;
+    gap: 10px;
+    padding: 14px 12px 16px;
+    background: white;
+    margin: 8px 12px 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cancel-btn {
+    flex: 0 0 auto;
+}
+
+.submit-btn {
+    flex: 1;
+}
+
+/* ── Success Screen ──────────────────────────────────── */
+.success-screen {
+    background: #f4f6f9;
+}
+
+.success-header {
+    background: linear-gradient(135deg, #04844b 0%, #02703e 100%);
+}
+
+.success-icon {
+    --slds-c-icon-color-foreground-default: white;
+}
+
+.success-body {
+    padding: 20px 12px;
+}
+
+.success-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+}
+
+.success-checkmark {
+    font-size: 52px;
+    color: #04844b;
+    margin-bottom: 12px;
+    animation: bounceIn 0.6s ease-out;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+.success-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #16325c;
+    margin: 0 0 10px;
+}
+
+.success-detail {
+    font-size: 14px;
+    color: #5a6872;
+    margin: 0 0 4px;
+}
+
+.success-customer {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0070d2;
+    margin: 0 0 16px;
+}
+
+.success-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 16px 0;
+    padding: 12px;
+    background: #f4f6f9;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #5a6872;
+}
+
+.invoice-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #e8f4e8;
+    border: 1px solid #04844b;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    color: #02703e;
+    font-weight: 500;
+    margin-top: 12px;
+}
+
+.success-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.close-btn {
+    min-width: 200px;
+}
+
+/* ── Work Order Header ───────────────────────────────── */
+.work-order-header {
+    background: #AA1558;
+    padding: 16px 16px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.woh-back {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+.woh-body {
+    flex: 1;
+}
+
+.woh-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.8px;
+    margin: 0 0 2px;
+    text-transform: uppercase;
+}
+
+.woh-number {
+    font-size: 26px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 5px;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+}
+
+.woh-subtitle {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.woh-status-badge {
+    background: rgba(255, 255, 255, 0.22);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+}
+
+/* ── Tab Strip ───────────────────────────────────────── */
+.tab-strip {
+    background: #AA1558;
+    display: flex;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0 4px;
+}
+
+.tab-item {
+    flex: 1;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    padding: 10px 4px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-active {
+    color: white;
+    border-bottom-color: white;
+}
+
+/* ── Service Appointment Banner ──────────────────────── */
+.service-appt-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.appt-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #16325c;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.appt-menu {
+    font-size: 20px;
+    color: #5a6872;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    user-select: none;
+}
+
+/* ── Map Container ───────────────────────────────────── */
+.map-container {
+    height: 180px;
+    overflow: hidden;
+    display: block;
+}
+
+/* ── Appointment Time Row ────────────────────────────── */
+.appt-time-row {
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 12px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.appt-icon {
+    flex-shrink: 0;
+    color: #5a6872;
+}
+
+.appt-time-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.appt-time {
+    font-size: 14px;
+    font-weight: 700;
+    color: #16325c;
+}
+
+.appt-date {
+    font-size: 12px;
+    color: #5a6872;
+}
+
+/* ── Tab Placeholder ─────────────────────────────────── */
+.tab-placeholder {
+    background: white;
+    margin: 12px;
+    border-radius: 10px;
+    padding: 36px 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.placeholder-icon {
+    --slds-c-icon-color-foreground-default: #c9d9e8;
+    margin-bottom: 10px;
+}
+
+.placeholder-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: #16325c;
+    margin: 0 0 6px;
+}
+
+.placeholder-sub {
+    font-size: 13px;
+    color: #8e9fad;
+    margin: 0;
+}
+
+/* ── Service Form — Screen variant ───────────────────── */
+.service-form-screen {
+    margin-top: 10px;
+}
+
+/* ── Bottom Action Bar ───────────────────────────────── */
+.bottom-action-bar {
+    display: flex;
+    gap: 10px;
+    padding: 14px 12px 16px;
+    background: white;
+    margin: 8px 12px 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: inherit;
+}
+
+.action-btn:active {
+    opacity: 0.8;
+}
+
+.action-btn-secondary {
+    flex: 0 0 auto;
+    background: white;
+    color: #AA1558;
+    border: 2px solid #AA1558;
+}
+
+.action-btn-primary {
+    flex: 1;
+    background: #AA1558;
+    color: white;
+    border: 2px solid #AA1558;
+}
+
+.btn-icon-secondary {
+    --slds-c-icon-color-foreground-default: #AA1558;
+}
+
+.btn-icon-primary {
+    --slds-c-icon-color-foreground-default: white;
+}

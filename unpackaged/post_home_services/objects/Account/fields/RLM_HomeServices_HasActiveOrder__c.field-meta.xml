@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_HomeServices_HasActiveOrder__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Set by flow — true when at least one Activated Order exists on this Account. Used to control visibility of the Prospect Value Card vs. Billing Dashboard on the RLM_HomeServices record page.</description>
+    <label>RLM HomeServices Has Active Order</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

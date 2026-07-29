@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionSubtype>ScreenAction</actionSubtype>
+    <description>Allows a field technician to mark a monthly scheduled service as complete from the Account record. Triggers billing milestone update and invoice generation.</description>
+    <label>Complete Monthly Service</label>
+    <lightningWebComponent>rlmHomeServicesFieldTechServiceCompletion</lightningWebComponent>
+    <optionsCreateFeedItem>false</optionsCreateFeedItem>
+    <type>LightningWebComponent</type>
+</QuickAction>

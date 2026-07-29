@@ -1,0 +1,309 @@
+<template>
+    <div class="phone-device">
+        <!-- Physical buttons -->
+        <div class="phone-btn phone-btn-mute"></div>
+        <div class="phone-btn phone-btn-vol-up"></div>
+        <div class="phone-btn phone-btn-vol-down"></div>
+        <div class="phone-btn phone-btn-power"></div>
+
+        <!-- Screen -->
+        <div class="phone-screen-area">
+
+            <!-- Dynamic Island -->
+            <div class="dynamic-island">
+                <div class="di-camera"></div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="phone-status-bar">
+                <span class="status-time">{currentTime}</span>
+                <div class="status-icons">
+                    <div class="signal-bars">
+                        <div class="bar bar-1"></div>
+                        <div class="bar bar-2"></div>
+                        <div class="bar bar-3"></div>
+                        <div class="bar bar-4"></div>
+                    </div>
+                    <div class="wifi-icon">
+                        <div class="wifi-arc wifi-arc-sm"></div>
+                        <div class="wifi-arc wifi-arc-md"></div>
+                        <div class="wifi-arc wifi-arc-lg"></div>
+                        <div class="wifi-dot"></div>
+                    </div>
+                    <div class="battery-icon">
+                        <div class="battery-body">
+                            <div class="battery-fill"></div>
+                        </div>
+                        <div class="battery-tip"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Content -->
+            <div class="phone-content">
+
+                <!-- Loading State -->
+                <template if:true={isLoading}>
+                    <div class="loading-overlay">
+                        <lightning-spinner alternative-text="Processing..." size="large" variant="brand"></lightning-spinner>
+                        <p class="loading-text">Recording service completion...</p>
+                    </div>
+                </template>
+
+                <!-- Success State -->
+                <template if:true={isSuccess}>
+                    <div class="mobile-app-wrapper success-screen">
+                        <div class="app-header success-header">
+                            <div class="header-content">
+                                <lightning-icon icon-name="utility:check" size="large" class="success-icon"></lightning-icon>
+                                <div class="header-text">
+                                    <h1 class="app-title">Service Complete!</h1>
+                                    <p class="app-subtitle">CBS Home Services</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="success-body">
+                            <div class="success-card">
+                                <div class="success-checkmark">&#10003;</div>
+                                <h2 class="success-title">Monthly Service Recorded</h2>
+                                <p class="success-detail">
+                                    <strong>{selectedMonthLabel}</strong> service has been marked complete for
+                                </p>
+                                <p class="success-customer">{accountName}</p>
+                                <div class="success-meta">
+                                    <div class="meta-row">
+                                        <lightning-icon icon-name="utility:user" size="xx-small"></lightning-icon>
+                                        <span>{technicianName}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <lightning-icon icon-name="utility:clock" size="xx-small"></lightning-icon>
+                                        <span>{completionDateTime}</span>
+                                    </div>
+                                </div>
+                                <div class="invoice-notice">
+                                    <lightning-icon icon-name="utility:bill" size="x-small"></lightning-icon>
+                                    <span>Invoice generation has been triggered for this month's service.</span>
+                                </div>
+                            </div>
+                            <div class="success-actions">
+                                <lightning-button
+                                    label="Close"
+                                    variant="brand"
+                                    onclick={handleClose}
+                                    class="close-btn">
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Main App (not loading, not success) -->
+                <template if:false={isSuccess}>
+                    <template if:false={isLoading}>
+                        <div class="mobile-app-wrapper">
+
+                            <!-- Work Order Header -->
+                            <div class="work-order-header">
+                                <button class="woh-back" onclick={handleBackNav}>&#8592;</button>
+                                <div class="woh-body">
+                                    <p class="woh-label">WORK ORDER</p>
+                                    <h1 class="woh-number">00000284</h1>
+                                    <p class="woh-subtitle">
+                                        {assetProductName}&nbsp;&bull;&nbsp;<span class="woh-status-badge">New</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- ── OVERVIEW SCREEN ── -->
+                            <template if:true={isOverviewScreen}>
+
+                                <!-- Tab Strip -->
+                                <div class="tab-strip">
+                                    <button class={overviewTabClass} data-tab="overview" onclick={handleTabClick}>OVERVIEW</button>
+                                    <button class={productsTabClass} data-tab="products" onclick={handleTabClick}>PRODUCTS</button>
+                                    <button class={detailsTabClass}  data-tab="details"  onclick={handleTabClick}>DETAILS</button>
+                                </div>
+
+                                <!-- OVERVIEW tab content -->
+                                <template if:true={isTabOverview}>
+
+                                    <!-- Technician Info Bar -->
+                                    <div class="tech-info-bar">
+                                        <div class="tech-avatar">
+                                            <lightning-icon icon-name="standard:contact" size="small"></lightning-icon>
+                                        </div>
+                                        <div class="tech-details">
+                                            <span class="tech-name">{technicianName}</span>
+                                            <span class="tech-role">Field Technician &middot; On Site</span>
+                                        </div>
+                                        <div class="tech-status">
+                                            <span class="status-dot"></span>
+                                            <span class="status-text">Active</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Service Appointment Banner -->
+                                    <div class="service-appt-banner">
+                                        <span class="appt-label">SERVICE APPOINTMENT</span>
+                                        <span class="appt-menu">&#8942;</span>
+                                    </div>
+
+                                    <!-- Map -->
+                                    <template if:true={hasMapMarkers}>
+                                        <div class="map-container">
+                                        <lightning-map
+                                            map-markers={mapMarkers}
+                                            zoom-level="14"
+                                            list-view="hidden">
+                                            </lightning-map>
+                                        </div>
+                                    </template>
+
+                                    <!-- Appointment Time Row -->
+                                    <div class="appt-time-row">
+                                        <lightning-icon icon-name="utility:event" size="xx-small" class="appt-icon"></lightning-icon>
+                                        <div class="appt-time-details">
+                                            <span class="appt-time">{appointmentTimeRange}</span>
+                                            <span class="appt-date">{todayFormatted}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Job Card -->
+                                    <div class="job-card">
+                                        <div class="job-card-header">
+                                            <lightning-icon icon-name="utility:home" size="small" class="job-icon"></lightning-icon>
+                                            <span class="job-label">Current Service Job</span>
+                                        </div>
+                                        <div class="job-customer">
+                                            <h2 class="customer-name">{accountName}</h2>
+                                            <p class="customer-address">{serviceAddress}</p>
+                                        </div>
+                                        <div class="job-date-row">
+                                            <lightning-icon icon-name="utility:event" size="xx-small"></lightning-icon>
+                                            <span class="job-date">{todayFormatted} &middot; {currentTime}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bottom Action Bar -->
+                                    <div class="bottom-action-bar">
+                                        <button class="action-btn action-btn-secondary" onclick={handleRunningLate}>
+                                            <lightning-icon icon-name="utility:clock" size="small" class="btn-icon-secondary"></lightning-icon>
+                                            <span>Running Late</span>
+                                        </button>
+                                        <button class="action-btn action-btn-primary" onclick={handleCompleteWorkOrder}>
+                                            <lightning-icon icon-name="utility:check" size="small" class="btn-icon-primary"></lightning-icon>
+                                            <span>Complete Work Order</span>
+                                        </button>
+                                    </div>
+
+                                </template>
+
+                                <!-- PRODUCTS tab content -->
+                                <template if:true={isTabProducts}>
+                                    <div class="tab-placeholder">
+                                        <lightning-icon icon-name="utility:product_workspace" size="medium" class="placeholder-icon"></lightning-icon>
+                                        <p class="placeholder-text">Products &amp; Parts</p>
+                                        <p class="placeholder-sub">No products or parts have been added to this work order.</p>
+                                    </div>
+                                </template>
+
+                                <!-- DETAILS tab content -->
+                                <template if:true={isTabDetails}>
+                                    <div class="tab-placeholder">
+                                        <lightning-icon icon-name="utility:info" size="medium" class="placeholder-icon"></lightning-icon>
+                                        <p class="placeholder-text">Work Order Details</p>
+                                        <p class="placeholder-sub">Additional work order information will appear here.</p>
+                                    </div>
+                                </template>
+
+                            </template>
+
+                            <!-- ── SERVICE FORM SCREEN ── -->
+                            <template if:true={isServiceFormScreen}>
+
+                                <!-- Service Form -->
+                                <div class="service-form service-form-screen">
+                                    <div class="form-section-header">
+                                        <lightning-icon icon-name="utility:checkin" size="small"></lightning-icon>
+                                        <span>Complete Monthly Service</span>
+                                    </div>
+
+                                    <div class="form-field">
+                                        <lightning-combobox
+                                            name="serviceMonth"
+                                            label="Service Month"
+                                            placeholder="Select the month being completed..."
+                                            value={selectedMonth}
+                                            options={monthOptions}
+                                            onchange={handleMonthChange}
+                                            required
+                                            class="month-select">
+                                        </lightning-combobox>
+                                    </div>
+
+                                    <div class="form-field">
+                                        <lightning-input
+                                            type="date"
+                                            name="serviceDate"
+                                            label="Service Date"
+                                            value={serviceDate}
+                                            onchange={handleServiceDateChange}
+                                            required
+                                            class="date-select">
+                                        </lightning-input>
+                                    </div>
+
+                                    <div class="form-field">
+                                        <lightning-textarea
+                                            name="techNotes"
+                                            label="Technician Notes (Optional)"
+                                            placeholder="Add service notes, observations, or follow-up items..."
+                                            value={techNotes}
+                                            onchange={handleNotesChange}
+                                            max-length="500"
+                                            class="notes-field">
+                                        </lightning-textarea>
+                                    </div>
+
+                                    <template if:true={hasError}>
+                                        <div class="error-banner">
+                                            <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                                            <span>{errorMessage}</span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Action Bar -->
+                                <div class="action-bar">
+                                    <lightning-button
+                                        label="Cancel"
+                                        variant="neutral"
+                                        onclick={handleCancel}
+                                        class="cancel-btn">
+                                    </lightning-button>
+                                    <lightning-button
+                                        label="Complete Service"
+                                        variant="success"
+                                        icon-name="utility:check"
+                                        onclick={handleSubmit}
+                                        disabled={isSubmitDisabled}
+                                        class="submit-btn">
+                                    </lightning-button>
+                                </div>
+
+                            </template>
+
+                        </div>
+                    </template>
+                </template>
+
+            </div>
+
+            <!-- Home Indicator -->
+            <div class="phone-home-bar">
+                <div class="home-indicator"></div>
+            </div>
+
+        </div>
+    </div>
+</template>

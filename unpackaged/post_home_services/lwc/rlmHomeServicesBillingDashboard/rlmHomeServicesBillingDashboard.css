@@ -1,0 +1,69 @@
+.dashboard-container {
+    padding: 0.25rem;
+}
+
+/* Make cards in the same grid row stretch to equal height */
+.slds-card_full-height {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.slds-card_full-height .slds-card__body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Horizontal scroll wrapper for datatables so columns are never clipped */
+.table-scroll {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Ensure the top-row grid columns have a sensible minimum width before wrapping */
+.slds-large-size_7-of-12,
+.slds-large-size_5-of-12 {
+    min-width: 320px;
+}
+
+/* ── Timeline clip wrapper ────────────────────────────────────────────────
+   Hides everything below the Billing Completion visual in the Consolidated
+   Billing Timeline. After deploying, inspect the rendered height of the
+   component up to and including the Billing Completion section, then set
+   max-height to that pixel value. The default below is a reasonable starting
+   point; adjust after first visual inspection in the org.
+──────────────────────────────────────────────────────────────────────── */
+.consolidated-clip {
+    overflow: hidden;
+    max-height: 320px; /* tune after deploy: height to bottom of Billing Completion visual */
+    position: relative;
+}
+
+/* Soft fade at the clip boundary so the cutoff looks intentional */
+.consolidated-clip::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, var(--slds-c-card-color-background, #fff));
+    pointer-events: none;
+}
+
+.timeline-divider {
+    border-top: 1px solid var(--slds-c-card-color-border, #e5e5e5);
+    margin-bottom: 1rem;
+}
+
+/* Expand / collapse action at the bottom of the milestones card */
+.milestone-toggle {
+    display: flex;
+    align-items: center;
+    color: var(--slds-c-button-brand-color-background, #0176d3);
+    font-size: 0.8125rem;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+    border: none;
+}

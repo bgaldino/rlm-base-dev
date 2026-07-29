@@ -1,0 +1,142 @@
+<template>
+    <template if:true={isLoaded}>
+        <lightning-card>
+        <div class="prospect-card">
+            <div class="card-title">Revenue Potential</div>
+            <div class="card-divider"></div>
+
+            <!-- ── Header row: avatar + name/contact + status pill ── -->
+            <div class="slds-grid slds-grid_vertical-align-center slds-gutters_small header-row">
+
+                <div class="slds-col slds-no-flex">
+                    <div class="prospect-avatar">
+                        <span class="prospect-avatar__initials">{initials}</span>
+                    </div>
+                </div>
+
+                <div class="slds-col">
+                    <div class="slds-text-heading_medium contact-name">{fullName}</div>
+                    <div class="slds-text-body_small slds-text-color_weak contact-meta">
+                        <template if:true={email}>
+                            <span>{email}</span>
+                        </template>
+                        <template if:true={phone}>
+                            <template if:true={email}>
+                                <span class="meta-separator">&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+                            </template>
+                            <span>{phone}</span>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="slds-col slds-no-flex">
+                    <span class="stage-pill">New Inquiry</span>
+                </div>
+
+            </div>
+
+            <div class="card-divider"></div>
+
+            <!-- ── Value stats ── -->
+            <div class="slds-grid stats-row">
+
+                <div class="slds-col stat-block">
+                    <div class="stat-label">Monthly Value</div>
+                    <lightning-formatted-number
+                        value={monthlyValue}
+                        format-style="currency"
+                        currency-code="USD"
+                        maximum-fraction-digits="0"
+                        class="stat-value stat-value_accent">
+                    </lightning-formatted-number>
+                </div>
+
+                <div class="slds-col stat-block stat-block_bordered">
+                    <div class="stat-label">Annual Value</div>
+                    <lightning-formatted-number
+                        value={annualValue}
+                        format-style="currency"
+                        currency-code="USD"
+                        maximum-fraction-digits="0"
+                        class="stat-value">
+                    </lightning-formatted-number>
+                </div>
+
+                <div class="slds-col stat-block stat-block_bordered">
+                    <div class="stat-label">3-Year LTV</div>
+                    <lightning-formatted-number
+                        value={ltv}
+                        format-style="currency"
+                        currency-code="USD"
+                        maximum-fraction-digits="0"
+                        class="stat-value">
+                    </lightning-formatted-number>
+                </div>
+
+            </div>
+
+            <div class="card-divider"></div>
+
+            <!-- ── Journey stage tracker ── -->
+            <div class="journey-section">
+                <div class="section-label">CUSTOMER JOURNEY</div>
+                <div class="stage-tracker">
+                    <template for:each={journeySteps} for:item="step">
+                        <div key={step.key} class="stage-item">
+                            <!-- Node + connector line -->
+                            <div class="stage-node-row">
+                                <div class={step.nodeClass}>
+                                    <template if:true={step.isComplete}>
+                                        <svg class="check-icon" viewBox="0 0 16 16" fill="none">
+                                            <path d="M3 8l4 4 6-6"
+                                                  stroke="currentColor"
+                                                  stroke-width="2"
+                                                  stroke-linecap="round"
+                                                  stroke-linejoin="round"/>
+                                        </svg>
+                                    </template>
+                                </div>
+                                <template if:false={step.isLast}>
+                                    <div class="stage-connector"></div>
+                                </template>
+                            </div>
+                            <!-- Label -->
+                            <div class={step.labelClass}>{step.label}</div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ── Service tiles (conditional) ── -->
+            <template if:true={hasLineItems}>
+                <div class="card-divider"></div>
+                <div class="services-section">
+                    <div class="section-label">SERVICES OF INTEREST</div>
+                    <div class="services-grid">
+                        <template for:each={lineItemsWithImage} for:item="item">
+                            <div key={item.key} class="service-tile">
+                                <template if:true={item.hasImage}>
+                                    <img src={item.imageUrl} alt={item.productName} class="service-tile__img" />
+                                </template>
+                                <template if:false={item.hasImage}>
+                                    <div class="service-tile__icon-placeholder"></div>
+                                </template>
+                                <div class="service-tile__name">{item.productName}</div>
+                                <div class="service-tile__price">
+                                    <lightning-formatted-number
+                                        value={item.unitPrice}
+                                        format-style="currency"
+                                        currency-code="USD"
+                                        maximum-fraction-digits="0">
+                                    </lightning-formatted-number>/mo
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+        </div>
+        </lightning-card>
+    </template>
+</template>

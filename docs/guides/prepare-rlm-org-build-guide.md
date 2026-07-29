@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 34-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 35-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -57,7 +57,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 34 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -169,7 +169,7 @@ The 34 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ---
 
-### Phase 7: Final Configuration & Personalization (Steps 25–31)
+### Phase 7: Final Configuration & Personalization (Steps 25–32)
 
 **What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Large Sales Transaction, Personas), the UX layer, and the In-App Learning framework are deployed, and scratch org seed data is inserted.
 
@@ -183,25 +183,27 @@ The 34 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Personas** (Step 28, `personas` flag) — Deploys persona profiles, permission set groups, and permission sets from `unpackaged/post_personas`, sets organization-wide defaults for the Sales Rep persona (Account/Asset/Contract/Order → internal Read/Write), creates the Sales Rep scratch user, and assigns that user the persona PSG and sales-rep permission set (plus `RLM_LargeSalesTransaction` when `large_stx` is also on). Runs before `prepare_ux` so persona profile templates are assembled in the same UX pass.
 
-**UX assembly** (Step 29, `ux` flag) — Assembles and deploys the UX metadata (flexipages, layouts, applications, profiles, object bindings) via the UX assembler. Set `ux: false` to skip all UX assembly when testing feature deploys in isolation. See [Dynamic UX Assembly](../features/dynamic-ux-assembly.md).
+**Home Services demo app** (Step 29, `home_services` flag; requires `billing_ui`) — Creates the `RLM_HomeServices_CustSignUp` Build Your Own (LWR) community, deploys the application dependencies from `unpackaged/post_home_services`, patches target-specific immutable Network and CustomSite values, then deploys the enhanced-LWR foundation, bundle, and generated guest-profile Apex access from `unpackaged/post_home_services_site`. It publishes the community and assigns `RLM_HomeServices` to the running user. Target-specific usernames and sender addresses are reverted to non-PII placeholders after deployment. Off by default — enable with `home_services: true`. Product demo data remains managed by the separate Home Services product workflow.
 
-**In-App Learning** (Step 30, `inapp` flag) — Deploys the `unpackaged/post_inapp` In-App Learning framework, assigns its permission set, and loads the navigation/walkthrough content dataset. This surfaces guided in-app learning prompts in the org. Off by default — enable with `inapp: true`.
+**UX assembly** (Step 30, `ux` flag) — Assembles and deploys the UX metadata (flexipages, layouts, applications, profiles, object bindings) via the UX assembler. Set `ux: false` to skip all UX assembly when testing feature deploys in isolation. See [Dynamic UX Assembly](../features/dynamic-ux-assembly.md).
 
-**Scratch org seed data** (Step 31, `prepare_scratch`, `sample_data` flag) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs these records already exist; in fresh scratch orgs they need to be created. (This ran earlier in prior releases; it now runs near the end so seed data lands after all metadata and feature bundles are in place.)
+**In-App Learning** (Step 31, `inapp` flag) — Deploys the `unpackaged/post_inapp` In-App Learning framework, assigns its permission set, and loads the navigation/walkthrough content dataset. This surfaces guided in-app learning prompts in the org. Off by default — enable with `inapp: true`.
+
+**Scratch org seed data** (Step 32, `prepare_scratch`, `sample_data` flag) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs these records already exist; in fresh scratch orgs they need to be created. (This ran earlier in prior releases; it now runs near the end so seed data lands after all metadata and feature bundles are in place.)
 
 ---
 
-### Phase 8: Finalization (Steps 32–34)
+### Phase 8: Finalization (Steps 33–35)
 
 **What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, and the build's git provenance is stamped onto the org.
 
 **Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; the catalog search index must rebuild after the catalog data is in place so products are searchable; stamping the commit makes each org traceable back to the exact build that produced it.
 
-**Decision table refresh** (Step 32) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This must run after all data is in place because it materializes the current state of all reference data into the decision table engine.
+**Decision table refresh** (Step 33) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This must run after all data is in place because it materializes the current state of all reference data into the decision table engine.
 
-**Search index rebuild** (Step 33, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
+**Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**Git commit stamp** (Step 34) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

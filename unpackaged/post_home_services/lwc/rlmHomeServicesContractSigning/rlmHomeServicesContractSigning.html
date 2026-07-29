@@ -1,0 +1,288 @@
+<template>
+    <div class="contract-viewport">
+        <div class="contract-wrapper">
+            <section class="agreement-card" aria-label="Home Services Agreement">
+                <header class="agreement-header">
+                    <lightning-icon
+                        icon-name="standard:contract"
+                        size="small"
+                        alternative-text="Contract"
+                    ></lightning-icon>
+                    <h2 class="agreement-title">Home Services Agreement</h2>
+                </header>
+                <div class="card-body">
+            <template lwc:if={loading}>
+                <div class="state-wrap">
+                    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+
+            <template lwc:elseif={errorMessage}>
+                <div class="state-wrap error">{errorMessage}</div>
+            </template>
+
+            <template lwc:elseif={hasRecord}>
+                <div class="contract-content">
+                    <template lwc:if={isSigned}>
+                        <div class="signed-banner" role="status">
+                            <span class="signed-banner-label">Signed</span>
+                            <span class="signed-banner-text"
+                                >{signedDisplayName} — {formattedSignedAt}</span
+                            >
+                        </div>
+                    </template>
+
+                    <div class="contract-scroll">
+                        <article class="contract-paper">
+                        <h1 class="contract-title">Home Services Agreement</h1>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">1. Parties</h2>
+                            <p>
+                                This Home Services Agreement (“Agreement”) is
+                                entered into on
+                                <span class="dynamic">{formattedStartDate}</span
+                                >, between:
+                            </p>
+                            <p><strong>Service Provider:</strong> SF Home Services</p>
+                            <p>
+                                <strong>Customer:</strong>
+                                <span class="dynamic">{customerName}</span>
+                            </p>
+                            <p class="service-address">
+                                <span class="dynamic">{serviceAddress}</span>
+                            </p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">2. Scope of Services</h2>
+                            <p>
+                                The Service Provider agrees to perform the
+                                services outlined in the approved quote or
+                                service proposal (“Services”), including but not
+                                limited to:
+                            </p>
+                            <ul class="contract-list">
+                                <li>
+                                    Installation, maintenance, or repair services
+                                </li>
+                                <li>Scheduled or one-time service visits</li>
+                                <li>Any additional services agreed upon in writing</li>
+                            </ul>
+                            <p>
+                                The specific details, pricing, and deliverables are
+                                defined in the associated Service Proposal /
+                                Quote, which is incorporated into this Agreement.
+                            </p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">3. Term</h2>
+                            <p>
+                                This Agreement begins on
+                                <span class="dynamic">{formattedStartDate}</span>
+                                and:
+                            </p>
+                            <ul class="contract-list">
+                                <li>Continues until services are completed, or</li>
+                                <li>
+                                    Renews on a monthly/annual basis for ongoing
+                                    services, unless terminated
+                                </li>
+                            </ul>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">4. Pricing &amp; Payment Terms</h2>
+                            <p>
+                                Total service cost: <strong>$[Total Amount]</strong>
+                            </p>
+                            <p>
+                                Payment terms: ☐ Installments as outlined in
+                                proposal
+                            </p>
+                            <p>
+                                Late payments may incur fees of [10%] per month.
+                            </p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">5. Changes &amp; Additional Work</h2>
+                            <p>Any work outside the original scope must be:</p>
+                            <ul class="contract-list">
+                                <li>Approved by the Customer</li>
+                                <li>Documented as a change order or updated quote</li>
+                            </ul>
+                            <p>Additional charges may apply.</p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">6. Scheduling &amp; Access</h2>
+                            <p>Customer agrees to:</p>
+                            <ul class="contract-list">
+                                <li>
+                                    Provide safe and reasonable access to the service
+                                    location
+                                </li>
+                                <li>
+                                    Ensure utilities (if required) are available
+                                </li>
+                                <li>Be present if necessary for service completion</li>
+                            </ul>
+                            <p>
+                                Missed appointments or denied access may result in
+                                a rescheduling fee.
+                            </p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">7. Cancellations &amp; Rescheduling</h2>
+                            <ul class="contract-list">
+                                <li>
+                                    Cancellations must be made at least [24/48 hours]
+                                    in advance
+                                </li>
+                                <li>Late cancellations may incur a fee</li>
+                                <li>
+                                    Provider reserves the right to reschedule due
+                                    to weather, safety, or unforeseen conditions
+                                </li>
+                            </ul>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">8. Warranties &amp; Service Guarantee</h2>
+                            <p>
+                                Services will be performed in a professional and
+                                workmanlike manner
+                            </p>
+                            <p>
+                                Any warranties (if applicable) are outlined in the
+                                service proposal
+                            </p>
+                            <p>Warranty does not cover:</p>
+                            <ul class="contract-list">
+                                <li>Misuse</li>
+                                <li>Third-party modifications</li>
+                                <li>Normal wear and tear</li>
+                            </ul>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">9. Liability</h2>
+                            <p>
+                                Service Provider is insured and will take
+                                reasonable care during service
+                            </p>
+                            <p>Provider is not liable for:</p>
+                            <ul class="contract-list">
+                                <li>Pre-existing conditions</li>
+                                <li>Hidden defects</li>
+                                <li>Indirect or consequential damages</li>
+                            </ul>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">10. Customer Responsibilities</h2>
+                            <p>Customer agrees to:</p>
+                            <ul class="contract-list">
+                                <li>Maintain a safe working environment</li>
+                                <li>Inform Provider of any hazards</li>
+                                <li>Secure pets and valuables</li>
+                            </ul>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">11. Termination</h2>
+                            <p>Either party may terminate this Agreement:</p>
+                            <ul class="contract-list">
+                                <li>With written notice</li>
+                                <li>Immediately for breach of terms</li>
+                            </ul>
+                            <p>
+                                Customer remains responsible for payment of
+                                services performed up to termination.
+                            </p>
+                        </section>
+
+                        <section class="contract-section">
+                            <h2 class="contract-heading">12. Governing Law</h2>
+                            <p>
+                                This Agreement shall be governed by the laws of
+                                the State.
+                            </p>
+                        </section>
+
+                        <section class="contract-section contract-acceptance">
+                            <h2 class="contract-heading">13. Acceptance</h2>
+                            <p>
+                                By signing below, both parties agree to the terms
+                                of this Agreement.
+                            </p>
+                            <template lwc:if={isSigned}>
+                                <div class="signature-block signed">
+                                    <p class="sig-line">
+                                        <span class="sig-label">Customer signature (typed):</span>
+                                        <span class="sig-value">{signedDisplayName}</span>
+                                    </p>
+                                    <p class="sig-line">
+                                        <span class="sig-label">Name:</span>
+                                        <span class="sig-value">{customerName}</span>
+                                    </p>
+                                    <p class="sig-line">
+                                        <span class="sig-label">Date:</span>
+                                        <span class="sig-value">{formattedSignedAt}</span>
+                                    </p>
+                                </div>
+                            </template>
+                            <template lwc:else>
+                                <div class="signature-block">
+                                    <p class="sig-placeholder">
+                                        Customer Signature: _______________________
+                                    </p>
+                                    <p class="sig-placeholder">
+                                        Name: <span class="dynamic">{customerName}</span>
+                                    </p>
+                                    <p class="sig-placeholder">Date: ___________</p>
+                                </div>
+                            </template>
+                        </section>
+                        </article>
+
+                        <div class="sign-panel" lwc:if={isSigned}>
+                            <p class="sign-panel-note">
+                                This agreement has been recorded with a typed signature on
+                                this contract record.
+                            </p>
+                        </div>
+
+                        <div class="sign-panel" lwc:else>
+                            <lightning-input
+                                type="checkbox"
+                                label="I have read and agree to the terms above"
+                                checked={acknowledged}
+                                onchange={handleAckChange}
+                            ></lightning-input>
+                            <lightning-input
+                                class="sign-input"
+                                label="Type your full name to sign"
+                                value={typedName}
+                                onchange={handleTypedNameChange}
+                                placeholder="Full legal name"
+                            ></lightning-input>
+                            <lightning-button
+                                variant="brand"
+                                label="Sign agreement"
+                                disabled={signDisabled}
+                                loading={saving}
+                                onclick={handleSign}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+                </div>
+            </section>
+        </div>
+    </div>
+</template>

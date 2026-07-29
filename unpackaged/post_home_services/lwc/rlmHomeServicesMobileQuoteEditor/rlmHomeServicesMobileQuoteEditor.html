@@ -1,0 +1,277 @@
+<template>
+    <div class="editor">
+        <!-- Header -->
+        <div class="editor-header">
+            <div class="editor-header__titles">
+                <h2 class="editor-title">{headerTitle}</h2>
+                <template if:true={data}>
+                    <p class="editor-subtitle">{data.quoteName}</p>
+                </template>
+            </div>
+        </div>
+
+        <template if:true={isReadOnly}>
+            <div class="notice">This quote is locked and can no longer be edited.</div>
+        </template>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="notice notice_error">{error}</div>
+        </template>
+
+        <!-- Empty -->
+        <template if:true={isEmpty}>
+            <div class="empty-state">
+                <lightning-icon icon-name="utility:cart" size="large" alternative-text="No services"></lightning-icon>
+                <p>No services on this quote yet.</p>
+            </div>
+        </template>
+
+        <!-- Line cards -->
+        <template if:true={hasData}>
+            <div class="line-list">
+                <template for:each={displayLines} for:item="line">
+                    <div key={line.id} class="line-group">
+                        <!-- Parent / standalone card -->
+                        <article class={line.cardClass}>
+                            <div class="line-main">
+                                <div class="line-info">
+                                    <p class="line-name">{line.name}</p>
+                                    <template if:true={line.productCode}>
+                                        <p class="line-meta">{line.productCode}</p>
+                                    </template>
+                                    <div class="line-badges">
+                                        <span class="badge">Qty {line.formattedQuantity}</span>
+                                        <template if:true={line.hasDiscount}>
+                                            <span class="badge badge_discount">{line.discountLabel}</span>
+                                        </template>
+                                        <template if:true={line.hasDates}>
+                                            <span class="badge badge_date">{line.dateRange}</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="line-pricing">
+                                    <p class="line-total">{line.formattedNetTotal}</p>
+                                    <template if:true={line.hasDiscount}>
+                                        <p class="line-list-price">{line.formattedListPrice}</p>
+                                    </template>
+                                </div>
+                            </div>
+                            <template if:false={isReadOnly}>
+                                <div class="line-actions">
+                                    <button class="btn btn_neutral" data-id={line.id} onclick={handleEditLine}>
+                                        <lightning-icon icon-name="utility:edit" size="x-small"></lightning-icon>
+                                        <span>Edit</span>
+                                    </button>
+                                    <template if:true={line.isConfigurable}>
+                                        <button class="btn btn_neutral" data-id={line.id} data-name={line.name} onclick={handleReconfigure}>
+                                            <lightning-icon icon-name="utility:add" size="x-small"></lightning-icon>
+                                            <span>Add-ons</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </template>
+                        </article>
+
+                        <!-- Bundle children -->
+                        <template if:true={line.isBundleParent}>
+                            <template for:each={line.children} for:item="child">
+                                <article key={child.id} class={child.cardClass}>
+                                    <div class="line-main">
+                                        <div class="line-info">
+                                            <p class="line-name">{child.name}</p>
+                                            <div class="line-badges">
+                                                <span class="badge">Qty {child.formattedQuantity}</span>
+                                                <template if:true={child.hasDiscount}>
+                                                    <span class="badge badge_discount">{child.discountLabel}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="line-pricing">
+                                            <p class="line-total">{child.formattedNetTotal}</p>
+                                        </div>
+                                    </div>
+                                    <template if:false={isReadOnly}>
+                                        <div class="line-actions">
+                                            <button class="btn btn_neutral" data-id={child.id} onclick={handleEditLine}>
+                                                <lightning-icon icon-name="utility:edit" size="x-small"></lightning-icon>
+                                                <span>Edit</span>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </article>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Sticky totals -->
+            <div class="totals-bar">
+                <div class="totals-rows">
+                    <div class="totals-row">
+                        <span>Services</span>
+                        <span>{formattedServicesTotal}</span>
+                    </div>
+                    <template if:true={hasDiscountsTotal}>
+                        <div class="totals-row totals-row_discount">
+                            <span>Discounts</span>
+                            <span>{formattedDiscountsTotal}</span>
+                        </div>
+                    </template>
+                    <template if:true={hasTax}>
+                        <div class="totals-row">
+                            <span>Tax</span>
+                            <span>{formattedTax}</span>
+                        </div>
+                    </template>
+                </div>
+                <div class="totals-grand">
+                    <span>Total</span>
+                    <span>{formattedGrandTotal}</span>
+                </div>
+            </div>
+        </template>
+
+        <!-- Edit bottom sheet -->
+        <template if:true={showEditSheet}>
+            <div class="sheet-backdrop" onclick={closeEditSheet}></div>
+            <section class="sheet" role="dialog" aria-modal="true">
+                <div class="sheet-handle"></div>
+                <header class="sheet-header">
+                    <h3>{editLine.name}</h3>
+                    <button class="icon-btn" onclick={closeEditSheet} title="Close">
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                </header>
+                <div class="sheet-body">
+                    <lightning-input
+                        type="number"
+                        label="Quantity"
+                        value={editQuantity}
+                        min="0"
+                        step="1"
+                        onchange={handleQuantityChange}>
+                    </lightning-input>
+
+                    <div class="discount-group">
+                        <lightning-combobox
+                            label="Discount type"
+                            value={editDiscountMode}
+                            options={discountModeOptions}
+                            onchange={handleDiscountModeChange}>
+                        </lightning-combobox>
+                        <lightning-input
+                            type="number"
+                            label="Discount"
+                            value={editDiscountValue}
+                            min="0"
+                            step={discountStep}
+                            formatter={discountFormatter}
+                            onchange={handleDiscountValueChange}>
+                        </lightning-input>
+                    </div>
+
+                    <lightning-input
+                        type="date"
+                        label="Start date"
+                        value={editStartDate}
+                        onchange={handleStartDateChange}>
+                    </lightning-input>
+                    <lightning-input
+                        type="date"
+                        label="End date"
+                        value={editEndDate}
+                        onchange={handleEndDateChange}>
+                    </lightning-input>
+                </div>
+                <footer class="sheet-footer">
+                    <button class="btn btn_destructive-text" onclick={handleRemoveLine} disabled={isSaving}>
+                        Remove
+                    </button>
+                    <div class="sheet-footer__right">
+                        <button class="btn btn_neutral" onclick={closeEditSheet} disabled={isSaving}>
+                            Cancel
+                        </button>
+                        <button class="btn btn_brand" onclick={handleSaveEdit} disabled={isSaving}>
+                            <template if:true={isSaving}>
+                                <lightning-spinner size="small" variant="inverse"></lightning-spinner>
+                            </template>
+                            <template if:false={isSaving}>Save</template>
+                        </button>
+                    </div>
+                </footer>
+            </section>
+        </template>
+
+        <!-- Add-ons bottom sheet -->
+        <template if:true={showAddOnSheet}>
+            <div class="sheet-backdrop" onclick={closeAddOnSheet}></div>
+            <section class="sheet sheet_tall" role="dialog" aria-modal="true">
+                <div class="sheet-handle"></div>
+                <header class="sheet-header">
+                    <div>
+                        <h3>Add-ons</h3>
+                        <p class="sheet-subtitle">{addOnBundleName}</p>
+                    </div>
+                    <button class="icon-btn" onclick={closeAddOnSheet} title="Close">
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                </header>
+                <div class="sheet-body">
+                    <template if:true={addOnLoading}>
+                        <div class="addon-loading">
+                            <lightning-spinner size="small" alternative-text="Loading add-ons"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template if:false={addOnLoading}>
+                        <template if:true={hasAddOns}>
+                            <template for:each={addOns} for:item="addOn">
+                                <div key={addOn.productId} class="addon-row">
+                                    <div class="addon-info">
+                                        <p class="addon-name">{addOn.name}</p>
+                                        <template if:true={addOn.description}>
+                                            <p class="addon-desc">{addOn.description}</p>
+                                        </template>
+                                        <template if:true={addOn.available}>
+                                            <p class="addon-price">{addOn.formattedPrice}</p>
+                                        </template>
+                                        <template if:false={addOn.available}>
+                                            <p class="addon-unavailable">Not available in this price book</p>
+                                        </template>
+                                    </div>
+                                    <div class="addon-control">
+                                        <template if:true={addOn.saving}>
+                                            <lightning-spinner size="small" alternative-text="Saving"></lightning-spinner>
+                                        </template>
+                                        <template if:false={addOn.saving}>
+                                            <lightning-input
+                                                type="toggle"
+                                                variant="label-hidden"
+                                                label={addOn.name}
+                                                data-id={addOn.productId}
+                                                checked={addOn.selected}
+                                                disabled={addOn.disabled}
+                                                onchange={handleAddOnToggle}>
+                                            </lightning-input>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasAddOns}>
+                            <div class="notice notice_info">
+                                This service has no optional add-ons.
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                <footer class="sheet-footer">
+                    <div class="sheet-footer__right">
+                        <button class="btn btn_brand" onclick={closeAddOnSheet}>Done</button>
+                    </div>
+                </footer>
+            </section>
+        </template>
+    </div>
+</template>

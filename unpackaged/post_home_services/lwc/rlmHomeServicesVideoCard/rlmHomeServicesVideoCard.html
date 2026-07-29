@@ -1,0 +1,30 @@
+<template>
+  <lightning-card title={cardTitle} icon-name="standard:video">
+    <div class="slds-card__body slds-card__body_inner">
+      <div class="video-container">
+        <template lwc:if={hasVideo}>
+          <iframe
+            src={embedUrl}
+            title={cardTitle}
+            class="video-frame"
+            allow="
+              accelerometer;
+              autoplay;
+              clipboard-write;
+              encrypted-media;
+              gyroscope;
+              picture-in-picture;
+            "
+            allowfullscreen
+          >
+          </iframe>
+        </template>
+        <template lwc:else>
+          <p class="video-message" role="status">
+            Provide a valid YouTube video URL.
+          </p>
+        </template>
+      </div>
+    </div>
+  </lightning-card>
+</template>

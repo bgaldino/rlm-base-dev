@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -384,6 +384,26 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
+### `prepare_home_services`
+
+Create, configure, publish, and permission the Home Services demo app and public signup site
+
+**Steps:**
+
+1. **task** `create_home_services_community`  `when: project_config.project__custom__home_services`
+2. **task** `deploy_post_home_services`  `when: project_config.project__custom__home_services`
+3. **task** `patch_home_services_network_email_for_deploy`  `when: project_config.project__custom__home_services`
+4. **task** `patch_home_services_site_for_deploy`  `when: project_config.project__custom__home_services`
+5. **task** `deploy_post_home_services_site`  `when: project_config.project__custom__home_services`
+6. **task** `revert_home_services_network_email_after_deploy`  `when: project_config.project__custom__home_services`
+7. **task** `revert_home_services_site_after_deploy`  `when: project_config.project__custom__home_services`
+8. **task** `publish_community`  `when: project_config.project__custom__home_services`
+   - `name`: `RLM_HomeServices_CustSignUp`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__home_services`
+   - `api_names`: `['RLM_HomeServices']`
+
+---
+
 ### `prepare_inapp`
 
 Deploy the In-App Learning framework, assign its permission set, and load the navigation content
@@ -623,12 +643,13 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 26. **flow** `prepare_pricing_discovery`
 27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
 28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
-31. **flow** `prepare_scratch`
-32. **flow** `refresh_all_decision_tables`
-33. **task** `rebuild_search_index`
-34. **flow** `stamp_git_commit`
+29. **flow** `prepare_home_services`  `when: project_config.project__custom__home_services and project_config.project__custom__billing_ui`
+30. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+31. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+32. **flow** `prepare_scratch`
+33. **flow** `refresh_all_decision_tables`
+34. **task** `rebuild_search_index`
+35. **flow** `stamp_git_commit`
 
 ---
 

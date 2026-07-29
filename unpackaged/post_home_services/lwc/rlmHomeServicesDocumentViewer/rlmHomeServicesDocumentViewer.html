@@ -1,0 +1,22 @@
+<template>
+  <lightning-card title={cardTitle} icon-name={iconName}>
+    <template lwc:if={allowDownload}>
+      <div slot="actions">
+        <lightning-button
+          label={downloadLabel}
+          variant="brand"
+          icon-name="utility:download"
+          icon-position="left"
+          onclick={downloadDocument}
+        >
+        </lightning-button>
+      </div>
+    </template>
+    <div class="slds-card__body slds-card__body_inner">
+      <div class="document-container">
+        <iframe src={documentUrl} title={cardTitle} class="document-frame">
+        </iframe>
+      </div>
+    </div>
+  </lightning-card>
+</template>

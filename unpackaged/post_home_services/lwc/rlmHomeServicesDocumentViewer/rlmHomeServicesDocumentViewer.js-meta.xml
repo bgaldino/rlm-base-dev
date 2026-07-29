@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage">
+            <property name="documentKey" type="String" datasource="about,demoScript,setupSteps" default="about" label="Document"/>
+            <property name="cardTitle" type="String" default="Home Services Document" label="Card Title"/>
+            <property name="iconName" type="String" default="standard:document" label="SLDS Icon Name"/>
+            <property name="allowDownload" type="Boolean" default="false" label="Show Download Action"/>
+            <property name="downloadLabel" type="String" default="Download Document" label="Download Button Label"/>
+            <property name="downloadFilename" type="String" label="Downloaded Filename"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

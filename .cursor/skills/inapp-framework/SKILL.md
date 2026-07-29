@@ -7,7 +7,7 @@ It covers the SFDMU data plan, the one-shot converter, per-release content updat
 the `RLM_Learning_*` naming convention, and deploy/reload/verify. Readable by any agent.
 
 Feature surface: `inapp` flag (default **false**) → `prepare_inapp` flow (`prepare_rlm_org`
-step 30) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inapp_dataset`
+step 31) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inapp_dataset`
 (data `datasets/sfdmu/inapp`). Access via the `RLM_Learning` permission set.
 
 ## Quick Rules

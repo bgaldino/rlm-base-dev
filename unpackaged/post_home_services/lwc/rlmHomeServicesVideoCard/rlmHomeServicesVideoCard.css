@@ -1,0 +1,25 @@
+.video-container {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--slds-g-color-border-1, #dddbda);
+  border-radius: var(--slds-g-radius-border-2, 0.25rem);
+  overflow: hidden;
+  background: var(--slds-g-color-neutral-base-10, #000000);
+}
+
+.video-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.video-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--slds-g-color-neutral-base-100, #ffffff);
+}
