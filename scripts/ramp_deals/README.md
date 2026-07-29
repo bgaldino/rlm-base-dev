@@ -52,6 +52,9 @@ Enums and field legality here were verified live on 264 / v68.0
 |--------|------|---------|
 | `plan_ramp_schedule.py` | **None** | Plan + validate a schedule (pure). The natural dry-run before authoring, and the MCP `ramp_plan_schedule` tool. |
 | `build_ramp_quote.py` | **Mutates** | Author a full multi-segment ramped quote end-to-end. **Preview by default; `--confirm` to write.** |
+| `add_ramp_segment.py` | **Mutates** | Add one segment by cloning the quote's last segment. Preview by default. |
+| `edit_ramp_segment.py` | **Mutates** | Edit a segment's dates / type / sort order via EditGroup. Preview by default. |
+| `delete_ramp_quote.py` | **Mutates** | Delete a quote (destructive; disposable orgs only). Requires `--confirm` **and** `--yes-delete <id>`. |
 | `inspect_ramp_quote.py` | Read-only | Dump a quote's segment table + each line's `RampIdentifier`/`SegmentIdentifier`. |
 | `verify_ramp_quote.py` | Read-only | Run the ramp invariants; exit non-zero on any failure (CI/post-build gate). |
 
@@ -103,9 +106,10 @@ and the call-order assertions — runs with no org.
 
 ## Status / open work
 
-The pure core + transport + orchestration + these four verbs are complete and
+The pure core + transport + orchestration + all seven verb CLIs
+(`plan`/`build`/`add`/`edit`/`delete`/`inspect`/`verify`) are complete and
 offline-tested. **Not yet done:** a live 264 end-to-end run (needs the writable org
-and the `IsLargeDeal` precondition from the research briefing), the remaining verbs
-(`add_ramp_segment`, `edit_ramp_segment`, `delete_ramp_quote`, `render_ramp_card`),
-and the `mcp/ramp_deals_server/` façade + `_auth.py` (both gated on research
-briefing Q1/Q2/Q6 — see `RUNBOOK-ramp-deals.md` §3).
+and the `IsLargeDeal` precondition from the research briefing) — the mutating verbs
+have not been exercised against an org, only offline against a fake transport;
+`render_ramp_card.py`; and the `mcp/ramp_deals_server/` façade + `_auth.py` (gated on
+research briefing Q1/Q2/Q6 — see `RUNBOOK-ramp-deals.md` §3).

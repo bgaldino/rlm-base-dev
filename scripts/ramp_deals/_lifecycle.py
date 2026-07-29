@@ -262,3 +262,52 @@ class RampLifecycle:
             "AND IsRamped = true ORDER BY SortOrder DESC LIMIT 1"
         )
         return rows[0]["Id"] if rows else None
+
+    # -- single-segment operations (add / edit / delete) -----------------
+
+    def add_segment(
+        self, *, quote_id: str, last_segment_group_id: Optional[str] = None,
+        line_scope: str = "AllLines",
+    ) -> Dict[str, Any]:
+        """Add one segment by cloning the quote's last ramped segment.
+
+        Only the **last** segment can be cloned. When ``last_segment_group_id`` is
+        omitted it is read from the quote (highest SortOrder ramped group). Returns
+        {"quote_id", "cloned_from", "status"}.
+        """
+        source = last_segment_group_id or self._last_group_id(quote_id)
+        if not source and not self.dry_run:
+            raise RampLifecycleError(
+                f"no ramped segment found on quote {quote_id} to clone from — is it "
+                "a ramped quote? (build the first segment before adding more)"
+            )
+        self.clone_segment(
+            quote_id=quote_id, last_segment_group_id=source, line_scope=line_scope,
+        )
+        status = self.wait_until_settled(quote_id) if not self.dry_run else "dry-run"
+        self.log(f"segment cloned from {source} on quote {quote_id}")
+        return {"quote_id": quote_id, "cloned_from": source, "status": status}
+
+    def edit_segment(self, **kwargs) -> Dict[str, Any]:
+        """Edit an existing ramp segment (dates / type / sort order) via EditGroup.
+
+        Takes the same keywords as ``_payload.build_edit_group`` (quote_id,
+        group_id, start_date, end_date, segment_type, sort_order). Returns
+        {"quote_id", "group_id", "status"}.
+        """
+        self.edit_group(**kwargs)
+        quote_id = kwargs.get("quote_id")
+        status = self.wait_until_settled(quote_id) if not self.dry_run else "dry-run"
+        self.log(f"segment {kwargs.get('group_id')} edited on quote {quote_id}")
+        return {"quote_id": quote_id, "group_id": kwargs.get("group_id"),
+                "status": status}
+
+    def delete_quote(self, quote_id: str) -> Dict[str, Any]:
+        """Delete a whole quote (DML delete on the Quote sObject).
+
+        Cascades to its groups and lines by platform rules. Returns
+        {"quote_id", "deleted": bool}. Skipped (deleted=False) under dry-run.
+        """
+        self.t.connect("DELETE", f"sobjects/Quote/{quote_id}")
+        self.log(f"deleted quote {quote_id}")
+        return {"quote_id": quote_id, "deleted": not self.dry_run}

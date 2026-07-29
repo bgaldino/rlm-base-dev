@@ -543,11 +543,69 @@ def test_lifecycle_build():
                   schedule=[]))
 
 
+def test_lifecycle_single_ops():
+    print("test_lifecycle_single_ops")
+    settled = {"CalculationStatus FROM Quote": [{"CalculationStatus": "CompletedWithPricing"}]}
+
+    # add_segment: reads the last group when not given one, then clones.
+    t = FakeTransport(soql_map={
+        **settled,
+        "IsRamped = true ORDER BY SortOrder DESC": [{"Id": "gLast", "SortOrder": 2}],
+    })
+    lc = RampLifecycle(t, sleep=lambda *_: None)
+    out = lc.add_segment(quote_id="0Qx")
+    check("add_segment resolves clone source", out["cloned_from"] == "gLast", str(out))
+    check("add_segment issued one clone",
+          len(t.calls) == 1 and t.calls[0][1] == _payload.CLONE_PATH)
+
+    # add_segment with an explicit source skips the lookup.
+    t2 = FakeTransport(soql_map=settled)
+    out2 = RampLifecycle(t2, sleep=lambda *_: None).add_segment(
+        quote_id="0Qx", last_segment_group_id="gExplicit")
+    check("add_segment uses explicit source", out2["cloned_from"] == "gExplicit")
+
+    # add_segment on a non-ramped quote (no last group) raises.
+    t3 = FakeTransport(soql_map=settled, soql_default=[])
+    check("add_segment with no ramped segment raises",
+          _raises(RampLifecycleError,
+                  RampLifecycle(t3, sleep=lambda *_: None).add_segment, quote_id="0Qx"))
+
+    # edit_segment issues one EditGroup (POST to place path) and polls.
+    t4 = FakeTransport(soql_map=settled)
+    out4 = RampLifecycle(t4, sleep=lambda *_: None).edit_segment(
+        quote_id="0Qx", group_id="g1", start_date="2026-01-01",
+        end_date="2026-12-31", segment_type="Custom")
+    check("edit_segment posts to place path",
+          len(t4.calls) == 1 and t4.calls[0][1] == _payload.PLACE_PATH)
+    check("edit_segment carries EditGroup action",
+          t4.calls[0][2]["groupRampAction"] == "EditGroup")
+    check("edit_segment returns settled status", out4["status"] == "CompletedWithPricing")
+
+    # edit_segment with a bad enum is rejected by the payload builder.
+    check("edit_segment bad segment type raises",
+          _raises(Exception, RampLifecycle(FakeTransport(), sleep=lambda *_: None).edit_segment,
+                  quote_id="0Qx", group_id="g1", start_date="2026-01-01",
+                  end_date="2026-12-31", segment_type="Trial"))
+
+    # delete_quote issues a DELETE on the Quote sObject.
+    t5 = FakeTransport()
+    out5 = RampLifecycle(t5, sleep=lambda *_: None).delete_quote("0Qx")
+    check("delete_quote issues a DELETE",
+          t5.calls == [("DELETE", "sobjects/Quote/0Qx", None)], str(t5.calls))
+    check("delete_quote reports deleted", out5["deleted"] is True)
+
+    # Dry-run: delete is skipped and reported as not deleted.
+    td = FakeTransport(dry_run=True)
+    outd = RampLifecycle(td).delete_quote("0Qx")
+    check("dry-run delete reports not deleted", outd["deleted"] is False)
+
+
 def main():
     for fn in (test_schedule, test_payload_place_create, test_payload_edit_group,
                test_payload_clone_and_actions, test_verify_status_sets,
                test_verify_quote, test_resolve, test_lifecycle_extract_id,
-               test_lifecycle_polling, test_lifecycle_build):
+               test_lifecycle_polling, test_lifecycle_build,
+               test_lifecycle_single_ops):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0
