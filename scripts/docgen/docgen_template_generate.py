@@ -133,6 +133,7 @@ def build_dgp_body(record_id, template_id, title=None, generate_only=False,
         "Type": dgp_type,
         "ReferenceObject": record_id,
         "DocumentTemplateId": template_id,
+        "DocGenApiVersionType": "Advanced",
         "DocumentInputType": "DocumentTemplate",
     }
 
