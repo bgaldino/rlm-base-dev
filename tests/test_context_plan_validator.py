@@ -317,6 +317,58 @@ def test_traversal_child_field_without_child_object_errors():
 
 
 # ----------------------------------------------------------------------
+# Tests — hierarchy hydration mappings
+# ----------------------------------------------------------------------
+
+def _child_sobject_plan():
+    return {
+        "create": True,
+        "developerName": "TestDocGenContext",
+        "label": "Test DocGen Context",
+        "contextNodeDefinitions": [
+            {"name": "Quote"},
+            {"name": "Line", "parentNodeName": "Quote"},
+        ],
+        "mappingRules": [
+            {
+                "mappingName": "QuoteMapping",
+                "contextNode": "Line",
+                "contextAttribute": "ProductName",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "Name",
+            },
+            {
+                "mappingName": "QuoteMapping",
+                "contextNode": "Line",
+                "contextAttribute": "ParentReference",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "QuoteId",
+            },
+        ],
+    }
+
+
+def test_sobject_mapped_child_requires_parent_reference():
+    p = _child_sobject_plan()
+    p["mappingRules"] = p["mappingRules"][:1]
+    r = _validate(p)
+    check(
+        "SObject-mapped child without ParentReference errors",
+        _has(_errors(r), "must map its auto-created ParentReference"),
+    )
+
+
+def test_sobject_mapped_child_parent_reference_passes():
+    r = _validate(_child_sobject_plan())
+    check(
+        "SObject-mapped child with ParentReference mapping validates",
+        not _has(_errors(r), "ParentReference"),
+    )
+
+
+# ----------------------------------------------------------------------
 
 def main():
     tests = [v for k, v in sorted(globals().items())

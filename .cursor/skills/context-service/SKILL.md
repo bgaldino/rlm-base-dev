@@ -63,7 +63,12 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    `contexts/<plan>.json`. The 6 active plans (`Billing`,
    `ConstraintEngineNodeStatus`, `DocGen`, `PartnerAccount`, `PrmPricing`,
    `RampMode`) are known-good; `archive/` is legacy — do not apply it.
-8. **Runtime = a separate lifecycle from design-time.** A Context *Definition*
+8. **Hierarchical DocGen needs an explicit child FK mapping.** A child node
+   creates `ParentReference`; map it to the child SObject's lookup to its parent
+   (for example, `QuoteLineItem.QuoteId`). For a Context Service DGP, pass the
+   root entity ID as plain `DocGenAdditionalInput` — never the runtime Context
+   API's `inputData` JSON.
+9. **Runtime = a separate lifecycle from design-time.** A Context *Definition*
    (rules 1–7) is design-time schema; a runtime *instance* is hydrated from
    records, queried, and persisted back. A runtime `contextId` is a
    **request-scoped** opaque cache handle (UUID/hex — never prefix-validate it)
@@ -76,21 +81,21 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    chaining create→query→persist across them still needs `--context-scope SESSION`
    (pilot) or a reused `--context-id` (see rule 9). Full lifecycle, scoping, and
    TTL in `runtime-and-persistence.md`.
-9. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
+10. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
    Multi-call REST can't complete the lifecycle — `query-record`/`query-tags` are
    pilot-gated and a REQUEST-scoped `contextId` doesn't survive between separate
    calls. Keep hydrate → query → (update) → persist in **one request** via Apex
    `Context.IndustriesContext` or one Flow (GA `IndustriesContext` perm only). See
    `runtime-and-persistence.md` → *Start here* for the copy-paste snippet + the
    pilot-gate detail.
-10. **Runtime hydration gotcha + tag namespace.** In the `data` payload,
+11. **Runtime hydration gotcha + tag namespace.** In the `data` payload,
     `businessObjectType` must be the **mapped SObject name** (e.g. `Quote`),
     **not** the context-node name (`SalesTransaction`) — a node-name value
     hydrates **zero** records silently (`isSuccess:true`).
     `build_hydration_data.py` emits the mapped name. Tag names are a **distinct
     namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`) —
     query by tag name, read off the definition.
-11. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
+12. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
     `referenceId`.** The `referenceId` **IS the `AsyncOperationTracker.Id`**, so
     poll `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id =
     '<referenceId>'` — a `Completed` row with populated `errorNodes` is still a

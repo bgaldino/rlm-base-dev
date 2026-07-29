@@ -18,6 +18,8 @@ Checks performed
 - Canonical ``dataType`` / ``fieldType`` enum values (Core UDD, API v67.0).
 - Required keys on attributes, nodes, mapping rules, and tags.
 - ``mappingType`` in {SOBJECT, CONTEXT} with the matching required keys.
+- SObject-mapped child nodes declare a ``ParentReference`` mapping so hydration
+  can join each child record to its parent node.
 - Guardrail limits (nodes, attrs/node, total attrs, hierarchy depth) against
   the counts *declared in the plan* (offline cannot see inherited org-side counts).
 - ``primaryDomainObject`` / ``primaryObject`` present -> ERROR (JSON_PARSER_ERROR
@@ -380,6 +382,60 @@ def _validate_mapping_rules(plan: Dict[str, Any], result: PlanResult, loc: str):
         )
 
 
+def _validate_child_parent_reference_mappings(
+    plan: Dict[str, Any], result: PlanResult, loc: str
+):
+    """Require a parent-FK mapping for each SObject-backed child node.
+
+    Context Service auto-creates a ``ParentReference`` attribute when a node is
+    declared with ``parentNodeName``. Without a mapping for that attribute, the
+    engine cannot associate hydrated child records with their parent node. This
+    is especially visible in Document Generation repeating sections.
+    """
+    node_defs = plan.get("contextNodeDefinitions") or []
+    rules = plan.get("mappingRules") or []
+    if not isinstance(node_defs, list) or not isinstance(rules, list):
+        return
+
+    for node in node_defs:
+        if not isinstance(node, dict) or not node.get("parentNodeName"):
+            continue
+        node_name = node.get("name")
+        if not node_name:
+            continue
+
+        sobject_rules = [
+            rule for rule in rules
+            if isinstance(rule, dict)
+            and rule.get("contextNode") == node_name
+            and (rule.get("mappingType") or "SOBJECT").upper() == "SOBJECT"
+        ]
+        if not sobject_rules:
+            continue
+
+        parent_reference_rules = [
+            rule for rule in sobject_rules
+            if rule.get("contextAttribute") == "ParentReference"
+        ]
+        if not parent_reference_rules:
+            result.add(
+                Severity.ERROR,
+                f"SObject-mapped child node '{node_name}' must map its auto-created "
+                "ParentReference attribute to the child object's parent lookup field",
+                loc,
+            )
+            continue
+
+        for rule in parent_reference_rules:
+            if not rule.get("sObjectField"):
+                result.add(
+                    Severity.ERROR,
+                    f"ParentReference mapping for child node '{node_name}' is missing "
+                    "required 'sObjectField'",
+                    loc,
+                )
+
+
 def _validate_tags(plan: Dict[str, Any], result: PlanResult, loc: str):
     tags = plan.get("contextTagsByName")
     if tags is None:
@@ -471,6 +527,7 @@ def _validate_plan_object(plan: Dict[str, Any], result: PlanResult, loc: str):
     _validate_nodes(plan, result, loc)
     _validate_attributes(plan, result, loc)
     _validate_mapping_rules(plan, result, loc)
+    _validate_child_parent_reference_mappings(plan, result, loc)
     _validate_tags(plan, result, loc)
 
 
