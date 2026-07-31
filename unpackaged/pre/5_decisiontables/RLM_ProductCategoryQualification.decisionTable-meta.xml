@@ -30,6 +30,6 @@
     <sourceConditionLogic>null</sourceConditionLogic>
     <sourceObject>ProductCategoryQualification</sourceObject>
     <status>Active</status>
-    <type>LowVolume</type>
+    <type>MediumVolume</type>
     <usageType>ProductCategoryQualification</usageType>
 </DecisionTable>
