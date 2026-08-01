@@ -391,6 +391,13 @@ def _validate_child_parent_reference_mappings(
     declared with ``parentNodeName``. Without a mapping for that attribute, the
     engine cannot associate hydrated child records with their parent node. This
     is especially visible in Document Generation repeating sections.
+
+    The translator applies rules per ``(mappingId, nodeId, sObject)`` group
+    (``tasks/rlm_context_service.py`` — ``grouped``/``group_key``), so each
+    ``(mappingName, sObject)`` group on a child node needs its **own**
+    ParentReference rule. Checking the node's rules in aggregate would let one
+    group's ParentReference vouch for a sibling group that hydrates without a
+    parent FK.
     """
     node_defs = plan.get("contextNodeDefinitions") or []
     rules = plan.get("mappingRules") or []
@@ -404,36 +411,39 @@ def _validate_child_parent_reference_mappings(
         if not node_name:
             continue
 
-        sobject_rules = [
-            rule for rule in rules
-            if isinstance(rule, dict)
-            and rule.get("contextNode") == node_name
-            and (rule.get("mappingType") or "SOBJECT").upper() == "SOBJECT"
-        ]
-        if not sobject_rules:
-            continue
+        groups: Dict[tuple, List[Dict[str, Any]]] = {}
+        for rule in rules:
+            if (
+                not isinstance(rule, dict)
+                or rule.get("contextNode") != node_name
+                or (rule.get("mappingType") or "SOBJECT").upper() != "SOBJECT"
+            ):
+                continue
+            groups.setdefault((rule.get("mappingName"), rule.get("sObject")), []).append(rule)
 
-        parent_reference_rules = [
-            rule for rule in sobject_rules
-            if rule.get("contextAttribute") == "ParentReference"
-        ]
-        if not parent_reference_rules:
-            result.add(
-                Severity.ERROR,
-                f"SObject-mapped child node '{node_name}' must map its auto-created "
-                "ParentReference attribute to the child object's parent lookup field",
-                loc,
-            )
-            continue
-
-        for rule in parent_reference_rules:
-            if not rule.get("sObjectField"):
+        for (mapping_name, sobject), group_rules in groups.items():
+            where = f"child node '{node_name}' (mapping '{mapping_name}', sObject '{sobject}')"
+            parent_reference_rules = [
+                rule for rule in group_rules
+                if rule.get("contextAttribute") == "ParentReference"
+            ]
+            if not parent_reference_rules:
                 result.add(
                     Severity.ERROR,
-                    f"ParentReference mapping for child node '{node_name}' is missing "
-                    "required 'sObjectField'",
+                    f"SObject-mapped {where} must map its auto-created "
+                    "ParentReference attribute to the child object's parent lookup field",
                     loc,
                 )
+                continue
+
+            for rule in parent_reference_rules:
+                if not rule.get("sObjectField"):
+                    result.add(
+                        Severity.ERROR,
+                        f"ParentReference mapping for {where} is missing "
+                        "required 'sObjectField'",
+                        loc,
+                    )
 
 
 def _validate_tags(plan: Dict[str, Any], result: PlanResult, loc: str):

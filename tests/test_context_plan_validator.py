@@ -368,6 +368,72 @@ def test_sobject_mapped_child_parent_reference_passes():
     )
 
 
+def test_second_mapping_group_needs_its_own_parent_reference():
+    """One group's ParentReference must not vouch for a sibling group.
+
+    The translator applies rules per (mappingName, nodeId, sObject), so a
+    second mapping over the same child node hydrates independently.
+    """
+    p = _child_sobject_plan()
+    p["mappingRules"].append({
+        "mappingName": "SecondMapping",
+        "contextNode": "Line",
+        "contextAttribute": "ProductCode",
+        "mappingType": "SOBJECT",
+        "sObject": "QuoteLineItem",
+        "sObjectField": "ProductCode",
+    })
+    r = _validate(p)
+    check(
+        "second mapping over the same child node needs its own ParentReference",
+        _has(_errors(r), "mapping 'SecondMapping'"),
+    )
+
+
+def test_second_sobject_group_needs_its_own_parent_reference():
+    p = _child_sobject_plan()
+    p["mappingRules"].append({
+        "mappingName": "QuoteMapping",
+        "contextNode": "Line",
+        "contextAttribute": "AdjustmentAmount",
+        "mappingType": "SOBJECT",
+        "sObject": "QuoteLineItemAdjustment",
+        "sObjectField": "Amount",
+    })
+    r = _validate(p)
+    check(
+        "second sObject on the same child node needs its own ParentReference",
+        _has(_errors(r), "sObject 'QuoteLineItemAdjustment'"),
+    )
+
+
+def test_each_mapping_group_with_parent_reference_passes():
+    p = _child_sobject_plan()
+    p["mappingRules"].extend([
+        {
+            "mappingName": "SecondMapping",
+            "contextNode": "Line",
+            "contextAttribute": "ProductCode",
+            "mappingType": "SOBJECT",
+            "sObject": "QuoteLineItem",
+            "sObjectField": "ProductCode",
+        },
+        {
+            "mappingName": "SecondMapping",
+            "contextNode": "Line",
+            "contextAttribute": "ParentReference",
+            "mappingType": "SOBJECT",
+            "sObject": "QuoteLineItem",
+            "sObjectField": "QuoteId",
+        },
+    ])
+    r = _validate(p)
+    check(
+        "every mapping group carrying its own ParentReference validates",
+        not _has(_errors(r), "ParentReference"),
+    )
+
+
 # ----------------------------------------------------------------------
 
 def main():
