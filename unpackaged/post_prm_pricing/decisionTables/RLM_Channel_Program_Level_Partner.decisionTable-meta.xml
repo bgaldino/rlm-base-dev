@@ -41,10 +41,11 @@
     <description>Used for Partner and Distributor Pricing in PRM</description>
     <doesConsiderNullValue>false</doesConsiderNullValue>
     <dtRowLevelOverrideType>None</dtRowLevelOverrideType>
-    <executionType>Hbase</executionType>
+    <executionType>HBASE</executionType>
     <filterResultBy>OutputOrder</filterResultBy>
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
+    <isVersioned>false</isVersioned>
     <setupName>RLM Channel Program Level Partner</setupName>
     <sourceObject>ChannelProgramMember</sourceObject>
     <status>Active</status>

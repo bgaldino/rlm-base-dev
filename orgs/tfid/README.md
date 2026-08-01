@@ -20,13 +20,13 @@ Each file is wired to a CCI org alias under `orgs:` in `cumulusci.yml` (e.g.
 
 | CCI config / file | Template ID | Instance | Role | What it is |
 |-------------------|-------------|----------|------|------------|
-| `tfid-cdo` (`tfid-cdo.json`) | `0TTKX000001N46s` | USA1016 | future baseline | **Base CDO license template, no modifications.** The *eventual* `tso=true` baseline goal — reached once all the black-tab mods (see `tfid-cdo-rlm`) are folded into the base license shape template. |
-| `tfid-cdo-rlm` (`tfid-cdo-rlm.json`) | `0TTWt000000rQ2n` | USA1016 | **`tso=true` baseline (input)** | `tfid-cdo` **plus** minor "black tab" (internal) license and org value/permission adjustments for RLM. **This is the current starting shape that `prepare_rlm_org` builds *onto* when `tso: true`.** |
+| `tfid-cdo` (`tfid-cdo.json`) | `0TTKX000001N4je` | USA1016 | future baseline | **Base CDO license template, no modifications.** The *eventual* `tso=true` baseline goal — reached once all the black-tab mods (see `tfid-cdo-rlm`) are folded into the base license shape template. |
+| `tfid-cdo-rlm` (`tfid-cdo-rlm.json`) | `0TTEE000000A3vt` | USA1016 | **`tso=true` baseline (input)** | `tfid-cdo` **plus** minor "black tab" (internal) license and org value/permission adjustments for RLM. **This is the current starting shape that `prepare_rlm_org` builds *onto* when `tso: true`.** |
 | `tfid-pde` (`tfid-pde.json`) | `0TTe60000001Zzp` | USA1016 | **Partner Developer Edition (PDE) baseline (input)** | TFID snapshot for **Partner Developer Edition** builds (`pde: true`). This is the **PDE license base in R1**. Unlike the external `dev-r1` baseline (a standard DE scratch config), this is the TFID-snapshot path for PDE. |
 | `tfid-qb-tso` (`tfid-qb-tso.json`) | `0TTWs000001kiiD` | USA1016 | **`tso=true` output** | TFID of the **fully built QuantumBit (QB) org we release** — captured by cloning an org that `prepare_rlm_org` (tso=true) built successfully and logging that template ID here. *Not* a build input; used for testing and idempotency work (re-running the build against an already-built org). |
 | `tfid` (`tfid.json`) | `0TTWs000001w7YP` | USA1016 | _TBD_ | _TBD — to be documented._ |
-| `tfid-sdo` (`tfid-sdo.json`) | `0TTKX000001hzYr` | USA1016 | _TBD_ | _TBD — to be documented._ |
-| `tfid-sdo-lite` (`tfid-sdo-lite.json`) | `0TTKX000001D0iI` | USA1016 | _TBD_ | _TBD — to be documented._ Note: present as a file but **not** wired as a CCI org config in `cumulusci.yml`. |
+| `tfid-sdo` (`tfid-sdo.json`) | `0TTKX000001i0Ed` | USA1016 | _TBD_ | _TBD — to be documented._ |
+| `tfid-sdo-lite` (`tfid-sdo-lite.json`) | `0TTKX000001D1OT` | USA1016 | _TBD_ | _TBD — to be documented._ Note: present as a file but **not** wired as a CCI org config in `cumulusci.yml`. |
 
 ### External (non-TFID) build baselines
 
