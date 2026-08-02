@@ -3670,7 +3670,6 @@ flows:
         flow: prepare_billing
       14:
         flow: prepare_collections
-        when: project_config.project__custom__collections
       15:
         flow: prepare_analytics
       16:
@@ -3697,16 +3696,12 @@ flows:
         flow: prepare_pricing_discovery
       27:
         flow: prepare_large_stx
-        when: project_config.project__custom__large_stx
       28:
         flow: prepare_personas
-        when: project_config.project__custom__personas
       29:
         flow: prepare_ux
-        when: project_config.project__custom__ux
       30:
         flow: prepare_inapp
-        when: project_config.project__custom__inapp
       31:
         flow: prepare_scratch
       32:
@@ -4184,7 +4179,6 @@ flows:
           activate: true
       10:
         flow: prepare_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
   deploy_post_prm_pricing:
     group: Revenue Lifecycle Management
@@ -4226,7 +4220,6 @@ flows:
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
         flow: deploy_post_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing

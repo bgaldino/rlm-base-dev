@@ -498,7 +498,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
    - `activate`: `True`
-10. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+10. **flow** `prepare_prm_pricing`
 
 ---
 
@@ -509,7 +509,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `deactivate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-2. **flow** `deploy_post_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **flow** `deploy_post_prm_pricing`
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
    - `api_names`: `['RLM_PRM_Pricing']`
 4. **task** `insert_quantumbit_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
@@ -608,7 +608,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 11. **flow** `prepare_dro`
 12. **flow** `prepare_tax`
 13. **flow** `prepare_billing`
-14. **flow** `prepare_collections`  `when: project_config.project__custom__collections`
+14. **flow** `prepare_collections`
 15. **flow** `prepare_analytics`
 16. **flow** `prepare_clm`
 17. **flow** `prepare_rating`
@@ -621,10 +621,10 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 24. **flow** `prepare_guidedselling`
 25. **flow** `prepare_revenue_settings`
 26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+27. **flow** `prepare_large_stx`
+28. **flow** `prepare_personas`
+29. **flow** `prepare_ux`
+30. **flow** `prepare_inapp`
 31. **flow** `prepare_scratch`
 32. **flow** `refresh_all_decision_tables`
 33. **task** `rebuild_search_index`
