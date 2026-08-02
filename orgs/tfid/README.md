@@ -68,7 +68,7 @@ So: **`tfid-cdo-rlm` (in) → prepare_rlm_org [tso=true] → `tfid-qb-tso` (out)
   `tfid-cdo-rlm`; `tfid-qb-tso` is the captured result, not a baseline.
 - Some collections UX components are gated behind a `tso` patch because the
   baseline foundation shape doesn't provision them — see
-  `.agents/artifacts/collections-ux-baseline-feature-gaps.md` (private artifacts repo).
+  `.agents/artifacts/collections/collections-ux-baseline-feature-gaps.md` (private artifacts repo).
 - **External builds** don't use TFID snapshots: Enterprise builds (trials, etc.)
   baseline from `ent-r1`; Developer-edition builds (e.g. `pde: true`) baseline
   from `dev-r1`. For a TFID-snapshot PDE baseline instead, use `tfid-pde`.
