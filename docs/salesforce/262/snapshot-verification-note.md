@@ -6,7 +6,7 @@ Final verification of the captured Salesforce Help / Developer-Guide snapshots u
 
 **Verified:** 2026-08-04 (todo pack 100). Owning skill: `.cursor/skills/revenue-cloud-docs/SKILL.md`.
 
-## State — all three sub-corpora complete, 0 errored
+## State — Help and Industries complete + 0 errored; RLM dev-guide has 1 upstream-broken page
 
 | Sub-corpus | Path | Captured / Discovered | Errored | Files on disk |
 |---|---|---|---|---|
@@ -66,4 +66,7 @@ Trailhead module, not a snapshot error.
 The recapture moved help 932→935 / collections 94→97 / errored 3→0. Every hardcoded copy of
 the old numbers was updated: `revenue-cloud-docs/SKILL.md` (4 spots incl. a wrong BRE
 errored-page claim), `cumulusci.yml` (area-snapshot comment block), `docs/enablement/README.md`,
-`docs/enablement/coverage-matrix.md`, `datasets/sfdmu/inapp/convert_from_legacy.py`.
+`docs/enablement/coverage-matrix.md`, `datasets/sfdmu/inapp/convert_from_legacy.py`,
+`docs/salesforce/262/feature-index.md` (3 spots), `datasets/sfdmu/inapp/README.md`,
+`docs/enablement/262/qb-demo-script.md`, and `.cursor/skills/pmos-integration/SKILL.md`.
+The sweep covers both bare ("932 articles") and hyphenated ("932-article") phrasings.
