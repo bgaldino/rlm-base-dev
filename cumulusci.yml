@@ -3394,9 +3394,9 @@ tasks:
   # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
   # =====================================================================
   # All 11 RC functional areas captured 2026-05-11 / 2026-05-12
-  # (collections added 2026-06-21). 932 articles captured / 935
-  # discovered — 3 collections articles errored at capture and are
-  # pending recapture (see docs/salesforce/262/help/index.md). Roots
+  # (collections added 2026-06-21). 935 articles captured / 935
+  # discovered — 0 errored (the final 3 collections articles were
+  # recaptured 2026-08-04; see docs/salesforce/262/help/index.md). Roots
   # verified via the Revenue Lifecycle Management parent sidebar walk.
   #
   # Captured (article counts as of capture date):
@@ -3414,9 +3414,9 @@ tasks:
   #                                              area's prefix — see the
   #                                              revenue-cloud-docs skill)
   #   ✓ snapshot_approvals_help_262          —  34 articles
-  #   ✓ snapshot_collections_help_262        —  94 articles (3 errored,
-  #                                              pending recapture — see
-  #                                              docs/salesforce/262/help/index.md
+  #   ✓ snapshot_collections_help_262        —  97 articles (0 errored;
+  #                                              final 3 recaptured 2026-08-04 —
+  #                                              see docs/salesforce/262/help/index.md
   #                                              and the refresh command below)
   #
   # NOTE — the Help portal uses short-prefix conventions that differ from
