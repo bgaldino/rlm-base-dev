@@ -15,21 +15,21 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 30** of `prepare_rlm_org` (followed by
-`prepare_inapp` at step 31, `prepare_scratch` at step 32, `prepare_manufacturing` at step 33
-when `manufacturing=true`, and `refresh_all_decision_tables` at step 34).
+in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (followed by
+`prepare_inapp` at step 30, `prepare_scratch` at step 31, `prepare_manufacturing` at step 32
+when `manufacturing=true`, and `refresh_all_decision_tables` at step 33).
 
 ### Two-phase UX on manufacturing orgs
 
 On manufacturing orgs (`manufacturing=true`), UX assembly runs twice:
 
-1. **Step 30 — `prepare_ux`** → assembles and deploys `unpackaged/post_ux/` (base + all
+1. **Step 29 — `prepare_ux`** → assembles and deploys `unpackaged/post_ux/` (base + all
    non-manufacturing features). Manufacturing content is **excluded** (`manufacturing=false`,
    the task default) because the `SalesAgreement` object, `Order.SalesAgreementId` field, and
    related manufacturing metadata do not exist until `prepare_manufacturing` runs. Base
    versions of shared pages (e.g. `RLM_Order_Record_Page`) are deployed here as a foundation.
 
-2. **Step 33 → step 13 — `prepare_mfg_ux`** (inside `prepare_manufacturing`) → assembles and
+2. **Step 32 → step 13 — `prepare_mfg_ux`** (inside `prepare_manufacturing`) → assembles and
    deploys `unpackaged/post_manufacturing_ux/` with `manufacturing=true`. Because this runs
    **after** `prepare_ux` and after all manufacturing metadata exists, it correctly overrides
    shared pages with their manufacturing variants and adds manufacturing-only pages, layouts,
@@ -48,8 +48,8 @@ On manufacturing orgs (`manufacturing=true`), UX assembly runs twice:
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 30 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 30 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -62,13 +62,19 @@ On manufacturing orgs (`manufacturing=true`), UX assembly runs twice:
 ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature testing)
 ```
 
-`prepare_ux` runs only when `ux=true`:
+`prepare_ux` does no work unless `ux=true`. The guard lives on each step *inside*
+`prepare_ux`, not on the `prepare_rlm_org` step that calls it — CumulusCI reads `when:`
+only for `task:` steps and discards it on a `flow:` step:
 
 ```yaml
-# prepare_rlm_org step 30
-30:
-  flow: prepare_ux
-  when: project_config.project__custom__ux
+# prepare_ux
+steps:
+  1:
+    task: assemble_and_deploy_ux
+    when: project_config.project__custom__ux
+  2:
+    task: reorder_app_launcher
+    when: project_config.project__custom__ux
 ```
 
 To skip UX during testing, pass `ux=false` to the flow or set it in your org definition file.
@@ -104,8 +110,6 @@ templates/
 │       │   └── RLM_Quote_Record_Page.yml
 │       ├── payments/
 │       ├── quantumbit/
-│       ├── ramp_builder/
-│       │   └── RLM_Quote_Record_Page.yml
 │       ├── tso/
 │       ├── utils/
 │       │   └── RLM_Account_Record_Page.yml
@@ -165,7 +169,7 @@ templates/
    All three tasks — assembly, retrieve, writeback — use these shared constants)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`
+`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
@@ -254,7 +258,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 30, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -332,7 +336,7 @@ cci flow run prepare_ux --org dev-sb0
 ```
 
 Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy, `manufacturing=false`)
-then `reorder_app_launcher`. Runs as step 30 of `prepare_rlm_org` when `ux=true`.
+then `reorder_app_launcher`. Runs as step 29 of `prepare_rlm_org` when `ux=true`.
 Deliberately excludes manufacturing content even on manufacturing orgs — manufacturing UX is
 deployed separately by `prepare_mfg_ux` after all manufacturing metadata exists.
 
@@ -344,7 +348,7 @@ cci flow run prepare_mfg_ux --org dev-mfg0
 
 Single-step flow: runs `assemble_and_deploy_ux` with `output_path=unpackaged/post_manufacturing_ux`
 and `manufacturing=true` (gated by `manufacturing=true and ux=true`). Runs as **step 13 of
-`prepare_manufacturing`** (which is step 33 of `prepare_rlm_org`), after all manufacturing
+`prepare_manufacturing`** (which is step 32 of `prepare_rlm_org`), after all manufacturing
 metadata (`SalesAgreement` object, layouts, quick actions, OmniScripts) is in place.
 
 Can be run independently to iterate on manufacturing UX changes without running the full
@@ -487,7 +491,6 @@ unpackaged/post_billing/flexipages
 unpackaged/post_constraints/flexipages
 unpackaged/post_payments/flexipages
 unpackaged/post_utils/flexipages
-unpackaged/post_ramp_builder/flexipages
 unpackaged/post_tso/flexipages
 unpackaged/post_docgen/flexipages
 unpackaged/post_quantumbit/flexipages
@@ -548,11 +551,11 @@ below.
 |------|-----|--------|
 | `assemble_and_deploy_ux -o deploy false` (dry run, all types) | dev-sb0 | 71 items assembled; EmailTemplatePage pages correctly skipped |
 | `assemble_and_deploy_ux` (full deploy) | dev-sb0 | 69 components deployed; `status=Succeeded` |
-| Single-item generation: `RLM_Quote_Record_Page.flexipage-meta.xml` | dev-sb0 | 14 patches applied; action order matches `post_ramp_builder` reference |
+| Single-item generation: `RLM_Quote_Record_Page.flexipage-meta.xml` | dev-sb0 | 14 patches applied |
 | PRM profile patches (12 layout assignments) | dev-sb0 | Confirmed via assembly log |
 
 **Active flags during Phase 1:**
-`qb, billing, tax, rating, rates, clm, dro, ramps, prm, docgen, payments, constraints, analytics, procedureplans`
+`qb, billing, tax, rating, rates, clm, dro, prm, docgen, payments, constraints, analytics, procedureplans`
 
 ---
 
@@ -603,7 +606,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 30
+2. Confirm all UX deploys succeed at step 29
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages

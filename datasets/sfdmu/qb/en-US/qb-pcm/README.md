@@ -47,20 +47,20 @@ Upsert all 28 objects in dependency order
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
 | 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 18      |
 | 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
-| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 313     |
+| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 314     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
 | 13 | ProrationPolicy               | Upsert    | `Name`                                                                                                | 1       |
-| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 266     |
+| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 267     |
 | 15 | ProductRampSegment            | Upsert    | `Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType`                            | 6       |
 | 16 | ProductRelationshipType       | Upsert    | `Name`                                                                                                | 4       |
 | 17 | ProductComponentGroup         | Upsert    | `Code`                                                                                                | 109     |
-| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 233 |
+| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 234 |
 | 19 | ProductComponentGrpOverride   | Upsert    | `Name`                                                                                                | 0 (excluded) |
 | 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0 (excluded) |
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 3       |
 | 22 | ProductCategory               | Upsert    | `Code`                                                                                                | 18      |
-| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 99      |
+| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 100      |
 | 24 | ProductQualification          | (default) | `Name`                                                                                                | 0       |
 | 25 | ProductDisqualification       | (default) | `Name`                                                                                                | 0       |
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
@@ -243,24 +243,24 @@ qb-pcm/
 ├── ProductClassificationAttr.csv        # 36 records
 │
 │  Source CSVs — Products and Selling Models
-├── Product2.csv                         # 313 records
+├── Product2.csv                         # 314 records
 ├── ProductAttributeDefinition.csv       # 17 records
 ├── ProductSellingModel.csv              # 9 records
 ├── ProrationPolicy.csv                  # 1 record
-├── ProductSellingModelOption.csv        # 266 records
+├── ProductSellingModelOption.csv        # 267 records
 ├── ProductRampSegment.csv               # 6 records
 │
 │  Source CSVs — Bundles and Components
 ├── ProductRelationshipType.csv          # 4 records
 ├── ProductComponentGroup.csv            # 109 records
-├── ProductRelatedComponent.csv          # 233 records
+├── ProductRelatedComponent.csv          # 234 records
 ├── ProductComponentGrpOverride.csv      # 0 records (excluded in export.json)
 ├── ProductRelComponentOverride.csv      # 0 records (excluded in export.json)
 │
 │  Source CSVs — Catalogs and Categories
 ├── ProductCatalog.csv                   # 3 records
 ├── ProductCategory.csv                  # 18 records
-├── ProductCategoryProduct.csv           # 99 records
+├── ProductCategoryProduct.csv           # 100 records
 │
 │  Source CSVs — Qualifications (placeholders)
 ├── ProductQualification.csv             # 0 records (placeholder)

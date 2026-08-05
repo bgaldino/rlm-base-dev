@@ -9,7 +9,8 @@ project's specific configuration.
 1. CCI alias `beta` ≠ SF CLI alias `rlm-base__beta`. Never mix them.
 2. Every task needs `group:` and `description:`. Every flow needs `group:`.
 3. After editing `cumulusci.yml`: `python scripts/ai/generate_cci_reference.py`
-4. Use `when: project_config.project__custom__<flag>` to gate steps.
+4. Use `when: project_config.project__custom__<flag>` to gate steps — on `task:`
+   steps only. CCI discards a `when:` on a `flow:` step; gate the child steps.
 5. In Python tasks: `self.org_config.username` for CLI, `.access_token` for REST only.
 6. `prepare_rlm_org` has strict ordering — don't add steps out of dependency order.
 
@@ -19,6 +20,8 @@ project's specific configuration.
 - **DO NOT** skip `group:` on tasks or flows — required for `cci task/flow list`
 - **DO NOT** use CCI alias with `sf` CLI (`sf data query --target-org beta` fails)
 - **DO NOT** add steps to `prepare_rlm_org` before their dependencies are deployed
+- **DO NOT** put `when:` on a `flow:` step — CCI silently discards it and the child
+  flow runs unconditionally. `tests/test_decision_table_tasks.py` fails on this
 
 ---
 
@@ -240,7 +243,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(35 steps), which calls sub-flows:
+(34 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -257,27 +260,32 @@ prepare_rlm_org
 ├── 11. prepare_dro
 ├── 12. prepare_tax
 ├── 13. prepare_billing
-├── 14. prepare_analytics
-├── 15. prepare_clm
-├── 16. prepare_rating (delete, insert, activate for rating+rates)
-├── 17. activate_and_deploy_expression_sets
-├── 18. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 19. prepare_procedureplans
-├── 20. prepare_prm
-├── 21. prepare_agents
-├── 22. prepare_constraints
-├── 23. prepare_guidedselling
-├── 24. prepare_revenue_settings
-├── 25. prepare_pricing_discovery
-├── 26. prepare_ramp_builder
-├── 27. prepare_large_stx (when: large_stx=true)
-├── 28. prepare_personas (when: personas=true)
-├── 29. prepare_ux (when: ux=true)
-├── 30. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 31. refresh_all_decision_tables
-├── 32. rebuild_search_index (PCM catalog search index, async)
-└── 33. stamp_git_commit
+├── 14. prepare_collections [child steps gated on collections]
+├── 15. prepare_analytics
+├── 16. prepare_clm
+├── 17. prepare_rating (delete, insert, activate for rating+rates)
+├── 18. activate_and_deploy_expression_sets
+├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 20. prepare_procedureplans
+├── 21. prepare_prm
+├── 22. prepare_agents
+├── 23. prepare_constraints
+├── 24. prepare_guidedselling
+├── 25. prepare_revenue_settings
+├── 26. prepare_pricing_discovery
+├── 27. prepare_large_stx [child steps gated on large_stx]
+├── 28. prepare_personas [child steps gated on personas]
+├── 29. prepare_ux [child steps gated on ux]
+├── 30. prepare_inapp [child steps gated on inapp]
+├── 31. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 32. refresh_all_decision_tables
+├── 33. rebuild_search_index (PCM catalog search index, async)
+└── 34. stamp_git_commit
 ```
+
+`[child steps gated on <flag>]` means the flag turns that sub-flow's work off, but
+the gate lives on the sub-flow's own `task:` steps. The `prepare_rlm_org` step that
+calls it carries no `when:` — CCI would discard one there.
 
 > For the complete flow listing with all steps and `when:` conditions, read
 > `.cursor/skills/cci-orchestration/flows-reference.md`.
@@ -285,6 +293,13 @@ prepare_rlm_org
 ---
 
 ## `when:` Clause Reference
+
+⚠ **`when:` is read on `task:` steps only.** `FlowCoordinator._visit_step` copies the
+guard into the `StepSpec` inside its `if "task" in step_config:` branch; the `if "flow"`
+branch expands the child steps and never reads it. A `when:` on a `flow:` step is
+therefore **discarded**, and the child flow runs unconditionally — silently, with nothing
+logged. To gate a sub-flow, put the guard on each of its child `task:` steps.
+`tests/test_decision_table_tasks.py` rejects any new occurrence.
 
 CCI evaluates `when:` as a Python expression at runtime. Available variables:
 

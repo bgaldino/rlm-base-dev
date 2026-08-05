@@ -5,7 +5,7 @@ feature_flag: docgen
 # approval field inserts are no-ops (de-duplicated automatically).
 patches:
   - type: insert_action
-    after: "CreateContract"
+    after: "CreateRampSchedule"
     actions:
       - "Quote.RLM_Create_Proposal"
       - "Quote.RLM_Submit_for_Approval"

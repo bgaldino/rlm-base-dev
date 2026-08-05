@@ -41,14 +41,16 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object           | Operation | External ID                        | Records |
 |---|------------------|-----------|------------------------------------|---------|
-| 1 | LegalEntity      | Upsert    | `Name`                             | 4       |
+| 1 | LegalEntity      | Upsert    | `Name`                             | 7       |
 | 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
 | 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
 | 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
-| 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
+| 6 | Product2         | Update    | `StockKeepingUnit`                 | 316     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
+
+**Multicurrency regions:** LegalEntity now spans seven currencies — US (USD), Canada (CAD, corrected from USD), EU (EUR), UK (GBP), Australia (AUD), Switzerland (CHF), Japan (JPY) — to back the per-region billing treatments in `qb-billing`. `TaxTreatment` records remain US-only (they are not 1:1 with legal entities, so EU/UK already run without them); add regional tax treatments separately only if regional tax calculation is required.
 
 **Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes). The `TaxTreatment.csv` still carries a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column that does not match the declared `externalId` — match is by `Name` alone.
 
@@ -123,12 +125,12 @@ qb-tax/
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
-├── LegalEntity.csv                      # 4 records
+├── LegalEntity.csv                      # 7 records
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
 ├── TaxTreatment.csv                     # 2 records
 ├── TaxPolicy.csv                        # 2 records
-├── Product2.csv                         # 315 records (Update only)
+├── Product2.csv                         # 316 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
 │
 │  Source CSVs (Pass 2 - Activate)

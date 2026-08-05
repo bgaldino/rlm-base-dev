@@ -8,7 +8,7 @@
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
 > - `.agents/artifacts/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
-> - `docs/salesforce/262/help/articles/` (932-article Help portal mirror)
+> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?
@@ -135,8 +135,8 @@ This will kickoff the process which will take roughly 2-10 minutes.
 :::
 ::: {.column}
 ### Refresh Decision Tables
-In the meantime, navigate back to the Revenue Cloud App Homepage and find the RC Refresh Decision Tables section.
-Click Next twice and then Finish to refresh all of the decision tables in the org.
+In the meantime, navigate back to the Revenue Cloud App Homepage and find the **Decision Table Manager** section.
+It lists every decision table with a freshness verdict. Click **Refresh all shown** — that is the direct replacement for the old refresh-all flow, and it is enabled straight away. (**Refresh selected** stays disabled until you tick rows, and **Refresh stale only** until something is actually stale.) The component then polls until they finish.
 **262 NOTE:** with CSV-Based Decision Tables now GA, you can also upload custom CSV-sourced DTs (max 100K rows per CSV DT, 500 CSV DTs per org). See `feature-index.md` Pricing section.
 ![placeholder][img-PLACEHOLDER-refresh-decision-tables]
 :::

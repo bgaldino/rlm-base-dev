@@ -179,6 +179,12 @@
                 <elementReference>Start_Date</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <field>CurrencyIsoCode</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.CurrencyIsoCode</elementReference>
+            </value>
+        </inputAssignments>
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>

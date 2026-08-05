@@ -736,7 +736,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 "manufacturing RLM_Revenue_Cloud app variant. Defaults to false. "
                 "Set to true only when called from prepare_mfg_ux (step 13 of "
                 "prepare_manufacturing), which runs after all manufacturing metadata has "
-                "been deployed. Must NOT be true when called from prepare_ux (step 30 of "
+                "been deployed. Must NOT be true when called from prepare_ux (step 29 of "
                 "prepare_rlm_org) because SalesAgreement, Order.SalesAgreementId, "
                 "Contract.Create_Sales_Agreement, and the QuoteProposal OmniScript do not "
                 "exist at that point."
@@ -926,7 +926,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # 3. For each resolved source, apply YAML patches and write to output
         assembled = []
         skipped = []
-        # Patch order matches deploy-sequence (approvals before docgen before ramps)
+        # Patch order matches deploy-sequence (approvals before docgen).
         feature_patch_order = [
             ("quantumbit",  "quantumbit"),
             ("quantumbit",  "utils"),
@@ -938,7 +938,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("docgen",      "docgen"),
             ("tso",         "tso"),
             ("constraints", "constraints"),
-            ("ramps",       "ramp_builder"),
             ("large_stx",   "large_stx"),
             ("collections", "collections"),
             ("personas",    "personas"),
@@ -1153,7 +1152,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         insert_before = None
         for i, child in enumerate(list(app_root)):
             tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag not in ("actionOverrides",) and i > 0:
+            if tag != "actionOverrides":
                 insert_before = i
                 break
 
@@ -1231,7 +1230,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # overrides; patches only run for non-TSO, non-manufacturing builds.
                 patches_applied = []
                 if not features.get("tso") and not mfg_variant:
-                    patch_features = ["billing", "payments", "rates", "ramps", "prm_pricing"]
+                    patch_features = ["billing", "payments", "rates", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue
@@ -1546,13 +1545,21 @@ class AssembleAndDeployUX(SFDXBaseTask):
         deploy_status = deploy_result.get("status", "Unknown")
 
         if status != 0 or deploy_status not in ("Succeeded", "SucceededPartial"):
-            errors = deploy_result.get("details", {}).get("componentFailures", [])
+            # Surface CLI-level errors (e.g. MissingPackageDirectoryError) that
+            # occur before a deploy job is created — result will be empty.
+            cli_message = output.get("message", "")
+            cli_name = output.get("name", "")
 
+            errors = deploy_result.get("details", {}).get("componentFailures", [])
 
             err_msgs = [
                 f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
                 for e in errors[:20]
             ]
+
+            if cli_message and not err_msgs:
+                err_msgs = [f"  [{cli_name}] {cli_message}"]
+
             raise CommandException(
                 f"Deployment failed (status={deploy_status}).\n"
                 + "\n".join(err_msgs)

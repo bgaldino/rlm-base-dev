@@ -58,3 +58,5 @@ BNDL-PCM-001,,QuantumBitBundle,01tIY00000253o3YAA,GoldHardwareMaintenance,Type
 BNDL-PCM-002,,QuantumBitBundle,01tIY00000253nkYAA,QuantumBitCollaborationSuite,Type
 BNDL-PCM-003,,QuantumBitBundle,01tIY00000253nKYAQ,APIAccessRequestsFlex,Type
 BNDL-PCM-004,,QuantumBitBundle,01tIY00000253nLYAQ,AdditionalAPIGov,Type
+ECO-000000056,,QuantumBitBundle,01tWt000009CMTBAAA,QuantumBitDatabaseTokenCommitBounded,Type
+ECO-000000057,,QuantumBitBundle,0dSWt000000CMTBAAA,quantumbitdatabasetokencommitbounded,Port

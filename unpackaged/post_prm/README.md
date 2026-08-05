@@ -62,10 +62,15 @@ ownership details.
 
 **Experience (rlm1):**
 
-- 57 routes and 57 views configured
+- 58 routes and 60 views configured
 - Includes record lists, record details, dashboards, opportunities, quotes, accounts, etc.
 - Theme: partnerCentralEnhanced
 - Variation: quoteDetailPRMUserQuoteDetailFlexPage
+
+Site validation rejects the bundle unless Contact has all three standard
+object-scoped pages — `list-003` (`viewContacts`), `detail-003` (`contact`), and
+`relatedlist-003` (`contactRelatedList`). A custom `contact-list` page type does
+not satisfy the List requirement.
 
 **Navigation:**
 

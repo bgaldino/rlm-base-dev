@@ -20,7 +20,7 @@ except ImportError:
 #: All feature flags that gate UX metadata assembly / retrieval.
 UX_KNOWN_FLAGS: List[str] = [
     "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
-    "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
+    "guidedselling", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
     "collections", "personas", "prm_pricing", "manufacturing",
 ]
@@ -82,7 +82,7 @@ def resolve_flexipage_sources(
     Manufacturing standalone content is only included when ``manufacturing_mode=True``.
     This flag is set exclusively by ``prepare_mfg_ux`` (step 13 of
     ``prepare_manufacturing``), which runs after all manufacturing metadata has been
-    deployed. It must NOT be set when running ``prepare_ux`` (step 30 of
+    deployed. It must NOT be set when running ``prepare_ux`` (step 29 of
     ``prepare_rlm_org``), because the SalesAgreement object, Order.SalesAgreementId
     field, and related manufacturing resources do not exist yet at that point.
     """
