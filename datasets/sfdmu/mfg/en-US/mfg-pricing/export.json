@@ -37,7 +37,7 @@
         {
           "query": "SELECT Name, IsDefault, EffectiveFrom, EffectiveTo FROM CostBook",
           "operation": "Upsert",
-          "externalId": "Name;IsDefault",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -55,7 +55,7 @@
         {
           "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
           "operation": "Update",
-          "externalId": "Name;CurrencyIsoCode",
+          "externalId": "Name",
           "excluded": false
         },
         {
