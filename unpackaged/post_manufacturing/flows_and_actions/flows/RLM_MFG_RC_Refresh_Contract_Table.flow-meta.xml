@@ -49,6 +49,7 @@
         <connector>
             <targetReference>refresh_contract_pricing_table</targetReference>
         </connector>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Status</field>

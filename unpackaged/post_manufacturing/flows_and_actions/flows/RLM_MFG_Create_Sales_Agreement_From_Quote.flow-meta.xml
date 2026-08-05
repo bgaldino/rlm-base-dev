@@ -44,6 +44,22 @@
         </connector>
     </assignments>
     <assignments>
+        <name>Refresh_Quote_AccountId_In_Memory</name>
+        <label>Refresh Quote AccountId In Memory</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Quote.QuoteAccountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Quote.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Quote_Line_Items</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Set_new_SA_Product</name>
         <label>Set new SA Product</label>
         <locationX>0</locationX>
@@ -173,7 +189,7 @@
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>productIdList</leftValueReference>
-                <operator>EqualTo</operator>
+                <operator>Contains</operator>
                 <rightValue>
                     <elementReference>loopSAProduct.ProductId</elementReference>
                 </rightValue>
@@ -415,11 +431,11 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Quote_Line_Items</targetReference>
+            <targetReference>Refresh_Quote_AccountId_In_Memory</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>RelatedQuoteId</field>
+            <field>Id</field>
             <operator>EqualTo</operator>
             <value>
                 <elementReference>recordId</elementReference>
@@ -666,7 +682,7 @@
     <variables>
         <name>productIdList</name>
         <dataType>String</dataType>
-        <isCollection>false</isCollection>
+        <isCollection>true</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
     </variables>

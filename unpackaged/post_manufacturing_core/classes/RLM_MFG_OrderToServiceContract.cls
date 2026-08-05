@@ -20,7 +20,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
                    Account.BillingPostalCode, Account.BillingCountry,
                    Account.ShippingStreet, Account.ShippingCity, Account.ShippingState,
                    Account.ShippingPostalCode, Account.ShippingCountry
-            FROM Order WHERE Id = :orderId LIMIT 1
+            FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1
         ];
         if (orders.isEmpty()) {
             throw new RLM_MFG_OrderToServiceContractException('Order not found: ' + orderId);
@@ -39,6 +39,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             FROM QuoteLineItem
             WHERE QuoteId = :ord.QuoteId
               AND RLM_MFG_Product_Name_formula__c LIKE :('%' + SERVICE_CONTRACT_TOKEN + '%')
+            WITH USER_MODE
         ];
         if (parentQLs.isEmpty()) {
             throw new RLM_MFG_OrderToServiceContractException(
@@ -59,6 +60,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
                    RLM_MFG_Product_Name_formula__c
             FROM QuoteLineItem
             WHERE QuoteId = :ord.QuoteId AND ParentQuoteLineItemId IN :parentIds
+            WITH USER_MODE
         ]) {
             if (!childrenByParent.containsKey(child.ParentQuoteLineItemId)) {
                 childrenByParent.put(child.ParentQuoteLineItemId, new List<QuoteLineItem>());
@@ -67,14 +69,18 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         }
 
         // ── Pricebook entries for the parent products (for the contract line item) ─
-        Map<Id, Id> pbeByProduct = new Map<Id, Id>();
+        // A product can have multiple PricebookEntries in one pricebook, one per selling
+        // model, so key by Product2Id + ProductSellingModelId to select the entry that
+        // matches the quote line's selling model rather than letting an arbitrary row win.
+        Map<String, Id> pbeByProductAndModel = new Map<String, Id>();
         if (ord.Pricebook2Id != null && !parentProductIds.isEmpty()) {
             for (PricebookEntry pbe : [
-                SELECT Id, Product2Id
+                SELECT Id, Product2Id, ProductSellingModelId
                 FROM PricebookEntry
                 WHERE Pricebook2Id = :ord.Pricebook2Id AND Product2Id IN :parentProductIds
+                WITH USER_MODE
             ]) {
-                pbeByProduct.put(pbe.Product2Id, pbe.Id);
+                pbeByProductAndModel.put(pbeKey(pbe.Product2Id, pbe.ProductSellingModelId), pbe.Id);
             }
         }
 
@@ -83,6 +89,10 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         Id effContactId = req.contactId != null ? toId(req.contactId, 'contact id') : ord.Quote.ContactId;
 
         // ── Build service contracts (one per parent line) ─────────────────────────
+        // Retain each contract's effective start/end by parent QL so the contract line
+        // item can inherit the same dates instead of recomputing a divergent range.
+        Map<Id, Date> effStartByParent = new Map<Id, Date>();
+        Map<Id, Date> effEndByParent   = new Map<Id, Date>();
         List<ServiceContract> contracts = new List<ServiceContract>();
         for (QuoteLineItem p : parentQLs) {
             String assetName = (p.RLM_MFG_Covered_Asset__r != null && p.RLM_MFG_Covered_Asset__r.Name != null)
@@ -103,6 +113,8 @@ public with sharing class RLM_MFG_OrderToServiceContract {
                           : (p.EndDate != null ? p.EndDate : Date.today().addYears(1));
             sc.StartDate = effStart;
             sc.EndDate   = effEnd;
+            effStartByParent.put(p.Id, effStart);
+            effEndByParent.put(p.Id, effEnd);
 
             if (ord.Account != null) {
                 sc.BillingStreet     = ord.Account.BillingStreet;
@@ -118,7 +130,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             }
             contracts.add(sc);
         }
-        insert contracts;
+        insert as user contracts;
 
         // Map parent QL -> its new service contract (positional, same order as parentQLs)
         Map<Id, Id> contractByParent = new Map<Id, Id>();
@@ -142,7 +154,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             }
         }
         if (!entitlements.isEmpty()) {
-            insert entitlements;
+            insert as user entitlements;
         }
 
         // ── Build one contract line item per parent line ──────────────────────────
@@ -152,16 +164,19 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             // are then derived from it by the platform. If the parent product has no
             // PricebookEntry in the order's pricebook (or the order has no pricebook),
             // fail with a friendly error rather than a raw REQUIRED_FIELD_MISSING on insert.
-            Id pbeId = pbeByProduct.get(p.Product2Id);
+            Id pbeId = pbeByProductAndModel.get(pbeKey(p.Product2Id, p.ProductSellingModelId));
             if (pbeId == null) {
                 throw new RLM_MFG_OrderToServiceContractException(
-                    'No PricebookEntry found for product ' + p.Product2Id + ' in the order pricebook '
-                    + ord.Pricebook2Id + '. A contract line item cannot be created without one.');
+                    'No PricebookEntry found for product ' + p.Product2Id + ' (selling model '
+                    + p.ProductSellingModelId + ') in the order pricebook ' + ord.Pricebook2Id
+                    + '. A contract line item cannot be created without one.');
             }
             ContractLineItem cli = new ContractLineItem();
             cli.ServiceContractId = contractByParent.get(p.Id);
-            cli.StartDate = Date.today();
-            cli.EndDate   = (p.EndDate != null ? p.EndDate : Date.today().addYears(1));
+            // Inherit the parent service contract's effective dates so the line item
+            // cannot diverge from its contract (e.g. an overridden/future contract).
+            cli.StartDate = effStartByParent.get(p.Id);
+            cli.EndDate   = effEndByParent.get(p.Id);
             cli.AssetId = p.RLM_MFG_Covered_Asset__c;
             cli.Quantity = p.Quantity;
             cli.UnitPrice = p.NetUnitPrice;
@@ -169,7 +184,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             contractLines.add(cli);
         }
         if (!contractLines.isEmpty()) {
-            insert contractLines;
+            insert as user contractLines;
         }
 
         List<Result> results = new List<Result>();
@@ -181,6 +196,12 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         r.primaryServiceContractId = contracts[0].Id;
         results.add(r);
         return results;
+    }
+
+    // Composite key for the PricebookEntry lookup: a product may have one entry per
+    // selling model in the same pricebook, so both parts identify the correct entry.
+    private static String pbeKey(Id productId, Id sellingModelId) {
+        return String.valueOf(productId) + ';' + String.valueOf(sellingModelId);
     }
 
     // Validates a String invocable input as an Id, converting a malformed value into a
@@ -212,7 +233,8 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         Entitlement e = new Entitlement();
         e.AccountId = accountId;
         e.ServiceContractId = contractId;
-        e.StartDate = Date.today();
+        // Honour the quoted entitlement dates; fall back to today / +1yr only when null.
+        e.StartDate = (child.StartDate != null ? child.StartDate : Date.today());
         e.EndDate   = (child.EndDate != null ? child.EndDate : Date.today().addYears(1));
         String name = child.RLM_MFG_Product_Name_formula__c;
         if (name != null && name.length() > ENTITLEMENT_NAME_MAX) {

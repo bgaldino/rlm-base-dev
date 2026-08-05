@@ -13,7 +13,7 @@ public with sharing class RLM_MFG_ServiceContractQuote {
         }
 
         // Restrict to root (parent) assets only — child asset IDs are discarded
-        List<Asset> myAssets = [SELECT Id, AccountId FROM Asset WHERE Id IN :myAssetIds AND ParentId = null];
+        List<Asset> myAssets = [SELECT Id, AccountId FROM Asset WHERE Id IN :myAssetIds AND ParentId = null WITH USER_MODE];
         if (myAssets.isEmpty()) {
             return new List<String>();
         }
@@ -24,12 +24,12 @@ public with sharing class RLM_MFG_ServiceContractQuote {
         List<Account> accounts = [
             SELECT Id, Name, BillingStreet, BillingCity, BillingPostalCode, BillingCountry,
                    ShippingStreet, ShippingCity, ShippingPostalCode, ShippingCountry
-            FROM Account WHERE Id = :accountId LIMIT 1
+            FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1
         ];
         Account acct = accounts.isEmpty() ? null : accounts[0];
 
         // Primary contact for the account — used for BillToContactId / ContactId
-        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId WITH USER_MODE LIMIT 1];
         Id contactId = contacts.isEmpty() ? null : contacts[0].Id;
 
         // Validate the two inputs bound directly into SOQL Id filters below, so a
@@ -44,6 +44,7 @@ public with sharing class RLM_MFG_ServiceContractQuote {
             SELECT Id, Quantity, ChildProductId
             FROM ProductRelatedComponent
             WHERE ParentProductId = :productId AND IsComponentRequired = TRUE
+            WITH USER_MODE
         ];
         List<Id> optionIds = new List<Id>();
         for (ProductRelatedComponent prc : options) {
@@ -55,6 +56,7 @@ public with sharing class RLM_MFG_ServiceContractQuote {
             SELECT Id, Product2Id
             FROM PriceBookEntry
             WHERE Product2Id IN :optionIds AND Pricebook2Id = :priceBookId
+            WITH USER_MODE
         ];
         Map<String, String> optionPBEs = new Map<String, String>();
         for (PriceBookEntry pbe : pbes) {
@@ -130,7 +132,9 @@ public with sharing class RLM_MFG_ServiceContractQuote {
                 Map<String, Object> optionFields = new Map<String, Object>();
                 optionFields.put('Product2Id',             prc.ChildProductId);
                 optionFields.put('PricebookEntryId',        optionPBEs.get(prc.ChildProductId));
-                optionFields.put('Quantity',                '1.0');
+                // Preserve the required component's configured quantity; default to 1 when null.
+                Decimal componentQty = (prc.Quantity != null) ? prc.Quantity : 1;
+                optionFields.put('Quantity',                String.valueOf(componentQty));
                 optionFields.put('StartDate',               startDateStr);
                 optionFields.put('EndDate',                 endDateStr);
                 optionFields.put('PeriodBoundary',          'Anniversary');

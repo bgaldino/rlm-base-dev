@@ -39,7 +39,7 @@
         <inputAssignments>
             <field>CurrencyIsoCode</field>
             <value>
-                <stringValue>USD</stringValue>
+                <elementReference>planSourceIdentifierId.CurrencyIsoCode</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>

@@ -3,6 +3,22 @@
     <apiVersion>61.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Reset_Maintenance_Counter</name>
+        <label>Reset Maintenance Counter</label>
+        <locationX>396</locationX>
+        <locationY>944</locationY>
+        <assignmentItems>
+            <assignToReference>MaintenanceCounter</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <numberValue>0.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Assign_Maintenance_Visit_Entitlement</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Assign_Contract_Line</name>
         <label>Assign Contract Line</label>
         <locationX>176</locationX>
@@ -235,7 +251,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Assign_Maintenance_Visit_Entitlement</targetReference>
+                <targetReference>Reset_Maintenance_Counter</targetReference>
             </connector>
             <label>Is Maintenance Visit</label>
         </rules>

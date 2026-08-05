@@ -22,12 +22,12 @@ public with sharing class RLM_MFG_SalesAgreementRLMOrder {
             SELECT Id, Name,
                    BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
                    ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
-            FROM Account WHERE Id = :accountId LIMIT 1
+            FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1
         ];
         Account acct = accounts.isEmpty() ? null : accounts[0];
 
         // Primary contact for the account — used for BillToContactId
-        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId WITH USER_MODE LIMIT 1];
         Id contactId = contacts.isEmpty() ? null : contacts[0].Id;
 
         // ── Order header ──────────────────────────────────────────────────────────
