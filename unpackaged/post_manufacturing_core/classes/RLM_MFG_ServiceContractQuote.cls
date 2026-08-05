@@ -133,8 +133,10 @@ public with sharing class RLM_MFG_ServiceContractQuote {
                 optionFields.put('Product2Id',             prc.ChildProductId);
                 optionFields.put('PricebookEntryId',        optionPBEs.get(prc.ChildProductId));
                 // Preserve the required component's configured quantity; default to 1 when null.
-                Decimal componentQty = (prc.Quantity != null) ? prc.Quantity : 1;
-                optionFields.put('Quantity',                String.valueOf(componentQty));
+                // prc.Quantity is a Double, so build the string directly to avoid a
+                // Double-to-Decimal assignment and keep the existing "N.0" payload convention.
+                String componentQty = (prc.Quantity != null) ? String.valueOf(prc.Quantity) : '1.0';
+                optionFields.put('Quantity',                componentQty);
                 optionFields.put('StartDate',               startDateStr);
                 optionFields.put('EndDate',                 endDateStr);
                 optionFields.put('PeriodBoundary',          'Anniversary');

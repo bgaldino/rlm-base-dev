@@ -88,7 +88,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>false</editable>
+        <editable>true</editable>
         <field>ServiceContract.RLM_MFG_Quote__c</field>
         <readable>true</readable>
     </fieldPermissions>
