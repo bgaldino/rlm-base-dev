@@ -559,6 +559,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_RebuildSearchIndex']`
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
+10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 
 ---
 

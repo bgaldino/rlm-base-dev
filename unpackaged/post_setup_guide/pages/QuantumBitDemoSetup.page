@@ -1,0 +1,636 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0">
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 12px;
+        background: #f3f2f2;
+        font-family: 'Salesforce Sans', Arial, sans-serif;
+        color: #1d1d1d;
+      }
+      .wrapper {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+      /* ── Page title ── */
+      .page-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #032D60;
+        margin: 0 0 4px 0;
+        letter-spacing: 0.01em;
+      }
+      .page-subtitle {
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 14px 0;
+        padding-bottom: 8px;
+        border-bottom: 3px solid #032D60;
+      }
+      /* ── Environment badges ── */
+      .env-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .env-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 100px;
+        padding: 3px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .env-run  { background: #E8F5E9; color: #1B5E20; border: 1px solid #2E7D32; }
+      .env-build{ background: #E3F2FD; color: #0D47A1; border: 1px solid #1565C0; }
+      .env-dot  { width: 7px; height: 7px; border-radius: 50%; }
+      .env-run .env-dot  { background: #2E7D32; }
+      .env-build .env-dot{ background: #1565C0; }
+      /* ── Phase block ── */
+      .phase {
+        margin-bottom: 10px;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1.5px solid #ccc;
+      }
+      .phase-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .phase-badge {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.25);
+        border: 2px solid rgba(255,255,255,0.6);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .phase-label {
+        flex: 1;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        line-height: 1.3;
+      }
+      .phase-env {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        padding: 2px 6px;
+        border-radius: 100px;
+        border: 1px solid rgba(255,255,255,0.4);
+        color: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.12);
+        text-transform: uppercase;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .phase-chevron {
+        color: rgba(255,255,255,0.8);
+        font-size: 11px;
+        transition: transform 0.2s;
+        margin-left: 2px;
+        flex-shrink: 0;
+      }
+      .phase-chevron.open { transform: rotate(90deg); }
+      .phase-1 .phase-header { background: #032D60; border-bottom: 1.5px solid #021d3f; }
+      .phase-2 .phase-header { background: #0B6E4F; border-bottom: 1.5px solid #084f39; }
+      .phase-3 .phase-header { background: #4A235A; border-bottom: 1.5px solid #311745; }
+      .phase-4 .phase-header { background: #1A5276; border-bottom: 1.5px solid #123550; }
+      .phase-5 .phase-header { background: #784212; border-bottom: 1.5px solid #4e2b0c; }
+      .phase-6 .phase-header { background: #1B4F72; border-bottom: 1.5px solid #123550; }
+      .phase-1 { border-color: #032D60; }
+      .phase-2 { border-color: #0B6E4F; }
+      .phase-3 { border-color: #4A235A; }
+      .phase-4 { border-color: #1A5276; }
+      .phase-5 { border-color: #784212; }
+      .phase-6 { border-color: #1B4F72; }
+      /* ── Phase body ── */
+      .phase-body {
+        background: #fff;
+        padding: 12px 14px;
+        display: none;
+      }
+      .phase-body.open { display: block; }
+      /* ── Section headers within a phase ── */
+      .section-head {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #666;
+        margin: 16px 0 8px 0;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #e8e8e8;
+      }
+      .section-head:first-child { margin-top: 0; }
+      /* ── Steps ── */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .step {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .step:last-child { border-bottom: none; padding-bottom: 0; }
+      .step-num {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #e8ecf0;
+        color: #032D60;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2px;
+      }
+      .step-content {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #1d1d1d;
+      }
+      .step-content p { margin: 0 0 6px 0; }
+      .step-content p:last-child { margin-bottom: 0; }
+      /* Sub-steps */
+      .substeps {
+        list-style: none;
+        margin: 6px 0 0 0;
+        padding: 0;
+      }
+      .substeps li {
+        position: relative;
+        padding: 2px 0 2px 14px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: #333;
+      }
+      .substeps li::before {
+        content: '›';
+        position: absolute;
+        left: 0;
+        top: 3px;
+        color: #888;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .substeps .substeps { margin-top: 4px; }
+      .substeps .substeps li::before {
+        content: '–';
+        font-weight: 400;
+        top: 4px;
+      }
+      /* ── UI Callouts ── */
+      .btn {
+        display: inline-block;
+        background: #0176D3;
+        color: #fff !important;
+        border-radius: 3px;
+        padding: 1px 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        margin: 0 2px;
+      }
+      .field {
+        display: inline-block;
+        background: #f0f0f0;
+        color: #222;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 1px 7px;
+        font-size: 12px;
+        font-family: 'Courier New', monospace;
+        margin: 0 2px;
+        white-space: nowrap;
+      }
+      .val {
+        display: inline-block;
+        background: #EBF5EB;
+        color: #1B5E20;
+        border: 1px solid #2E7D32;
+        border-radius: 3px;
+        padding: 1px 7px;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0 2px;
+        white-space: nowrap;
+      }
+      .loc {
+        display: inline-block;
+        background: #F4F0FF;
+        color: #4A235A;
+        border: 1px solid #9B59B6;
+        border-radius: 3px;
+        padding: 1px 7px;
+        font-size: 12px;
+        margin: 0 2px;
+        white-space: nowrap;
+      }
+      /* Terminal command */
+      .cmd {
+        display: block;
+        background: #1e1e1e;
+        color: #7ec8a4;
+        border-radius: 4px;
+        padding: 7px 10px;
+        font-size: 11.5px;
+        font-family: 'Courier New', monospace;
+        margin: 6px 0 4px 0;
+        letter-spacing: 0.02em;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .cmd-inline {
+        display: inline-block;
+        background: #1e1e1e;
+        color: #7ec8a4;
+        border-radius: 3px;
+        padding: 1px 6px;
+        font-size: 11px;
+        font-family: 'Courier New', monospace;
+        margin: 0 2px;
+        white-space: nowrap;
+      }
+      /* Note / tip */
+      .note {
+        display: block;
+        background: #FEF3CD;
+        border: 1px solid #D4880A;
+        border-left: 4px solid #D4880A;
+        border-radius: 3px;
+        padding: 7px 10px;
+        font-size: 12px;
+        color: #4A3000;
+        margin-top: 7px;
+        line-height: 1.5;
+      }
+      /* Info callout (blue) */
+      .info {
+        display: block;
+        background: #E8F0FE;
+        border: 1px solid #1A56D6;
+        border-left: 4px solid #1A56D6;
+        border-radius: 3px;
+        padding: 7px 10px;
+        font-size: 12px;
+        color: #0D2E8C;
+        margin-top: 7px;
+        line-height: 1.5;
+      }
+    </style>
+    <script>
+      function togglePhase(id) {
+        var body = document.getElementById(id);
+        var chev = document.getElementById(id + '-chev');
+        var isOpen = body.classList.contains('open');
+        body.classList.toggle('open', !isOpen);
+        chev.classList.toggle('open', !isOpen);
+      }
+      window.onload = function() {
+        document.querySelectorAll('.phase-body').forEach(function(b){ b.classList.add('open'); });
+        document.querySelectorAll('.phase-chevron').forEach(function(c){ c.classList.add('open'); });
+      };
+    </script>
+  </head>
+  <body>
+    <div class="wrapper">
+      <p class="page-title">Technical Implementation Guide</p>
+      <p class="page-subtitle">Environment &amp; Agent Lifecycle Setup</p>
+      <div class="env-bar">
+        <span class="env-badge env-run"><span class="env-dot"></span>Run Environment — Salesforce &amp; Slack</span>
+        <span class="env-badge env-build"><span class="env-dot"></span>Build Environment — Cursor IDE, Dev Tooling &amp; Scratch Orgs</span>
+      </div>
+      <!-- ══ PHASE 1: Baseline Demo Org Preparation ══ -->
+      <div class="phase phase-1">
+        <div class="phase-header" onclick="togglePhase('p1')">
+          <div class="phase-badge">1</div>
+          <div class="phase-label">Baseline Demo Org Preparation</div>
+          <span class="phase-env">Run Env</span>
+          <div class="phase-chevron" id="p1-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p1">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Initialize core database elements inside the Salesforce environment before connecting external tools.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Refresh Decision Tables + Rebuild Catalog Index</strong></p>
+                <ul class="substeps">
+                  <li>Navigate to the <span class="loc">Decision Table Manager</span> inside your Salesforce org's Revenue Cloud App Homepage </li>
+                  <li>Click <span class="btn">Refresh all Shown</span> to refresh all decision tables</li>
+                  <li>Navigate to the <span class="loc">Catalog Index</span>  section and Click <span class="btn">Build Catalog Index</span> </li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Toggle Q Branch Demo Boost</strong></p>
+                <ul class="substeps">
+                  <li>Open the <span class="loc">App Launcher</span> and search for <span class="val">Q Branch</span>.</li>
+                  <li>Toggle all three feature settings to <span class="val">On</span> and click <span class="btn">Run Demo Boost</span> to authorize the pre-packaged metadata wrappers.</li>
+                  <div class="note" style="margin: 4px 0 4px -16px;">&#9432; This process could take up to 1 hour</div>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 2: Salesforce & Slack Setup ══ -->
+      <div class="phase phase-2">
+        <div class="phase-header" onclick="togglePhase('p2')">
+          <div class="phase-badge">2</div>
+          <div class="phase-label">Salesforce &amp; Slack Setup</div>
+          <span class="phase-env">Run Env</span>
+          <div class="phase-chevron" id="p2-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p2">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Establish an authentic connection between Salesforce core application data and the target Slack workspace.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Initialize Slack Workspace Administration</strong></p>
+                <ul class="substeps">
+                  <li>Access the browser-based <a href="https://demo-zone.tinyspeck.com/" target="_blank" style="color:#0176D3;font-weight:600;">Slack Demo Zone</a> management URL.</li>
+                  <li>Authenticate via the <span class="btn">Sign in as primary owner</span> option in the browser window.</li>
+                  <div class="note" style="margin: 4px 0 4px -16px;">&#9432; Use the browser-based Slack interface for this step — do not use the local desktop app redirect.</div>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Verify Handshake Within Salesforce Setup</strong></p>
+                <ul class="substeps">
+                  <li>In Salesforce Setup, use Quick Find to search for <span class="val">Slack</span> and open <span class="loc">Manage Slack Connection</span>.</li>
+                  <li>Confirm the external target status shows as connected.</li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 3: Agentforce & Slack Setup ══ -->
+      <div class="phase phase-3">
+        <div class="phase-header" onclick="togglePhase('p3')">
+          <div class="phase-badge">3</div>
+          <div class="phase-label">Agentforce &amp; Slack Setup</div>
+          <span class="phase-env">Run Env</span>
+          <div class="phase-chevron" id="p3-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p3">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Expose Agentforce models to conversational channels and configure contextual record tracking.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Configure External Agent Connections</strong></p>
+                <ul class="substeps">
+                  <li>In Salesforce Setup, search for <span class="val">Agentforce Agents</span> and open your target agent record (e.g., <em>Quote Management</em>).</li>
+                  <li>Select the <span class="loc">Connections</span> sub-tab → <span class="btn">Add Connection</span>.</li>
+                  <li>Name the integration <span class="val">Slack</span>, set the connected app picklist to <span class="val">Slack</span>, and save.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Authorize Slackbot Capabilities</strong></p>
+                <ul class="substeps">
+                  <li>In browser Slack <span class="loc">Organization Settings → Salesforce organizations → Agentforce</span>, click <span class="btn">Review</span> → <span class="btn">Allow</span> to approve permission scopes.</li>
+                  <li>In the <span class="loc">Active Agents</span> section, click the action dots on the agent row and select <span class="btn">Add Slackbot Access</span>.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <p><strong>Pin the Agent to the Slack Sidebar</strong></p>
+                <ul class="substeps">
+                  <li>In the Slack app, click the <span class="loc">More Agents</span> menu icon, click <span class="loc">Manage</span>, locate the active agent card, and enable its checkbox.</li>
+                  <li><strong>Star</strong> the conversation window to anchor it permanently to the sidebar toolbar.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <p><strong>Activate Automation Record Channels</strong></p>
+                <ul class="substeps">
+                  <li>In Salesforce Setup, go to <span class="loc">Slack App Setup</span>, mark the configuration step complete, and toggle on <span class="val">Sales Cloud for Slack</span> along with associated feature boxes.</li>
+                  <li>Go to <span class="loc">Permission Sets</span>, find <span class="val">Slack Sales Permissions</span>, and assign it to your administrator user.</li>
+                  <li>Use Quick Find to navigate to <span class="loc">Slack Channels for Records</span>, accept the FedRAMP disclosure, and turn the master feature switch to <span class="val">On</span>.</li>
+                  <li>Click <span class="btn">Add Objects</span> and authorize tracking for: <span class="field">Account</span>, <span class="field">Quote</span>, <span class="field">Asset</span>, <span class="field">Invoice</span>, and <span class="field">Order</span>.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">5</div>
+              <div class="step-content">
+                <p><strong>Execute Conversational Smoke Tests</strong></p>
+                <ul class="substeps">
+                  <li>In Slack, open an active opportunity channel, select the record action path, and choose <span class="btn">Create Channel</span>.</li>
+                  <li>In the new channel, invoke the agent with an @mention and a natural language command — for example:</li>
+                </ul>
+                <div class="cmd">@QuoteManagement create a new quote on this opportunity starting today for 12 months</div>
+                <ul class="substeps" style="margin-top:6px;">
+                  <li>Expand the thread context replies to confirm processing completes cleanly.</li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 4: Data Cloud & Permission Synchronization ══ -->
+      <div class="phase phase-4">
+        <div class="phase-header" onclick="togglePhase('p4')">
+          <div class="phase-badge">4</div>
+          <div class="phase-label">Data Cloud &amp; Permission Synchronization</div>
+          <span class="phase-env">Run Env</span>
+          <div class="phase-chevron" id="p4-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p4">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Provision Data Cloud storage mechanics to prepare for advanced features like the conversational workspace assistant.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Trigger Data Cloud Provisioning</strong></p>
+                <ul class="substeps">
+                  <li>In Salesforce Setup, use Quick Find to locate <span class="val">Data Cloud</span>, open the primary landing panel, and click <span class="btn">Get Started</span>.</li>
+                </ul>
+                <div class="info">&#9201; This backend provisioning process runs <strong>asynchronously</strong> and takes approximately <strong>15 minutes</strong> to fully complete. Proceed to the next step while it runs in the background.</div>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Distribute Admin Tool Permissions</strong></p>
+                <ul class="substeps">
+                  <li>While Data Cloud provisions, navigate to <span class="loc">Permission Sets</span> in Salesforce Setup.</li>
+                  <li>Assign the necessary workspace <span class="val">Admin</span> and runtime system modifier sets to your active user account.</li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 5: Cursor IDE & Local Dev Tooling Configuration ══ -->
+      <div class="phase phase-5">
+        <div class="phase-header" onclick="togglePhase('p5')">
+          <div class="phase-badge">5</div>
+          <div class="phase-label">Cursor IDE &amp; Local Dev Tooling Configuration</div>
+          <span class="phase-env">Build Env</span>
+          <div class="phase-chevron" id="p5-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p5">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Transition into the local development environment to begin building and testing components.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Initialize the Corporate Cursor Plan</strong></p>
+                <ul class="substeps">
+                  <li>Launch <strong>Cursor</strong>. If the interface shows a <em>"Free Account Plan"</em> message, click the bottom-left gear icon → <span class="btn">Manage Cursor Account</span>, log out completely, and sign back in using your <strong>enterprise Salesforce SSO invite link</strong>.</li>
+                  <li>Open the global model settings panel and set the primary language model to <span class="val">Opus</span>.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Mount the Project Repository Directory</strong></p>
+                <ul class="substeps">
+                  <li>Click the directory folder icon → <span class="btn">Open Folder</span>.</li>
+                  <li>Browse to your local code workspace (typically in your user Projects or Documents folder), select the root of the cloned repository, and mount it into the workspace editor.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <p><strong>Verify Local Devbar Connectors &amp; EIP Clearances</strong></p>
+                <ul class="substeps">
+                  <li>Launch the <strong>Devbar</strong> desktop application and navigate to its <span class="loc">Connectors</span> tab.</li>
+                  <li>Check authentication status indicators across all internal data systems.</li>
+                  <li>Scroll to the bottom of the listing, locate the <span class="val">Google Workspace Read-Only Connector</span>, and install the hook.</li>
+                  <li>Log into your enterprise <strong>Identity Management Portal (EIP / IDM)</strong>, find the security policy group labeled <span class="val">Bedrock Claude Code Users</span>, and submit an access request.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <p><strong>Trigger Pre-Flight Terminal Bootstrapping</strong></p>
+                <ul class="substeps">
+                  <li>In the Cursor chat panel, switch from <span class="val">Ask Mode</span> to <span class="val">Agent Mode</span>.</li>
+                  <li>Submit an onboarding command such as:</li>
+                </ul>
+                <div class="cmd">verify my environment is set up correctly</div>
+                <ul class="substeps" style="margin-top:4px;">
+                  <li>The agent will parse system configuration documents, check component values, update CLI resources, and handle shell path initializations automatically in the background.</li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 6: DevHub Handshake & Scratch Org Lifecycle ══ -->
+      <div class="phase phase-6">
+        <div class="phase-header" onclick="togglePhase('p6')">
+          <div class="phase-badge">6</div>
+          <div class="phase-label">DevHub Handshake &amp; Scratch Org Lifecycle</div>
+          <span class="phase-env">Build Env</span>
+          <div class="phase-chevron" id="p6-chev">&#9654;</div>
+        </div>
+        <div class="phase-body" id="p6">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Spin up isolated scratch orgs to safely test metadata package builds before promoting to production.</p>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Prune Expired Workspace Org Links</strong></p>
+                <ul class="substeps">
+                  <li>Open a fresh terminal session in the IDE and check active org configurations:</li>
+                </ul>
+                <div class="cmd">sf org list</div>
+                <ul class="substeps" style="margin-top:4px;">
+                  <li>Clear old connections:</li>
+                </ul>
+                <div class="cmd">sf org logout -o &lt;old_target_alias&gt;</div>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <p><strong>Link the Authorizing DevHub</strong></p>
+                <ul class="substeps">
+                  <li>In the Cursor Agent Chat panel, submit a request to authorize a DevHub instance.</li>
+                  <li>When the platform redirects to an authorization window, enter your developer platform credentials to securely link the local CLI environment.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <p><strong>Verify System Synchronization States</strong></p>
+                <ul class="substeps">
+                  <li>Open a clean terminal and verify environment variables, then run:</li>
+                </ul>
+                <div class="cmd">cci org list</div>
+                <ul class="substeps" style="margin-top:4px;">
+                  <li>Identify the target org from the output, map it, and assign a clear alias — for example <span class="cmd-inline">devOrg</span> — as the default workspace target.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <p><strong>Execute the Automated Scratch Org Build</strong></p>
+                <ul class="substeps">
+                  <li>Clear old toolbars, start a clean Agent session in Cursor, and input the build directive:</li>
+                </ul>
+                <div class="cmd">I want to build a new scratch org. Run the full build.</div>
+                <div class="info" style="margin-top:8px;">&#9432; <strong>What happens during the build:</strong> The agent captures the build request, initializes environment tools, executes target scripts, handles component tracking, spins up fresh org architecture, pushes catalog properties, and runs automated tests — all in the background. The resulting scratch org is isolated and <strong>expires automatically after 30 days</strong>.</div>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+</apex:page>

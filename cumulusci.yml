@@ -1384,6 +1384,13 @@ tasks:
     options:
       path: unpackaged/post_utils
 
+  deploy_post_setup_guide:
+    group: Revenue Lifecycle Management
+    description: Deploy the QuantumBit Demo Setup guide (Visualforce page).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_setup_guide
+
   deploy_post_large_stx:
     group: Revenue Lifecycle Management
     description: Deploy Large Sales Transaction metadata
@@ -3963,6 +3970,14 @@ flows:
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
+      10:
+        # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
+        # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # of prepare_rlm_org) — so the page must exist first. This whole flow runs
+        # at step 7, well before UX assembly.
+        task: deploy_post_setup_guide
+        when: project_config.project__custom__quantumbit
 
   prepare_tso:
     group: Revenue Lifecycle Management

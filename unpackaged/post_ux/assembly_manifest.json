@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-07-27T02:43:29.389371Z",
+  "assembled_at": "2026-08-05T17:23:21.731094Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -282,7 +282,13 @@
       "name": "RLM_Home_Page_Default.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Home_Page_Default.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "quantumbit",
+          "patch_type": "add_component",
+          "description": "add component: flexipage:visualforcePage"
+        }
+      ]
     },
     {
       "type": "flexipage",
