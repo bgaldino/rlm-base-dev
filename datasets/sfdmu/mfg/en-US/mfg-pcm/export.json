@@ -41,9 +41,9 @@
       "externalId": "Code"
     },
     {
-      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductClassificationAttr ORDER BY ProductClassification.Code ASC, AttributeDefinition.Code ASC, AttributeCategory.Code ASC, Name ASC",
+      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription, ProductClassification.Code, AttributeDefinition.Code, AttributeCategory.Code FROM ProductClassificationAttr ORDER BY ProductClassification.Code ASC, AttributeDefinition.Code ASC, AttributeCategory.Code ASC, Name ASC",
       "operation": "Upsert",
-      "externalId": "Name"
+      "externalId": "ProductClassification.Code;AttributeDefinition.Code;AttributeCategory.Code"
     },
     {
       "query": "SELECT BasedOnId, CanRamp, ConfigureDuringSale, Description, DisplayUrl, Family, Id, IsActive, IsAssetizable, IsSoldOnlyWithOtherProds, Name, ProductCode, QuantityUnitOfMeasure, SpecificationType, StockKeepingUnit, Type, UnitOfMeasureId FROM Product2 ORDER BY StockKeepingUnit ASC",

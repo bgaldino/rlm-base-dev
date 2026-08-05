@@ -32,7 +32,7 @@ type FuelCellPowerModule700 : LineItem {
     string gc_certificate = ["NONE", "UL2200", "CSA_C22.2"];
 
     @(defaultValue = "Hydrogen (H2)")
-    string Fuel_Type = ["Hydrogen (H2)", "Methanol", "Natural Gas", "Ethanol", "Amnmonia"];
+    string Fuel_Type = ["Hydrogen (H2)", "Methanol", "Natural Gas", "Ethanol", "Ammonia"];
 
     require(Fuel_Type != "Hydrogen (H2)", naturalgasreformer[NaturalGasReformer] == 1, "Non Hydrogen Fuels require a reformer");
 
@@ -40,13 +40,13 @@ type FuelCellPowerModule700 : LineItem {
 
     rule(Fuel_Type != "Hydrogen (H2)", "disable", "attribute", "gc_certificate");
 
-    constraint( table(Fuel_Type,gc_certificate,{"Hydrogen (H2)","NONE"},{"Methanol","NONE"},{"Natural Gas","NONE"},{"Ethanol","NONE"},{"Amnmonia","NONE"},{"Hydrogen (H2)","UL2200"},{"Hydrogen (H2)","CSA_C22.2"}) , "Only Hydrogen Fuel Types can be certified");
+    constraint( table(Fuel_Type,gc_certificate,{"Hydrogen (H2)","NONE"},{"Methanol","NONE"},{"Natural Gas","NONE"},{"Ethanol","NONE"},{"Ammonia","NONE"},{"Hydrogen (H2)","UL2200"},{"Hydrogen (H2)","CSA_C22.2"}) , "Only Hydrogen Fuel Types can be certified");
 
     constraint(gc_certificate == "UL2200" -> remotemonitoringmodule[RemoteMonitoringModule].LineItemQuantity == 1);
 
     constraint(gc_certificate == "UL2200" || gc_certificate == "CSA_C22.2" -> coolantpreheater[CoolantPreheater].LineItemQuantity == 2);
 
-    require(gc_certificate == "UL2200" && gc_certificate == "CSA_C22.2", startupbattery[StartupBattery] == 2);
+    require(gc_certificate == "UL2200" || gc_certificate == "CSA_C22.2", startupbattery[StartupBattery] == 2);
 
     message(gc_certificate == "UL2200", "The right equipment for the UL2200 is automatically added for you", "Info");
 
