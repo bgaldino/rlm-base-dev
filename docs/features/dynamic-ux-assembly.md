@@ -38,13 +38,19 @@ at step 32).
 ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature testing)
 ```
 
-`prepare_ux` runs only when `ux=true`:
+`prepare_ux` does no work unless `ux=true`. The guard lives on each step *inside*
+`prepare_ux`, not on the `prepare_rlm_org` step that calls it — CumulusCI reads `when:`
+only for `task:` steps and discards it on a `flow:` step:
 
 ```yaml
-# prepare_rlm_org step 29
-29:
-  flow: prepare_ux
-  when: project_config.project__custom__ux
+# prepare_ux
+steps:
+  1:
+    task: assemble_and_deploy_ux
+    when: project_config.project__custom__ux
+  2:
+    task: reorder_app_launcher
+    when: project_config.project__custom__ux
 ```
 
 To skip UX during testing, pass `ux=false` to the flow or set it in your org definition file.

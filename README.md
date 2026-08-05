@@ -951,7 +951,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
 | `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
-| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `prm`, `prm_pricing` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `tso`, `prm`, `prm_pricing` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |

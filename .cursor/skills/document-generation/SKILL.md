@@ -17,11 +17,16 @@ For ODT mapper architecture and deep ODT troubleshooting, use
    metadata updates; reactivate only after changes are complete.
 5. **Generate to verify behavior** — use `docgen_template_generate.py` for
    end-to-end smoke tests after template or mapper updates.
-6. **Keep template and mapper changes in sync** — if token structure changes,
+6. **Keep Context Service input separate from runtime Context API input.** For a
+   Context Service DocumentGenerationProcess, set `DocGenAdditionalInputType`
+   to `ContextService` and pass the root entity ID as the plain
+   `DocGenAdditionalInput` value. The runtime `{"inputData": ...}` shape does
+   not belong in that DGP field.
+7. **Keep template and mapper changes in sync** — if token structure changes,
    confirm Extract/Transform output alignment before reactivation.
-7. **Route ODT deep work to ODT skill** — hierarchy design, mapper structure,
+8. **Route ODT deep work to ODT skill** — hierarchy design, mapper structure,
    filter semantics, and array-depth debugging live in `../odt-authoring/SKILL.md`.
-8. **Dynamic image contract is strict** — `IMG_*:src` must resolve to
+9. **Dynamic image contract is strict** — `IMG_*:src` must resolve to
    ContentDocument (`069`) plus width/height; see `dynamic-images.md`.
 
 
@@ -139,6 +144,23 @@ commands when disambiguation is needed.
   `"keepIntermediate": true` in `RequestText`.
 - `RequestText` must include `templateContentVersionId` (the 068 ID of the
   template binary). Without it, DGP returns `INVALID_INPUT`.
+
+### Context Service DGP Contract
+
+When `DocumentTemplate.TokenMappingMethodType` is `ContextService`, the
+Document Generation engine resolves the definition and mapping from the template.
+Set the DGP fields as follows:
+
+| Field | Required value |
+|-------|----------------|
+| `ReferenceObject` | Root source-record ID |
+| `DocGenAdditionalInputType` | `ContextService` |
+| `DocGenAdditionalInput` | The same root source-record ID as a plain string |
+
+Do not put the Context Service runtime API's `{"inputData": ...}` request body in
+`DocGenAdditionalInput`. For a hierarchical context, map each auto-created child
+`ParentReference` to the child SObject's lookup to its parent (for example,
+`QuoteLineItem.QuoteId`) so repeating template sections hydrate correctly.
 
 ### OmniStudio REST API (Execution & Testing)
 
@@ -546,6 +568,7 @@ python scripts/docgen/docgen_template_build.py --example > layout.json   # gener
 python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
 python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --no-convert  # .docx only
 python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --title "Custom Name"
+python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --dry-run
 ```
 
 ---
