@@ -41,7 +41,7 @@ The utility is implemented as a single Python module (`tasks/rlm_cml.py`) with f
 - **Dry run mode** -- log all operations without executing (import only)
 - **Idempotent imports** -- old ESC records are deleted only after all new ones succeed
 - **Composite key matching for PRC** -- uses ParentProduct.Name, ChildProduct.Name, ChildProductClassification.Name, ProductRelationshipType.Name, and Sequence to portably resolve ProductRelatedComponent records across orgs
-- **Binary blob handling** -- downloads and uploads ConstraintModel blobs via REST API
+- **ConstraintModel blob handling** -- downloads and uploads the blob via REST API. The blob is **plain-text CML**, not a compiled binary (see [CML Source Files](#cml-source-files))
 
 ## Directory Structure
 
@@ -101,7 +101,7 @@ datasets/constraints/
 | `Product2.csv` | Product records referenced by ESC (Id + Name for portable resolution) |
 | `ProductClassification.csv` | Classification records referenced by ESC |
 | `ProductRelatedComponent.csv` | PRC records with traversal fields for composite key resolution |
-| `blobs/ESDV_<Model>_V<N>.ffxblob` | Binary ConstraintModel blob |
+| `blobs/ESDV_<Model>_V<N>.ffxblob` | The ConstraintModel itself — **plain-text CML**, uploaded verbatim |
 
 ## Export Workflow
 
@@ -134,7 +134,7 @@ cci task run export_cml --org <source_org> \
 5. **Product2** -- products referenced by ESC (filtered by `01t` ID prefix)
 6. **ProductClassification** -- classifications referenced by ESC (filtered by `11B` ID prefix)
 7. **ProductRelatedComponent** -- PRC records referenced by ESC (filtered by `0dS` ID prefix), with traversal fields for portable resolution
-8. **ConstraintModel blob** -- binary blob downloaded to `blobs/` subdirectory
+8. **ConstraintModel blob** -- the plain-text CML blob, downloaded to the `blobs/` subdirectory
 
 ### Example
 
@@ -152,11 +152,11 @@ Exporting CML model 'QuantumBitComplete' v1 to datasets/constraints/qb/QuantumBi
 Exporting ExpressionSetDefinitionVersion.csv...
   1 records fetched
 Exporting ExpressionSetConstraintObj.csv...
-  43 records fetched
+  57 records fetched
 Exporting Product2.csv...
-  22 records fetched
+  29 records fetched
 Exporting ProductRelatedComponent.csv...
-  21 records fetched
+  28 records fetched
 Downloaded blob to .../blobs/ESDV_QuantumBitComplete_V1.ffxblob
 Export complete
 ```
@@ -190,7 +190,58 @@ cci task run import_cml --org <target_org> \
 4. **Build polymorphic lookup maps** -- reads exported CSVs to build legacy ID-to-name mappings, queries target org to resolve names to target IDs
 5. **Create ExpressionSetConstraintObj records** -- resolves each polymorphic ReferenceObjectId
 6. **Delete old ESC records** -- only if all new records were created successfully
-7. **Upload ConstraintModel blob** via REST PATCH
+7. **Upload ConstraintModel blob** via REST PATCH -- **only on a clean pass**
+
+> **A failed import (outside `dry_run`) raises and does not upload the blob**, so a partial
+> ESC set can never ship under a model referencing rows that never landed. Step 5 writes
+> records inline, so a failure part-way still leaves the org changed.
+> **Failure modes, what the org is left holding, and how to recover:**
+> `.cursor/skills/constraint-models/SKILL.md` → *Sequence is part of the composite key*.
+
+### ⚠ Importing into an ACTIVE version does not redeploy the model
+
+**`import_cml` uploads the blob but does not redeploy it. If the target
+`ExpressionSetDefinitionVersion` is already `Active`, the new model is stored and the org
+keeps running the OLD one** -- the configurator still fails on whatever you just added,
+with no error from the import to say so.
+
+The version must be **deactivated and reactivated** so the model redeploys:
+
+```bash
+# NOTE: manage_expression_sets does not currently accept --org and runs against the
+# CCI DEFAULT org. Set the default first (`cci org default <cci_alias>`) so all three
+# steps hit the same org. import_cml does accept --org.
+cci task run manage_expression_sets -o operation deactivate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+
+cci task run import_cml --org <target_org> \
+    -o data_dir datasets/constraints/qb/QuantumBitBundle \
+    -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
+
+cci task run manage_expression_sets -o operation activate_versions \
+    -o version_full_names "QuantumBitBundle_V1"
+```
+
+`prepare_constraints` runs the equivalent at steps 11-12 (both naming
+`QuantumBitBundle_V1`), so a full flow run cycles the version. A standalone `import_cml`
+does not.
+
+> **`prepare_constraints` covers this**, which is why `QuantumBitBundle_V1` appears in
+> both step 11 (deactivate) and step 12 (activate) — steps 7-10 upload into a possibly
+> active version, and the 11/12 pair supplies the cycle. **A standalone `import_cml` does
+> not**, so run the deactivate/activate above yourself after one. See
+> `.cursor/skills/constraint-models/SKILL.md`.
+
+**Reading the model back proves the upload, not the deployment.** `import_cml` writes this
+exact `ConstraintModel` field, so a successful read-back only confirms the blob was stored.
+It is still worth doing as a sanity check — just do not mistake it for proof the runtime
+rebuilt. **Only selecting the product in the configurator proves that.**
+
+```bash
+sf data query --use-tooling-api --target-org <sf_alias_or_username> \
+  -q "SELECT ConstraintModel FROM ExpressionSetDefinitionVersion WHERE DeveloperName = 'QuantumBitBundle_V1'"
+# then GET that URL with your access token and grep for the type you added
+```
 
 ### Dry Run
 
@@ -207,7 +258,7 @@ cci task run import_cml --org dev-sb0 \
 
 ```
 Importing CML data from datasets/constraints/qb/QuantumBitComplete (dry_run=False)
-Loaded 43 ESC records
+Loaded 57 ESC records
 Updated ExpressionSet 'QuantumBitComplete' -> 9QLWs000007UVaDOAW
 Resolved ESDV 'QuantumBitComplete_V1' -> 9QBWs000000SPptOAG
 Updated ESDCD -> 9QYWs000000RBVdOAO
@@ -215,7 +266,7 @@ Resolution maps: Product2=158, Classification=16, PRC_composite=37, PRC_name=21
 Found 0 existing ESC records to replace
 Created ExpressionSetConstraintObj -> 1JEWs00000045abOAA
 ...
-43 ESC records created
+57 ESC records created
 Uploaded blob to ExpressionSetDefinitionVersion/9QBWs000000SPptOAG.ConstraintModel
 Import complete
 ```
@@ -269,7 +320,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full QuantumB
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model (imported but left **inactive** — see note below) |
 | 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model |
-| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` (idempotent switch; no-op on a fresh build) |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` + **`QuantumBitBundle_V1` + `Server2_V1`** — Complete/PCM so re-running switches cleanly, Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (all no-ops on a fresh build) |
 | 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** |
 
 > **QuantumBitBundle is the active QuantumBit model; QuantumBitComplete and
@@ -284,14 +335,18 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full QuantumB
 > a platform side-effect of creating an `ExpressionSet` with `UsageType=Constraint` (no
 > ESD metadata is deployed); `import_cml` then resolves that ESDV and uploads the blob +
 > ESC (see [Import Steps](#import-steps)). Step 11 explicitly deactivates
-> `QuantumBitComplete_V1` + `QuantumBitPCM_V1`
-> (a no-op on a fresh build, but it makes re-running on an existing org idempotent —
+> `QuantumBitComplete_V1`, `QuantumBitPCM_V1`, **`QuantumBitBundle_V1` and `Server2_V1`**
+> (all no-ops on a fresh build, but they make re-running on an existing org idempotent —
 > `manage_expression_sets` only toggles the versions it is given), and step 12 then
 > sets `ExpressionSetVersion.IsActive=true` only for `Server2_V1` + `QuantumBitBundle_V1`.
+> Bundle appears in **both** steps deliberately: steps 7-10 upload into a version that may
+> already be active, which stores the blob without redeploying the runtime model, so
+> without the step-11 deactivation step 12 would be a no-op and the org would keep running
+> the old model.
 >
 > **Switching the active QuantumBit model** (e.g. back to PCM for comparison) —
 > `manage_expression_sets` extends `BaseTask`, so it has **no `--org` flag**; it
-> targets the **default** CCI org. Set the default org first (`cci org default <alias>`),
+> targets the **default** CCI org. Set the default org first (`cci org default <cci_alias>`),
 > then:
 > ```bash
 > cci task run manage_expression_sets -o operation deactivate_versions -o version_full_names QuantumBitBundle_V1
@@ -340,14 +395,41 @@ cci flow run import_mfg_cml --org <org>
 
 ### Current Models
 
-| Model | Family | ESC Records | Product2 | PRC | Blob |
-|-------|--------|------------|----------|-----|------|
-| QuantumBitComplete | qb | 55 (28 Type + 27 Port) | 28 (Type) | 27 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
-| Server2 | qb | 81 | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
-| QuantumBitPCM | qb | 12 | 12 (Type) | 0 | ESDV_QuantumBitPCM_V1.ffxblob |
-| QuantumBitBundle | qb | 59 (32 Type + 27 Port) | 32 (Type) | 27 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
-| GeneratorSet | mfg | 467 | 235 (Type) | 231 (Port) | ESDV_GeneratorSet_V1.ffxblob |
-| Fuel_Cell | mfg | 29 | 15 (Type) | 14 (Port) | ESDV_Fuel_Cell_V1.ffxblob |
+| Model | ESC Records | Product2 | PRC | Blob |
+|-------|------------|----------|-----|------|
+| QuantumBitComplete | 57 (29 Type + 28 Port) | 29 (Type) | 28 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
+| Server2 | 81 (41 Type + 40 Port) | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
+| QuantumBitPCM | 12 | 12 (Type) | 0 (Port) | ESDV_QuantumBitPCM_V1.ffxblob |
+| QuantumBitBundle | 61 (33 Type + 28 Port) | 33 (Type) | 28 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
+| GeneratorSet | 467 (236 Type + 231 Port) | 235 (Type) | 231 (Port) | ESDV_GeneratorSet_V1.ffxblob |
+| Fuel_Cell | 29 (15 Type + 14 Port) | 15 (Type) | 14 (Port) | ESDV_Fuel_Cell_V1.ffxblob |
+
+> **These counts are computed, not curated.** Regenerate after changing any constraint
+> data plan — nothing validates them automatically
+> (`scripts/ai/check_plan_readme_consistency.py` covers SFDMU plans, not
+> `datasets/constraints/`):
+>
+> ```bash
+> for M in QuantumBitComplete Server2 QuantumBitPCM QuantumBitBundle; do
+>   D=datasets/constraints/qb/$M
+>   printf '%-20s ESC=%-3s Type=%-3s Port=%-3s Product2=%-3s PRC=%s\n' "$M" \
+>     $(( $(wc -l < "$D/ExpressionSetConstraintObj.csv") - 1 )) \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Type$') \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Port$') \
+>     $(( $(wc -l < "$D/Product2.csv") - 1 )) \
+>     $(( $(wc -l < "$D/ProductRelatedComponent.csv") - 1 ))
+> done
+> # Manufacturing models (added by #284):
+> for M in genSet fuelCell; do
+>   D=datasets/constraints/mfg/$M
+>   printf '%-20s ESC=%-3s Type=%-3s Port=%-3s Product2=%-3s PRC=%s\n' "$M" \
+>     $(( $(wc -l < "$D/ExpressionSetConstraintObj.csv") - 1 )) \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Type$') \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Port$') \
+>     $(( $(wc -l < "$D/Product2.csv") - 1 )) \
+>     $(( $(wc -l < "$D/ProductRelatedComponent.csv") - 1 ))
+> done
+> ```
 
 ### Source Orgs
 
@@ -430,15 +512,19 @@ recommend Token Commit Flat), which is irreconcilable with the bundle.
 The data plan resolves entirely against the `qb-pcm` catalog, so:
 
 ```bash
-cci task run import_cml --org <alias> \
+cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
 ```
 
-To edit the model: change `scripts/cml/QuantumBitBundle.cml`, copy it over
-`datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob`
-(the blob **is** the plain-text CML), deactivate the version, re-import, then
-re-activate (see the [switching note](#prepare_constraints-flow) above).
+To edit the model: change
+`datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob` —
+the blob **is** the plain-text CML and is the artifact that ships — then `cp` it over
+the sibling `scripts/cml/QuantumBitBundle.cml` to keep the reference copy in sync.
+Deactivate the version, re-import, then re-activate (see the
+[switching note](#prepare_constraints-flow) above). Editing only the `.cml` changes
+nothing in any org, and copying the `.cml` over the blob would overwrite the shipped
+artifact from a reference copy.
 
 ### Validating the combined model (headless)
 
@@ -586,7 +672,21 @@ The CML constraint model source files are located in `scripts/cml/`:
 | `GeneratorSet258.cml` | mfg | Generator Set 258 constraint model (source for `GeneratorSet_V1` blob) |
 | `GeneratorSet256.cml` | mfg | Generator Set 256 constraint model (prior release reference) |
 
-These `.cml` files define the constraint model types, relations, attributes, and rules. They are compiled into binary blobs and uploaded to `ExpressionSetDefinitionVersion.ConstraintModel` via the import task.
+These `.cml` files define the constraint model types, relations, attributes, and rules.
+
+> **⚠ The `.cml` files are REFERENCE COPIES. The `.ffxblob` is the artifact that ships.**
+>
+> `blobs/ESDV_<Model>_V<n>.ffxblob` is **plain text — it is the CML source itself**, not a
+> compiled binary, and `import_cml` uploads it verbatim to
+> `ExpressionSetDefinitionVersion.ConstraintModel`. There is no compile step. `import_cml`
+> never reads a `.cml` file; only `validate_cml` does, via its `cml_dir` option.
+>
+> **To change a constraint model, edit the `.ffxblob`** and keep the sibling
+> `scripts/cml/<Model>.cml` in sync (they are maintained byte-identical, so a `cp` from the
+> blob is the safe way to sync). Editing only the `.cml` changes nothing in any org.
+>
+> Note `QuantumBitPCM` has a blob with **no** reference `.cml`, which is why the blob — not
+> the `.cml` set — is the authoritative inventory of shipped models.
 
 > **Note:** There is no standalone `.cml` source file for `Fuel_Cell`. The `ESDV_Fuel_Cell_V1.ffxblob` blob in `datasets/constraints/mfg/fuelCell/blobs/` was extracted directly from the source org via `export_cml_fuelCell`.
 

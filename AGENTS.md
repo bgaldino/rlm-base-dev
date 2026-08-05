@@ -40,15 +40,19 @@ datasets/tooling/      # Tooling API metadata exports
 # Runtime-only output dirs (created by extract_* tasks; not tracked):
 #   datasets/bre/        — Business Rule Engine exports (extract_bre)
 #   datasets/dx/         — DX-format metadata snapshots (extract_dx_*)
-scripts/apex/          # Apex activation/deletion scripts
+scripts/apex/          # Apex activation/deletion/validation scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
 scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
 scripts/expression_sets/ # Standalone Expression Set lifecycle toolkit (inspect/trace/diff/export + guarded mutators; sf-CLI transport, no CCI). See its README.md
 scripts/soql/          # Reusable SOQL query files
 scripts/build_harness/ # Build harness runner and TUI
+scripts/*.py           # Top-level utilities: dataset validation/generation and demo
+                       #   drivers (validate_sfdmu_v5_datasets, expand_currency_*,
+                       #   qb_usage, build_quote_to_asset, post_process_extraction)
 tasks/                 # Custom Python CCI task classes
-tests/                 # Shell-based integration test scripts
+tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
+                       #   no org needed), plus two shell integration scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
@@ -171,6 +175,7 @@ cci flow run capture_ux_drift --org dev-sb0                          # retrieve 
 cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
 cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
 cci task run validate_setup                                          # no org needed
+cci task run check_decision_table_freshness --org beta               # readiness: is any lookup stale? (-o param1 strict to fail the build)
 python scripts/validate_sfdmu_v5_datasets.py
 python scripts/ai/generate_cci_reference.py                         # after cumulusci.yml edits
 ```
@@ -225,10 +230,21 @@ indexes, and more.
 
 ## Responding to Automated PR Reviews
 
+> **How review is *conducted* — what to look for, the severity rubric, the defect classes
+> this repo actually produces, and push discipline — lives in [`REVIEW.md`](REVIEW.md) at
+> the repo root.** It is read automatically alongside this file, by Claude and by Copilot.
+> This section covers only the *protocol*: what to do with a review comment once it exists.
+
 Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
 similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
 comment is handled to completion, and **every review round ends with zero unresolved
 threads.**
+
+**Batch fixes into one push per review round.** Every push to an open PR triggers a fresh
+automated review; re-reviews are not incremental (a hosted reviewer may repeat comments
+already dismissed or resolved), and a push mid-review lands against a superseded commit,
+spending a whole round on findings that no longer apply. Fix everything from a round,
+verify locally, then push once. See `REVIEW.md` → *Push discipline*.
 
 **Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
 Code) automates the mechanical steps so a round can't be left half-finished:
@@ -281,13 +297,17 @@ that topic.
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
+| Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
+| Refresh/diagnose/verify **decision tables**; wire an automatic refresh at the right moment; why a lookup is stale | `.cursor/skills/decision-tables/SKILL.md` |
+| Find, claim, or close a durable **todo** across workstations and agents (`/rlm-todos`) | `.cursor/skills/todo-tracker/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
+| Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
@@ -323,12 +343,15 @@ Read the sub-file only when you need that specific detail:
 | `repo-integration/dependency-ordering.md` | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map |
 | `robot-testing/patterns.md` | Robot Testing | Shadow DOM code, keyword reference, test authoring |
 | `robot-testing/setup-ui-shadow-dom.md` | Robot Testing | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
+| `audit-review/external-review-briefing.md` | Audit Review | Commissioning a review from another agent/model: local-ref framing, the do-not-re-report list, per-feature severity, adjudicating two reviewers, artifact naming that keeps their reports distinct |
 | `repo-integration/ux-assembly-retrieve.md` | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow |
 | `cci-orchestration/custom-task-authoring.md` | CCI Orchestration | Python task class patterns and examples |
 | `cci-orchestration/tasks-reference.md` | CCI Orchestration | Auto-generated task listing (regenerate after edits) |
 | `cci-orchestration/flows-reference.md` | CCI Orchestration | Auto-generated flow listing |
 | `cci-orchestration/feature-flags.md` | CCI Orchestration | Auto-generated feature flag index |
 | `revenue-cloud-data-model/domains/*.md` | Data Model | Per-domain object/field/relationship details |
+| `usage-consumption/building-usage-assets.md` | Usage & Consumption | Backdated Quote→Order→Asset chains, live v67.0 endpoint contracts (and which are gone), selling-model field rules, commitment/Pack binding |
+| `usage-consumption/verification.md` | Usage & Consumption | The three verification layers, the 18 offline invariants, how to add one, reading a suspicious result |
 | `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
 | `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
 | `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |
@@ -474,8 +497,14 @@ This repository provides multiple entry points for different AI tools:
 | `AGENTS.md` | Any agent | Canonical source of truth (this file) |
 | `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
 | `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
+| `REVIEW.md` | Any agent + Copilot | **How pull requests get reviewed** — severity rubric, what to look for, this repo's recurring defect classes, push discipline. Distinct content, not a duplicate of this file. |
 | `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
 
 `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
-same content — edit `AGENTS.md` only. The `.agents/` tree is a separate routing
-and context layer that points back to `AGENTS.md` and never overrides it.
+same content — edit `AGENTS.md` only. `REVIEW.md` is a **separate** document with its
+own content: this file governs *what the code must do*, `REVIEW.md` governs *how review
+is conducted*. They overlap on three points by design — verifying a finding, sweeping a
+class, and push discipline — where this file carries the short operational form and
+`REVIEW.md` carries the reasoning. Keep those three in sync when either changes, and do
+not add duplication beyond them. The `.agents/` tree is a separate routing and context
+layer that points back to `AGENTS.md` and never overrides it.

@@ -84,7 +84,7 @@ For the full scenario context — customer accounts, partner channel, multi-LE s
 | Product Classifications | 18 classifications — Server, Memory, CPU, NIC, Storage, API Type, Software, Database, Subscription, Bundles, Services |
 | Top-level bundles | `QB-COMPLETE` (Software flagship) · `QB-QRack-750` (Hardware with nested groups) · `QB-BDL-R750` (Server) · `QB-BDL-STND` (Starter) · `QB-BDL-SRVC` (Pro Services) |
 | Component groups | 27 groups, including nested (Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking) |
-| Constraint Rules | **QuantumBitBundle CML** (59 ESC, 32 software products; QuantumBitComplete bundle + QuantumBitPCM cart rules) + **Server2 CML** (81 ESC, 41 hardware products) — active on default. QuantumBitComplete (55 ESC) and QuantumBitPCM (12 ESC) imported but inactive. |
+| Constraint Rules | **QuantumBitBundle CML** (61 ESC, 33 software products; QuantumBitComplete bundle + QuantumBitPCM cart rules) + **Server2 CML** (81 ESC, 41 hardware products) — active on default. QuantumBitComplete (57 ESC) and QuantumBitPCM (12 ESC) imported but inactive. |
 | Attributes | 39 Attribute Definitions, 17 Product Attribute Definitions, 87 Picklist Values |
 | Sample products | 162 commercial products, 5 bundles |
 

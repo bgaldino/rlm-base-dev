@@ -14,6 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "docgen"))
 
 from _soql import soql_escape
+from docgen_template_generate import build_dgp_body
 
 
 # ─── soql_escape ────────────────────────────────────────────────────────────
@@ -42,6 +43,46 @@ class TestSoqlEscape:
 
     def test_salesforce_id(self):
         assert soql_escape("0jIO40000004VGZMA2") == "0jIO40000004VGZMA2"
+
+
+# ─── docgen_template_generate — DGP payload contract ───────────────────────
+
+class TestDocumentGenerationPayload:
+    RECORD_ID = "0Q0000000000001AAA"
+    TEMPLATE_ID = "2dt000000000001AAA"
+    CONTENT_VERSION_ID = "068000000000001AAA"
+
+    def test_context_service_uses_plain_parent_entity_id(self):
+        body = build_dgp_body(
+            self.RECORD_ID,
+            self.TEMPLATE_ID,
+            title='A "quoted" proposal',
+            mapping_method="ContextService",
+            template_name="Proposal",
+            template_content_version_id=self.CONTENT_VERSION_ID,
+        )
+
+        assert body["DocGenAdditionalInputType"] == "ContextService"
+        assert body["DocGenAdditionalInput"] == self.RECORD_ID
+        assert "DataRaptorInput" not in body
+        assert json.loads(body["RequestText"]) == {
+            "keepIntermediate": True,
+            "title": 'A "quoted" proposal',
+            "templateContentVersionId": self.CONTENT_VERSION_ID,
+        }
+
+    def test_odt_uses_dataraptor_input_not_context_service_fields(self):
+        body = build_dgp_body(
+            self.RECORD_ID,
+            self.TEMPLATE_ID,
+            generate_only=True,
+            mapping_method="OmniDataTransform",
+        )
+
+        assert body["Type"] == "Generate"
+        assert json.loads(body["DataRaptorInput"]) == {"Id": self.RECORD_ID}
+        assert "DocGenAdditionalInputType" not in body
+        assert "DocGenAdditionalInput" not in body
 
 
 # ─── docgen_inspect_hierarchy — pure functions ──────────────────────────────

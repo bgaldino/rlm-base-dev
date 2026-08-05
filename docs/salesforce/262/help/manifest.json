@@ -2131,26 +2131,29 @@
     {
       "article_id": "ind.collections_customize_omniscript_for_direct_debit.htm",
       "title": "Customize the Prebuilt Omniscript for Direct Debit Request",
-      "status": "error",
+      "status": "captured",
       "area": "collections",
       "parent_article": "ind.collections_configure_direct_debit_setup.htm",
-      "error": "no H1 found (article may be 404 or unrendered)"
+      "body_length": 1184,
+      "file": "articles/ind.collections_customize_omniscript_for_direct_debit.htm.md"
     },
     {
       "article_id": "ind.collections_customize_page_check_compliance.htm",
       "title": "Customize Lightning Pages to View Compliance Check Information",
-      "status": "error",
+      "status": "captured",
       "area": "collections",
       "parent_article": "ind.collections_compliance_setup.htm",
-      "error": "no H1 found (article may be 404 or unrendered)"
+      "body_length": 1193,
+      "file": "articles/ind.collections_customize_page_check_compliance.htm.md"
     },
     {
       "article_id": "ind.collections_customize_page_hierarchical_view.htm",
-      "title": "Customize Lightning Pages to View Collection Plans and Related...",
-      "status": "error",
+      "title": "Customize Lightning Pages to View Collection Plans and Related Records in a Hierarchical View",
+      "status": "captured",
       "area": "collections",
       "parent_article": "ind.collections_setup.htm",
-      "error": "no H1 found (article may be 404 or unrendered)"
+      "body_length": 1513,
+      "file": "articles/ind.collections_customize_page_hierarchical_view.htm.md"
     },
     {
       "article_id": "ind.collections_data_model.htm",
@@ -7651,10 +7654,10 @@
   ],
   "stats": {
     "discovered": 935,
-    "captured": 932,
+    "captured": 935,
     "pending": 0,
-    "errored": 3,
-    "total_captured_body_chars": 2170948
+    "errored": 0,
+    "total_captured_body_chars": 2174838
   },
   "todo": [
     "Walk remaining child articles from each captured parent to discover sub-article IDs (Turn On Email Delivery, Method 2 milestone creation, etc.).",
@@ -7662,7 +7665,7 @@
     "Discover and capture: Generate Invoices (ind.billing_invoice_run.htm?), Create Billing Profiles, Manage Debit Memos, Manage Credit Memos.",
     "Formalize this snapshot workflow as a CCI task once the manual pass settles the patterns."
   ],
-  "last_updated": "2026-06-21T22:53:38Z",
+  "last_updated": "2026-08-04T18:47:37Z",
   "root_article_id": "ind.collections.htm",
   "article_id_prefix": "ind.collections",
   "areas": [
@@ -7821,13 +7824,13 @@
       "root_article_id": "ind.collections.htm",
       "article_id_prefix": "ind.collections",
       "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262",
-      "last_updated": "2026-06-21T22:53:38Z",
+      "last_updated": "2026-08-04T18:47:37Z",
       "stats": {
         "discovered": 97,
-        "captured": 94,
+        "captured": 97,
         "pending": 0,
-        "errored": 3,
-        "total_captured_body_chars": 174790
+        "errored": 0,
+        "total_captured_body_chars": 178680
       },
       "snapshot_started": "2026-06-21"
     }

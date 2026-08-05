@@ -317,6 +317,124 @@ def test_traversal_child_field_without_child_object_errors():
 
 
 # ----------------------------------------------------------------------
+# Tests — hierarchy hydration mappings
+# ----------------------------------------------------------------------
+
+def _child_sobject_plan():
+    return {
+        "create": True,
+        "developerName": "TestDocGenContext",
+        "label": "Test DocGen Context",
+        "contextNodeDefinitions": [
+            {"name": "Quote"},
+            {"name": "Line", "parentNodeName": "Quote"},
+        ],
+        "mappingRules": [
+            {
+                "mappingName": "QuoteMapping",
+                "contextNode": "Line",
+                "contextAttribute": "ProductName",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "Name",
+            },
+            {
+                "mappingName": "QuoteMapping",
+                "contextNode": "Line",
+                "contextAttribute": "ParentReference",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "QuoteId",
+            },
+        ],
+    }
+
+
+def test_sobject_mapped_child_requires_parent_reference():
+    p = _child_sobject_plan()
+    p["mappingRules"] = p["mappingRules"][:1]
+    r = _validate(p)
+    check(
+        "SObject-mapped child without ParentReference errors",
+        _has(_errors(r), "must map its auto-created ParentReference"),
+    )
+
+
+def test_sobject_mapped_child_parent_reference_passes():
+    r = _validate(_child_sobject_plan())
+    check(
+        "SObject-mapped child with ParentReference mapping validates",
+        not _has(_errors(r), "ParentReference"),
+    )
+
+
+def test_second_mapping_group_needs_its_own_parent_reference():
+    """One group's ParentReference must not vouch for a sibling group.
+
+    The translator applies rules per (mappingName, nodeId, sObject), so a
+    second mapping over the same child node hydrates independently.
+    """
+    p = _child_sobject_plan()
+    p["mappingRules"].append({
+        "mappingName": "SecondMapping",
+        "contextNode": "Line",
+        "contextAttribute": "ProductCode",
+        "mappingType": "SOBJECT",
+        "sObject": "QuoteLineItem",
+        "sObjectField": "ProductCode",
+    })
+    r = _validate(p)
+    check(
+        "second mapping over the same child node needs its own ParentReference",
+        _has(_errors(r), "mapping 'SecondMapping'"),
+    )
+
+
+def test_second_sobject_group_needs_its_own_parent_reference():
+    p = _child_sobject_plan()
+    p["mappingRules"].append({
+        "mappingName": "QuoteMapping",
+        "contextNode": "Line",
+        "contextAttribute": "AdjustmentAmount",
+        "mappingType": "SOBJECT",
+        "sObject": "QuoteLineItemAdjustment",
+        "sObjectField": "Amount",
+    })
+    r = _validate(p)
+    check(
+        "second sObject on the same child node needs its own ParentReference",
+        _has(_errors(r), "sObject 'QuoteLineItemAdjustment'"),
+    )
+
+
+def test_each_mapping_group_with_parent_reference_passes():
+    p = _child_sobject_plan()
+    p["mappingRules"].extend([
+        {
+            "mappingName": "SecondMapping",
+            "contextNode": "Line",
+            "contextAttribute": "ProductCode",
+            "mappingType": "SOBJECT",
+            "sObject": "QuoteLineItem",
+            "sObjectField": "ProductCode",
+        },
+        {
+            "mappingName": "SecondMapping",
+            "contextNode": "Line",
+            "contextAttribute": "ParentReference",
+            "mappingType": "SOBJECT",
+            "sObject": "QuoteLineItem",
+            "sObjectField": "QuoteId",
+        },
+    ])
+    r = _validate(p)
+    check(
+        "every mapping group carrying its own ParentReference validates",
+        not _has(_errors(r), "ParentReference"),
+    )
+
+
+# ----------------------------------------------------------------------
 
 def main():
     tests = [v for k, v in sorted(globals().items())

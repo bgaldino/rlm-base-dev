@@ -71,6 +71,70 @@ CARDINALITY_RE = re.compile(r"\[\s*(\d+)\s*(?:\.\.\s*(\d+))?\s*\]")
 HEADER_DECL_RE = re.compile(r"^\s*(define|property|extern)\b")
 
 # ---------------------------------------------------------------------------
+# ESC import failure reporting
+# ---------------------------------------------------------------------------
+#: Unresolved tags listed inline in the failure message before it truncates and
+#: defers the rest to a separate log line.
+MAX_INLINE_UNRESOLVED_TAGS = 10
+
+
+def describe_esc_import_failure(
+    import_failed: bool,
+    unresolved_tags: List[str],
+    esc_total: int,
+    created_count: int,
+) -> Tuple[str, Optional[List[str]]]:
+    """Explain why an ESC import failed, for the caller to raise on.
+
+    ``ImportCML`` creates ESC records inline as it walks the list, so a failure
+    part-way leaves the org holding some new rows plus the entire previous
+    generation. There are two distinct ways to get there and they used to be
+    reported very differently:
+
+    * a reference that will not resolve -- raised, but only after the resolved
+      rows had already been written; and
+    * ``create_record()`` returning ``None`` while every reference resolved --
+      which raised nothing at all, uploaded the blob anyway, logged
+      "Import complete" and returned success over a partial ESC set.
+
+    Both now converge here. Returns ``("", None)`` when the import succeeded, so
+    the caller can treat a truthy detail as "fail and do not upload the blob".
+
+    The second element is the full sorted tag list when it overflows
+    ``MAX_INLINE_UNRESOLVED_TAGS`` and should be logged separately, else ``None``.
+    """
+    if not import_failed:
+        return "", None
+
+    if unresolved_tags:
+        unique = sorted(set(unresolved_tags))
+        overflow = unique if len(unique) > MAX_INLINE_UNRESOLVED_TAGS else None
+        if overflow:
+            inline = (
+                ", ".join(unique[:MAX_INLINE_UNRESOLVED_TAGS])
+                + f" … and {len(unique) - MAX_INLINE_UNRESOLVED_TAGS} more (see log above)"
+            )
+        else:
+            inline = ", ".join(unique)
+        return (
+            f"{len(unique)} ESC association(s) could not be resolved: {inline}. "
+            f"This usually means the product catalog (qb-pcm) has not been loaded or "
+            f"contains product names that don't match the constraint data plan. "
+            f"Reload qb-pcm data and retry.",
+            overflow,
+        )
+
+    # Every reference resolved, so this is an API/validation/limit failure.
+    return (
+        f"{esc_total - created_count} of {esc_total} ESC record(s) failed to be created "
+        f"(see the 'Failed to create ExpressionSetConstraintObj' errors above). Every "
+        f"reference resolved, so this is an API/validation/limit failure rather than a "
+        f"data-matching problem.",
+        None,
+    )
+
+
+# ---------------------------------------------------------------------------
 # CML annotation dictionaries
 # ---------------------------------------------------------------------------
 SUPPORTED_ANNOTATIONS = {
@@ -684,24 +748,48 @@ class ImportCML(CMLBaseTask):
 
         self.logger.info(f"{new_count} ESC records {'would be ' if dry_run else ''}created")
 
-        if unresolved_tags:
-            unique_tags = sorted(set(unresolved_tags))
-            MAX_INLINE = 10
-            if len(unique_tags) > MAX_INLINE:
-                self.logger.error("Full unresolved tag list: %s", ", ".join(unique_tags))
-                inline = ", ".join(unique_tags[:MAX_INLINE]) + f" … and {len(unique_tags) - MAX_INLINE} more (see log above)"
-            else:
-                inline = ", ".join(unique_tags)
-            msg = (
-                f"{len(unique_tags)} ESC association(s) could not be resolved: {inline}. "
-                f"This usually means the product catalog (qb-pcm) has not been loaded or "
-                f"contains product names that don't match the constraint data plan. "
-                f"Reload qb-pcm data and retry."
-            )
-            if dry_run:
-                self.logger.error(msg)
-            else:
-                raise CumulusCIFailure(msg)
+        self._finalize_esc_import(
+            import_failed=import_failed,
+            unresolved_tags=unresolved_tags,
+            esc_total=len(esc_list),
+            created_count=new_count,
+            existing_esc_ids=existing_esc_ids,
+            dry_run=dry_run,
+            esdv=esdv,
+            devname=devname,
+            blob_dir=blob_dir,
+            esdv_id=esdv_id,
+        )
+
+    def _finalize_esc_import(
+        self,
+        *,
+        import_failed: bool,
+        unresolved_tags: List[str],
+        esc_total: int,
+        created_count: int,
+        existing_esc_ids: List[str],
+        dry_run: bool,
+        esdv: dict,
+        devname: str,
+        blob_dir: str,
+        esdv_id: str,
+    ) -> None:
+        """Steps 6-7: delete the old ESC rows, then upload the blob -- or fail.
+
+        Split out of ``_run_task`` so the safety behaviour is directly testable:
+        that a failed import raises, deletes nothing, and above all does NOT
+        upload the blob. Testing only the message formatter would still pass if
+        this ordering regressed, which is the whole defect this guards.
+        """
+        # Diagnose the failure, but do NOT raise yet -- both failure modes must reach
+        # step 6 so the operator is always told the org was left holding a mix. The
+        # raise happens after, before the blob upload.
+        failure_detail, overflow_tags = describe_esc_import_failure(
+            import_failed, unresolved_tags, esc_total, created_count
+        )
+        if overflow_tags:
+            self.logger.error("Full unresolved tag list: %s", ", ".join(overflow_tags))
 
         # Step 6: Delete old ESC records
         if not import_failed and not dry_run:
@@ -713,6 +801,27 @@ class ImportCML(CMLBaseTask):
             self.logger.warning(
                 "Import had errors -- skipping deletion of old ESC records. "
                 "Target org may contain a mix of old and new constraints."
+            )
+
+        # Fail before uploading the blob. Uploading it on a partial ESC set leaves the
+        # model referencing tags whose rows never landed, and the caller cannot tell.
+        # Recovery is a plain re-run: the existing-ESC snapshot is retaken at the top of
+        # every run (step 5), so a pass that resolves and creates everything deletes the
+        # old generation AND the partial rows from this one.
+        if import_failed:
+            if dry_run:
+                # A dry run wrote nothing, so do not claim the org was left changed.
+                self.logger.error(
+                    f"{failure_detail} This is a dry run, so nothing was written -- "
+                    f"the same failure against a real org would leave the previous ESC "
+                    f"rows in place alongside any that were created before the failure."
+                )
+                return
+            raise CumulusCIFailure(
+                f"{failure_detail} The ConstraintModel blob was NOT uploaded, and the old "
+                f"ESC records were NOT deleted, so the org still holds the previous "
+                f"generation alongside whatever was created before the failure. Fix the "
+                f"cause and re-run: a clean pass clears it by itself."
             )
 
         # Step 7: Upload blob
@@ -797,6 +906,8 @@ class ImportCML(CMLBaseTask):
                 self.logger.info(f"[DRY RUN] Would create ESDCD for ESD={esd_id}, CD={cd_id}")
             else:
                 self.create_record("ExpressionSetDefinitionContextDefinition", payload)
+
+    # ``describe_esc_import_failure`` lives at module scope -- see below.
 
     def _build_legacy_maps(self, data_dir: str, dataset_dirs: List[str]):
         """Build legacy ID -> portable unique key maps from CSV data.

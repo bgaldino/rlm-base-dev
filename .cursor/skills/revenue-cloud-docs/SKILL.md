@@ -106,9 +106,27 @@ cci task run snapshot_industries_dev_guide_262 -o mode refresh
 # widen/narrow by editing `sections` (comma-separated TOC titles or page_ids) in cumulusci.yml
 ```
 
-Ground OmniStudio / BRE / Context Service / Discovery Framework / Timeline claims here. (One page — `business_rules_engine_connect_apis.htm` — persistently errors on capture and is listed under the index's errored count; recapture if upstream fixes it.)
+Ground OmniStudio / BRE / Context Service / Discovery Framework / Timeline claims here. (The 262 industries snapshot is complete: 571 pages, 0 errored.)
 
 **When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml_*.htm.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
+
+### ⚠ Where neither snapshot is authoritative: usage/consumption runtime semantics
+
+Usage Management is the known gap in both corpora. Splitting a claim by developer
+vs admin does **not** work here — check what each source actually gives you:
+
+| Claim type | Where it lives | Example |
+|-----------|----------------|---------|
+| Object/field shape, picklist values | Dev guide (reference only) | `sforce_api_objects_usagecommitmentpolicy.htm.md` names `CommitmentRate` and its two values |
+| What a configuration value *means* | Help (one-line definitions) | `ind.um_create_usage_commitment_policy.htm.md` defines `Bounded Object Rate` / `Lowest Commitment Rate` |
+| **Runtime behaviour** — drawdown order, what each bucket decrements by, why a rated summary is empty | **Neither.** Establish by live verification. | commitment drains before grant; commitment by *discounted* qty, grant by *raw* |
+
+**Do not infer runtime behaviour from a field description in either snapshot** — the
+descriptions are one-line and omit ordering and interaction entirely. When you
+establish such a rule live, record it in
+`.cursor/skills/revenue-cloud-data-model/domains/usage.md` (rules) and
+`docs/guides/qb-consumption-demo-scenarios.md` (worked arithmetic) so the next agent
+does not have to rediscover it.
 
 ## Common grounding workflows
 
@@ -207,7 +225,7 @@ When a new release ships (e.g., Salesforce announces 264 GA):
    grep -l "^You are here:" docs/salesforce/264/help/articles/*.md | wc -l
    ```
 
-5. **Commit**. A single-area snapshot is typically 100–500 KB; the full multi-area snapshot for one release lands around 4–5 MB (the 262 snapshot is **~4.3 MB across 932 articles** — see the *Per-area snapshots* table below). Mark the directory as generated in `.gitattributes` (`docs/salesforce/*/help/** linguist-generated=true`) so GitHub auto-collapses the diff on refresh PRs.
+5. **Commit**. A single-area snapshot is typically 100–500 KB; the full multi-area snapshot for one release lands around 4–5 MB (the 262 snapshot is **~4.3 MB across 935 articles** — see the *Per-area snapshots* table below). Mark the directory as generated in `.gitattributes` (`docs/salesforce/*/help/** linguist-generated=true`) so GitHub auto-collapses the diff on refresh PRs.
 
 ## Per-area snapshots
 
@@ -228,9 +246,9 @@ Each functional area in Revenue Cloud has its own root Help article and ID prefi
 | Billing | Billing | `ind.billing.htm` | `ind.billing` | 171 ✓ |
 | **Cross-domain** | **Agentforce for Revenue Management** | `ind.rev_agent_overview.htm` | `ind.rev_agent` | 13 ✓ (topic-reference articles; functional-area how-to articles are captured under each area's prefix) |
 | Approvals | Advanced Approvals | `ind.approvals_advanced_approvals.htm` | `ind.approvals` | 34 ✓ |
-| Collections | Collections and Recovery | `ind.collections.htm` | `ind.collections` | 94 ✓ (3 errored — pending recapture) |
+| Collections | Collections and Recovery | `ind.collections.htm` | `ind.collections` | 97 ✓ |
 
-**Total 262 snapshot: 932 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite and the Collections & Recovery area (94 articles captured; 3 pending recapture — see `docs/salesforce/262/help/index.md`). Captured 2026-05-11 / 2026-05-12 (collections 2026-06-21).
+**Total 262 snapshot: 935 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite and the Collections & Recovery area (97 articles, all captured). Captured 2026-05-11 / 2026-05-12 (collections 2026-06-21; final 3 collections articles recaptured 2026-08-04 — 0 errored).
 
 **Manifest structure (post-2026-05-12 polish).** The shared manifest at `docs/salesforce/{release}/help/manifest.json` carries a top-level `areas` array that accumulates per-area run metadata (root, prefix, snapshot dates, per-area stats). Each article entry in `manifest.articles` is tagged with its `area` for filtering. The `index.md` renders an overall stats table + a per-area coverage summary + per-area captured-articles sections when the manifest covers multiple areas, falling back to the original single-area layout when only one area is captured. Use `manifest.areas` (or `grep area:` on per-article frontmatter) to filter by functional area.
 
