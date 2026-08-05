@@ -676,9 +676,6 @@
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <value>
-            <stringValue>0Q0Hp000002rB86KAE</stringValue>
-        </value>
     </variables>
     <variables>
         <name>recsSAProducts</name>
