@@ -363,6 +363,14 @@
         <connector>
             <targetReference>Update_Contract_Fields</targetReference>
         </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SourceQuoteId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
         <object>Contract</object>
         <recordTriggerType>Create</recordTriggerType>
         <triggerType>RecordAfterSave</triggerType>

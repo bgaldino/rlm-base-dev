@@ -41,7 +41,7 @@ public with sharing class RLM_MFG_ServiceContractQuote {
 
         // Required bundle components for the selected service contract product
         List<ProductRelatedComponent> options = [
-            SELECT Id, Quantity, ChildProductId
+            SELECT Id, Quantity, ChildProductId, ChildSellingModelId
             FROM ProductRelatedComponent
             WHERE ParentProductId = :productId AND IsComponentRequired = TRUE
             WITH USER_MODE
@@ -51,16 +51,18 @@ public with sharing class RLM_MFG_ServiceContractQuote {
             optionIds.add(prc.ChildProductId);
         }
 
-        // Map child product Id -> PricebookEntry Id for fast lookup
+        // Map child product + selling model -> PricebookEntry Id. A product can have one
+        // entry per selling model in the same pricebook, so key by both to avoid an
+        // arbitrary row winning.
         List<PriceBookEntry> pbes = [
-            SELECT Id, Product2Id
+            SELECT Id, Product2Id, ProductSellingModelId
             FROM PriceBookEntry
             WHERE Product2Id IN :optionIds AND Pricebook2Id = :priceBookId
             WITH USER_MODE
         ];
         Map<String, String> optionPBEs = new Map<String, String>();
         for (PriceBookEntry pbe : pbes) {
-            optionPBEs.put(pbe.Product2Id, pbe.Id);
+            optionPBEs.put(pbeKey(pbe.Product2Id, pbe.ProductSellingModelId), pbe.Id);
         }
 
         // ── Quote header ──────────────────────────────────────────────────────────
@@ -128,10 +130,21 @@ public with sharing class RLM_MFG_ServiceContractQuote {
                 optionCounter++;
                 String childRef = 'refQuoteItem_' + assetCounter + '_' + optionCounter;
 
+                // Every required component must resolve to a PricebookEntry, or the PST
+                // graph would carry a null PricebookEntryId and fail opaquely. Fail early
+                // with a friendly, catchable error instead.
+                String componentPbeId = optionPBEs.get(pbeKey(prc.ChildProductId, prc.ChildSellingModelId));
+                if (componentPbeId == null) {
+                    throw new RLM_MFG_ServiceContractQuoteException(
+                        'No PricebookEntry found for required component product ' + prc.ChildProductId
+                        + ' (selling model ' + prc.ChildSellingModelId + ') in price book ' + priceBookId
+                        + '. Cannot build the service contract quote.');
+                }
+
                 RevSalesTrxn.RecordResource optionRecord = new RevSalesTrxn.RecordResource(QuoteLineItem.getSobjectType(), 'POST');
                 Map<String, Object> optionFields = new Map<String, Object>();
                 optionFields.put('Product2Id',             prc.ChildProductId);
-                optionFields.put('PricebookEntryId',        optionPBEs.get(prc.ChildProductId));
+                optionFields.put('PricebookEntryId',        componentPbeId);
                 // Preserve the required component's configured quantity; default to 1 when null.
                 // prc.Quantity is a Double, so build the string directly to avoid a
                 // Double-to-Decimal assignment and keep the existing "N.0" payload convention.
@@ -205,6 +218,12 @@ public with sharing class RLM_MFG_ServiceContractQuote {
 
         @InvocableVariable(required=true)
         public String productRelationshipTypeId;
+    }
+
+    // Composite key for the component PricebookEntry lookup: a product may have one entry
+    // per selling model in the same pricebook, so both parts identify the correct entry.
+    private static String pbeKey(Id productId, Id sellingModelId) {
+        return String.valueOf(productId) + ';' + String.valueOf(sellingModelId);
     }
 
     // Validates a String invocable input as an Id, converting a malformed value into a
