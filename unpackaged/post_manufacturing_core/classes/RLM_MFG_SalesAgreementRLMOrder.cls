@@ -11,7 +11,7 @@ public with sharing class RLM_MFG_SalesAgreementRLMOrder {
         List<SalesAgreementProductSchedule> schedules =
             (List<SalesAgreementProductSchedule>) saProducts[0].salesagreementProductSchedules;
 
-        Id accountId    = (Id) saProducts[0].customerAcctId;
+        Id accountId    = toId(saProducts[0].customerAcctId, 'customer account id');
         String pbId     = saProducts[0].priceBookId;
         String saId     = saProducts[0].salesAgreementId;
         String ctrId    = saProducts[0].contractId;
@@ -138,6 +138,16 @@ public with sharing class RLM_MFG_SalesAgreementRLMOrder {
 
         @InvocableVariable(required=false)
         public String contractId;
+    }
+
+    // Validates a String invocable input as an Id, converting a malformed value into a
+    // friendly, catchable error instead of a raw System.StringException on the cast.
+    private static Id toId(String value, String label) {
+        try {
+            return Id.valueOf(value);
+        } catch (Exception e) {
+            throw new RLM_MFG_SalesAgreementOrderException('Invalid ' + label + ': ' + value);
+        }
     }
 
     public class RLM_MFG_SalesAgreementOrderException extends Exception {}

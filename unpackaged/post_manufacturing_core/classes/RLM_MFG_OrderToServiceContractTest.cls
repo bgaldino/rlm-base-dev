@@ -140,6 +140,25 @@ private class RLM_MFG_OrderToServiceContractTest {
     }
 
     @isTest
+    static void invalidOrderId_throwsFriendlyError() {
+        RLM_MFG_OrderToServiceContract.Request req = new RLM_MFG_OrderToServiceContract.Request();
+        req.orderId = 'not-an-id';
+
+        Test.startTest();
+        Boolean threw = false;
+        try {
+            RLM_MFG_OrderToServiceContract.createServiceContracts(
+                new List<RLM_MFG_OrderToServiceContract.Request>{ req });
+        } catch (RLM_MFG_OrderToServiceContract.RLM_MFG_OrderToServiceContractException e) {
+            threw = true;
+            System.assert(e.getMessage().contains('Invalid order id'), 'Expected friendly invalid-id message');
+        }
+        Test.stopTest();
+
+        System.assert(threw, 'Malformed order id should throw a friendly, catchable error');
+    }
+
+    @isTest
     static void maintenanceLine_expandsByQuantity() {
         System.assertEquals(3, RLM_MFG_OrderToServiceContract.copiesForChild(
             fakeChild('Annual Maintenance Visit', 3)), 'Maintenance line expands to qty');

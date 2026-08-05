@@ -32,8 +32,10 @@ public with sharing class RLM_MFG_ServiceContractQuote {
         List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
         Id contactId = contacts.isEmpty() ? null : contacts[0].Id;
 
-        String productId               = svcContractRequests[0].productId;
-        String priceBookId             = svcContractRequests[0].priceBookId;
+        // Validate the two inputs bound directly into SOQL Id filters below, so a
+        // malformed value is a friendly, catchable error rather than a raw QueryException.
+        Id productId                   = toId(svcContractRequests[0].productId, 'product id');
+        Id priceBookId                 = toId(svcContractRequests[0].priceBookId, 'price book id');
         String priceBookEntryId        = svcContractRequests[0].priceBookEntryId;
         String productRelationshipTypeId = svcContractRequests[0].productRelationshipTypeId;
 
@@ -197,6 +199,16 @@ public with sharing class RLM_MFG_ServiceContractQuote {
 
         @InvocableVariable(required=true)
         public String productRelationshipTypeId;
+    }
+
+    // Validates a String invocable input as an Id, converting a malformed value into a
+    // friendly, catchable error instead of a raw QueryException / StringException.
+    private static Id toId(String value, String label) {
+        try {
+            return Id.valueOf(value);
+        } catch (Exception e) {
+            throw new RLM_MFG_ServiceContractQuoteException('Invalid ' + label + ': ' + value);
+        }
     }
 
     public class RLM_MFG_ServiceContractQuoteException extends Exception {}

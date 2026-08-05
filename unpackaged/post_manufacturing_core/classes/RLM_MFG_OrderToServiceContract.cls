@@ -11,7 +11,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         }
 
         Request req = requests[0];
-        Id orderId = (Id) req.orderId;
+        Id orderId = toId(req.orderId, 'order id');
 
         // ── Order + account + quote context ───────────────────────────────────────
         List<Order> orders = [
@@ -79,8 +79,8 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         }
 
         Boolean single = parentQLs.size() == 1;
-        Id effAccountId = req.accountId != null ? (Id) req.accountId : ord.AccountId;
-        Id effContactId = req.contactId != null ? (Id) req.contactId : ord.Quote.ContactId;
+        Id effAccountId = req.accountId != null ? toId(req.accountId, 'account id') : ord.AccountId;
+        Id effContactId = req.contactId != null ? toId(req.contactId, 'contact id') : ord.Quote.ContactId;
 
         // ── Build service contracts (one per parent line) ─────────────────────────
         List<ServiceContract> contracts = new List<ServiceContract>();
@@ -148,7 +148,16 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         // ── Build one contract line item per parent line ──────────────────────────
         List<ContractLineItem> contractLines = new List<ContractLineItem>();
         for (QuoteLineItem p : parentQLs) {
-            // Product2Id and ListPrice are derived from PricebookEntryId by the platform
+            // PricebookEntryId is required on ContractLineItem; Product2Id and ListPrice
+            // are then derived from it by the platform. If the parent product has no
+            // PricebookEntry in the order's pricebook (or the order has no pricebook),
+            // fail with a friendly error rather than a raw REQUIRED_FIELD_MISSING on insert.
+            Id pbeId = pbeByProduct.get(p.Product2Id);
+            if (pbeId == null) {
+                throw new RLM_MFG_OrderToServiceContractException(
+                    'No PricebookEntry found for product ' + p.Product2Id + ' in the order pricebook '
+                    + ord.Pricebook2Id + '. A contract line item cannot be created without one.');
+            }
             ContractLineItem cli = new ContractLineItem();
             cli.ServiceContractId = contractByParent.get(p.Id);
             cli.StartDate = Date.today();
@@ -156,7 +165,7 @@ public with sharing class RLM_MFG_OrderToServiceContract {
             cli.AssetId = p.RLM_MFG_Covered_Asset__c;
             cli.Quantity = p.Quantity;
             cli.UnitPrice = p.NetUnitPrice;
-            cli.PricebookEntryId = pbeByProduct.get(p.Product2Id);
+            cli.PricebookEntryId = pbeId;
             contractLines.add(cli);
         }
         if (!contractLines.isEmpty()) {
@@ -172,6 +181,16 @@ public with sharing class RLM_MFG_OrderToServiceContract {
         r.primaryServiceContractId = contracts[0].Id;
         results.add(r);
         return results;
+    }
+
+    // Validates a String invocable input as an Id, converting a malformed value into a
+    // friendly, catchable error instead of a raw System.StringException on the cast.
+    private static Id toId(String value, String label) {
+        try {
+            return Id.valueOf(value);
+        } catch (Exception e) {
+            throw new RLM_MFG_OrderToServiceContractException('Invalid ' + label + ': ' + value);
+        }
     }
 
     // Maintenance-visit lines expand into one entitlement per unit of quantity;
