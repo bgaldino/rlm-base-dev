@@ -19,7 +19,7 @@
         {
           "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
           "operation": "Readonly",
-          "externalId": "Name;SellingModelType",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -43,7 +43,7 @@
         {
           "query": "SELECT Name, IsActive, IsStandard, CostBookId, ValidFrom, ValidTo, Description FROM Pricebook2",
           "operation": "Upsert",
-          "externalId": "Name;IsStandard",
+          "externalId": "Name",
           "excluded": false
         },
         {

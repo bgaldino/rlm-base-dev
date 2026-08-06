@@ -9,7 +9,7 @@
         {
           "query": "SELECT EndDate, FinancialYear, Name, StartDate, Status FROM AccountingPeriod",
           "operation": "Upsert",
-          "externalId": "Name;FinancialYear",
+          "externalId": "Name",
           "excluded": false
         },
         {

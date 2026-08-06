@@ -58,7 +58,7 @@
     {
       "query": "SELECT DoesAutoRenewAssetByDefault, Id, Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
       "operation": "Upsert",
-      "externalId": "Name;SellingModelType"
+      "externalId": "Name"
     },
     {
       "query": "SELECT ArePartialPeriodsAllowed, Id, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
