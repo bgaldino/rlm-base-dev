@@ -17,8 +17,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7W</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7W</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingState</outputFieldName>
@@ -35,8 +33,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7X</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7X</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingState</outputFieldName>
@@ -53,8 +49,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7U</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7U</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:Discount</outputFieldName>
@@ -71,8 +65,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7V</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7V</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>ShippingStreet</outputFieldName>
@@ -89,8 +81,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7S</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7S</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:NetTotalPrice</outputFieldName>
@@ -107,8 +97,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7T</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7T</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ContractEndDate</outputFieldName>
@@ -128,8 +116,6 @@
         <inputObjectQuerySequence>1.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7Q</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7Q</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -147,8 +133,6 @@
         <inputObjectQuerySequence>3.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7R</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7R</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>SalesRep</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -163,8 +147,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7Y</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7Y</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:ProductName</outputFieldName>
@@ -181,8 +163,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7Z</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7Z</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingCity</outputFieldName>
@@ -199,8 +179,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7g</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7g</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Integer</outputFieldFormat>
         <outputFieldName>Line:CQL:Quantity</outputFieldName>
@@ -217,8 +195,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7h</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7h</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:ProductName</outputFieldName>
@@ -235,8 +211,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7e</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7e</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>AccountName</outputFieldName>
@@ -256,8 +230,6 @@
         <inputObjectQuerySequence>2.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7f</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7f</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Account</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -272,8 +244,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7c</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7c</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>CreatedDate</outputFieldName>
@@ -293,8 +263,6 @@
         <inputObjectQuerySequence>7.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7d</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7d</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -309,8 +277,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7a</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7a</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
@@ -330,8 +296,6 @@
         <inputObjectQuerySequence>4.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7b</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7b</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -346,8 +310,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7o</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7o</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -366,8 +328,6 @@
         <inputObjectQuerySequence>6.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7p</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7p</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -385,8 +345,6 @@
         <inputObjectQuerySequence>4.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7m</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7m</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -401,8 +359,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7n</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7n</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingCity</outputFieldName>
@@ -419,8 +375,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7k</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7k</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>QuoteNumber</outputFieldName>
@@ -437,8 +391,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7l</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7l</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:NetUnitPrice</outputFieldName>
@@ -455,8 +407,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7i</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7i</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Integer</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:Quantity</outputFieldName>
@@ -473,8 +423,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7j</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7j</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:ListPrice</outputFieldName>
@@ -491,8 +439,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7s</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7s</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>QuoteId</outputFieldName>
@@ -509,8 +455,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7t</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7t</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:ListPrice</outputFieldName>
@@ -527,8 +471,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7q</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7q</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:Discount</outputFieldName>
@@ -545,8 +487,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7r</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7r</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>QDiscount</outputFieldName>
@@ -563,8 +503,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7G</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7G</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ExpirationDate</outputFieldName>
@@ -581,8 +519,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7H</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7H</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:NetUnitPrice</outputFieldName>
@@ -599,8 +535,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7E</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7E</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:ProductName</outputFieldName>
@@ -620,8 +554,6 @@
         <inputObjectQuerySequence>5.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7F</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7F</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -636,8 +568,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7C</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7C</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:CQL:Discount</outputFieldName>
@@ -654,8 +584,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7D</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7D</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:NetTotalPrice</outputFieldName>
@@ -672,8 +600,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7A</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7A</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>GrandTotal</outputFieldName>
@@ -690,8 +616,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7B</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7B</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ContractStartDate</outputFieldName>
@@ -708,8 +632,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7O</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7O</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>SalesRep</outputFieldName>
@@ -726,8 +648,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7P</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7P</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:NetUnitPrice</outputFieldName>
@@ -744,8 +664,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7M</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7M</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:ListPrice</outputFieldName>
@@ -762,8 +680,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7N</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7N</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:Quantity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -782,8 +698,6 @@
         <inputObjectQuerySequence>8.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7K</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7K</omniDataTransformationId>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -798,8 +712,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7L</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7L</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingPostalCode</outputFieldName>
@@ -816,8 +728,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7I</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7I</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingStreet</outputFieldName>
@@ -834,8 +744,6 @@
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalExtract</name>
-        <omniDataTransformation>0kdg70000007d7J</omniDataTransformation>
-        <omniDataTransformationId>0kdg70000007d7J</omniDataTransformationId>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingPostalCode</outputFieldName>

@@ -31,7 +31,7 @@ String soql =
 
 String endpoint =
     URL.getOrgDomainUrl().toExternalForm() +
-    '/services/data/v66.0/tooling/query?q=' +
+    '/services/data/v67.0/tooling/query?q=' +
     EncodingUtil.urlEncode(soql, 'UTF-8');
 
 HttpRequest req = new HttpRequest();
