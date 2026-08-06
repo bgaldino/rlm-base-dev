@@ -6,6 +6,11 @@ This document provides working examples for the `manage_decision_tables` Cumulus
 
 Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh** (full or incremental), **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
 
+> **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
+> `--org <cci_alias>`. The examples below omit it and therefore run against your **default**
+> CCI org — pass `--org` to target another. (Both task classes rejected `--org` until
+> 2026-07-27; if you find a doc still saying they take no `--org` flag, it is stale.)
+
 ### Basic Operations
 
 #### 1. List All Active Decision Tables (with UsageType)
@@ -371,9 +376,11 @@ Decision table lists are defined in `cumulusci.yml` under `project.custom` as YA
 | `dt_asset_decision_tables` | Asset-specific rate and adjustment tables |
 | `dt_pricing_discovery_decision_tables` | Pricing discovery and derived pricing tables |
 | `dt_activation_decision_tables` | Tables activated during org prepare (RLM_ProductCategoryQualification, RLM_ProductQualification, RLM_CostBookEntries) |
-| `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true`) |
+| `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true` **or** `tso: true`) |
 
-The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_commerce (when `commerce: true`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
+The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_default_pricing (always) → refresh_dt_commerce (when `commerce: true` **or** `tso: true`) → refresh_dt_prm_pricing (when `prm` and `prm_pricing`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
+
+> `refresh_dt_default_pricing` was **absent from this flow entirely** until 2026-07-27 — the task existed but nothing called it, so `StandardTax` was never refreshed by any build. The Commerce step is gated on `tso` as well because a TSO template ships those tables whether or not the Commerce feature is configured, and a build that skips them leaves five tables holding the template org's rows.
 
 ---
 
