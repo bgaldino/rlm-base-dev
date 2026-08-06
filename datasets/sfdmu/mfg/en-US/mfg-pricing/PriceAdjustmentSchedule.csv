@@ -1,0 +1,5 @@
+AdjustmentMethod,CurrencyIsoCode,Description,EffectiveFrom,EffectiveTo,IsActive,Name,Pricebook2.Name,ScheduleType
+Range,USD,#N/A,2024-01-01T00:00:00.000+0000,#N/A,true,Standard Attribute Based Adjustment,Standard Price Book,Attribute
+Range,USD,#N/A,2024-01-01T00:00:00.000+0000,#N/A,true,Standard Bundle Based Adjustment,Standard Price Book,Bundle
+Range,USD,#N/A,2024-01-01T00:00:00.000+0000,#N/A,false,Standard Price Adjustment Tier,Standard Price Book,Volume
+Slab,USD,#N/A,2024-01-01T00:00:00.000+0000,#N/A,false,Standard Tier Based Adjustment,Standard Price Book,Volume

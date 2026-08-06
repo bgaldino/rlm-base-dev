@@ -1,0 +1,232 @@
+Id,Name,ParentProductId,ParentProduct.Name,ChildProductId,ChildProduct.Name,ChildProductClassificationId,ChildProductClassification.Name,ProductRelationshipTypeId,ProductRelationshipType.Name,Sequence
+0dSWs000000jfBtMAI,PRC-000000285,01tWs00000C0wwaIAB,PowerControl - Paralleling Switchgear,,,11BWs00000NocWIMAZ,Switchgear Bay,0yoWs000001B9qcIAC,Bundle to Product Classification Component Relationship,1
+0dSWs000000jfCOMAY,PRC-000000093,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWmIAJ,"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,24
+0dSWs000000jfCPMAY,PRC-000000095,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWnIAJ,"Alt-60Hz,347/600V,125/105/80C-SPC",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,25
+0dSWs000000jfCQMAY,PRC-000000097,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWoIAJ,"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,26
+0dSWs000000jfCRMAY,PRC-000000099,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWpIAJ,"Alternator-60Hz, 347/600Volt, 80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,27
+0dSWs000000jfCSMAY,PRC-000000055,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxeIAB,FESBA 900kW,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfCTMAY,PRC-000000101,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWqIAJ,"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,28
+0dSWs000000jfCUMAY,PRC-000000056,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxfIAB,FESBA 1200kW,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfCVMAY,PRC-000000103,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWrIAJ,"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,29
+0dSWs000000jfCWMAY,PRC-000000057,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxgIAB,FESBA 1500kW,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfCXMAY,PRC-000000105,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWsIAJ,"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,30
+0dSWs000000jfCYMAY,PRC-000000058,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxhIAB,FESBA 1750kW,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,4
+0dSWs000000jfCZMAY,PRC-000000107,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWtIAJ,"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,32
+0dSWs000000jfCaMAI,PRC-000000059,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxiIAB,FESBA 2500kW,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,5
+0dSWs000000jfCbMAI,PRC-000000109,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWuIAJ,"Alt-60Hz,Wye,440V,125-80C-SPC",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,33
+0dSWs000000jfCcMAI,PRC-000000060,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxjIAB,"220/380,3 Phase,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,6
+0dSWs000000jfCdMAI,PRC-000000111,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWvIAJ,"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,34
+0dSWs000000jfCeMAI,PRC-000000061,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxkIAB,"240/416,3 Phase,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,7
+0dSWs000000jfCfMAI,PRC-000000113,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWwIAJ,"Alternator-60Hz, Wye, 440 Volt,80C-Stby",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,35
+0dSWs000000jfCgMAI,PRC-000000063,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxlIAB,"255/440,3 Phase,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,8
+0dSWs000000jfChMAI,PRC-000000062,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWxIAJ,"Alt-60Hz,Wye,440V,150/125SP,40C amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,36
+0dSWs000000jfCiMAI,PRC-000000065,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxmIAB,"277/480,3 Phase,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,9
+0dSWs000000jfCjMAI,PRC-000000064,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWyIAJ,"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,37
+0dSWs000000jfCkMAI,PRC-000000067,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxnIAB,"347/600,3 Phase,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,10
+0dSWs000000jfClMAI,PRC-000000066,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWzIAJ,"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,38
+0dSWs000000jfCmMAI,PRC-000000069,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxoIAB,"2400/4160,3 Phase,Wye,4Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,11
+0dSWs000000jfCnMAI,PRC-000000068,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX0IAJ,"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,39
+0dSWs000000jfCoMAI,PRC-000000071,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxpIAB,"7200/12470,3 Ph,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,12
+0dSWs000000jfCpMAI,PRC-000000070,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX1IAJ,"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,40
+0dSWs000000jfCqMAI,PRC-000000073,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxqIAB,"7621/13200,3 Ph,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,13
+0dSWs000000jfCrMAI,PRC-000000072,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX2IAJ,"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,43
+0dSWs000000jfCsMAI,PRC-000000075,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxrIAB,"7976/13800,3 Ph,Wye,4 Wire",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,14
+0dSWs000000jfCtMAI,PRC-000000074,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX3IAJ,"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,44
+0dSWs000000jfCuMAI,PRC-000000077,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxsIAB,"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,15
+0dSWs000000jfCvMAI,PRC-000000076,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX4IAJ,"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,45
+0dSWs000000jfCwMAI,PRC-000000079,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxtIAB,"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,16
+0dSWs000000jfCxMAI,PRC-000000078,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX5IAJ,"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,46
+0dSWs000000jfCyMAI,PRC-000000081,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxuIAB,"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,17
+0dSWs000000jfCzMAI,PRC-000000080,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX6IAJ,"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,47
+0dSWs000000jfD0MAI,PRC-000000083,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxvIAB,"ALT-60Hz,Wye,12.47kV,105/80C (S/P)",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,18
+0dSWs000000jfD1MAI,PRC-000000082,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX7IAJ,"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,48
+0dSWs000000jfD2MAI,PRC-000000085,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0wxwIAB,"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,19
+0dSWs000000jfD3MAI,PRC-000000084,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX8IAJ,"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,49
+0dSWs000000jfD4MAI,PRC-000000087,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWjIAJ,"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,20
+0dSWs000000jfD5MAI,PRC-000000086,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yX9IAJ,"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,50
+0dSWs000000jfD6MAI,PRC-000000089,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWkIAJ,"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,22
+0dSWs000000jfD7MAI,PRC-000000088,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXAIAZ,"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,51
+0dSWs000000jfD8MAI,PRC-000000091,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yWlIAJ,"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,23
+0dSWs000000jfD9MAI,PRC-000000090,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXBIAZ,"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,52
+0dSWs000000jfDAMAY,PRC-000000092,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXCIAZ,"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,53
+0dSWs000000jfDBMAY,PRC-000000094,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXDIAZ,"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,54
+0dSWs000000jfDCMAY,PRC-000000096,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXEIAZ,"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,55
+0dSWs000000jfDDMAY,PRC-000000098,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXFIAZ,"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,56
+0dSWs000000jfDEMAY,PRC-000000100,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXGIAZ,"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,57
+0dSWs000000jfDFMAY,PRC-000000102,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXHIAZ,"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,58
+0dSWs000000jfDGMAY,PRC-000000104,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXIIAZ,"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,59
+0dSWs000000jfDHMAY,PRC-000000106,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXJIAZ,"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,60
+0dSWs000000jfDIMAY,PRC-000000108,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXKIAZ,"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,62
+0dSWs000000jfDJMAY,PRC-000000110,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXLIAZ,"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,63
+0dSWs000000jfDKMAY,PRC-000000112,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXMIAZ,Engine - QSK60-G6,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,64
+0dSWs000000jfDLMAY,PRC-000000155,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXmIAJ,Hardened Bearing Cartridge,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,90
+0dSWs000000jfDMMAY,PRC-000000114,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXNIAZ,Normal Duty Air Cleaner,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,65
+0dSWs000000jfDNMAY,PRC-000000157,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXnIAJ,"Output Terminals-2-Hole Lug, NEMA",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,91
+0dSWs000000jfDOMAY,PRC-000000115,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXOIAZ,Heavy Duty Air Cleaner,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,66
+0dSWs000000jfDPMAY,PRC-000000159,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXoIAJ,Differential CT's P7,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,92
+0dSWs000000jfDQMAY,PRC-000000116,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXPIAZ,Electric Starter Motor - 24V DC,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,67
+0dSWs000000jfDRMAY,PRC-000000161,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXpIAJ,Differential CT's P80,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,93
+0dSWs000000jfDSMAY,PRC-000000117,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXQIAZ,Battery Charging Alternator,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,68
+0dSWs000000jfDTMAY,PRC-000000163,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXqIAJ,Circuit Breaker or Entrance Box-None,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,94
+0dSWs000000jfDUMAY,PRC-000000118,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXRIAZ,"Filters-Eng Oil,Full Flow/Bypass",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,69
+0dSWs000000jfDVMAY,PRC-000000165,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXrIAJ,Housing Arrangement - Left Entry,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,95
+0dSWs000000jfDWMAY,PRC-000000119,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXSIAZ,Oil Sampling Valve,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,70
+0dSWs000000jfDXMAY,PRC-000000167,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXsIAJ,Housing Arrangement - Right Entry,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,96
+0dSWs000000jfDYMAY,PRC-000000120,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXTIAZ,Oil Pan-High Capacity,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,71
+0dSWs000000jfDZMAY,PRC-000000169,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXtIAJ,Housing Arrangement - Left & Right Entry,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,97
+0dSWs000000jfDaMAI,PRC-000000122,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXUIAZ,"Fuel Filters-Engine, Standard",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,73
+0dSWs000000jfDbMAI,PRC-000000171,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXuIAJ,"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,98
+0dSWs000000jfDcMAI,PRC-000000123,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXVIAZ,"Fuel Filters-Engine, Duplex",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,74
+0dSWs000000jfDdMAI,PRC-000000173,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXvIAJ,"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,99
+0dSWs000000jfDeMAI,PRC-000000125,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXWIAZ,"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,75
+0dSWs000000jfDfMAI,PRC-000000175,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXwIAJ,"Terminal Housing-Bottom Entrance,Medium/High Volts",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,100
+0dSWs000000jfDgMAI,PRC-000000127,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXXIAZ,"Coolant Heater-208/240/480V, Below 40F Ambient Temp",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,76
+0dSWs000000jfDhMAI,PRC-000000124,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXxIAJ,"Terminal Housing-Top Entrance,Medium/High Volts",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,101
+0dSWs000000jfDiMAI,PRC-000000129,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXYIAZ,None Supplied (Remote Cooling),,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,77
+0dSWs000000jfDjMAI,PRC-000000126,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXyIAJ,"Entrance Box-Low Voltage,Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,102
+0dSWs000000jfDkMAI,PRC-000000131,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXZIAZ,Engine Cooling-High Ambient Air Temperature,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,78
+0dSWs000000jfDlMAI,PRC-000000128,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXzIAJ,"Terminal Box-Low Voltage,Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,103
+0dSWs000000jfDmMAI,PRC-000000133,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXaIAJ,Engine Cooling-Enhanced High Ambient Air Temperature,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,79
+0dSWs000000jfDnMAI,PRC-000000130,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY0IAJ,"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,104
+0dSWs000000jfDoMAI,PRC-000000135,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXbIAJ,"Eng Cooling-High Ambient Air Temp, Ship Loose",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,80
+0dSWs000000jfDpMAI,PRC-000000132,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY1IAJ,"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,105
+0dSWs000000jfDqMAI,PRC-000000137,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXcIAJ,(Remote Cooling) Flanged Connectors ASA,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,81
+0dSWs000000jfDrMAI,PRC-000000134,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY2IAJ,"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,106
+0dSWs000000jfDsMAI,PRC-000000139,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXdIAJ,Shutdown-Low Coolant Level,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,82
+0dSWs000000jfDtMAI,PRC-000000136,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY3IAJ,"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,107
+0dSWs000000jfDuMAI,PRC-000000141,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXeIAJ,Warning-Low Coolant Level,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,83
+0dSWs000000jfDvMAI,PRC-000000138,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY4IAJ,"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,108
+0dSWs000000jfDwMAI,PRC-000000143,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXfIAJ,"Temp Sens-Stator, 2 RTD/Ph",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,84
+0dSWs000000jfDxMAI,PRC-000000140,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY5IAJ,"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,109
+0dSWs000000jfDyMAI,PRC-000000145,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXgIAJ,"Bearing,1 RTD NDE",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,85
+0dSWs000000jfDzMAI,PRC-000000142,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY6IAJ,"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,110
+0dSWs000000jfE0MAI,PRC-000000147,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXhIAJ,"Heater-Alternator, 120 Volt AC",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,86
+0dSWs000000jfE1MAI,PRC-000000144,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY7IAJ,"Top Entry, Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,111
+0dSWs000000jfE2MAI,PRC-000000149,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXiIAJ,"Heater-Alternator, 240 Volt AC",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,87
+0dSWs000000jfE3MAI,PRC-000000146,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY8IAJ,"Bottom Entry, Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,112
+0dSWs000000jfE4MAI,PRC-000000121,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXjIAJ,Separator-Fuel/Water,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,72
+0dSWs000000jfE5MAI,PRC-000000148,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yY9IAJ,"Bottom Entry Chute, Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,113
+0dSWs000000jfE6MAI,PRC-000000151,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXkIAJ,"Heater-Alternator, 110/220 (120/240) Volt AC",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,88
+0dSWs000000jfE7MAI,PRC-000000150,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYAIAZ,Entrance Box-Right,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,114
+0dSWs000000jfE8MAI,PRC-000000153,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yXlIAJ,PMG,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,89
+0dSWs000000jfE9MAI,PRC-000000152,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYBIAZ,"Entrance Box-Low Voltage,Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,115
+0dSWs000000jfEAMAY,PRC-000000154,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYCIAZ,"Terminal Box-Low Voltage,Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,116
+0dSWs000000jfEBMAY,PRC-000000156,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYDIAZ,"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,117
+0dSWs000000jfECMAY,PRC-000000158,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYEIAZ,"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,118
+0dSWs000000jfEDMAY,PRC-000000160,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYFIAZ,"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,119
+0dSWs000000jfEEMAY,PRC-000000162,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYGIAZ,"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,120
+0dSWs000000jfEFMAY,PRC-000000164,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYHIAZ,"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,121
+0dSWs000000jfEGMAY,PRC-000000166,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYIIAZ,"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,122
+0dSWs000000jfEHMAY,PRC-000000168,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYJIAZ,"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,123
+0dSWs000000jfEIMAY,PRC-000000170,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYKIAZ,"Top Entry, Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,124
+0dSWs000000jfEJMAY,PRC-000000172,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYLIAZ,"Bottom Entry, Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,125
+0dSWs000000jfEKMAY,PRC-000000174,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYMIAZ,"Bottom Entry Chute, Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,126
+0dSWs000000jfELMAY,PRC-000000217,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYmIAJ,"Test-Extnd, Prime Ld,4Hr",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,168
+0dSWs000000jfEMMAY,PRC-000000176,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYNIAZ,"Indication-Ground Fault,3-PoleXfrSw",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,127
+0dSWs000000jfENMAY,PRC-000000219,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYnIAJ,"Test-Extended, Prime Load, 8Hr",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,169
+0dSWs000000jfEOMAY,PRC-000000177,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYOIAZ,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,128
+0dSWs000000jfEPMAY,PRC-000000221,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYoIAJ,"Test-Extended, Standby Load, 1",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,170
+0dSWs000000jfEQMAY,PRC-000000178,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYPIAZ,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,129
+0dSWs000000jfERMAY,PRC-000000223,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYpIAJ,"Test-Extended, Standby Load, 2",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,171
+0dSWs000000jfESMAY,PRC-000000179,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYQIAZ,Ckt Brkr Access-Right Side,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,130
+0dSWs000000jfETMAY,PRC-000000225,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYqIAJ,"Test-Extended, Standby Load, 4",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,172
+0dSWs000000jfEUMAY,PRC-000000180,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYRIAZ,Ckt Brkr Access-Left Side,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,131
+0dSWs000000jfEVMAY,PRC-000000227,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYrIAJ,"Test-Extnd,Stndby Ld,8Hr",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,173
+0dSWs000000jfEWMAY,PRC-000000181,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYSIAZ,"Ckt Brkr Lugs-Mechanical, Left Side",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,132
+0dSWs000000jfEXMAY,PRC-000000229,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYsIAJ,"Test-Varied Load,1 Hour,2 Step",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,174
+0dSWs000000jfEYMAY,PRC-000000182,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYTIAZ,"Ckt Brkr Lugs-Mechanical, Right Side",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,133
+0dSWs000000jfEZMAY,PRC-000000231,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYtIAJ,"Test-Varied Load,2Hr,2 Step",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,175
+0dSWs000000jfEaMAI,PRC-000000183,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYUIAZ,Ground Fault Indication Relay - None,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,134
+0dSWs000000jfEbMAI,PRC-000000233,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYuIAJ,"Test-Varied Load, 4Hr, 2Step",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,176
+0dSWs000000jfEcMAI,PRC-000000184,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYVIAZ,PowerCommand 3.3,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,135
+0dSWs000000jfEdMAI,PRC-000000235,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYvIAJ,"Test-Varied Ld,6Hr,3 Step",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,177
+0dSWs000000jfEeMAI,PRC-000000185,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYWIAZ,PowerCommand 3.3 with MLD,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,136
+0dSWs000000jfEfMAI,PRC-000000237,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYwIAJ,Test-Independent Laboratory,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,178
+0dSWs000000jfEgMAI,PRC-000000188,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYXIAZ,120/240VAC compatible,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,153
+0dSWs000000jfEhMAI,PRC-000000187,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYxIAJ,Test Record-Strip Chart,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,179
+0dSWs000000jfEiMAI,PRC-000000190,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYYIAZ,"Meters-AC Output,Analog",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,154
+0dSWs000000jfEjMAI,PRC-000000189,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYyIAJ,Test Record-Safety Shutdowns,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,180
+0dSWs000000jfEkMAI,PRC-000000192,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYZIAZ,Display - Control LCD,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,155
+0dSWs000000jfElMAI,PRC-000000191,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYzIAJ,Test Record-Amb Temp/Pres,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,181
+0dSWs000000jfEmMAI,PRC-000000194,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYaIAJ,AmpSentryTM Protective Relay,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,156
+0dSWs000000jfEnMAI,PRC-000000193,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ0IAJ,Test Record-Exhaust Temp,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,182
+0dSWs000000jfEoMAI,PRC-000000196,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYbIAJ,"Display, Running Time",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,157
+0dSWs000000jfEpMAI,PRC-000000195,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ1IAJ,Genset Warranty Base,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,183
+0dSWs000000jfEqMAI,PRC-000000198,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYcIAJ,"Alarm-Audible, Engine Shutdown",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,158
+0dSWs000000jfErMAI,PRC-000000197,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ2IAJ,ST 3YR 1500HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,184
+0dSWs000000jfEsMAI,PRC-000000200,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYdIAJ,RELAYS-USER CONFIGURED,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,159
+0dSWs000000jfEtMAI,PRC-000000199,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ3IAJ,ST 5YR 2500HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,185
+0dSWs000000jfEuMAI,PRC-000000202,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYeIAJ,"Signals - Auxiliary, 8 Inputs/8 Outputs",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,160
+0dSWs000000jfEvMAI,PRC-000000201,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ4IAJ,ST 10YR 5000HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,186
+0dSWs000000jfEwMAI,PRC-000000204,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYfIAJ,"Signals - Auxiliary 2, 8 Inputs/8 Outputs",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,161
+0dSWs000000jfExMAI,PRC-000000203,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ5IAJ,ST 3YR 1500HR Parts + Labor,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,187
+0dSWs000000jfEyMAI,PRC-000000206,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYgIAJ,Gauge-Exhaust Gas Temperature,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,162
+0dSWs000000jfEzMAI,PRC-000000205,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ6IAJ,ST 5YR 2500HR Parts + Labor,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,188
+0dSWs000000jfF0MAI,PRC-000000208,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYhIAJ,Test - Standard Factory,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,163
+0dSWs000000jfF1MAI,PRC-000000207,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ7IAJ,ST 10YR 5000HR Parts + Labor,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,189
+0dSWs000000jfF2MAI,PRC-000000210,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYiIAJ,Test Record-Certified,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,164
+0dSWs000000jfF3MAI,PRC-000000209,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ8IAJ,ST 3YR 1500HR Parts + Labor + Travel,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,190
+0dSWs000000jfF4MAI,PRC-000000212,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYjIAJ,Test - Witness,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,165
+0dSWs000000jfF5MAI,PRC-000000211,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZ9IAJ,ST 5YR 2500HR Parts + Labor + Travel,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,191
+0dSWs000000jfF6MAI,PRC-000000213,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYkIAJ,"Test-Extended, Prime Load, 1Hr",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,166
+0dSWs000000jfF7MAI,PRC-000000186,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZAIAZ,ST 10YR 5000HR Parts + Labor + Travel,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,192
+0dSWs000000jfF8MAI,PRC-000000215,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yYlIAJ,"Test-Extnd, Prime Ld,2Hr",,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,167
+0dSWs000000jfF9MAI,PRC-000000214,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZBIAZ,PR 2YR 4000HR P + L + T,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,193
+0dSWs000000jfFAMAY,PRC-000000216,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZCIAZ,PR 3YR 6000HR P + L + T,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,194
+0dSWs000000jfFBMAY,PRC-000000218,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZDIAZ,DCC 3YR UNLIMITED HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,195
+0dSWs000000jfFCMAY,PRC-000000220,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZEIAZ,DCC 5YR UNLIMITED HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,196
+0dSWs000000jfFDMAY,PRC-000000222,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZFIAZ,DCC 10YR UNLIMITED HR PARTS,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,197
+0dSWs000000jfFEMAY,PRC-000000224,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZGIAZ,DCC 3YR UNLIMITED HR P + L,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,198
+0dSWs000000jfFFMAY,PRC-000000226,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZHIAZ,DCC 5YR UNLIMITED HR P + L,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,199
+0dSWs000000jfFGMAY,PRC-000000228,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZIIAZ,DCC 10YR UNLIMITED HR P + L,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,200
+0dSWs000000jfFHMAY,PRC-000000230,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZJIAZ,DCC 3YR UNLIMITED HR P + L + T,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,201
+0dSWs000000jfFIMAY,PRC-000000232,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZKIAZ,DCC 5YR UNLIMITED HR P + L + T,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,202
+0dSWs000000jfFJMAY,PRC-000000234,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZLIAZ,DCC 10YR UNLIMITED HR P + L + T,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,203
+0dSWs000000jfFKMAY,PRC-000000236,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZMIAZ,Literature-Chinese,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,204
+0dSWs000000jfFLMAY,PRC-000000275,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZmIAJ,A048N280,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,231
+0dSWs000000jfFMMAY,PRC-000000238,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZNIAZ,Literature-Danish,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,205
+0dSWs000000jfFNMAY,PRC-000000276,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZnIAJ,A051H785,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,232
+0dSWs000000jfFOMAY,PRC-000000239,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZOIAZ,Literature-Dutch,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,206
+0dSWs000000jfFPMAY,PRC-000000277,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZoIAJ,A051K118,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,233
+0dSWs000000jfFQMAY,PRC-000000240,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZPIAZ,Literature-English,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,207
+0dSWs000000jfFRMAY,PRC-000000278,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZpIAJ,A052X578,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,234
+0dSWs000000jfFSMAY,PRC-000000241,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZQIAZ,Literature-Finnish,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,208
+0dSWs000000jfFTMAY,PRC-000000279,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZqIAJ,A052X580,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,235
+0dSWs000000jfFUMAY,PRC-000000242,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZRIAZ,Literature-French,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,209
+0dSWs000000jfFVMAY,PRC-000000280,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZrIAJ,A052X582,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,236
+0dSWs000000jfFWMAY,PRC-000000243,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZSIAZ,Literature-German,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,210
+0dSWs000000jfFXMAY,PRC-000000281,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZsIAJ,A052X584,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,237
+0dSWs000000jfFYMAY,PRC-000000244,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZTIAZ,Literature-Greek,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,211
+0dSWs000000jfFZMAY,PRC-000000261,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZtIAJ,0155-2342-10,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,221
+0dSWs000000jfFaMAI,PRC-000000245,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZUIAZ,Literature-Italian,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,212
+0dSWs000000jfFbMAI,PRC-000000282,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZuIAJ,A052X586,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,238
+0dSWs000000jfFcMAI,PRC-000000246,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZVIAZ,Literature-Norwegian,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,213
+0dSWs000000jfFdMAI,PRC-000000283,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZvIAJ,0402-0750-01,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,239
+0dSWs000000jfFeMAI,PRC-000000247,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZWIAZ,Literature-Portuguese,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,214
+0dSWs000000jfFfMAI,PRC-000000284,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZwIAJ,No Enclosure,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,240
+0dSWs000000jfFgMAI,PRC-000000249,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZXIAZ,Literature-Brazilian Portuguese,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,215
+0dSWs000000jfFhMAI,PRC-000000250,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZxIAJ,Level 1 Sound Attenuated Enclosure,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,242
+0dSWs000000jfFiMAI,PRC-000000251,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZYIAZ,Literature-Russian,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,216
+0dSWs000000jfFjMAI,PRC-000000252,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZyIAJ,Level 2 Sound Attenuated Enclosure,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,243
+0dSWs000000jfFkMAI,PRC-000000253,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZZIAZ,Literature-Spanish,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,217
+0dSWs000000jfFlMAI,PRC-000000254,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZzIAJ,Level 3 Sound Attenuated Enclosure,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,244
+0dSWs000000jfFmMAI,PRC-000000255,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZaIAJ,Literature-Swedish,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,218
+0dSWs000000jfFnMAI,PRC-000000256,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya0IAB,Electrical Engineer,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfFoMAI,PRC-000000257,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZbIAJ,Packing-None,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,219
+0dSWs000000jfFpMAI,PRC-000000258,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya1IAB,Mechanical Engineer,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,4
+0dSWs000000jfFqMAI,PRC-000000259,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZcIAJ,0155-2341-10,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,220
+0dSWs000000jfFrMAI,PRC-000000260,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya2IAB,Civil Engineer,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfFsMAI,PRC-000000263,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZdIAJ,0155-2696-07,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,222
+0dSWs000000jfFtMAI,PRC-000000262,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya3IAB,Installation Fee,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfFuMAI,PRC-000000265,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZeIAJ,0300-5929-01,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,223
+0dSWs000000jfFvMAI,PRC-000000264,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya4IAB,Mounting Hardware,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfFwMAI,PRC-000000267,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZfIAJ,0300-5929-02,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,224
+0dSWs000000jfFxMAI,PRC-000000266,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya5IAB,Wiring & Cables,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfFyMAI,PRC-000000269,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZgIAJ,0416-0439,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,225
+0dSWs000000jfFzMAI,PRC-000000268,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya6IAB,Conduits and Fittings,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfG0MAI,PRC-000000270,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZhIAJ,0416-0527,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,226
+0dSWs000000jfG1MAI,PRC-000000248,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0ya7IAB,Weather Protected Enclosure,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,241
+0dSWs000000jfG2MAI,PRC-000000271,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZiIAJ,0541-1204,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,227
+0dSWs000000jfG3MAI,PRC-000000272,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZjIAJ,A030S169,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,228
+0dSWs000000jfG4MAI,PRC-000000273,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZkIAJ,A035K427,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,229
+0dSWs000000jfG5MAI,PRC-000000274,01tWs00000C0wxDIAR,FESBA Generator Set,01tWs00000C0yZlIAJ,A046D218,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,230
