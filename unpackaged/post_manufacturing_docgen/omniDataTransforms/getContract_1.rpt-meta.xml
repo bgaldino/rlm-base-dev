@@ -44,7 +44,7 @@
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
         <globalKey>1ba1e79b-4dc5-4861-bff6-d7f470b99710</globalKey>
-        <inputFieldName>Contract:CreatedBy.Name</inputFieldName>
+        <inputFieldName>Contract:CreatedBy:Name</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>getContract</name>
@@ -59,7 +59,7 @@
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
         <globalKey>664360d0-a00a-4d7f-b690-b6d165deaa1a</globalKey>
-        <inputFieldName>Contract:Items:Item.Name</inputFieldName>
+        <inputFieldName>Contract:Items:Item:Name</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>getContract</name>

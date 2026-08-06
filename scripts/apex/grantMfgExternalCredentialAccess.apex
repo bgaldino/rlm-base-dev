@@ -53,9 +53,8 @@ if (res.getStatusCode() != 200) {
 Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
 List<Object> records = (List<Object>) responseMap.get('records');
 
-if (records == null || records.isEmpty()) {
-    System.debug('WARNING: No ExternalCredentialParameter records found for target principals. Skipping.');
-    return;
+if (records == null) {
+    records = new List<Object>();
 }
 
 Map<String, Id> principalIdsByName = new Map<String, Id>();
@@ -64,6 +63,21 @@ for (Object record : records) {
     principalIdsByName.put((String) rec.get('ParameterName'), (Id) rec.get('Id'));
 }
 System.debug('Found ExternalCredentialParameter IDs: ' + principalIdsByName);
+
+// Fail loudly if any expected principal is missing — a partial match would
+// silently leave RLM_MFG_RCA incompletely configured.
+List<String> missingPrincipals = new List<String>();
+for (String expected : targetPrincipalNames) {
+    if (!principalIdsByName.containsKey(expected)) {
+        missingPrincipals.add(expected);
+    }
+}
+if (!missingPrincipals.isEmpty()) {
+    throw new CalloutException(
+        'ExternalCredentialParameter lookup missing expected principal(s): ' +
+        String.join(missingPrincipals, ', ')
+    );
+}
 
 // --- Step 3: Query target PermissionSet ---
 PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = :permSetApiName LIMIT 1];
