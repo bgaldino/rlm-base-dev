@@ -37,12 +37,20 @@ class LoadAAFData(LoadSFDMUData):
     }
 
     def _prep_runtime(self) -> None:
-        super()._prep_runtime()
-        # process_bool_arg coerces the option to a real bool: a string "false"
-        # from the CLI/YAML is otherwise truthy, which would silently skip the
-        # temp copy (and modify the version-controlled plan CSVs in place).
+        # Copy the plan to a temp dir and repoint the pathtoexportjson OPTION *before*
+        # super()._prep_runtime() runs. The parent's _prepare_export_json_file() writes the
+        # org accessToken into export.json at self.pathtoexportjson and _cleanup_export_json_file()
+        # scrubs whatever self.pathtoexportjson points at when the task ends. If we copied to
+        # temp *after* super(), the parent would inject the token into the version-controlled
+        # datasets/ plan and cleanup would only scrub the (soon-deleted) temp copy — leaving a
+        # live token in the tracked export.json. Copying first makes injection + cleanup both
+        # act on the temp copy, so the repo plan is never written.
+        # process_bool_arg coerces the option to a real bool: a string "false" from the
+        # CLI/YAML is otherwise truthy, which would silently skip the temp copy (and modify
+        # the version-controlled plan CSVs in place).
         if not process_bool_arg(self.options.get("debug_no_temp_copy", False)):
             self._copy_plan_to_temp()
+        super()._prep_runtime()
         self._sync_period_ids_from_org()
 
     def _get_org_for_cli(self) -> str:
@@ -71,8 +79,12 @@ class LoadAAFData(LoadSFDMUData):
     def _copy_plan_to_temp(self) -> None:
         """Copy plan to temp dir so we can modify CSVs without touching the repo.
         Excludes source/ and target/ so SFDMU starts fresh (avoids stale working copies).
+
+        Runs BEFORE super()._prep_runtime(), so it sources the plan dir from the option
+        (self.pathtoexportjson is not set yet) and repoints the OPTION at the temp copy so
+        the parent's token-injection and cleanup both act on the temp dir, never the repo.
         """
-        source_dir = self.pathtoexportjson
+        source_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         self._temp_plan_dir = tempfile.mkdtemp(prefix="sfdmu_aaf_")
         exclude_dirs = {"source", "target"}
         for item in os.listdir(source_dir):
@@ -84,6 +96,7 @@ class LoadAAFData(LoadSFDMUData):
                 shutil.copytree(src, dst)
             else:
                 shutil.copy2(src, dst)
+        self.options["pathtoexportjson"] = self._temp_plan_dir
         self.pathtoexportjson = self._temp_plan_dir
         self.logger.info(f"Copied AAF plan to temp dir for PeriodId injection")
 
@@ -109,6 +122,7 @@ class LoadAAFData(LoadSFDMUData):
             ["sf", "data", "query", "-q", "SELECT Id, FullyQualifiedLabel FROM Period", "-o", org_for_cli, "--json"],
             capture_output=True,
             text=True,
+            timeout=120,
         )
         if result.returncode != 0:
             raise CommandException(f"Period query failed: {strip_ansi_codes(result.stderr or result.stdout)}")
@@ -124,6 +138,7 @@ class LoadAAFData(LoadSFDMUData):
             ["sf", "data", "query", "-q", "SELECT Id, StockKeepingUnit FROM Product2", "-o", org_for_cli, "--json"],
             capture_output=True,
             text=True,
+            timeout=120,
         )
         if result.returncode != 0:
             raise CommandException(f"Product2 query failed: {strip_ansi_codes(result.stderr or result.stdout)}")
@@ -142,6 +157,7 @@ class LoadAAFData(LoadSFDMUData):
                 ["sf", "data", "query", "-q", "SELECT Id, Code FROM ProductCategory", "-o", org_for_cli, "--json"],
                 capture_output=True,
                 text=True,
+                timeout=120,
             )
             if result.returncode == 0:
                 records = json.loads(result.stdout).get("result", {}).get("records") or []

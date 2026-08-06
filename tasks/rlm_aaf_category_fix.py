@@ -106,7 +106,11 @@ class FixAAFCategoryExtraction(BaseSalesforceTask):
             )
         data = json.loads(result.stdout)
         records = data.get("result", {}).get("records") or []
-        return {r["Name"]: r["Category__r"]["Code"] for r in records if r.get("Category__r", {}).get("Code")}
+        return {
+            r["Name"]: r["Category__r"]["Code"]
+            for r in records
+            if r.get("Name") and r.get("Category__r", {}).get("Code")
+        }
 
     def _fix_csv(self, csv_path: str, name_to_code: dict) -> int:
         """Replace #N/A in Category__r.Code column with org values. Returns count of rows updated."""
