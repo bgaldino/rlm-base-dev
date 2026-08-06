@@ -1,0 +1,49 @@
+{
+  "apiVersion": "65.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, DeveloperName FROM BatchCalcJobDefinition ORDER BY DeveloperName",
+          "operation": "Readonly",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM Account ORDER BY Name",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Status, Frequency, StartDate, EndDate, ProgramReferenceNumber, RebateProgramUrl, PayoutCalculationDayCount, GracePeriodDayCount, CurrencyIsoCode FROM RebateProgram ORDER BY Name",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Status, StartDate, EndDate, RebateProgramId, PayoutCalculationDate, TransactionGracePeriodDate, CurrencyIsoCode, RebateProgram.Name FROM RebateProgramPayoutPeriod ORDER BY RebateProgram.Name, Name",
+          "operation": "Upsert",
+          "externalId": "Name;RebateProgram.Name"
+        },
+        {
+          "query": "SELECT Name, MemberStatus, AccountId, RebateProgramId, ShipToAccountId, IsPayoutCalcSkipped, CurrencyIsoCode, Account.Name, RebateProgram.Name FROM RebateProgramMember ORDER BY RebateProgram.Name, Account.Name",
+          "operation": "Upsert",
+          "externalId": "Account.Name;RebateProgram.Name"
+        },
+        {
+          "query": "SELECT Name, Status, RebateProgramId, AggregateObjectName, BenefitQualifierField, AccrualRate, CalculationBasis, CalcObjectId, CalculationMethod, CalculationType, CurrencyIsoCode, FilterAction, FilterLogic, IsIntegratable, MeasureField, RebateMeasureType, UnitofMeasureId, RebateProgram.Name, CalcObject.DeveloperName FROM ProgramRebateType ORDER BY RebateProgram.Name, Name",
+          "operation": "Upsert",
+          "externalId": "Name;RebateProgram.Name"
+        },
+        {
+          "query": "SELECT Name, Status, ProgramRebateTypeId, ProductId, BenefitValue, EffectiveStartDate, EffectiveEndDate, MaximumMeasureFieldValue, MaximumQualifyingValue, MinimumQualifyingValue, CurrencyIsoCode, ProgramRebateType.Name FROM ProgramRebateTypeBenefit ORDER BY ProgramRebateType.Name, Name",
+          "operation": "Upsert",
+          "externalId": "Name;ProgramRebateType.Name"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

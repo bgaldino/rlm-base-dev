@@ -1,60 +1,102 @@
-public class RLM_DocumentGenerationCreate {
-    @InvocableMethod(label='Build a PDF file from an Object' description='Accepts the Object Id and a DocTitle.' category='Document Generation')
+public with sharing class RLM_DocumentGenerationCreate {
+    @InvocableMethod(
+        label='Build a PDF file from an Object'
+        description='Accepts the Object Id and a DocTitle.'
+        category='Document Generation'
+    )
     public static List<Response> CreateDocument(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_DocumentGenerationCreate: at least one request is required.');
         }
-        // Bulkify: collect all template IDs and query once before the loop.
+
         Set<Id> templateIds = new Set<Id>();
-        for (Request req : requests) {
-            if (req.DocTemplateId != null) templateIds.add(req.DocTemplateId);
+        for (Integer index = 0; index < requests.size(); index++) {
+            Request request = requests[index];
+            validateRequest(request, index);
+            templateIds.add(request.DocTemplateId);
         }
+
         Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
             [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds]
         );
+        if (templateMap.size() != templateIds.size()) {
+            throw new IllegalArgumentException(
+                'RLM_DocumentGenerationCreate: one or more DocumentTemplate records were not found.'
+            );
+        }
+
+        List<DocumentGenerationProcess> processes = buildProcesses(requests, templateMap);
+        insert processes;
 
         List<Response> responses = new List<Response>();
-        for (Request req : requests) {
-            String stCurrRecordId = req.CurrentRecordId;
-            String stDocTitle = req.DocTitle;
-            Id stDocTemplateId = req.DocTemplateId;
-
-            DocumentTemplate dt = templateMap.get(stDocTemplateId);
-            Boolean isContextService = dt != null && dt.TokenMappingMethodType == 'ContextService';
-
-            DocumentGenerationProcess dgp = new DocumentGenerationProcess();
-            dgp.Type = 'GenerateAndConvert';
-            dgp.ReferenceObject = stCurrRecordId;
-            dgp.DocumentTemplateId = stDocTemplateId;
-            // Use JSON.serialize to safely escape DocTitle (avoids invalid JSON on quotes/newlines)
-            dgp.RequestText = JSON.serialize(new Map<String, Object>{ 'keepIntermediate' => true, 'title' => stDocTitle });
-            dgp.DocGenApiVersionType = 'Advanced';
-            dgp.DocumentInputType = 'DocumentTemplate';
-            if (isContextService) {
-                dgp.DocGenAdditionalInputType = 'ContextService';
-                // CS DocGen requires inputData format with the primary node name as key
-                String primaryNodeName = 'Quote';
-                dgp.DocGenAdditionalInput = JSON.serialize(new Map<String, Object>{
-                    'inputData' => new Map<String, Object>{
-                        primaryNodeName => new Map<String, Object>{ 'id' => stCurrRecordId }
-                    }
-                });
-            } else {
-                dgp.DataRaptorInput = JSON.serialize(new Map<String, Object>{ 'Id' => stCurrRecordId });
-            }
-
-            insert dgp;
-
-            Response res = new Response();
-            res.NewContentId = dgp.Id;
-            responses.add(res);
+        for (DocumentGenerationProcess process : processes) {
+            Response response = new Response();
+            response.NewContentId = process.Id;
+            responses.add(response);
         }
         return responses;
     }
 
+    @TestVisible
+    private static List<DocumentGenerationProcess> buildProcesses(
+        List<Request> requests,
+        Map<Id, DocumentTemplate> templateMap
+    ) {
+        List<DocumentGenerationProcess> processes = new List<DocumentGenerationProcess>();
+        for (Integer index = 0; index < requests.size(); index++) {
+            Request request = requests[index];
+            validateRequest(request, index);
+
+            DocumentTemplate template = templateMap.get(request.DocTemplateId);
+            if (template == null) {
+                throw new IllegalArgumentException(
+                    'RLM_DocumentGenerationCreate: DocumentTemplate was not found for request ' + index + '.'
+                );
+            }
+
+            DocumentGenerationProcess process = new DocumentGenerationProcess();
+            process.Type = 'GenerateAndConvert';
+            process.ReferenceObject = request.CurrentRecordId;
+            process.DocumentTemplateId = request.DocTemplateId;
+            process.RequestText = JSON.serialize(
+                new Map<String, Object>{ 'keepIntermediate' => true, 'title' => request.DocTitle }
+            );
+            process.DocGenApiVersionType = 'Advanced';
+            process.DocumentInputType = 'DocumentTemplate';
+
+            if (template.TokenMappingMethodType == 'ContextService') {
+                process.DocGenAdditionalInputType = 'ContextService';
+                // Context Service DocGen expects the primary entity Id, not a runtime Context API payload.
+                process.DocGenAdditionalInput = String.valueOf(request.CurrentRecordId);
+            } else {
+                process.DataRaptorInput = JSON.serialize(
+                    new Map<String, Object>{ 'Id' => request.CurrentRecordId }
+                );
+            }
+            processes.add(process);
+        }
+        return processes;
+    }
+
+    private static void validateRequest(Request request, Integer index) {
+        if (request == null) {
+            throw new IllegalArgumentException('RLM_DocumentGenerationCreate: request ' + index + ' is required.');
+        }
+        if (request.CurrentRecordId == null) {
+            throw new IllegalArgumentException(
+                'RLM_DocumentGenerationCreate: CurrentRecordId is required for request ' + index + '.'
+            );
+        }
+        if (request.DocTemplateId == null) {
+            throw new IllegalArgumentException(
+                'RLM_DocumentGenerationCreate: DocTemplateId is required for request ' + index + '.'
+            );
+        }
+    }
+
     public class Request {
         @InvocableVariable(label='Record of the Main object' required=true)
-        public String CurrentRecordId;
+        public Id CurrentRecordId;
 
         @InvocableVariable(required=true)
         public Id DocTemplateId;

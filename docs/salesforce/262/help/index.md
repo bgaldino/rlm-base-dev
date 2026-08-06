@@ -3,17 +3,17 @@
 Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billing, collections, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Summer '26 (262)
-**Last updated:** 2026-06-21T22:53:38Z
+**Last updated:** 2026-08-04T18:47:37Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
 | Discovered | 935 |
-| Captured | 932 |
+| Captured | 935 |
 | Pending | 0 |
-| Errored | 3 |
-| Total captured body chars | 2,170,948 |
+| Errored | 0 |
+| Total captured body chars | 2,174,838 |
 
 ## Per-Area Coverage
 
@@ -22,7 +22,7 @@ Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | **agents** | [ind.rev_agent_overview.htm](https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5) | `ind.rev_agent` | 13 | 2026-05-12T00:40:54Z |
 | **approvals** | [ind.approvals_advanced_approvals.htm](https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5) | `ind.approvals` | 34 | 2026-05-12T00:40:54Z |
 | **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5) | `ind.billing` | 171 | 2026-05-12T00:40:54Z |
-| **collections** | [ind.collections.htm](https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262) | `ind.collections` | 94 | 2026-06-21T22:53:38Z |
+| **collections** | [ind.collections.htm](https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262) | `ind.collections` | 97 | 2026-08-04T18:47:37Z |
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5) | `ind.product_configurator` | 76 | 2026-05-12T00:40:54Z |
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5) | `ind.dro` | 70 | 2026-05-12T00:40:54Z |
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5) | `ind.product_catalog` | 107 | 2026-05-12T00:40:54Z |
@@ -264,7 +264,7 @@ Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Tax Interface Extension](./articles/ind.billing_understand_tax_interface_extension.htm.md) | `ind.billing_understand_tax_interface_extension.htm` | 2,225 |
 | [Generated Billing Schedule Details](./articles/ind.billing_view_billing_sched_group.htm.md) | `ind.billing_view_billing_sched_group.htm` | 8,777 |
 
-## Captured — collections (94)
+## Captured — collections (97)
 
 | Article | ID | Bytes |
 |:--|:--|--:|
@@ -314,6 +314,9 @@ Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Customize the Prebuilt Flow to Update the Payment Details](./articles/ind.collections_customize_flow_update_payment.htm.md) | `ind.collections_customize_flow_update_payment.htm` | 770 |
 | [Customize Prebuilt Flows for Outbound Collections Dialer](./articles/ind.collections_customize_flows_outbound_calls.htm.md) | `ind.collections_customize_flows_outbound_calls.htm` | 10,455 |
 | [Customize the Prebuilt Flow Template to Generate and Send a Payment Link](./articles/ind.collections_customize_generate_link_flow.htm.md) | `ind.collections_customize_generate_link_flow.htm` | 1,185 |
+| [Customize the Prebuilt Omniscript for Direct Debit Request](./articles/ind.collections_customize_omniscript_for_direct_debit.htm.md) | `ind.collections_customize_omniscript_for_direct_debit.htm` | 1,184 |
+| [Customize Lightning Pages to View Compliance Check Information](./articles/ind.collections_customize_page_check_compliance.htm.md) | `ind.collections_customize_page_check_compliance.htm` | 1,193 |
+| [Customize Lightning Pages to View Collection Plans and Related Records in a Hierarchical View](./articles/ind.collections_customize_page_hierarchical_view.htm.md) | `ind.collections_customize_page_hierarchical_view.htm` | 1,513 |
 | [Collections and Recovery Data Model](./articles/ind.collections_data_model.htm.md) | `ind.collections_data_model.htm` | 1,427 |
 | [Customize the Preconfigured Action Launcher Deployment and Enable Interaction Summaries](./articles/ind.collections_edit_deployment_for_event_action.htm.md) | `ind.collections_edit_deployment_for_event_action.htm` | 1,559 |
 | [Editions and Permissions for Collections and Recovery](./articles/ind.collections_editions_permissions.htm.md) | `ind.collections_editions_permissions.htm` | 4,538 |
@@ -1018,12 +1021,6 @@ Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [View Liable Summaries](./articles/ind.um_view_liable_summary.htm.md) | `ind.um_view_liable_summary.htm` | 677 |
 | [Unified Usage Dashboard](./articles/ind.um_wallet_management.htm.md) | `ind.um_wallet_management.htm` | 897 |
 
-## Errored (3)
-
-- `ind.collections_customize_omniscript_for_direct_debit.htm` — Customize the Prebuilt Omniscript for Direct Debit Request — _no H1 found (article may be 404 or unrendered)_
-- `ind.collections_customize_page_check_compliance.htm` — Customize Lightning Pages to View Compliance Check Information — _no H1 found (article may be 404 or unrendered)_
-- `ind.collections_customize_page_hierarchical_view.htm` — Customize Lightning Pages to View Collection Plans and Related... — _no H1 found (article may be 404 or unrendered)_
-
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-06-21T22:53:38Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-08-04T18:47:37Z.*

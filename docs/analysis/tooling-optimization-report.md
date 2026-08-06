@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **62** Markdown files under `.cursor/skills/`
+- Skills inventoried: **65** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **52** checked, **0** missing
+- AGENTS.md skill references: **55** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -29,6 +29,7 @@
 - `.cursor/skills/README.md`
 - `.cursor/skills/apex-security-hardening/SKILL.md`
 - `.cursor/skills/audit-review/SKILL.md`
+- `.cursor/skills/audit-review/external-review-briefing.md`
 - `.cursor/skills/build-harness/SKILL.md`
 - `.cursor/skills/cci-orchestration/SKILL.md`
 - `.cursor/skills/cci-orchestration/custom-task-authoring.md`
@@ -40,6 +41,7 @@
 - `.cursor/skills/context-service/authoring-and-lifecycle.md`
 - `.cursor/skills/context-service/data-model-and-api.md`
 - `.cursor/skills/context-service/runtime-and-persistence.md`
+- `.cursor/skills/decision-tables/SKILL.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
 - `.cursor/skills/document-generation/SKILL.md`
 - `.cursor/skills/document-generation/data-mapper-authoring.md`
@@ -82,6 +84,7 @@
 - `.cursor/skills/sfdmu-data-plans/object-plan-mapping.md`
 - `.cursor/skills/sfdmu-data-plans/plan-dependency-graph.md`
 - `.cursor/skills/skill-authoring/SKILL.md`
+- `.cursor/skills/todo-tracker/SKILL.md`
 - `.cursor/skills/troubleshooting/SKILL.md`
 - `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - `.cursor/skills/txn-data-harness/SKILL.md`
@@ -108,6 +111,7 @@
 
 - ✅ `.cursor/skills/apex-security-hardening/SKILL.md`
 - ✅ `.cursor/skills/audit-review/SKILL.md`
+- ✅ `.cursor/skills/audit-review/external-review-briefing.md`
 - ✅ `.cursor/skills/build-harness/SKILL.md`
 - ✅ `.cursor/skills/cci-orchestration/SKILL.md`
 - ✅ `.cursor/skills/cci-orchestration/custom-task-authoring.md`
@@ -119,6 +123,7 @@
 - ✅ `.cursor/skills/context-service/authoring-and-lifecycle.md`
 - ✅ `.cursor/skills/context-service/data-model-and-api.md`
 - ✅ `.cursor/skills/context-service/runtime-and-persistence.md`
+- ✅ `.cursor/skills/decision-tables/SKILL.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `.cursor/skills/document-generation/SKILL.md`
 - ✅ `.cursor/skills/document-generation/data-mapper-authoring.md`
@@ -152,6 +157,7 @@
 - ✅ `.cursor/skills/sfdmu-data-plans/object-plan-mapping.md`
 - ✅ `.cursor/skills/sfdmu-data-plans/plan-dependency-graph.md`
 - ✅ `.cursor/skills/skill-authoring/SKILL.md`
+- ✅ `.cursor/skills/todo-tracker/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - ✅ `.cursor/skills/txn-data-harness/SKILL.md`
@@ -186,14 +192,16 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 
 - Present: **True**
 - Manifest version: `2`
-- Last verified: `2026-05-23`
+- Last verified: `2026-07-26`
 - Active Salesforce release: `262`
-- Manifest skill count: **25**
+- Manifest skill count: **29**
   - `apex-security-hardening`
   - `audit-review`
+  - `build-harness`
   - `cci-orchestration`
   - `constraint-models`
   - `context-service`
+  - `decision-tables`
   - `doc-consistency`
   - `document-generation`
   - `expression-sets`
@@ -201,6 +209,7 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
   - `odt-authoring`
   - `pde-org-build`
   - `pmos-integration`
+  - `pricing-wiring`
   - `qb-demo-script`
   - `release-enablement`
   - `repo-integration`
@@ -211,6 +220,7 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
   - `schema-validation`
   - `sfdmu-data-plans`
   - `skill-authoring`
+  - `todo-tracker`
   - `troubleshooting`
   - `txn-data-harness`
   - `usage-consumption`
