@@ -12,7 +12,7 @@
         </mappingFields>
          <mappingFields>
             <inputField>TotalPrice</inputField>
-            <outputField>Distance</outputField>
+            <outputField>TransactionAmount</outputField>
         </mappingFields>
         <outputObject>TransactionJournal</outputObject>
     </childObjectMapping>

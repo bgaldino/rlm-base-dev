@@ -5,7 +5,7 @@
         <isActive>true</isActive>
         <name>Standards and Compliance</name>
         <optionSourceResponseValue>false</optionSourceResponseValue>
-        <questionText>Review Standards &amp; Compliancy Requirements</questionText>
+        <questionText>Review Standards &amp; Compliance Requirements</questionText>
         <responseValues>Certification-CSA
 Listing-UL 2200</responseValues>
         <status>Active</status>

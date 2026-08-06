@@ -248,7 +248,7 @@
             <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
             <propertySetConfig>{
   &quot;controlWidth&quot; : 12.0,
-  &quot;label&quot; : &quot;Review Standards &amp; Compliancy Requirements&quot;,
+  &quot;label&quot; : &quot;Review Standards &amp; Compliance Requirements&quot;,
   &quot;showInputWidth&quot; : false,
   &quot;inputWidth&quot; : 12.0,
   &quot;required&quot; : false,

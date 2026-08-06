@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ObjectHierarchyRelationship xmlns="http://soap.sforce.com/2006/04/metadata">
+   <masterLabel>ObjectHierarchyRelationship</masterLabel>
    <parentObjectMapping>
       <inputObject>SalesAgreement</inputObject>
       <outputObject>TransactionJournal</outputObject>
@@ -21,7 +22,7 @@
       </mappingFields>
       <mappingFields>
         <inputField>TotalActualAmount</inputField>
-        <outputField>Distance</outputField>
+        <outputField>TransactionAmount</outputField>
       </mappingFields>
    </childObjectMapping>
    <usageType>EligibleProgramRebateType</usageType>

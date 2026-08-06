@@ -8,7 +8,7 @@
             <outputField>RebateProgramMemberId</outputField>
         </mappingFields>
         <mappingFields>
-            <inputField>Distance</inputField>
+            <inputField>TransactionAmount</inputField>
             <outputField>TotalTransactionAmount</outputField>
         </mappingFields>
         <mappingFields>
