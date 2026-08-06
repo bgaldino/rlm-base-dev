@@ -111,6 +111,8 @@ agents256*/**
 unpackaged/*bak/**
 # Demo data generator runtime manifests (one per run; not source)
 scripts/txn_data_harness/out/
+# Manufacturing local test scaffolding (mirrors datasets/sfdmu/test/**) — never committed
+unpackaged/post_manufacturing/test/**
 # Cross-repo skill manifest + shared slash commands are tracked artifacts;
 # everything else under .claude/ (settings.local.json, worktrees/, launch.json)
 # stays local. Pattern is .claude/* (not .claude/) so the negations below work —
