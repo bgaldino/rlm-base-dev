@@ -1,0 +1,2 @@
+Name,Description,IsTaxable,LegalEntity.Name,ProductCode,Status,TaxCode,TaxEngine.TaxEngineName,TaxPolicy.Name
+Default Tax Treatment - US,,true,Default Legal Entity - US,MFG-TAX-US,Draft,PA020111,RLM_MockTaxAdapter,Default Tax Policy

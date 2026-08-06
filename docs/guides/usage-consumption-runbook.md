@@ -69,8 +69,7 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 > anchor rate with no error anywhere. Refresh by hand there:
 >
 > ```bash
-> cci org default <cci_alias>   # refresh_dt_* take no --org flag
-> cci task run refresh_dt_asset
+> cci task run refresh_dt_asset --org <cci_alias>
 > ```
 >
 > Either way, confirm — and confirm it against the **source rows**, not on its own. A

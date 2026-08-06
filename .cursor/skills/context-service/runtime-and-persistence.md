@@ -637,7 +637,7 @@ PATCH builders (`build_update_attributes_body`, `build_write_tags_body`) and the
 
 ## Related
 
-- `SKILL.md` — routing, Quick Rules (rule 8 = runtime scoping), DO NOT, Entry
+- `SKILL.md` — routing, Quick Rules (rule 9 = runtime scoping), DO NOT, Entry
   Conditions.
 - `data-model-and-api.md` — the Connect-vs-SObject endpoint split; the runtime
   resources row.

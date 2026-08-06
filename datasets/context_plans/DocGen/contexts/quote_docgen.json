@@ -73,6 +73,7 @@
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerWebsite",    "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Website__c" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerCountry",   "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Country__c" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "ProductName",      "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "RLM_ProductName__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "ParentReference",  "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "QuoteId" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "Quantity",         "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "Quantity" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "ListPrice",        "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "ListPrice" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "Discount",         "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "Discount" },
