@@ -288,7 +288,7 @@ persona user instead. See the persona rows in the flow inventory below.
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
-| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
+| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 12 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
@@ -300,6 +300,9 @@ persona user instead. See the persona rows in the flow inventory below.
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 | `RLM_DecisionTableManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 7 (running user) · **`prepare_personas` step 9 (salesrep persona — non-admin)** | `RLM_DecisionTableManagerController` Apex class access, and nothing else. Deliberately narrow: the controller reads decision-table metadata and queues the platform's own refresh action — it deletes nothing, and the refresh is the same operation Setup offers. Object permissions on `DecisionTable` and friends are NOT granted and are not needed; they are setup entities whose read is platform-governed. Assigned to the persona because the component sits on the shared Home page, so withholding it leaves a visible section that errors. |
 | `RLM_RebuildSearchIndex` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 8 (running user) — **not** assigned to the salesrep persona | `RLM_RebuildSearchIndex` Apex class access; `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — same `$Api.Session_ID` loopback dependency as `RLM_ExpressionSetManager`, same Named Credential escape hatch). **No object permissions**, because the class runs no SOQL and no DML — its whole surface is one Connect callout to `/connect/pcm/index/deploy`. That callout carries the running user's session, so the endpoint applies that user's own catalog permissions; this set deliberately does not re-grant them, and a user without them gets `isSuccess=false` plus the endpoint's status code surfaced in the component rather than a silent no-op. Withheld from the persona because `ApiEnabled` is a broad system permission and a full catalog index rebuild is an admin operation — the same call already made for `RLM_ExpressionSetManager`. Before this set existed the class was granted in **no** permission set anywhere in the repo. |
+| `RLM_UsageUploader` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 9 (running user) — **not** assigned to the salesrep persona | `RLM_UsageUploaderController` Apex class access. Inserts `TransactionJournal` for usage upload, reads usage-related objects. Controller uses `Security.stripInaccessible(CREATABLE, ...)` for DML security hardening. All 14 SOQL queries reachable from `@AuraEnabled` methods use **`WITH USER_MODE`** — live-verified on the `july28` v67.0 scratch org: deploys clean, all Apex tests pass in-org. `uploadUsage` additionally validates quantity/date inputs and confirms the requested usage resource belongs to the asset's product before inserting. **Object permissions**: `TransactionJournal` CREATE+READ (CREATE is the only incremental grant; READ overlaps with always-assigned `RLM_USG` PSG); READ on `Asset`, `UsageResource`, `ProductUsageResource`, `UnitOfMeasure`, `UnitOfMeasureClass`, `AssetRateCardEntry`, `RateAdjustmentByTier`, `TransactionUsageEntitlement`, `UsageEntitlementBucket`, `Account`, `Contact`, `Product2`, `RateCard`, `RateCardEntry` (parent-lookup / relationship-traversal dependencies — `UnitOfMeasureClass` READ is required because `UsageResource.UnitOfMeasureClassId` is a traversal target even though the field itself is non-permissionable; `Contact` READ is required because on orgs with Person Accounts enabled, `Account` READ has an object-permission dependency on `Contact` READ — caught live on the `tcr_803` scratch org; all overlap with `RLM_USG` but retained for standalone functionality). **Field permissions**: FLS grants on every permissionable field the USER_MODE queries select or filter on — TransactionJournal create fields (editable) plus Asset (AccountId, Product2Id, LifecycleStartDate, LifecycleEndDate) and Product2 (UsageModelType) read fields. Most other queried objects (ProductUsageResource, UsageResource, AssetRateCardEntry, RateCardEntry, RateAdjustmentByTier, TransactionUsageEntitlement, UsageEntitlementBucket) expose **zero permissionable fields** — object-level READ fully covers their queried fields per platform rules, so no `fieldPermissions` rows exist for them. TransactionJournal omits six fields: two required (ActivityDate, Status) and four non-permissionable (AccountId, ReferenceRecordId, UsageResourceId, UsageType). **No `pageAccesses` or `ApiEnabled`** — controller does not call `getApiSessionId()`. Before this set existed the controller was granted in **no** permission set anywhere in the repo, so its LWC component worked only for an admin. Open item: a persona `System.runAs` walk surfaces `getRatesForAsset`'s `AssetRateCardEntry.RateCardEntryId` lookup throwing "No such column" for a non-admin user even with full object/field grants and the `RatingRunTimePsl`/`RatingDesignTimePsl` PSLs assigned — this did not resolve via permission-set changes and appears to be a platform Rate Management licensing behavior outside what a permission set can express; needs further investigation, tracked separately from this grant set. |
+| `RLM_UsageOrchestration` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 10 (running user) — **not** assigned to the salesrep persona | `RLM_UsageOrchestrationController` Apex class access. Starts client-specified autolaunched flows for usage orchestration. **Controller accepts a client-controlled flow API name and launches arbitrary autolaunched flows** — assign only to users who should have this broad capability. **No object or field permissions** (controller performs no SOQL/DML). **No `pageAccesses` or `ApiEnabled`**. Split from `RLM_UsageUploader` per #318 review to isolate the arbitrary-flow-launch capability from the usage-upload capability. Before this set existed the controller was granted in **no** permission set anywhere in the repo. |
+| `RLM_UsageDatatables` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 11 (running user) — **not** assigned to the salesrep persona | Apex class access to `RLM_UsageDataController` plus **READ-only** object and field permissions on usage objects (`TransactionJournal`, `UsageSummary`, `UsageBillingPeriodItem`, `Asset`, `UnitOfMeasure`, `UsageEntitlementAccount`, `UsageEntitlementBucket`, `UsageResource`), `Account`, and `Contact` for the `rlmUsageDataTable` LWC component on Account record pages. |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
@@ -321,6 +324,9 @@ Assigned in `prepare_tso` step 4.
 | `RLM_ExpressionSetManager` | Expression Set Manager component (Apex class, object reads, `RLM_SessionId` page, `ApiEnabled`) |
 | `RLM_DecisionTableManager` | Decision Table Manager component (`RLM_DecisionTableManagerController` Apex class access only) |
 | `RLM_RebuildSearchIndex` | Rebuild Search Index component (Apex class, `RLM_SessionId` page, `ApiEnabled`; no object perms — the class runs no SOQL/DML) |
+| `RLM_UsageUploader` | Usage uploader component (Apex class + WITH USER_MODE SOQL, DML via Security.stripInaccessible; TransactionJournal CREATE + comprehensive field-level READ grants; no page/ApiEnabled) |
+| `RLM_UsageOrchestration` | Usage orchestration component (Apex class only; launches client-specified autolaunched flows — broad capability) |
+| `RLM_UsageDatatables` | Usage datatables viewer (Apex class + READ-only usage-object permissions for rlmUsageDataTable LWC) |
 | `OrchestrationProcessManagerPermissionSet` | Orchestration process manager |
 | `EventMonitoringPermSet` | Event monitoring |
 
@@ -340,7 +346,6 @@ These permission sets are stored as metadata in this repository but are not assi
 | Permission Set | Deployed From | Purpose |
 |---|---|---|
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
-| `RLM_UsageDatatables` | `unpackaged/post_utils/` | Read access to usage objects + `RLM_UsageDataController` Apex class for Usage Datatable LWC |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS |
 | `DRO_Integrations` | `unpackaged/post_tso/` | DRO integration permissions (TSO only) |
 | `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
@@ -383,10 +388,13 @@ The following table shows the sequence of all permission-related steps across th
 | 7.6 | `prepare_quantumbit` | `RLM_UtilitiesPermset` | `quantumbit` |
 | 7.7 | `prepare_quantumbit` | `RLM_DecisionTableManager` | `quantumbit` |
 | 7.8 | `prepare_quantumbit` | `RLM_RebuildSearchIndex` | `quantumbit` |
-| 7.9 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 7.9 | `prepare_quantumbit` | `RLM_UsageUploader` | `quantumbit` |
+| 7.10 | `prepare_quantumbit` | `RLM_UsageOrchestration` | `quantumbit` |
+| 7.11 | `prepare_quantumbit` | `RLM_UsageDatatables` | `quantumbit` |
+| 7.12 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 18.4 | `prepare_tso` | TSO permission sets (7) | `tso` |
+| 18.4 | `prepare_tso` | TSO permission sets (10) | `tso` |
 | 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
 | 21.11 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
@@ -429,8 +437,8 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | *(always)* | Core RLM (25), `EinsteinAnalyticsPlusPsl` | 11 core PSGs | -- |
 | `clm` | CLM (11) | -- | -- |
 | `einstein` | AI (3) | -- | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` |
-| `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `RLM_ExpressionSetManager`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |
-| `quantumbit` | -- | -- | `RLM_QuantumBit`, `RLM_ExpressionSetManager`, `RLM_UtilitiesPermset`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex` |
+| `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `RLM_ExpressionSetManager`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex`, `RLM_UsageUploader`, `RLM_UsageOrchestration`, `RLM_UsageDatatables`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |
+| `quantumbit` | -- | -- | `RLM_QuantumBit`, `RLM_ExpressionSetManager`, `RLM_UtilitiesPermset`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex`, `RLM_UsageUploader`, `RLM_UsageOrchestration`, `RLM_UsageDatatables` |
 | `quantumbit` + `calmdelete` | -- | -- | `RLM_CALM_SObject_Access` |
 | `quantumbit` + `approvals` | -- | -- | `RLM_Approvals` |
 | `docgen` | -- | -- | `RLM_DocGen` |
@@ -454,5 +462,5 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
-6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+6. **Deploy-only permission sets** -- Several permission sets (e.g., agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
 7. **Persona assignments are not admin assignments** -- steps 28.6-28.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.
