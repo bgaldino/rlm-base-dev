@@ -379,8 +379,8 @@
                 <ul class="substeps">
                   <li>Open the <span class="loc">App Launcher</span> and search for <span class="val">Q Branch</span>.</li>
                   <li>Toggle all three feature settings to <span class="val">On</span> and click <span class="btn">Run Demo Boost</span> to authorize the pre-packaged metadata wrappers.</li>
-                  <div class="note" style="margin: 4px 0 4px -16px;">&#9432; This process could take up to 1 hour</div>
                 </ul>
+                <div class="note">&#9432; This process could take up to 1 hour</div>
               </div>
             </li>
           </ol>
@@ -404,8 +404,8 @@
                 <ul class="substeps">
                   <li>Access the browser-based <a href="https://demo-zone.tinyspeck.com/" target="_blank" style="color:#0176D3;font-weight:600;">Slack Demo Zone</a> management URL.</li>
                   <li>Authenticate via the <span class="btn">Sign in as primary owner</span> option in the browser window.</li>
-                  <div class="note" style="margin: 4px 0 4px -16px;">&#9432; Use the browser-based Slack interface for this step — do not use the local desktop app redirect.</div>
                 </ul>
+                <div class="note">&#9432; Use the browser-based Slack interface for this step — do not use the local desktop app redirect.</div>
               </div>
             </li>
             <li class="step">
