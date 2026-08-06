@@ -1,4 +1,4 @@
-<apex:page showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0">
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false" docType="html-5.0">
   <html lang="en">
   <head>
     <meta charset="UTF-8"/>
@@ -70,6 +70,21 @@
         padding: 8px 12px;
         cursor: pointer;
         user-select: none;
+        /* Button reset: these render as native button elements for keyboard
+           operability, so strip the UA chrome and let the .phase-N rules below win. */
+        width: 100%;
+        border: 0;
+        margin: 0;
+        text-align: left;
+        font-family: inherit;
+        color: inherit;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+      }
+      .phase-header:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: -3px;
       }
       .phase-badge {
         flex-shrink: 0;
@@ -314,13 +329,16 @@
       function togglePhase(id) {
         var body = document.getElementById(id);
         var chev = document.getElementById(id + '-chev');
+        var header = document.getElementById(id + '-header');
         var isOpen = body.classList.contains('open');
         body.classList.toggle('open', !isOpen);
         chev.classList.toggle('open', !isOpen);
+        if (header) { header.setAttribute('aria-expanded', String(!isOpen)); }
       }
       window.onload = function() {
         document.querySelectorAll('.phase-body').forEach(function(b){ b.classList.add('open'); });
         document.querySelectorAll('.phase-chevron').forEach(function(c){ c.classList.add('open'); });
+        document.querySelectorAll('.phase-header').forEach(function(h){ h.setAttribute('aria-expanded', 'true'); });
       };
     </script>
   </head>
@@ -334,13 +352,13 @@
       </div>
       <!-- ══ PHASE 1: Baseline Demo Org Preparation ══ -->
       <div class="phase phase-1">
-        <div class="phase-header" onclick="togglePhase('p1')">
+        <button type="button" class="phase-header" id="p1-header" aria-expanded="true" aria-controls="p1" onclick="togglePhase('p1')">
           <div class="phase-badge">1</div>
           <div class="phase-label">Baseline Demo Org Preparation</div>
           <span class="phase-env">Run Env</span>
           <div class="phase-chevron" id="p1-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p1">
+        </button>
+        <div class="phase-body" id="p1" role="region" aria-labelledby="p1-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Initialize core database elements inside the Salesforce environment before connecting external tools.</p>
           <ol class="steps">
             <li class="step">
@@ -370,13 +388,13 @@
       </div>
       <!-- ══ PHASE 2: Salesforce & Slack Setup ══ -->
       <div class="phase phase-2">
-        <div class="phase-header" onclick="togglePhase('p2')">
+        <button type="button" class="phase-header" id="p2-header" aria-expanded="true" aria-controls="p2" onclick="togglePhase('p2')">
           <div class="phase-badge">2</div>
           <div class="phase-label">Salesforce &amp; Slack Setup</div>
           <span class="phase-env">Run Env</span>
           <div class="phase-chevron" id="p2-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p2">
+        </button>
+        <div class="phase-body" id="p2" role="region" aria-labelledby="p2-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Establish an authentic connection between Salesforce core application data and the target Slack workspace.</p>
           <ol class="steps">
             <li class="step">
@@ -405,13 +423,13 @@
       </div>
       <!-- ══ PHASE 3: Agentforce & Slack Setup ══ -->
       <div class="phase phase-3">
-        <div class="phase-header" onclick="togglePhase('p3')">
+        <button type="button" class="phase-header" id="p3-header" aria-expanded="true" aria-controls="p3" onclick="togglePhase('p3')">
           <div class="phase-badge">3</div>
           <div class="phase-label">Agentforce &amp; Slack Setup</div>
           <span class="phase-env">Run Env</span>
           <div class="phase-chevron" id="p3-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p3">
+        </button>
+        <div class="phase-body" id="p3" role="region" aria-labelledby="p3-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Expose Agentforce models to conversational channels and configure contextual record tracking.</p>
           <ol class="steps">
             <li class="step">
@@ -476,13 +494,13 @@
       </div>
       <!-- ══ PHASE 4: Data Cloud & Permission Synchronization ══ -->
       <div class="phase phase-4">
-        <div class="phase-header" onclick="togglePhase('p4')">
+        <button type="button" class="phase-header" id="p4-header" aria-expanded="true" aria-controls="p4" onclick="togglePhase('p4')">
           <div class="phase-badge">4</div>
           <div class="phase-label">Data Cloud &amp; Permission Synchronization</div>
           <span class="phase-env">Run Env</span>
           <div class="phase-chevron" id="p4-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p4">
+        </button>
+        <div class="phase-body" id="p4" role="region" aria-labelledby="p4-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Provision Data Cloud storage mechanics to prepare for advanced features like the conversational workspace assistant.</p>
           <ol class="steps">
             <li class="step">
@@ -510,13 +528,13 @@
       </div>
       <!-- ══ PHASE 5: Cursor IDE & Local Dev Tooling Configuration ══ -->
       <div class="phase phase-5">
-        <div class="phase-header" onclick="togglePhase('p5')">
+        <button type="button" class="phase-header" id="p5-header" aria-expanded="true" aria-controls="p5" onclick="togglePhase('p5')">
           <div class="phase-badge">5</div>
           <div class="phase-label">Cursor IDE &amp; Local Dev Tooling Configuration</div>
           <span class="phase-env">Build Env</span>
           <div class="phase-chevron" id="p5-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p5">
+        </button>
+        <div class="phase-body" id="p5" role="region" aria-labelledby="p5-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Transition into the local development environment to begin building and testing components.</p>
           <ol class="steps">
             <li class="step">
@@ -570,13 +588,13 @@
       </div>
       <!-- ══ PHASE 6: DevHub Handshake & Scratch Org Lifecycle ══ -->
       <div class="phase phase-6">
-        <div class="phase-header" onclick="togglePhase('p6')">
+        <button type="button" class="phase-header" id="p6-header" aria-expanded="true" aria-controls="p6" onclick="togglePhase('p6')">
           <div class="phase-badge">6</div>
           <div class="phase-label">DevHub Handshake &amp; Scratch Org Lifecycle</div>
           <span class="phase-env">Build Env</span>
           <div class="phase-chevron" id="p6-chev">&#9654;</div>
-        </div>
-        <div class="phase-body" id="p6">
+        </button>
+        <div class="phase-body" id="p6" role="region" aria-labelledby="p6-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Spin up isolated scratch orgs to safely test metadata package builds before promoting to production.</p>
           <ol class="steps">
             <li class="step">
