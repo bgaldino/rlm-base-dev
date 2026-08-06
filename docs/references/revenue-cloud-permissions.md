@@ -288,7 +288,7 @@ persona user instead. See the persona rows in the flow inventory below.
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
-| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 13 | SObject access for CALM Delete operations |
+| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 12 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
@@ -391,7 +391,7 @@ The following table shows the sequence of all permission-related steps across th
 | 7.9 | `prepare_quantumbit` | `RLM_UsageUploader` | `quantumbit` |
 | 7.10 | `prepare_quantumbit` | `RLM_UsageOrchestration` | `quantumbit` |
 | 7.11 | `prepare_quantumbit` | `RLM_UsageDatatables` | `quantumbit` |
-| 7.13 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 7.12 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
 | 18.4 | `prepare_tso` | TSO permission sets (10) | `tso` |

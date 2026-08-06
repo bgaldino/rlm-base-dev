@@ -135,7 +135,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 13 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -390,7 +390,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 9 → `assign_permission_sets`
 - `prepare_quantumbit` step 10 → `assign_permission_sets`
 - `prepare_quantumbit` step 11 → `assign_permission_sets`
-- `prepare_quantumbit` step 13 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
