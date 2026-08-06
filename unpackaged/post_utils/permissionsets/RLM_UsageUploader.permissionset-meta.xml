@@ -2,19 +2,20 @@
 <!-- Permission set granting Apex class access and comprehensive object/field permissions
      required by the RLM_UsageUploaderController class (rlmUsageUploader LWC component).
 
-     Inserts TransactionJournal records (usage upload) and reads usage-related objects. Controller
-     uses Security.stripInaccessible(CREATABLE, ...) for DML security hardening. WITH USER_MODE /
-     AccessLevel.USER_MODE would provide additional SOQL/DML enforcement but are not available on
-     Summer '26 v67.0 orgs built from this repo's scratch org definitions (feature appears to be
-     preview/pilot-gated, despite existing in other v67.0 classes in this codebase).
+     Inserts TransactionJournal records (usage upload) and reads usage-related objects. All 14
+     SOQL queries reachable from @AuraEnabled methods use WITH USER_MODE (live-verified on the
+     july28 v67.0 scratch org: deploys clean, all Apex tests pass in-org). DML uses
+     Security.stripInaccessible(CREATABLE, ...).
 
-     Field-level permissions are limited to the four permissionable, nillable TransactionJournal
-     create fields below. Most queried fields across usage objects are required (per Salesforce
-     platform rules, required fields cannot be granted via fieldPermissions and reject the deploy).
-     Object-level READ grants provide object access; users inherit READ FLS on required fields
-     automatically per platform behavior. Six TransactionJournal fields are omitted: two required
-     (ActivityDate, Status) and four non-permissionable (AccountId, ReferenceRecordId,
-     UsageResourceId, UsageType).
+     Field-level permissions cover every permissionable field the USER_MODE queries select or
+     filter on: TransactionJournal create fields (editable) plus Asset/Product2 read fields
+     (readable only — the controller never writes them). Most other queried objects
+     (ProductUsageResource, UsageResource, AssetRateCardEntry, RateCardEntry,
+     RateAdjustmentByTier, TransactionUsageEntitlement, UsageEntitlementBucket) expose zero
+     permissionable fields at all — object-level READ fully covers their queried fields per
+     platform rules, so no fieldPermissions rows exist for them. TransactionJournal omits six
+     fields: two required (ActivityDate, Status) and four non-permissionable (AccountId,
+     ReferenceRecordId, UsageResourceId, UsageType).
 
      Note: All 12 READ object grants overlap with the RLM_USG permission set group (always assigned).
      The only incremental permissions are TransactionJournal CREATE plus field-level grants. READ
@@ -46,6 +47,33 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>TransactionJournal.QuantityUnitOfMeasureId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+
+    <!-- Read-only: Asset/Product2 fields selected or filtered on by the USER_MODE queries above. -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Asset.AccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Asset.Product2Id</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Asset.LifecycleStartDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Asset.LifecycleEndDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Product2.UsageModelType</field>
         <readable>true</readable>
     </fieldPermissions>
 
@@ -101,6 +129,15 @@
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
         <object>UnitOfMeasure</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>UnitOfMeasureClass</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
