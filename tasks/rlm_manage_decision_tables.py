@@ -27,9 +27,59 @@ from datetime import datetime
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
+    from cumulusci.core.utils import process_bool_arg
+    from simple_salesforce import Salesforce
 except ImportError:
     BaseTask = object
     TaskOptionsError = Exception
+    Salesforce = None
+
+    def process_bool_arg(arg):
+        """
+        Offline fallback so this module still imports without CumulusCI.
+
+        ⚠ Same vocabulary and the same TypeError as cumulusci.core.utils.process_bool_arg.
+        NOT identical: CCI emits two DeprecationWarnings for None that this does not, and
+        both call sites pre-empt None with `or False` so that path is unreachable anyway.
+        An earlier version returned bool(arg) for anything unrecognised, so "maybe" became
+        True offline and raised under the real helper — a fallback that disagrees with the
+        thing it stands in for makes any test using it prove the wrong thing.
+        """
+        if isinstance(arg, (int, bool)):
+            return bool(arg)
+        if arg is None:
+            return False
+        if isinstance(arg, str):
+            if arg.lower() in ("yes", "y", "true", "on", "1"):
+                return True
+            if arg.lower() in ("no", "n", "false", "off", "0"):
+                return False
+        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
+
+
+def _as_name_list(value, option_name: str) -> List[str]:
+    """
+    Normalise a task option that names one or more records into a list.
+
+    ⚠ The comma split is the whole point. `cci task run ... -o developer_names "A,B,C"`
+    hands this a single string; treating it as one name silently operates on a table
+    called "A,B,C" — which does not exist — while reporting "1 decision table(s)".
+    That is what shipped before 2026-07-27, so a multi-table refresh from the CLI never
+    worked. YAML callers still pass a real list and are unaffected.
+    """
+    if isinstance(value, str):
+        names = [part.strip() for part in value.split(",")]
+    elif isinstance(value, list):
+        names = [str(part).strip() for part in value]
+    else:
+        raise TaskOptionsError(
+            f"{option_name} must be a string or list of strings, got {type(value).__name__}"
+        )
+
+    names = [name for name in names if name]
+    if not names:
+        raise TaskOptionsError(f"{option_name} was provided but contained no usable names.")
+    return names
 
 
 class ManageDecisionTables(BaseTask):
@@ -41,7 +91,85 @@ class ManageDecisionTables(BaseTask):
     - Refreshing decision tables (full or incremental)
     - Listing decision tables with metadata
     """
-    
+
+    # Every operation here needs an org. Without this, BaseTask.salesforce_task defaults
+    # to False, the CLI builds no --org option, and the task silently runs against the
+    # CCI DEFAULT org instead of the one asked for (see issue #320 for the repo-wide
+    # sweep — this task was one of the 102).
+    salesforce_task = True
+
+    def _update_credentials(self):
+        """
+        Refresh the OAuth token before the task runs.
+
+        ⚠ `salesforce_task = True` buys the `--org` option and the missing-org guard —
+        it does NOT bring a token refresh. Only `BaseSalesforceTask` overrides
+        `BaseTask._update_credentials`, which is a bare `pass`, and this task hits the
+        REST API directly, so per `cci-orchestration/custom-task-authoring.md` it wants
+        the refresh.
+
+        ⚠ Scope the risk honestly. The stale-token failure this guards against needs a
+        plain `OrgConfig` — the `cci org connect` shape, where the stored token is used
+        as-is. **This project does not have that shape**: the sf CLI manages auth, so
+        every org is an `SfdxOrgConfig` (or its `ScratchOrgConfig` subclass), which
+        resolves `access_token` through `sfdx_info` and is always fresh. So the override is
+        correctness insurance for the class, not a fix for an incidence anyone here has
+        met — do not cite it as one.
+        """
+        # save_if_changed, matching BaseSalesforceTask: refresh_oauth_token also reloads
+        # user and org info, and without the wrapper that work is discarded at exit.
+        #
+        # ⚠ No connected-app handling, deliberately. Every org here is an SfdxOrgConfig
+        # (or its ScratchOrgConfig subclass), which overrides refresh_oauth_token to shell
+        # `sf org display` — no OAuth flow, no connected app. Verified against the keychain
+        # 2026-07-27: zero plain OrgConfig. So this cannot raise ServiceNotConfigured.
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)
+
+    def _pinned_salesforce_client(self):
+        """
+        A Salesforce client on the PROJECT's API version, not the org's newest.
+
+        `org_config.salesforce_client` builds itself with `latest_api_version`, which
+        GETs /services/data and takes the last entry — so it drifts upward the moment an
+        org is upgraded ahead of the project.
+
+        Called only by `_sf`. The instance normalisation is character-for-character what
+        CCI's own `OrgConfig.salesforce_client` does, so My Domain / sandbox /
+        enhanced-domain hostnames behave exactly as they do under the unpinned client.
+        """
+        api_version = self.project_config.project__package__api_version
+        if not api_version or Salesforce is None:
+            # ⚠ Say so. A fix that silently degrades is the "stops the damage but does
+            # not propagate the signal" shape REVIEW.md calls out. Unreachable in this
+            # repo today (cumulusci.yml pins api_version: "67.0", a truthy string), which
+            # is precisely why it would go unnoticed if it ever became reachable.
+            self.logger.warning(
+                "No project api_version pin available; falling back to the org's latest "
+                "API version. Decision-table calls are NOT pinned to the project version."
+            )
+            return self.org_config.salesforce_client
+        return Salesforce(
+            instance=self.org_config.instance_url.replace("https://", ""),
+            session_id=self.org_config.access_token,
+            version=api_version,
+        )
+
+    @property
+    def _sf(self):
+        """
+        The pinned client, built once per task run and reused by every operation.
+
+        ⚠ EVERY call site in this class goes through here — query, refresh and the
+        activate/deactivate WRITE. An earlier version pinned only the refresh, which left
+        the query and the only write running on the org's newest API instead of the
+        project's. Writes are where an unannounced version bump is most likely to change
+        validation or required-field behaviour, so if you add an operation, use `self._sf`.
+        """
+        if getattr(self, "_sf_client", None) is None:
+            self._sf_client = self._pinned_salesforce_client()
+        return self._sf_client
+
     task_options = {
         "operation": {
             "description": "Operation to perform: 'list', 'refresh', 'query', 'activate', 'deactivate', 'validate_lists'",
@@ -125,7 +253,10 @@ class ManageDecisionTables(BaseTask):
                     # Parse ISO format datetime
                     dt_obj = datetime.fromisoformat(last_sync.replace('Z', '+00:00'))
                     last_sync = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
-                except:
+                except Exception:
+                    # Cosmetic only — an unparseable stamp is printed raw rather than
+                    # failing a listing. `except Exception:` not a bare `except:`, which
+                    # would also swallow KeyboardInterrupt.
                     pass
             
             self.logger.info(f"{dev_name:<50} {status:<10} {usage_type:<28} {last_sync:<25} {setup_name:<50}")
@@ -146,7 +277,7 @@ class ManageDecisionTables(BaseTask):
             
             # Get Salesforce connection - DecisionTable is a Tooling API object
             # Try using salesforce_client first (works for some Tooling API objects)
-            sf = self.org_config.salesforce_client
+            sf = self._sf
             
             # Build SOQL query
             soql = self._build_soql_query()
@@ -192,11 +323,8 @@ class ManageDecisionTables(BaseTask):
         # Filter by developer names if provided
         developer_names = self.options.get("developer_names")
         if developer_names:
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-            
+            developer_names = _as_name_list(developer_names, "developer_names")
+
             # Escape single quotes in developer names
             escaped_names = [name.replace("'", "\\'") for name in developer_names]
             names_str = "', '".join(escaped_names)
@@ -244,13 +372,13 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
         else:
-            # Convert to list if string
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-        
-        is_incremental = self.options.get("is_incremental", False)
+            developer_names = _as_name_list(developer_names, "developer_names")
+
+        # ⚠ process_bool_arg, not the raw option. CCI hands CLI options through as
+        # STRINGS, so `-o is_incremental false` arrives as "false" — truthy — and would
+        # silently select an incremental refresh while logging "full". YAML callers pass
+        # a real bool and are unaffected.
+        is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
         refresh_type = "incremental" if is_incremental else "full"
         
         self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type} refresh)...")
@@ -258,22 +386,58 @@ class ManageDecisionTables(BaseTask):
         # Use Salesforce REST API to call the refreshDecisionTable action
         if not hasattr(self, 'org_config') or not self.org_config:
             raise TaskOptionsError("No org_config available")
-        
-        # Get connection and API version
-        conn = self.org_config.get_connection()
-        api_version = self.org_config.api_version
-        
+
+        sf = self._sf  # pinned client; rationale on _pinned_salesforce_client
+
         success_count = 0
         fail_count = 0
-        
+
         for developer_name in developer_names:
             try:
-                result = self._refresh_single_decision_table(conn, api_version, developer_name, is_incremental)
-                
-                if result.get('isSuccess'):
+                result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
+
+                # ⚠ isSuccess means the action was ACCEPTED, not that the table was
+                # rebuilt. refreshDecisionTable is asynchronous: it returns Status
+                # 'Queued' and the work completes later. Reporting "successfully
+                # refreshed" off isSuccess alone is the stale-but-claims-otherwise
+                # failure this task exists to prevent, so the log says exactly what was
+                # established — queued.
+                #
+                # ⚠ Fail CLOSED on the status. Salesforce documents the output as Queued
+                # or Failed, so only an explicit Queued is evidence of acceptance; a
+                # missing, empty or unrecognised Status (including the 'Unknown'
+                # fallback below) is not evidence and is counted as a failure. An
+                # earlier version accepted "anything but Failed", which let a malformed
+                # or version-drifted response claim a queue that never happened.
+                #
+                # ⚠ Points at check_decision_table_freshness ONLY. Do not add
+                # DecisionTable.RefreshStatus here — pricing-wiring/SKILL.md rules it out
+                # as a detector, because it lives on a table record and so says nothing
+                # for the failure that actually occurs (an unresolvable name leaves no
+                # record to stamp). LastSyncDate, which the freshness check uses, is the
+                # one signal that holds for every shape.
+                # ⚠ Sentinel AFTER the strip, not before. A whitespace-only Status is
+                # truthy, so `or 'Unknown'` never fires and .strip() then leaves '' —
+                # printing "Status:  (expected 'Queued')" and telling the operator
+                # nothing at the exact moment the gate is trying to explain itself.
+                action_status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
+                if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
-                    status = result.get('outputValues', {}).get('Status', 'Unknown')
-                    self.logger.info(f"✅ Successfully refreshed '{developer_name}' - Status: {status}")
+                    self.logger.info(
+                        f"Refresh queued for '{developer_name}' - Status: {action_status}. "
+                        "Completion is asynchronous; verify with check_decision_table_freshness "
+                        "AFTER the job completes — a queued refresh has not yet advanced "
+                        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+                    )
+                elif result.get('isSuccess'):
+                    fail_count += 1
+                    self.logger.error(
+                        f"❌ Refresh of '{developer_name}' was accepted but reported "
+                        f"Status: {action_status} (expected 'Queued'); treating as not queued. "
+                        "If this is a new platform status rather than a failure, confirm with "
+                        "check_decision_table_freshness once any queued job completes, then "
+                        "extend the accepted set."
+                    )
                 else:
                     fail_count += 1
                     errors = result.get('errors', [])
@@ -288,10 +452,18 @@ class ManageDecisionTables(BaseTask):
         
         # Summary
         self.logger.info("")
-        self.logger.info(f"Refresh Summary: {success_count} succeeded, {fail_count} failed")
+        self.logger.info(
+            f"Refresh Summary: {success_count} queued, {fail_count} not queued"
+        )
         
         if fail_count > 0:
-            raise TaskOptionsError(f"Failed to refresh {fail_count} decision table(s). Check logs for details.")
+            # "not queued", not "failed to refresh" — this task never observes a refresh
+            # completing, so it cannot claim one failed. It covers both a rejected request
+            # and one accepted with a Status other than Queued.
+            raise TaskOptionsError(
+                f"Failed to queue a refresh for {fail_count} decision table(s). "
+                "Check logs for details."
+            )
 
     def _validate_lists(self):
         """
@@ -321,8 +493,7 @@ class ManageDecisionTables(BaseTask):
         # Resolve which list anchors to validate
         list_anchors = self.options.get("list_anchors")
         if list_anchors:
-            if isinstance(list_anchors, str):
-                list_anchors = [list_anchors]
+            list_anchors = _as_name_list(list_anchors, "list_anchors")
         else:
             list_anchors = self._get_decision_table_list_anchors()
 
@@ -399,14 +570,17 @@ class ManageDecisionTables(BaseTask):
         anchors = [k for k in custom.keys() if k.startswith("dt_") and k.endswith("_decision_tables")]
         return sorted(anchors)
     
-    def _refresh_single_decision_table(self, conn, api_version: str, developer_name: str, is_incremental: bool) -> Dict:
+    def _refresh_single_decision_table(self, sf, developer_name: str, is_incremental: bool) -> Dict:
         """
         Refresh a single decision table using the refreshDecisionTable action.
-        
+
         Uses the Salesforce REST API actions endpoint.
         """
-        endpoint = f"/services/data/v{api_version}/actions/standard/refreshDecisionTable"
-        
+        # ⚠ Relative path, deliberately. simple_salesforce's restful() joins this onto
+        # base_url, which already ends in /services/data/v<version>/ — passing an
+        # absolute path produced a doubled prefix and a 404.
+        endpoint = "actions/standard/refreshDecisionTable"
+
         payload = {
             "inputs": [
                 {
@@ -415,9 +589,8 @@ class ManageDecisionTables(BaseTask):
                 }
             ]
         }
-        
-        # Use the connection's restful method
-        result = conn.restful(endpoint, method='POST', json=payload)
+
+        result = sf.restful(endpoint, method='POST', json=payload)
         
         # Handle response format
         if isinstance(result, list):
@@ -438,10 +611,7 @@ class ManageDecisionTables(BaseTask):
                 "developer_names is required for activate/deactivate operations"
             )
 
-        if isinstance(developer_names, str):
-            developer_names = [developer_names]
-        elif not isinstance(developer_names, list):
-            raise TaskOptionsError("developer_names must be a string or list of strings")
+        developer_names = _as_name_list(developer_names, "developer_names")
 
         escaped_names = [name.replace("'", "\\'") for name in developer_names]
         names_str = "', '".join(escaped_names)
@@ -449,7 +619,7 @@ class ManageDecisionTables(BaseTask):
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
             f"WHERE DeveloperName IN ('{names_str}')"
         )
-        sf = self.org_config.salesforce_client
+        sf = self._sf
         records = sf.query(soql).get("records", [])
         if not records:
             raise TaskOptionsError(

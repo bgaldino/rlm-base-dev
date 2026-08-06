@@ -2923,7 +2923,7 @@
 
 ### `refresh_dt_commerce`
 
-**Description:** Refresh Commerce Decision Tables (when commerce flag is true)
+**Description:** Refresh Commerce Decision Tables. Run by refresh_all_decision_tables when the commerce OR tso flag is true — a TSO template ships these tables regardless of the commerce flag, so a TSO build must refresh them or it inherits the template org's rows.
 
 **Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
 
