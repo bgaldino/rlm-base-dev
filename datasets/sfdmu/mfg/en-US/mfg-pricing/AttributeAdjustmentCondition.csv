@@ -1,0 +1,3 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+Rule_1740148744482;Engine_AD;414LP-KAA-E-SSL,Rule_1740148744482,Engine_AD,#N/A,#N/A,#N/A,#N/A,#N/A,equals,414LP-KAA-E-SSL,90 Hp
+Rule_1749164827736;Duty Rating;FESBA-FRD,Rule_1749164827736,Duty Rating,#N/A,#N/A,#N/A,#N/A,#N/A,equals,FESBA-FRD,Data Center Continuous (DCC)

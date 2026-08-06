@@ -1,0 +1,9 @@
+$$Name$RebateProgram.Name,CurrencyIsoCode,EndDate,Name,PayoutCalculationDate,RebateProgram.Name,StartDate,Status,TransactionGracePeriodDate
+FQ3 FY 2025;Global Incentive Program,USD,2025-09-30,FQ3 FY 2025,2025-10-01,Global Incentive Program,2025-07-01,Active,2025-10-01
+FQ2 FY 2025;Global Incentive Program,USD,2025-06-30,FQ2 FY 2025,2025-07-01,Global Incentive Program,2025-04-01,Active,2025-07-01
+FQ1 FY 2026;Global Incentive Program,USD,2026-03-31,FQ1 FY 2026,2026-04-01,Global Incentive Program,2026-01-01,Active,2026-04-01
+FQ1 FY 2025;Global Incentive Program,USD,2025-03-31,FQ1 FY 2025,2025-04-01,Global Incentive Program,2025-01-01,Active,2025-04-01
+FQ3 FY 2026;Global Incentive Program,USD,2026-09-30,FQ3 FY 2026,2026-10-01,Global Incentive Program,2026-07-01,Active,2026-10-01
+FQ4 FY 2026;Global Incentive Program,USD,2026-12-31,FQ4 FY 2026,2027-01-01,Global Incentive Program,2026-10-01,Active,2027-01-01
+FQ4 FY 2025;Global Incentive Program,USD,2025-12-31,FQ4 FY 2025,2026-01-01,Global Incentive Program,2025-10-01,Active,2026-01-01
+FQ2 FY 2026;Global Incentive Program,USD,2026-06-30,FQ2 FY 2026,2026-07-01,Global Incentive Program,2026-04-01,Active,2026-07-01
