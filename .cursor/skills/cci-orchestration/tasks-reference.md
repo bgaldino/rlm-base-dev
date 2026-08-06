@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **10 groups**.
+**274 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*165 task(s)*
 
 ### `activate_agents`
 
@@ -1996,6 +1996,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm_pricing/permissionsets`
+
+---
+
+### `deploy_post_setup_guide`
+
+**Description:** Deploy the QuantumBit Demo Setup guide (Visualforce page).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_setup_guide`
 
 ---
 

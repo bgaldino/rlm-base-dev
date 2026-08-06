@@ -448,7 +448,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
    - `api_names`: `['RLM_DecisionTableManager']`
    - `user_alias`: `salesrep`
-10. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_QuantumBitDemoSetup']`
+   - `user_alias`: `salesrep`
+11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -559,6 +562,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_RebuildSearchIndex']`
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
+10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 
 ---
 
