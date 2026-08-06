@@ -133,12 +133,13 @@ class FixAAFCategoryExtraction(BaseSalesforceTask):
                 cat_col = fn
             elif n == "Name":
                 name_col = fn
+        # Raise rather than warn-and-continue: silently skipping leaves the
+        # extraction with un-repaired #N/A values and callers have no way to
+        # detect that the fix was not applied.
         if not cat_col:
-            self.logger.warning(f"Category__r.Code column not found in {csv_path}")
-            return 0
+            raise CommandException(f"Category__r.Code column not found in {csv_path}")
         if not name_col:
-            self.logger.warning(f"Name column not found in {csv_path}")
-            return 0
+            raise CommandException(f"Name column not found in {csv_path}")
 
         fixed = 0
         for row in rows:

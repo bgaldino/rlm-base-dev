@@ -28,6 +28,16 @@ class LoadAAFData(LoadSFDMUData):
     SFDMU against the temp copy so the version-controlled dataset is not modified.
     """
 
+    # LoadSFDMUData extends SFDXBaseTask, documented as "call the sfdx cli with
+    # params and NO org", which leaves BaseTask.salesforce_task at False. Left
+    # unset, cci's CLI never offers --org (cli/task.py builds the option list from
+    # task_class.salesforce_task), so this task can only ever run against the
+    # default org -- unsafe here because the AAF plan uses deleteOldData. Declaring
+    # it True fixes that without re-parenting (see
+    # .cursor/skills/cci-orchestration/custom-task-authoring.md and the same fix on
+    # FileBasedAnonymousApexTask in tasks/rlm_apex_file.py).
+    salesforce_task = True
+
     task_options = {
         **LoadSFDMUData.task_options,
         "debug_no_temp_copy": {
