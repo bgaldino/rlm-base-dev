@@ -157,4 +157,4 @@ All tests detect current state before making changes:
 
 ## Generated Output
 
-Running any test produces log and report files in `robot/rlm-base/results/` (or `--outputdir`). On failure, screenshots are saved automatically. This directory is in `.gitignore`; do not commit its contents. To remove local run artifacts: `rm -f robot/rlm-base/results/*`.
+Running any test produces log and report files in `robot/rlm-base/results/<task>/<org>/` (e.g. `robot/rlm-base/results/enable_timeline/my_org_sandbox/`). Pass `-o outputdir <path>` to override. On failure, screenshots are saved automatically. This directory tree is in `.gitignore`; do not commit its contents. To remove local run artifacts: `rm -rf robot/rlm-base/results/`.
