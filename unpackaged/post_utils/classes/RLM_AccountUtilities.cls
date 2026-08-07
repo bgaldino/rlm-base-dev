@@ -80,8 +80,8 @@ public without sharing class RLM_AccountUtilities {
         @InvocableVariable(required=true)
         public Boolean DeleteBilling;
 
-        // Optional (required=false) so older callers that don't pass it — e.g. the
-        // Draft RLM_Reset_Account flow — keep working; a null value is treated as false.
+        // Optional (required=false) so callers that don't pass it keep working;
+        // a null value is treated as false.
         @InvocableVariable(required=false)
         public Boolean PreserveContractsWithContractedPrices;
     }
