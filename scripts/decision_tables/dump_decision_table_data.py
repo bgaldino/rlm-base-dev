@@ -77,14 +77,16 @@ def _projection_fields(defn):
 
 
 def _sample_sobject(transport, sobject, fields, limit):
+    """Query source rows; returns (rows, fallback_note_or_None)."""
     field_list = ", ".join(fields) if fields else "Id"
     soql = f"SELECT {field_list} FROM {sobject} LIMIT {int(limit)}"
     try:
-        return transport.soql(soql)
+        return transport.soql(soql), None
     except DecisionTableClientError as exc:
-        # A column may not be directly queryable (formula/traversal). Fall back to Id-only.
         eprint(f"  (projection query failed, falling back to Id-only: {exc})")
-        return transport.soql(f"SELECT Id FROM {sobject} LIMIT {int(limit)}")
+        rows = transport.soql(f"SELECT Id FROM {sobject} LIMIT {int(limit)}")
+        return rows, (f"Projection query on {sobject} failed ({exc}); "
+                      f"fell back to Id-only.")
 
 
 def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_number=None):
@@ -124,6 +126,10 @@ def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_numb
             version_number=version_number,
         )
     except DecisionTableClientError as exc:
+        _DEGRADABLE_CODES = {"NOT_FOUND", "INSUFFICIENT_ACCESS", "FUNCTIONALITY_NOT_ENABLED",
+                             "INVALID_INPUT", "UNKNOWN_EXCEPTION"}
+        if exc.error_codes and not _DEGRADABLE_CODES.intersection(exc.error_codes):
+            raise
         out["notes"].append(
             f"CsvUpload data GET (.../{{id}}/data) failed — the endpoint may be "
             f"disabled on this org, or no version has been uploaded yet: {exc}"
@@ -177,8 +183,10 @@ def dump_data(transport, defn, limit, row_filter=None, version_number=None):
             out["notes"].append("No sourceObject on a SingleSobject table — nothing to sample.")
             return out
         fields = _projection_fields(defn)
-        rows = _sample_sobject(transport, source_object, fields, limit)
+        rows, fallback_note = _sample_sobject(transport, source_object, fields, limit)
         out["samples"][source_object] = rows
+        if fallback_note:
+            out["notes"].append(fallback_note)
         if not rows:
             out["notes"].append(f"{source_object} has 0 rows (definition present, data empty).")
     elif source_type == "MultipleSobjects":
@@ -189,8 +197,10 @@ def dump_data(transport, defn, limit, row_filter=None, version_number=None):
             so = lk.get("SourceObject")
             if not so:
                 continue
-            rows = _sample_sobject(transport, so, ["Id"], limit)
+            rows, fallback_note = _sample_sobject(transport, so, ["Id"], limit)
             out["samples"][so] = rows
+            if fallback_note:
+                out["notes"].append(fallback_note)
     elif source_type == "CsvUpload":
         _dump_csv_upload(transport, table, out, limit,
                          row_filter=row_filter, version_number=version_number)

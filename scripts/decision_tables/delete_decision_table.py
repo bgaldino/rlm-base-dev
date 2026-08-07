@@ -95,19 +95,27 @@ def main(argv=None) -> int:
            f"--path {args.path}, currently Status={current}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
 
+    was_active = current in ("Active", "ActivationInProgress")
+    deactivated = False
     try:
-        was_active = current in ("Active", "ActivationInProgress")
         if was_active:
             if args.deactivate_first:
                 engine.deactivate(record_id)
+                deactivated = True
             else:
-                # Refuse up front with actionable guidance (mirrors update's guard).
                 engine.assert_editable(table_row)
         if args.path == "tooling":
             result = engine.delete_tooling(record_id)
         else:
             result = engine.delete_connect(record_id)
     except (DecisionTableClientError, LifecycleError) as exc:
+        if deactivated and not preview:
+            try:
+                engine.activate(record_id)
+                eprint("  (reactivated table after failed deletion — DELETE is atomic, "
+                       "table unchanged.)")
+            except (DecisionTableClientError, LifecycleError) as react_exc:
+                eprint(f"  WARNING: reactivation also failed: {react_exc}")
         eprint(f"\nFAILED: {exc}")
         return 1
 

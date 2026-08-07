@@ -120,6 +120,12 @@ def main(argv=None) -> int:
                f"status={outcome.get('status')}). The platform may have hit the "
                f"~100/hr rate limit or the table's source binding is invalid.")
         exit_code = 1
+    elif outcome.get("isSuccess") is None:
+        eprint(f"\nRefresh returned an unexpected response (isSuccess absent/null, "
+               f"status={outcome.get('status')}). The action may have been invoked "
+               f"but the result envelope is unrecognized — re-check LastSyncDate "
+               f"with describe_decision_table.py.")
+        exit_code = 1
     else:
         eprint(f"\nRefresh queued (isSuccess={outcome.get('isSuccess')}, "
                f"status={outcome.get('status')}). Re-check LastSyncDate with "

@@ -308,6 +308,12 @@ def validate_spec(spec: Dict[str, Any]) -> ValidationResult:
                     f"a CsvUpload table normally uses sourceObject "
                     f"{_CSV_SOURCE_OBJECT!r}; got {source_object!r}.")
 
+    if dst == "CsvUpload" and spec.get("isVersioned") is None:
+        result.warn("isVersioned",
+                    "CsvUpload tables are versioned by nature; consider setting "
+                    "isVersioned: true explicitly (defaults to false in the spec, "
+                    "which may not match the table's actual behavior).")
+
     params = spec.get("decisionTableParameters")
     if not isinstance(params, list) or not params:
         result.error("decisionTableParameters", "at least one column is required.")
