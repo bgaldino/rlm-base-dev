@@ -12,19 +12,19 @@ The primary utility: a screen flow + Apex invocable that deletes transactional d
 
 | Option | Default | Behavior |
 |--------|---------|----------|
-| Delete Assets | true | Removes assets, asset relationships, and the full usage graph (summaries, entitlements, buckets, rate card entries) |
+| Delete Assets | true | Removes assets, asset relationships, and asset rate card entries. The broader usage teardown runs regardless of this option. |
 | Delete Fulfillment | true | Removes fulfillment orders, line items, plans, and decomposition records |
 | Delete Billing | true | Removes invoices |
 | Preserve Contracts with Contracted Prices | false | When checked, contracts that have at least one `ContractItemPrice` child are kept; contracts without contracted prices are still deleted |
 
-All resets delete orders, quotes, opportunities, billing schedule groups, and transaction journals regardless of the flags above.
+All resets delete usage policies, binding object rate card entries, usage summaries, entitlements, buckets, transaction journals, orders, quotes, opportunities, and billing schedule groups regardless of the flags above.
 
 ### Deletion order
 
 The reset runs in two phases:
 
-1. **Pre-savepoint (convergent):** Usage resource policies, binding object rate card entries, usage summary graph, and asset rate card entries. These are idempotent — partial progress survives a later failure.
-2. **Transactional (savepoint-wrapped):** Entitlements, journals, billing, fulfillment, contracts, orders, assets, quotes, opportunities. A failure here rolls back the entire transactional phase.
+1. **Pre-savepoint (convergent):** Usage resource policies, binding object rate card entries, and the usage summary graph are always processed; asset rate card entries are processed only when **Delete Assets** is enabled. These operations are idempotent, so partial progress survives a later failure.
+2. **Transactional (savepoint-wrapped):** Entitlements, journals, billing, fulfillment, contracts, orders, assets, quotes, and opportunities. A thrown exception rolls back this phase. Some existing helpers use partial-success DML, so an individual row failure can leave records for a subsequent reset without triggering rollback.
 
 The reset is designed for convergence: if it hits the DML row budget during the usage teardown, it stops and the next run resumes from the smaller graph.
 
