@@ -1,6 +1,6 @@
 # SFDMU Composite Key Optimizations (QB)
 
-> **SFDMU v5 Required** — This project requires SFDMU v5.0.0+. The `validate_setup`
+> **SFDMU v5 Required** — This project requires SFDMU v5.6.4+. The `validate_setup`
 > task enforces this and will auto-update if needed. Run `cci task run validate_setup`
 > to check your environment.
 
@@ -10,12 +10,24 @@ SFDMU v5 introduced breaking changes that affect how composite `externalId` defi
 interact with data plans. The following adjustments were made to ensure all QB data plans
 work correctly with v5 and remain **idempotent** (safe to re-run without creating duplicates).
 
+> **Historical record of pre-floor operation choices, not current authoring guidance.**
+> Both the behavioral-change table and the per-dataset adjustments below describe
+> pre-floor SFDMU behavior; the specific version each was fixed in is noted inline.
+> The `deleteOldData: true`
+> adjustments below were **pre-5.6.4 workarounds** for the relationship-traversal
+> Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced 5.6.4+ floor** — Upsert
+> now matches on traversal externalIds. These objects still carry the workaround in the
+> shipped plans; migrating them back to Upsert is the separate, gated
+> `sfdmu-v5-optimization` initiative (needs live verification + approval). Do **not**
+> apply the patterns below when authoring *new* plans on 5.6.4+; author them as `Upsert`.
+> Only the Bug 4 (`$$` lookup references — self-referential and cross-object) simplifications remain live guidance.
+
 ### Key v5 behavioral changes
 
 | v4 Behavior | v5 Change | Impact |
 |-------------|-----------|--------|
-| Nested relationship paths in parent `externalId` (e.g. `Pricebook2.Name`) resolved correctly when a child references that parent | v5 flattens the parent's externalId fields into the child's SOQL query, causing `Didn't understand relationship` errors when the field path is not valid on the child object | Parent externalIds with nested relationship paths must be simplified to fields valid on the parent itself, or the child's reference must not trigger flattening |
-| `$$` composite key columns in CSVs used for source-to-target record matching | v5 cannot reliably match target records when `externalId` contains only relationship paths (e.g. `Parent.Name;OtherParent.Code`) | Objects with all-relationship externalIds and auto-number Names need `deleteOldData: true` or a direct-field externalId |
+| Nested relationship paths in parent `externalId` (e.g. `Pricebook2.Name`) resolved correctly when a child references that parent | pre-5.6.3: v5 flattened the parent's externalId fields into the child's SOQL query, causing `Didn't understand relationship` errors when the field path is not valid on the child object — **the SOQL-flattening error was fixed in 5.6.3** (a related extract-side residue remains; see Bug 2) | pre-5.6.3 the parent externalIds were simplified to fields valid on the parent itself; on the 5.6.4+ floor this is no longer required for the flattening error |
+| `$$` composite key columns in CSVs used for source-to-target record matching | pre-5.6.4: v5 could not reliably match target records when `externalId` contained only relationship paths (e.g. `Parent.Name;OtherParent.Code`) — **fixed in the 5.6.4 release (commit `50be987`)** | pre-5.6.4 these objects used `deleteOldData: true`; on the 5.6.4+ floor use `Upsert` (matching works). Shipped plans still carry the old operation pending the gated migration |
 | `$$` notation in `externalId` definitions (e.g. `$$Field1$Field2`) recognized as composite keys | v5 does not recognize `$$` in externalId definitions; requires `;`-delimited format | All `externalId` definitions use `Field1;Field2` format |
 
 ### Changes by dataset
@@ -58,14 +70,14 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **FulfillmentStepDefinition**: externalId simplified to `Name`; `$$` column removed; 2 duplicate-Name pairs disambiguated with group-name suffix
 - **FulfillmentStepDependencyDef**: externalId simplified to `Name`; `$$` column removed; parent references updated to use renamed FSD Names
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
-- **FulfillmentWorkspaceItem**: `deleteOldData: true` added (auto-number Names make direct-field matching impossible); `$$` column removed
+- **FulfillmentWorkspaceItem**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Names make direct-field matching impossible); `$$` column removed
 - **ProductDecompEnrichmentRule**: excluded (0 records)
 - **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
 #### qb-rates
-- **PriceBookRateCard**: `deleteOldData: true` added (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)
-- **RateCardEntry**: `deleteOldData: true` added (auto-number Name, all-relationship externalId)
-- **RateAdjustmentByTier**: `deleteOldData: true` added (auto-number Name, all-relationship externalId)
+- **PriceBookRateCard**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)
+- **RateCardEntry**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
+- **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
 - **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.
@@ -90,26 +102,26 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 - **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
 - **Excluded objects** (PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride): require manual handling if needed.
 
-### Bug 5 — Composite `externalId` with traversal fields fails for upsert matching (discovered 2026-04-02)
+### Bug 5 — Composite `externalId` with traversal fields failed for upsert matching (discovered 2026-04-02; FIXED in 5.6.4)
 
-**Problem:** When `externalId` uses `;`-delimited traversal fields (e.g. `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), SFDMU cannot match source CSV rows to existing target records for upsert. Each run inserts new records instead of updating existing ones, even when:
-- The traversal fields are included in the SOQL query
-- A `$` composite key column is present in the CSV with matching values
-- The target org has records with identical parent lookup values
+> **Fixed on the enforced 5.6.4+ floor** (the 5.6.4 release, commit `50be987`, `_getNestedRecordFieldValue`; source-verified). Upsert now matches on all-traversal composite externalIds. The section below is the **pre-5.6.4 behavior** and the workaround the shipped plans still carry until the gated `sfdmu-v5-optimization` migration. **For new plans on 5.6.4+, use `Upsert` — do not add `deleteOldData: true` for this reason.**
 
-**Discovered on:** `FulfillmentWorkspaceItem` — externalId `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`. SFDMU inserted 7 new records on every run instead of matching the 7 existing records. Record count grew from 7 → 14 → 21 → 28 across successive runs.
+**Problem (pre-5.6.4):** When `externalId` used `;`-delimited traversal fields (e.g. `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), SFDMU could not match source CSV rows to existing target records for upsert. Each run inserted new records instead of updating existing ones, even when:
+- The traversal fields were included in the SOQL query
+- A `$` composite key column was present in the CSV with matching values
+- The target org had records with identical parent lookup values
 
-**Root cause:** SFDMU's upsert matching engine cannot reliably resolve composite keys composed entirely of relationship traversal fields (`Parent.Field`) against target org data. The matching works for direct-field externalIds (e.g. `Name`, `Code`) and for composite keys mixing direct + traversal fields, but fails when all components are traversal paths.
+**Discovered on:** `FulfillmentWorkspaceItem` — externalId `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`. Pre-5.6.4 SFDMU inserted 7 new records on every run instead of matching the 7 existing (record count grew 7 → 14 → 21 → 28 across runs).
 
-**Prescribed pattern:** Use `deleteOldData: true` for objects whose only logical key is a composite of parent lookups and whose `Name` is an auto-number (not portable across orgs). This deletes all existing records and re-inserts from CSV, guaranteeing the target matches the source exactly. For small record sets (< 50 records), the performance cost is negligible.
+**Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
-**Objects using this pattern:**
+**Pre-5.6.4 workaround — still on the shipped plans (records; pending migration):** `deleteOldData: true` for objects whose only logical key is a composite of parent lookups with an auto-number `Name`. The objects still carrying it:
 - `FulfillmentWorkspaceItem` (qb-dro) — 7 records
 - `PriceBookRateCard` (qb-rates) — auto-number Name, all-relationship externalId
 - `RateCardEntry` (qb-rates) — auto-number Name, all-relationship externalId
 - `RateAdjustmentByTier` (qb-rates) — auto-number Name, all-relationship externalId
 
-**Rule:** If an object has (1) auto-number Name, (2) no portable natural key, and (3) externalId composed entirely of relationship traversals — use `deleteOldData: true`. Do not rely on composite `externalId` matching with traversal fields.
+**Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 
 ### Bug 4 — `$$` composite notation fails for lookup reference columns (discovered 2026-04-02)
 

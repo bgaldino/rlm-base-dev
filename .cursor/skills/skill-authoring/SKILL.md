@@ -48,6 +48,47 @@ agent that can read repository files.
   `AGENTS.md` in this repository pattern.
 - **DO NOT** register PMOS-facing skills in `.claude/skill-manifest.yml` without
   a clear `purpose`, valid `path`, and explicit `consumed_by_pmos` value.
+- **DO NOT** write a procedure around hardcoded instance names — a specific model,
+  product, org, expression set or dataset. Teach the mechanism and how to **discover** the
+  instances; use real names only as clearly-labelled examples. See below.
+
+---
+
+## Instances vs. mechanism
+
+A skill that hardcodes the instances it happened to be written against becomes a runbook
+for one scenario and quietly wrong for every other. It also ages badly: the moment a
+vertical is added or a name changes, the skill is misleading rather than merely
+incomplete.
+
+**Write procedures against a placeholder, and give the reader a way to fill it in:**
+
+| Do | Don't |
+|----|-------|
+| `-o version_full_names "<Version>"`, with a query that finds `<Version>` | `-o version_full_names "QuantumBitBundle_V1"` as the instruction |
+| "the discriminator is `UsageType = 'Constraint'`" | "the constraint models are X, Y and Z" |
+| A **Discovery** section near the top: what the org has, what the repo ships, what the flow uses | An inventory presented as the operative list |
+
+**Real names are still valuable — in three specific places:**
+
+1. **A clearly-labelled examples/worked-example section.** "Worked example — adding
+   `QB-CMT-TKN-BND` to `QB-COMPLETE`; substitute your own."
+2. **A "what this repo ships today" table**, marked as a snapshot that will age, with the
+   discovery command that supersedes it.
+3. **Recording a deliberate policy decision** that is genuinely repo-specific — e.g.
+   "exactly one model per family may be active; Bundle is the chosen one, Complete and PCM
+   are kept inactive for A/B". That is real, durable knowledge and belongs written down.
+
+The distinction is whether the name is the **instruction** (wrong) or the **illustration
+or recorded state** (right).
+
+`.cursor/skills/expression-sets/SKILL.md` is the model to copy: it grounds its type table
+in a live query, then lists instances in a column explicitly headed *"Shipped example(s)
+in this repo"*.
+
+**Scope the claim, too.** "Only one X may be active" is a different statement from "only
+one X per family may be active"; the second is true here and the first is not. An
+over-broad rule reads as authoritative and sends someone deactivating unrelated records.
 
 ---
 

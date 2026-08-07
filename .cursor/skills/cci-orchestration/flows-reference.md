@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**47 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -283,7 +283,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
 11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1`
+   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1`
 12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
@@ -428,7 +428,7 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux (step 29), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 
@@ -443,10 +443,16 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
-8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__ramps`
-   - `api_names`: `['RLM_RampSchedule']`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UtilitiesPermset']`
    - `user_alias`: `salesrep`
-9. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_DecisionTableManager']`
+   - `user_alias`: `salesrep`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_QuantumBitDemoSetup']`
+   - `user_alias`: `salesrep`
+11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -496,7 +502,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
    - `activate`: `True`
-10. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+10. **flow** `prepare_prm_pricing`
 
 ---
 
@@ -507,7 +513,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `deactivate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-2. **flow** `deploy_post_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **flow** `deploy_post_prm_pricing`
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
    - `api_names`: `['RLM_PRM_Pricing']`
 4. **task** `insert_quantumbit_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
@@ -547,21 +553,17 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 3. **task** `deploy_quantumbit`  `when: project_config.project__custom__quantumbit`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_QuantumBit']`
-5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_ExpressionSetManager']`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UtilitiesPermset']`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_DecisionTableManager']`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_RebuildSearchIndex']`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
-
----
-
-### `prepare_ramp_builder`
-
-Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom fields, Lightning Message Channel, all Apex classes, six LWC bundles, the RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order. Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup. After this flow runs, add the "Create Ramp Schedule" action to the Quote page layout (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
-
-**Steps:**
-
-1. **task** `deploy_post_ramp_builder`  `when: project_config.project__custom__ramps`
-2. **task** `apply_context_ramp_mode`  `when: project_config.project__custom__ramps`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__ramps`
-   - `api_names`: `['RLM_RampSchedule']`
+10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 
 ---
 
@@ -611,7 +613,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 11. **flow** `prepare_dro`
 12. **flow** `prepare_tax`
 13. **flow** `prepare_billing`
-14. **flow** `prepare_collections`  `when: project_config.project__custom__collections`
+14. **flow** `prepare_collections`
 15. **flow** `prepare_analytics`
 16. **flow** `prepare_clm`
 17. **flow** `prepare_rating`
@@ -624,15 +626,14 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 24. **flow** `prepare_guidedselling`
 25. **flow** `prepare_revenue_settings`
 26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_ramp_builder`
-28. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-29. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-30. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-31. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
-32. **flow** `prepare_scratch`
-33. **flow** `refresh_all_decision_tables`
-34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+27. **flow** `prepare_large_stx`
+28. **flow** `prepare_personas`
+29. **flow** `prepare_ux`
+30. **flow** `prepare_inapp`
+31. **flow** `prepare_scratch`
+32. **flow** `refresh_all_decision_tables`
+33. **task** `rebuild_search_index`
+34. **flow** `stamp_git_commit`
 
 ---
 
@@ -664,7 +665,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 2. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
 3. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
-   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'OrchestrationProcessManagerPermissionSet', 'EventMonitoring...`
+   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'RLM_ExpressionSetManager', 'RLM_DecisionTableManager', 'RLM...`
 
 ---
 
@@ -677,8 +678,9 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 3. **task** `refresh_dt_asset`  `when: project_config.project__custom__rating`
 4. **task** `refresh_dt_rating`  `when: project_config.project__custom__rating`
 5. **task** `refresh_dt_rating_discovery`  `when: project_config.project__custom__rating`
-6. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce`
-7. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `refresh_dt_default_pricing`
+7. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce or project_config.project__custom__tso`
+8. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
@@ -723,7 +725,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 30 of prepare_rlm_org, after all feature provisioning (including personas at step 29) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

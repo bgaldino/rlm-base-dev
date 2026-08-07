@@ -1,0 +1,63 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "useSeparatedCSVFiles": true,
+  "objectSets": [
+    {
+      "name": "First Pass - Insert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Status, TaxEngineName FROM TaxEngine",
+          "operation": "Upsert",
+          "externalId": "TaxEngineName",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, IsTaxable, LegalEntityId, LegalEntity.Name, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxEngine.TaxEngineName, TaxPolicyId, TaxPolicy.Name FROM TaxTreatment",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT TaxPolicyId, TaxPolicy.Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate",
+      "objects": [
+        {
+          "query": "SELECT Name, Status FROM TaxTreatment WHERE Status = 'Draft'",
+          "operation": "Update",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DefaultTaxTreatmentId, DefaultTaxTreatment.Name, Description, Name, Status, TreatmentSelection FROM TaxPolicy WHERE Status = 'Draft'",
+          "operation": "Update",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

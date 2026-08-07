@@ -958,11 +958,17 @@ HIGH_RISK_PATHS: tuple[HighRiskPath, ...] = (
         "network-email-safety.mdc", "", "Network metadata must keep placeholder emails; deploy tasks patch/revert real values."),
 )
 
+# Matched in order against "<rule name> <skill path>", first hit wins, so keep more
+# specific keywords ahead of ones they contain. A rule whose skill has no entry here
+# falls back to "Repository Integration" (see infer_owner) — which is right for the
+# stand-alone rules but silently mislabels a rule that maps to a skill, so add an entry
+# whenever a rule starts pointing at a skill not covered below.
 OWNER_KEYWORDS: tuple[tuple[str, str], ...] = (
     ("sfdmu", "SFDMU Data Plans"), ("cci", "CCI Orchestration"), ("apex", "Apex"),
     ("lwc", "Lightning Web Components"), ("ux", "UX Assembly"), ("robot", "Robot Testing"),
     ("doc", "Doc Consistency"), ("schema", "Schema Validation"), ("release", "Release Enablement"),
     ("business", "Business APIs"), ("pmos", "PMOS Integration"),
+    ("context", "Context Service"),
 )
 
 

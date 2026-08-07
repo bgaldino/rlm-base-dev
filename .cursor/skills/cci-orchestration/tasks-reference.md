@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **10 groups**.
+**275 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -1283,23 +1283,6 @@
 
 ---
 
-### `apply_context_ramp_mode`
-
-**Description:** Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup) context attributes to the Sales Transaction context definition and maps them to QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping) and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
-
-**Class:** `tasks.rlm_context_service.ManageContextDefinition`
-
-**Options:**
-
-- `developer_name`: `RLM_SalesTransactionContext`
-- `plan_file`: `datasets/context_plans/RampMode/manifest.json`
-- `translate_plan`: `True`
-- `deactivate_before`: `False`
-- `activate`: `True`
-- `verify`: `True`
-
----
-
 ### `apply_expression_set_overlay`
 
 **Description:** Apply a declarative overlay (add/remove/update/reorder steps and variables) to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
@@ -1358,6 +1341,18 @@
 
 - `api_names`: `['RLM_Sales_Representative']`
 - `user_alias`: `salesrep`
+
+---
+
+### `check_decision_table_freshness`
+
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last full sync — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/checkDecisionTableFreshness.apex`
 
 ---
 
@@ -2004,15 +1999,15 @@
 
 ---
 
-### `deploy_post_ramp_builder`
+### `deploy_post_setup_guide`
 
-**Description:** Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under unpackaged/post_ramp_builder: RLM_RampMode__c (Picklist) on QuoteLineGroup, QuoteLineItem, OrderItemGroup, and OrderItem; RLM_UpliftPercent__c (Percent) on QuoteLineGroup only; Lightning Message Channel (RLM_RampScheduleChannel); Apex classes and test classes (RLM_RampScheduleFlowAction, RLM_RampScheduleService, RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse, RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController, RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler, RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection, rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick action; and the RLM_RampSchedule permission set (grants FLS on all custom fields and class access for all production Apex classes).
+**Description:** Deploy the QuantumBit Demo Setup guide (Visualforce page).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
 **Options:**
 
-- `path`: `unpackaged/post_ramp_builder`
+- `path`: `unpackaged/post_setup_guide`
 
 ---
 
@@ -2940,7 +2935,7 @@
 
 ### `refresh_dt_commerce`
 
-**Description:** Refresh Commerce Decision Tables (when commerce flag is true)
+**Description:** Refresh Commerce Decision Tables. Run by refresh_all_decision_tables when the commerce OR tso flag is true — a TSO template ships these tables regardless of the commerce flag, so a TSO build must refresh them or it inherits the template org's rows.
 
 **Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
 
@@ -3176,16 +3171,28 @@
 
 ---
 
+### `validate_multicurrency_rates`
+
+**Description:** Validate the multicurrency usage-rating configuration, scoped to the QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy, every ProductUsageResource is rated, every currency-denominated entry covers all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment, and per-asset entitlement shape compared across assets of the same product) which self-skip when no assets exist. Offline equivalent: python tests/test_qb_multicurrency_data.py
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/validateMulticurrencyRates.apex`
+
+---
+
 ### `validate_setup`
 
-**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
+**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
 
 **Class:** `tasks.rlm_validate_setup.ValidateSetup`
 
 **Options:**
 
 - `auto_fix`: `True`
-- `required_sfdmu_version`: `5.0.0`
+- `required_sfdmu_version`: `5.6.4`
 - `fail_on_error`: `True`
 
 ---

@@ -43,3 +43,4 @@ Typical successful output patterns:
   - `DGP Id: a3eXXXXXXXXXXXXAAA`
   - `Status: Completed`
   - `ContentVersion: 068XXXXXXXXXXXXAAA`
+  - `--dry-run` prints the DGP payload without creating a process.

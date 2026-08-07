@@ -93,6 +93,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -637,6 +644,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>LineItemQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1460,6 +1474,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -1634,6 +1655,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Attribute Discount Entries</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -2138,6 +2166,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -2559,6 +2594,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -2726,6 +2768,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Volume Discount Entries</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -4574,6 +4623,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>ListPriceField</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -4733,6 +4789,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>

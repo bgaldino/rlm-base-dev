@@ -47,15 +47,16 @@
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
-          "operation": "Insert",
-          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
+          "$comment": "ONE schedule per type (Attribute / Bundle / Volume), in the corporate currency (USD) \u2014 the platform seeds exactly these. Do NOT create per-currency schedule variants: every currency's adjustment children (PriceAdjustmentTier/AttributeBasedAdjustment/BundleBasedAdjustment) reference this single schedule by Name and are disambiguated at pricing time by their own CurrencyIsoCode. The pricing procedure pins each adjustment step to a single schedule Id via find_replace ('\u2026 WHERE name = ''Standard \u2026'' LIMIT 1'), so duplicating the schedule per currency makes non-USD adjustment lookups resolve nothing (0 adjustment). Upsert on the direct-field Name externalId matches the seeded USD rows on the 5.6.4 floor (no duplicates); ordered before the children so the schedule exists first.",
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, Pricebook2.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
-          "operation": "Update",
-          "externalId": "Name;CurrencyIsoCode",
+          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
+          "operation": "Insert",
+          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
           "excluded": false
         },
         {
