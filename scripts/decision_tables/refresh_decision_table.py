@@ -128,12 +128,15 @@ def main(argv=None) -> int:
         exit_code = 1
     else:
         status = outcome.get("status")
-        eprint(f"\nRefresh accepted (isSuccess={outcome.get('isSuccess')}, "
-               f"status={status}). Re-check LastSyncDate with "
-               f"describe_decision_table.py to confirm the sync landed.")
-        if status and status != "Queued":
-            eprint(f"  note: status is {status!r}, not the expected 'Queued' — "
-                   f"the action was accepted but may have a non-standard outcome.")
+        if status == "Queued":
+            eprint(f"\nRefresh queued (isSuccess=true, status=Queued). Re-check "
+                   f"LastSyncDate with describe_decision_table.py to confirm the "
+                   f"sync landed.")
+        else:
+            eprint(f"\nRefresh accepted but status is {status!r}, not the expected "
+                   f"'Queued' — the action may not have queued successfully. "
+                   f"Re-check LastSyncDate with describe_decision_table.py.")
+            exit_code = 1
     if args.json:
         print(json.dumps({"action": "refresh", "developerName": args.developer_name,
                           "id": table_row.get("Id"), "mode": mode,
