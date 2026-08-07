@@ -120,7 +120,12 @@ def main(argv=None) -> int:
     except (DecisionTableClientError, LifecycleError) as exc:
         if deactivated and not preview:
             try:
-                engine.activate(record_id)
+                meta = (defn.get("metadata") or {})
+                if meta.get("dataSourceType") == "CsvUpload":
+                    vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/1"
+                    transport.connect("PATCH", vpath, {"versionStatus": "Active"})
+                else:
+                    engine.activate(record_id)
                 eprint("  (reactivated table after failed deletion — DELETE is atomic, "
                        "table unchanged.)")
             except (DecisionTableClientError, LifecycleError) as react_exc:
