@@ -1,0 +1,74 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+#N/A,100 kW,100 kW,false,100 kW,Power Output Picklist,1,Active,100 kW
+#N/A,1200,1200,false,1200,Power,1200,Active,1200
+#N/A,12V,12V,false,12V,DC_Voltage,1,Active,12V
+#N/A,1500,1500,false,1500,Power,1500,Active,1500
+#N/A,"16""","16""",false,"16""",Bucket_Size,10,Active,"16"""
+#N/A,1750,1750,false,1750,Power,1750,Active,1750
+#N/A,"19""","19""",false,"19""",Ripper_Size,10,Active,"19"""
+#N/A,"20""","20""",false,"20""",Bucket_Size,20,Active,"20"""
+#N/A,220/380,220/380,false,220/380,Voltage,10,Active,220/380
+#N/A,240/416,240/416,false,240/416,Voltage,20,Active,240/416
+#N/A,2400/4160,2400/4160,false,2400/4160,Voltage,60,Active,2400/4160
+#N/A,24V,24V,false,24V,DC_Voltage,2,Active,24V
+#N/A,2500,2500,false,2500,Power,2500,Active,2500
+#N/A,255/440,255/440,false,255/440,Voltage,30,Active,255/440
+#N/A,"27""","27""",true,"27""",Ripper_Size,20,Active,"27"""
+#N/A,277/480,277/480,false,277/480,Voltage,40,Active,277/480
+#N/A,300 kW,300 kW,false,300 kW,Power Output Picklist,2,Active,300 kW
+#N/A,"34""","34""",false,"34""",Ripper_Size,30,Active,"34"""
+#N/A,347/600,347/600,false,347/600,Voltage,50,Active,347/600
+#N/A,"36""","36""",true,"36""",Bucket_Size,30,Active,"36"""
+#N/A,"42""","42""",false,"42""",Bucket_Size,40,Active,"42"""
+#N/A,48V,48V,false,48V,DC_Voltage,3,Active,48V
+#N/A,50 Hp,50 Hp,true,50 Hp,Power,10,Active,50 Hp
+#N/A,"50""","50""",false,"50""",Bucket_Size,50,Active,"50"""
+#N/A,500 kW,500 kW,false,500 kW,Power Output Picklist,3,Active,500 kW
+#N/A,700 kW,700 kW,false,700 kW,Power Output Picklist,4,Active,700 kW
+#N/A,7200/12470,7200/12470,false,7200/12470,Voltage,70,Active,7200/12470
+#N/A,7621/13200,7621/13200,false,7621/13200,Voltage,80,Active,7621/13200
+#N/A,7976/13800,7976/13800,false,7976/13800,Voltage,90,Active,7976/13800
+#N/A,90 Hp,90 Hp,false,90 Hp,Power,20,Active,90 Hp
+#N/A,900,900,false,900,Power,900,Active,900
+#N/A,Air-Cooled,Air-Cooled,false,Air-Cooled,Cooling Method,1,Active,Air-Cooled
+#N/A,Ammonia,Ammonia,false,Ammonia,Fuel Type,5,Active,Ammonia
+#N/A,Certification-CSA,Certification-CSA,false,Certification-CSA,standardsAndCompliance,10,Active,Certification-CSA
+#N/A,Continuous Power (COP),Continuous Power (COP),false,Continuous Power (COP),DutyRating,30,Active,Continuous Power (COP)
+#N/A,CSA_C22.2,UL2200 & CSA C22.2,false,CSA_C22.2,gc_certificate,3,Active,UL2200 & CSA C22.2
+#N/A,Data Center Continuous (DCC),Data Center Continuous (DCC),false,Data Center Continuous (DCC),DutyRating,40,Active,Data Center Continuous (DCC)
+#N/A,Emergency Standby Power (ESP),Emergency Standby Power (ESP),false,Emergency Standby Power (ESP),DutyRating,10,Active,Emergency Standby Power (ESP)
+#N/A,Entrance_Bottom,Bottom,false,Bottom,Entrance Types,5,Active,Bottom
+#N/A,Entrance_Left,Left,false,Left,Entrance Types,2,Active,Left
+#N/A,Entrance_None,None,false,None,Entrance Types,1,Active,None
+#N/A,Entrance_Right,Right,false,Right,Entrance Types,3,Active,Right
+#N/A,Entrance_Top,Top,false,Top,Entrance Types,4,Active,Top
+#N/A,Ethanol,Ethanol,false,Ethanol,Fuel Type,4,Active,Ethanol
+#N/A,gc_NONE,Non UL2200/CSA C22.2 certified,false,NONE,gc_certificate,1,Active,NONE
+#N/A,Hydrogen,Hydrogen (H2),false,Hydrogen (H2),Fuel Type,1,Active,Hydrogen (H2)
+#N/A,IBC Seismic Certification,IBC Seismic Certification,false,IBC Seismic Certification,seismicCertification,10,Active,IBC Seismic Certification
+#N/A,Install-OutsideUS,Install-OutsideUS,false,Install-OutsideUS,applicationEmissionCertification,20,Active,Install-OutsideUS
+#N/A,Install-US-Stat,Install-US-Stat,false,Install-US-Stat,applicationEmissionCertification,10,Active,Install-US-Stat
+#N/A,Language_Chinese(Mandarin),Chinese (Mandarin),false,Chinese (Mandarin),Languages,1,Active,Chinese (Mandarin)
+#N/A,Language_Danish,Danish,false,Danish,Languages,2,Active,Danish
+#N/A,Language_Dutch,Dutch,false,Dutch,Languages,3,Active,Dutch
+#N/A,Language_English,English,true,English,Languages,4,Active,English
+#N/A,Language_Finnish,Finnish,false,Finnish,Languages,5,Active,Finnish
+#N/A,Language_French,French,false,French,Languages,6,Active,French
+#N/A,Language_German,German,false,German,Languages,7,Active,German
+#N/A,Language_Greek,Greek,false,Greek,Languages,8,Active,Greek
+#N/A,Language_Italian,Italian,false,Italian,Languages,9,Active,Italian
+#N/A,Language_Norwegian,Norwegian,false,Norwegian,Languages,10,Active,Norwegian
+#N/A,Language_Portuguese,Portuguese,false,Portuguese,Languages,11,Active,Portuguese
+#N/A,Language_Russian,Russian,false,Russian,Languages,12,Active,Russian
+#N/A,Language_Spanish,Spanish,false,Spanish,Languages,13,Active,Spanish
+#N/A,Liquid-Cooled,Liquid-Cooled,false,Liquid-Cooled,Cooling Method,2,Active,Liquid-Cooled
+#N/A,Listing-UL 2200,Listing-UL 2200,false,Listing-UL 2200,standardsAndCompliance,20,Active,Listing-UL 2200
+#N/A,Methanol,Methanol,false,Methanol,Fuel Type,2,Active,Methanol
+#N/A,Motor Starting,Motor Starting,false,Motor Starting,SpecialApplication,20,Active,Motor Starting
+#N/A,NaturalGas,Natural Gas,false,Natural Gas,Fuel Type,3,Active,Natural Gas
+#N/A,None - Standard,None - Standard,true,None - Standard,SpecialApplication,10,Active,None - Standard
+#N/A,One-Speed,One-Speed,true,One-Speed,Transmission,10,Active,One-Speed
+#N/A,OSHPD Seismic Certification,OSHPD Seismic Certification,false,OSHPD Seismic Certification,seismicCertification,20,Active,OSHPD Seismic Certification
+#N/A,Prime Power (PRP),Prime Power (PRP),false,Prime Power (PRP),DutyRating,20,Active,Prime Power (PRP)
+#N/A,Two-Speed,Two-Speed,false,Two-Speed,Transmission,20,Active,Two-Speed
+#N/A,UL2200,UL2200,false,UL2200,gc_certificate,2,Active,UL2200
