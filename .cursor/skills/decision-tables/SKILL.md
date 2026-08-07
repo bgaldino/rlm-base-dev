@@ -11,6 +11,11 @@ Use this skill when refreshing, diagnosing, adding, or wiring a decision table, 
 whenever an agent is maintaining an org this toolchain built and needs to know whether
 its lookups still reflect the data.
 
+It also routes definition authoring, cross-org comparison, CSV upload, and guarded
+lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
+`authoring-and-data-model.md` for the definition layer and API vocabularies; read
+`lifecycle-and-refresh.md` for deploy, activation, data loading, and refresh details.
+
 ## Quick Rules
 
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
@@ -28,6 +33,11 @@ its lookups still reflect the data.
    feature flag, not a census of what exists.
 6. **"Not comparable" is a refusal, not a failure.** It means the freshness check
    declined to guess. Only **Stale** is a positive finding.
+7. **Definition and data are separate layers.** Editing columns or source bindings does
+   not synchronize source rows; refresh (or CSV upload, where applicable) updates the
+   materialized data layer.
+8. **Deactivate before modifying an Active definition.** Use the guarded lifecycle
+   scripts, which preview by default and require `--confirm` to write.
 
 ## DO NOT
 
@@ -49,6 +59,13 @@ its lookups still reflect the data.
   predates the org. A Trialforce spin inherits the template's timestamps.
 - **DO NOT** add a name to a `dt_*_decision_tables` list without confirming the table
   exists in an org **built with that feature flag on**.
+- **DO NOT** run destructive toolkit probing against `beta`; use a disposable scratch
+  org. Read-only list/describe/diff/trace operations are safe.
+- **DO NOT** pass access tokens to toolkit scripts. They delegate authentication to the
+  `sf` CLI and take an SF CLI alias via `--target-org`, not a CCI alias.
+- **DO NOT** treat the three authoring surfaces as field-compatible. Metadata/Tooling
+  and Connect Definitions use different names and enum spellings; follow the divergence
+  table in `authoring-and-data-model.md`.
 
 ## Entry Conditions
 
@@ -59,10 +76,49 @@ Use this skill when you are:
 - adding a decision table, or wiring one into `cumulusci.yml`
 - building automation that must fire a refresh at the right moment
 - maintaining an org headlessly and needing its readiness state
+- inspecting, diffing, tracing, creating, updating, activating, or deleting a definition
+- sampling source-backed rows or uploading data to a `CsvUpload` table
 
 Not this skill: authoring the pricing procedures that *consume* a lookup
 (`.cursor/skills/pricing-wiring/SKILL.md`), or expression-set overlays
 (`.cursor/skills/expression-sets/SKILL.md`).
+
+## Toolkit and authoring routes
+
+The standalone toolkit complements the CCI org-build tasks; it does not replace them.
+All mutators preview by default and write only with `--confirm`.
+
+| Goal | Route |
+|---|---|
+| Inventory or inspect definitions | `list_decision_tables.py`, `describe_decision_table.py` |
+| Compare orgs/specs | `diff_decision_tables.py` |
+| Trace recipe-table mappings | `trace_decision_table.py` |
+| Sample the materialized data layer | `dump_decision_table_data.py` |
+| Upload `CsvUpload` rows | `upload_decision_table_data.py` |
+| Create/update/activate/deactivate/delete | Guarded lifecycle scripts under `scripts/decision_tables/` |
+| Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
+
+Start with:
+
+```bash
+python scripts/decision_tables/list_decision_tables.py --target-org <sf_alias>
+python scripts/decision_tables/describe_decision_table.py \
+  --target-org <sf_alias> --developer-name <DeveloperName>
+```
+
+Decision tables have two independently managed layers:
+
+1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
+   Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
+   five setup objects; Connect Definitions exposes a third vocabulary.
+2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
+   Context Definition. The engine does not re-read those rows after materialization.
+
+The complete setup-object model, ID prefixes, metadata shape, enums, and field-name
+divergence are in `authoring-and-data-model.md`. Deployment paths, active-edit
+restrictions, CSV upload, async refresh, and recipe mapping validation are in
+`lifecycle-and-refresh.md`. Exhaustive API/error detail lives in
+`docs/references/decision-table-api-reference.md`.
 
 ## Discovery — what this org actually has
 
@@ -223,6 +279,8 @@ not know read that object.
 
 ## Validation Checks
 
+- `python tests/test_decision_tables_toolkit.py` passes offline.
+- `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org <alias>` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
 - After `refresh_all_decision_tables`, no table is Stale.
@@ -233,6 +291,13 @@ not know read that object.
 
 ## Related
 
+- `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
+  metadata shape, API vocabulary divergence, enums, and the definition/data model.
+- `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — guarded lifecycle,
+  deployment, upload, refresh, and recipe-table mappings.
+- `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.
+- `docs/references/decision-table-api-reference.md` — exhaustive API and error reference.
+- `docs/references/decision-table-examples.md` — CCI operations cookbook.
 - `.cursor/skills/pricing-wiring/SKILL.md` — the procedures and plans that consume these
   lookups, and the timing rule in its pricing context.
 - `.cursor/skills/troubleshooting/SKILL.md` — build and deploy failures.

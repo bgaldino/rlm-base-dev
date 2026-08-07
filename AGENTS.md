@@ -299,7 +299,7 @@ that topic.
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
-| Refresh/diagnose/verify **decision tables**; wire an automatic refresh at the right moment; why a lookup is stale | `.cursor/skills/decision-tables/SKILL.md` |
+| Inspect/author/manage, refresh, diagnose, or verify **decision tables**; wire automatic refresh at the right moment | `.cursor/skills/decision-tables/SKILL.md` |
 | Find, claim, or close a durable **todo** across workstations and agents (`/rlm-todos`) | `.cursor/skills/todo-tracker/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
@@ -364,10 +364,13 @@ Read the sub-file only when you need that specific detail:
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
 | `expression-sets/authoring-and-overlays.md` | Expression Sets | Building/applying overlays, capturing a step's three dependency scopes (version/custom/standard), safe step removal (structural-not-functional) |
 | `expression-sets/metadata-vs-connect.md` | Expression Sets | The two authoring paths, Connect mutation lifecycle, verb-specific field rules, GET serializer gotchas, Metadata API authoring, create-with-content |
+| `decision-tables/authoring-and-data-model.md` | Decision Tables | The 5 Tooling setup objects + ID prefixes + the `Metadata` complexvalue; annotated `.decisionTable-meta.xml`; the three authoring paths + field-name divergence table; full enum catalog; the definition-vs-data two-layer model in depth |
+| `decision-tables/lifecycle-and-refresh.md` | Decision Tables | Deploy paths + source locations; active-edit restriction → deactivate/exclude/restore; activate/deactivate; refresh in depth (`isDecisionTableIncremental`, async, 100/hr); recipe-table mappings + `validate_lists`; runtime note |
 | `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
 | `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
 | `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
+| `docs/references/decision-table-api-reference.md` | Decision Tables | 5 Tooling setup objects + ID prefixes + `Metadata` complexvalue, annotated metadata XML, enum catalog, field-name divergence (Metadata/Tooling vs Connect), Connect Definitions verb table, refresh field name (`isDecisionTableIncremental`), recipe-mapping trace |
 | `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
 | `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
 | `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
