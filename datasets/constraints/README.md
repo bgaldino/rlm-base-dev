@@ -13,6 +13,8 @@ This utility manages Constraint Modeling Language (CML) data for Revenue Cloud E
 - [Import Workflow](#import-workflow)
 - [Validate Workflow](#validate-workflow)
 - [CCI Integration](#cci-integration)
+  - [prepare_constraints Flow (QuantumBit)](#prepare_constraints-flow-quantumbit)
+  - [import_mfg_cml Flow (Manufacturing)](#import_mfg_cml-flow-manufacturing)
 - [Data Plan Reference](#data-plan-reference)
 - [Adding New Models](#adding-new-models)
 - [Polymorphic Resolution](#polymorphic-resolution)
@@ -43,32 +45,48 @@ The utility is implemented as a single Python module (`tasks/rlm_cml.py`) with f
 
 ## Directory Structure
 
-Each constraint model is stored as a self-contained data plan:
+Each constraint model is stored as a self-contained data plan. Models are organised by feature family under `datasets/constraints/`:
 
 ```
-datasets/constraints/qb/
-├── QuantumBitComplete/
-│   ├── ExpressionSet.csv
-│   ├── ExpressionSetConstraintObj.csv
-│   ├── ExpressionSetDefinitionContextDefinition.csv
-│   ├── ExpressionSetDefinitionVersion.csv
-│   ├── Product2.csv
-│   ├── ProductClassification.csv
-│   ├── ProductRelatedComponent.csv
-│   └── blobs/
-│       └── ESDV_QuantumBitComplete_V1.ffxblob
-├── Server2/
-│   ├── (same CSV structure)
-│   └── blobs/
-│       └── ESDV_Server2_V1.ffxblob
-├── QuantumBitPCM/
-│   ├── (same CSV structure)
-│   └── blobs/
-│       └── ESDV_QuantumBitPCM_V1.ffxblob
-├── QuantumBitBundle/        # Combined model (QuantumBitComplete + QuantumBitPCM)
-│   ├── (same CSV structure)
-│   └── blobs/
-│       └── ESDV_QuantumBitBundle_V1.ffxblob
+datasets/constraints/
+├── qb/                          # QuantumBit constraint models
+│   ├── QuantumBitComplete/
+│   │   ├── ExpressionSet.csv
+│   │   ├── ExpressionSetConstraintObj.csv
+│   │   ├── ExpressionSetDefinitionContextDefinition.csv
+│   │   ├── ExpressionSetDefinitionVersion.csv
+│   │   ├── Product2.csv
+│   │   ├── ProductClassification.csv
+│   │   ├── ProductRelatedComponent.csv
+│   │   └── blobs/
+│   │       └── ESDV_QuantumBitComplete_V1.ffxblob
+│   ├── Server2/
+│   │   ├── (same CSV structure)
+│   │   └── blobs/
+│   │       └── ESDV_Server2_V1.ffxblob
+│   ├── QuantumBitPCM/
+│   │   ├── (same CSV structure)
+│   │   └── blobs/
+│   │       └── ESDV_QuantumBitPCM_V1.ffxblob
+│   └── QuantumBitBundle/        # Combined model (QuantumBitComplete + QuantumBitPCM)
+│       ├── (same CSV structure)
+│       └── blobs/
+│           └── ESDV_QuantumBitBundle_V1.ffxblob
+├── mfg/                         # Manufacturing constraint models
+│   ├── genSet/
+│   │   ├── ExpressionSet.csv
+│   │   ├── ExpressionSetConstraintObj.csv
+│   │   ├── ExpressionSetDefinitionContextDefinition.csv
+│   │   ├── ExpressionSetDefinitionVersion.csv
+│   │   ├── Product2.csv
+│   │   ├── ProductClassification.csv
+│   │   ├── ProductRelatedComponent.csv
+│   │   └── blobs/
+│   │       └── ESDV_GeneratorSet_V1.ffxblob
+│   └── fuelCell/
+│       ├── (same CSV structure)
+│       └── blobs/
+│           └── ESDV_Fuel_Cell_V1.ffxblob
 └── README.md               # This file
 ```
 
@@ -286,9 +304,9 @@ cci task run validate_cml \
 
 ## CCI Integration
 
-### prepare_constraints Flow
+### prepare_constraints Flow (QuantumBit)
 
-The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constraint setup:
+The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full QuantumBit constraint setup:
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
@@ -336,7 +354,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 > ```
 > (Deactivation works over REST even when the version has no Rank.)
 
-### Feature Flags
+### Feature Flags (QuantumBit)
 
 | Flag | Default | Purpose |
 |------|---------|---------|
@@ -356,6 +374,23 @@ Or override at runtime:
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
+### import_mfg_cml Flow (Manufacturing)
+
+Manufacturing constraint models are loaded via the `import_mfg_cml` flow, which is invoked as step 4 of `prepare_mfg_data` (itself part of `prepare_manufacturing`). All steps are gated by `badger=true`.
+
+| Step | Task | Condition | Purpose |
+|------|------|-----------|---------|
+| 1 | `import_cml` (GeneratorSet) | `badger` | Import GeneratorSet constraint model |
+| 2 | `import_cml` (Fuel_Cell) | `badger` | Import Fuel Cell constraint model |
+| 3 | `manage_expression_sets` | `badger` | Activate `GeneratorSet_V1` and `Fuel_Cell_V1` |
+
+The MFG models do not use a `dataset_dirs` cross-reference since the manufacturing PCM product catalog is loaded separately by `insert_badger_pcm_data` earlier in `prepare_mfg_data`.
+
+To run the manufacturing CML import independently:
+```bash
+cci flow run import_mfg_cml --org <org>
+```
+
 ## Data Plan Reference
 
 ### Current Models
@@ -366,6 +401,8 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 | Server2 | 81 (41 Type + 40 Port) | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
 | QuantumBitPCM | 12 | 12 (Type) | 0 (Port) | ESDV_QuantumBitPCM_V1.ffxblob |
 | QuantumBitBundle | 61 (33 Type + 28 Port) | 33 (Type) | 28 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
+| GeneratorSet | 467 (236 Type + 231 Port) | 235 (Type) | 231 (Port) | ESDV_GeneratorSet_V1.ffxblob |
+| Fuel_Cell | 29 (15 Type + 14 Port) | 15 (Type) | 14 (Port) | ESDV_Fuel_Cell_V1.ffxblob |
 
 > **These counts are computed, not curated.** Regenerate after changing any constraint
 > data plan — nothing validates them automatically
@@ -382,11 +419,21 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 >     $(( $(wc -l < "$D/Product2.csv") - 1 )) \
 >     $(( $(wc -l < "$D/ProductRelatedComponent.csv") - 1 ))
 > done
+> # Manufacturing models (added by #284):
+> for M in genSet fuelCell; do
+>   D=datasets/constraints/mfg/$M
+>   printf '%-20s ESC=%-3s Type=%-3s Port=%-3s Product2=%-3s PRC=%s\n' "$M" \
+>     $(( $(wc -l < "$D/ExpressionSetConstraintObj.csv") - 1 )) \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Type$') \
+>     $(tail -n +2 "$D/ExpressionSetConstraintObj.csv" | grep -c ',Port$') \
+>     $(( $(wc -l < "$D/Product2.csv") - 1 )) \
+>     $(( $(wc -l < "$D/ProductRelatedComponent.csv") - 1 ))
+> done
 > ```
 
-### Source Org
+### Source Orgs
 
-QuantumBitComplete and Server2 were extracted from the `qb-migrate` connected org. QuantumBitPCM was extracted from `pm-pcm262`. To re-extract (e.g. after changes in the source org):
+QuantumBitComplete and Server2 were extracted from the `qb-migrate` connected org. QuantumBitPCM was extracted from `pm-pcm262`. **Manufacturing models** use dedicated export tasks. To re-extract:
 
 ```bash
 cci task run export_cml --org qb-migrate \
@@ -400,6 +447,25 @@ cci task run export_cml --org qb-migrate \
 cci task run export_cml --org pm-pcm262 \
     -o developer_name QuantumBitPCM -o version 1 \
     -o output_dir datasets/constraints/qb/QuantumBitPCM
+```
+
+**Manufacturing models** use the dedicated `export_cml_genSet` and `export_cml_fuelCell` tasks. To re-extract:
+
+```bash
+cci task run export_cml_genSet --org <mfg_source_org>
+cci task run export_cml_fuelCell --org <mfg_source_org>
+```
+
+Which are equivalent to:
+
+```bash
+cci task run export_cml --org <mfg_source_org> \
+    -o developer_name GeneratorSet -o version 1 \
+    -o output_dir datasets/constraints/mfg/genSet
+
+cci task run export_cml --org <mfg_source_org> \
+    -o developer_name Fuel_Cell -o version 1 \
+    -o output_dir datasets/constraints/mfg/fuelCell
 ```
 
 ## QuantumBitBundle (combined model)
@@ -597,14 +663,14 @@ cci task run validate_cml \
 
 The CML constraint model source files are located in `scripts/cml/`:
 
-| File | Description |
-|------|-------------|
-| `QuantumBitComplete.cml` | QuantumBit Complete constraint model (bundle/config paradigm) |
-| `QuantumBitBundle.cml` | Combined model: QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules (see below) |
-| `Server2.cml` | Server2 constraint model |
-| `Server260.cml` | Server 260 constraint model |
-| `GeneratorSet258.cml` | Generator Set 258 constraint model |
-| `GeneratorSet256.cml` | Generator Set 256 constraint model |
+| File | Family | Description |
+|------|--------|-------------|
+| `QuantumBitComplete.cml` | qb | QuantumBit Complete constraint model (bundle/config paradigm) |
+| `QuantumBitBundle.cml` | qb | Combined model: QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules |
+| `Server2.cml` | qb | Server2 constraint model |
+| `Server260.cml` | qb | Server 260 constraint model |
+| `GeneratorSet258.cml` | mfg | Generator Set 258 constraint model (source for `GeneratorSet_V1` blob) |
+| `GeneratorSet256.cml` | mfg | Generator Set 256 constraint model (prior release reference) |
 
 These `.cml` files define the constraint model types, relations, attributes, and rules.
 
@@ -621,5 +687,7 @@ These `.cml` files define the constraint model types, relations, attributes, and
 >
 > Note `QuantumBitPCM` has a blob with **no** reference `.cml`, which is why the blob — not
 > the `.cml` set — is the authoritative inventory of shipped models.
+
+> **Note:** There is no standalone `.cml` source file for `Fuel_Cell`. The `ESDV_Fuel_Cell_V1.ffxblob` blob in `datasets/constraints/mfg/fuelCell/blobs/` was extracted directly from the source org via `export_cml_fuelCell`.
 
 The `validate_cml` task checks these files for structural correctness and cross-references them against the ESC association data in the constraint data plans.

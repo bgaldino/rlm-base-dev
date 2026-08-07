@@ -353,6 +353,17 @@ project:
       # because the class runs no SOQL and no DML.
       - RLM_RebuildSearchIndex
 
+    ps_quantumbit_demo_setup: &ps_quantumbit_demo_setup
+      # QuantumBit Demo Setup guide (post_setup_guide, deployed via
+      # deploy_post_setup_guide in the quantumbit flow). Surfaced on
+      # RLM_Home_Page_Default; without a page grant a permission-set-only user sees
+      # an insufficient-privileges component where the guide should render — the
+      # same gap the three sets above close for their Home-page components. Least
+      # privilege: the page is STATIC markup (no Apex controller, no SOQL/DML, no
+      # session loopback), so it grants ONLY page access — no class access and,
+      # unlike ps_expression_set_manager / ps_rebuild_search_index, no ApiEnabled.
+      - RLM_QuantumBitDemoSetup
+
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
       # BOTH the quantumbit and tso flows). deploy_post_utils ships the whole
@@ -1383,6 +1394,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_utils
+
+  deploy_post_setup_guide:
+    group: Revenue Lifecycle Management
+    description: Deploy the QuantumBit Demo Setup guide (Visualforce page).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_setup_guide
 
   deploy_post_large_stx:
     group: Revenue Lifecycle Management
@@ -3394,9 +3412,9 @@ tasks:
   # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
   # =====================================================================
   # All 11 RC functional areas captured 2026-05-11 / 2026-05-12
-  # (collections added 2026-06-21). 932 articles captured / 935
-  # discovered — 3 collections articles errored at capture and are
-  # pending recapture (see docs/salesforce/262/help/index.md). Roots
+  # (collections added 2026-06-21). 935 articles captured / 935
+  # discovered — 0 errored (the final 3 collections articles were
+  # recaptured 2026-08-04; see docs/salesforce/262/help/index.md). Roots
   # verified via the Revenue Lifecycle Management parent sidebar walk.
   #
   # Captured (article counts as of capture date):
@@ -3414,9 +3432,9 @@ tasks:
   #                                              area's prefix — see the
   #                                              revenue-cloud-docs skill)
   #   ✓ snapshot_approvals_help_262          —  34 articles
-  #   ✓ snapshot_collections_help_262        —  94 articles (3 errored,
-  #                                              pending recapture — see
-  #                                              docs/salesforce/262/help/index.md
+  #   ✓ snapshot_collections_help_262        —  97 articles (0 errored;
+  #                                              final 3 recaptured 2026-08-04 —
+  #                                              see docs/salesforce/262/help/index.md
   #                                              and the refresh command below)
   #
   # NOTE — the Help portal uses short-prefix conventions that differ from
@@ -3670,7 +3688,6 @@ flows:
         flow: prepare_billing
       14:
         flow: prepare_collections
-        when: project_config.project__custom__collections
       15:
         flow: prepare_analytics
       16:
@@ -3697,16 +3714,12 @@ flows:
         flow: prepare_pricing_discovery
       27:
         flow: prepare_large_stx
-        when: project_config.project__custom__large_stx
       28:
         flow: prepare_personas
-        when: project_config.project__custom__personas
       29:
         flow: prepare_ux
-        when: project_config.project__custom__ux
       30:
         flow: prepare_inapp
-        when: project_config.project__custom__inapp
       31:
         flow: prepare_scratch
       32:
@@ -3968,6 +3981,14 @@ flows:
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
+      10:
+        # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
+        # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # of prepare_rlm_org) — so the page must exist first. This whole flow runs
+        # at step 7, well before UX assembly.
+        task: deploy_post_setup_guide
+        when: project_config.project__custom__quantumbit
 
   prepare_tso:
     group: Revenue Lifecycle Management
@@ -4184,7 +4205,6 @@ flows:
           activate: true
       10:
         flow: prepare_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
   deploy_post_prm_pricing:
     group: Revenue Lifecycle Management
@@ -4226,7 +4246,6 @@ flows:
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
         flow: deploy_post_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
@@ -4825,6 +4844,27 @@ flows:
           api_names: *ps_decision_table_manager
           user_alias: salesrep
       10:
+        # The QuantumBit Demo Setup guide sits on the shared RLM_Home_Page_Default,
+        # and there is no persona-specific Home page — so the salesrep persona SEES
+        # it. Deploy-time access reaches only the RUNNING (admin) user; only a
+        # user_alias assignment reaches the persona, which otherwise looks at a
+        # default-open component that errors with insufficient privileges.
+        #
+        # Granted rather than hidden, following the Decision Table Manager precedent
+        # (step 9): a visible component that errors is worse than the grant. This
+        # grant is narrower still — page access to a STATIC page (no Apex, no class
+        # access, no ApiEnabled), so it hands the persona no system privilege.
+        #
+        # Gated on quantumbit (NOT tso): the permission set ships in
+        # post_setup_guide, deployed only by deploy_post_setup_guide in
+        # prepare_quantumbit. Assigning it on a personas build without quantumbit
+        # would fail on a PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_quantumbit_demo_setup
+          user_alias: salesrep
+      11:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

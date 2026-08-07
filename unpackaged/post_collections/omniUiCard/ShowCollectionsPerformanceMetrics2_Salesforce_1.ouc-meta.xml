@@ -3,7 +3,7 @@
     <authorName>Salesforce</authorName>
     <dataSourceConfig>{&quot;dataSource&quot;:{&quot;type&quot;:&quot;ApexRemote&quot;,&quot;value&quot;:{&quot;dsDelay&quot;:&quot;&quot;,&quot;remoteClass&quot;:&quot;fsc_collection_apex.CollectionsDashboardMetrics&quot;,&quot;remoteMethod&quot;:&quot;getMetrics&quot;,&quot;vlocityAsync&quot;:false},&quot;orderBy&quot;:{&quot;name&quot;:&quot;&quot;,&quot;isReverse&quot;:&quot;&quot;},&quot;contextVariables&quot;:[]}}</dataSourceConfig>
     <description>Shows the performance metrics for collection plans assigned to a collections specialist.</description>
-    <isActive>true</isActive>
+    <isActive>false</isActive>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
     <name>ShowCollectionsPerformanceMetrics2</name>
     <omniUiCardType>Parent</omniUiCardType>

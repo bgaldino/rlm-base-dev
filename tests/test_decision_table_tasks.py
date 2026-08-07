@@ -849,38 +849,27 @@ ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 # flag in all 198 clauses across 46 flows — measured: re-gating refresh_dt_prm_pricing onto
 # psg_debug, which would silently stop that step running in any org, broke zero checks. These
 # two sites are forgiven; a third reference anywhere is a failure.
-# ⚠ PRE-EXISTING on main. Seven steps carry a `when:` on a `flow:` reference, which CCI
-# discards (see the check below). All seven are behaviourally safe TODAY because every child
-# step re-guards on the same flag — measured: 4/4, 3/3, 10/10, 2/2, 3/3, 6/6 and 7/7 children
-# guarded. So this is a latent-placement defect, not a live one, and it is allowlisted rather
-# than fixed here: the product code on this branch has been unchanged for eight review rounds
-# and this is not decision-table work. Tracked as issue #333. An EIGHTH such placement fails.
+# ⚠ EMPTY, and it must stay empty. CCI discards a `when:` on a `flow:` step (see the check
+# below), so such a guard reads as load-bearing while doing nothing. The seven that existed
+# were removed rather than kept as documentation — issue #333. Every child step already
+# re-guarded on the same flag (4/4, 3/3, 10/10, 2/2, 3/3, 6/6, 7/7), so the removal changed
+# no build behaviour; it only made the file say what CCI actually does.
 #
-# ⚠ Keyed to the CHILD FLOW, not just the coordinate, and checked for equality below. A bare
-# positional tuple rots four ways and only ONE of them is loud:
+# Re-populating this set is not the way to land a new misplaced guard. Guard the child steps.
 #
-#   guard removed from the step (i.e. #333 fixed properly here)  -> silent
-#   step deleted                                                 -> silent
-#   `flow:` becomes `task:`                                      -> silent
-#   step renumbered                                              -> LOUD
+# ⚠ Keyed to the CHILD FLOW, not just the coordinate, and checked for EQUALITY below, so an
+# entry cannot rot silently. A bare positional tuple rots four ways and only ONE is loud:
 #
-# All three silent paths leave a stale tuple that then forgives whatever nested-flow step later
+#   guard removed from the step   -> silent
+#   step deleted                  -> silent
+#   `flow:` becomes `task:`       -> silent
+#   step renumbered               -> LOUD
+#
+# Each silent path would leave a stale tuple that then forgives whatever nested-flow step later
 # occupies that slot. Measured as two edits, each individually correct: fix site 29 properly,
 # then land a NEW misplaced guard there — 87/87, exit 0. Binding the child name also stops a
 # swapped child from inheriting the exemption (measured: swapping in another flow passed).
-#
-# This is the KNOWN_UNDECLARED equality reasoning, which was already written down in this file
-# for issue #331 and did not travel to the set added for #333. A protection added to one
-# exemption set does not travel to the next one somebody adds.
-KNOWN_FLOW_GUARDS = {
-    ("prepare_rlm_org", 14): "prepare_collections",
-    ("prepare_rlm_org", 27): "prepare_large_stx",
-    ("prepare_rlm_org", 28): "prepare_personas",
-    ("prepare_rlm_org", 29): "prepare_ux",
-    ("prepare_rlm_org", 30): "prepare_inapp",
-    ("prepare_prm", 10): "prepare_prm_pricing",
-    ("prepare_prm_pricing", 2): "deploy_post_prm_pricing",
-}
+KNOWN_FLOW_GUARDS = {}
 
 KNOWN_UNDECLARED = {
     ("assign_feature_permission_sets", 1, "psg_debug"),
@@ -1308,10 +1297,12 @@ check(
     f"unlisted or child changed: {sorted(set(seen_flow_guards.items()) - set(KNOWN_FLOW_GUARDS.items()))}",
 )
 
-# ⚠ Enforce the CONTRACT that makes each exemption safe, not just its coordinate. These seven are
-# forgiven only because every child step re-guards on the same flag — that is the entire argument
-# for issue #333 being latent rather than live. Measured before this check: deleting all four
-# `when:` clauses from prepare_collections gave 87/87, exit 0, at which point CCI discards the
+# ⚠ Enforce the CONTRACT that makes an exemption safe, not just its coordinate. A misplaced
+# guard is only forgivable when every child step re-guards on the same flag — that was the
+# entire argument for issue #333 being latent rather than live, and it is what any future
+# entry would have to earn. Vacuous today because the set is empty; kept so that re-adding an
+# entry cannot skip the check. Measured while the set was populated: deleting all four `when:`
+# clauses from prepare_collections gave 87/87, exit 0, at which point CCI discards the
 # allowlisted parent guard and runs four tasks unconditionally.
 # ⚠ The child must IMPLY the parent, not merely carry some guard. "Has a when:" was too weak:
 # replacing all four prepare_collections child guards with an unrelated flag passed 89/89, and so
