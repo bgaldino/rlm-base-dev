@@ -4,6 +4,8 @@ SFDMU data plan for QuantumBit PRM pricing overlay data. Runs after baseline
 `qb-prm` so PRM pricing records can be deployed without duplicating or
 replacing the original PRM dataset.
 
+> **SFDMU 5.6.4+ floor.** This plan is `Upsert` throughout — no `Insert` / `deleteOldData` workarounds; nothing to migrate on the 5.6.4+ floor.
+
 ## CCI Integration
 
 ### Flow: `prepare_prm_pricing`

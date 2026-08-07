@@ -776,12 +776,15 @@ def _cost_book_spec(**over):
     spec = {
         "fullName": "RLM_CostBookEntries", "setupName": "Cost Book Entries",
         "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
-        "executionType": "Hbase", "filterResultBy": "OutputOrder",
+        "executionType": "HBASE", "filterResultBy": "OutputOrder",
         "conditionType": "All", "type": "MediumVolume", "usageType": "DefaultPricing",
-        "status": "Active",
+        "status": "Active", "collectOperator": "None",
+        "dtRowLevelOverrideType": "None",
         "decisionTableParameters": [
             {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
              "operator": "Equals", "sequence": 1, "isRequired": True},
+            {"usage": "INPUT", "fieldName": "CurrencyIsoCode", "dataType": "String",
+             "operator": "Equals", "sequence": 2, "isRequired": True},
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "String"},
         ],
     }
@@ -795,11 +798,11 @@ def test_translator_metadata():
     check("metadata keeps dataSourceType name", body["dataSourceType"] == "SingleSobject")
     check("metadata keeps filterResultBy name", body["filterResultBy"] == "OutputOrder")
     check("metadata does NOT emit fullName", "fullName" not in body)
-    check("metadata synthesizes conditionCriteria from INPUT seq",
-          body.get("conditionCriteria") == "1", body.get("conditionCriteria"))
-    check("metadata always emits the 3 default bools",
+    check("metadata synthesizes conditionCriteria from INPUT sequences",
+          body.get("conditionCriteria") == "1 AND 2", body.get("conditionCriteria"))
+    check("metadata always emits the 4 default bools",
           {"doesConsiderNullValue", "hasIncrementalSyncFailed",
-           "isIncrementalSyncEnabled"} <= set(body))
+           "isIncrementalSyncEnabled", "isVersioned"} <= set(body))
     cols = body["decisionTableParameters"]
     inp = [c for c in cols if c["usage"] == "INPUT"][0]
     out = [c for c in cols if c["usage"] == "OUTPUT"][0]
@@ -816,7 +819,7 @@ def test_translator_tooling():
     check("tooling wraps FullName", body.get("FullName") == "RLM_CostBookEntries")
     check("tooling nests Metadata body", isinstance(body.get("Metadata"), dict))
     check("tooling Metadata carries columns",
-          len(body["Metadata"]["decisionTableParameters"]) == 2)
+          len(body["Metadata"]["decisionTableParameters"]) == 3)
     patch = _payload.tooling_metadata_only(_cost_book_spec())
     check("tooling PATCH body omits FullName (id in URL)", "FullName" not in patch)
     check("tooling PATCH body is Metadata-only", set(patch) == {"Metadata"})

@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configuration. Creates fulfillment step definitions, groups, dependencies, decomposition rules, fulfillment scenarios, workspaces, fallout rules, jeopardy rules, and updates products with DRO-specific fields. Uses dynamic user resolution at runtime.
 
+> **SFDMU 5.6.4+ floor.** The plan is `Upsert` throughout; only FulfillmentWorkspaceItem adds `deleteOldData: true`, because its externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`) that pre-5.6.4 Upsert could not match — **fixed at/below the 5.6.4 floor**. The shipped plan keeps the workaround deliberately; dropping `deleteOldData` is the gated `sfdmu-v5-optimization` initiative (live verification + explicit approval required).
+
 ## CCI Integration
 
 ### Flow: `prepare_dro`
@@ -44,7 +46,7 @@ Upsert all DRO objects in dependency order
 
 | #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
 |----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
-| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 313     | |
+| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 314     | |
 | 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 21      | Consolidated service line decomps; removed standalone QB-DB-TOKEN rules |
 | 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
 | 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
@@ -157,7 +159,7 @@ qb-dro/
 ├── README.md                            # This file
 │
 │  Source CSVs — Products
-├── Product2.csv                         # 313 records (Update only)
+├── Product2.csv                         # 314 records (Update only)
 │
 │  Source CSVs — Decomposition
 ├── ProductFulfillmentDecompRule.csv     # 21 records

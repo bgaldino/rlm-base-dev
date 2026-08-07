@@ -273,14 +273,14 @@ cd rlm-base-dev
 
 > Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
 
-### Step 9 — Install SFDMU plugin (v5+)
+### Step 9 — Install SFDMU plugin (v5.6.4+)
 
-SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.0.0 or later is required.**
+SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.6.4 or later is required** (5.6.4 fixed upsert matching for relationship-traversal externalIds; older 5.x releases duplicate records on rerun).
 
 ```bash
 sf plugins install sfdmu
 
-# Verify (should show 5.x)
+# Verify (should show 5.6.4 or later)
 sf plugins list
 ```
 
@@ -372,10 +372,10 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
-   - **Version 5.0.0 or later required** (v4.x is no longer supported)
+   - **Version 5.6.4 or later required** (v4.x is no longer supported; pre-5.6.4 5.x breaks Upsert matching on relationship externalIds)
    - Required for data loading tasks
    - Installation: `sf plugins install sfdmu`
-   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - Verify: `sf plugins list` (should show sfdmu 5.6.4 or later)
    - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
@@ -432,7 +432,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    5. **Verify** — Run `cci task run validate_setup` (no org required) to check all dependencies including Chrome/Chromium and ChromeDriver.
 
-3. **Install SFDMU (v5+):**
+3. **Install SFDMU (v5.6.4+):**
    ```bash
    sf plugins install sfdmu
    ```
@@ -550,7 +550,6 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 |------|---------|-------------|
 | `rating` | `true` | Insert Rating design-time data |
 | `rates` | `true` | Insert Rates |
-| `ramps` | `true` | Insert and configure ramps |
 | `clm_data` | `false` | Load Contract Lifecycle Management data |
 | `constraints_data` | `true` | Load constraint model data (CML import + activation) |
 
@@ -583,7 +582,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | Flag | Default | Description |
 |------|---------|-------------|
 | `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
-| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 30. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
+| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
 
@@ -681,12 +680,17 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
 | `configure_core_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure core `PricingRecipeTableMapping` records exist for `NGPDefaultRecipe` and `RLM_CostBookEntries` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
 | `configure_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure PRM pricing lookup table mappings exist for `NGPDefaultRecipe` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
-| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 30. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
+| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 29. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
 
+See [Decision Tables](.cursor/skills/decision-tables/SKILL.md) for when a refresh is
+required, why a stale lookup shows up as wrong pricing, and what each freshness verdict
+means.
+
 | Task Name | Module | Description |
 |-----------|--------|-------------|
+| `check_decision_table_freshness` | `rlm_apex_file.py` | Report whether each decision table still reflects its source data, with a reason per table. No org changes. Add `-o param1 strict` to fail the build on any stale table |
 | `refresh_dt_rating` | `rlm_refresh_decision_table.py` | Refresh rating decision tables |
 | `refresh_dt_rating_discovery` | `rlm_refresh_decision_table.py` | Refresh rating discovery decision tables |
 | `refresh_dt_default_pricing` | `rlm_refresh_decision_table.py` | Refresh default pricing decision tables |
@@ -782,7 +786,7 @@ cci task run robot_order_from_quote --org beta
 
 ### App Launcher
 
-App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 30 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
+App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 29 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
 To capture the running user's current order as a versioned reference snapshot:
 
@@ -872,7 +876,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (35 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (34 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -904,17 +908,16 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_guidedselling` | Always |
 | 25 | `prepare_revenue_settings` | Always |
 | 26 | `prepare_pricing_discovery` | Always |
-| 27 | `prepare_ramp_builder` | Always |
-| 28 | `prepare_large_stx` | `large_stx` |
-| 29 | `prepare_personas` | `personas` |
-| 30 | `prepare_ux` | `ux` |
-| 31 | `prepare_inapp` | `inapp` |
-| 32 | `prepare_scratch` | Always |
-| 33 | `refresh_all_decision_tables` | Always |
-| 34 | `rebuild_search_index` | Always |
-| 35 | `stamp_git_commit` | Always |
+| 27 | `prepare_large_stx` | `large_stx` |
+| 28 | `prepare_personas` | `personas` |
+| 29 | `prepare_ux` | `ux` |
+| 30 | `prepare_inapp` | `inapp` |
+| 31 | `prepare_scratch` | Always |
+| 32 | `refresh_all_decision_tables` | Always |
+| 33 | `rebuild_search_index` | Always |
+| 34 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 30 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 33 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 34 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -948,7 +951,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
 | `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
-| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `prm`, `prm_pricing` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `tso`, `prm`, `prm_pricing` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
@@ -960,9 +963,9 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 
 | Flow | Description | Feature Flag |
 |------|-------------|--------------|
-| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 30 of `prepare_rlm_org`. | `ux` |
+| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 29 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing and rates are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -977,7 +980,7 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
-> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> **Requires SFDMU v5.6.4+.** All data plans have been migrated for SFDMU v5 compatibility
 > and idempotency. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md)
 > for the full migration details and known limitations.
 
@@ -1098,13 +1101,17 @@ Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference.
 
 ### Constraint Model Data Plans
 
-Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and the ConstraintModel blobs — which are **plain-text CML**, uploaded verbatim, not compiled binaries.
 
-| Model | Directory | ESC Records | Documentation |
-|-------|-----------|-------------|---------------|
-| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Model | Directory | ESC Records | Active after `prepare_constraints`? |
+|-------|-----------|-------------|-------------------------------------|
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the active QuantumBit model |
+| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 57 | no — imported inactive, kept for A/B |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | no — imported inactive, kept for A/B |
+| Server2 | `datasets/constraints/qb/Server2/` | 81 | **yes** — hardware model, not part of the QuantumBit family |
+
+Exactly one QuantumBit model may be active at a time; `Server2` is a separate model and
+is active alongside it.
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1121,8 +1128,15 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
+| [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
+| [Usage & Consumption Runbook](docs/guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 verified live; 6 pending re-verification, 9 platform-blocked) with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
+| [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [Build Harness](docs/guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ### Analysis & Planning
 
@@ -1173,14 +1187,14 @@ rlm-base-dev/
 │   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
 │   │   │   ├── tso/            # Intentionally empty — TSO inherits QB via tso > qb > base
-│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals, ramps
+│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
 │   │   ├── base/               # 17 base layouts (moved from force-app)
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
-│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
+│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates)
 │   ├── appMenus/
 │   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
@@ -1258,6 +1272,7 @@ rlm-base-dev/
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
+│   │   │   ├── QuantumBitBundle/
 │   │   │   ├── QuantumBitComplete/
 │   │   │   ├── Server2/
 │   │   │   └── QuantumBitPCM/
@@ -1273,14 +1288,25 @@ rlm-base-dev/
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   ├── expand_currency_pricing_data.py # Regenerate per-currency qb-pricing rows
+│   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
+│   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
+│   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── guides/                 # How-to setup and build process docs
+│   │   ├── build-harness.md
+│   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
 │   │   ├── post-billing-portal.md
-│   │   └── prepare-rlm-org-build-guide.md
+│   │   ├── prepare-rlm-org-build-guide.md
+│   │   ├── qb-consumption-demo-scenarios.md
+│   │   ├── txn-data-harness.md
+│   │   └── usage-consumption-runbook.md
 │   ├── references/             # Technical references and task/CLI examples
+│   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
 │   │   ├── decision-table-examples.md
 │   │   ├── sfdmu-composite-key-optimizations.md
@@ -1323,7 +1349,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 30)
+# Assemble all UX metadata and deploy (same as step 29)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
@@ -1351,7 +1377,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
@@ -1477,10 +1503,10 @@ cci version
 ### SFDMU Not Found or Outdated
 
 ```bash
-# Install or update SFDMU (v5+ required)
+# Install or update SFDMU (v5.6.4+ required)
 sf plugins install sfdmu
 
-# Verify installation (should show 5.x)
+# Verify installation (should show 5.6.4 or later)
 sf plugins list
 ```
 

@@ -1,8 +1,0 @@
-{
-  "contexts": [
-    {
-      "developerName": "RLM_SalesTransactionContext",
-      "planFile": "contexts/ramp_mode.json"
-    }
-  ]
-}

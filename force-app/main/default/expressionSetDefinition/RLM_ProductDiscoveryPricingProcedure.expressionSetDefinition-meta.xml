@@ -50,6 +50,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>PricingCurrencyCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>ListPriceField</name>
                     <output>false</output>
                     <type>Parameter</type>

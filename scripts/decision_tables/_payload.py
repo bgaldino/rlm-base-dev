@@ -48,7 +48,7 @@ _USAGE_TO_CANONICAL = {"Input": "INPUT", "Output": "OUTPUT", "RowCriteria": "ROW
 # other usage (OUTPUT / ROWCRITERIA) drops those on every path.
 _INPUT_USAGES = {"INPUT", "Input"}
 
-# Booleans the MDAPI serializer always emits (shipped XML carries all three even
+# Booleans the MDAPI serializer always emits (shipped XML carries all four even
 # at their defaults). Filled with ``False`` in the metadata body for a stable,
 # diff-clean XML + Tooling shape; omitted from the Connect body (Connect defaults
 # them server-side).
@@ -56,6 +56,7 @@ _METADATA_DEFAULT_BOOLS = {
     "doesConsiderNullValue": False,
     "hasIncrementalSyncFailed": False,
     "isIncrementalSyncEnabled": False,
+    "isVersioned": False,
 }
 
 # Top-level scalar fields carried into the metadata body when present in the spec

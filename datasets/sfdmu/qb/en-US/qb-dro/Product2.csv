@@ -41,6 +41,7 @@ CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockK
 ,OrderLineItem,,L5-20 Input Power Cable 8',QB-CMPC-5892
 ,,,QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH
 ,,,QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT
+,,,QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND
 ,,,QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER
 ,OrderLineItem,,QuantumBit Complete Solution,QB-COMPLETE
 ,,,Compute Time,QB-CPU-BLNG

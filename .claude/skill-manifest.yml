@@ -32,7 +32,14 @@
 
 manifest_version: 2
 generated_at: "2026-05-23T00:00:00Z"
-last_verified: "2026-05-23"
+# ⚠ last_verified means someone RESOLVED every path in this file against the working
+# tree, not that they read it. The 2026-05-23 stamp did not survive that test: two
+# skills present since April and May were unlisted, the postman collection filenames
+# had never existed, and the prior-GA help corpus pointed at a directory that has
+# never been committed on any branch. `skill_manifest.py --check` did not catch any of
+# that at the time — it resolved repo roots only. It now audits every declared skill
+# and every path-shaped value, so re-stamping this date means running it.
+last_verified: "2026-07-26"
 salesforce_release_active: "262"
 salesforce_release_prior_ga: "260"
 api_version_active: "v67.0"
@@ -60,6 +67,25 @@ foundations:
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: hand-curated + erd-data.json
       caveats: []  # 213-vs-263 discrepancy resolved (refresh in feat/262-erd-refresh-and-schema-diff-tooling — both report 263); v67.0 baseline aligned
+
+    - id: usage-consumption
+      path: .cursor/skills/usage-consumption/SKILL.md
+      purpose: "Build, rate, verify, and reset metered consumption demos — commitments, grants, drawdown, overage"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      sub_skills:
+        - .cursor/skills/usage-consumption/building-usage-assets.md
+        - .cursor/skills/usage-consumption/verification.md
+      tooling:
+        - scripts/qb_usage.py
+        - scripts/build_quote_to_asset.py
+        - scripts/apex/consumeUsageProfile.apex
+        - scripts/apex/validateRatedUsage.apex
+        - scripts/apex/clearUsageData.apex
+        - tests/test_qb_multicurrency_data.py
+      provenance: live-verified on scratch org 2026-07
+      caveats:
+        - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
+        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING in 262 (platform issue); Commit works"
 
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
@@ -158,10 +184,87 @@ foundations:
         - scripts/decision_tables/deactivate_decision_table.py
         - scripts/decision_tables/refresh_decision_table.py
         - scripts/decision_tables/delete_decision_table.py
+        - scripts/apex/checkDecisionTableFreshness.apex
       caveats:
         - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
         - "Toolkit reads are safe; mutators are preview-by-default (--confirm to write); destructive probing runs on disposable scratch orgs only, never beta"
         - "The CCI tasks remain the org-build path — the toolkit complements, does not duplicate, them"
+        - "check_decision_table_freshness requires post_utils deployed; it delegates to RLM_DecisionTableManagerController rather than recomputing freshness"
+        - "A table's own row count is not queryable — DecisionTableDataset/Recordset reject aggregates and partial filters; only source counts exist"
+    - id: constraint-models
+      path: .cursor/skills/constraint-models/SKILL.md
+      purpose: "CML constraint models for the Product Configurator: .ffxblob as the shipped plain-text artifact, the four records a bundle member needs, Sequence in the PRC composite key, and why importing into an ACTIVE version does not redeploy"
+      consumed_by_pmos: []
+      provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
+      caveats:
+        - "Pinned to Release 262 / API v67.0"
+        - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
+
+    - id: pricing-wiring
+      path: .cursor/skills/pricing-wiring/SKILL.md
+      purpose: "Setup order and layering for pricing that spans recipes, recipe table mappings, pricing procedures (Expression Sets), procedure plans and plan overlays — written generically so a feature pack can reuse the pattern without redesigning the order"
+      consumed_by_pmos: []
+      provenance: hand-authored from the PRM pricing layering work
+      caveats:
+        - "Pinned to Release 262 / API v67.0"
+        - "A decision-table-backed lookup must be refreshed when its source CRITERIA become true, not when the triggering row is written — see decision-tables"
+
+    - id: build-harness
+      path: .cursor/skills/build-harness/SKILL.md
+      purpose: "Local build harness for prepare_rlm_org: profiling and test runs, .harness/runs artifacts, checkpoint resume, and the CCI Build Manager TUI including its scratch-org creation path"
+      consumed_by_pmos: []
+      provenance: hand-authored from scripts/build_harness
+      tooling:
+        - scripts/build_harness
+      caveats:
+        - "Local-only tooling; run artifacts under .harness/ are not tracked"
+
+    - id: todo-tracker
+      path: .cursor/skills/todo-tracker/SKILL.md
+      purpose: "Durable work items across three workstations and multiple agents: the claim-before-you-work protocol whose push is the lock, enforced closeout, and the public-issue vs private-pack split"
+      consumed_by_pmos: []
+      provenance: hand-authored alongside the tracker itself
+      caveats:
+        - "The packs live in the PRIVATE rlm-base-artifacts repo, cloned to .agents/artifacts/. Without that clone the tooling does not exist on the workstation"
+        - "bgaldino/rlm-base-dev is PUBLIC — GitHub issues carry public-safe summaries only"
+
+    - id: context-service
+      path: .cursor/skills/context-service/SKILL.md
+      purpose: "Context Definition read/extend/apply/deploy/upgrade lifecycle: version-centric model, Connect-vs-SObject-REST mapping split, three mapping types, plan-file format, guardrail limits, activation/Sync gotchas"
+      consumed_by_pmos: []
+      provenance: hand-authored from rlm_context_service.py + rlm_extend_stdctx.py + context plans + context-service-utility.md + Core UDD/OAS/Help
+      sub_skills:
+        - .cursor/skills/context-service/data-model-and-api.md
+        - .cursor/skills/context-service/authoring-and-lifecycle.md
+        - .cursor/skills/context-service/runtime-and-persistence.md
+      tooling:
+        # design-time: read-only inspection / validation
+        - scripts/context_service/definition/validate_context_plan.py
+        - scripts/context_service/definition/list_contexts.py
+        - scripts/context_service/definition/describe_context.py
+        - scripts/context_service/definition/diff_context.py
+        - scripts/context_service/definition/patch_context.py
+        - scripts/context_service/definition/export_context.py
+        - scripts/context_service/definition/trace_context.py
+        - scripts/context_service/definition/list_context_interfaces.py
+        # design-time mutators — live-proven, for one-off exploration & updates, not
+        # build-critical and not wired into any CCI flow (production path is
+        # `cci task run manage_context_definition`); sf-CLI transport only
+        - scripts/context_service/definition/apply_context_plan.py
+        - scripts/context_service/definition/delete_context.py
+        - scripts/context_service/definition/mutate_context.py
+        # runtime instance lifecycle — verify-live (pilot caveats on GA orgs), for
+        # debugging/validating hydration; not a production runtime, not wired into any flow
+        - scripts/context_service/instance/build_hydration_data.py
+        - scripts/context_service/instance/context_session.py
+        - scripts/context_service/instance/create_context_instance.py
+        - scripts/context_service/instance/query_context_instance.py
+        - scripts/context_service/instance/persist_context_instance.py
+        - scripts/context_service/instance/delete_context_instance.py
+        # standalone example — not wired into any CCI task/flow, run by hand
+        - scripts/context_service/examples/contextServiceLifecycle.apex
+      caveats:
+        - "Pinned to Release 262 / API v67.0 — verify edge behavior (versioning, standard-context availability) against a live org"
 
     - id: sfdmu-data-plans
       path: .cursor/skills/sfdmu-data-plans/SKILL.md
@@ -311,9 +414,15 @@ foundations:
       refresh_task: snapshot_salesforce_help
 
     help_corpus_prior_ga:
-      path: docs/salesforce/260/help/articles/
-      manifest: docs/salesforce/260/help/manifest.json
+      # ⚠ NOT CAPTURED. This advertised docs/salesforce/260/help/{articles,manifest.json}
+      # until 2026-07-26; neither path has ever existed, on main or on release/260 or
+      # anywhere in history. A consumer resolving it got a miss, not prior-GA content.
+      # docs/salesforce/260/ holds only feature-index.md and release-notes-pricing.md.
+      # Run snapshot_salesforce_help against a 260 org to populate it, then restore the
+      # path/manifest keys.
+      status: not_captured
       release: "260"
+      partial: docs/salesforce/260/feature-index.md
 
     erd_data:
       path: docs/erds/erd-data.json
@@ -359,9 +468,11 @@ foundations:
       flags: .cursor/skills/cci-orchestration/feature-flags.md
       refresh_script: scripts/ai/generate_cci_reference.py
 
+    # Corrected 2026-07-26: the two filenames advertised here never existed in postman/.
     postman_collections:
-      - postman/Salesforce_RLM_v260.postman_collection.json
-      - postman/Revenue_Cloud_Advanced.postman_collection.json
+      - postman/Agentforce Revenue Management APIs.postman_collection.json
+      - postman/Agentforce Revenue Management APIs (v66.0).postman_collection.json
+    postman_environment: postman/Agentforce Revenue Management v66.0.postman_environment.json
     postman_v67_status: needs_refresh
 
 # ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──
