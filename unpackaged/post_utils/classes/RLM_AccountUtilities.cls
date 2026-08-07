@@ -1728,24 +1728,24 @@ public without sharing class RLM_AccountUtilities {
         Id acctId = accountId;
 
         if (preserveContractsWithPrices) {
-            // Select only contracts with NO ContractItemPrice children via a semi-join
-            // on the master-detail FK (avoids relying on an undocumented child-relationship
-            // name). Dynamic query + try/catch mirrors the edition-defensive pattern used
-            // elsewhere in this class (see deleteUsageEntitlements) so an org without
-            // Contract Pricing degrades gracefully rather than failing to compile.
             List<Contract> contractsToDelete;
-            try {
+
+            if (!Schema.getGlobalDescribe().containsKey('ContractItemPrice')) {
+                // Contract Pricing is unavailable, so no contract can have a
+                // ContractItemPrice child. Every contract is therefore unpriced
+                // and remains eligible for deletion under the preserve-mode rule.
+                contractsToDelete = [
+                    SELECT Id FROM Contract WHERE AccountId = :acctId
+                ];
+            } else {
+                // Select only contracts with NO ContractItemPrice children via a
+                // semi-join on the master-detail FK. Dynamic SOQL keeps this class
+                // deployable on editions where Contract Pricing is unavailable.
                 contractsToDelete = (List<Contract>) Database.query(
                     'SELECT Id FROM Contract WHERE AccountId = :acctId ' +
                     'AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)');
-            } catch (System.QueryException e) {
-                // Edition-defensive: ContractItemPrice may not exist on all editions.
-                // A QueryException from an invalid object/field is safe to swallow —
-                // no contracted prices can exist, so preserve all contracts.
-                System.debug('deleteContracts preserve-mode query failed (edition-absent?); ' +
-                    'preserving ALL contracts: ' + e.getMessage());
-                return true;
             }
+
             if (!contractsToDelete.isEmpty()) {
                 Database.delete(contractsToDelete);
             }

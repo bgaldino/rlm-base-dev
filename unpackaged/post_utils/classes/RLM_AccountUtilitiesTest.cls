@@ -88,7 +88,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
         insert new List<Contract>{ priced, unpriced };
 
-        SObject cip = (SObject) Type.forName('ContractItemPrice').newInstance();
+        SObject cip = Schema.getGlobalDescribe().get('ContractItemPrice').newSObject();
         cip.put('ContractId', priced.Id);
         cip.put('ItemId', product.Id);
         cip.put('StartDate', System.now());
@@ -268,7 +268,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // ------------------------------------------ contracted-price preservation
 
     private static Boolean contractItemPriceAvailable() {
-        return Type.forName('ContractItemPrice') != null;
+        return Schema.getGlobalDescribe().containsKey('ContractItemPrice');
     }
 
     @IsTest
