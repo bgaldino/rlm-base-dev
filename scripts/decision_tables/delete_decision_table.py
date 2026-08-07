@@ -46,12 +46,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.decision_tables._client import (  # noqa: E402
     DEFAULT_API_VERSION,
+    DEFINITIONS_PATH,
     DecisionTableClientError,
     Transport,
     eprint,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
-from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
+from scripts.decision_tables._resolve import ResolveError, load_definition, resolve_decision_table  # noqa: E402
 
 
 def main(argv=None) -> int:
@@ -100,7 +101,15 @@ def main(argv=None) -> int:
     try:
         if was_active:
             if args.deactivate_first:
-                engine.deactivate(record_id)
+                defn = load_definition(transport, args.developer_name)
+                meta = defn.get("metadata") or {}
+                if meta.get("dataSourceType") == "CsvUpload":
+                    eprint("  CsvUpload table — deactivating version 1 first "
+                           "(platform requires version Inactive before table).")
+                    vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/1"
+                    transport.connect("PATCH", vpath, {"versionStatus": "Inactive"})
+                else:
+                    engine.deactivate(record_id)
                 deactivated = True
             else:
                 engine.assert_editable(table_row)

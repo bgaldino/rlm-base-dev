@@ -271,6 +271,17 @@ def main(argv=None) -> int:
         if args.wait_for_status and final not in ("Completed",):
             eprint(f"  Skipping --activate-version: uploadStatus is {final!r}, not "
                    f"'Completed'. Activate manually after confirming rows landed.")
+        elif not args.wait_for_status:
+            eprint("  WARNING: activating version without --wait-for-status — the "
+                   "async import may not have completed yet. If rows are missing, "
+                   "re-upload or wait for uploadStatus=Completed first.")
+            try:
+                vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(args.activate_version)}"
+                vresp = transport.connect("PATCH", vpath, {"versionStatus": "Active"})
+                summary["versionActivation"] = vresp
+            except DecisionTableClientError as exc:
+                eprint(f"  WARNING: version activation failed: {exc}")
+                exit_code = 1
         else:
             try:
                 vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(args.activate_version)}"

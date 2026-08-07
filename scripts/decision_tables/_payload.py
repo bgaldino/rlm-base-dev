@@ -201,6 +201,11 @@ def to_metadata(spec: Dict[str, Any]) -> Dict[str, Any]:
     for key, default in _METADATA_DEFAULT_BOOLS.items():
         body[key] = _bool_from(spec.get(key), default)
 
+    # CsvUpload tables are versioned by nature; default isVersioned to True unless
+    # the spec explicitly set it to False.
+    if spec.get("dataSourceType") == "CsvUpload" and spec.get("isVersioned") is None:
+        body["isVersioned"] = True
+
     params = spec.get("decisionTableParameters")
     if isinstance(params, list):
         body["decisionTableParameters"] = [
