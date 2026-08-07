@@ -159,22 +159,6 @@
         </connector>
     </assignments>
     <constants>
-        <description>Allowed Quote.CalculationStatus API value for &quot;Completed&quot; (pricing only). Add a matching constant and extend fxn_Quote_Calculation_Status_Allows_Order when new values are allowed.</description>
-        <name>const_QuoteCalcStatus_Completed</name>
-        <dataType>String</dataType>
-        <value>
-            <stringValue>Completed</stringValue>
-        </value>
-    </constants>
-    <constants>
-        <description>Allowed Quote.CalculationStatus API value for completed pricing and tax (label often &quot;Completed With Tax&quot;). Must match the picklist API name in Setup.</description>
-        <name>const_QuoteCalcStatus_CompletedWithTax</name>
-        <dataType>String</dataType>
-        <value>
-            <stringValue>CompletedWithTax</stringValue>
-        </value>
-    </constants>
-    <constants>
         <name>Error_message</name>
         <dataType>String</dataType>
     </constants>
@@ -230,7 +214,7 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Verify Bill To Contact, quote lines, Bill To / Ship To addresses, and CalculationStatus before calling createOrdersFromQuote (applies to transfer and non-transfer paths).</description>
+        <description>Verify Bill To Contact, quote lines, and Bill To / Ship To addresses before calling createOrdersFromQuote (applies to transfer and non-transfer paths).</description>
         <name>Quote_Ready_For_Ordering</name>
         <label>Quote Ready For Ordering</label>
         <locationX>0</locationX>
@@ -301,12 +285,6 @@
 )</expression>
     </formulas>
     <formulas>
-        <description>True when CalculationStatus is not one of the allowed API values (see const_QuoteCalcStatus_*). To add new allowed values, extend fxn_Quote_Calculation_Status_Allows_Order.</description>
-        <name>fxn_Invalid_Calculation_Status</name>
-        <dataType>Boolean</dataType>
-        <expression>NOT({!fxn_Quote_Calculation_Status_Allows_Order})</expression>
-    </formulas>
-    <formulas>
         <description>True when Bill To Contact is not set.</description>
         <name>fxn_Missing_BillToContact</name>
         <dataType>Boolean</dataType>
@@ -319,24 +297,14 @@
         <expression>{!Get_Quote_For_Readiness_And_Transfer.LineItemCount} &lt; 1</expression>
     </formulas>
     <formulas>
-        <description>True when Quote.CalculationStatus matches an allowed picklist API value. Uses const_QuoteCalcStatus_* so admins can align values with Setup picklist API names.</description>
-        <name>fxn_Quote_Calculation_Status_Allows_Order</name>
-        <dataType>Boolean</dataType>
-        <expression>OR(
-  TEXT({!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}) = {!const_QuoteCalcStatus_Completed},
-  TEXT({!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}) = {!const_QuoteCalcStatus_CompletedWithTax}
-)</expression>
-    </formulas>
-    <formulas>
-        <description>All prerequisites for createOrdersFromQuote: Bill To Contact, at least one line, Bill To / Ship To street, city, country, and allowed CalculationStatus.</description>
+        <description>All prerequisites for createOrdersFromQuote: Bill To Contact, at least one line, and Bill To / Ship To street, city, country.</description>
         <name>fxn_Quote_Ready_For_Ordering</name>
         <dataType>Boolean</dataType>
         <expression>AND(
   NOT({!fxn_Missing_BillToContact}),
   NOT({!fxn_No_Quote_Lines}),
   NOT({!fxn_Incomplete_BillToAddress}),
-  NOT({!fxn_Incomplete_ShipToAddress}),
-  NOT({!fxn_Invalid_Calculation_Status})
+  NOT({!fxn_Incomplete_ShipToAddress})
 )</expression>
     </formulas>
     <interviewLabel>RLM Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
@@ -369,7 +337,7 @@
     </processMetadataValues>
     <processType>Flow</processType>
     <recordLookups>
-        <description>Loads the current quote by Id. Fields are used to (1) route transfer vs. standard order creation via OriginalActionType, (2) validate order readiness (BillToContactId, LineItemCount, Bill To and Ship To street/city/country, CalculationStatus), and (3) power readiness formulas and the not-ready screen.</description>
+        <description>Loads the current quote by Id. Fields are used to (1) route transfer vs. standard order creation via OriginalActionType, (2) validate order readiness (BillToContactId, LineItemCount, Bill To and Ship To street/city/country), and (3) power readiness formulas and the not-ready screen.</description>
         <name>Get_Quote_For_Readiness_And_Transfer</name>
         <label>Get Quote for Readiness and Transfer Routing</label>
         <locationX>0</locationX>
@@ -398,7 +366,6 @@
         <queriedFields>ShippingStreet</queriedFields>
         <queriedFields>ShippingCity</queriedFields>
         <queriedFields>ShippingCountry</queriedFields>
-        <queriedFields>CalculationStatus</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <runInMode>DefaultMode</runInMode>
@@ -481,7 +448,7 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
-        <description>Shows specific guidance when the quote is missing Bill To Contact, quote lines, Bill To / Ship To address data, or has a disallowed CalculationStatus.</description>
+        <description>Shows specific guidance when the quote is missing Bill To Contact, quote lines, or Bill To / Ship To address data.</description>
         <name>S00_Quote_Not_Ready</name>
         <label>Quote Not Ready</label>
         <locationX>0</locationX>
@@ -501,29 +468,6 @@
                     <stringValue>12</stringValue>
                 </width>
             </styleProperties>
-        </fields>
-        <fields>
-            <name>S00_Msg_CalculationStatus</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(194, 57, 52);&quot;&gt;We couldn&apos;t create an order for this quote because its current &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;{!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}&lt;/strong&gt;.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Allow the quote to finish calculating until &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;Completed&lt;/strong&gt; or &lt;strong&gt;Completed With Tax&lt;/strong&gt;, then try again.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
-            <visibilityRule>
-                <conditionLogic>and</conditionLogic>
-                <conditions>
-                    <leftValueReference>fxn_Invalid_Calculation_Status</leftValueReference>
-                    <operator>EqualTo</operator>
-                    <rightValue>
-                        <booleanValue>true</booleanValue>
-                    </rightValue>
-                </conditions>
-            </visibilityRule>
         </fields>
         <fields>
             <name>S00_Msg_BillToContact</name>
