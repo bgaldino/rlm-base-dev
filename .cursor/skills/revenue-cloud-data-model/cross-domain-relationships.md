@@ -169,7 +169,7 @@ scratch_data (Account, Contact)
         │   └→ qb-rates (RateCard, RateCardEntry, RABT) — MUST follow qb-rating
         ├→ qb-dro (fulfillment step definitions, decomp rules)
         ├→ qb-clm (contract lifecycle objects)
-        ├→ qb-guidedselling (OmniScript assessment questions)
+        ├→ qb-guidedselling-products (Product2 guided-selling attributes)
         ├→ qb-product-images (Product2 DisplayUrl)
         ├→ qb-prm (Partner accounts, channel programs)
         ├→ qb-approvals (approval alert content)

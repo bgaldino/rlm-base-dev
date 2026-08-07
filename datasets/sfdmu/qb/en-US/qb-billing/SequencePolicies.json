@@ -182,5 +182,143 @@
         "operator": "Equals"
       }
     ]
+  },
+  {
+    "name": "AU Invoice Numbering Policy",
+    "description": "Applies to all Invoices with Legal Entity Australia",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-AU-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Australia/Sydney",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Australia",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "AU Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity Australia",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-AU-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Australia/Sydney",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Australia",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "CH Invoice Numbering Policy",
+    "description": "Applies to all Invoices with Legal Entity Switzerland",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-CH-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/Zurich",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Switzerland",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "CH Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity Switzerland",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-CH-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/Zurich",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Switzerland",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "JP Invoice Numbering Policy",
+    "description": "Applies to all Invoices with Legal Entity Japan",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-JP-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Asia/Tokyo",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Japan",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "JP Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity Japan",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-JP-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Asia/Tokyo",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Japan",
+        "operator": "Equals"
+      }
+    ]
   }
 ]

@@ -17,11 +17,13 @@
         </value>
     </constants>
     <decisions>
-        <description>fff</description>
         <name>Requires_Approval</name>
         <label>Requires Approval</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Update_Quote_Status_to_Approved</targetReference>
+        </defaultConnector>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Requires_Approval</name>
@@ -74,36 +76,13 @@
     <description>This will use Smart Approvals and will also use Agentforce to send the Body of the approval email</description>
     <environments>Default</environments>
     <formulas>
-        <description>, {!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;)
-{!QueryApprovalData.Outputs.DiscountApprovalLevel}  == 1
-,
-     OR(
-          ISBLANK({!Director_Approver.Outputs.approvalDecision}),
-           {!Director_Approver.Status} = &quot;NotStarted&quot;
-     )
-
-IF(AND({!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;), TRUE, FALSE)</description>
-        <name>fmlExitStage1</name>
-        <dataType>Boolean</dataType>
-        <expression>AND(
-     OR(
-          ISBLANK({!Manager_Approver.Outputs.approvalDecision}),
-          {!Manager_Approver.Status} = &quot;NotStarted&quot;
-     )
-)</expression>
-    </formulas>
-    <formulas>
-        <name>fmlManagerApproval</name>
-        <dataType>Boolean</dataType>
-        <expression>IF(AND({!QueryApprovalData.Outputs.DiscountApprovalLevel}== 1, {!Manager_Approver.Outputs.approvalDecision} == &apos;Approve&apos;), TRUE, FALSE)</expression>
-    </formulas>
-    <formulas>
         <name>rejectedQuote</name>
         <dataType>Boolean</dataType>
         <expression>OR(
 CONTAINS({!Manager_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
 CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
-CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
+CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
+CONTAINS({!Payment_Terms.Outputs.approvalDecision}, &quot;Reject&quot;)
 )</expression>
     </formulas>
     <interviewLabel>RLM Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
@@ -148,7 +127,6 @@ CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </stageSteps>
     </orchestratedStages>
     <orchestratedStages>
-        <description>gg</description>
         <name>Quote_Approval_Level_1</name>
         <label>Quote Approval Level 1</label>
         <locationX>0</locationX>
@@ -156,69 +134,21 @@ CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <connector>
             <targetReference>Was_Rejected</targetReference>
         </connector>
-        <exitConditionLogic>1 OR ((2 OR (3 AND 4 AND 8) OR (5 AND 6 AND 8 AND 9) OR (7 AND 8 AND 9 AND 10)) AND (11 OR 12))</exitConditionLogic>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>rejectedQuote</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <booleanValue>true</booleanValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <numberValue>0.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>1.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>LessThan</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>LessThan</operator>
-            <rightValue>
-                <numberValue>3.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>3.0</numberValue>
-            </rightValue>
-        </exitConditions>
+        <exitConditionLogic>((1 OR 2) AND (3 OR 4) AND (5 OR 6) AND (7 OR 8) AND 9) OR 10</exitConditionLogic>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
             <leftValueReference>Manager_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>1.0</numberValue>
             </rightValue>
         </exitConditions>
         <exitConditions>
@@ -231,7 +161,31 @@ CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>2.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>VP_Approver.Status</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>3.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>Payment_Terms.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
@@ -247,10 +201,18 @@ CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
-            <leftValueReference>Payment_Terms.Status</leftValueReference>
+            <leftValueReference>Set_Quote_Approval_Status_Pending.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>rejectedQuote</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <booleanValue>true</booleanValue>
             </rightValue>
         </exitConditions>
         <stageSteps>
@@ -666,17 +628,6 @@ CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </connector>
     </start>
     <status>Active</status>
-    <variables>
-        <name>DiscountApprovalLevelxx</name>
-        <dataType>Number</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-        <scale>0</scale>
-        <value>
-            <numberValue>0.0</numberValue>
-        </value>
-    </variables>
     <variables>
         <name>firstApprover</name>
         <dataType>String</dataType>

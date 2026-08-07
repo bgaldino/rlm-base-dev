@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "1.0.0",
-  "last_updated_utc": "2026-06-05T23:38:58Z",
+  "last_updated_utc": "2026-07-23T05:04:33Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
@@ -171,26 +171,26 @@
     }
   ],
   "generated_reference_freshness": {
-    "last_checked_utc": "2026-06-05T23:38:58Z",
+    "last_checked_utc": "2026-07-23T05:04:33Z",
     "source_of_truth": "cumulusci.yml",
     "regeneration_command": "python scripts/ai/generate_cci_reference.py",
     "files": [
       {
         "path": ".cursor/skills/cci-orchestration/tasks-reference.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
-        "freshness_source": "filesystem_mtime",
+        "last_modified_utc": "2026-07-23T04:32:15Z",
+        "freshness_source": "manual",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       },
       {
         "path": ".cursor/skills/cci-orchestration/flows-reference.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
-        "freshness_source": "filesystem_mtime",
+        "last_modified_utc": "2026-07-21T17:55:52Z",
+        "freshness_source": "manual",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       },
       {
         "path": ".cursor/skills/cci-orchestration/feature-flags.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
-        "freshness_source": "filesystem_mtime",
+        "last_modified_utc": "2026-07-21T17:55:52Z",
+        "freshness_source": "manual",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       }
     ]
@@ -206,8 +206,8 @@
       "id": "EXT-SFDMU-V5",
       "name": "SFDMU v5",
       "purpose": "Salesforce data import/export via sf sfdmu run",
-      "minimum_version": "5.0.0",
-      "notes": "Use semicolon-delimited externalId values and validate known v5 bug workarounds."
+      "minimum_version": "5.6.4",
+      "notes": "5.6.4 is the floor (fixed Upsert matching for relationship-traversal externalIds in the 5.6.4 release, commit 50be987; enforced by validate_setup, the Docker build, and CI). Use semicolon-delimited externalId values and validate known v5 bug workarounds."
     },
     {
       "id": "EXT-SF-CLI",

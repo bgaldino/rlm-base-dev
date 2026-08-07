@@ -5,7 +5,7 @@
 
 ## Summary
 
-- Cursor rule files found: **11**
+- Cursor rule files found: **12**
 - Rules not listed in `.cursor/skills/README.md`: **3**
 - Recommended skill rules still missing: **6**
 - High-risk AGENTS.md paths lacking both a rule and analyzer check: **4**
@@ -14,11 +14,12 @@
 
 | Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section | Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |
 |---|---|---|---|---|---|---|
-| `.cursor/rules/analysis-artifacts.mdc` | — | — | No | No | No | Repository Integration |
+| `.cursor/rules/analysis-artifacts.mdc` | — | (stand-alone) | No | Yes | No | Repository Integration |
 | `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`<br>`force-app/**/*.cls` | (stand-alone) | Yes | Yes | No | Apex |
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` | Yes | Yes | Yes | Apex |
 | `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` | Yes | Yes | Yes | CCI Orchestration |
 | `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` | Yes | Yes | Yes | CCI Orchestration |
+| `.cursor/rules/context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` | Yes | Yes | Yes | Context Service |
 | `.cursor/rules/doc-review.mdc` | `cumulusci.yml`<br>`tasks/**/*.py`<br>`datasets/sfdmu/**/export.json`<br>`datasets/sfdmu/**/*.csv`<br>`robot/**/*.robot`<br>`.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` | No | Yes | Yes | Doc Consistency |
 | `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.html`<br>`unpackaged/**/lwc/**/*.js`<br>`force-app/**/lwc/**/*.html`<br>`force-app/**/lwc/**/*.js` | (stand-alone) | Yes | Yes | No | Lightning Web Components |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot`<br>`robot/**/*.py` | `robot-testing/SKILL.md` | Yes | Yes | Yes | Robot Testing |

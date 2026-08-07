@@ -12,6 +12,7 @@ alwaysApply: false
 
 - Declare a class without a sharing keyword — always use `with sharing`, `without sharing`, or `inherited sharing`
 - Bind a raw `String` to a SOQL Id field (`WHERE QuoteId = :stringVar`) — always validate with `Id.valueOf` first
+- Semi-join against a **polymorphic** lookup — it matches nothing and reports success
 - Perform DML with `Id = someStringVar` — always validate with `Id.valueOf` in a try/catch
 - Write `catch (Exception e) { /* ignore */ }` — either return an error response or rethrow
 - Leave `System.debug` / `TEMP DEBUG` statements in production code
@@ -59,6 +60,28 @@ for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :requestedIds
     validIds.add(g.Id);
 }
 ```
+
+## Polymorphic Lookups Break Semi-Joins
+
+A semi-join on a polymorphic field (`BindingObjectId`, `RelatedObjectId`, `WhatId`, …)
+does **not** resolve — it silently matches zero rows while the DML reports success.
+Materialise the ids and bind them:
+
+```apex
+// BROKEN — matches nothing, no error
+[SELECT Id FROM UsageResourcePolicy WHERE BindingObjectId IN (SELECT Id FROM Asset WHERE AccountId = :acctId)]
+
+// WORKS
+Set<Id> assetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE AccountId = :acctId]).keySet();
+[SELECT Id FROM UsageResourcePolicy WHERE BindingObjectId IN :assetIds]
+```
+
+## Handle Partial-Success DML Results
+
+`Database.delete(records, false)` / `Database.update(records, false)` return results
+that are easy to discard. A refused row then resurfaces much later as an unexplained
+`DELETE_FAILED` on its parent. Inspect the results and surface failures — and do not
+log them at `LoggingLevel.FINE`, which the default log level hides.
 
 ## BFS for Hierarchy Traversal
 

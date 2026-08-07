@@ -1,0 +1,4 @@
+$$Name$ProgramRebateType.Name,BenefitValue,CurrencyIsoCode,EffectiveEndDate,EffectiveStartDate,MaximumMeasureFieldValue,MaximumQualifyingValue,MinimumQualifyingValue,Name,Product.Name,ProgramRebateType.$$Name$RebateProgram.Name,Status
+Tier 3;Vol Qty,10,USD,,,,,20,Tier 3,,Vol Qty;Global Incentive Program,Active
+Tier 2;Vol Qty,5,USD,,,,19.99,5,Tier 2,,Vol Qty;Global Incentive Program,Active
+Tier 1;Vol Qty,0,USD,,,,4.99,0,Tier 1,,Vol Qty;Global Incentive Program,Active

@@ -44,4 +44,4 @@ The plan uses a single SFDMU pass with one Update-only Product2 object. No recor
 
 ## Notes
 
-This plan intentionally does not import OmniStudio data from `qb-guidedselling`. Product Discovery settings differences from the connected org and deeper `qb-guidedselling` OmniStudio data redesign are tracked as follow-up work and are not included here.
+This plan imports only Product2 guided-selling field values. OmniStudio guided-selling setup is deployed as metadata from `unpackaged/post_guidedselling`.

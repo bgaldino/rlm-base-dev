@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**43 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
+**42 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -13,7 +13,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `True` | 12 flow step(s) |
+| `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
@@ -24,38 +24,37 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `calmdelete` | `True` | 1 flow step(s) |
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
-| `collections` | `True` | 5 flow step(s) |
+| `collections` | `True` | 4 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 12 flow step(s) |
 | `constraints_data` | `True` | 8 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `True` | 4 flow step(s) |
-| `inapp` | `False` | 4 flow step(s) |
-| `large_stx` | `False` | 5 flow step(s) |
-| `mcp` | `False` | 3 flow step(s) |
+| `guidedselling` | `True` | 5 flow step(s) |
+| `inapp` | `False` | 3 flow step(s) |
+| `large_stx` | `False` | 4 flow step(s) |
+| `mcp` | `False` | 2 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 10 flow step(s) |
-| `prm` | `True` | 25 flow step(s) |
+| `personas` | `True` | 11 flow step(s) |
+| `prm` | `True` | 23 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
-| `prm_pricing` | `True` | 16 flow step(s) |
+| `prm_pricing` | `True` | 14 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 10 flow step(s) |
-| `ramps` | `True` | 4 flow step(s) |
+| `quantumbit` | `True` | 18 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
-| `ux` | `True` | 3 flow step(s) |
+| `tso` | `False` | 18 flow step(s) |
+| `ux` | `True` | 2 flow step(s) |
 
 ---
 
@@ -74,7 +73,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_agents` step 9 → `activate_agents`
 - `prepare_agents` step 10 → `deploy_agent_permission_sets`
 - `prepare_agents` step 11 → `assign_permission_sets`
-- `prepare_ai` step 1 → `prepare_agents`
 
 ### `analytics` (default: `True`)
 
@@ -138,7 +136,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 9 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -153,7 +151,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `collections` (default: `True`)
 
-- `prepare_rlm_org` step 14 → `prepare_collections`
 - `prepare_collections` step 1 → `deactivate_collections_case_matrix`
 - `prepare_collections` step 2 → `deploy_post_collections`
 - `prepare_collections` step 3 → `seed_collections_case_matrix`
@@ -162,7 +159,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `commerce` (default: `False`)
 
 - `extend_context_definitions` step 3 → `extend_context_cart`
-- `refresh_all_decision_tables` step 6 → `refresh_dt_commerce`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_commerce`
 
 ### `constraints` (default: `True`)
 
@@ -225,17 +222,16 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 - `prepare_guidedselling` step 3 → `assign_permission_sets`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
+- `prepare_guidedselling` step 5 → `configure_search_index`
 
 ### `inapp` (default: `False`)
 
-- `prepare_rlm_org` step 31 → `prepare_inapp`
 - `prepare_inapp` step 1 → `deploy_post_inapp`
 - `prepare_inapp` step 2 → `assign_permission_sets`
 - `prepare_inapp` step 3 → `load_inapp_dataset`
 
 ### `large_stx` (default: `False`)
 
-- `prepare_rlm_org` step 28 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`
 - `prepare_large_stx` step 2 → `assign_permission_sets`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
@@ -245,7 +241,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_mcp` step 1 → `deploy_post_mcp`
 - `prepare_mcp` step 2 → `activate_mcp_servers`
-- `prepare_ai` step 2 → `prepare_mcp`
 
 ### `payments` (default: `True`)
 
@@ -260,7 +255,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `personas` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_personas`
 - `prepare_personas` step 1 → `set_personas_org_wide_defaults`
 - `prepare_personas` step 2 → `deploy_post_personas`
 - `prepare_personas` step 3 → `recalculate_personas_sales_rep_psg`
@@ -269,7 +263,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
 - `prepare_personas` step 8 → `assign_permission_sets`
-- `prepare_personas` step 9 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 9 → `assign_permission_sets`
+- `prepare_personas` step 10 → `assign_permission_sets`
+- `prepare_personas` step 11 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -281,7 +277,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 7 → `assign_permission_sets`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm` step 9 → `manage_context_definition`
-- `prepare_prm` step 10 → `prepare_prm_pricing`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
 - `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
 - `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
@@ -290,12 +285,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
 - `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
 - `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
-- `prepare_prm_pricing` step 2 → `deploy_post_prm_pricing`
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
-- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
+- `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
 - `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
@@ -308,7 +302,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `prm_pricing` (default: `True`)
 
-- `prepare_prm` step 10 → `prepare_prm_pricing`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
 - `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
 - `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
@@ -317,12 +310,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
 - `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
 - `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
-- `prepare_prm_pricing` step 2 → `deploy_post_prm_pricing`
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
-- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
+- `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
 ### `procedureplans` (default: `True`)
@@ -399,19 +391,20 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 3 → `deploy_quantumbit`
 - `prepare_quantumbit` step 4 → `assign_permission_sets`
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 6 → `assign_permission_sets`
+- `prepare_quantumbit` step 7 → `assign_permission_sets`
+- `prepare_quantumbit` step 8 → `assign_permission_sets`
+- `prepare_quantumbit` step 9 → `assign_permission_sets`
+- `prepare_quantumbit` step 10 → `deploy_post_setup_guide`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
-
-### `ramps` (default: `True`)
-
-- `prepare_ramp_builder` step 1 → `deploy_post_ramp_builder`
-- `prepare_ramp_builder` step 2 → `apply_context_ramp_mode`
-- `prepare_ramp_builder` step 3 → `assign_permission_sets`
 - `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
+- `prepare_personas` step 10 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -486,12 +479,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 7 → `assign_permission_sets`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_commerce`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
+- `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `assign_permission_sets`
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 30 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
@@ -573,7 +568,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
-| `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
@@ -699,6 +693,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Rate_Adjustment_by_Tier_Resolution_Decision_Table`
 - `Rate_Card_Entry_Resolution_Entries_2`
 
+### `ps_account_utilities`
+
+*1 items:*
+
+- `RLM_UtilitiesPermset`
+
 ### `ps_aea`
 
 *3 items:*
@@ -725,11 +725,23 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_Constraints`
 
+### `ps_decision_table_manager`
+
+*1 items:*
+
+- `RLM_DecisionTableManager`
+
 ### `ps_docgen`
 
 *1 items:*
 
 - `RLM_DocGen`
+
+### `ps_expression_set_manager`
+
+*1 items:*
+
+- `RLM_ExpressionSetManager`
 
 ### `ps_guidedselling`
 
@@ -780,11 +792,17 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_QuantumBit`
 
-### `ps_ramp_builder`
+### `ps_quantumbit_demo_setup`
 
 *1 items:*
 
-- `RLM_RampSchedule`
+- `RLM_QuantumBitDemoSetup`
+
+### `ps_rebuild_search_index`
+
+*1 items:*
+
+- `RLM_RebuildSearchIndex`
 
 ### `psg_tso`
 
@@ -922,10 +940,13 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_tso_ps_api_names`
 
-*4 items:*
+*7 items:*
 
 - `ERIBasic`
 - `RLM_UtilitiesPermset`
+- `RLM_ExpressionSetManager`
+- `RLM_DecisionTableManager`
+- `RLM_RebuildSearchIndex`
 - `OrchestrationProcessManagerPermissionSet`
 - `EventMonitoringPermSet`
 

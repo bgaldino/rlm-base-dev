@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
 
+> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (10 of this dataset's 12 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
+
 ## CCI Integration
 
 ### Flow: `prepare_rating`
@@ -35,7 +37,7 @@ Insert+deleteOldData (PUR/PURP/PUG); Upsert others  Activate UoMClass  -> activa
                                             and UsageResource       (7-step PUR/PUG activation)
 ```
 
-**PUR, PURP, and PUG idempotency (Insert+deleteOldData):** All three use `operation: Insert` with `deleteOldData: true` and **no WHERE clause** — SFDMU v5 cannot match records by relationship-traversal externalId components (even 1-hop like `Product.StockKeepingUnit`) and always inserts instead of updating, causing duplicates on re-run. The fix is Insert+deleteOldData: SFDMU processes deleteOldData in **reverse array order** (PUG → PURP → PUR), satisfying FK constraints (children deleted before parent). No WHERE clause means the plan is fully portable — extraction captures drift for any product in the org. PURP uses `externalId: ProductUsageResourceId` (direct FK, avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs provide `ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code` as two separate columns (no `$$` composite) so SFDMU can resolve `ProductUsageResourceId` without triggering the SOQL injection bug.
+**PUR, PURP, and PUG idempotency (Insert+deleteOldData):** All three use `operation: Insert` with `deleteOldData: true` and **no WHERE clause**. Before the 5.6.4 floor, SFDMU v5 could not match records by relationship-traversal externalId components (even 1-hop like `Product.StockKeepingUnit`) and always inserted instead of updating, causing duplicates on re-run — the reason the shipped plan uses Insert+deleteOldData. Those traversal-match bugs are **fixed on the 5.6.4+ floor**; the workaround is retained pending the gated `sfdmu-v5-optimization` migration (see the floor note above). **PUG migration is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs, so an `Upsert` move must first add a PUR component (e.g. `ProductUsageResourceId`) to the key. Mechanically, SFDMU processes deleteOldData in **reverse array order** (PUG → PURP → PUR), satisfying FK constraints (children deleted before parent). No WHERE clause means the plan is fully portable — extraction captures drift for any product in the org. PURP uses `externalId: ProductUsageResourceId` (direct FK, avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs provide `ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code` as two separate columns (no `$$` composite) so SFDMU can resolve `ProductUsageResourceId` without triggering the SOQL injection bug.
 
 ### Pass 1 — Insert/Upsert with Draft Status
 
@@ -43,24 +45,38 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 
 | # | Object                       | Operation | External ID                                          | Records |
 |---|------------------------------|-----------|------------------------------------------------------|---------|
-| 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 12      |
+| 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 18      |
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
-| 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 3       |
-| 4 | UsageResource                | Upsert    | `Code`                                               | 9       |
-| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 9       |
+| 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
+| 4 | UsageResource                | Upsert    | `Code`                                               | 7       |
+| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 10       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
-| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 21      |
-| 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
-| 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 1       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 19      |
-| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 9       |
+| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 25      |
+| 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 4       |
+| 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
+| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 23      |
+| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 12      |
 
-¹ Insert+deleteOldData (no WHERE). SFDMU v5 cannot match by relationship-traversal externalId — Upsert always inserts duplicates. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
+¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
+
+**Currency units feed multicurrency rating (2026-07-24):** `UnitOfMeasure` carries **7 `CURRENCY`-class units** — `USD`, `GBP`, `EUR`, `AUD`, `CAD`, `CHF`, `JPY`. These are what denominate a rate: no rate object has a `CurrencyIsoCode`, so a `RateCardEntry` expresses its currency through its `RateUnitOfMeasure`, and a non-USD quote cannot rate without the matching unit here. Add a currency unit **before** expanding `qb-rates` — `scripts/expand_currency_rates_data.py` refuses to run if one is missing. `JPY` is the only unit with `RoundingMethod=Nearest` / `Scale=1` (whole-yen amounts); the other six are plain 2-decimal units. Note the units' own `CurrencyIsoCode` is `USD` throughout — that field is not the mechanism, `UnitCode` is. See the qb-rates README for the expansion rules.
 
 **Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
+
+**Pack add-on products (2026-07-24):** `QB-TOKENS-PACK` (QuantumBit Tokens Pack) and `QB-DAT-THPT` (Additional Data Throughput) are `UsageModelType=Pack` add-ons that top up an anchor product's usage bucket. Each carries a `ProductUsageResource` and a `ProductUsageGrant` (**5,000 tokens; 100 GB**), and QB-DAT-THPT also has a Base Rate Card entry (in `qb-rates`). QB-DAT-THPT's `UsageDefinitionProduct` is the dedicated `QB-DATA-THPT-BLNG` throughput definition (matching `UR-DATAXFR`), so throughput usage draws down the correct bucket.
+
+> ⛔ **A Pack product cannot have a `ProductUsageResourcePolicy` — platform-enforced.** Inserting one fails with `INVALID_INPUT: "We can't save the pack usage model type record. Change the product usage model type from Pack to another valid option and try again."` (live-verified 2026-07-24 on a fresh build; the two Pack PURP rows this plan previously carried were silently dropped on every load, leaving PURP at 19/21). **The policy belongs on the non-Pack product that consumes the resource, not on the pack.** So the throughput policy (**Monthly** rating / **`dailytotal`** aggregation — see the period-ordering rule below; Daily rating with monthly accumulation would invert it and fail the Create Empty Summaries batch) now lives on the anchor **`QB-DB` + `UR-DATAXFR`** PURP, alongside QB-DB's existing UR-CPUTIME and UR-DATASTORAGE policies; QB-DB also gains the matching Base Rate Card entry. The token pack needs no PURP of its own — `QB-TOKEN` already has policies on the non-Pack products (`QB-DB-TOKEN`, `QB-CMT-TKN-*`).
+
+⚠️ **Placeholder to confirm:** the throughput rate (**0.10 USD/GB**, used by both the QB-DB and QB-DAT-THPT Base entries). Both packs have never been sold (0 assets); wire-up needs a live sell→consume→rate pass to verify before relying on it. QB-DB intentionally has **no** base `ProductUsageGrant` for `UR-DATAXFR` — the anchor includes 0 GB and the pack funds all throughput.
+
+> ⛔ **A commitment product's `ProductUsageResourcePolicy` may carry ONLY a `UsageCommitmentPolicy` — platform-enforced.** Setting either period field on a PURP whose product is `UsageModelType` **Commit / CommitmentQuantity / CommitmentSpend** fails with `INVALID_INPUT: "This field must be empty when the product associated with the product usage resource is one of the commitment usage model types.: [RatingFrequencyPolicyId]"` — and the identical message for `[UsageAggregationPolicyId]`. Live-verified 2026-07-24 on `pr308` by inserting all 10 rows three ways: rating+agg+commit rejected, agg+commit rejected, **commit-only accepted 10/10**.
+>
+> **A commitment does not rate anything itself — it discounts the *anchor's* rating**, so rating frequency and accumulation belong on the anchor's resources (`QB-DB`, `QB-DB-TOKEN`). This is the same shape as the Pack rule above: the policy lives on the product that actually consumes.
+>
+> Ten commit PURP rows briefly shipped with `rating=Monthly` + accumulation and were **silently dropped on every load**, leaving the org with 10 of the 20 rows this plan declares — while the CSV, the validator and the plan-consistency check all looked clean. Guarded offline now by `tests/test_qb_multicurrency_data.py::check_commitment_purp_has_no_periods`.
 
 ### Pass 2 — Activate UnitOfMeasureClass and UsageResource
 
@@ -99,41 +115,44 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## Products and Usage Model Types
 
-| Product SKU        | Usage Model Type   | Description                              |
-|--------------------|--------------------|------------------------------------------|
-| QB-DB              | Anchor             | QuantumDB — anchor product with token    |
-| QB-DB-TOKEN        | Token              | QuantumDB Token product                  |
-| QB-DAT-THPT        | (standard)         | Data Throughput — standalone usage        |
-| QB-TOKENS-PACK     | TokenPack          | Token pack (one-time purchase)           |
-| QB-CMT-TKN-EACH    | CommitmentToken    | Commit token — each-based pricing        |
-| QB-CMT-TKN-FLAT    | CommitmentToken    | Commit token — flat-rate pricing         |
-| QB-CMT-TKN-TIER    | CommitmentToken    | Commit token — tier-based pricing        |
-| QB-QTY-CMT         | CommitmentQuantity | Quantity commitment (CPU/Storage)        |
-| QB-MTY-CMT         | CommitmentSpend    | Monetary commitment (USD currency)       |
+`Product2.UsageModelType` values, taken from `qb-rates/Product2.csv`. The picklist is
+**Anchor / Pack / Commit / CommitmentQuantity / CommitmentSpend** — nothing else is valid.
+
+| Product SKU        | Usage Model Type   | Description                                       |
+|--------------------|--------------------|---------------------------------------------------|
+| QB-DB              | Anchor             | Anchor product — direct-currency rating           |
+| QB-DB-TOKEN        | Anchor             | Anchor product — token two-step rating            |
+| QB-DAT-THPT        | Pack               | Pack add-on — tops up an anchor's throughput      |
+| QB-TOKENS-PACK     | Pack               | Pack add-on — tops up an anchor's token wallet    |
+| QB-CMT-TKN-BND     | Commit             | Token commitment — flat 10%, discount STOPS at the commitment |
+| QB-CMT-TKN-EACH    | Commit             | Token commitment — per-resource discount (5% / 4%) |
+| QB-CMT-TKN-FLAT    | Commit             | Token commitment — flat 10%, discount SURVIVES overage |
+| QB-CMT-TKN-TIER    | Commit             | Token commitment — tiered 10 / 20 / 30%           |
+| QB-QTY-CMT         | CommitmentQuantity | Quantity commitment (CPU minutes + storage)       |
+| QB-MTY-CMT         | CommitmentSpend    | Monetary commitment (UR-USD spend wallet)         |
 
 ## Usage Resources
 
 | Code               | Category | UoM Class       | Default UoM | Billing Policy    |
 |--------------------|----------|-----------------|-------------|-------------------|
-| QB-TOKEN           | Token    | Token_UoM_Class | TOKEN-UOM   | monthlytotal      |
-| UR-CPUTIME         | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE     | Usage    | DATAVOL         | TB          | monthlypeak       |
-| UR-DATAXFR         | Usage    | DATAVOL         | GB          | monthlytotal      |
-| UR-USD             | Currency | CURRENCY        | USD         | monthlytotal      |
-| UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | monthlypeak       |
-| UR-CPUTIME-MTY     | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE-MTY | Usage    | DATAVOL         | TB          | monthlypeak       |
+| QB-TOKEN           | Token    | Token_UoM_Class | TOKEN-UOM   | dailytotal |
+| UR-CPUTIME         | Usage    | TIME            | m (Minutes) | dailytotal |
+| UR-DATASTORAGE     | Usage    | DATAVOL         | TB          | dailypeak |
+| UR-DATAXFR         | Usage    | DATAVOL         | GB          | dailytotal |
+| UR-USD             | Currency | CURRENCY        | USD         | dailytotal |
+| UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | dailytotal |
+| UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | dailypeak |
 
 ## ProductUsageResource (PUR) Mapping
 
-21 records mapping products to their usage resources:
+25 records mapping products to their usage resources:
 
 | Product          | Resource            | Notes                                       |
 |------------------|---------------------|---------------------------------------------|
 | QB-DB            | UR-DATASTORAGE      | Usage PUR (TokenResourceId auto-populated)  |
 | QB-DB            | UR-CPUTIME          | Usage PUR (TokenResourceId auto-populated)  |
-| QB-DAT-THPT      | UR-DATAXFR          | Standalone usage (no token)                 |
+| QB-DB            | UR-DATAXFR          | Usage PUR — carries the throughput policy (see Pack note) |
+| QB-DAT-THPT      | UR-DATAXFR          | Pack PUR — grant only, no policy (Pack cannot hold a PURP) |
 | QB-TOKENS-PACK   | QB-TOKEN            | Token pack                                  |
 | QB-DB-TOKEN      | QB-TOKEN            | Token PUR                                    |
 | QB-DB-TOKEN      | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
@@ -144,36 +163,42 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-CMT-TKN-FLAT  | QB-TOKEN            | Token PUR                                    |
 | QB-CMT-TKN-FLAT  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
 | QB-CMT-TKN-FLAT  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-BND   | QB-TOKEN            | Token PUR — Bounded Object Rate              |
+| QB-CMT-TKN-BND   | UR-CPUTIME-TKN      | Usage PUR — Bounded Object Rate              |
+| QB-CMT-TKN-BND   | UR-DATASTORAGE-TKN  | Usage PUR — Bounded Object Rate              |
 | QB-CMT-TKN-TIER  | QB-TOKEN            | Token PUR                                    |
 | QB-CMT-TKN-TIER  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
 | QB-CMT-TKN-TIER  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
 | QB-QTY-CMT       | UR-DATASTORAGE      | Commitment qty (no token allowed)           |
 | QB-QTY-CMT       | UR-CPUTIME          | Commitment qty (no token allowed)           |
 | QB-MTY-CMT       | UR-USD              | Monetary commitment (currency)              |
-| QB-MTY-CMT       | UR-CPUTIME-MTY      | Usage PUR — dedicated monetary resource     |
-| QB-MTY-CMT       | UR-DATASTORAGE-MTY  | Usage PUR — dedicated monetary resource     |
+| QB-MTY-CMT       | UR-CPUTIME          | Usage PUR — the anchor's resource, discounted |
+| QB-MTY-CMT       | UR-DATASTORAGE      | Usage PUR — the anchor's resource, discounted |
 
 ## ProductUsageGrant (PUG) Summary
 
-9 grant records across 4 usage definition products:
+12 grant records across 5 usage definition products:
 
-| Usage Definition Product | Type   | Resource          | Quantity | Validity       |
-|--------------------------|--------|-------------------|----------|----------------|
-| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME            | 0     | 1 Month |
-| QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       | 1000  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        | 5     | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        | 100000| None    |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    | 1000  | 1 Month |
-| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           | 5000  | 1 Month |
+| Usage Definition Product | Type   | Resource                    | Quantity | Validity |
+|--------------------------|--------|-----------------------------|----------|----------|
+| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME            |        0 | 1 Month  |
+| QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       |    5,000 | 1 Month  |
+| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        |       10 | 1 Month  |
+| QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   |       50 | 1 Month  |
+| QB-DATA-THPT-BLNG        | Grant  | QB-DAT-THPT;UR-DATAXFR      |      100 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-BND;QB-TOKEN     |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    |   25,000 | 1 Month  |
+| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        |   10,000 | 1 Month  |
+| QB-TOKEN-DEF             | Grant  | QB-TOKENS-PACK;QB-TOKEN     |    5,000 | 1 Month  |
+| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           |      500 | 1 Month  |
 
 ## API 260 Known Issues
 
 ### TokenResourceId Auto-Population
 
-The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: the token/monetary variants `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` (`TokenResource.Code = QB-TOKEN`) and `UR-CPUTIME-MTY` / `UR-DATASTORAGE-MTY` (`TokenResource.Code = UR-USD`); the base `UR-CPUTIME` / `UR-DATASTORAGE` resources carry no token association.
+The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: the token variants `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` (`TokenResource.Code = QB-TOKEN`); the base `UR-CPUTIME` / `UR-DATASTORAGE` resources carry no token association.
 
 ### Activation Conflict and Clear+Activate Workaround
 
@@ -181,14 +206,46 @@ When activating a PUR (`Status='Active'`), the platform auto-populates `TokenRes
 
 **Critical nuance:** The clear+activate only works when `TokenResourceId` changes from a **non-null** value to null. A null-to-null "clear" is a no-op and does NOT prevent auto-population. This is why Step 3 of the Apex script pre-populates `TokenResourceId` on Draft PURs where it is missing -- ensuring Step 4's clear is a real field change.
 
-### Monetary Commitment Usage PURs (Dedicated `-MTY` Resources)
+### Monetary Commitment Usage PURs — the anchor's own resources
 
 The CommitmentSpend product (`QB-MTY-CMT`) carries Usage-category PURs alongside its Currency PUR (`QB-MTY-CMT;UR-USD`):
 
-- `QB-MTY-CMT;UR-CPUTIME-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
-- `QB-MTY-CMT;UR-DATASTORAGE-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
+- `QB-MTY-CMT;UR-CPUTIME` — the anchor's compute resource, discounted 5%
+- `QB-MTY-CMT;UR-DATASTORAGE` — the anchor's storage resource, discounted 10%
 
-Rather than reusing the QB-TOKEN-associated `-TKN` variants (whose `QB-TOKEN` association would trigger a TokenResourceId activation conflict on CommitmentSpend products), these use dedicated `-MTY` UsageResource variants whose `TokenResource.Code` points at `UR-USD` instead of `QB-TOKEN`. This keeps the monetary-commitment usage records activatable without the TokenResourceId edit conflict.
+**A commitment must name the resources its anchor actually consumes.** Usage is only ever recorded against an anchor, so a discount attached to a resource no anchor holds can never match anything. `QB-QTY-CMT` has always reused `QB-DB`'s `UR-CPUTIME` / `UR-DATASTORAGE`; the spend commitment now does the same. What makes it a *spend* commitment is its wallet — the `UR-USD` Currency PUR holding the committed amount — not the resource it discounts.
+
+> **History (2026-07-25).** This product previously carried dedicated `UR-CPUTIME-MTY` / `UR-DATASTORAGE-MTY` resources (`Category=Usage`, `TokenResource.Code = UR-USD`), mirroring how the `-TKN` variants are backed by `QB-TOKEN`. The token model works because a matching anchor exists — `QB-DB-TOKEN` carries the `-TKN` resources — but no anchor ever carried the `-MTY` ones, so QB-MTY-CMT's tier adjustments were valid, currency-complete data that no usage could reach. The two resources are retired (UsageResource 9 → 7) and 28 rate rows repointed. The original rationale — that reusing the `-TKN` variants would trigger a `TokenResourceId` activation conflict — still holds and is why the plain, token-free `UR-CPUTIME` / `UR-DATASTORAGE` are the right target rather than the `-TKN` pair.
+>
+> Guarded by `tests/test_qb_multicurrency_data.py::check_addon_usage_resources_exist_on_anchor`, whose allowlist is now empty: any commitment or pack resource that no anchor consumes fails the suite.
+>
+> ⚠️ Still unverifiable end to end — CommitmentSpend entitlements never leave PENDING (see below), so this repoint is correct by construction but has not been proven live.
+
+### CommitmentQuantity / CommitmentSpend entitlements never leave PENDING
+
+Live-verified 2026-07-24 on `pr308`. A `UsageModelType=Commit` (token) commitment
+assetizes cleanly — 3 `TransactionUsageEntitlement` rows all `PROCESSED`, its own
+`UsageEntitlementAccount`, 6 `UsageEntitlementBucket` rows. Under identical
+conditions (same selling model, same backdating, same `UsageCmtAssetRelatedObj`
+junction to an anchor), `CommitmentQuantity` (QB-QTY-CMT) and `CommitmentSpend`
+(QB-MTY-CMT) produce:
+
+| | Commit (token) | CommitmentQuantity / CommitmentSpend |
+|---|---|---|
+| `EntitlementProcessingStatus` | PROCESSED | **PENDING** |
+| commitment `UsageEntitlementAccount` | created | **none** |
+| `UsageEntitlementBucket` | 6 | **0** |
+
+Nothing errors — no `BatchJobPartFailedRecord`, no failed async job. Both
+documented remediations return `isSuccess: true` and change nothing:
+the `retriggerEntlCreaProc` invocable ("Retriggers entitlement creation process
+for unprocessed assets") and `refreshUsageEntitlementBucket` (the action behind
+the **Call Entitlement Refresh Service** flow that the help requires for
+backdated assets). The order items are field-identical across all three; the only
+difference is `Product2.UsageModelType`.
+
+Until this is resolved, only the three token `Commit` products are demonstrable
+end to end.
 
 ### Anchor Products Require Token PUR
 
@@ -198,6 +255,166 @@ Products with `UsageModelType='Anchor'` (e.g., QB-DB) require a Token PUR (`QB-D
 
 CommitmentSpend products (QB-MTY-CMT) require their Currency-category PUR (`QB-MTY-CMT;UR-USD`) to be Active before any Usage-category PURs can be activated.
 
+### Drawdown order and bases: commitment first (discounted), then grant (raw), then overage
+
+Live-verified 2026-07-25 on `pr308`, reconciled to the last decimal. A spike month
+of 3× the standard profile — 15,000 CPU min + 150 TB = **76,500 raw tokens** —
+against a `QB-DB-TOKEN` anchor (10,000-token grant) with a linked
+`QB-CMT-TKN-FLAT` commitment (25,000 tokens, flat 10%):
+
+| | |
+|---|---|
+| commitment bucket | drawn in **discounted** tokens — 27,777.78 raw × 0.90 = exactly 25,000 |
+| anchor grant | drawn in **raw** tokens — 8,500 compute + 1,500 storage = exactly 10,000 |
+| overage | 75,000 − 36,277.78 = 38,722.22 raw, × 0.90 = **34,850** tokens @ 0.5 = **17,425 USD** |
+
+Three rules fall out, and each one breaks a demo if assumed away:
+
+1. **The commitment drains before the anchor grant.** The grant is the *last* line
+   of defence, not the first — with a commitment in force and balance remaining, the
+   grant is untouched (Infinitech: commitment −17,850, grant 10,000 intact).
+2. **The two buckets use different bases.** The commitment decrements by the
+   *discounted* quantity; the grant decrements by the *raw* quantity. A grant is an
+   included allowance, not a discount — usage it absorbs is never discounted at all,
+   which is why the storage line above shows `OverageUnits = 0` and no discount.
+3. **`UsageCommitmentPolicy` decides whether the discount survives into overage.**
+   Live A/B, same product and same 76,500-token spike, one field apart:
+
+   | | `Lowest Commitment Rate` | `Bounded Object Rate` |
+   |---|---|---|
+   | debited to buckets | 36,277.78 | 36,277.78 *(identical)* |
+   | overage tokens | **34,850** (38,722.22 × 0.90) | **38,722.22** (raw) |
+   | billed @ 0.5 | **17,425 USD** | **19,361.11 USD** |
+
+   The drawdown is unaffected — both exhaust the 25,000 commitment and the 10,000
+   grant identically. Only the overage differs: `Lowest Commitment Rate` carries the
+   discount past the commitment boundary, `Bounded Object Rate` stops it there and
+   reverts to the standard anchor rate. Worth exactly 1,936.11 USD here, the 10% the
+   customer forfeits. Every QB commit product ships with `'Lowest Rate'`; the
+   `'Bounded Object Rate'` record exists but is referenced by nothing.
+
+> ⚠️ **The commitment rate policy is a GLOBAL design-time switch, not a per-deal
+> term.** No runtime object snapshots it — not `TransactionUsageEntitlement`,
+> `UsageEntitlementAccount`, `UsageEntitlementBucket`, `UsageRatableSummary`, nor
+> `AssetRateCardEntry`. It is read from `ProductUsageResourcePolicy` at rating time,
+> so changing it alters every deal on that product, including anything that re-rates
+> later, and **no record shows which policy produced a given result**. Completed
+> periods are safe (their rated values are frozen), which is the only reason the A/B
+> above is stable. Unlike `Product2.UsageModelType`, the policy *can* be swapped
+> while the PUR is Active.
+>
+> **`QB-CMT-TKN-BND` exists for exactly this reason.** It is a byte-for-byte clone of
+> `QB-CMT-TKN-FLAT` — same 25,000-token grant, same 10% discount on both token
+> resources, same Term Annual selling model, same prices in all 7 currencies — except
+> its three `ProductUsageResourcePolicy` rows carry `Bounded Object Rate`. Sell FLAT
+> and BND side by side and the identical spike bills 17,425 vs 19,361.11 USD. Without
+> a second product this is a "flip one field between demos" story that breaks the
+> moment two people demo in the same org.
+>
+> Live-verified as a real catalog product (not a policy flip): sold through
+> quote → order → asset, linked to a `QB-DB-TOKEN` anchor, and rated at
+> **19,361.111111 USD** on the 76,500-token spike — matching the policy-flip result
+> to the last decimal, with both buckets exhausted identically.
+>
+> ⚠️ The **total** overage is deterministic; the **per-resource split is not**. Two
+> bounded runs of the same spike attributed the anchor grant differently — one
+> debited storage's 1,500 and put 38,722.22 of compute into overage, the other gave
+> compute the whole grant (25,000 ÷ 0.9 + 10,000 = 37,777.78) and pushed all 1,500 of
+> storage to overage. Same 38,722.22 total, same bill. Do not write a demo script
+> that asserts a particular per-resource debit.
+>
+> Both sit in the **Consumption** component group (`QB-PCG-USAGE`) of the QuantumBit
+> Complete Solution bundle — FLAT at sequence 20, BND at 25.
+
+Read `UsageSummary.ConsumptionUnits` / `DebitedUnits` / `OverageUnits` to decompose a
+period; `UsageEntitlementBucket.ConsumedEntitlement` gives the per-bucket totals.
+Note `UsageRatableSummary.OverageQuantity` mirrors `TierQuantity` on ordinary rows —
+it means "quantity charged beyond the included allowance", not "beyond the
+commitment", so it is not on its own evidence that a commitment was exceeded.
+
+### The drawdown lands only when a period COMPLETES
+
+The current billing period stays open, so a spike booked into it sits at
+`InProgress` with buckets untouched and no final rating — it looks like a
+full-discount, no-drawdown result. Book demo usage into a **past** period. Combined
+with the rule below, a backdated demo gets exactly one attempt per account:
+**build → consume into the target past period → orchestrate**, because the first
+orchestration pass on an account closes every past period empty.
+
+### Record usage BEFORE orchestrating that period — a closed summary never reopens
+
+Live-verified 2026-07-24 on `pr308`, and the single most common way a usage demo
+silently produces zeroes.
+
+`Create Empty Summaries` runs at assetization and seeds one `UsageSummary` per
+resource per accumulation period in state `New`. A journal is absorbed only
+while its period's summary is still open — `New` or `UsageSummaryInProgress`.
+**Once the period reaches `RatableSummaryComplete` / `LiableSummaryComplete` it
+never reopens**, and a journal that arrives afterwards stays `Pending`
+*forever*: never aggregated, never rated, and nothing reports an error. The
+rated summary just reads `TierQuantity = 0, TotalAmount = 0`.
+
+The proof: six accounts were given identical June-15 usage. Five had already had
+an orchestration pass close out June, and every one of their journals stranded
+at `Pending` permanently. The sixth (`Helvetia Cloud`) had been built *after*
+that pass, so its June summaries were still open — its journals aggregated and
+rated correctly. Re-consuming the five inside the still-open July period then
+worked for all of them, confirming the gate is period **completion**, not the
+first orchestration pass.
+
+**So the order is per period, and it matters:**
+
+```
+build asset  →  record usage  →  run orchestration   (repeat per period)
+```
+
+There is no supported way to reopen a completed period. Recovery is to consume
+in a period that is still open, or to rebuild on an account whose periods have
+never been closed out. Note that `refreshUsageEntitlementBucket` does *not* do
+this — it refreshes entitlement buckets for backdated assets, not summaries.
+
+### Period Ordering: Billing >= Rating > Accumulation
+
+The platform requires the three usage periods **in descending order**, and
+*equal is not descending*. With all three set to `Monthly` the **Create Empty
+Summaries** batch fails every `UsageEntitlementAccount`:
+
+```
+Summary Creation Exception: Specify values for the Billing Period, Rating Period
+and Usage Accumulation Period parameters in descending order for the usage
+resource related to the usage entitlement account ID: ...
+```
+
+That failure blocks the whole pipeline — no `UsageSummary`, so no rating, no
+billing. The three periods come from three different places:
+
+| Period | Source | QB value |
+|--------|--------|----------|
+| Billing | `UsageEntitlementAccount.BillingPeriodUnit/Term` (runtime) | Monthly |
+| Rating | `RatingFrequencyPolicy.RatingPeriod` | Monthly |
+| Accumulation | `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
+
+Accumulation must be **strictly shorter** than rating, which is why the
+`dailytotal` / `dailypeak` policies exist and why every QB usage resource points
+at one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
+for a future model that bills quarterly or annually — pointing a monthly-billed
+resource at them reintroduces the failure.
+
+**Two references, one authority.** The accumulation policy is named in *both*
+`UsageResource.UsageResourceBillingPolicy.Code` and
+`ProductUsageResourcePolicy.UsageAggregationPolicy.Code`. Runtime snapshots the
+**`UsageResource`** value onto the `TransactionUsageEntitlement`, so fixing only
+the PURP reference leaves the resource default broken while looking correct.
+Keep both aligned. `tests/test_qb_multicurrency_data.py::accumulation_refs_aligned`
+enforces it. Note that `period_ordering_descending` does **not**: it checks each
+reference against billing ≥ rating > accumulation *independently*, and `dailypeak`
+and `dailytotal` are both Daily, so a mismatched pair satisfies it — which is how
+storage sat at resource=`dailypeak` / purp=`dailytotal` while the suite read green.
+
+`TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
+existing entitlements cannot be repointed — a design-time change reaches runtime
+only via the policy record itself or a newly created asset.
+
 ## File Structure
 
 ```
@@ -206,20 +423,20 @@ qb-rating/
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
-├── UnitOfMeasure.csv                    # 12 records
+├── UnitOfMeasure.csv                    # 18 records
 ├── UnitOfMeasureClass.csv               # 5 records
-├── UsageResourceBillingPolicy.csv       # 3 records
-├── UsageResource.csv                    # 9 records
-├── Product2.csv                         # 9 records (Update only)
+├── UsageResourceBillingPolicy.csv       # 5 records
+├── UsageResource.csv                    # 7 records
+├── Product2.csv                         # 10 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records
 ├── UsageCommitmentPolicy.csv            # 2 records
-├── ProductUsageResource.csv             # 21 records
-├── UsagePrdGrantBindingPolicy.csv       # 1 record
-├── RatingFrequencyPolicy.csv            # 1 record
-├── ProductUsageResourcePolicy.csv       # 19 records
-├── ProductUsageGrant.csv                # 9 records
+├── ProductUsageResource.csv             # 25 records
+├── UsagePrdGrantBindingPolicy.csv       # 4 records
+├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
+├── ProductUsageResourcePolicy.csv       # 23 records
+├── ProductUsageGrant.csv                # 12 records
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
@@ -285,7 +502,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=21, PURP=19, PUG=9. No duplicate risk.
+The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=25, PURP=23, PUG=12. No duplicate risk.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 
@@ -437,9 +654,9 @@ All schema-unique fields are already correctly used as externalIds.
 
 ### Portability Concern: RatingFrequencyPolicy
 
-`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there is 1 record (RatingPeriod = some value), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
+`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there are 2 records (RatingPeriod = `Monthly` and `Daily`, each period unique), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
 
-**Note:** RatingFrequencyPolicy has auto-numbered Name (`autoNum=true`), so Name cannot be used as a portable alternative.
+**Required `Name` (2026-07-23 fix):** `RatingFrequencyPolicy.Name` is a **required `Text(255)`** field (`nillable=false`, **not** auto-numbered — org describe confirmed). The CSV must supply it; the two rows are `Monthly Rating Frequency` and `Daily Rating Frequency` (the latter added for the QB-DAT-THPT throughput pack). Omitting `Name` makes the `RatingFrequencyPolicy` insert fail with *"Required fields are missing: [Name]"*, which then **silently cascades**: `ProductUsageResourcePolicy` (PURP) rows that reference `RatingFrequencyPolicy.RatingPeriod=Monthly` resolve to `#N/A`, and **Anchor** usage-model products (`QB-DB`, `QB-DB-TOKEN`) *require* `RatingFrequencyPolicyId` — so their PURP inserts are rejected with *"Complete this field when the product… is of Anchor usage model type."* Non-Anchor products (Commit/CommitmentSpend/CommitmentQuantity) leave RFP blank and are unaffected. `Name` is data-only; `RatingPeriod` remains the externalId.
 
 ### Auto-Numbered Name Fields
 
