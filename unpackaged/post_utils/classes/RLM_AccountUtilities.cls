@@ -1747,7 +1747,8 @@ public without sharing class RLM_AccountUtilities {
                 return true;
             }
             if (!contractsToDelete.isEmpty()) {
-                Database.delete(contractsToDelete, false);
+                reportFailures('Contract (preserve-mode)',
+                    Database.delete(contractsToDelete, false));
             }
             return true;
         }
