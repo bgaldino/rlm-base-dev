@@ -92,7 +92,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         cip.put('ContractId', priced.Id);
         cip.put('ItemId', product.Id);
         cip.put('StartDate', System.now());
-        cip.put('Price', 100);
+        cip.put('Price', 100.0);
         insert cip;
         return account.Id;
     }

@@ -1738,12 +1738,12 @@ public without sharing class RLM_AccountUtilities {
                 contractsToDelete = (List<Contract>) Database.query(
                     'SELECT Id FROM Contract WHERE AccountId = :acctId ' +
                     'AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)');
-            } catch (Exception e) {
-                // SAFE FALLBACK: deleting a contract the user asked to keep is data loss,
-                // while leaving an extra contract behind is benign. So on any query
-                // failure we preserve ALL contracts (delete none) rather than delete-all.
-                System.debug('deleteContracts preserve-mode query failed; ' +
-                    'preserving ALL contracts as safe fallback: ' + e.getMessage());
+            } catch (System.QueryException e) {
+                // Edition-defensive: ContractItemPrice may not exist on all editions.
+                // A QueryException from an invalid object/field is safe to swallow —
+                // no contracted prices can exist, so preserve all contracts.
+                System.debug('deleteContracts preserve-mode query failed (edition-absent?); ' +
+                    'preserving ALL contracts: ' + e.getMessage());
                 return true;
             }
             if (!contractsToDelete.isEmpty()) {
