@@ -184,6 +184,7 @@ foundations:
         - scripts/decision_tables/deactivate_decision_table.py
         - scripts/decision_tables/refresh_decision_table.py
         - scripts/decision_tables/delete_decision_table.py
+        - scripts/decision_tables/upload_decision_table_data.py
         - scripts/apex/checkDecisionTableFreshness.apex
       caveats:
         - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"

@@ -179,8 +179,9 @@ def main(argv=None) -> int:
     record_id = table_row["Id"]
     source_type = (defn.get("metadata") or {}).get("dataSourceType") or table_row.get("SourceObject")
     if source_type not in ("CsvUpload", "CSV"):
-        eprint(f"Warning: '{args.developer_name}' dataSourceType is {source_type!r}, not "
+        eprint(f"Error: '{args.developer_name}' dataSourceType is {source_type!r}, not "
                f"'CsvUpload'. The /file upload only applies to CSV Based Decision Tables.")
+        return 1
 
     mode = "OVERWRITE (deleteAllRows)" if args.overwrite else "append"
     eprint(f"\nUpload CSV into DecisionTable '{args.developer_name}' ({record_id}), "
@@ -228,12 +229,6 @@ def main(argv=None) -> int:
             version_number=args.version_number,
         )
         summary["upload"] = upload
-
-        # Optional — activate the uploaded version (live-verified PATCH shape).
-        if args.activate_version is not None:
-            vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(args.activate_version)}"
-            vresp = transport.connect("PATCH", vpath, {"versionStatus": "Active"})
-            summary["versionActivation"] = vresp
     except DecisionTableClientError as exc:
         eprint(f"\nFAILED: {exc}")
         return 1
@@ -260,6 +255,30 @@ def main(argv=None) -> int:
                    "(bad rows drop silently; --overwrite fails on this release). "
                    "Inspect what landed with dump_decision_table_data.py.")
             exit_code = 1
+        elif final not in ("Completed",):
+            eprint(f"  WARNING: uploadStatus did not reach 'Completed' within "
+                   f"--max-wait (last seen: {final!r}). The import may still be "
+                   f"processing — re-check with dump_decision_table_data.py.")
+            exit_code = 1
+    elif not args.wait_for_status:
+        eprint("  note: the import is async — the rows may not be visible yet. "
+               "Pass --wait-for-status to poll uploadStatus to terminal.")
+
+    # Optional — activate a version AFTER confirming upload succeeded (or if no
+    # wait was requested, fire-and-forget with a warning). Activation before the
+    # async import completes could expose incomplete data.
+    if args.activate_version is not None and exit_code == 0:
+        if args.wait_for_status and final not in ("Completed",):
+            eprint(f"  Skipping --activate-version: uploadStatus is {final!r}, not "
+                   f"'Completed'. Activate manually after confirming rows landed.")
+        else:
+            try:
+                vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(args.activate_version)}"
+                vresp = transport.connect("PATCH", vpath, {"versionStatus": "Active"})
+                summary["versionActivation"] = vresp
+            except DecisionTableClientError as exc:
+                eprint(f"  WARNING: version activation failed: {exc}")
+                exit_code = 1
 
     if args.json:
         print(json.dumps(summary, indent=2, default=str))

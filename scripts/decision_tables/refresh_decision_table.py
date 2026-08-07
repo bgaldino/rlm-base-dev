@@ -112,8 +112,14 @@ def main(argv=None) -> int:
         eprint(f"\nFAILED: {exc}")
         return 1
 
+    exit_code = 0
     if preview:
         eprint("\n[preview] No refresh invoked. Re-run with --confirm to invoke.")
+    elif outcome.get("isSuccess") is False:
+        eprint(f"\nRefresh REJECTED (isSuccess=false, "
+               f"status={outcome.get('status')}). The platform may have hit the "
+               f"~100/hr rate limit or the table's source binding is invalid.")
+        exit_code = 1
     else:
         eprint(f"\nRefresh queued (isSuccess={outcome.get('isSuccess')}, "
                f"status={outcome.get('status')}). Re-check LastSyncDate with "
@@ -122,7 +128,7 @@ def main(argv=None) -> int:
         print(json.dumps({"action": "refresh", "developerName": args.developer_name,
                           "id": table_row.get("Id"), "mode": mode,
                           "result": outcome, "dryRun": preview}, indent=2, default=str))
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

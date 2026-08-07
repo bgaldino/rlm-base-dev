@@ -47,7 +47,7 @@ from scripts.decision_tables._resolve import (  # noqa: E402
 )
 
 
-def _print_definition(defn, show_connect, transport):
+def _print_definition(defn, show_connect):
     table = defn["table"]
     print(f"Decision Table: {table.get('DeveloperName')}   ({table.get('Id')})")
     print(f"  label        : {table.get('MasterLabel')}")
@@ -110,10 +110,9 @@ def _print_definition(defn, show_connect, transport):
 
     if show_connect:
         print("\n  Connect Definitions representation (divergent vocabulary):")
-        try:
-            cdef = get_connect_definition(transport, table["Id"])
-        except (DecisionTableClientError, ResolveError) as exc:
-            print(f"    (could not read Connect definition: {exc})")
+        cdef = defn.get("connect")
+        if cdef is None:
+            print("    (Connect definition not loaded)")
         else:
             print(f"    id            : {cdef.get('id')}  (15-char)")
             print(f"    sourceType    : {cdef.get('sourceType')}")
@@ -154,7 +153,7 @@ def main(argv=None) -> int:
         print(json.dumps(defn, indent=2, default=str))
         return 0
 
-    _print_definition(defn, args.connect, transport)
+    _print_definition(defn, args.connect)
     return 0
 
 
