@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DecisionTable xmlns="http://soap.sforce.com/2006/04/metadata">
-    <conditionCriteria>1</conditionCriteria>
+    <collectOperator>None</collectOperator>
+    <conditionCriteria>1 AND 2</conditionCriteria>
     <conditionType>All</conditionType>
     <dataSourceType>SingleSobject</dataSourceType>
     <decisionTableParameters>
@@ -15,6 +16,16 @@
     </decisionTableParameters>
     <decisionTableParameters>
         <dataType>String</dataType>
+        <fieldName>CurrencyIsoCode</fieldName>
+        <fieldPath>CurrencyIsoCode</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>2</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
         <fieldName>Cost</fieldName>
         <fieldPath>Cost</fieldPath>
         <isGroupByField>false</isGroupByField>
@@ -22,10 +33,12 @@
         <usage>OUTPUT</usage>
     </decisionTableParameters>
     <doesConsiderNullValue>false</doesConsiderNullValue>
-    <executionType>Hbase</executionType>
+    <dtRowLevelOverrideType>None</dtRowLevelOverrideType>
+    <executionType>HBASE</executionType>
     <filterResultBy>OutputOrder</filterResultBy>
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
+    <isVersioned>false</isVersioned>
     <setupName>Cost Book Entries</setupName>
     <sourceObject>CostBookEntry</sourceObject>
     <status>Active</status>

@@ -89,6 +89,12 @@ DATE( YEAR( TODAY() ), MONTH( TODAY() ) + 1, 1) - 1)</expression>
                 <stringValue>Proposal/Quote</stringValue>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <field>CurrencyIsoCode</field>
+            <value>
+                <elementReference>Get_Account_Details.CurrencyIsoCode</elementReference>
+            </value>
+        </inputAssignments>
         <object>Opportunity</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
@@ -218,6 +224,12 @@ DATE( YEAR( TODAY() ), MONTH( TODAY() ) + 1, 1) - 1)</expression>
             <field>StartDate</field>
             <value>
                 <elementReference>Service_Start_Date</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>CurrencyIsoCode</field>
+            <value>
+                <elementReference>Get_Account_Details.CurrencyIsoCode</elementReference>
             </value>
         </inputAssignments>
         <object>Quote</object>

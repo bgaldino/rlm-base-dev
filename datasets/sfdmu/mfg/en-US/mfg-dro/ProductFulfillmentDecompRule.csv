@@ -1,0 +1,7 @@
+DestinationProduct.StockKeepingUnit,Name,Priority,SourceClassIdentifier,SourceIdentifier,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
+BG-CPL-6001,Add Coupling Hub,#N/A,#N/A,01tWs00000C0wwYIAR,BG-KIT-CPL95,#N/A
+BG-CPL-6002,Add Coupling Spider,#N/A,#N/A,01tWs00000C0wwYIAR,BG-KIT-CPL95,#N/A
+BG-MTR-1201,Add 1HP Motor,#N/A,#N/A,01tWs00000C0wwZIAR,BG-KIT-MTR1,#N/A
+BG-MTR-1202,Add VFD,#N/A,#N/A,01tWs00000C0wwZIAR,BG-KIT-MTR1,#N/A
+FESBA-PM-RAD,Add Radiator Assembly,#N/A,#N/A,01tWs00000C0wxDIAR,FESBA-FRD,#N/A
+PM-EXH-T4F,Add Final Exhaust System,#N/A,#N/A,01tWs00000C0wxDIAR,FESBA-FRD,#N/A

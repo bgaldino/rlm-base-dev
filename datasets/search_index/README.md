@@ -82,4 +82,4 @@ don't exist yet will cause an error.
 
 After configuring index fields, run `rebuild_search_index` to build the index
 with the new fields included (this happens automatically in `prepare_rlm_org`
-step 34).
+step 33).
