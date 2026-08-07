@@ -97,7 +97,9 @@ class UpdateCurrencyRatesCsv(BaseTask):
 
         if not dry_run:
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                # lineterminator="\n" — csv.DictWriter defaults to "\r\n", which would
+                # flip the LF-tracked CurrencyType.csv to CRLF on every run.
+                writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
                 writer.writerows(rows)
             self.logger.info(f"Updated {updated} rate(s) in {csv_path}")

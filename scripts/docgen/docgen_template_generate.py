@@ -13,12 +13,14 @@ Usage:
   python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
   python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --title "Test Quote Proposal"
   python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --json
+  python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --dry-run
 
 Options:
   --title       Custom document filename (default: auto-generated)
   --json        Output full DGP record as JSON on completion
   --timeout     Max seconds to wait for generation (default: 120)
   --no-convert  Generate .docx only (skip PDF conversion)
+  --dry-run     Resolve the template and print the DGP payload without creating it
 """
 import argparse
 import json
@@ -121,34 +123,51 @@ def resolve_content_version(template_name, org):
     return records[0]["Id"] if records else None
 
 
-def create_dgp(record_id, template_id, org, title=None, generate_only=False,
-               mapping_method=None, template_name=None):
-    """Create a DocumentGenerationProcess record to trigger generation."""
+def build_dgp_body(record_id, template_id, title=None, generate_only=False,
+                   mapping_method=None, template_name=None,
+                   template_content_version_id=None):
+    """Build the DGP payload without mutating the target org."""
     dgp_type = "Generate" if generate_only else "GenerateAndConvert"
 
     body = {
         "Type": dgp_type,
         "ReferenceObject": record_id,
         "DocumentTemplateId": template_id,
+        "DocGenApiVersionType": "Advanced",
         "DocumentInputType": "DocumentTemplate",
     }
 
     request_text = {"keepIntermediate": True}
     request_text["title"] = title or template_name or "GeneratedDocument"
 
-    cv_id = resolve_content_version(template_name, org) if template_name else None
-    if cv_id:
-        request_text["templateContentVersionId"] = cv_id
+    if template_content_version_id:
+        request_text["templateContentVersionId"] = template_content_version_id
 
     body["RequestText"] = json.dumps(request_text, separators=(",", ":"))
 
     if mapping_method == "ContextService":
         body["DocGenAdditionalInputType"] = "ContextService"
-        body["DocGenAdditionalInput"] = json.dumps({
-            "inputData": {"Quote": {"id": record_id}}
-        })
+        # This field is the parent entity Id, not a Context API runtime inputData payload.
+        body["DocGenAdditionalInput"] = record_id
     else:
         body["DataRaptorInput"] = json.dumps({"Id": record_id})
+
+    return body
+
+
+def create_dgp(record_id, template_id, org, title=None, generate_only=False,
+               mapping_method=None, template_name=None):
+    """Create a DocumentGenerationProcess record to trigger generation."""
+    content_version_id = resolve_content_version(template_name, org) if template_name else None
+    body = build_dgp_body(
+        record_id,
+        template_id,
+        title=title,
+        generate_only=generate_only,
+        mapping_method=mapping_method,
+        template_name=template_name,
+        template_content_version_id=content_version_id,
+    )
 
     result = sf_api_post(
         "/services/data/v67.0/sobjects/DocumentGenerationProcess",
@@ -248,6 +267,8 @@ def main():
                         help="Max seconds to poll (default: 120)")
     parser.add_argument("--no-convert", action="store_true",
                         help="Generate .docx only, skip PDF conversion")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print the DGP payload without creating a DocumentGenerationProcess")
 
     args = parser.parse_args()
 
@@ -257,6 +278,21 @@ def main():
     print(f"Template: {template['Name']} (Method: {mapping_method})")
     print(f"Record: {args.record_id}")
     print(f"Type: {'Generate' if args.no_convert else 'GenerateAndConvert'}")
+
+    if args.dry_run:
+        content_version_id = resolve_content_version(template.get("Name"), args.org)
+        body = build_dgp_body(
+            args.record_id,
+            args.template_id,
+            title=args.title,
+            generate_only=args.no_convert,
+            mapping_method=mapping_method,
+            template_name=template.get("Name"),
+            template_content_version_id=content_version_id,
+        )
+        print("\nDry-run DGP payload:")
+        print(json.dumps(body, indent=2, sort_keys=True))
+        return
 
     dgp_id = create_dgp(
         args.record_id, args.template_id, args.org,

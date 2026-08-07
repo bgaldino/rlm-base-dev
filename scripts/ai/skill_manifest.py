@@ -522,7 +522,120 @@ def _cli_check(manifest: dict[str, Any]) -> int:
         else:
             tag = "OK-OPT" if is_optional else "OK"
             print(f"  [{tag:6s}] {key}: {resolved.path}")
-    return 0 if overall_ok else 1
+
+    return 0 if _audit_foundations(manifest) and overall_ok else 1
+
+
+#: Where a repo-relative path can start. Anything outside this is prose, not a path.
+_PATH_ROOTS = (
+    ".agents/", ".claude/", ".cursor/", ".github/", "config/", "datasets/", "docs/",
+    "force-app/", "orgs/", "postman/", "robot/", "scripts/", "tasks/", "templates/",
+    "unpackaged/",
+)
+#: Root-level files the manifest legitimately names. Without these, a typo in a
+#: declared root file passed the audit because it matched no _PATH_ROOTS prefix.
+_ROOT_FILES = ("AGENTS.md", "CLAUDE.md", "REVIEW.md", "README.md", "cumulusci.yml")
+
+
+def _path_like_values(node: Any, where: str):
+    """Yield (location, value) for every string in a manifest subtree that names a
+    repo path. Recursive on purpose — see the caller."""
+    if isinstance(node, dict):
+        # ⚠ An entry that declares itself absent used to skip its WHOLE subtree, which
+        # also skipped the paths it still actively claims. The prior-GA entry is exactly
+        # that shape: status not_captured, and `partial:
+        # docs/salesforce/260/feature-index.md` — a file that does exist and is offered
+        # to consumers. Deleting or misspelling it passed --check while the audit printed
+        # "all paths resolve".
+        #
+        # The skip bought nothing anyway: an entry declaring itself absent has its
+        # path/manifest keys REMOVED from the YAML (the prior-GA comment says to restore
+        # them once captured), so there was never an absent path here to protect. Keep
+        # walking — what a not_captured entry still names, it still has to have.
+        for key, value in node.items():
+            yield from _path_like_values(value, f"{where}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _path_like_values(value, f"{where}[{index}]")
+    elif isinstance(node, str) and (node.startswith(_PATH_ROOTS) or node in _ROOT_FILES):
+        yield where, node
+
+
+def _audit_foundations(manifest: dict[str, Any]) -> bool:
+    """Resolve what the Foundations section CLAIMS against the working tree.
+
+    ⚠ Clone discovery succeeding says nothing about whether the manifest is true.
+    Before this audit existed, ``--check`` printed OK for two months while two
+    skills present since April and May went unadvertised, the postman collection
+    filenames named files that had never existed, and the prior-GA help corpus
+    pointed at a directory never committed on any branch. A check that cannot
+    fail is not a check.
+
+    PMOS is deliberately not audited: its clone is optional and usually absent,
+    so every path would miss for a reason that is not drift.
+    """
+    section = manifest.get("foundations", {})
+    resolved: RepoLocation | None = section.get("_resolved")
+    if resolved is None or resolved.path is None:
+        return True  # nothing to audit against; the clone check already reported it
+    root = Path(resolved.path)
+
+    problems: list[str] = []
+
+    def exists(rel: str) -> bool:
+        # ⚠ A template ({release}) cannot be resolved to ONE path, but that is not a
+        # reason to accept it unchecked — and it used to be: `"{" in rel or ...`
+        # short-circuited to True, so `docs/enablement/{release}/never-existed.md`
+        # passed and the audit still printed "all paths resolve". Unfalsifiable is
+        # exactly the defect this function's own docstring was written about, one
+        # level deeper: a check that cannot fail is not a check.
+        #
+        # A template cannot be resolved, but it CAN be falsified: expand each
+        # placeholder to a glob and require at least one real match. That still
+        # catches a renamed or deleted filename, which is the drift that actually
+        # happens; it deliberately does not verify every release has one.
+        if "{" in rel:
+            pattern = re.sub(r"\{[^}]*\}", "*", rel)
+            if pattern.startswith(("/", "~")):  # Path.glob rejects absolute patterns
+                return False
+            return any(root.glob(pattern.rstrip("/")))
+        return (root / rel).exists()
+
+    declared = {s.get("id") for s in section.get("skills", []) or []}
+    for entry in section.get("skills", []) or []:
+        for rel in [entry.get("path")] + list(entry.get("sub_skills") or []) + list(
+            entry.get("tooling") or []
+        ):
+            if rel and not exists(rel):
+                problems.append(f"skill {entry.get('id')}: missing {rel}")
+
+    on_disk = {p.parent.name for p in sorted(root.glob(".cursor/skills/*/SKILL.md"))}
+    for name in sorted(on_disk - declared):
+        problems.append(f"{name}: has a SKILL.md but is not declared — agents cannot discover it")
+
+    # ⚠ Every path-shaped value in the WHOLE section, found by walking — not a
+    # hand-listed set of field names, and not one subtree.
+    #
+    # Twice now this has been narrower than its own claim. First it checked only
+    # path/manifest/index plus a postman list, missing `postman_environment` — added in
+    # the very same change. Then it walked `grounding` only, so skill fields like
+    # `auto_generated_subfiles` and `governs`, and declared root files such as
+    # AGENTS.md, still went unaudited while the output said "all paths resolve".
+    # The lesson both times: scope the walk to the claim, or weaken the claim.
+    for where, rel in _path_like_values(section, "foundations"):
+        if not exists(rel):
+            problems.append(f"{where}: missing {rel}")
+
+    print()
+    if problems:
+        print(f"  [ERROR] foundations manifest does not match the working tree "
+              f"({len(problems)} problem(s)):")
+        for problem in problems:
+            print(f"          - {problem}")
+        return False
+    print(f"  [OK    ] foundations manifest matches the working tree "
+          f"({len(declared)} skills declared, all paths resolve)")
+    return True
 
 
 def _cli_list_skills(manifest: dict[str, Any], repo: str) -> int:

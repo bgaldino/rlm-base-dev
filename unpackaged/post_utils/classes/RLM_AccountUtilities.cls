@@ -22,12 +22,47 @@
  * - Maintain referential integrity
  * - Handle complex multi-level hierarchies
  * 
+ * ⚠ Sharing: `without sharing`, declared deliberately rather than left implicit.
+ * The invocable's job is to clear an account's ENTIRE related graph so a demo
+ * account can be rebuilt, and that graph routinely contains records owned by
+ * other users — the integration user, an admin, another persona. Under
+ * `with sharing` a non-admin assignee would delete only the records they can
+ * see and silently leave the rest, producing a half-reset account that looks
+ * successful: worse than refusing. The repo's Apex rules permit `without
+ * sharing` for exactly this case provided the reason is documented, which is
+ * what this note is. Access is instead controlled at the grant: the class is
+ * reachable only through RLM_UtilitiesPermset, which is assigned deliberately
+ * and kept separate from the component permission sets for this reason.
+ *
+ * Previously this class declared NO sharing keyword, so it inherited whichever
+ * context called it. An omitted keyword is NOT equivalent to `without sharing` in
+ * general — from a `with sharing` caller it would have run WITH sharing. It is
+ * equivalent for this class's actual callers, which is why pinning it changes
+ * nothing today: every production entry is the Flow invocable, and the only Apex
+ * caller is RLM_AccountUtilitiesTest, itself `without sharing`. Adding a caller
+ * that runs with sharing would previously have silently changed the reset's
+ * behaviour; now it cannot.
+ *
  * @author John Rozsits, Brian Galdino, Anthropic Claude 4 Sonnet
  * @date 2025-06-10
  */
-public class RLM_AccountUtilities {
+public without sharing class RLM_AccountUtilities {
     // Constants
     private static final Integer BATCH_SIZE = 200;
+
+    // Usage summary teardown. The graph has circular delete constraints
+    // (a ratable summary can be held by a usage summary and vice versa), so the
+    // teardown alternates objects and converges. Six rounds has been ample on an
+    // org with 831 summaries; the cap only exists so a pathological graph cannot
+    // spin.
+    //
+    // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
+    // transaction. The 10,000-row DML limit is per transaction and this loop
+    // issues nine deletes per round, so the real guard is the remaining-budget
+    // clamp inside deleteQuietly(), which degrades to a reported partial
+    // teardown instead of a LimitException.
+    private static final Integer MAX_TEARDOWN_ROUNDS = 6;
+    private static final Integer TEARDOWN_BATCH = 2000;
     /**
      * Input variables for the account cleanup process.
      * These variables control which types of objects should be deleted.
@@ -241,28 +276,69 @@ public class RLM_AccountUtilities {
         Boolean preserveContractsWithPrices = request.get(0).PreserveContractsWithContractedPrices == true;
 
             // Start a savepoint for transaction control
+        // ------------------------------------------------------------------
+        // The usage-graph teardown runs BEFORE the savepoint, deliberately.
+        //
+        // It is idempotent and convergent -- a rerun simply finds fewer rows --
+        // and its partial progress MUST survive a later failure. Inside the
+        // savepoint, a single exception anywhere in the order/asset/quote
+        // cleanup below would roll back every usage row removed here, so the
+        // reset could never converge across reruns: each attempt would start
+        // from the same untouched graph and surface the same blocker. That is
+        // exactly what made the original failure so hard to diagnose, and it
+        // would defeat the DML-budget clamp in deleteQuietly(), whose whole
+        // point is that a partial teardown is real progress to build on.
+        //
+        // Nothing here is coupled to the transactional deletes below, so there
+        // is no atomicity to preserve -- only progress to lose.
+        deleteUsageResourcePoliciesForAccount(accountId); // BindingObjUsageRsrcPlcy
+        deleteBindingObjRateCardEntriesForAccount(accountId); // BindingObjectRateCardEntry
+
+        // The summary graph must go FIRST. A UsageEntitlementEntry holds its
+        // UsageSummary, and a bucket cannot be deleted while entitlement entries
+        // still reference it -- so tearing down buckets before the summaries
+        // (the previous order) fails on any account whose usage was ever rated.
+        deleteUsageSummaryGraph(accountId);
+        // The clamp in deleteQuietly() stops at the DML-row ceiling instead of
+        // throwing, precisely so a partial teardown survives as progress. Falling
+        // through to the transactional cleanup below would spend what little budget
+        // remains and hit an UNCATCHABLE LimitException -- which rolls back the whole
+        // transaction, including everything removed above, defeating the clamp. Stop
+        // here instead; the next run starts from a smaller graph and converges.
+        if (dmlBudgetExhausted) {
+            System.debug(LoggingLevel.WARN, 'delAccountRelatedObjects: STOPPED after the '
+                + 'usage teardown -- the transaction\'s DML row budget was exhausted. The '
+                + 'usage records removed so far are kept. Transactional cleanup (orders, '
+                + 'assets, quotes, invoices) has NOT run. Re-run the reset until it '
+                + 'completes without this warning.');
+            return;
+        }
+        // Gated on deleteAssets, like the asset deletion itself further down.
+        // AssetRateCardEntry rows are generated when the asset is created and are
+        // NOT recreated for an existing asset, so removing them while KEEPING the
+        // asset leaves a usage asset that can never rate again.
+        if (deleteAssets) {
+            deleteAssetRateCardEntries(accountId);
+        }
+
         Savepoint sp = Database.setSavepoint();
         try {
             // Get Order data once
             OrderData orderData = new OrderData(accountId);
-            deleteUsageResourcePoliciesForAccount(accountId); // BindingObjUsageRsrcPlcy
-            deleteBindingObjRateCardEntriesForAccount(accountId); // BindingObjectRateCardEntry
-            
-            // First handle all usage entitlements and their related records
+
+            // Then the entitlements and their buckets.
             deleteTransactionUsageEntitlement(accountId);
             deleteUsageEntitlementAccount(accountId); // UsageEntitlementAccount & UsageEntitlementBucket
-            
-            // Delete additional usage-related records that might reference assets
             deleteAllTransactionUsageEntitlements(accountId); // More comprehensive TUE deletion
-            deleteUsageLiableSummaries(accountId); // UsageBillingPeriodItem
-            deleteUsageRatableSummaries(accountId);
-            
+
             // Delete UsageEntitlement records (bound to account, assets, or contracts)
             deleteUsageEntitlements(accountId);
 
             // Then handle other usage and billing related records
+            // Final sweep. The convergent teardown above already drains journals as
+            // their summaries release them; anything still here refused to delete
+            // and will block asset deletion, so say so rather than failing later.
             deleteTransactionJournal(accountId);
-            deleteUsageSummaries(accountId);
 
             // Delete Billing information
             deleteBillingScheduleGroups(accountId);
@@ -292,6 +368,22 @@ public class RLM_AccountUtilities {
             if (deleteAssets) {
                 // Before deleting assets, clean up ALL records that might reference them
                 deleteAllRecordsReferencingAssets(accountId);
+
+                // Second pass over the binding policies. They are cleared at the top
+                // of this method, but the entitlement teardown in between leaves more
+                // behind, and an asset cannot be deleted while any remain:
+                //   "could not be completed because it is associated with the
+                //    following binding object usage resource policies.: BOURP-..."
+                // Clearing them once up front is not enough.
+                //
+                // Both helpers RETURN their DeleteResults and every existing caller
+                // discarded them, so a policy that refuses to delete was invisible --
+                // the failure only surfaced later as an unexplained asset DELETE_FAILED.
+                reportFailures('BindingObjUsageRsrcPlcy',
+                    deleteUsageResourcePoliciesForAccount(accountId));
+                reportFailures('BindingObjectRateCardEntry',
+                    deleteBindingObjRateCardEntriesForAccount(accountId));
+
                 deleteAssets(accountId);
             }
             
@@ -1052,11 +1144,8 @@ public class RLM_AccountUtilities {
         // Find TUEs that might be associated with Assets (try different possible field names)
         if(!assetIds.isEmpty()) {
             String[] possibleAssetQueries = new String[]{
-                'SELECT Id, Name FROM TransactionUsageEntitlement WHERE AssetId IN :assetIds',
-                'SELECT Id, Name FROM TransactionUsageEntitlement WHERE GrantBindingTargetId IN :assetIds',
-                'SELECT Id, Name FROM TransactionUsageEntitlement WHERE Asset__c IN :assetIds',
-                'SELECT Id, Name FROM TransactionUsageEntitlement WHERE RelatedAssetId IN :assetIds'
-            };
+            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
+        };
             
             for(String queryString : possibleAssetQueries) {
                 try {
@@ -1069,8 +1158,7 @@ public class RLM_AccountUtilities {
                                 System.debug('Asset TUE: ' + tue.Name + ' (ID: ' + tue.Id + ')');
                             }
                         }
-                        break; // Use the first successful query
-                    }
+                        }
                 } catch(Exception e) {
                     System.debug('Asset TUE query failed: ' + queryString + ' - ' + e.getMessage());
                 }
@@ -1406,175 +1494,187 @@ public class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes UsageSummary records for a given account.
-     * These records represent usage summaries and can be related to:
-     * - Account
-     * - UsageEntitlements
-     * 
-     * This method must be called after deleting UsageEntitlementAccounts
-     * to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @return Boolean indicating success of the operation
+     * Tears down the usage summary graph for an account.
+     *
+     * Replaces the previous deleteUsageSummaries / deleteUsageLiableSummaries /
+     * deleteUsageRatableSummaries trio, which had three defects:
+     *
+     *  1. UsageEntitlementEntry was never deleted at all. A fully rated
+     *     UsageSummary is held by its entitlement entries ("associated with the
+     *     following usage entitlement entries"), so any account whose usage
+     *     reached LiableSummaryComplete could not be reset.
+     *  2. Each method tried up to nine speculative queries and `break`-ed on the
+     *     first non-empty one, so a summary linked by AssetId was left behind
+     *     whenever the AccountId query happened to match first. Several of those
+     *     object names (UsageLiableSummary, Usage_Ratable_Summary__c,
+     *     UsageBillingPolicyItem) do not exist in this release.
+     *  3. The fixed delete order cannot work in general: a UsageRatableSummary
+     *     cannot be deleted while an associated UsageSummary exists, and some
+     *     UsageSummary rows are in turn held by ratable rows.
+     *
+     * So this alternates the objects and stops when a full round makes no
+     * progress, rather than hard-coding an order a future release can invert.
+     * SOQL cost is fixed per round instead of growing with the org's history.
+     *
+     * @param accountId The account whose usage summary graph should be removed
+     * @return Boolean indicating the graph was fully drained
      */
-    private static Boolean deleteUsageSummaries(String accountId) {
-        // Get all UsageSummaries for this account
-        List<UsageSummary> recordsToDelete = [
-            SELECT Id 
-            FROM UsageSummary 
-            WHERE AccountId = :accountId
+
+    /**
+     * Logs per-row delete failures that callers previously discarded. A silently
+     * failed cleanup shows up much later as an unrelated DELETE_FAILED on the
+     * parent record, which is considerably harder to diagnose.
+     */
+    private static void reportFailures(String label, List<Database.DeleteResult> results) {
+        if (results == null) { return; }
+        Integer failed = 0;
+        for (Database.DeleteResult r : results) {
+            if (!r.isSuccess()) {
+                failed++;
+                for (Database.Error e : r.getErrors()) {
+                    System.debug(label + ' delete failed (' + r.getId() + '): ' + e.getMessage());
+                }
+            }
+        }
+        if (failed > 0) {
+            System.debug(label + ': ' + failed + ' of ' + results.size()
+                + ' could not be deleted -- these will block the parent record.');
+        }
+    }
+
+    private static Boolean deleteUsageSummaryGraph(String accountId) {
+        Set<Id> assetIds = new Set<Id>();
+        for (Asset a : [SELECT Id FROM Asset WHERE AccountId = :accountId]) {
+            assetIds.add(a.Id);
+        }
+
+        // ONE convergent loop over the WHOLE usage graph. The delete constraints
+        // are circular, so no fixed order can work:
+        //   UsageSummary <-> UsageRatableSummary   (each can hold the other)
+        //   UsageEntitlementEntry -> UsageSummary  (an entry holds its summary)
+        //   TransactionJournal    -> UsageSummary  (a rated journal is held)
+        //   UsageEntitlementBucket parent <-> child (3 levels)
+        //   TransactionUsageEntitlement <- bucket
+        //   UsageEntitlementAccount     <- TUE
+        //   UsageCmtAssetRelatedObj     -> Asset   (the commitment junction)
+        // Alternate them and stop when a full round makes no progress. Fixed, small
+        // SOQL cost per round rather than one that grows with the org's history.
+        Integer removed = 0;
+        for (Integer round = 1; round <= MAX_TEARDOWN_ROUNDS; round++) {
+            Integer progress = 0;
+
+            progress += deleteQuietly([
+                SELECT Id FROM UsageEntitlementEntry
+                WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageBillingPeriodItem
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageSummary
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageRatableSummary
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM TransactionJournal
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageEntitlementBucket
+                WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM TransactionUsageEntitlement
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageEntitlementAccount
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            // The commitment junction. Linking a commitment to its anchor is a
+            // post-262 selling step this utility predates, and an anchor asset
+            // cannot be deleted while its junction row survives.
+            if (!assetIds.isEmpty()) {
+                progress += deleteQuietly([
+                    SELECT Id FROM UsageCmtAssetRelatedObj
+                    WHERE AssetId IN :assetIds OR RelatedObjectId IN :assetIds
+                    LIMIT :TEARDOWN_BATCH]);
+            }
+
+            removed += progress;
+            System.debug('deleteUsageSummaryGraph: round ' + round + ' removed ' + progress);
+            if (progress == 0 || dmlBudgetExhausted) { break; }
+        }
+        System.debug('deleteUsageSummaryGraph: removed ' + removed + ' usage record(s)'
+            + ' (DML rows used ' + Limits.getDmlRows() + '/' + Limits.getLimitDmlRows() + ')');
+        if (dmlBudgetExhausted) {
+            // Not an exception: the rows deleted so far are real progress, and
+            // throwing here would roll them back and hide it.
+            System.debug(LoggingLevel.WARN, 'deleteUsageSummaryGraph: STOPPED EARLY -- the '
+                + 'transaction\'s DML row budget was exhausted. Usage records remain for this '
+                + 'account; run the reset again until it reports a clean pass.');
+        }
+        return true;
+    }
+
+    /**
+     * Deletes AssetRateCardEntry records for an account's assets.
+     *
+     * These were never removed, and they block deletion of the design-time
+     * RateCardEntry rows they reference -- which is why reloading qb-rates
+     * against an org with live assets inserts a second, Draft copy of every
+     * entry instead of replacing the Active ones.
+     *
+     * @param accountId The account whose asset rate card entries should be removed
+     * @return Boolean indicating success
+     */
+    private static Boolean deleteAssetRateCardEntries(String accountId) {
+        List<AssetRateCardEntry> arces = [
+            SELECT Id FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId
         ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
-        }
+        Integer removed = deleteQuietly(arces);
+        System.debug('deleteAssetRateCardEntries: removed ' + removed);
         return true;
     }
 
-    /**
-     * Deletes Usage Liable Summary records for a given account.
-     * These records represent usage liable summaries and can be related to:
-     * - Account
-     * - Assets
-     * - Usage Entitlements
-     * 
-     * This method must be called after deleting UsageEntitlementAccounts and TransactionUsageEntitlements
-     * but before deleting Assets to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @return Boolean indicating success of the operation
-     */
-    private static Boolean deleteUsageLiableSummaries(String accountId) {
-        System.debug('Deleting Usage Liable Summary records for account: ' + accountId);
-        
-        // First get all assets for this account to find related liable summaries
-        List<Asset> accountAssets = [SELECT Id FROM Asset WHERE AccountId = :accountId];
-        Set<Id> assetIds = new Set<Id>();
-        for(Asset asset : accountAssets) {
-            assetIds.add(asset.Id);
-        }
-        System.debug('Found ' + assetIds.size() + ' assets to check for liable summaries');
-        
-        List<SObject> recordsToDelete = new List<SObject>();
-        
-        // Try multiple possible object names and field combinations
-        String[] possibleQueries = new String[]{
-            'SELECT Id FROM UsageBillingPeriodItem WHERE AccountId = :accountId',
-            'SELECT Id FROM UsageBillingPeriodItem WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageBillingPeriodItem WHERE GrantBindingTargetId IN :assetIds',
-            'SELECT Id FROM UsageLiableSummary WHERE AccountId = :accountId',
-            'SELECT Id FROM UsageLiableSummary WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageBillingPolicyItem WHERE AccountId = :accountId',
-            'SELECT Id FROM UsageBillingPolicyItem WHERE AssetId IN :assetIds',
-            'SELECT Id FROM Usage_Liable_Summary__c WHERE Account__c = :accountId',
-            'SELECT Id FROM Usage_Liable_Summary__c WHERE Asset__c IN :assetIds'
-        };
-        
-        for(String queryString : possibleQueries) {
-            try {
-                List<SObject> results = Database.query(queryString);
-                if(!results.isEmpty()) {
-                    System.debug('Found ' + results.size() + ' records using query: ' + queryString);
-                    recordsToDelete.addAll(results);
-                    break; // Use the first successful query
-                }
-            } catch(Exception e) {
-                System.debug('Query failed: ' + queryString + ' - ' + e.getMessage());
-            }
-        }
-        
-        if (!recordsToDelete.isEmpty()) {
-            System.debug('Deleting ' + recordsToDelete.size() + ' Usage Liable Summary records');
-            Database.DeleteResult[] results = Database.delete(recordsToDelete, false);
-            Integer successCount = 0;
-            Integer errorCount = 0;
-            for(Database.DeleteResult result : results) {
-                if(result.isSuccess()) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                    for(Database.Error err : result.getErrors()) {
-                        System.debug('Error deleting liable summary ' + result.getId() + ': ' + err.getMessage());
-                    }
-                }
-            }
-            System.debug('Liable summary deletion results: ' + successCount + ' success, ' + errorCount + ' errors');
-        } else {
-            System.debug('No Usage Liable Summary records found for account or assets');
-        }
-        return true;
-    }
+    /** Set when a delete had to be trimmed because the transaction's DML row
+     *  budget ran out. Callers report it so a partial teardown is never mistaken
+     *  for a complete one. */
+    private static Boolean dmlBudgetExhausted = false;
 
     /**
-     * Deletes Usage Ratable Summary records for a given account.
-     * These records represent usage ratable summaries and can be related to:
-     * - Account
-     * - Assets
-     * - Usage Entitlements
-     * 
-     * This method must be called after deleting UsageEntitlementAccounts and TransactionUsageEntitlements
-     * but before deleting Assets to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @return Boolean indicating success of the operation
+     * Best-effort delete that reports how many rows actually went, so a
+     * convergence loop can tell progress from a no-op round. Failures are
+     * expected here (a row still held by a parent) and are logged, not thrown.
+     *
+     * The 10,000-row DML limit is per TRANSACTION, not per statement. The
+     * teardown loop issues nine deletes per round over several rounds, so the
+     * list is clamped to the REMAINING budget here -- one clamp covers every
+     * call site, and running out degrades to a reported partial teardown rather
+     * than a LimitException that rolls back all the progress made.
      */
-    private static Boolean deleteUsageRatableSummaries(String accountId) {
-        System.debug('Deleting Usage Ratable Summary records for account: ' + accountId);
-        
-        // First get all assets for this account to find related ratable summaries
-        List<Asset> accountAssets = [SELECT Id FROM Asset WHERE AccountId = :accountId];
-        Set<Id> assetIds = new Set<Id>();
-        for(Asset asset : accountAssets) {
-            assetIds.add(asset.Id);
+    private static Integer deleteQuietly(List<SObject> records) {
+        if (records == null || records.isEmpty()) { return 0; }
+        Integer headroom = Limits.getLimitDmlRows() - Limits.getDmlRows();
+        if (headroom <= 0) {
+            dmlBudgetExhausted = true;
+            return 0;
         }
-        System.debug('Found ' + assetIds.size() + ' assets to check for ratable summaries');
-        
-        List<SObject> recordsToDelete = new List<SObject>();
-        
-        // Try multiple possible object names and field combinations
-        String[] possibleQueries = new String[]{
-            'SELECT Id FROM UsageRatableSummary WHERE AccountId = :accountId',
-            'SELECT Id FROM UsageRatableSummary WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageRatableSummary WHERE GrantBindingTargetId IN :assetIds',
-            'SELECT Id FROM UsageRatingSchedule WHERE AccountId = :accountId',
-            'SELECT Id FROM UsageRatingSchedule WHERE AssetId IN :assetIds',
-            'SELECT Id FROM Usage_Ratable_Summary__c WHERE Account__c = :accountId',
-            'SELECT Id FROM Usage_Ratable_Summary__c WHERE Asset__c IN :assetIds'
-        };
-        
-        for(String queryString : possibleQueries) {
-            try {
-                List<SObject> results = Database.query(queryString);
-                if(!results.isEmpty()) {
-                    System.debug('Found ' + results.size() + ' records using query: ' + queryString);
-                    recordsToDelete.addAll(results);
-                    break; // Use the first successful query
-                }
-            } catch(Exception e) {
-                System.debug('Query failed: ' + queryString + ' - ' + e.getMessage());
-            }
+        if (records.size() > headroom) {
+            dmlBudgetExhausted = true;
+            List<SObject> trimmed = new List<SObject>();
+            for (Integer i = 0; i < headroom; i++) { trimmed.add(records[i]); }
+            records = trimmed;
         }
-        
-        if (!recordsToDelete.isEmpty()) {
-            System.debug('Deleting ' + recordsToDelete.size() + ' Usage Ratable Summary records');
-            Database.DeleteResult[] results = Database.delete(recordsToDelete, false);
-            Integer successCount = 0;
-            Integer errorCount = 0;
-            for(Database.DeleteResult result : results) {
-                if(result.isSuccess()) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                    for(Database.Error err : result.getErrors()) {
-                        System.debug('Error deleting ratable summary ' + result.getId() + ': ' + err.getMessage());
-                    }
+        Integer removed = 0;
+        for (Database.DeleteResult r : Database.delete(records, false)) {
+            if (r.isSuccess()) {
+                removed++;
+            } else {
+                for (Database.Error err : r.getErrors()) {
+                    // Not FINE: a row that refuses to delete is the thing that later
+                    // blocks the asset, so it must be visible at the default level.
+                    System.debug('deleteQuietly blocked: ' + err.getMessage());
                 }
             }
-            System.debug('Ratable summary deletion results: ' + successCount + ' success, ' + errorCount + ' errors');
-        } else {
-            System.debug('No Usage Ratable Summary records found for account or assets');
         }
-        return true;
+        return removed;
     }
 
     /**
@@ -1850,11 +1950,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting TUEs that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE AssetId IN :assetIds',
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE GrantBindingTargetId IN :assetIds',
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE Asset__c IN :assetIds',
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE RelatedAssetId IN :assetIds',
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE SourceAssetId IN :assetIds'
+            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds) OR (SourceAssetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {
@@ -1908,9 +2004,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting UEAs that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id, Name FROM UsageEntitlementAccount WHERE AssetId IN :assetIds',
-            'SELECT Id, Name FROM UsageEntitlementAccount WHERE Asset__c IN :assetIds',
-            'SELECT Id, Name FROM UsageEntitlementAccount WHERE RelatedAssetId IN :assetIds'
+            'SELECT Id, Name FROM UsageEntitlementAccount WHERE (AssetId IN :assetIds) OR (Asset__c IN :assetIds) OR (RelatedAssetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {
@@ -1964,11 +2058,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting Usage Liable Summaries that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id FROM UsageBillingPeriodItem WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageBillingPeriodItem WHERE GrantBindingTargetId IN :assetIds',
-            'SELECT Id FROM UsageLiableSummary WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageBillingPolicyItem WHERE AssetId IN :assetIds',
-            'SELECT Id FROM Usage_Liable_Summary__c WHERE Asset__c IN :assetIds'
+            'SELECT Id FROM UsageBillingPeriodItem WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {
@@ -1992,10 +2082,7 @@ public class RLM_AccountUtilities {
         System.debug('Deleting Usage Ratable Summaries that reference assets');
         
         String[] possibleQueries = new String[]{
-            'SELECT Id FROM UsageRatableSummary WHERE AssetId IN :assetIds',
-            'SELECT Id FROM UsageRatableSummary WHERE GrantBindingTargetId IN :assetIds',
-            'SELECT Id FROM UsageRatingSchedule WHERE AssetId IN :assetIds',
-            'SELECT Id FROM Usage_Ratable_Summary__c WHERE Asset__c IN :assetIds'
+            'SELECT Id FROM UsageRatableSummary WHERE (AssetId IN :assetIds) OR (GrantBindingTargetId IN :assetIds)'
         };
         
         for(String queryString : possibleQueries) {
@@ -2042,7 +2129,7 @@ public class RLM_AccountUtilities {
         // Delete children in dependency order (leaves first)
         // 1. TransactionUsageEntitlements referencing these UsageEntitlements
         String[] tueQueries = new String[]{
-            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE UsageEntitlementId IN :ueIds'
+            'SELECT Id FROM TransactionUsageEntitlement WHERE UsageEntitlementId IN :ueIds'
         };
         for(String q : tueQueries) {
             try {
@@ -2155,7 +2242,10 @@ public class RLM_AccountUtilities {
         System.debug('=== DIAGNOSTIC: Checking for remaining records that block asset deletion ===');
         
         // Look for the specific TUE records mentioned in the error
-        String[] specificTUENames = new String[]{'TUE-0000000019', 'TUE-0000000020'};
+        String[] specificTUENames = new String[]{
+            'TUE-0000000019',
+            'TUE-0000000020'
+        };
         List<TransactionUsageEntitlement> specificTUEs = [
             SELECT Id, Name, AccountId, AssetId, GrantBindingTargetId 
             FROM TransactionUsageEntitlement 
@@ -2168,7 +2258,9 @@ public class RLM_AccountUtilities {
         }
         
         // Look for the specific UEA record mentioned in the error
-        String[] specificUEANames = new String[]{'UEA-0000000010'};
+        String[] specificUEANames = new String[]{
+            'UEA-0000000010'
+        };
         List<UsageEntitlementAccount> specificUEAs = [
             SELECT Id, Name, AccountId 
             FROM UsageEntitlementAccount 
@@ -2181,14 +2273,16 @@ public class RLM_AccountUtilities {
         }
         
         // Look for the specific UBPI records mentioned in the error
-        String[] specificUBPINames = new String[]{'UBPI-0000000003', 'UBPI-0000000004', 'UBPI-0000000005', 'UBPI-0000000006'};
+        String[] specificUBPINames = new String[]{
+            'UBPI-0000000003',
+            'UBPI-0000000004',
+            'UBPI-0000000005',
+            'UBPI-0000000006'
+        };
         
         // Try different object names for UBPI records
         String[] ubpiQueries = new String[]{
-            'SELECT Id, Name FROM UsageBillingPeriodItem WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM UsageBillingPolicyItem WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM UsageLiableSummary WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM Usage_Liable_Summary__c WHERE Name IN :specificUBPINames'
+            'SELECT Id FROM UsageBillingPeriodItem WHERE Name IN :specificUBPINames'
         };
         
         for(String queryString : ubpiQueries) {
@@ -2227,7 +2321,10 @@ public class RLM_AccountUtilities {
         System.debug('=== FINAL CLEANUP: Attempting to delete specific problematic records ===');
         
         // Delete specific TUE records by name
-        String[] specificTUENames = new String[]{'TUE-0000000019', 'TUE-0000000020'};
+        String[] specificTUENames = new String[]{
+            'TUE-0000000019',
+            'TUE-0000000020'
+        };
         List<TransactionUsageEntitlement> problematicTUEs = [
             SELECT Id, Name 
             FROM TransactionUsageEntitlement 
@@ -2264,7 +2361,9 @@ public class RLM_AccountUtilities {
         }
         
         // Delete specific UEA records by name
-        String[] specificUEANames = new String[]{'UEA-0000000010'};
+        String[] specificUEANames = new String[]{
+            'UEA-0000000010'
+        };
         List<UsageEntitlementAccount> problematicUEAs = [
             SELECT Id, Name 
             FROM UsageEntitlementAccount 
@@ -2299,13 +2398,15 @@ public class RLM_AccountUtilities {
         }
         
         // Delete specific UBPI records by name
-        String[] specificUBPINames = new String[]{'UBPI-0000000003', 'UBPI-0000000004', 'UBPI-0000000005', 'UBPI-0000000006'};
+        String[] specificUBPINames = new String[]{
+            'UBPI-0000000003',
+            'UBPI-0000000004',
+            'UBPI-0000000005',
+            'UBPI-0000000006'
+        };
         
         String[] ubpiQueries = new String[]{
-            'SELECT Id, Name FROM UsageBillingPeriodItem WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM UsageBillingPolicyItem WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM UsageLiableSummary WHERE Name IN :specificUBPINames',
-            'SELECT Id, Name FROM Usage_Liable_Summary__c WHERE Name IN :specificUBPINames'
+            'SELECT Id FROM UsageBillingPeriodItem WHERE Name IN :specificUBPINames'
         };
         
         for(String queryString : ubpiQueries) {
@@ -2359,10 +2460,22 @@ public class RLM_AccountUtilities {
      * @return Boolean indicating success
      */
     private static Boolean deleteInvoices(String accountId) {
-        Invoice[] invoicesToDelete = 
-            [SELECT Id FROM Invoice WHERE BillingAccountId = :accountId AND Status = 'Draft'];
+        List<Invoice> invoicesToDelete = new List<Invoice>();
+        Integer retained = 0;
+        for (Invoice inv : [SELECT Id, Status FROM Invoice WHERE BillingAccountId = :accountId]) {
+            if (inv.Status == 'Draft') { invoicesToDelete.add(inv); } else { retained++; }
+        }
         if (!invoicesToDelete.isEmpty()) {
             Database.delete(invoicesToDelete);
+        }
+        // Posted invoices cannot be deleted, so a reset legitimately leaves them behind. Saying
+        // nothing, though, makes a partial clear read as a full one -- the account looks reset
+        // while records remain. Report it rather than only filtering it out.
+        if (retained > 0) {
+            System.debug(LoggingLevel.WARN, 'deleteInvoices: RETAINED ' + retained + ' non-Draft '
+                + 'invoice(s) -- posted invoices cannot be deleted. Their Billing '
+                + 'TransactionJournal rows carry no AccountId, so they are likewise out of reach '
+                + 'of an account-scoped reset. This account is NOT fully cleared.');
         }
         return true;
     }
@@ -2583,21 +2696,32 @@ public class RLM_AccountUtilities {
         ]) uniquePolicies.put(p.Id, p);
 
         // Q2: Asset -> Account
-        for (BindingObjUsageRsrcPlcy p : [
-            SELECT Id
-            FROM BindingObjUsageRsrcPlcy
-            WHERE BindingObjectId IN (
-                SELECT Id FROM Asset WHERE AccountId = :accountId
-            )
-        ]) uniquePolicies.put(p.Id, p);
+        // BindingObjectId is POLYMORPHIC (Account / Asset / BindingObjectCustomExt /
+        // Contract). A semi-join against a polymorphic lookup does not resolve --
+        // it silently matches nothing, which is why asset deletion kept failing with
+        // "associated with the following binding object usage resource policies"
+        // even though this method reported success. Materialise the ids and bind.
+        Set<Id> bindAssetIds = new Set<Id>();
+        for (Asset a : [SELECT Id FROM Asset WHERE AccountId = :accountId]) {
+            bindAssetIds.add(a.Id);
+        }
+        if (!bindAssetIds.isEmpty()) {
+            for (BindingObjUsageRsrcPlcy p : [
+                SELECT Id
+                FROM BindingObjUsageRsrcPlcy
+                WHERE BindingObjectId IN :bindAssetIds
+            ]) uniquePolicies.put(p.Id, p);
+        }
 
-        // Q3: Contract -> Account
+        // Q3: Contract -> Account (same polymorphic semi-join problem as Q2).
+        Set<Id> bindContractIds = new Set<Id>();
+        for (Contract c : [SELECT Id FROM Contract WHERE AccountId = :accountId]) {
+            bindContractIds.add(c.Id);
+        }
         for (BindingObjUsageRsrcPlcy p : [
             SELECT Id
             FROM BindingObjUsageRsrcPlcy
-            WHERE BindingObjectId IN (
-                SELECT Id FROM Contract WHERE AccountId = :accountId
-            )
+            WHERE BindingObjectId IN :bindContractIds
         ]) uniquePolicies.put(p.Id, p);
 
         // Nothing to do?

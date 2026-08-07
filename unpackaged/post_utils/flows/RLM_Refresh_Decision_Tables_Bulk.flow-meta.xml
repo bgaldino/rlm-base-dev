@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Queues a refresh for one decision table. refreshDecisionTable is NOT invocable from Apex (&quot;refreshDecisionTable isn&apos;t a valid action type&quot;), which is the entire reason this flow exists: Apex can start an autolaunched flow, and the flow can call the action. A table whose refresh throws must not abandon the tables after it, so the fault path counts the failure and returns to the loop.</description>
+        <name>Refresh_One_Table</name>
+        <label>Refresh One Table</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Count_Refreshed</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Count_Failed</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <elementReference>Loop_Api_Names</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>isDecisionTableIncremental</name>
+            <value>
+                <elementReference>isIncremental</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Counts a table whose refresh threw, and records its API name so the caller can report exactly which ones failed rather than only how many.</description>
+        <name>Count_Failed</name>
+        <label>Count Failed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>failedCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>failedApiNames</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Api_Names</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Api_Names</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Counts a table successfully queued. Queued means accepted for refresh, not refreshed — the caller must still poll DecisionTable.RefreshStatus.</description>
+        <name>Count_Refreshed</name>
+        <label>Count Refreshed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>queuedCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Api_Names</targetReference>
+        </connector>
+    </assignments>
+    <description>Queues a refresh for every decision table API name passed in, optionally incremental. Exists because refreshDecisionTable cannot be called from Apex; RLM_DecisionTableManagerController starts this flow once with the whole selection, so a 40-table refresh is one interview rather than 40. Returns queuedCount, failedCount and failedApiNames. queuedCount counts tables ACCEPTED for refresh — poll DecisionTable.RefreshStatus to learn whether they completed. Note an incremental refresh advances LastIncrementalSyncDate only; LastSyncDate does not move.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Refresh Decision Tables Bulk {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Refresh Decision Tables Bulk</label>
+    <loops>
+        <name>Loop_Api_Names</name>
+        <label>Loop Api Names</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>decisionTableApiNames</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Refresh_One_Table</targetReference>
+        </nextValueConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Loop_Api_Names</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>Decision table API names to refresh. An empty collection is a no-op returning zero counts, which the caller must distinguish from a successful refresh.</description>
+        <name>decisionTableApiNames</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>API names whose refresh threw, so the caller can name them instead of only counting them.</description>
+        <name>failedApiNames</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Number of tables whose refresh threw.</description>
+        <name>failedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <description>True for an incremental refresh. Defaults false. Requires an initial full refresh, and fails if more than 2000 records changed.</description>
+        <name>isIncremental</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Number of tables accepted for refresh. Not a completion count.</description>
+        <name>queuedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+</Flow>

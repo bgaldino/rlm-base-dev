@@ -1,4 +1,6 @@
 Code,Name,Status,UsageAccumulationMethod,UsageAccumulationPeriod
+dailypeak,Daily Peak,Active,Peak,Daily
+dailytotal,Daily Total,Active,Sum,Daily
 monthlypeak,Monthly Peak,Active,Peak,Monthly
 monthlytotal,Monthly Total,Active,Sum,Monthly
-URBP-DATAXFR,Data Transfer Billing Policy,Active,Sum,Monthly
+URBP-DATAXFR,Data Transfer Billing Policy,Active,Sum,Daily

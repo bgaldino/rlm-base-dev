@@ -637,6 +637,16 @@ def validate_overlay(overlay: dict) -> ValidationResult:
         result.error("addVariables", "must be a list.")
     else:
         added_var_names: Set[str] = set()
+        # Variable names produced (output) by any addSteps step. A step's OUTPUT
+        # variable is materialized IMPLICITLY by the platform from the step's
+        # `section-N-output` / `formula-section-N-output` param — declaring that
+        # same name in addVariables too registers it twice and the Connect POST
+        # fails with INVALID_INPUT "A context variable with the name … already
+        # exists." addVariables is for INPUT Constants only.
+        step_produced: Set[str] = set()
+        for st in overlay.get("addSteps", []) or []:
+            _, produced = _step_all_refs(st)
+            step_produced |= produced
         for i, var in enumerate(add_vars):
             _validate_variable(var, f"addVariables[{i}]", result)
             if isinstance(var, dict):
@@ -645,6 +655,16 @@ def validate_overlay(overlay: dict) -> ValidationResult:
                     result.error(
                         f"addVariables[{i}]",
                         f"duplicate added variable name '{name}'.",
+                    )
+                if name and name in step_produced:
+                    result.error(
+                        f"addVariables[{i}]",
+                        f"variable '{name}' is already produced as a step output "
+                        f"by an addSteps entry (via its section output param); it "
+                        f"is materialized implicitly and must NOT also be declared "
+                        f"in addVariables (that double-registers it and the apply "
+                        f"fails with \"a context variable with the name '{name}' "
+                        f"already exists\"). addVariables is for input Constants only.",
                     )
                 if name:
                     added_var_names.add(name)
