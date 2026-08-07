@@ -40,7 +40,11 @@ class RunE2ETests(BaseTask):
             "required": False,
         },
         "outputdir": {
-            "description": "Directory for Robot output (log.html, report.html, output.xml).",
+            "description": (
+                "Parent directory for Robot output; each run writes to an "
+                "e2e_<YYYYMMDD_HHMMSS> child directory. Defaults to "
+                "robot/rlm-base/results; relative paths resolve from the repo root."
+            ),
             "required": False,
         },
         "headed": {

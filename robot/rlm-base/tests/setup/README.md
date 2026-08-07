@@ -157,4 +157,8 @@ All tests detect current state before making changes:
 
 ## Generated Output
 
-Running any test produces log and report files in `robot/rlm-base/results/<task>/<org>/` (e.g. `robot/rlm-base/results/enable_timeline/my_org_sandbox/`). Pass `-o outputdir <path>` to override. On failure, screenshots are saved automatically. This directory tree is in `.gitignore`; do not commit its contents. To remove local run artifacts: `rm -rf robot/rlm-base/results/`.
+Runs via CCI write log and report files to `robot/rlm-base/results/<task>/<sanitized-org-identifier>/` (for example, `robot/rlm-base/results/configure_revenue_settings/test-abc123_example.com/`). The identifier is normally the org username, with the CCI alias used as a fallback. Override this location with `cci task run <task> -o outputdir <path>`.
+
+Runs via the `robot` command directly write to the current working directory. From the repository root, this produces `log.html`, `report.html`, and `output.xml` at the root. Redirect them with Robot's `-d <dir>` or `--outputdir <dir>` option. Robot's `-o` option means `--output` (the XML filename), not the output directory.
+
+On failure, screenshots are saved alongside the logs. The CCI results tree and root-level Robot artifacts are gitignored; do not commit them. To remove the CCI results tree, use `rm -rf robot/rlm-base/results/` on macOS/Linux or `Remove-Item -Recurse -Force robot/rlm-base/results/` in PowerShell.

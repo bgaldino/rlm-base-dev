@@ -36,7 +36,11 @@ class EnableAnalyticsReplication(BaseTask):
             "required": False,
         },
         "outputdir": {
-            "description": "Directory for Robot output (log.html, report.html, output.xml).",
+            "description": (
+                "Directory for Robot output (log.html, report.html, output.xml). "
+                "Defaults to robot/rlm-base/results/<task>/<sanitized-org-identifier>/; "
+                "relative paths resolve from the repo root."
+            ),
             "required": False,
         },
     }
