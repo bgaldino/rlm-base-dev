@@ -158,7 +158,7 @@ file `RLM_CostBookEntries`):
 | `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
 | `filterResultBy` (MD) / `decisionResultPolicy` (Connect) | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
-| `type` | Advanced, HighScaleExecution, HighVolume, LowVolume, **MediumVolume**, RealTime |
+| `type` | Advanced, HighScaleExecution, HighVolume, LowVolume, **MediumVolume**, RealTime ⚠ see note below |
 | `status` | ActivationInProgress, **Active**, Draft, Inactive |
 | `usageType` (ExpsSetProcessType) | Bre (default), **DefaultPricing**, **DefaultRating**, **PricingDiscovery**, **RatingDiscovery**, **RevenueStandardTax**, ProductCategoryQualification, ProductQualification, RecordAlert, … |
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
@@ -172,6 +172,33 @@ file `RLM_CostBookEntries`):
 windows / rank / refresh; observed empty on SObject-backed tables),
 `isVersioned` (default true per docs; observed **false** on shipped
 SObject-backed tables and **null** via Connect).
+
+**`type: Advanced` is not a round-trip bug; it doesn't stick under this org's
+config.** The Setup UI's "New Decision Table" wizard exposes only a simplified
+**Standard**/**Advanced** picklist over this richer 6-value API enum —
+"Standard" maps to `MediumVolume`, not a literal `Standard` value (same
+UI-label/API-enum divergence as `filterResultBy`/`decisionResultPolicy`). The
+stored/read-back value is always correct; the two data sources diverge on
+*whether the request is honored at all* on a scratch org where the
+`BREAdvancedDesignerPsl` PermissionSetLicense ("Business Rules Engine Advanced
+Designer") is `Disabled`, `TotalLicenses: 0` (live-confirmed on this project's
+scratch orgs), reproduced identically on both the Tooling and Connect PATCH
+paths:
+- **SObject-backed** (`dataSourceType: SingleSobject`/`MultipleSobjects`) —
+  hard error, **directly attributable to the license**: `INSUFFICIENT_ACCESS:
+  You don't have the required permissions to create this decision table.`
+- **CsvUpload-backed** — no error; `type` silently stays/reverts to
+  `MediumVolume`. ⚠ **Cause not confirmed** — this is only an observed
+  correlation in an org that happens to have the same PSL disabled, not a
+  proven license effect. `PermissionSetLicense.Status` is not API-updateable
+  (`describe`: `updateable: false`), so the license could not be toggled to
+  test causation directly; it may be the same gate silently downgrading
+  instead of erroring, or an unconditional CsvUpload constraint independent of
+  licensing. Not resolved further (out of scope for this pass).
+
+Practical takeaway for this project's scratch orgs (PSL disabled by default,
+mechanism unconfirmed for CSV): treat a CsvUpload table's `type` as observed to
+stay `MediumVolume` regardless of what's requested.
 
 ---
 
@@ -343,8 +370,15 @@ degrade to a note).
   value (✅ live): `Region:North` ≠ `Region:north`, and there is **no substring /
   prefix** match. A **field name that doesn't exist returns 0 rows with no error**
   (silently empty — the caller must know the column is real).
-- **`versionNumber`** defaults to the current/active version; a **non-existent
-  version** on the read → `INVALID_API_INPUT`.
+- **`versionNumber`** — **omitting it** returns the current/active version's
+  rows. ⚠ **Explicitly passing the current/active version's own number returns
+  `{"rows": [], "totalRows": 0}` — silently, no error (✅ live-verified: retested
+  past async lag, and with `limit` before/after `versionNumber` in the query
+  string; the version was independently confirmed current via the Connect
+  versions-list endpoint).** There is currently no way to *explicitly* request
+  the current version's data by number — only the default (omitted-param)
+  form works. A genuinely **non-existent** version on the read still correctly
+  → `INVALID_API_INPUT`.
 
 > ⚠ **`filter` + `limit` throw `UNKNOWN_EXCEPTION` (✅ live).** Combining them errors
 > whenever `limit` is **not strictly greater** than the matched-row count (i.e.
@@ -382,15 +416,17 @@ degrade to a note).
   PATCH leaves the record byte-identical (why the guarded update reactivates a
   Tooling-path table on failure). ⚠ The Tooling `Metadata` complexvalue is
   **replaced wholesale** — a sparse body drops the omitted fields — so the toolkit
-  always sends the full definition body. ⚠ **`status` is a required field on a
-  Tooling `Metadata` PATCH** — a status-free body is rejected with
-  `FIELD_INTEGRITY_EXCEPTION: Required field is missing: status` (live-verified on
-  a Draft scratch table). To keep the spec from driving the lifecycle on an
-  *update*, the `update` CLI drops the spec's `status` and stamps the table's
-  **current live** `status` instead (read at PATCH time via
+  always sends the full definition body. ⚠ **`status` is a required field on
+  BOTH a Tooling `Metadata` PATCH and a Connect Definitions PATCH** — a
+  status-free body is rejected on either path with the identical
+  `FIELD_INTEGRITY_EXCEPTION: Required field is missing: status` (live-verified
+  on a Draft scratch table; Connect is **not** optional here despite `status`
+  defaulting on Connect *create*). To keep the spec from driving the lifecycle
+  on an *update*, the `update` CLI drops the spec's `status` on both paths and
+  stamps the table's **current live** `status` instead (read at PATCH time via
   `LifecycleEngine.get_status`; during a deactivate-first sequence that is the
-  already-deactivated `Inactive`). The Connect PATCH, whose `status` is optional,
-  simply drops it. Either way the lifecycle engine solely owns activate/deactivate.
+  already-deactivated `Inactive`). The lifecycle engine solely owns
+  activate/deactivate.
 - **Activate / deactivate** by setting `Metadata.status` (Active ↔
   Inactive/Draft). The repo build does this via Apex + the
   `exclude_active_decision_tables` (`.skip/`) pattern and
@@ -494,7 +530,9 @@ encodes.
 | `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
 | `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
 | `INVALID_API_INPUT` | CsvUpload `/data` GET or `/file` POST targeting a `versionNumber` that doesn't exist (only v1 is minted) | Re-upload does not mint a v2 — target v1 (or omit `versionNumber` for the current version). |
+| `{"rows": [], "totalRows": 0}`, no error | CsvUpload `/data` GET with `versionNumber` set to the current/active version's own number | Omit `versionNumber` instead — the default always returns the current version; passing its number explicitly silently empties. |
 | `UNKNOWN_EXCEPTION` | CsvUpload `/data` GET combining `filter` + a `limit` not strictly greater than the match count | The dump CLI drops `--limit` when `--filter` is given; don't combine them by hand. |
+| `INVALID_INPUT` — "The condition criteria doesn't contain the sequence number for one or more input fields. Specify the sequence number for each input field whose operator is not Equals." | Connect create with a **missing `conditionType`** (sequence numbers and operators were already correct) | **Misleading** — the message blames "sequence number" but the real gap is `conditionType`, which drives the derived `conditionCriteria`. Set `conditionType` explicitly (e.g. `"All"`). Not a toolkit bug — `to_connect()` correctly derives `conditionCriteria` from whatever `conditionType`/sequences the spec provides. |
 
 ---
 

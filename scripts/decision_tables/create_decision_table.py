@@ -104,7 +104,7 @@ def main(argv=None) -> int:
         eprint(f"Error: could not read spec '{args.spec}': {exc}")
         return 1
 
-    result = validate_spec(spec)
+    result = validate_spec(spec, path=args.path)
     eprint(result.format_report())
     if not result.passed:
         eprint("\nSpec has errors; not creating. Fix them and retry.")

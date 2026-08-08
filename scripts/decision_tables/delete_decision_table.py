@@ -12,7 +12,9 @@ Definitions resource:
 Decision Table"). This tool **refuses** up front on an active table; pass
 ``--deactivate-first`` to deactivate it before deleting. Deleting also fails while
 the table is still referenced by an active Expression Set / Context Rule / recipe
-— resolve those references first.
+— resolve those references first. ``--deactivate-first``/reactivate-on-failure
+route through ``LifecycleEngine.deactivate()``/``activate()``, which are
+version-aware for ``CsvUpload`` tables (see ``_lifecycle.py``).
 
 **Destructive — double-gated.** Preview by default: without ``--confirm`` the tool
 resolves the id and logs the plan but deletes nothing. ``--confirm`` is REQUIRED
@@ -46,13 +48,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.decision_tables._client import (  # noqa: E402
     DEFAULT_API_VERSION,
-    DEFINITIONS_PATH,
     DecisionTableClientError,
     Transport,
     eprint,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
-from scripts.decision_tables._resolve import ResolveError, load_definition, resolve_decision_table  # noqa: E402
+from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 
 
 def main(argv=None) -> int:
@@ -101,15 +102,7 @@ def main(argv=None) -> int:
     try:
         if was_active:
             if args.deactivate_first:
-                defn = load_definition(transport, args.developer_name)
-                meta = defn.get("metadata") or {}
-                if meta.get("dataSourceType") == "CsvUpload":
-                    eprint("  CsvUpload table — deactivating version 1 first "
-                           "(platform requires version Inactive before table).")
-                    vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/1"
-                    transport.connect("PATCH", vpath, {"versionStatus": "Inactive"})
-                else:
-                    engine.deactivate(record_id)
+                engine.deactivate(record_id)
                 deactivated = True
             else:
                 engine.assert_editable(table_row)
@@ -120,12 +113,7 @@ def main(argv=None) -> int:
     except (DecisionTableClientError, LifecycleError) as exc:
         if deactivated and not preview:
             try:
-                meta = (defn.get("metadata") or {})
-                if meta.get("dataSourceType") == "CsvUpload":
-                    vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/1"
-                    transport.connect("PATCH", vpath, {"versionStatus": "Active"})
-                else:
-                    engine.activate(record_id)
+                engine.activate(record_id)
                 eprint("  (reactivated table after failed deletion — DELETE is atomic, "
                        "table unchanged.)")
             except (DecisionTableClientError, LifecycleError) as react_exc:

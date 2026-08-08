@@ -12,6 +12,17 @@ lifecycle transitions the mutator CLIs need:
   * **deactivate** — set ``Metadata.status = Inactive``. Deactivation is
     **synchronous** (no ``InactivationInProgress`` transient), but the engine
     still confirms the terminal state.
+  * **CsvUpload is version-first, not table-first (live-verified).** A CsvUpload
+    table's own ``Status`` is a platform-derived mirror of its file-import
+    version's ``versionStatus`` — once a version is Active, a direct
+    ``Metadata.status`` PATCH to Inactive is rejected (``INVALID_INPUT: A
+    version cannot be in the Active status when the decision table's status is
+    not active``); conversely the table cannot activate without an Active
+    version (``INVALID_INPUT: We couldn't find an active decision table version
+    for this date``). :meth:`activate`/:meth:`deactivate` detect
+    ``dataSourceType == CsvUpload`` and PATCH version 1's ``versionStatus``
+    (Connect) instead of the table's ``Metadata.status`` — the table's own
+    Status cascades with no separate Tooling PATCH.
   * **the active-edit guard** — an Active table's definition cannot be modified
     or deleted in place (``FIELD_NOT_UPDATABLE`` / "Can't edit an active Decision
     Table"). :meth:`assert_editable` refuses up front; :meth:`run_guarded_update`
@@ -123,6 +134,10 @@ class LifecycleEngine:
             return None
         return rows[0].get("Status")
 
+    def _is_csv_upload(self, record_id: str) -> bool:
+        """Whether ``record_id``'s ``dataSourceType`` is ``CsvUpload`` (Tooling GET)."""
+        return self._current_metadata(record_id).get("dataSourceType") == "CsvUpload"
+
     def _current_metadata(self, record_id: str) -> Dict[str, Any]:
         """Tooling GET of the record's ``Metadata`` complexvalue (reads always run).
 
@@ -221,14 +236,56 @@ class LifecycleEngine:
         )
         return last
 
+    def _set_version_status(self, record_id: str, status: str,
+                             version_number: int = 1) -> None:
+        """PATCH a CsvUpload table's file-import version's ``versionStatus`` (Connect).
+
+        The table's own ``Status`` is a platform-derived mirror of this — see the
+        module docstring. Assumes version 1 (the toolkit does not yet support
+        multi-version tables elsewhere either — see ``deactivate_decision_table.py``
+        / ``delete_decision_table.py``, which made the same assumption before this
+        was centralized here).
+        """
+        vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(version_number)}"
+        self.t.connect("PATCH", vpath, {"versionStatus": status})
+        self.log(f"Set DecisionTable {record_id} version {version_number} "
+                 f"versionStatus = {status}.")
+
+    def get_version_status(self, record_id: str, version_number: int) -> Optional[str]:
+        """Current ``versionStatus`` of one file-import version (Tooling GET).
+
+        Reads ``Metadata.decisionTableFileImportVersions[]`` — the same Tooling
+        GET :meth:`_current_metadata` uses — and returns the matching version's
+        ``versionStatus``, or ``None`` if that version doesn't exist.
+        """
+        versions = self._current_metadata(record_id).get("decisionTableFileImportVersions") or []
+        for version in versions:
+            if version.get("versionNumber") == version_number:
+                return version.get("versionStatus")
+        return None
+
     def activate(self, record_id: str) -> None:
-        """Set Status → Active and poll past ``ActivationInProgress`` (async)."""
-        self._set_status(record_id, _STATUS_ACTIVE)
+        """Set Status → Active and poll past ``ActivationInProgress`` (async).
+
+        CsvUpload tables are version-first (see module docstring): PATCHes
+        version 1's ``versionStatus`` instead of the table's ``Metadata.status``
+        — the table's Status cascades from it.
+        """
+        if self._is_csv_upload(record_id):
+            self._set_version_status(record_id, _STATUS_ACTIVE)
+        else:
+            self._set_status(record_id, _STATUS_ACTIVE)
         self.wait_for_status(record_id, _STATUS_ACTIVE)
 
     def deactivate(self, record_id: str) -> None:
-        """Set Status → Inactive (synchronous) and confirm."""
-        self._set_status(record_id, _STATUS_INACTIVE)
+        """Set Status → Inactive (synchronous) and confirm.
+
+        CsvUpload tables are version-first — see :meth:`activate`.
+        """
+        if self._is_csv_upload(record_id):
+            self._set_version_status(record_id, _STATUS_INACTIVE)
+        else:
+            self._set_status(record_id, _STATUS_INACTIVE)
         self.wait_for_status(record_id, _STATUS_INACTIVE)
 
     # -- Active-edit guard ---------------------------------------------

@@ -116,8 +116,14 @@ wait: it is the only signal that rows were silently dropped.
   value (✅ live): `Region:North` ≠ `Region:north`, and there is **no substring /
   prefix** match. A **field name that doesn't exist returns 0 rows with no error**
   (silently empty — the caller must know the column is real).
-- **`versionNumber`** defaults to the current/active version. A **non-existent
-  version** on the read → `INVALID_API_INPUT`.
+- **`versionNumber`** — **omitting it** returns the current/active version's
+  rows. ⚠ **Explicitly passing the current/active version's own number instead
+  silently returns `{"rows": [], "totalRows": 0}`** (✅ live-verified — not lag,
+  not param ordering; the version was independently confirmed current via the
+  Connect versions-list endpoint). There is currently no way to *explicitly*
+  request the current version's data by number — only the default
+  (omitted-param) form works. A genuinely **non-existent** version on the read
+  still correctly → `INVALID_API_INPUT`.
 
 > ⚠ **`filter` + `limit` throw `UNKNOWN_EXCEPTION` (✅ live).** Combining them errors
 > whenever `limit` is **not strictly greater** than the matched-row count (i.e.

@@ -7,6 +7,12 @@ v67.0): unlike activation there is no ``InactivationInProgress`` transient — t
 record reports ``Inactive`` immediately — but this tool still confirms the
 terminal state.
 
+For a ``CsvUpload`` table, ``LifecycleEngine.deactivate()`` instead PATCHes
+version 1's ``versionStatus`` (Connect) — the table's own Status is a
+platform-derived mirror of the version's and cannot be set directly while a
+version is Active (live-verified: ``INVALID_INPUT: A version cannot be in the
+Active status when the decision table's status is not active``).
+
 Deactivate a table before editing its definition in place (an Active table's
 definition is locked — see ``update_decision_table.py --deactivate-first``), or
 to take a table offline. Note the platform blocks deactivation of a table still
@@ -36,13 +42,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.decision_tables._client import (  # noqa: E402
     DEFAULT_API_VERSION,
-    DEFINITIONS_PATH,
     DecisionTableClientError,
     Transport,
     eprint,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
-from scripts.decision_tables._resolve import ResolveError, load_definition, resolve_decision_table  # noqa: E402
+from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 
 
 def main(argv=None) -> int:
@@ -83,17 +88,7 @@ def main(argv=None) -> int:
         eprint(f"Table already Status={current}; nothing to do.")
     else:
         try:
-            defn = load_definition(transport, args.developer_name)
-            meta = defn.get("metadata") or {}
-            if meta.get("dataSourceType") == "CsvUpload":
-                # CsvUpload: platform refuses table deactivation while the version
-                # is Active. Deactivate version 1 first (cascades table to Inactive).
-                eprint("  CsvUpload table — deactivating version 1 first "
-                       "(platform requires version Inactive before table).")
-                vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/1"
-                transport.connect("PATCH", vpath, {"versionStatus": "Inactive"})
-            else:
-                engine.deactivate(record_id)
+            engine.deactivate(record_id)
         except (DecisionTableClientError, LifecycleError) as exc:
             eprint(f"\nFAILED: {exc}")
             return 1

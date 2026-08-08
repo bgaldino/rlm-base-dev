@@ -148,15 +148,21 @@ def main(argv=None) -> int:
             body = _payload.tooling_metadata_only(spec, live_status=live_status)
             transport.tooling_sobject("PATCH", "DecisionTable", record_id, body=body)
         else:  # connect — the by-id URL accepts the 18-char Tooling id
-            # Drop status from the update body: the lifecycle engine owns
-            # activate/deactivate. Leaving the spec's status (often Active) in a
-            # deactivate-first Connect PATCH would re-activate the table
-            # mid-sequence and defeat --leave-deactivated. (The Tooling path can't
-            # simply drop status — the field is required there — so it stamps the
-            # live status instead; both honor the same invariant: the spec's
-            # status never drives an update.)
+            # A Connect Definitions PATCH REQUIRES status too (live-confirmed:
+            # a status-free body is rejected with the same
+            # FIELD_INTEGRITY_EXCEPTION "Required field is missing: status" as
+            # the Tooling path — the "Connect status is optional" assumption
+            # does not hold). Stamp the table's CURRENT LIVE status — read now,
+            # so during a deactivate-first sequence it is the already-
+            # deactivated Inactive — never the spec's (often Active, which
+            # would re-activate the table mid-edit and defeat
+            # --leave-deactivated). The lifecycle engine alone drives the
+            # Active↔Inactive transitions.
+            live_status = engine.get_status(record_id) or table_row.get("Status")
             body = _payload.to_connect(spec)
             body.pop("status", None)
+            if live_status:
+                body["status"] = live_status
             transport.connect("PATCH", f"{DEFINITIONS_PATH}/{record_id}", body)
 
     try:

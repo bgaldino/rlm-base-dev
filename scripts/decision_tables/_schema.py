@@ -271,8 +271,17 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     _check_enum(result, f"{location}.sortType", param.get("sortType"), PARAM_SORT_TYPES)
 
 
-def validate_spec(spec: Dict[str, Any]) -> ValidationResult:
-    """Validate a canonical Decision Table spec (path-agnostic). Pure; no org."""
+def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> ValidationResult:
+    """Validate a canonical Decision Table spec (path-agnostic). Pure; no org.
+
+    ``path`` is optional and only sharpens one **create**-specific warning
+    (missing ``status``) — pass the authoring path (``"metadata"``/``"tooling"``/
+    ``"connect"``) when validating a spec that is about to *create* a table.
+    Leave it unset (the default) for update validation, where the spec's
+    ``status`` is intentionally dropped and re-stamped from the live table —
+    see ``update_decision_table.py`` — so a missing ``status`` there is normal,
+    not a defect.
+    """
     result = ValidationResult()
     if not isinstance(spec, dict):
         result.error("<root>", "spec must be a JSON object.")
@@ -311,8 +320,15 @@ def validate_spec(spec: Dict[str, Any]) -> ValidationResult:
     if dst == "CsvUpload" and spec.get("isVersioned") is None:
         result.warn("isVersioned",
                     "CsvUpload tables are versioned by nature; consider setting "
-                    "isVersioned: true explicitly (defaults to false in the spec, "
-                    "which may not match the table's actual behavior).")
+                    "isVersioned explicitly — to_metadata() defaults it to true "
+                    "when omitted, which may not match what you intend.")
+
+    if path in ("metadata", "tooling") and not spec.get("status"):
+        result.warn("status",
+                    "is required by the Metadata/Tooling create path (unlike Connect, "
+                    "which defaults it to 'Draft') — a status-free create fails with "
+                    "an opaque platform FIELD_INTEGRITY_EXCEPTION. Set status "
+                    "explicitly (e.g. 'Draft').")
 
     params = spec.get("decisionTableParameters")
     if not isinstance(params, list) or not params:

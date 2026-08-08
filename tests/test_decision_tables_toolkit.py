@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.decision_tables import _payload  # noqa: E402
 from scripts.decision_tables import _resolve  # noqa: E402
 from scripts.decision_tables import _schema  # noqa: E402
-from scripts.decision_tables._client import DecisionTableClientError  # noqa: E402
+from scripts.decision_tables._client import DecisionTableClientError, DEFINITIONS_PATH  # noqa: E402
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
 from scripts.decision_tables.diff_decision_tables import diff_definitions  # noqa: E402
@@ -123,7 +123,8 @@ class _FakeTransport:
 
     def __init__(self, *, table=None, params=None, links=None, dataset_params=None,
                  criteria=None, mappings=None, source_rows=None, connect_def=None,
-                 metadata=None, csv_data=None, upload_statuses=None, dry_run=False):
+                 metadata=None, csv_data=None, upload_statuses=None,
+                 refresh_response=None, dry_run=False):
         self.table = table if table is not None else _table_row()
         self.params = params if params is not None else [
             _param("INPUT", "ProductId"), _param("OUTPUT", "Cost", DataType="Currency")]
@@ -145,6 +146,9 @@ class _FakeTransport:
         # GETs (for the wait_for_upload_status poll). Each GET pops the next; the
         # last value sticks. None → the GET's metadata has no uploadStatus key.
         self.upload_statuses = list(upload_statuses) if upload_statuses else None
+        # Override for the refreshDecisionTable action response (a list, matching
+        # the real invocable-action envelope). None → the default success/Queued.
+        self.refresh_response = refresh_response
         self.dry_run = dry_run
         self.api_version = "67.0"
         self.target_org = "fake-org"
@@ -204,6 +208,8 @@ class _FakeTransport:
         if self._skip_mutation(method, path, body):
             return {}
         if path.endswith("refreshDecisionTable"):
+            if self.refresh_response is not None:
+                return self.refresh_response
             return [{"isSuccess": True, "outputValues": {"Status": "Queued"}}]
         return {}
 
@@ -260,13 +266,15 @@ class _LifecycleFake:
     — so ``wait_for_status`` matches on the first poll (waited=0, before any
     sleep). ``connect`` records DELETE/POST verbs for the delete/refresh paths."""
 
-    def __init__(self, status="Active", *, dry_run=False):
+    def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject"):
         self.status = status
         self.dry_run = dry_run
+        self.data_source_type = data_source_type
         self.api_version = "67.0"
         self.target_org = "fake-org"
         self.logger = lambda *a, **k: None
-        self.status_sets = []  # ordered list of statuses PATCHed
+        self.status_sets = []  # ordered list of statuses PATCHed via Tooling
+        self.version_status_sets = []  # ordered list of versionStatus PATCHed via Connect
         self.connect_calls = []
 
     def tooling_query(self, query):
@@ -276,7 +284,9 @@ class _LifecycleFake:
 
     def tooling_sobject(self, method, sobject, record_id=None, suffix=None, body=None, **kw):
         if method.upper() == "GET":
-            return {"Id": record_id, "Metadata": _sample_metadata(status=self.status)}
+            return {"Id": record_id,
+                    "Metadata": _sample_metadata(status=self.status,
+                                                  dataSourceType=self.data_source_type)}
         if method.upper() == "PATCH" and isinstance(body, dict):
             new = body.get("Metadata", {}).get("status")
             if new:
@@ -291,6 +301,13 @@ class _LifecycleFake:
         # invocable-action envelope carrying outputValues.Status="Queued".
         if path.endswith("refreshDecisionTable"):
             return [{"isSuccess": True, "outputValues": {"Status": "Queued"}}]
+        # Mirror the platform's CsvUpload cascade: PATCHing the file-import
+        # version's versionStatus is what actually moves the table's own Status.
+        if "/versions/" in path and method.upper() == "PATCH" and isinstance(body, dict):
+            new = body.get("versionStatus")
+            if new:
+                self.status = new
+                self.version_status_sets.append(new)
         return {}
 
 
@@ -415,6 +432,39 @@ def test_validate_spec_csv_upload():
     odd = validate_spec(_csv_upload_spec(sourceObject="CostBookEntry"))
     check("CsvUpload with a non-CSV sourceObject warns (not errors)",
           odd.passed and any("CSV" in i.message for i in odd.warnings), odd.format_report())
+
+
+def test_validate_spec_status_warns_on_create_only():
+    print("test_validate_spec_status_warns_on_create_only")
+    spec = {
+        "fullName": "RLM_CostBookEntries", "setupName": "Cost Book Entries",
+        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
+        "filterResultBy": "OutputOrder",
+        "decisionTableParameters": [
+            {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+             "operator": "Equals", "sequence": 1},
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+        ],
+    }
+    # No path (update validation, or path-agnostic callers) — no status warning.
+    no_path = validate_spec(spec)
+    check("no path: no status warning",
+          not any(i.location == "status" for i in no_path.warnings), no_path.format_report())
+    # metadata/tooling create paths without status — warns.
+    for authoring_path in ("metadata", "tooling"):
+        result = validate_spec(spec, path=authoring_path)
+        check(f"{authoring_path} create without status warns",
+              any(i.location == "status" for i in result.warnings), result.format_report())
+    # connect create path — Connect defaults status to Draft, so no warning.
+    connect_result = validate_spec(spec, path="connect")
+    check("connect create without status: no status warning",
+          not any(i.location == "status" for i in connect_result.warnings),
+          connect_result.format_report())
+    # metadata/tooling create WITH status set — no warning.
+    with_status = validate_spec({**spec, "status": "Draft"}, path="metadata")
+    check("metadata create with status set: no status warning",
+          not any(i.location == "status" for i in with_status.warnings),
+          with_status.format_report())
 
 
 # --------------------------------------------------------------------------- #
@@ -918,6 +968,55 @@ def test_assert_editable_guard():
     check("assert_editable allows Draft/Inactive", ok)
 
 
+def test_activate_deactivate_csv_upload_is_version_first():
+    print("test_activate_deactivate_csv_upload_is_version_first")
+    # A CsvUpload table's own Status is a platform-derived mirror of its file-
+    # import version's versionStatus — activate()/deactivate() must PATCH the
+    # Connect versions endpoint, not the Tooling DecisionTable.Metadata.status.
+    fake = _LifecycleFake(status="Draft", data_source_type="CsvUpload")
+    engine = LifecycleEngine(fake, max_wait_seconds=1)
+
+    engine.activate("0lDxx0000000001AAA")
+    check("csv activate PATCHes the version, not Metadata.status",
+          fake.connect_calls == [("PATCH", f"{DEFINITIONS_PATH}/0lDxx0000000001AAA/versions/1",
+                                   {"versionStatus": "Active"})],
+          fake.connect_calls)
+    check("csv activate never PATCHed Tooling Metadata.status", fake.status_sets == [],
+          fake.status_sets)
+    check("csv activate PATCHed the Connect version's versionStatus",
+          fake.version_status_sets == ["Active"], fake.version_status_sets)
+    check("table Status cascaded to Active via the fake's version PATCH",
+          fake.status == "Active")
+
+    fake.connect_calls.clear()
+    engine.deactivate("0lDxx0000000001AAA")
+    check("csv deactivate PATCHes the version, not Metadata.status",
+          fake.connect_calls == [("PATCH", f"{DEFINITIONS_PATH}/0lDxx0000000001AAA/versions/1",
+                                   {"versionStatus": "Inactive"})],
+          fake.connect_calls)
+    check("csv deactivate never PATCHed Tooling Metadata.status", fake.status_sets == [],
+          fake.status_sets)
+    check("csv deactivate PATCHed the Connect version's versionStatus",
+          fake.version_status_sets == ["Active", "Inactive"], fake.version_status_sets)
+    check("table Status cascaded to Inactive via the fake's version PATCH",
+          fake.status == "Inactive")
+
+
+def test_activate_deactivate_sobject_is_table_first():
+    print("test_activate_deactivate_sobject_is_table_first")
+    # Non-CsvUpload tables are unaffected by the version-first branch — they
+    # still PATCH Metadata.status directly (regression guard for the existing
+    # SingleSobject/MultiSobject/etc. behavior).
+    fake = _LifecycleFake(status="Draft", data_source_type="SingleSobject")
+    engine = LifecycleEngine(fake, max_wait_seconds=1)
+
+    engine.activate("0lDxx0000000001AAA")
+    check("sobject activate PATCHes Metadata.status, not a version",
+          fake.status_sets == ["Active"], fake.status_sets)
+    check("sobject activate never called Connect", fake.connect_calls == [],
+          fake.connect_calls)
+
+
 def test_guarded_update_active_roundtrip():
     print("test_guarded_update_active_roundtrip")
     fake = _LifecycleFake(status="Active")
@@ -1133,6 +1232,24 @@ def test_update_cli_deactivate_first_roundtrip(tmp_spec):
           defn_patches[0][2]["Metadata"].get("status") if defn_patches else None)
 
 
+def test_update_cli_connect_path_stamps_live_status(tmp_spec):
+    print("test_update_cli_connect_path_stamps_live_status")
+    # Regression: a Connect Definitions PATCH REQUIRES status (live-verified —
+    # FIELD_INTEGRITY_EXCEPTION "Required field is missing: status" — identical
+    # to the Tooling PATCH requirement). update_cli's --path connect branch must
+    # stamp the table's current live status onto the PATCH body, not drop it.
+    fake = _FakeTransport(table=_table_row(Status="Draft"), dry_run=False)
+    rc, _ = _run_cli_with_fake(
+        update_cli, ["--target-org", "x", "--spec", tmp_spec,
+                     "--path", "connect", "--confirm"], fake)
+    check("connect-path update exits 0", rc == 0, rc)
+    patches = [m for m in fake.mutations if m[0] == "PATCH"]
+    check("connect-path update issues exactly one PATCH", len(patches) == 1, patches)
+    check("connect-path update PATCH body carries the live status",
+          bool(patches) and patches[0][2].get("status") == "Draft",
+          patches[0][2] if patches else None)
+
+
 def test_activate_cli_preview_vs_confirm():
     print("test_activate_cli_preview_vs_confirm")
     fake_p = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=True)
@@ -1197,6 +1314,23 @@ def test_refresh_cli_preview_vs_confirm():
               for m in fake_c.mutations), fake_c.mutations)
 
 
+def test_refresh_cli_exits_nonzero_on_bad_outcomes():
+    print("test_refresh_cli_exits_nonzero_on_bad_outcomes")
+    cases = [
+        ("isSuccess=false", [{"isSuccess": False, "outputValues": {"Status": None}}]),
+        ("isSuccess absent", [{"outputValues": {"Status": "Queued"}}]),
+        ("isSuccess=null", [{"isSuccess": None, "outputValues": {"Status": "Queued"}}]),
+        ("isSuccess=true, status not Queued",
+         [{"isSuccess": True, "outputValues": {"Status": "InProgress"}}]),
+    ]
+    for label, refresh_response in cases:
+        fake = _FakeTransport(dry_run=False, refresh_response=refresh_response)
+        rc, out = _run_cli_with_fake(
+            refresh_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries",
+                          "--confirm", "--json"], fake)
+        check(f"refresh confirm exits 1 on {label}", rc == 1, (label, out[:300]))
+
+
 def _csv_transport(**over):
     """A fake transport shaped like a CsvUpload table for the upload-CLI tests."""
     kw = dict(table=_table_row(name="RLM_CsvUploadTable", SourceObject="CSV"),
@@ -1249,6 +1383,27 @@ def test_upload_cli_overwrite_and_version(tmp_csv):
     vpatch = [m for m in fake.mutations if m[0] == "PATCH" and "/versions/1" in m[1]]
     check("upload --activate-version PATCHes the version to Active",
           vpatch and vpatch[0][2].get("versionStatus") == "Active", fake.mutations)
+
+
+def test_upload_cli_activate_version_already_active_is_noop(tmp_csv):
+    print("test_upload_cli_activate_version_already_active_is_noop")
+    # Version 1 is already Active — --activate-version must skip the PATCH
+    # rather than unconditionally re-sending it (the platform rejects a PATCH
+    # of an already-Active version).
+    fake = _csv_transport(
+        dry_run=False,
+        metadata=_sample_metadata(
+            dataSourceType="CsvUpload", sourceObject="CSV",
+            decisionTableFileImportVersions=[{"versionNumber": 1, "versionStatus": "Active"}],
+        ),
+    )
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--activate-version", "1", "--confirm", "--json"], fake)
+    check("upload activate-version-already-active exits 0", rc == 0, out[:300])
+    vpatch = [m for m in fake.mutations if m[0] == "PATCH" and "/versions/1" in m[1]]
+    check("upload --activate-version skips the PATCH when already Active",
+          vpatch == [], fake.mutations)
 
 
 def _no_sleep():
@@ -1399,6 +1554,7 @@ def main():
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
               test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
+              test_validate_spec_status_warns_on_create_only,
               test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
@@ -1418,7 +1574,10 @@ def main():
               test_translator_metadata, test_translator_tooling, test_translator_connect,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
-              test_assert_editable_guard, test_guarded_update_active_roundtrip,
+              test_assert_editable_guard,
+              test_activate_deactivate_csv_upload_is_version_first,
+              test_activate_deactivate_sobject_is_table_first,
+              test_guarded_update_active_roundtrip,
               test_guarded_update_leave_deactivated,
               test_guarded_update_connect_failure_left_deactivated,
               test_guarded_update_tooling_failure_reactivates,
@@ -1426,6 +1585,7 @@ def main():
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
+              test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_cli_missing_csv_errors)
@@ -1440,9 +1600,11 @@ def main():
     test_create_cli_invalid_spec_blocks(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
+    test_update_cli_connect_path_stamps_live_status(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_and_version(csv_path)
+    test_upload_cli_activate_version_already_active_is_noop(csv_path)
     test_upload_cli_wait_for_status_flag(csv_path)
     test_upload_cli_wait_for_status_failed_exits_nonzero(csv_path)
     test_upload_cli_no_wait_default(csv_path)
