@@ -34,7 +34,7 @@ lifecycle transitions the mutator CLIs need:
     SFDX project outside the repo**, ``sf project deploy start`` it with
     ``--ignore-conflicts`` (temp project has no source tracking), and remove the
     temp tree — so no generated metadata churn lands in ``git status``.
-  * **delete** — Tooling DELETE (setup object) or Connect DELETE (definition).
+  * **delete** — Tooling DELETE (setup object).
 
 Two safety rules mirror the Expression Set engine
 (``scripts/expression_sets/_lifecycle.py``):
@@ -513,9 +513,3 @@ class LifecycleEngine:
         return {"action": "delete", "path": "tooling", "id": record_id,
                 "dryRun": self.dry_run}
 
-    def delete_connect(self, connect_id: str) -> Dict[str, Any]:
-        """Delete a Decision Table definition via the Connect resource."""
-        self.t.connect("DELETE", f"{DEFINITIONS_PATH}/{connect_id}")
-        self.log(f"Deleted Decision Table definition {connect_id} (Connect).")
-        return {"action": "delete", "path": "connect", "id": connect_id,
-                "dryRun": self.dry_run}

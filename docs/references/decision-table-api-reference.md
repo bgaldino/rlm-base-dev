@@ -58,11 +58,15 @@ Pick by use case; the toolkit's canonical spec + per-path translators
   `/services/data/v67.0/tooling/sobjects/<Object>`; each `DecisionTable` carries
   a **`Metadata` complexvalue** that inlines the parameters/criteria/import
   versions and matches the Metadata-API vocabulary exactly.
-- **Connect API — Decision Table Definitions CRUD.** ✅ (GET/POST verified read
-  side) `connect/business-rules/decision-table/definitions[/{id}]`. Uses a
+- **Connect API — Decision Table Definitions CRUD.** ✅ (GET/PATCH verified;
+  POST/DELETE documented below for raw-API reference)
+  `connect/business-rules/decision-table/definitions[/{id}]`. Uses a
   **different vocabulary** (`sourceType`, `decisionResultPolicy`, `parameters`,
   `usage` = `Input`/`Output`, 15-char `id`). The **collection endpoint is
-  POST-only** (create) — there is no list-GET; GET is by-id.
+  POST-only** (create) — there is no list-GET; GET is by-id. The toolkit exposes
+  Connect for **update** (`--path connect`) and sub-resource operations (CSV
+  upload, version PATCH, data GET, refresh). Connect create/delete are not
+  exposed in the toolkit CLI — see the README decision record for rationale.
 
 ---
 
@@ -396,13 +400,15 @@ degrade to a note).
 
 ## Lifecycle — ✅ live-verified
 
-- **Create** — three paths, all live-verified:
+- **Create** — two toolkit paths (Metadata deploy + Tooling POST), all
+  live-verified. Connect POST is documented in the Connect section below for
+  raw-API reference but not exposed as a toolkit CLI path (see the README
+  decision record for rationale — inaccurate echo, no unique capability).
   - **Tooling POST** `…/tooling/sobjects/DecisionTable` with
     `{"FullName": …, "Metadata": {…}}` → `{"id":"0lD…","success":true}`. Required
     inside `Metadata`: `dataSourceType`, `sourceObject`, `usageType`,
     `filterResultBy`, `conditionType`, `conditionCriteria`, `status`, `type`,
     `decisionTableParameters[]` (`executionType` accepted as API-casing `HBASE`).
-  - **Connect POST** — the flat-body path above.
   - **Metadata deploy** `.decisionTable-meta.xml`. The toolkit generates the XML
     into an **OS temp SFDX project outside the repo**, runs `sf project deploy
     start` **with cwd = the temp project root** (`--source-dir force-app`;
@@ -446,10 +452,11 @@ degrade to a note).
   deactivate-first rule, but DT uses `FIELD_NOT_UPDATABLE`). The `update` /
   `delete` mutators refuse an Active table up front unless `--deactivate-first`
   runs the guarded deactivate → mutate → reactivate sequence.
-- **Delete** — Tooling (`…/tooling/sobjects/DecisionTable/{id}`) or Connect
-  (`…/definitions/{id}`) DELETE with an **empty body piped on stdin** (`-b -`);
-  `-b ""` / `-b "@file"` / an `-f` request-spec all fail with "No 'mode' found in
-  'body' entry". GET-back → `NOT_FOUND`.
+- **Delete** — Tooling (`…/tooling/sobjects/DecisionTable/{id}`) DELETE with an
+  **empty body piped on stdin** (`-b -`); `-b ""` / `-b "@file"` / an `-f`
+  request-spec all fail with "No 'mode' found in 'body' entry". GET-back →
+  `NOT_FOUND`. (Connect DELETE is equivalent — same semantics, same empty-body
+  quirk — but not exposed in the toolkit CLI; Tooling is the sole path.)
 
 ## Refresh (data sync) — ✅ live-verified
 

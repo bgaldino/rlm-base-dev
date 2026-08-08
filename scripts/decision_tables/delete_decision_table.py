@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Delete a BRE Decision Table (DESTRUCTIVE, MUTATING).
 
-Deletes the table via the Tooling setup object (default) or the Connect
-Definitions resource:
-
-* ``--path tooling`` (default) — DELETE ``tooling/sobjects/DecisionTable/{id}``.
-* ``--path connect`` — DELETE ``connect/business-rules/decision-table/definitions/{id}``.
+Deletes the table via the Tooling API setup-object DELETE
+(``tooling/sobjects/DecisionTable/{id}``).
 
 **Active-edit guard.** An Active (or activating) table cannot be deleted in place
 (same platform lock as an edit: ``FIELD_NOT_UPDATABLE`` / "Can't edit an active
@@ -67,9 +64,6 @@ def main(argv=None) -> int:
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")
-    parser.add_argument("--path", choices=("tooling", "connect"), default="tooling",
-                        help="Delete via the Tooling setup object or Connect resource "
-                             "(default: tooling).")
     parser.add_argument("--deactivate-first", action="store_true",
                         help="If the table is Active, deactivate it before deleting "
                              "(an active table cannot be deleted in place).")
@@ -93,8 +87,8 @@ def main(argv=None) -> int:
 
     record_id = table_row["Id"]
     current = table_row.get("Status")
-    eprint(f"\nDelete DecisionTable '{args.developer_name}' ({record_id}) via "
-           f"--path {args.path}, currently Status={current}, "
+    eprint(f"\nDelete DecisionTable '{args.developer_name}' ({record_id}), "
+           f"currently Status={current}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
 
     was_active = current in ("Active", "ActivationInProgress")
@@ -106,10 +100,7 @@ def main(argv=None) -> int:
                 deactivated = True
             else:
                 engine.assert_editable(table_row)
-        if args.path == "tooling":
-            result = engine.delete_tooling(record_id)
-        else:
-            result = engine.delete_connect(record_id)
+        result = engine.delete_tooling(record_id)
     except (DecisionTableClientError, LifecycleError) as exc:
         if deactivated and not preview:
             try:

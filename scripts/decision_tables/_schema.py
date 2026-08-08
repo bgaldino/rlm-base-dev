@@ -275,11 +275,11 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
     """Validate a canonical Decision Table spec (path-agnostic). Pure; no org.
 
     ``path`` is optional and only sharpens one **create**-specific warning
-    (missing ``status``) — pass the authoring path (``"metadata"``/``"tooling"``/
-    ``"connect"``) when validating a spec that is about to *create* a table.
-    Leave it unset (the default) for update validation, where the spec's
-    ``status`` is intentionally dropped and re-stamped from the live table —
-    see ``update_decision_table.py`` — so a missing ``status`` there is normal,
+    (missing ``status``) — pass the authoring path (``"metadata"``/``"tooling"``)
+    when validating a spec that is about to *create* a table. Leave it unset
+    (the default) for update validation, where the spec's ``status`` is
+    intentionally dropped and re-stamped from the live table — see
+    ``update_decision_table.py`` — so a missing ``status`` there is normal,
     not a defect.
     """
     result = ValidationResult()

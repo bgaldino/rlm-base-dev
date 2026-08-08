@@ -258,18 +258,20 @@ Notes from the shipped files:
 
 ---
 
-## The three authoring paths — decision guide
+## The authoring paths — decision guide
 
-| You want to… | Use | Vocabulary |
-|---|---|---|
-| **Ship a table in the build**, source-controlled, reviewable | **Metadata API** (`.decisionTable-meta.xml`) — the primary path | `dataSourceType`, `filterResultBy`, `decisionTableParameters`, `usage=INPUT` |
-| **Inspect / one-off edit** the whole definition in one REST call | **Tooling API** — PATCH the `DecisionTable.Metadata` complexvalue | same as Metadata (Metadata-API field names) |
-| **CRUD from an external/Connect client** | **Connect Definitions** `connect/business-rules/decision-table/definitions[/{id}]` | **`sourceType`, `decisionResultPolicy`, `parameters`, `usage=Input`, 15-char id** |
+| You want to… | Use | Toolkit CLI | Vocabulary |
+|---|---|---|---|
+| **Ship a table in the build**, source-controlled, reviewable | **Metadata API** (`.decisionTable-meta.xml`) — the primary path | `create --path metadata` (default) | `dataSourceType`, `filterResultBy`, `decisionTableParameters`, `usage=INPUT` |
+| **Inspect / one-off edit** the whole definition in one REST call | **Tooling API** — PATCH the `DecisionTable.Metadata` complexvalue | `create --path tooling`, `update --path tooling` (default), `delete` | same as Metadata (Metadata-API field names) |
+| **Update from an external/Connect client** (non-atomic) | **Connect Definitions** `connect/business-rules/decision-table/definitions[/{id}]` | `update --path connect` | **`sourceType`, `decisionResultPolicy`, `parameters`, `usage=Input`, 15-char id** |
 
-The toolkit's `create_decision_table.py --path metadata|tooling|connect`
-selects the path; a canonical author-facing spec is translated to each path's
-vocabulary by `_payload.py`. **Read the divergence table before writing
-across paths.**
+The toolkit's `create_decision_table.py --path metadata|tooling` and
+`update_decision_table.py --path tooling|connect` select the path; a canonical
+author-facing spec is translated to each path's vocabulary by `_payload.py`.
+Connect create and delete are not exposed in the toolkit CLI (see the README
+decision record) — they're documented in the API reference for raw-API use only.
+**Read the divergence table before writing across paths.**
 
 ### Field-name divergence (Metadata/Tooling vs Connect)
 

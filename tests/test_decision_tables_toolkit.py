@@ -455,11 +455,6 @@ def test_validate_spec_status_warns_on_create_only():
         result = validate_spec(spec, path=authoring_path)
         check(f"{authoring_path} create without status warns",
               any(i.location == "status" for i in result.warnings), result.format_report())
-    # connect create path — Connect defaults status to Draft, so no warning.
-    connect_result = validate_spec(spec, path="connect")
-    check("connect create without status: no status warning",
-          not any(i.location == "status" for i in connect_result.warnings),
-          connect_result.format_report())
     # metadata/tooling create WITH status set — no warning.
     with_status = validate_spec({**spec, "status": "Draft"}, path="metadata")
     check("metadata create with status set: no status warning",
@@ -1106,16 +1101,6 @@ def test_refresh_uses_live_verified_flag():
     check("refresh reports Queued status", outcome.get("status") == "Queued", outcome)
 
 
-def test_delete_paths():
-    print("test_delete_paths")
-    fake = _LifecycleFake(status="Inactive")
-    engine = LifecycleEngine(fake)
-    res_c = engine.delete_connect("0lDxx0000000001AAA")
-    check("delete_connect issues a Connect DELETE",
-          fake.connect_calls[-1][0] == "DELETE"
-          and fake.connect_calls[-1][1].endswith("/0lDxx0000000001AAA"), fake.connect_calls)
-    check("delete_connect result path=connect", res_c["path"] == "connect")
-
 
 # --------------------------------------------------------------------------- #
 # Mutator CLIs — preview-vs-confirm gating via the fake transport (no org)
@@ -1155,20 +1140,6 @@ def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
     check("generate-only wrote a DecisionTable XML",
           produced.startswith('<?xml') and "<DecisionTable" in produced, produced[:80])
 
-
-def test_create_cli_connect_path_default_status(tmp_spec):
-    print("test_create_cli_connect_path_default_status")
-    fake = _FakeTransport(dry_run=False)
-    rc, _ = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "connect", "--confirm"], fake)
-    check("connect create exits 0", rc == 0)
-    posts = [m for m in fake.mutations if m[0] == "POST"]
-    check("connect create issues a POST to the definitions path",
-          posts and posts[-1][1].endswith("definitions"), fake.mutations)
-    body = posts[-1][2]
-    check("connect create body uses renamed keys",
-          body.get("sourceType") == "SingleSobject" and "parameters" in body, body)
 
 
 def test_create_cli_generate_only_rejects_nonmetadata(tmp_spec):
@@ -1581,7 +1552,7 @@ def main():
               test_guarded_update_leave_deactivated,
               test_guarded_update_connect_failure_left_deactivated,
               test_guarded_update_tooling_failure_reactivates,
-              test_refresh_uses_live_verified_flag, test_delete_paths,
+              test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
@@ -1595,7 +1566,6 @@ def main():
     # Phase 2 — create/update CLI tests that need spec/output-file fixtures.
     test_create_cli_tooling_preview_vs_confirm(spec_path)
     test_create_cli_generate_only_no_org(spec_path, out_xml)
-    test_create_cli_connect_path_default_status(spec_path)
     test_create_cli_generate_only_rejects_nonmetadata(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)

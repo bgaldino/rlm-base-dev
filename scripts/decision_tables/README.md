@@ -77,13 +77,13 @@ A Decision Table is **two layers**:
 
 | Script | Writes (path) |
 |--------|---------------|
-| `create_decision_table.py` | Create from a canonical spec: Metadata deploy (`--path metadata`, default → temp SFDX package outside the repo) · Tooling POST · Connect POST. `--generate-only <path>` (metadata only) writes the `.decisionTable-meta.xml` to a chosen path without deploying. `status` in the spec sets the table's initial state. |
+| `create_decision_table.py` | Create from a canonical spec: Metadata deploy (`--path metadata`, default → temp SFDX package outside the repo) · Tooling POST (`--path tooling`). `--generate-only <path>` (metadata only) writes the `.decisionTable-meta.xml` to a chosen path without deploying. `status` in the spec sets the table's initial state. |
 | `update_decision_table.py` | Tooling PATCH / Connect PATCH of an existing table. **Active-edit guard:** an Active table is refused unless `--deactivate-first`, which runs the guarded deactivate → edit → reactivate (`--leave-deactivated` keeps it off). The spec's `status` **never drives an update** — the lifecycle engine owns activate/deactivate, so the spec's `status` can't re-activate the table mid-edit (a Tooling PATCH *requires* `status`, so `update` stamps the current **live** status; the Connect PATCH drops it). `decisionTableParameters` is a **full replace**. |
 | `activate_decision_table.py` | `Status` → Active (Tooling `Metadata.status` PATCH). **Async** — polls past `ActivationInProgress` (raise `--max-wait` for slow orgs). Skips a no-op if already Active. |
 | `deactivate_decision_table.py` | `Status` → Inactive (**synchronous**). Blocked while the table is still referenced by an active Expression Set / Context Rule / recipe. |
 | `refresh_decision_table.py` | `refreshDecisionTable` action (full / `--incremental`). Sends the **live-verified `isDecisionTableIncremental`** flag (the CCI tasks send `isIncremental`, which the action ignores). Async + ~100/hr — watch `LastSyncDate`, not the returned `Queued`. |
 | `upload_decision_table_data.py` | Loads the **data layer** of a `CsvUpload` table (two-phase: insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the Connect `/file` sub-resource). **Append (default) is the only reliable write** — `--overwrite` (`deleteAllRows:true`) **FAILS on 262/v67.0** (`uploadStatus=Failed`, 0 rows, existing rows kept; replace = a fresh version/table + append). `--activate-version N` activates version *N* after the upload. Async — poll `dump_decision_table_data.py` for the rows, or opt into `--wait-for-status` (`--max-wait N`, default 120s) to poll `Metadata.uploadStatus` to a terminal state and surface `CompletedWithErrors` (bad rows drop silently) / `Failed` (non-zero exit). |
-| `delete_decision_table.py` | Tooling / Connect DELETE. Same active-edit guard as update (`--deactivate-first` to deactivate an Active table before deleting). `--confirm` required. |
+| `delete_decision_table.py` | Tooling DELETE. Same active-edit guard as update (`--deactivate-first` to deactivate an Active table before deleting). `--confirm` required. |
 
 They mirror the `scripts/expression_sets/` mutator convention (preview-by-default,
 `--confirm`, sf-CLI transport, no token). The six definition-CRUD per-path shapes,
@@ -99,7 +99,7 @@ destructive probing on scratch orgs.
 | `_resolve.py` | DeveloperName → `DecisionTable` (`0lD`) summary + child resolution across the 5 Tooling objects. `load_definition()` assembles the whole definition dict (`table` / `metadata` / `parameters` / `datasetLinks` / `datasetParameters` / `sourceCriteria`); `get_connect_definition()` reads + unwraps the Connect `decisionTable` envelope. `ResolveError` on a missing table. |
 | `_schema.py` | Enum + key-prefix catalogs (`DATA_SOURCE_TYPES`, `EXECUTION_TYPES` incl. `DLO`, `FILTER_RESULT_BY`, `PARAM_USAGE`, `SETUP_OBJECT_PREFIXES`, …), the **field-name divergence map** (`FIELD_NAME_MAP`: concept → Metadata/Tooling name vs Connect name), and `validate_spec()` — a **pure** validator over a canonical (Metadata-vocabulary) DT spec. Stdlib-only; reused by the offline tests. |
 | `_payload.py` | **Pure** canonical-spec → per-path translators: `to_metadata` (the shared `Metadata` body), `to_metadata_xml` (byte-identical to the shipped source XML — elements emitted alphabetically), `to_tooling` (`{FullName, Metadata}` for create), `tooling_metadata_only` (`{Metadata}` for a PATCH — drops the spec's `status`, stamping the caller-supplied **live** `status` the required-field PATCH demands, so the lifecycle engine owns transitions), and `to_connect` (flat Connect body: renames `dataSourceType`→`sourceType`, `filterResultBy`→`decisionResultPolicy`, `decisionTableParameters`→`parameters`, title-cases `usage`, adds `columnMapping`, requires `status`). Dependency-free — no `requests`, no CCI, no `sf`. |
-| `_lifecycle.py` | `LifecycleEngine` over a `Transport`: `activate` (async — polls past `ActivationInProgress`) / `deactivate` (sync), the **active-edit guard** (`assert_editable` + `run_guarded_update`: deactivate → mutate → reactivate; leaves the table DEACTIVATED on a failed Connect PATCH, reactivates on a failed atomic Tooling PATCH), `refresh` (`isDecisionTableIncremental`), the temp-SFDX `deploy_metadata_xml`, and Tooling/Connect `delete`. `LifecycleError` on failure. |
+| `_lifecycle.py` | `LifecycleEngine` over a `Transport`: `activate` (async — polls past `ActivationInProgress`) / `deactivate` (sync), the **active-edit guard** (`assert_editable` + `run_guarded_update`: deactivate → mutate → reactivate; leaves the table DEACTIVATED on a failed Connect PATCH, reactivates on a failed atomic Tooling PATCH), `refresh` (`isDecisionTableIncremental`), the temp-SFDX `deploy_metadata_xml`, and Tooling `delete`. `LifecycleError` on failure. |
 
 **Tests:** `tests/test_decision_tables_toolkit.py` — offline unit tests (no org,
 no `sf`, no pytest) for `_schema` (enums / prefixes / divergence map / validator,
@@ -226,3 +226,44 @@ python scripts/decision_tables/delete_decision_table.py --target-org $ORG \
   Definition changes are **not** live until a refresh completes.
 - **`--target-org` is the SF CLI alias**, never the CCI alias. CCI alias `beta`
   → SF CLI alias `rlm-base__beta`.
+
+## Removed API paths (decision record)
+
+The Connect API remains available for **update** (`--path connect` on
+`update_decision_table.py`) and for sub-resource operations (CSV upload, version
+PATCH, data GET, refresh). The following CLI paths were removed for simplicity —
+the raw API calls are still documented in
+`docs/references/decision-table-api-reference.md` for reference.
+
+### `create --path connect` — removed (v67.0 / Release 262)
+
+- Connect POST echoes inaccurate results (`"parameters": [], "sourceCriteria": []`
+  even when columns persist). You must GET-back to confirm — making the response
+  useless for pipeline confirmation.
+- Connect-create requires `status` in the body (else `MISSING_ARGUMENT`), adding a
+  field the metadata/tooling paths don't expose at create time.
+- Metadata-deploy is idempotent, source-controlled, and reviewable. Tooling POST is
+  atomic with accurate echo. Connect-create adds no unique capability.
+
+**Re-add if:** Salesforce fixes the POST echo to return the full persisted
+definition, AND a use case emerges needing programmatic create without metadata
+deploy or Tooling access.
+
+### `delete --path connect` — removed (v67.0 / Release 262)
+
+- Tooling DELETE and Connect DELETE are functionally identical: same record ID, same
+  empty-body quirk, same semantics. No behavioral difference.
+- The CsvUpload version-first deactivation runs in `_lifecycle.py` before the DELETE
+  regardless of surface, so Tooling DELETE handles CSV tables correctly.
+
+**Re-add if:** Connect DELETE gains capabilities Tooling DELETE lacks (cascade
+options, soft-delete, version-specific deletion).
+
+### `update --path connect` — kept
+
+- Genuinely different failure semantics: Tooling PATCH is atomic (rejected =
+  byte-identical record); Connect PATCH is non-atomic (rejected = possibly
+  half-applied, left deactivated).
+- Some integrations speak Connect vocabulary natively.
+- Monitor: if Salesforce makes Connect PATCH atomic, consider collapsing to Tooling
+  only.
