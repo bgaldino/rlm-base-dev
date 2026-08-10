@@ -21,7 +21,12 @@ Connect Definitions GET, ``refreshDecisionTable`` action describe) plus the
 Release 262 docs (``meta_decisiontable.htm``, ``dt_setup_objects.htm``,
 ``lookup_table_resources.htm``). See
 ``docs/references/decision-table-api-reference.md`` for the full evidence.
-Unknown enum values **warn** (forward-compat), they do not error.
+Unknown values in the *descriptive* enums (``usageType`` / ``type`` /
+``executionType`` …) **warn** (forward-compat), they do not error. The one
+exception is the *closed structural* enum ``usage`` (INPUT/OUTPUT/ROWCRITERIA):
+an unrecognized/mis-cased value there is an **error**, because it silently
+changes translation (see :func:`_validate_parameter` and the ``strict`` arg of
+:func:`_check_enum`) rather than merely being unrecognized by the org.
 """
 
 import re
@@ -305,9 +310,12 @@ def _reject_unknown_keys(result: ValidationResult, location: str,
     ``sourceConditionLogc``) would otherwise pass validation, get ignored by the
     translator, and let a full-replace update land without the field the author
     actually intended — a validated-but-wrong definition. Unlike an unrecognized
-    *enum value* (forward-compat, kept as a warning via ``_check_enum``), an
-    unrecognized *key* can never be intentional on this closed, hand-maintained
-    schema, so it errors rather than warns.
+    value in a *descriptive* enum (forward-compat, kept as a warning via
+    ``_check_enum``), an unrecognized *key* can never be intentional on this
+    closed, hand-maintained schema, so it errors rather than warns. The *closed
+    structural* enum ``usage`` is treated the same way as an unknown key — an error
+    (``_check_enum(strict=True)``) — because an off-catalog value there silently
+    mistranslates the column rather than being harmlessly unrecognized.
     """
     for key in sorted(set(value) - allowed):
         prefix = f"{location}." if location else ""

@@ -97,13 +97,22 @@ def main(argv=None) -> int:
 
     was_active = current in ("Active", "ActivationInProgress")
     deactivated = False
-    # Pin the CsvUpload version to move BEFORE deactivating (while the table still
-    # has a unique active version) and reuse it for a rollback reactivation — re-
-    # resolving after deactivation would strand a multi-version table. None for
-    # non-CsvUpload tables / when we won't deactivate.
-    guarded_version = (engine.resolve_guarded_version(record_id)
-                       if was_active and args.deactivate_first else None)
+    # None for non-CsvUpload tables / when we won't deactivate; otherwise pinned
+    # inside the try below.
+    guarded_version = None
     try:
+        # Pin the CsvUpload version to move BEFORE deactivating (while the table
+        # still has a unique active version) and reuse it for a rollback
+        # reactivation — re-resolving after deactivation would strand a multi-
+        # version table. This runs INSIDE the guarded try: resolve_guarded_version
+        # does Tooling GETs and deliberately raises (LifecycleError for an
+        # ambiguous multi-version CsvUpload table, DecisionTableClientError on a
+        # transport failure), so it must be caught by the handler below and turned
+        # into a controlled 'FAILED …' + exit 1, not leak an unhandled traceback
+        # (and give --json callers no result). deactivated is still False here, so
+        # a failure at this point performs no rollback — nothing was deactivated.
+        if was_active and args.deactivate_first:
+            guarded_version = engine.resolve_guarded_version(record_id)
         if was_active:
             if args.deactivate_first:
                 try:

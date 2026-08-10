@@ -1599,6 +1599,37 @@ def test_delete_cli_deactivate_confirmation_timeout_still_reactivates():
           fake.status_sets)
 
 
+def test_delete_cli_ambiguous_version_resolution_returns_controlled_error():
+    print("test_delete_cli_ambiguous_version_resolution_returns_controlled_error")
+    # The version-pinning lookup (resolve_guarded_version) does Tooling GETs and
+    # deliberately raises LifecycleError for an ambiguous multi-version CsvUpload
+    # table. It must run INSIDE the CLI's guarded try so that raise becomes a
+    # controlled 'FAILED …' + exit 1, not an unhandled traceback that escapes
+    # main() (and leaves --json callers with no result). Two Active versions make
+    # resolve_guarded_version raise before anything is deactivated.
+    fake = _LifecycleFake(
+        status="Active", data_source_type="CsvUpload",
+        versions=[{"versionNumber": 1, "versionStatus": "Active"},
+                  {"versionNumber": 2, "versionStatus": "Active"}])
+    escaped = None
+    try:
+        rc, out = _run_cli_with_fake(
+            delete_cli,
+            ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+             "--deactivate-first", "--confirm", "--json"],
+            fake,
+        )
+    except BaseException as exc:  # noqa: BLE001 — the bug was an escaping exception
+        escaped = exc
+        rc, out = None, ""
+    check("ambiguous version resolution does not escape main()", escaped is None, escaped)
+    check("ambiguous version resolution returns exit 1 (controlled refusal)",
+          rc == 1, (rc, out[:300]))
+    check("nothing was deactivated before the resolution failed",
+          fake.version_status_sets == [] and fake.status_sets == [],
+          (fake.version_status_sets, fake.status_sets))
+
+
 def test_wait_for_status_timeout_message_is_operation_aware():
     print("test_wait_for_status_timeout_message_is_operation_aware")
     # The single wait_for_status poll confirms BOTH activation and deactivation, and
@@ -2183,6 +2214,7 @@ def main():
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               test_delete_cli_csv_upload_failure_rolls_back_version,
               test_delete_cli_deactivate_confirmation_timeout_still_reactivates,
+              test_delete_cli_ambiguous_version_resolution_returns_controlled_error,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_header_validation,
               test_upload_header_validation_ignores_rowcriteria,
