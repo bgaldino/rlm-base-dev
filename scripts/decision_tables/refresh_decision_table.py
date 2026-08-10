@@ -12,17 +12,15 @@ standard action to trigger that sync.
 
 Two facts encoded here from live probing (262 / v67.0):
 
-* The accepted action input is ``isDecisionTableIncremental`` (**not**
-  ``isIncremental``, which the existing CCI tasks send and the action silently
-  ignores → an unintended full refresh).
+* The accepted action input is ``isDecisionTableIncremental``.
 * The refresh is **asynchronous** and returns ``outputValues.Status = "Queued"``
   — it does **not** create an ``AsyncOperationTracker`` row. The completion
-  signal is the table's ``LastSyncDate`` (a.k.a. ``Metadata.lastSyncDate`` /
-  ``refreshStatus``) advancing; re-check it with ``describe_decision_table.py``
-  or ``list_decision_tables.py``.
+  signal depends on the mode: a full refresh advances ``LastSyncDate`` and an
+  incremental refresh advances ``LastIncrementalSyncDate`` only. Re-check with
+  ``describe_decision_table.py``.
 
-⚠ **Rate limit: ~100 refreshes/hour per org.** Batch refreshes accordingly; the
-platform rejects excess with a limit error.
+⚠ **Full-refresh limits use separate org-wide pools:** 40 Standard and 60
+Advanced refreshes/hour; CSV tables use the Advanced pool. Batch accordingly.
 
 **Preview by default.** Without ``--confirm`` the tool logs the planned action
 invocation and performs no write. Re-run with ``--confirm`` to invoke.
@@ -63,8 +61,8 @@ from scripts.decision_tables._resolve import ResolveError, resolve_decision_tabl
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        description="Refresh a BRE Decision Table's cached data (refreshDecisionTable "
-                    "action; async, ~100/hr). MUTATING (preview by default; --confirm).",
+        description="Refresh a BRE Decision Table's cached data (asynchronous "
+                    "refreshDecisionTable action). MUTATING (preview by default; --confirm).",
     )
     parser.add_argument(
         "--target-org", required=True,
@@ -96,11 +94,14 @@ def main(argv=None) -> int:
         return 1
 
     mode = "incremental" if args.incremental else "full"
+    signal_field = "LastIncrementalSyncDate" if args.incremental else "LastSyncDate"
     eprint(f"\nRefresh DecisionTable '{args.developer_name}' ({table_row.get('Id')}), "
-           f"mode={mode}, lastSync={table_row.get('LastSyncDate') or 'never'}, "
+           f"mode={mode}, {signal_field}={table_row.get(signal_field) or 'never'}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
-    eprint("Note: async + rate-limited to ~100 refreshes/hour per org; watch "
-           "LastSyncDate for completion, not the returned 'Queued' status.")
+    eprint("Note: asynchronous; watch " + signal_field +
+           " for completion, not the returned 'Queued' status. Full-refresh "
+           "limits are 40 Standard and 60 Advanced per org/hour; CSV uses "
+           "the Advanced pool.")
 
     try:
         outcome = engine.refresh(
@@ -118,24 +119,25 @@ def main(argv=None) -> int:
     elif outcome.get("isSuccess") is False:
         eprint(f"\nRefresh REJECTED (isSuccess=false, "
                f"status={outcome.get('status')}). The platform may have hit the "
-               f"~100/hr rate limit or the table's source binding is invalid.")
+               f"applicable full-refresh pool limit or the table's source binding "
+               f"is invalid.")
         exit_code = 1
     elif outcome.get("isSuccess") is None:
         eprint(f"\nRefresh returned an unexpected response (isSuccess absent/null, "
                f"status={outcome.get('status')}). The action may have been invoked "
-               f"but the result envelope is unrecognized — re-check LastSyncDate "
+               f"but the result envelope is unrecognized — re-check {signal_field} "
                f"with describe_decision_table.py.")
         exit_code = 1
     else:
         status = outcome.get("status")
         if status == "Queued":
             eprint(f"\nRefresh queued (isSuccess=true, status=Queued). Re-check "
-                   f"LastSyncDate with describe_decision_table.py to confirm the "
+                   f"{signal_field} with describe_decision_table.py to confirm the "
                    f"sync landed.")
         else:
             eprint(f"\nRefresh accepted but status is {status!r}, not the expected "
                    f"'Queued' — the action may not have queued successfully. "
-                   f"Re-check LastSyncDate with describe_decision_table.py.")
+                   f"Re-check {signal_field} with describe_decision_table.py.")
             exit_code = 1
     if args.json:
         print(json.dumps({"action": "refresh", "developerName": args.developer_name,

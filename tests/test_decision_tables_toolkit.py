@@ -33,7 +33,11 @@ from scripts.decision_tables import _payload  # noqa: E402
 from scripts.decision_tables import _resolve  # noqa: E402
 from scripts.decision_tables import _schema  # noqa: E402
 from scripts.decision_tables._client import DecisionTableClientError, DEFINITIONS_PATH  # noqa: E402
-from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
+from scripts.decision_tables._lifecycle import (  # noqa: E402
+    LifecycleEngine,
+    LifecycleError,
+    MutationVerificationError,
+)
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
 from scripts.decision_tables.diff_decision_tables import diff_definitions  # noqa: E402
 from scripts.decision_tables.dump_decision_table_data import dump_data  # noqa: E402
@@ -198,7 +202,16 @@ class _FakeTransport:
                 and isinstance(body, dict) and isinstance(body.get("Metadata"), dict)
                 and body["Metadata"].get("status")):
             self.table = dict(self.table, Status=body["Metadata"]["status"])
+            self.metadata = dict(body["Metadata"])
         if method.upper() == "POST" and sobject == "DecisionTable":
+            # A confirmed create is immediately visible to the GET-back verifier.
+            if isinstance(body, dict) and isinstance(body.get("Metadata"), dict):
+                self.metadata = dict(body["Metadata"])
+                self.table = dict(
+                    self.table,
+                    Id="0lDxx0000000009AAA",
+                    DeveloperName=body.get("FullName") or self.table.get("DeveloperName"),
+                )
             return {"id": "0lDxx0000000009AAA", "success": True}
         return {}
 
@@ -284,9 +297,15 @@ class _LifecycleFake:
 
     def tooling_sobject(self, method, sobject, record_id=None, suffix=None, body=None, **kw):
         if method.upper() == "GET":
+            metadata = _sample_metadata(status=self.status,
+                                        dataSourceType=self.data_source_type)
+            if self.data_source_type == "CsvUpload":
+                metadata["decisionTableFileImportVersions"] = [{
+                    "versionNumber": 1,
+                    "versionStatus": self.status,
+                }]
             return {"Id": record_id,
-                    "Metadata": _sample_metadata(status=self.status,
-                                                  dataSourceType=self.data_source_type)}
+                    "Metadata": metadata}
         if method.upper() == "PATCH" and isinstance(body, dict):
             new = body.get("Metadata", {}).get("status")
             if new:
@@ -327,7 +346,15 @@ def test_schema_catalogs():
           {"HBASE", "Hbase"} <= _schema.EXECUTION_TYPES)
     check("DLO in executionType (v67 replaces DMO)", "DLO" in _schema.EXECUTION_TYPES)
     check("param usage upper set", _schema.PARAM_USAGE == {"INPUT", "OUTPUT", "ROWCRITERIA"})
-    check("param usage connect title-case", "Input" in _schema.PARAM_USAGE_CONNECT)
+    check("documented collect operators", _schema.COLLECT_OPERATORS ==
+          {"Count", "Maximum", "Minimum", "None", "Sum"})
+    check("documented row override types", _schema.ROW_LEVEL_OVERRIDE_TYPES ==
+          {"Both", "Condition", "None", "Operator"})
+    check("documented sort types", _schema.PARAM_SORT_TYPES ==
+          {"AscNullFirst", "AscNullLast", "DescNullFirst", "DescNullLast", "None"})
+    check("documented parameter operators included",
+          {"Contains", "DoesNotExistIn", "DoesNotMatch", "IsNotNull"} <=
+          _schema.PARAM_OPERATORS)
     # Field-name divergence map — the concept keys and both per-path names.
     fm = _schema.FIELD_NAME_MAP
     check("divergence: data_source", fm["data_source"] == ("dataSourceType", "sourceType"))
@@ -434,8 +461,8 @@ def test_validate_spec_csv_upload():
           odd.passed and any("CSV" in i.message for i in odd.warnings), odd.format_report())
 
 
-def test_validate_spec_status_warns_on_create_only():
-    print("test_validate_spec_status_warns_on_create_only")
+def test_validate_spec_create_and_structural_errors():
+    print("test_validate_spec_create_and_structural_errors")
     spec = {
         "fullName": "RLM_CostBookEntries", "setupName": "Cost Book Entries",
         "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
@@ -446,20 +473,47 @@ def test_validate_spec_status_warns_on_create_only():
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
         ],
     }
-    # No path (update validation, or path-agnostic callers) — no status warning.
+    # No path (update validation) — the live status is stamped by update.
     no_path = validate_spec(spec)
-    check("no path: no status warning",
-          not any(i.location == "status" for i in no_path.warnings), no_path.format_report())
-    # metadata/tooling create paths without status — warns.
+    check("update validation does not require spec status",
+          not any(i.location == "status" for i in no_path.errors), no_path.format_report())
+    # Metadata/Tooling create paths without status are blocked locally.
     for authoring_path in ("metadata", "tooling"):
         result = validate_spec(spec, path=authoring_path)
-        check(f"{authoring_path} create without status warns",
-              any(i.location == "status" for i in result.warnings), result.format_report())
-    # metadata/tooling create WITH status set — no warning.
+        check(f"{authoring_path} create without status errors",
+              any(i.location == "status" for i in result.errors), result.format_report())
+    # Metadata/Tooling create WITH status set is valid.
     with_status = validate_spec({**spec, "status": "Draft"}, path="metadata")
-    check("metadata create with status set: no status warning",
-          not any(i.location == "status" for i in with_status.warnings),
+    check("metadata create with status set passes", with_status.passed,
           with_status.format_report())
+
+    invalid = validate_spec({
+        **spec,
+        "conditionType": "Custom",
+        "conditionCriteria": None,
+        "unknownTopLevel": True,
+        "decisionTableParameters": [
+            {"usage": "INPUT", "fieldName": "ProductId", "operator": "Contains",
+             "sequence": "one", "sortType": "AscNullFirst", "unknownColumn": 1},
+            {"usage": "OUTPUT", "fieldName": "Cost"},
+        ],
+        "decisionTableSourceCriterias": [
+            {"sourceFieldName": "UsageType", "unknownCriterion": 1},
+        ],
+    })
+    check("Custom requires conditionCriteria",
+          any(i.location == "conditionCriteria" for i in invalid.errors),
+          invalid.format_report())
+    check("parameter sequence must be an integer",
+          any(i.location.endswith(".sequence") for i in invalid.errors),
+          invalid.format_report())
+    check("source criteria require operator, valueType, and sequenceNumber",
+          {i.location.rsplit(".", 1)[-1] for i in invalid.errors} >=
+          {"operator", "valueType", "sequenceNumber"}, invalid.format_report())
+    check("unknown mutation keys are surfaced as warnings",
+          {"unknownTopLevel", "unknownColumn", "unknownCriterion"} <=
+          {i.location.rsplit(".", 1)[-1] for i in invalid.warnings},
+          invalid.format_report())
 
 
 # --------------------------------------------------------------------------- #
@@ -528,27 +582,68 @@ def test_diff_identical():
     delta = diff_definitions(a, b)
     check("identical → empty attributes", not delta["attributes"], delta)
     check("identical → no column changes", not any(delta["columns"].values()), delta)
+    check("identical → no dataset-link changes", not any(delta["datasetLinks"].values()), delta)
+    check("identical → no dataset-parameter changes",
+          not any(delta["datasetParameters"].values()), delta)
+    check("identical → no source-criteria changes",
+          not any(delta["sourceCriteria"].values()), delta)
 
 
 def test_diff_detects_changes():
     print("test_diff_detects_changes")
-    a = {"table": _table_row(Status="Active"), "metadata": _sample_metadata(),
-         "parameters": [_param("INPUT", "ProductId"), _param("OUTPUT", "Cost", DataType="Currency")],
-         "datasetLinks": [], "datasetParameters": [], "sourceCriteria": []}
+    input_a = _param("INPUT", "ProductId", DomainObject="Product2")
+    output_a = _param("OUTPUT", "Cost", DataType="Currency")
+    input_b = _param("INPUT", "ProductId", DataType="Number", DomainObject="Product2")
+    output_b = _param("OUTPUT", "Margin", DataType="Percent")
+    link_a = {"Id": "0lX-A", "DeveloperName": "Products", "MasterLabel": "Products",
+              "SetupName": "Products", "SourceObject": "Product2", "IsDefault": True,
+              "Description": "Default product dataset"}
+    link_b = dict(link_a, Id="0lX-B", IsDefault=False)
+    a = {"table": _table_row(Status="Active"),
+         "metadata": _sample_metadata(collectOperator="None"),
+         "parameters": [input_a, output_a],
+         "datasetLinks": [link_a],
+         "datasetParameters": [{
+             "DecisionTableDatasetLinkId": "0lX-A",
+             "DecisionTableParameterId": input_a["Id"],
+             "DatasetFieldName": "ProductCode",
+             "DatasetSourceObject": "Product2",
+         }],
+         "sourceCriteria": [{"SourceFieldName": "Status", "Operator": "Equals",
+                              "Value": "Active", "ValueType": "Literal",
+                              "SequenceNumber": 1}]}
     b = {"table": _table_row(Status="Inactive"),
-         "metadata": _sample_metadata(filterResultBy="Priority"),
-         "parameters": [_param("INPUT", "ProductId", DataType="Number"),  # changed dataType
-                        _param("OUTPUT", "Margin", DataType="Percent")],   # ProductId→Cost swap
-         "datasetLinks": [], "datasetParameters": [], "sourceCriteria": []}
+         "metadata": _sample_metadata(filterResultBy="Priority", collectOperator="Maximum"),
+         "parameters": [input_b, output_b],
+         "datasetLinks": [link_b],
+         "datasetParameters": [{
+             "DecisionTableDatasetLinkId": "0lX-B",
+             "DecisionTableParameterId": input_b["Id"],
+             "DatasetFieldName": "StockKeepingUnit",
+             "DatasetSourceObject": "Product2",
+         }],
+         "sourceCriteria": [{"SourceFieldName": "Status", "Operator": "Equals",
+                              "Value": "Active", "ValueType": "Picklist",
+                              "SequenceNumber": 2}]}
     delta = diff_definitions(a, b)
     check("detects Status change", delta["attributes"].get("Status") ==
           {"a": "Active", "b": "Inactive"}, delta["attributes"])
     check("detects hitPolicy change", "filterResultBy" in delta["attributes"])
+    check("detects collectOperator change", "collectOperator" in delta["attributes"])
     check("detects removed column (OUTPUT:Cost)", "OUTPUT:Cost" in delta["columns"]["removed"])
     check("detects added column (OUTPUT:Margin)", "OUTPUT:Margin" in delta["columns"]["added"])
     check("detects changed column (INPUT:ProductId dataType)",
           any(c["column"] == "INPUT:ProductId" and "dataType" in c["fields"]
               for c in delta["columns"]["changed"]), delta["columns"]["changed"])
+    check("detects dataset-link property changes",
+          bool(delta["datasetLinks"]["removed"] and delta["datasetLinks"]["added"]),
+          delta["datasetLinks"])
+    check("detects dataset-parameter mapping changes",
+          bool(delta["datasetParameters"]["removed"]
+               and delta["datasetParameters"]["added"]), delta["datasetParameters"])
+    check("detects full source-criteria changes",
+          bool(delta["sourceCriteria"]["removed"] and delta["sourceCriteria"]["added"]),
+          delta["sourceCriteria"])
 
 
 # --------------------------------------------------------------------------- #
@@ -727,7 +822,7 @@ def _all_types_spec(**over):
 
 def test_translator_csv_upload_all_types():
     print("test_translator_csv_upload_all_types")
-    # All 7 column dataTypes survive every translator (Metadata / Tooling / Connect).
+    # All 7 column dataTypes survive both supported translators.
     spec = _all_types_spec()
     want = {"String", "Number", "Currency", "Percent", "Boolean", "Date", "DateTime"}
     meta = _payload.to_metadata(spec)
@@ -736,9 +831,6 @@ def test_translator_csv_upload_all_types():
     tool = _payload.to_tooling(spec)
     tool_types = {p["dataType"] for p in tool["Metadata"]["decisionTableParameters"]}
     check("tooling preserves all 7 output dataTypes", want <= tool_types, tool_types)
-    conn = _payload.to_connect(spec)
-    conn_types = {p["dataType"] for p in conn["parameters"]}
-    check("connect preserves all 7 output dataTypes", want <= conn_types, conn_types)
 
 
 # --------------------------------------------------------------------------- #
@@ -813,7 +905,7 @@ def test_trace_cli_json():
 
 
 # --------------------------------------------------------------------------- #
-# _payload — the three canonical-spec → per-path translators + XML round-trip
+# _payload — Metadata/Tooling translators + XML round-trip
 # --------------------------------------------------------------------------- #
 
 def _cost_book_spec(**over):
@@ -839,7 +931,18 @@ def _cost_book_spec(**over):
 
 def test_translator_metadata():
     print("test_translator_metadata")
-    body = _payload.to_metadata(_cost_book_spec())
+    spec = _cost_book_spec(
+        sourceConditionLogic="1",
+        decisionTableParameters=[
+            {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+             "operator": "Equals", "sequence": 1, "isRequired": True,
+             "decimalScale": 2, "isPriorityField": True, "length": 80},
+            {"usage": "INPUT", "fieldName": "CurrencyIsoCode", "dataType": "String",
+             "operator": "Equals", "sequence": 2, "isRequired": True},
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "String"},
+        ],
+    )
+    body = _payload.to_metadata(spec)
     check("metadata keeps dataSourceType name", body["dataSourceType"] == "SingleSobject")
     check("metadata keeps filterResultBy name", body["filterResultBy"] == "OutputOrder")
     check("metadata does NOT emit fullName", "fullName" not in body)
@@ -856,6 +959,10 @@ def test_translator_metadata():
     check("metadata OUTPUT column drops operator+sequence",
           "operator" not in out and "sequence" not in out)
     check("metadata usage stays UPPER-case", inp["usage"] == "INPUT")
+    check("metadata preserves sourceConditionLogic", body.get("sourceConditionLogic") == "1")
+    check("metadata preserves documented parameter fields",
+          inp.get("decimalScale") == 2 and inp.get("isPriorityField") is True
+          and inp.get("length") == 80, inp)
 
 
 def test_translator_tooling():
@@ -878,26 +985,15 @@ def test_translator_tooling():
           live["Metadata"].get("status") == "Inactive", live["Metadata"].get("status"))
     check("tooling PATCH never carries the spec's own status",
           live["Metadata"].get("status") != spec_active["status"])
-
-
-def test_translator_connect():
-    print("test_translator_connect")
-    body = _payload.to_connect(_cost_book_spec())
-    check("connect renames dataSourceType→sourceType",
-          body.get("sourceType") == "SingleSobject" and "dataSourceType" not in body)
-    check("connect renames filterResultBy→decisionResultPolicy",
-          body.get("decisionResultPolicy") == "OutputOrder" and "filterResultBy" not in body)
-    check("connect renames decisionTableParameters→parameters",
-          "parameters" in body and "decisionTableParameters" not in body)
-    check("connect requires status (passed through)", body.get("status") == "Active")
-    inp = [c for c in body["parameters"] if c["usage"] == "Input"][0]
-    check("connect title-cases usage (INPUT→Input)", inp["usage"] == "Input")
-    check("connect adds columnMapping per column", inp.get("columnMapping") == "ProductId")
-    # status defaulting when the spec omits it
-    spec = _cost_book_spec()
-    del spec["status"]
-    check("connect defaults missing status to Draft",
-          _payload.to_connect(spec)["status"] == "Draft")
+    live_metadata = _payload.to_metadata(spec_active)
+    live_metadata["executionType"] = "Hbase"  # Tooling/XML casing divergence is benign.
+    live_metadata["refreshStatus"] = "Completed"  # response-only field is ignored.
+    check("requested-field verifier ignores casing and response-only fields",
+          _payload.verify_requested_metadata(spec_active, live_metadata) == [])
+    changed = dict(live_metadata, setupName="Wrong Label")
+    mismatches = _payload.verify_requested_metadata(spec_active, changed)
+    check("requested-field verifier reports requested drift",
+          len(mismatches) == 1 and "setupName" in mismatches[0], mismatches)
 
 
 def test_translator_csv_upload():
@@ -911,14 +1007,6 @@ def test_translator_csv_upload():
           meta.get("sourceObject") == "CSV", meta.get("sourceObject"))
     check("metadata CsvUpload keeps both columns",
           len(meta["decisionTableParameters"]) == 2)
-    # Connect renames dataSourceType→sourceType but keeps sourceObject + value.
-    conn = _payload.to_connect(spec)
-    check("connect CsvUpload renames to sourceType=CsvUpload",
-          conn.get("sourceType") == "CsvUpload" and "dataSourceType" not in conn, conn)
-    check("connect CsvUpload keeps sourceObject='CSV'",
-          conn.get("sourceObject") == "CSV", conn.get("sourceObject"))
-    check("connect CsvUpload defaults status to Draft (spec omits it)",
-          conn.get("status") == "Draft", conn.get("status"))
 
 
 def test_metadata_xml_roundtrip():
@@ -1020,7 +1108,7 @@ def test_guarded_update_active_roundtrip():
     engine.run_guarded_update(
         table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
         mutate=lambda: calls.append("mutate"),
-        activate_after=True, reactivate_on_failure=True, verb="update")
+        activate_after=True, verb="update")
     check("guarded update called mutate once", calls == ["mutate"], calls)
     check("guarded update deactivated then reactivated",
           fake.status_sets == ["Inactive", "Active"], fake.status_sets)
@@ -1038,32 +1126,10 @@ def test_guarded_update_leave_deactivated():
     check("activate_after=False never reactivates", fake.status_sets == ["Inactive"])
 
 
-def test_guarded_update_connect_failure_left_deactivated():
-    print("test_guarded_update_connect_failure_left_deactivated")
-    # A Connect mutate that fails must leave the table DEACTIVATED (half-applied
-    # body not re-enabled) — reactivate_on_failure=False for the connect path.
-    fake = _LifecycleFake(status="Active")
-    engine = LifecycleEngine(fake, max_wait_seconds=1)
-
-    def _boom():
-        raise DecisionTableClientError("connect PATCH rejected")
-
-    raised = False
-    try:
-        engine.run_guarded_update(
-            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_boom, activate_after=True, reactivate_on_failure=False, verb="update")
-    except DecisionTableClientError:
-        raised = True
-    check("connect-path failure re-raises", raised)
-    check("connect-path failure leaves table Inactive (not reactivated)",
-          fake.status == "Inactive", fake.status_sets)
-
-
 def test_guarded_update_tooling_failure_reactivates():
     print("test_guarded_update_tooling_failure_reactivates")
     # An atomic Tooling PATCH that fails leaves the record byte-identical, so the
-    # table IS reactivated (reactivate_on_failure=True) — a failed edit never
+    # table IS reactivated — a failed edit never
     # knocks a live table offline. The failure is still re-raised.
     fake = _LifecycleFake(status="Active")
     engine = LifecycleEngine(fake, max_wait_seconds=1)
@@ -1075,12 +1141,33 @@ def test_guarded_update_tooling_failure_reactivates():
     try:
         engine.run_guarded_update(
             table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_boom, activate_after=True, reactivate_on_failure=True, verb="update")
+            mutate=_boom, activate_after=True, verb="update")
     except DecisionTableClientError:
         raised = True
     check("tooling-path failure re-raises", raised)
     check("tooling-path failure reactivates (record unchanged)",
           fake.status == "Active" and fake.status_sets == ["Inactive", "Active"],
+          fake.status_sets)
+
+
+def test_guarded_update_verification_failure_stays_inactive():
+    print("test_guarded_update_verification_failure_stays_inactive")
+    fake = _LifecycleFake(status="Active")
+    engine = LifecycleEngine(fake, max_wait_seconds=1)
+
+    def _unverified():
+        raise MutationVerificationError("PATCH returned success; GET-back mismatched")
+
+    raised = False
+    try:
+        engine.run_guarded_update(
+            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
+            mutate=_unverified, activate_after=True, verb="update")
+    except MutationVerificationError:
+        raised = True
+    check("verification failure re-raises", raised)
+    check("verification failure leaves table inactive",
+          fake.status == "Inactive" and fake.status_sets == ["Inactive"],
           fake.status_sets)
 
 
@@ -1196,29 +1283,11 @@ def test_update_cli_deactivate_first_roundtrip(tmp_spec):
     defn_patches = [p for p in patches
                     if isinstance(p[2].get("Metadata"), dict)
                     and "decisionTableParameters" in p[2]["Metadata"]]
-    check("deactivate-first PATCHes the definition body (with columns)",
-          len(defn_patches) == 1, defn_patches)
+    check("deactivate-first PATCHes a definition body with columns",
+          bool(defn_patches), defn_patches)
     check("definition edit stamps the live status (Inactive), never the spec's Active",
-          bool(defn_patches) and defn_patches[0][2]["Metadata"].get("status") == "Inactive",
-          defn_patches[0][2]["Metadata"].get("status") if defn_patches else None)
-
-
-def test_update_cli_connect_path_stamps_live_status(tmp_spec):
-    print("test_update_cli_connect_path_stamps_live_status")
-    # Regression: a Connect Definitions PATCH REQUIRES status (live-verified —
-    # FIELD_INTEGRITY_EXCEPTION "Required field is missing: status" — identical
-    # to the Tooling PATCH requirement). update_cli's --path connect branch must
-    # stamp the table's current live status onto the PATCH body, not drop it.
-    fake = _FakeTransport(table=_table_row(Status="Draft"), dry_run=False)
-    rc, _ = _run_cli_with_fake(
-        update_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "connect", "--confirm"], fake)
-    check("connect-path update exits 0", rc == 0, rc)
-    patches = [m for m in fake.mutations if m[0] == "PATCH"]
-    check("connect-path update issues exactly one PATCH", len(patches) == 1, patches)
-    check("connect-path update PATCH body carries the live status",
-          bool(patches) and patches[0][2].get("status") == "Draft",
-          patches[0][2] if patches else None)
+          any(p[2]["Metadata"].get("status") == "Inactive" for p in defn_patches),
+          [p[2]["Metadata"].get("status") for p in defn_patches])
 
 
 def test_activate_cli_preview_vs_confirm():
@@ -1305,9 +1374,21 @@ def test_refresh_cli_exits_nonzero_on_bad_outcomes():
 def _csv_transport(**over):
     """A fake transport shaped like a CsvUpload table for the upload-CLI tests."""
     kw = dict(table=_table_row(name="RLM_CsvUploadTable", SourceObject="CSV"),
-              metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"))
+              metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+              params=[_param("INPUT", "Region"),
+                      _param("OUTPUT", "DiscountPercent", DataType="Percent")])
     kw.update(over)
     return _FakeTransport(**kw)
+
+
+def test_upload_header_mismatch_is_intentional():
+    print("test_upload_header_mismatch_is_intentional")
+    defn = _resolve.load_definition(_csv_transport(), "RLM_CsvUploadTable")
+    notes = upload_cli._check_headers(["Region", "Unexpected"], defn)
+    check("header mismatch reports the missing table column",
+          any("DiscountPercent" in note and "missing" in note for note in notes), notes)
+    check("header mismatch reports the unexpected CSV column",
+          any("Unexpected" in note and "no matching" in note for note in notes), notes)
 
 
 def test_upload_cli_preview_vs_confirm(tmp_csv):
@@ -1525,7 +1606,7 @@ def main():
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
               test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
-              test_validate_spec_status_warns_on_create_only,
+              test_validate_spec_create_and_structural_errors,
               test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
@@ -1542,7 +1623,7 @@ def main():
               test_trace_correlation, test_list_cli_json,
               test_describe_cli_grouped, test_trace_cli_json,
               # Phase 2 — translators + XML round-trip
-              test_translator_metadata, test_translator_tooling, test_translator_connect,
+              test_translator_metadata, test_translator_tooling,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
               test_assert_editable_guard,
@@ -1550,8 +1631,8 @@ def main():
               test_activate_deactivate_sobject_is_table_first,
               test_guarded_update_active_roundtrip,
               test_guarded_update_leave_deactivated,
-              test_guarded_update_connect_failure_left_deactivated,
               test_guarded_update_tooling_failure_reactivates,
+              test_guarded_update_verification_failure_stays_inactive,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
@@ -1559,6 +1640,7 @@ def main():
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               # Phase 2 — CsvUpload data-load CLI gating
+              test_upload_header_mismatch_is_intentional,
               test_upload_cli_missing_csv_errors)
     for fn in simple:
         fn()
@@ -1570,7 +1652,6 @@ def main():
     test_create_cli_invalid_spec_blocks(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
-    test_update_cli_connect_path_stamps_live_status(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_and_version(csv_path)

@@ -20,16 +20,18 @@ lifecycle transitions the mutator CLIs need:
     not active``); conversely the table cannot activate without an Active
     version (``INVALID_INPUT: We couldn't find an active decision table version
     for this date``). :meth:`activate`/:meth:`deactivate` detect
-    ``dataSourceType == CsvUpload`` and PATCH version 1's ``versionStatus``
-    (Connect) instead of the table's ``Metadata.status`` — the table's own
-    Status cascades with no separate Tooling PATCH.
+    ``dataSourceType == CsvUpload`` and safely resolve the sole/active file-import
+    version before PATCHing its ``versionStatus`` (Connect) instead of the table's
+    ``Metadata.status`` — the table's own Status cascades with no separate Tooling
+    PATCH. Ambiguous multi-version tables are refused rather than silently targeting
+    version 1.
   * **the active-edit guard** — an Active table's definition cannot be modified
     or deleted in place (``FIELD_NOT_UPDATABLE`` / "Can't edit an active Decision
     Table"). :meth:`assert_editable` refuses up front; :meth:`run_guarded_update`
     runs the deactivate → mutate → reactivate sequence for callers that opt in.
   * **refresh** — invoke the ``refreshDecisionTable`` standard action with the
-    **live-verified** ``isDecisionTableIncremental`` flag (NOT the ``isIncremental``
-    the CCI tasks send). Async + ~100/hr; returns ``Queued``.
+    **live-verified** ``isDecisionTableIncremental`` flag. Async; full-refresh
+    limits use separate Standard (40/hour) and Advanced (60/hour) pools.
   * **metadata deploy** — generate a ``.decisionTable-meta.xml`` into an **OS temp
     SFDX project outside the repo**, ``sf project deploy start`` it with
     ``--ignore-conflicts`` (temp project has no source tracking), and remove the
@@ -39,12 +41,10 @@ lifecycle transitions the mutator CLIs need:
 Two safety rules mirror the Expression Set engine
 (``scripts/expression_sets/_lifecycle.py``):
 
-  * A guarded update reactivates only when ``activate_after`` AND the mutate
-    succeeded (or under dry-run). A **failed Connect full-body PATCH** can leave a
-    half-mutated definition, so it is left DEACTIVATED by default rather than
-    re-enabled. ``reactivate_on_failure`` relaxes this for the **Tooling
-    ``Metadata`` PATCH**, which is atomic (a failed PATCH leaves the record
-    byte-identical) — a failed Tooling edit then never knocks a live table offline.
+  * Definition updates use the atomic Tooling ``Metadata`` PATCH. A rejected PATCH
+    leaves the record unchanged, so a guarded update reactivates the table even when
+    the request fails. If the PATCH returns success but GET-back verification fails,
+    the table stays inactive rather than serving an unverified definition.
   * The engine only reactivates a table that **was active** before the edit; a
     Draft/Inactive table is left as-is.
 
@@ -98,6 +98,15 @@ _UPLOAD_ERROR = {"CompletedWithErrors", "Failed"}
 
 class LifecycleError(RuntimeError):
     """Raised on a lifecycle failure in the Decision Table toolkit."""
+
+
+class MutationVerificationError(LifecycleError):
+    """A write returned success, but its persisted definition is unverified.
+
+    Guarded updates must not reactivate the table automatically in this state:
+    unlike a rejected atomic PATCH, the mutation may already have changed the
+    definition. Leaving it inactive is the safer failure mode.
+    """
 
 
 class LifecycleEngine:
@@ -236,15 +245,53 @@ class LifecycleEngine:
         )
         return last
 
+    def _file_import_versions(self, record_id: str) -> List[Dict[str, Any]]:
+        """Return validated file-import version entries from Tooling Metadata."""
+        versions = self._current_metadata(record_id).get(
+            "decisionTableFileImportVersions"
+        ) or []
+        if not isinstance(versions, list):
+            raise LifecycleError(
+                f"DecisionTable {record_id} returned a malformed "
+                "decisionTableFileImportVersions value."
+            )
+        return [v for v in versions if isinstance(v, dict)]
+
+    def _resolve_lifecycle_version(self, record_id: str, target_status: str) -> int:
+        """Resolve the safe CsvUpload version for an activate/deactivate transition.
+
+        The current toolkit has no version-selection flag on the table-level lifecycle
+        CLIs. A sole version is unambiguous. For deactivation, an already-active version
+        is also unambiguous. Any other multi-version shape is refused so a future org
+        cannot be damaged by the historical hardcoded-version-1 assumption.
+        """
+        versions = self._file_import_versions(record_id)
+        numbered = [v for v in versions if isinstance(v.get("versionNumber"), int)]
+        if len(numbered) == 1:
+            return int(numbered[0]["versionNumber"])
+        if target_status == _STATUS_INACTIVE:
+            active = [
+                v for v in numbered
+                if v.get("versionStatus") in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS)
+            ]
+            if len(active) == 1:
+                return int(active[0]["versionNumber"])
+        detail = [
+            {"versionNumber": v.get("versionNumber"), "versionStatus": v.get("versionStatus")}
+            for v in versions
+        ]
+        raise LifecycleError(
+            f"DecisionTable {record_id} does not have one unambiguous file-import "
+            f"version for {target_status}: {detail!r}. The table-level lifecycle "
+            "commands intentionally refuse ambiguous multi-version tables."
+        )
+
     def _set_version_status(self, record_id: str, status: str,
-                             version_number: int = 1) -> None:
+                             version_number: int) -> None:
         """PATCH a CsvUpload table's file-import version's ``versionStatus`` (Connect).
 
         The table's own ``Status`` is a platform-derived mirror of this — see the
-        module docstring. Assumes version 1 (the toolkit does not yet support
-        multi-version tables elsewhere either — see ``deactivate_decision_table.py``
-        / ``delete_decision_table.py``, which made the same assumption before this
-        was centralized here).
+        module docstring. The caller must resolve an unambiguous version first.
         """
         vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(version_number)}"
         self.t.connect("PATCH", vpath, {"versionStatus": status})
@@ -258,7 +305,7 @@ class LifecycleEngine:
         GET :meth:`_current_metadata` uses — and returns the matching version's
         ``versionStatus``, or ``None`` if that version doesn't exist.
         """
-        versions = self._current_metadata(record_id).get("decisionTableFileImportVersions") or []
+        versions = self._file_import_versions(record_id)
         for version in versions:
             if version.get("versionNumber") == version_number:
                 return version.get("versionStatus")
@@ -267,12 +314,13 @@ class LifecycleEngine:
     def activate(self, record_id: str) -> None:
         """Set Status → Active and poll past ``ActivationInProgress`` (async).
 
-        CsvUpload tables are version-first (see module docstring): PATCHes
-        version 1's ``versionStatus`` instead of the table's ``Metadata.status``
-        — the table's Status cascades from it.
+        CsvUpload tables are version-first (see module docstring): resolves and
+        PATCHes the sole file-import version instead of the table's
+        ``Metadata.status`` — the table's Status cascades from it.
         """
         if self._is_csv_upload(record_id):
-            self._set_version_status(record_id, _STATUS_ACTIVE)
+            version_number = self._resolve_lifecycle_version(record_id, _STATUS_ACTIVE)
+            self._set_version_status(record_id, _STATUS_ACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_ACTIVE)
         self.wait_for_status(record_id, _STATUS_ACTIVE)
@@ -283,7 +331,8 @@ class LifecycleEngine:
         CsvUpload tables are version-first — see :meth:`activate`.
         """
         if self._is_csv_upload(record_id):
-            self._set_version_status(record_id, _STATUS_INACTIVE)
+            version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
+            self._set_version_status(record_id, _STATUS_INACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_INACTIVE)
         self.wait_for_status(record_id, _STATUS_INACTIVE)
@@ -316,7 +365,6 @@ class LifecycleEngine:
         table_row: Dict[str, Any],
         mutate: Callable[[], None],
         activate_after: bool,
-        reactivate_on_failure: bool = False,
         verb: str = "update",
     ) -> None:
         """Deactivate → mutate → reactivate an Active table (deactivate-first).
@@ -326,11 +374,12 @@ class LifecycleEngine:
         reactivated (``activate_after`` gates the reactivation). A Draft/Inactive
         table is mutated in place with no status change.
 
-        On mutate failure the table is left DEACTIVATED by default (a failed
-        Connect full-body PATCH can leave a half-mutated definition, and
-        re-enabling that is worse than leaving it offline). ``reactivate_on_failure``
-        relaxes this for the atomic Tooling ``Metadata`` PATCH (a failed PATCH
-        leaves the record byte-identical). The failure is always re-raised.
+        Definition mutations use the atomic Tooling ``Metadata`` PATCH. On a
+        rejected PATCH, an originally Active table is reactivated because its
+        definition is unchanged. A :class:`MutationVerificationError` means the
+        PATCH returned success but GET-back verification failed; that table stays
+        inactive because reactivating an unverified definition is unsafe. The
+        failure is always re-raised.
         """
         record_id = table_row["Id"]
         was_active = table_row.get("Status") in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS)
@@ -352,10 +401,15 @@ class LifecycleEngine:
         except Exception as exc:  # noqa: BLE001 — re-raised below
             failure = exc
         finally:
+            verification_failure = isinstance(failure, MutationVerificationError)
             should_reactivate = (
                 activate_after
                 and was_active
-                and (mutate_succeeded or self.dry_run or (reactivate_on_failure and deactivated))
+                and (
+                    mutate_succeeded
+                    or self.dry_run
+                    or (deactivated and not verification_failure)
+                )
             )
             if should_reactivate:
                 if failure and not (mutate_succeeded or self.dry_run):
@@ -374,17 +428,16 @@ class LifecycleEngine:
                             f"{reactivate_exc}"
                         ) from failure
                     raise
-            elif failure and deactivated and not self.dry_run:
-                self.log(
-                    f"{verb} failed and may have partially applied. Leaving "
-                    f"DecisionTable {record_id} DEACTIVATED to avoid re-enabling a "
-                    f"corrupted definition. Inspect/restore it, then reactivate with "
-                    f"activate_decision_table.py."
-                )
             elif deactivated and not self.dry_run and not activate_after:
                 self.log(
                     f"activate_after=false; leaving DecisionTable {record_id} "
                     f"DEACTIVATED as requested."
+                )
+            elif deactivated and verification_failure:
+                self.log(
+                    f"{verb} returned success but GET-back verification failed; "
+                    f"leaving DecisionTable {record_id} DEACTIVATED so an "
+                    "unverified definition is not put back into service."
                 )
 
         if failure:
@@ -394,14 +447,14 @@ class LifecycleEngine:
 
     def refresh(self, developer_name: str, *, incremental: bool = False,
                 version_number: Optional[int] = None) -> Dict[str, Any]:
-        """Invoke the ``refreshDecisionTable`` standard action (async, ~100/hr).
+        """Invoke the asynchronous ``refreshDecisionTable`` standard action.
 
-        Uses the **live-verified** ``isDecisionTableIncremental`` flag — the CCI
-        tasks send ``isIncremental``, which the action ignores (silently falling
-        back to a full refresh). Returns the normalized action result
+        Uses the **live-verified** ``isDecisionTableIncremental`` flag. Returns the
+        normalized action result
         (``{"isSuccess", "status", "raw"}``); ``status`` is typically ``Queued``.
-        The refresh is asynchronous — ``DecisionTable.LastSyncDate`` advancing is
-        the completion signal, not this return value.
+        The refresh is asynchronous. ``DecisionTable.LastSyncDate`` is the full
+        refresh completion signal; incremental refresh advances
+        ``LastIncrementalSyncDate`` only.
         """
         inputs: Dict[str, Any] = {
             "DecisionTableApiName": developer_name,
@@ -512,4 +565,3 @@ class LifecycleEngine:
         self.log(f"Deleted DecisionTable {record_id} (Tooling).")
         return {"action": "delete", "path": "tooling", "id": record_id,
                 "dryRun": self.dry_run}
-

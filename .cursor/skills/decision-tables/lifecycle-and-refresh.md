@@ -11,7 +11,7 @@
 ## Lifecycle at a glance
 
 ```
-author/deploy  →  activate  →  (edit needs deactivate-first)  →  refresh (async, 100/hr)
+author/deploy  →  activate  →  (edit needs deactivate-first)  →  refresh (async)
  .decisionTable    Status=      deactivate → edit → reactivate     rows sync into engine cache
  -meta.xml         Active
 ```
@@ -66,21 +66,20 @@ an Active table up front unless `--deactivate-first` runs the guarded
 deactivate → mutate → reactivate sequence. Crucially, **the spec's `status` never
 drives the update** — so a `status` of `Active` carried over from a create spec or
 a describe round-trip can't re-activate the table mid-sequence and silently defeat
-`--leave-deactivated`. The mechanism differs by path:
+`--leave-deactivated`.
 
-- **Connect PATCH** — `update` drops `status` from the flat body outright.
-- **Tooling `Metadata` PATCH** — `status` is a **required field** (a status-free
+The toolkit updates definitions only through **Tooling `Metadata` PATCH**.
+`status` is a **required field** (a status-free
   body is rejected with `FIELD_INTEGRITY_EXCEPTION: Required field is missing:
   status`, live-confirmed on a Draft scratch table). So `update` reads the table's
   **current live** `status` at PATCH time (via `LifecycleEngine.get_status`) and
   stamps *that* onto `_payload.tooling_metadata_only(spec, live_status=…)` — during
   a deactivate-first sequence the engine has already flipped it to `Inactive`, so
   the definition edit merely re-asserts the status the table already has. The
-  spec's own `status` is dropped first regardless.
-
-Either way, the lifecycle engine (`_lifecycle.LifecycleEngine`) alone owns the
-Active↔Inactive transitions. Add-only inserts (a new parameter, say) may apply in
-place — confirm per path.
+  spec's own `status` is dropped first regardless. The lifecycle engine
+  (`_lifecycle.LifecycleEngine`) alone owns the Active↔Inactive transitions.
+  Raw Connect Definitions mutations are reference-only and are not exposed as
+  toolkit definition-write paths.
 
 ## Refresh (data sync) — in depth
 
@@ -113,17 +112,18 @@ live to the engine.
 > tasks is a candidate follow-up** (behavioral change — verify on a live org
 > before merging).
 
-- **Async + rate-limited.** The action is asynchronous and capped at **~100
-  refreshes/hour**. It returns a tracker, not a synchronous result; rows are not
-  live until it completes. Do **not** loop refreshes in a tight build step.
-- **`LastSyncDate`** on the `DecisionTable` advances when a refresh completes —
-  `list`/`describe` surface it, and it's the cheap signal that a refresh landed.
+- **Async + rate-limited.** The action is asynchronous. Full refreshes use
+  separate hourly pools: **40 Standard** and **60 Advanced**; CSV-based tables
+  inherit the Advanced pool. Do **not** loop refreshes in a tight build step.
+- A completed **full refresh** advances `LastSyncDate`; a completed
+  **incremental refresh** advances `LastIncrementalSyncDate` and does not advance
+  `LastSyncDate`. `list`/`describe` surface both fields.
 - The async-response shape is live-verified: the action returns an invocable-action
   envelope carrying `outputValues.Status = "Queued"` (no synchronous result, and no
   `AsyncOperationTracker` row was observed for the refresh on the probed scratch
-  org). The `LastSyncDate` advance is the completion signal. The ~100/hr limit is
-  doc-grounded; its exact rejection text was not exercised (the probe stayed well
-  under the cap).
+  org). No tracker ID is returned. Poll the appropriate timestamp/status field
+  rather than expecting a tracker resource. The hourly rejection behavior was not
+  exercised (the probe stayed well under both pools).
 
 Incremental refresh is only meaningful when `isIncrementalSyncEnabled` is true on
 the table (observed `false` on the shipped SObject-backed tables).
@@ -135,19 +135,22 @@ source SObject, so its lifecycle has an extra step between deploy and refresh:
 **upload the rows**. The full sequence:
 
 ```
-create (auto-mints Draft version 1)  →  upload CSV (two-phase)  →  activate the version
+create (auto-mints version 1)  →  upload CSV (two-phase)  →  activate the version
   →  activate the table  →  refresh
 ```
 
-1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); this auto-mints a
-   **Draft version 1**. Re-uploading does **not** mint a v2 (see the version note
+1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); this auto-mints
+   version 1. A generic `usageType=Bre` live probe returned **Draft**; Salesforce
+   Pricing documentation describes the initial Pricing version as **Inactive**.
+   Preserve that product/surface distinction. Re-uploading does **not** mint a v2 (see the version note
    below) — every upload targets version 1.
 2. **Upload** the rows with `upload_decision_table_data.py` — a two-phase load
    (insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the
    table's Connect `/file` sub-resource). **`deleteAllRows:false` (append) is the
    only reliable write** — `--overwrite` (`deleteAllRows:true`) FAILS on 262/v67.0
-   (`uploadStatus=Failed`, 0 rows, existing rows kept; to replace rows, use a fresh
-   version/table + append). The import is **async** and rows with a cell that
+   (`uploadStatus=Failed`, 0 rows, existing rows kept). For Salesforce Pricing,
+   multiple CSV versions aren't supported, so replace rows with a **fresh table**
+   plus append. The import is **async** and rows with a cell that
    doesn't match a column's `dataType` drop silently → `CompletedWithErrors`; opt
    into `--wait-for-status` to catch that. See the full upload contract in
    `authoring-and-data-model.md` → *CSV Based tables*.
@@ -169,7 +172,8 @@ create (auto-mints Draft version 1)  →  upload CSV (two-phase)  →  activate 
 
    So pass a real `refresh_decision_table.py --version-number N`.
 
-> **No v2 on re-upload (✅ live-verified).** Create auto-mints Draft version 1;
+> **No v2 on re-upload (✅ live-verified for a generic BRE table).** Create
+> auto-minted Draft version 1 in that probe;
 > re-uploading (append or overwrite, with or without `--version-number`) does NOT
 > mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
 > v1. There is no scripted multi-version fan-out via this toolkit; uploading to a

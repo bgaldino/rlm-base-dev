@@ -20,8 +20,8 @@
 > disposable scratch org (never a shared one). A few sections remain
 > **📄 doc-grounded** (from `meta_decisiontable.htm`, `dt_setup_objects.htm`,
 > `lookup_table_resources.htm`) where no org exercised the path — each is called
-> out inline (the other Connect runtime resources and the ~100/hr refresh-limit
-> rejection text). The `CsvUpload` data layer — the two-phase `/file` upload and
+> out inline (the other Connect runtime resources and the refresh-limit
+> rejection behavior). The `CsvUpload` data layer — the two-phase `/file` upload and
 > the `/data` GET — is now **✅ live-verified** (see *CSV Based tables*).
 > Re-verify on the target release at merge time.
 
@@ -33,9 +33,9 @@ A Decision Table is **two layers**:
    policy, and the binding to a data source. Lives in **Metadata API**
    (`.decisionTable-meta.xml`) and, equivalently, in the **Tooling** setup
    objects (the `DecisionTable.Metadata` complexvalue inlines the children).
-2. **Data** — the rows the engine evaluates. Rows live in the **source SObject**
-   (`SingleSobject` / `MultipleSobjects` / `ContextDefinition`) or a **CSV
-   upload** (`CsvUpload`). Rows are synced into the BRE engine cache by the
+2. **Data** — the rows the engine evaluates. Rows live in source SObjects for
+   `SingleSobject` / `MultipleSobjects`, in a CSV upload for `CsvUpload`, or are
+   hydrated at runtime for `ContextDefinition` (no static rows to dump). Rows are synced into the BRE engine cache by the
    **async `refreshDecisionTable` action** (rate-limited, see *Refresh*).
 
 Editing the definition ≠ refreshing the data. A definition change is deployed;
@@ -44,9 +44,10 @@ be modified in place — deactivate first (see *Lifecycle*).
 
 ## Supported management paths
 
-Decision Table authoring spans **three APIs with divergent field vocabularies**.
-Pick by use case; the toolkit's canonical spec + per-path translators
-(`scripts/decision_tables/_payload.py`) hide the divergence.
+The toolkit writes Decision Table definitions through **Metadata or Tooling**.
+Raw Connect Definitions mutations are retained here only as a Release 262 API
+reference; Connect GET remains useful for comparative reads, and Connect CSV
+sub-resources remain the supported data/version path.
 
 - **Metadata API — source-controlled authoring (primary).** ✅ The shipped
   path: `.decisionTable-meta.xml` under `unpackaged/pre/5_decisiontables/` (and
@@ -58,15 +59,13 @@ Pick by use case; the toolkit's canonical spec + per-path translators
   `/services/data/v67.0/tooling/sobjects/<Object>`; each `DecisionTable` carries
   a **`Metadata` complexvalue** that inlines the parameters/criteria/import
   versions and matches the Metadata-API vocabulary exactly.
-- **Connect API — Decision Table Definitions CRUD.** ✅ (GET/PATCH verified;
-  POST/DELETE documented below for raw-API reference)
+- **Connect API — comparative definition GET + CSV sub-resources.** ✅
   `connect/business-rules/decision-table/definitions[/{id}]`. Uses a
   **different vocabulary** (`sourceType`, `decisionResultPolicy`, `parameters`,
   `usage` = `Input`/`Output`, 15-char `id`). The **collection endpoint is
   POST-only** (create) — there is no list-GET; GET is by-id. The toolkit exposes
-  Connect for **update** (`--path connect`) and sub-resource operations (CSV
-  upload, version PATCH, data GET, refresh). Connect create/delete are not
-  exposed in the toolkit CLI — see the README decision record for rationale.
+  Connect for optional comparative definition GETs and CSV upload, version
+  PATCH, and data GET. It exposes no Connect definition-mutation CLI path.
 
 ---
 
@@ -76,12 +75,14 @@ Pick by use case; the toolkit's canonical spec + per-path translators
 |---|---|---|
 | `DecisionTable` | `0lD` | The definition. `DeveloperName` = api name; `Status`, `UsageType`, `SourceObject`, `LastSyncDate`, and the **`Metadata`** complexvalue. |
 | `DecisionTableParameter` | `0lP` | A column. `DecisionTableId`, `FieldName`, `Usage` (INPUT/OUTPUT/ROWCRITERIA), `Operator`, `Sequence`, `DataType`, `FieldPath`, `IsRequired`, `IsGroupByField`, `SortType`, `DomainObject`. |
-| `DecisionTableDatasetLink` | `0lX` | Binds a source SObject for `MultipleSobjects`. `DecisionTableId`, `SourceObject`, `SetupName`, `IsDefault`, `Metadata`. |
+| `DecisionTableDatasetLink` | `0lX` | **Standard Decision Tables only.** Binds a source SObject for `MultipleSobjects`. `DecisionTableId`, `SourceObject`, `SetupName`, `IsDefault`, `Metadata`. |
 | `DecisionTblDatasetParameter` | `0lZ` | Join layer: maps a dataset link's field to a parameter. `DecisionTableDatasetLinkId`, `DecisionTableParameterId`, `DatasetFieldName`, `DatasetSourceObject`. |
 | `DecisionTableSourceCriteria` | `0VT` | Row-filter on the source (v59.0+). `DecisionTableId`, `SourceFieldName`, `Operator`, `Value`, `ValueType`, `SequenceNumber`. |
 
 The 5 objects are **Tooling API only** — they are not on the normal REST
-`/sobjects` surface. All 5 are independently queryable.
+`/sobjects` surface. `DecisionTable`, `DecisionTableParameter`,
+`DecisionTableDatasetLink`, and `DecisionTblDatasetParameter` are available from
+v51.0; `DecisionTableSourceCriteria` is available from v59.0.
 
 ### The `DecisionTable.Metadata` complexvalue — ✅ live-verified
 
@@ -136,7 +137,7 @@ file `RLM_CostBookEntries`):
         <usage>OUTPUT</usage>                           <!-- no operator/sequence -->
     </decisionTableParameters>
     <doesConsiderNullValue>false</doesConsiderNullValue>
-    <executionType>Hbase</executionType>               <!-- ⚠ MDAPI casing 'Hbase'; Tooling/Connect return 'HBASE' -->
+    <executionType>Hbase</executionType>               <!-- repo XML accepted live; official enum/Tooling use HBASE -->
     <filterResultBy>OutputOrder</filterResultBy>        <!-- hit policy -->
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
@@ -148,61 +149,51 @@ file `RLM_CostBookEntries`):
 </DecisionTable>
 ```
 
-> ⚠ **`executionType` casing is representation-specific.** Source XML uses
-> `Hbase`; Tooling `Metadata` and Connect return `HBASE`. Do not "correct" the
-> XML casing to match the API read — keep each representation's native form.
+> ⚠ **`executionType` casing needs context.** Official Metadata documentation
+> and Tooling reads use `HBASE`; this repo's shipped XML uses `Hbase` and was
+> accepted live. Preserve shipped XML for repo consistency, but don't generalize
+> that spelling as the sole Metadata form.
 
 ---
 
-## Enum catalog — 📄 doc-grounded (values in **bold** ✅ observed live)
+## Enum catalog — Metadata / Tooling
 
 | Field | Values |
 |---|---|
-| `dataSourceType` (MD/Tooling) / `sourceType` (Connect) | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
+| `dataSourceType` | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
 | `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
-| `filterResultBy` (MD) / `decisionResultPolicy` (Connect) | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
+| `filterResultBy` | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
 | `type` | Advanced, HighScaleExecution, HighVolume, LowVolume, **MediumVolume**, RealTime ⚠ see note below |
 | `status` | ActivationInProgress, **Active**, Draft, Inactive |
 | `usageType` (ExpsSetProcessType) | Bre (default), **DefaultPricing**, **DefaultRating**, **PricingDiscovery**, **RatingDiscovery**, **RevenueStandardTax**, ProductCategoryQualification, ProductQualification, RecordAlert, … |
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
-| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped live through a CsvUpload — per-cell CSV encoding in *CSV Based tables*; DateTime needs `…T…:….sssZ`, Boolean only `true`/`false`) |
+| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped on a generic `usageType=Bre` CSV probe; Salesforce Pricing CSV support is narrower—see *CSV Based tables*) |
 | `DecisionTableParameter.operator` | **Equals**, NotEquals, GreaterThan, **GreaterOrEqual**, LessThan, **LessOrEqual**, ExistsIn, Matches, IsNull, … |
 | `DecisionTableSourceCriteria.valueType` | Formula, **Literal**, Lookup, Parameter, Picklist |
-| `collectOperator` | **None**, … (used when `filterResultBy=CollectOperator`) |
-| `dtRowLevelOverrideType` (MD/Tooling) / `rowLevelOverrideType` (Connect) | **None**, … |
+| `collectOperator` | Count, Maximum, Minimum, **None**, Sum |
+| `dtRowLevelOverrideType` | Both, Condition, **None**, Operator |
 
 **v67.0 additions:** `decisionTableFileImportVersions[]` (per-import activation
 windows / rank / refresh; observed empty on SObject-backed tables),
-`isVersioned` (default true per docs; observed **false** on shipped
-SObject-backed tables and **null** via Connect).
+`isVersioned` is surface/product-specific: Metadata documents a true default;
+Tooling showed false on shipped SObject-backed and older unversioned tables;
+Salesforce Pricing after Release 262 automatically versions new tables; raw
+Connect GET returned null. Do not normalize those observations into one default.
 
-**`type: Advanced` is not a round-trip bug; it doesn't stick under this org's
-config.** The Setup UI's "New Decision Table" wizard exposes only a simplified
-**Standard**/**Advanced** picklist over this richer 6-value API enum —
-"Standard" maps to `MediumVolume`, not a literal `Standard` value (same
-UI-label/API-enum divergence as `filterResultBy`/`decisionResultPolicy`). The
-stored/read-back value is always correct; the two data sources diverge on
-*whether the request is honored at all* on a scratch org where the
-`BREAdvancedDesignerPsl` PermissionSetLicense ("Business Rules Engine Advanced
-Designer") is `Disabled`, `TotalLicenses: 0` (live-confirmed on this project's
-scratch orgs), reproduced identically on both the Tooling and Connect PATCH
-paths:
-- **SObject-backed** (`dataSourceType: SingleSobject`/`MultipleSobjects`) —
-  hard error, **directly attributable to the license**: `INSUFFICIENT_ACCESS:
-  You don't have the required permissions to create this decision table.`
-- **CsvUpload-backed** — no error; `type` silently stays/reverts to
-  `MediumVolume`. ⚠ **Cause not confirmed** — this is only an observed
-  correlation in an org that happens to have the same PSL disabled, not a
-  proven license effect. `PermissionSetLicense.Status` is not API-updateable
-  (`describe`: `updateable: false`), so the license could not be toggled to
-  test causation directly; it may be the same gate silently downgrading
-  instead of erroring, or an unconditional CsvUpload constraint independent of
-  licensing. Not resolved further (out of scope for this pass).
+**Advanced access observation (qualified).** On the probed scratch org, an
+SObject-backed `type=Advanced` request failed while the Advanced Designer PSL was
+disabled. A generic CSV probe stored/read `MediumVolume` after Advanced was
+requested, but the cause was not established. Do not infer that the Standard UI
+label universally maps to `MediumVolume`, or that the disabled PSL caused the CSV
+result, without a controlled entitlement test.
 
-Practical takeaway for this project's scratch orgs (PSL disabled by default,
-mechanism unconfirmed for CSV): treat a CsvUpload table's `type` as observed to
-stay `MediumVolume` regardless of what's requested.
+Raw Connect Definitions uses a different catalog in places: it names source and
+policy fields `sourceType` and `decisionResultPolicy`, permits only title-case
+`Input`/`Output` usages (no `ROWCRITERIA`), omits `ContextDefinition` from the
+documented source-type enum, and documents different source-criteria spellings.
+Its docs omit `DateTime`, although a generic live probe returned it. Treat these
+as surface differences rather than a shared validator catalog.
 
 ---
 
@@ -224,7 +215,11 @@ Connect GET returns `dataSourceType: null` (it populates `sourceType`) and
 
 ---
 
-## Connect API — Decision Table Definitions — ✅ live-verified (full CRUD)
+## Raw Connect Definitions API — reference only
+
+The toolkit does not expose these definition-mutation verbs. The by-id GET is
+used only for optional comparison with Tooling output. CSV `/file`, `/data`, and
+`/versions` sub-resources remain supported operational paths.
 
 Base: `connect/business-rules/decision-table/definitions`.
 
@@ -240,24 +235,23 @@ Base: `connect/business-rules/decision-table/definitions`.
 create body is **flat** (no `decisionTable` wrapper). The label field is
 **`setupName`** — `label` and `masterLabel` are both rejected
 (`JSON_PARSER_ERROR: Unrecognized field`). **`status` is required**
-(`MISSING_ARGUMENT: Specify a valid value for status parameter` without it; the
-toolkit defaults it to `Draft`). Every column needs a **`columnMapping`**
+(`MISSING_ARGUMENT: Specify a valid value for status parameter` without it).
+Every column needs a **`columnMapping`**
 (set == `fieldName` when the author omits it) and title-case `usage`
 (`Input`/`Output`).
 
 > ⚠ **GET-vs-POST shape gap.** The create response echoes
 > `"parameters": [], "sourceCriteria": []` (empty) **even though the columns
 > persist** — a GET-back confirms both columns. Never trust the POST echo for the
-> column set; **GET-back to confirm**. `describe_decision_table.py --connect` and
-> the `create`/`update` CLIs follow this.
+> column set; **GET-back to confirm**. `describe_decision_table.py --connect`
+> provides this optional comparison.
 
 **PATCH update** takes the same flat body and returns `{"isSuccess": true,
 "code": "200"}`. A benign `@`-suffixed advisory can ride along on success (e.g.
 `"After removing the row level override … will become redundant.@DecisionTable"`)
 — treat any `@`-suffixed message as **non-fatal** when `isSuccess` is true.
-Unlike the atomic Tooling PATCH, a **failed** full-body Connect PATCH can leave a
-**half-applied** definition (why the guarded update leaves a Connect-path table
-DEACTIVATED on failure rather than reactivating it).
+Earlier probes did not establish a general transactionality guarantee for raw
+Connect PATCH, so no transactionality claim is made here.
 
 ### Other Connect resources — 📄 doc-grounded (capture from `lookup_table_resources.htm`)
 
@@ -304,10 +298,11 @@ required on create.
 > `?versionNumber` — returns `uploadStatus = Failed` and loads **0 rows**; the
 > intended delete does not happen and pre-existing rows are **left intact**
 > (safe-fail). The **same CSV appended succeeds**, so `deleteAllRows:true` itself is
-> the culprit (pilot-gated or bugged). **The reliable "replace all rows" path is to
-> create a fresh version/table and append.** `--overwrite` carries this warning.
+> the culprit (pilot-gated or bugged). For Salesforce Pricing, which doesn't
+> support multiple CSV versions, the reliable replacement is a **fresh table**
+> plus append. `--overwrite` carries this warning.
 
-**Per-column CSV encoding (✅ live-verified — all 7 `dataType`s round-tripped).**
+**Per-column CSV encoding (✅ live-verified on a generic `usageType=Bre` table).**
 Each cell is coerced to the column's `dataType`; a cell that fails coercion drops
 that **row silently** (below). Confirmed encodings:
 
@@ -327,13 +322,19 @@ A mixed valid/invalid upload loads **only the valid rows** and finishes
 (neither the `/data` GET nor the `Metadata` reports which failed, only the aggregate
 status). This is why `--wait-for-status` is worth the wait.
 
+Salesforce Pricing documentation describes a narrower supported input set:
+DateTime/Text (`String` in Metadata), Boolean, and Number; Currency isn't
+supported as an input. Don't generalize the generic BRE seven-type probe to the
+Pricing product surface.
+
 > ⚠ **The `/data` POST (row-by-row edit) is non-functional** on the probed
 > release — load and replace rows through the `/file` upload, not a data POST.
 
 ### Version lifecycle
 
-A create auto-mints a **Draft version 1**. Activate the version before activating
-the table:
+A create auto-mints version 1. The generic BRE live probe returned **Draft**;
+Salesforce Pricing documentation describes its initial version as **Inactive**.
+Activate the version before activating the table:
 
 | Verb | Path | Body |
 |---|---|---|
@@ -341,7 +342,8 @@ the table:
 
 `upload_decision_table_data.py --activate-version N` does this in the same run.
 
-> **No v2 on re-upload (✅ live-verified).** Create auto-mints Draft version 1;
+> **No v2 on re-upload (✅ live-verified for generic BRE).** Create auto-minted
+> Draft version 1 in that probe;
 > re-uploading (append or overwrite, with or without `--version-number`) does **not**
 > mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
 > v1. Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
@@ -419,16 +421,15 @@ degrade to a note).
 - **Update (Tooling PATCH)** `…/DecisionTable/{id}` with `{"Metadata": {…}}` →
   **204 No Content**. The `decisionTableParameters[]` array is a **full replace**
   (send the complete column set, not a delta). A PATCH is **atomic** — a rejected
-  PATCH leaves the record byte-identical (why the guarded update reactivates a
-  Tooling-path table on failure). ⚠ The Tooling `Metadata` complexvalue is
+  PATCH left the probed record byte-identical; treat that as an observation, not
+  a cross-surface transaction guarantee. ⚠ The Tooling `Metadata` complexvalue is
   **replaced wholesale** — a sparse body drops the omitted fields — so the toolkit
   always sends the full definition body. ⚠ **`status` is a required field on
-  BOTH a Tooling `Metadata` PATCH and a Connect Definitions PATCH** — a
-  status-free body is rejected on either path with the identical
+  a Tooling `Metadata` PATCH** — a
+  status-free body is rejected with
   `FIELD_INTEGRITY_EXCEPTION: Required field is missing: status` (live-verified
-  on a Draft scratch table; Connect is **not** optional here despite `status`
-  defaulting on Connect *create*). To keep the spec from driving the lifecycle
-  on an *update*, the `update` CLI drops the spec's `status` on both paths and
+  on a Draft scratch table). To keep the spec from driving the lifecycle
+  on an *update*, the `update` CLI drops the spec's `status` and
   stamps the table's **current live** `status` instead (read at PATCH time via
   `LifecycleEngine.get_status`; during a deactivate-first sequence that is the
   already-deactivated `Inactive`). The lifecycle engine solely owns
@@ -456,7 +457,7 @@ degrade to a note).
   **empty body piped on stdin** (`-b -`); `-b ""` / `-b "@file"` / an `-f`
   request-spec all fail with "No 'mode' found in 'body' entry". GET-back →
   `NOT_FOUND`. (Connect DELETE is equivalent — same semantics, same empty-body
-  quirk — but not exposed in the toolkit CLI; Tooling is the sole path.)
+  quirk — but is raw-reference only; Tooling is the toolkit path.)
 
 ## Refresh (data sync) — ✅ live-verified
 
@@ -484,17 +485,18 @@ the engine cache. Action describe
 > refresh. The toolkit's `refresh_decision_table.py` uses the correct flag; the
 > CCI tasks are a candidate follow-up fix (behavioral — verify live before merge).
 
-- Refresh is **async** and **rate-limited to ~100 refreshes/hour**.
+- Refresh is **async**. Full refreshes use separate hourly pools: **40 Standard**
+  and **60 Advanced**; CSV-based tables inherit the Advanced pool.
 - **Response is fire-and-queue:** `outputValues.Status: "Queued"`, no synchronous
   result and **no `AsyncOperationTracker` row** (that table holds
   ContextPersistence / AssetizationAsyncJob only). The DT's own
-  `Metadata.refreshStatus` / `Metadata.lastSyncDate` / `Metadata.downloadStatus`
-  are the completion signal — they advance when a real sync lands. (On a throwaway
-  table with no matching source rows they stayed `null` — nothing to sync;
+  full-refresh completion signals include `Metadata.refreshStatus` and
+  `Metadata.lastSyncDate`; incremental completion advances
+  `Metadata.lastIncrementalSyncDate` and does **not** advance `lastSyncDate`.
+  (On a throwaway table with no matching source rows they stayed `null` — nothing to sync;
   expected.)
-- 📄 The ~100/hr cap is doc-grounded; its exact rejection text was not exercised
-  (probing stayed under the cap). `refresh_decision_table.py` surfaces the cap in
-  help text.
+- No tracker ID is returned. The hourly rejection behavior was not exercised;
+  probing stayed under both pools.
 
 ## Recipe table mappings (trace) — ✅ live-verified
 
@@ -521,8 +523,8 @@ encodes.
 
 | Error (code / message) | Path & trigger | Resolution |
 |---|---|---|
-| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling/Connect PATCH of an **Active** table | Deactivate first. `update`/`delete` refuse an Active table unless `--deactivate-first` runs the guarded deactivate → mutate → reactivate. |
-| `MISSING_ARGUMENT` — "Specify a valid value for status parameter" | Connect POST create without `status` | `status` is **required** on a Connect create; the toolkit defaults it to `Draft`. |
+| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling PATCH of an **Active** table | Deactivate first. `update`/`delete` refuse an Active table unless `--deactivate-first` runs the guarded deactivate → mutate → reactivate. |
+| `MISSING_ARGUMENT` — "Specify a valid value for status parameter" | Raw Connect POST create without `status` | `status` is required on raw Connect create. The toolkit does not expose this path. |
 | `FIELD_INTEGRITY_EXCEPTION` — "Required field is missing: status" | Tooling `Metadata` PATCH with a status-free body | `status` is **required** on a Tooling PATCH too. `update` drops the spec's `status` and stamps the table's **current live** status (via `LifecycleEngine.get_status`) so the edit never re-activates the table — in a deactivate-first sequence that live status is the already-deactivated `Inactive`. |
 | `JSON_PARSER_ERROR` — `Unrecognized field "label"` / `"masterLabel"` | Connect POST/PATCH using the wrong label key | The Connect label field is **`setupName`** (not `label`/`masterLabel`). |
 | `JSON_PARSER_ERROR: Unexpected character ('/' …)` | Any POST/PATCH passing a file path without the `@` prefix | Use `--body "@/abs/file.json"` (or `-` for stdin); a bare path is read as literal JSON. |
@@ -532,14 +534,14 @@ encodes.
 | Stale `Status = "ActivationInProgress"` after a 204 | Reading status immediately after an activate PATCH | Activate is **async** — poll past `ActivationInProgress` (raise `--max-wait` for slow orgs). |
 | Empty `"parameters": []` in a Connect POST/PATCH response | Trusting the Connect echo for the column set | **GET-back** to confirm; the columns persist despite the empty echo. |
 | Benign `…@DecisionTable` advisory alongside `isSuccess: true` | Connect PATCH that removes a row-level override | Non-fatal — treat any `@`-suffixed message as advisory when `isSuccess` is true. |
-| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on 262/v67.0** — overwrite always fails safe (existing rows kept). Replace rows by creating a fresh version/table and appending. |
+| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). For Salesforce Pricing, replace with a fresh table and append. |
 | `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; use `--wait-for-status` to catch it. |
 | `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
 | `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
 | `INVALID_API_INPUT` | CsvUpload `/data` GET or `/file` POST targeting a `versionNumber` that doesn't exist (only v1 is minted) | Re-upload does not mint a v2 — target v1 (or omit `versionNumber` for the current version). |
 | `{"rows": [], "totalRows": 0}`, no error | CsvUpload `/data` GET with `versionNumber` set to the current/active version's own number | Omit `versionNumber` instead — the default always returns the current version; passing its number explicitly silently empties. |
 | `UNKNOWN_EXCEPTION` | CsvUpload `/data` GET combining `filter` + a `limit` not strictly greater than the match count | The dump CLI drops `--limit` when `--filter` is given; don't combine them by hand. |
-| `INVALID_INPUT` — "The condition criteria doesn't contain the sequence number for one or more input fields. Specify the sequence number for each input field whose operator is not Equals." | Connect create with a **missing `conditionType`** (sequence numbers and operators were already correct) | **Misleading** — the message blames "sequence number" but the real gap is `conditionType`, which drives the derived `conditionCriteria`. Set `conditionType` explicitly (e.g. `"All"`). Not a toolkit bug — `to_connect()` correctly derives `conditionCriteria` from whatever `conditionType`/sequences the spec provides. |
+| `INVALID_INPUT` — "The condition criteria doesn't contain the sequence number for one or more input fields. Specify the sequence number for each input field whose operator is not Equals." | Raw Connect create with a **missing `conditionType`** | **Misleading** — the message blamed sequence, but the observed gap was `conditionType`. This is a raw-API reference; the toolkit does not expose Connect create. |
 
 ---
 

@@ -34,7 +34,7 @@ class ResolveError(RuntimeError):
 # live-verified DecisionTable Tooling describe field set.
 _TABLE_COLUMNS = (
     "Id", "DeveloperName", "MasterLabel", "Status", "UsageType",
-    "SourceObject", "LastSyncDate",
+    "SourceObject", "LastSyncDate", "LastIncrementalSyncDate",
 )
 _PARAM_COLUMNS = (
     "Id", "DecisionTableId", "FieldName", "FieldPath", "Usage", "Operator",

@@ -63,9 +63,11 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
   org. Read-only list/describe/diff/trace operations are safe.
 - **DO NOT** pass access tokens to toolkit scripts. They delegate authentication to the
   `sf` CLI and take an SF CLI alias via `--target-org`, not a CCI alias.
-- **DO NOT** treat the three authoring surfaces as field-compatible. Metadata/Tooling
-  and Connect Definitions use different names and enum spellings; follow the divergence
-  table in `authoring-and-data-model.md`.
+- **DO NOT** use the raw Connect Definitions POST/PATCH/DELETE resources as a
+  toolkit authoring path. Definition writes are Metadata/Tooling-only; Connect is
+  retained for optional comparative GETs and the CSV data/version sub-resources.
+  Its vocabulary still differs from Metadata/Tooling, so consult the reference
+  before interpreting a Connect response.
 
 ## Entry Conditions
 
@@ -95,7 +97,7 @@ All mutators preview by default and write only with `--confirm`.
 | Trace recipe-table mappings | `trace_decision_table.py` |
 | Sample the materialized data layer | `dump_decision_table_data.py` |
 | Upload `CsvUpload` rows | `upload_decision_table_data.py` |
-| Create/update/activate/deactivate/delete | Guarded lifecycle scripts under `scripts/decision_tables/` |
+| Create/update/activate/deactivate/delete | Guarded Metadata/Tooling lifecycle scripts under `scripts/decision_tables/` |
 | Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
 
 Start with:
@@ -110,7 +112,8 @@ Decision tables have two independently managed layers:
 
 1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
    Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
-   five setup objects; Connect Definitions exposes a third vocabulary.
+   five setup objects. The toolkit writes definitions only through these two surfaces.
+   Raw Connect Definitions GET exposes a third vocabulary for comparison/reference.
 2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
    Context Definition. The engine does not re-read those rows after materialization.
 

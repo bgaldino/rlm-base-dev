@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Pure canonical-spec → per-path payload translators for BRE Decision Tables.
+"""Pure canonical-spec → Metadata/Tooling payload translators for Decision Tables.
 
 Part of the self-contained ``scripts/decision_tables/`` toolkit (imports only
 ``_schema`` from the package; nothing from ``tasks/``). Transport-agnostic and
 dependency-free (stdlib only — no ``requests``, no CumulusCI, no ``sf`` CLI):
-just the field-shaping each of the three authoring paths demands. This is the
+just the field-shaping the two supported authoring paths demand. This is the
 Decision Table analogue of ``scripts/expression_sets/_payload.py``.
 
-Decision Table authoring spans **three APIs with three field vocabularies**, so
-one author-facing *canonical spec* (validated by ``_schema.validate_spec``) is
-translated onto each path by an explicit function:
+One author-facing *canonical spec* (validated by ``_schema.validate_spec``) is
+translated onto the source-controlled Metadata and REST Tooling paths:
 
   * :func:`to_metadata` — the ``Metadata`` body shared by the Metadata API and
     the Tooling ``Metadata`` complexvalue (field names ``dataSourceType`` /
@@ -19,12 +18,6 @@ translated onto each path by an explicit function:
     MDAPI serializer and the shipped ``unpackaged/pre/5_decisiontables/*.xml``).
   * :func:`to_tooling` — wraps the metadata body as ``{"FullName", "Metadata"}``
     for a Tooling ``DecisionTable`` POST/PATCH.
-  * :func:`to_connect` — the **flat** Connect Definitions body (renames
-    ``dataSourceType``→``sourceType``, ``filterResultBy``→``decisionResultPolicy``,
-    ``decisionTableParameters``→``parameters``; title-cases ``usage``
-    INPUT→Input; adds a ``columnMapping`` per column; requires ``setupName`` +
-    ``status``).
-
 Every function operates on plain dicts/lists and returns **new** structures —
 none mutate their input, so a caller can translate the same spec for multiple
 paths or verify against the original.
@@ -40,18 +33,13 @@ from xml.sax.saxutils import escape as _xml_escape
 # The MDAPI DecisionTable root namespace (matches the shipped source XML).
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
-# Canonical column ``usage`` is UPPER (Metadata/Tooling); Connect wants title-case.
-_USAGE_TO_CONNECT = {"INPUT": "Input", "OUTPUT": "Output", "ROWCRITERIA": "RowCriteria"}
-_USAGE_TO_CANONICAL = {"Input": "INPUT", "Output": "OUTPUT", "RowCriteria": "ROWCRITERIA"}
-
 # ``usage`` values that carry an operator + sequence (INPUT columns only). Any
-# other usage (OUTPUT / ROWCRITERIA) drops those on every path.
-_INPUT_USAGES = {"INPUT", "Input"}
+# other usage (OUTPUT / ROWCRITERIA) drops those on both paths.
+_INPUT_USAGES = {"INPUT"}
 
 # Booleans the MDAPI serializer always emits (shipped XML carries all four even
 # at their defaults). Filled with ``False`` in the metadata body for a stable,
-# diff-clean XML + Tooling shape; omitted from the Connect body (Connect defaults
-# them server-side).
+# diff-clean XML + Tooling shape.
 _METADATA_DEFAULT_BOOLS = {
     "doesConsiderNullValue": False,
     "hasIncrementalSyncFailed": False,
@@ -70,6 +58,7 @@ _METADATA_SCALARS = (
     "filterResultBy",
     "conditionType",
     "conditionCriteria",
+    "sourceConditionLogic",
     "type",
     "usageType",
     "status",
@@ -91,10 +80,8 @@ def _bool_from(value: Any, default: bool) -> bool:
 
 
 def _canonical_usage(usage: Any) -> Optional[str]:
-    """Normalize a column ``usage`` to the canonical UPPER form (INPUT/OUTPUT/…)."""
-    if usage is None:
-        return None
-    return _USAGE_TO_CANONICAL.get(usage, usage)
+    """Return canonical Metadata/Tooling ``usage`` (INPUT/OUTPUT/ROWCRITERIA)."""
+    return usage
 
 
 def _derive_condition_criteria(params: List[Dict[str, Any]], condition_type: Any) -> Optional[str]:
@@ -142,11 +129,17 @@ def _param_to_metadata(param: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     if param.get("dataType") is not None:
         out["dataType"] = param["dataType"]
+    if param.get("decimalScale") not in (None, ""):
+        out["decimalScale"] = int(param["decimalScale"])
     if field_name is not None:
         out["fieldName"] = field_name
         out["fieldPath"] = param.get("fieldPath") or field_name
     out["isGroupByField"] = _bool_from(param.get("isGroupByField"), False)
+    if param.get("isPriorityField") is not None:
+        out["isPriorityField"] = _bool_from(param.get("isPriorityField"), False)
     out["isRequired"] = _bool_from(param.get("isRequired"), False)
+    if param.get("length") not in (None, ""):
+        out["length"] = int(param["length"])
     if usage in _INPUT_USAGES:
         if param.get("operator") is not None:
             out["operator"] = param["operator"]
@@ -268,98 +261,90 @@ def tooling_metadata_only(
     return {"Metadata": body}
 
 
-def _param_to_connect(param: Dict[str, Any]) -> Dict[str, Any]:
-    """One canonical column → its Connect ``parameters`` entry.
+def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any]) -> List[str]:
+    """Return requested-field mismatches after a Tooling definition write.
 
-    Connect diverges from Metadata: ``usage`` is title-case (Input/Output/…), and
-    every column carries a ``columnMapping`` (the live GET showed it present on
-    every real column; defaulted to ``fieldName`` when the author omits it). INPUT
-    columns keep ``operator`` + ``sequence``.
+    Tooling GET adds response-only fields and server defaults, so comparing the
+    entire ``Metadata`` complexvalue produces false drift. This verifier checks
+    only fields the author explicitly supplied, plus the requested parameter and
+    source-criteria entries. Lifecycle ``status`` is intentionally excluded: the
+    update CLI stamps the table's live status instead of allowing the spec to
+    drive activation. ``executionType`` is compared case-insensitively because
+    source XML and Tooling use different casing (for example Hbase/HBASE).
     """
-    canon_usage = _canonical_usage(param.get("usage"))
-    field_name = param.get("fieldName")
-    out: Dict[str, Any] = {}
-    if field_name is not None:
-        out["columnMapping"] = param.get("columnMapping") or field_name
-        out["fieldName"] = field_name
-    if canon_usage is not None:
-        out["usage"] = _USAGE_TO_CONNECT.get(canon_usage, canon_usage)
-    if param.get("dataType") is not None:
-        out["dataType"] = param["dataType"]
-    out["isRequired"] = _bool_from(param.get("isRequired"), False)
-    if canon_usage in _INPUT_USAGES:
-        if param.get("operator") is not None:
-            out["operator"] = param["operator"]
-        if param.get("sequence") not in (None, ""):
-            out["sequence"] = int(param["sequence"])
-    return out
+    mismatches: List[str] = []
 
+    def equivalent(field: str, expected: Any, actual: Any) -> bool:
+        if field == "executionType" and expected is not None and actual is not None:
+            return str(expected).upper() == str(actual).upper()
+        if isinstance(expected, bool):
+            return expected == _bool_from(actual, False)
+        if isinstance(expected, int) and not isinstance(expected, bool):
+            try:
+                return expected == int(actual)
+            except (TypeError, ValueError):
+                return False
+        return expected == actual
 
-def to_connect(spec: Dict[str, Any], *, default_status: str = "Draft") -> Dict[str, Any]:
-    """Canonical spec → a **flat** Connect Definitions POST/PATCH body.
+    def compare(location: str, field: str, expected: Any, actual: Any) -> None:
+        if not equivalent(field, expected, actual):
+            mismatches.append(
+                f"{location}.{field}: requested {expected!r}, live value is {actual!r}"
+            )
 
-    Renames the diverging keys (``dataSourceType``→``sourceType``,
-    ``filterResultBy``→``decisionResultPolicy``, ``decisionTableParameters``→
-    ``parameters``, ``dtRowLevelOverrideType``→``rowLevelOverrideType``,
-    ``decisionTableSourceCriterias``→``sourceCriteria``), title-cases each
-    column's ``usage``, and adds a ``columnMapping`` per column. ``status`` is
-    **required** by the Connect create (defaults to ``default_status`` when the
-    spec omits it); ``setupName`` is required and passed through. Unlike the
-    metadata body, the always-emitted booleans are only included when the spec
-    sets them (Connect defaults them server-side).
+    for key in _METADATA_SCALARS:
+        if key == "status" or key not in spec or spec.get(key) in (None, ""):
+            continue
+        compare("Metadata", key, spec[key], live_metadata.get(key))
 
-    Returns a new dict.
-    """
-    body: Dict[str, Any] = {}
-    if spec.get("fullName") is not None:
-        body["fullName"] = spec["fullName"]
-    if spec.get("setupName") is not None:
-        body["setupName"] = spec["setupName"]
+    for key in _METADATA_DEFAULT_BOOLS:
+        if key in spec and spec.get(key) not in (None, ""):
+            compare("Metadata", key, _bool_from(spec[key], False), live_metadata.get(key))
 
-    body["status"] = spec.get("status") or default_status
+    live_params = {
+        (p.get("usage"), p.get("fieldName")): p
+        for p in (live_metadata.get("decisionTableParameters") or [])
+        if isinstance(p, dict)
+    }
+    parameter_fields = (
+        "dataType", "decimalScale", "domainObject", "fieldName", "fieldPath",
+        "isGroupByField", "isPriorityField", "isRequired", "length", "operator",
+        "sequence", "sortType", "usage",
+    )
+    for index, requested in enumerate(spec.get("decisionTableParameters") or []):
+        if not isinstance(requested, dict):
+            continue
+        expected = _param_to_metadata(requested)
+        identity = (expected.get("usage"), expected.get("fieldName"))
+        live = live_params.get(identity)
+        location = f"decisionTableParameters[{index}]"
+        if live is None:
+            mismatches.append(f"{location}: requested parameter {identity!r} is missing")
+            continue
+        for key in parameter_fields:
+            if key in requested and requested.get(key) not in (None, ""):
+                compare(location, key, expected.get(key), live.get(key))
 
-    if spec.get("dataSourceType") is not None:
-        body["sourceType"] = spec["dataSourceType"]
-    if spec.get("sourceObject") is not None:
-        body["sourceObject"] = spec["sourceObject"]
-    if spec.get("filterResultBy") is not None:
-        body["decisionResultPolicy"] = spec["filterResultBy"]
-    if spec.get("dtRowLevelOverrideType") is not None:
-        body["rowLevelOverrideType"] = spec["dtRowLevelOverrideType"]
+    live_criteria = {
+        c.get("sequenceNumber"): c
+        for c in (live_metadata.get("decisionTableSourceCriterias") or [])
+        if isinstance(c, dict)
+    }
+    for index, requested in enumerate(spec.get("decisionTableSourceCriterias") or []):
+        if not isinstance(requested, dict):
+            continue
+        expected = _criteria_to_metadata(requested)
+        sequence = expected.get("sequenceNumber")
+        live = live_criteria.get(sequence)
+        location = f"decisionTableSourceCriterias[{index}]"
+        if live is None:
+            mismatches.append(f"{location}: requested sequence {sequence!r} is missing")
+            continue
+        for key in ("sourceFieldName", "operator", "value", "valueType", "sequenceNumber"):
+            if key in requested and requested.get(key) not in (None, ""):
+                compare(location, key, expected.get(key), live.get(key))
 
-    for key in ("conditionType", "usageType", "executionType", "type",
-                "collectOperator", "description"):
-        if spec.get(key) is not None and spec.get(key) != "":
-            body[key] = spec[key]
-
-    condition_criteria = spec.get("conditionCriteria")
-    if not condition_criteria:
-        condition_criteria = _derive_condition_criteria(
-            spec.get("decisionTableParameters") or [], spec.get("conditionType")
-        )
-    if condition_criteria:
-        body["conditionCriteria"] = condition_criteria
-
-    # Booleans only when the author sets them (Connect defaults otherwise).
-    for key in ("doesConsiderNullValue", "isIncrementalSyncEnabled"):
-        if spec.get(key) is not None and spec.get(key) != "":
-            body[key] = _bool_from(spec.get(key), False)
-
-    params = spec.get("decisionTableParameters")
-    if isinstance(params, list):
-        body["parameters"] = [
-            _param_to_connect(p) for p in params if isinstance(p, dict)
-        ]
-
-    criteria = spec.get("decisionTableSourceCriterias")
-    if isinstance(criteria, list) and criteria:
-        # Connect renames the collection; inner criterion field names round-trip
-        # unchanged (sourceFieldName / operator / value / valueType / sequenceNumber).
-        body["sourceCriteria"] = [
-            _criteria_to_metadata(c) for c in criteria if isinstance(c, dict)
-        ]
-
-    return body
+    return mismatches
 
 
 # --------------------------------------------------------------------------- #

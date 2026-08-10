@@ -55,6 +55,7 @@ def _print_definition(defn, show_connect):
     print(f"  usageType    : {table.get('UsageType')}")
     print(f"  sourceObject : {table.get('SourceObject') or '-'}")
     print(f"  lastSync     : {table.get('LastSyncDate') or 'never'}")
+    print(f"  lastIncrSync : {table.get('LastIncrementalSyncDate') or 'never'}")
 
     meta = defn.get("metadata") or {}
     if meta:

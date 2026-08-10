@@ -55,6 +55,11 @@ from scripts.decision_tables._client import (  # noqa: E402
     eprint,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
+from scripts.decision_tables._resolve import (  # noqa: E402
+    ResolveError,
+    get_decision_table_metadata,
+    resolve_decision_table,
+)
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
 
 
@@ -152,7 +157,28 @@ def main(argv=None) -> int:
             summary["response"] = resp
             if not preview and isinstance(resp, dict) and resp.get("id"):
                 summary["id"] = resp["id"]
-    except (DecisionTableClientError, LifecycleError) as exc:
+
+        # Neither Metadata deploy success nor Tooling POST's id/success envelope
+        # proves the full definition survived. Confirm every requested field with
+        # a Tooling GET-back before reporting the create as complete.
+        if not preview:
+            record_id = summary.get("id")
+            if not record_id:
+                record_id = resolve_decision_table(transport, api_name)["Id"]
+                summary["id"] = record_id
+            written = get_decision_table_metadata(transport, record_id)
+            live_metadata = written.get("Metadata")
+            if not isinstance(live_metadata, dict):
+                raise LifecycleError(
+                    f"Create verification could not read DecisionTable/{record_id} Metadata."
+                )
+            mismatches = _payload.verify_requested_metadata(spec, live_metadata)
+            if mismatches:
+                raise LifecycleError(
+                    "Create GET-back did not match the requested definition:\n- "
+                    + "\n- ".join(mismatches)
+                )
+    except (DecisionTableClientError, LifecycleError, ResolveError) as exc:
         eprint(f"\nFAILED: {exc}")
         return 1
 

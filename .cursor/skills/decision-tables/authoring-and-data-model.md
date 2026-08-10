@@ -47,7 +47,9 @@ The rows the engine actually evaluates. **Where** they live is decided by
 
 **Editing the definition ≠ refreshing the data.** A definition change is
 deployed; row changes are picked up by the **async `refreshDecisionTable`
-action** (rate-limited ~100/hr — see `lifecycle-and-refresh.md`). A definition
+action**. Full-refresh pools are separate: **40 Standard + 60 Advanced per
+org/hour**; CSV-based tables inherit Advanced limits. See
+`lifecycle-and-refresh.md`. A definition
 change is not live to the engine until a refresh completes. This is why the
 toolkit separates `describe`/`diff` (definition) from `dump` (data).
 
@@ -82,10 +84,16 @@ terminal error exits non-zero), which the fire-and-forget POST response hides.
 > the intended delete does not happen and any pre-existing rows are **left intact**
 > (safe-fail — nothing is lost). The **same CSV appended succeeds**, so
 > `deleteAllRows:true` itself is the culprit (pilot-gated or bugged), not the
-> CSV/table/version. **The reliable "replace all rows" path is to create a fresh
-> version/table and append.** `--overwrite` carries this warning in its help.
+> CSV/table/version. **For Salesforce Pricing, the reliable replacement path is
+> a fresh table + append**; Pricing does not support multiple CSV-table versions.
+> `--overwrite` carries this warning in its help.
 
-**Per-column CSV encoding (✅ live-verified — all 7 `dataType`s round-tripped).**
+**Per-column CSV encoding (✅ live-verified for generic BRE).** A `usageType=Bre`
+probe round-tripped all 7 Metadata `dataType`s through the CSV transport. That
+does **not** widen Salesforce Pricing's supported contract: Pricing Help limits
+CSV tables to DateTime/Text, Boolean, and Number, and doesn't support Currency
+as an input rule variable. Apply the table below to transport/debugging; validate
+the consuming product's supported subset separately.
 Each row's CSV cell is coerced to the column's `dataType`; a cell that fails
 coercion drops that **row** silently (see below). Confirmed encodings:
 
@@ -135,8 +143,10 @@ wait: it is the only signal that rows were silently dropped.
 > grand total, and `offset` is unreliable — do **not** build an offset pager.
 > Use `filter` to narrow and `limit` to cap; read once.
 
-**Versions — no v2 is auto-minted by re-upload (✅ live).** Create auto-mints
-Draft **version 1**; uploading again (append or overwrite, with or without
+**Versions — no v2 is auto-minted by re-upload (✅ live).** The generic BRE
+API probe returned **Draft version 1** after create; Salesforce Pricing Help calls
+the initial version **Inactive**, so preserve that product/surface distinction.
+Uploading again (append or overwrite, with or without
 `--version-number`) does **not** mint a v2 — every upload targets version 1.
 Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
 → `INVALID_API_INPUT`.
@@ -149,7 +159,10 @@ row-by-row POST.
 
 ## The 5 Tooling setup objects
 
-The definition is assembled across **five Tooling API objects** (v59.0+). They
+The definition is assembled across **five Tooling API objects**. `DecisionTable`,
+`DecisionTableParameter`, `DecisionTableDatasetLink`, and
+`DecisionTblDatasetParameter` are available in **v51.0+**;
+`DecisionTableSourceCriteria` is **v59.0+**. They
 are **Tooling only** — not on the normal REST `/sobjects` surface — read via
 `/tooling/query` and `/tooling/sobjects/<Object>`.
 
@@ -157,7 +170,7 @@ are **Tooling only** — not on the normal REST `/sobjects` surface — read via
 |---|---|---|
 | `DecisionTable` | **`0lD`** | The definition head. `DeveloperName` (api name), `Status`, `UsageType`, `SourceObject`, `LastSyncDate`, and the **`Metadata`** complexvalue (inlines the children). |
 | `DecisionTableParameter` | **`0lP`** | A column. `DecisionTableId`, `FieldName`, `Usage` (INPUT/OUTPUT/ROWCRITERIA), `Operator`, `Sequence`, `DataType`, `FieldPath`, `IsRequired`, `IsGroupByField`, `SortType`, `DomainObject`. |
-| `DecisionTableDatasetLink` | **`0lX`** | Binds a source SObject for `MultipleSobjects`. `DecisionTableId`, `SourceObject`, `SetupName`, `IsDefault`, `Metadata`. |
+| `DecisionTableDatasetLink` | **`0lX`** | Binds a source SObject for `MultipleSobjects`; supported only for **Standard** decision tables. `DecisionTableId`, `SourceObject`, `SetupName`, `IsDefault`, `Metadata`. |
 | `DecisionTblDatasetParameter` | **`0lZ`** | Join layer: maps a dataset link's field to a parameter. `DecisionTableDatasetLinkId`, `DecisionTableParameterId`, `DatasetFieldName`, `DatasetSourceObject`. |
 | `DecisionTableSourceCriteria` | **`0VT`** | Row-filter on the source. `DecisionTableId`, `SourceFieldName`, `Operator`, `Value`, `ValueType`, `SequenceNumber`. |
 
@@ -228,7 +241,7 @@ OUTPUT column):
         <usage>OUTPUT</usage>                           <!-- no operator/sequence -->
     </decisionTableParameters>
     <doesConsiderNullValue>false</doesConsiderNullValue>
-    <executionType>Hbase</executionType>               <!-- ⚠ MDAPI casing 'Hbase'; APIs return 'HBASE' -->
+    <executionType>Hbase</executionType>               <!-- repo XML accepted live; official enum/Tooling use HBASE -->
     <filterResultBy>OutputOrder</filterResultBy>        <!-- hit policy -->
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
@@ -251,27 +264,26 @@ Notes from the shipped files:
 - **`setupName`** is the human label; the file base name is the `DeveloperName`
   (api name). Keep them consistent with the repo's existing naming.
 
-> ⚠ **`executionType` casing is representation-specific.** Source XML uses
-> `Hbase`; the Tooling `Metadata` complexvalue and Connect return `HBASE`. Do
-> **not** "correct" the XML to match an API read — keep each representation's
-> native casing (a repeated DO NOT in the parent skill).
+> ⚠ **`executionType` casing needs context.** Official Metadata documentation
+> and Tooling reads use `HBASE`; this repo's shipped XML uses `Hbase` and was
+> accepted live. Preserve shipped XML for repo consistency, but don't generalize
+> that spelling as the sole Metadata form.
 
 ---
 
-## The authoring paths — decision guide
+## Definition authoring paths — decision guide
 
 | You want to… | Use | Toolkit CLI | Vocabulary |
 |---|---|---|---|
 | **Ship a table in the build**, source-controlled, reviewable | **Metadata API** (`.decisionTable-meta.xml`) — the primary path | `create --path metadata` (default) | `dataSourceType`, `filterResultBy`, `decisionTableParameters`, `usage=INPUT` |
-| **Inspect / one-off edit** the whole definition in one REST call | **Tooling API** — PATCH the `DecisionTable.Metadata` complexvalue | `create --path tooling`, `update --path tooling` (default), `delete` | same as Metadata (Metadata-API field names) |
-| **Update from an external/Connect client** (non-atomic) | **Connect Definitions** `connect/business-rules/decision-table/definitions[/{id}]` | `update --path connect` | **`sourceType`, `decisionResultPolicy`, `parameters`, `usage=Input`, 15-char id** |
+| **Inspect / one-off edit** the whole definition in one REST call | **Tooling API** — PATCH the `DecisionTable.Metadata` complexvalue | `create --path tooling`, `update`, `delete` | same as Metadata (Metadata-API field names) |
+| **Compare a raw Connect representation** | Connect Definitions GET by id | `describe --connect` (read-only, optional) | `sourceType`, `decisionResultPolicy`, `parameters`, `usage=Input`, 15-char id |
 
-The toolkit's `create_decision_table.py --path metadata|tooling` and
-`update_decision_table.py --path tooling|connect` select the path; a canonical
-author-facing spec is translated to each path's vocabulary by `_payload.py`.
-Connect create and delete are not exposed in the toolkit CLI (see the README
-decision record) — they're documented in the API reference for raw-API use only.
-**Read the divergence table before writing across paths.**
+The toolkit writes definitions only through **Metadata/Tooling**. Raw Connect
+Definitions POST/PATCH/DELETE remain documented in the API reference for
+platform context, but are not supported toolkit routes. Connect remains an
+active toolkit dependency for CSV `/file`, `/data`, and `/versions`
+sub-resources.
 
 ### Field-name divergence (Metadata/Tooling vs Connect)
 
@@ -288,41 +300,50 @@ decision record) — they're documented in the API reference for raw-API use onl
 
 Connect GET returns `dataSourceType: null` and `isVersioned: null` — it populates
 its own (`sourceType`). **Never read a Metadata-API key off a Connect response.**
-`_schema.py`'s `FIELD_NAME_MAP` encodes this mapping (concept → (metadata/tooling,
-connect)) and the offline tests assert it.
+Treat this as a response-interpretation map, not a supported Connect mutation
+contract.
 
 ---
 
 ## Enum catalog
 
 Values in **bold** were observed live (`rlm-base__beta` / scratch, 2026-07-09);
-the rest are 📄 doc-grounded from `meta_decisiontable.htm`. Re-verify on the
-target release at merge time.
+the rest are 📄 doc-grounded from `meta_decisiontable.htm`. This is the
+**Metadata/Tooling authoring catalog**; raw Connect Definitions has a narrower,
+differently-spelled documented catalog and is read/reference-only in the toolkit.
+Re-verify live observations on the target release at merge time.
 
-| Field (MD/Tooling · Connect) | Values |
+| Metadata/Tooling field | Values |
 |---|---|
-| `dataSourceType` · `sourceType` | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
+| `dataSourceType` | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
 | `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
-| `filterResultBy` · `decisionResultPolicy` | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
+| `filterResultBy` | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
 | `type` | Advanced, HighScaleExecution, HighVolume, **LowVolume**, **MediumVolume**, RealTime |
 | `status` | ActivationInProgress, **Active**, Draft, Inactive |
 | `usageType` (ExpsSetProcessType) | Bre (default), **DefaultPricing**, **DefaultRating**, **PricingDiscovery**, **RatingDiscovery**, **RevenueStandardTax**, ProductCategoryQualification, **ProductQualification**, RecordAlert, … |
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
-| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped live through a CsvUpload — per-cell CSV encoding in the **CSV Based tables** section above; DateTime needs `…T…:….sssZ`, Boolean only `true`/`false`) |
+| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped on a generic `usageType=Bre` CsvUpload; Salesforce Pricing is narrower—see the **CSV Based tables** section) |
 | `DecisionTableParameter.operator` | **Equals**, NotEquals, GreaterThan, GreaterOrEqual, LessThan, LessOrEqual, ExistsIn, Matches, IsNull, … |
 | `DecisionTableSourceCriteria.valueType` | Formula, **Literal**, Lookup, Parameter, Picklist |
-| `collectOperator` | **None**, … (used when `filterResultBy=CollectOperator`) |
-| `dtRowLevelOverrideType` · `rowLevelOverrideType` | **None**, … |
+| `collectOperator` | Count, Maximum, Minimum, **None**, Sum |
+| `dtRowLevelOverrideType` | **None**, Both, Condition, Operator |
 
 **v67.0 additions:** `decisionTableFileImportVersions[]` (per-import activation
 windows / rank / refresh; observed empty on SObject-backed tables) and
-`isVersioned` (docs default true; observed **false** on shipped SObject-backed
-tables, **null** via Connect).
+`isVersioned`. Its default is surface/product-specific: Metadata v67 documents
+`true`; Tooling documents `false`; Pricing auto-versions CSV tables created
+after the Usage 262 upgrade while older tables remain unversioned; raw Connect
+GET returned `null` in the probe.
 
-These enum sets are the source of truth for `_schema.py` (`DATA_SOURCE_TYPES`,
-`EXECUTION_TYPES`, `FILTER_RESULT_BY`, `PARAM_USAGE`, `SETUP_OBJECT_PREFIXES`, …)
-and `validate_spec()`, which the offline tests exercise with no org.
+**Raw Connect catalog differences:** official Connect Definitions documents no
+`ContextDefinition` `sourceType`, only title-case `Input`/`Output` usage, and
+different source-criteria spellings (`GreaterThanOrEqual`, `LessThanOrEqual`,
+`NotEqual`, `PickList`). Connect parameter docs omit `DateTime`, although it was
+observed live. Do not assume Metadata enums are portable to Connect.
+
+These Metadata/Tooling enum sets are the source of truth for canonical specs and
+`validate_spec()`, which the offline tests exercise with no org.
 
 ---
 

@@ -7,14 +7,13 @@ Table analogue of ``scripts/expression_sets/_schema.py``.
 
 Two roles:
 
-1. **Enum / field catalogs** — the live-verified vocabularies for the three
-   authoring paths (Metadata / Tooling / Connect Definitions) and the setup
-   objects. The read CLIs use these to label and validate values; Phase-2
-   translators (``_payload.py``) map a canonical spec onto each path.
+1. **Enum / field catalogs** — the documented Metadata/Tooling authoring
+   vocabulary and the setup objects. Read-side Connect field-name divergence is
+   retained for inspectors, but definition mutation is Metadata/Tooling-only.
 2. **Canonical-spec validation** — ``validate_spec(spec)`` checks an
    author-facing canonical Decision Table spec (path-agnostic) *before* it is
-   translated and sent to an org, where a Connect/Tooling handler can swallow a
-   real error into an opaque failure.
+   translated and sent to an org, where a Tooling handler can turn a precise
+   local defect into an opaque failure.
 
 Provenance: values captured from a live v67.0 read of ``rlm-base__beta`` /
 scratch orgs on 2026-07-09 (Tooling ``Metadata`` complexvalue + describes,
@@ -34,7 +33,7 @@ from typing import Any, Dict, List, Optional, Set
 # Values observed live are noted; the sets are the documented supersets.
 # --------------------------------------------------------------------------- #
 
-# Metadata/Tooling `dataSourceType`  ==  Connect `sourceType`.
+# Metadata/Tooling ``dataSourceType``.
 DATA_SOURCE_TYPES = {
     "ContextDefinition",
     "CsvUpload",
@@ -43,7 +42,7 @@ DATA_SOURCE_TYPES = {
 }
 
 # `executionType` — DLO replaces DMO at v67.0. MDAPI XML casing is `Hbase`;
-# Tooling/Connect return `HBASE`. Both spellings accepted here.
+# Tooling returns `HBASE`. Both spellings accepted here.
 EXECUTION_TYPES = {
     "DLO",      # v67.0+, replaces DMO
     "HBASE", "Hbase",  # observed (HBASE via API, Hbase in source XML)
@@ -54,7 +53,7 @@ EXECUTION_TYPES = {
 
 CONDITION_TYPES = {"All", "Any", "Custom"}  # All observed
 
-# Metadata `filterResultBy`  ==  Connect `decisionResultPolicy` (hit policy).
+# Metadata/Tooling ``filterResultBy`` (hit policy).
 FILTER_RESULT_BY = {
     "AnyValue",
     "CollectOperator",
@@ -91,29 +90,30 @@ USAGE_TYPES = {
     "RecordAlert",
 }
 
-# Metadata/Tooling `dtRowLevelOverrideType`  ==  Connect `rowLevelOverrideType`.
-ROW_LEVEL_OVERRIDE_TYPES = {"None"}  # None observed; superset undocumented
+# Metadata/Tooling ``dtRowLevelOverrideType``.
+ROW_LEVEL_OVERRIDE_TYPES = {"Both", "Condition", "None", "Operator"}
 
-COLLECT_OPERATORS = {"None"}  # None observed; used when filterResultBy=CollectOperator
+COLLECT_OPERATORS = {"Count", "Maximum", "Minimum", "None", "Sum"}
 
 # ---- DecisionTableParameter (a column) -----------------------------------
-# `usage` is UPPER on Metadata/Tooling, Title-case on Connect.
-PARAM_USAGE = {"INPUT", "OUTPUT", "ROWCRITERIA"}          # observed INPUT/OUTPUT
-PARAM_USAGE_CONNECT = {"Input", "Output", "RowCriteria"}  # Connect vocabulary
+# ``usage`` is UPPER on Metadata/Tooling.
+PARAM_USAGE = {"INPUT", "OUTPUT", "ROWCRITERIA"}  # observed INPUT/OUTPUT
 
 PARAM_DATA_TYPES = {
     "Boolean", "Currency", "Date", "DateTime", "Number", "Percent", "String",  # String observed
 }
 
 PARAM_OPERATORS = {
-    "Equals", "NotEquals", "GreaterThan", "GreaterOrEqual", "LessThan",
-    "LessOrEqual", "ExistsIn", "Matches", "IsNull",
+    "Contains", "DoesNotExistIn", "DoesNotMatch", "Equals", "ExistsIn",
+    "GreaterOrEqual", "GreaterThan", "IsNotNull", "IsNull", "LessOrEqual",
+    "LessThan", "Matches", "NotEquals",
 }
 
-PARAM_SORT_TYPES = {"Ascending", "Descending", "None"}
+PARAM_SORT_TYPES = {"AscNullFirst", "AscNullLast", "DescNullFirst", "DescNullLast", "None"}
 
 # ---- DecisionTableSourceCriteria -----------------------------------------
 SOURCE_CRITERIA_VALUE_TYPES = {"Formula", "Literal", "Lookup", "Parameter", "Picklist"}
+SOURCE_CRITERIA_OPERATORS = set(PARAM_OPERATORS)
 
 # --------------------------------------------------------------------------- #
 # Setup objects — Tooling API only, with live-verified key prefixes.
@@ -193,10 +193,9 @@ class ValidationResult:
 # Canonical spec validation
 #
 # The canonical (author-facing, path-agnostic) Decision Table spec uses the
-# Metadata/Tooling vocabulary as its base (it is the source-controlled path),
-# with UPPER-case column `usage`. Phase-2 `_payload.to_connect()` title-cases
-# `usage` and renames the diverging keys. Validating the canonical shape here
-# means one validator guards all three paths.
+# Metadata/Tooling vocabulary, with UPPER-case column ``usage``. Connect
+# Definitions mutation is intentionally unsupported because its representation
+# is not field-compatible with this canonical shape.
 #
 #   {
 #     "fullName":       "RLM_CostBookEntries",     # api name (required)
@@ -208,7 +207,7 @@ class ValidationResult:
 #     "conditionType":  "All",                     # optional
 #     "type":           "MediumVolume",            # optional
 #     "usageType":      "DefaultPricing",          # optional
-#     "status":         "Active",                  # optional (deploy-time)
+#     "status":         "Active",                  # required on create
 #     "decisionTableParameters": [
 #       {"usage":"INPUT","fieldName":"ProductId","dataType":"String",
 #        "operator":"Equals","sequence":1,"fieldPath":"ProductId","isRequired":true},
@@ -222,14 +221,33 @@ class ValidationResult:
 # --------------------------------------------------------------------------- #
 
 # The `usage` values that require an operator + sequence (INPUT columns only).
-_INPUT_USAGE = {"INPUT", "Input"}
+_INPUT_USAGE = {"INPUT"}
 
 # `sourceObject` is Required-since-58.0 for **every** dataSourceType — all three
-# authoring paths reject a create without it (live-verified 262 / v67.0: Tooling
-# `FIELD_INTEGRITY_EXCEPTION`, Connect `MISSING_ARGUMENT`, Metadata deploy error).
+# Metadata/Tooling authoring paths reject a create without it (live-verified 262 /
+# v67.0: Tooling ``FIELD_INTEGRITY_EXCEPTION`` and Metadata deploy error).
 # For a CsvUpload table the value is the literal string "CSV" (there is no backing
 # SObject); for the SObject types it is the object api-name.
 _CSV_SOURCE_OBJECT = "CSV"
+
+_TOP_LEVEL_KEYS = {
+    "fullName", "setupName", "dataSourceType", "sourceObject", "executionType",
+    "filterResultBy", "conditionType", "conditionCriteria", "sourceConditionLogic",
+    "type", "usageType", "status", "description", "collectOperator",
+    "dtRowLevelOverrideType", "doesConsiderNullValue", "hasIncrementalSyncFailed",
+    "isIncrementalSyncEnabled", "isVersioned", "decisionTableParameters",
+    "decisionTableSourceCriterias",
+}
+
+_PARAMETER_KEYS = {
+    "dataType", "decimalScale", "domainObject", "fieldName", "fieldPath",
+    "isGroupByField", "isPriorityField", "isRequired", "length", "operator",
+    "sequence", "sortType", "usage",
+}
+
+_SOURCE_CRITERIA_KEYS = {
+    "sourceFieldName", "operator", "value", "valueType", "sequenceNumber",
+}
 
 
 def _check_enum(result: ValidationResult, location: str, value: Any,
@@ -242,14 +260,32 @@ def _check_enum(result: ValidationResult, location: str, value: Any,
         result.warn(location, f"unrecognized value {value!r} (known: {sorted(allowed)}).")
 
 
+def _check_integer(result: ValidationResult, location: str, value: Any,
+                   *, required: bool = False) -> None:
+    if value is None or value == "":
+        if required:
+            result.error(location, "is required and must be an integer.")
+        return
+    if isinstance(value, bool) or not isinstance(value, int):
+        result.error(location, f"must be an integer; got {value!r}.")
+
+
+def _warn_unknown_keys(result: ValidationResult, location: str,
+                       value: Dict[str, Any], allowed: Set[str]) -> None:
+    for key in sorted(set(value) - allowed):
+        prefix = f"{location}." if location else ""
+        result.warn(f"{prefix}{key}",
+                    "is not part of the Metadata/Tooling canonical spec and will be ignored.")
+
+
 def _validate_parameter(param: Dict[str, Any], location: str, result: ValidationResult,
                         seen: Set[str]) -> None:
     if not isinstance(param, dict):
         result.error(location, "each column must be an object.")
         return
+    _warn_unknown_keys(result, location, param, _PARAMETER_KEYS)
     usage = param.get("usage")
-    _check_enum(result, f"{location}.usage", usage,
-                PARAM_USAGE | PARAM_USAGE_CONNECT, required=True)
+    _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True)
     field_name = param.get("fieldName")
     if not field_name:
         result.error(f"{location}.fieldName", "is required.")
@@ -259,11 +295,15 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
             result.error(location, f"duplicate column {field_name!r} for usage {usage!r}.")
         seen.add(key)
     _check_enum(result, f"{location}.dataType", param.get("dataType"), PARAM_DATA_TYPES)
+    _check_integer(result, f"{location}.decimalScale", param.get("decimalScale"))
+    _check_integer(result, f"{location}.length", param.get("length"))
     if usage in _INPUT_USAGE:
         _check_enum(result, f"{location}.operator", param.get("operator"), PARAM_OPERATORS)
         if param.get("sequence") in (None, ""):
             result.warn(f"{location}.sequence",
                         "INPUT columns are normally sequenced (referenced by conditionCriteria).")
+        else:
+            _check_integer(result, f"{location}.sequence", param.get("sequence"))
     else:
         # OUTPUT/ROWCRITERIA carry no operator/sequence.
         if param.get("operator"):
@@ -272,9 +312,9 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
 
 
 def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> ValidationResult:
-    """Validate a canonical Decision Table spec (path-agnostic). Pure; no org.
+    """Validate a Metadata/Tooling canonical Decision Table spec. Pure; no org.
 
-    ``path`` is optional and only sharpens one **create**-specific warning
+    ``path`` is optional and enables one **create**-specific requirement
     (missing ``status``) — pass the authoring path (``"metadata"``/``"tooling"``)
     when validating a spec that is about to *create* a table. Leave it unset
     (the default) for update validation, where the spec's ``status`` is
@@ -286,6 +326,8 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
     if not isinstance(spec, dict):
         result.error("<root>", "spec must be a JSON object.")
         return result
+
+    _warn_unknown_keys(result, "", spec, _TOP_LEVEL_KEYS)
 
     if not spec.get("fullName"):
         result.error("fullName", "is required (the api name, e.g. 'RLM_CostBookEntries').")
@@ -301,8 +343,14 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
     _check_enum(result, "type", spec.get("type"), TABLE_TYPES)
     _check_enum(result, "usageType", spec.get("usageType"), USAGE_TYPES)
     _check_enum(result, "status", spec.get("status"), STATUSES)
+    _check_enum(result, "collectOperator", spec.get("collectOperator"), COLLECT_OPERATORS)
     _check_enum(result, "dtRowLevelOverrideType", spec.get("dtRowLevelOverrideType"),
                 ROW_LEVEL_OVERRIDE_TYPES)
+
+    if spec.get("conditionType") == "Custom" and not spec.get("conditionCriteria"):
+        result.error("conditionCriteria", "is required when conditionType is 'Custom'.")
+    if spec.get("filterResultBy") == "CollectOperator" and not spec.get("collectOperator"):
+        result.error("collectOperator", "is required when filterResultBy is 'CollectOperator'.")
 
     dst = spec.get("dataSourceType")
     source_object = spec.get("sourceObject")
@@ -324,11 +372,9 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                     "when omitted, which may not match what you intend.")
 
     if path in ("metadata", "tooling") and not spec.get("status"):
-        result.warn("status",
-                    "is required by the Metadata/Tooling create path (unlike Connect, "
-                    "which defaults it to 'Draft') — a status-free create fails with "
-                    "an opaque platform FIELD_INTEGRITY_EXCEPTION. Set status "
-                    "explicitly (e.g. 'Draft').")
+        result.error("status",
+                     "is required by Metadata/Tooling create; set it explicitly "
+                     "(normally 'Draft').")
 
     params = spec.get("decisionTableParameters")
     if not isinstance(params, list) or not params:
@@ -341,7 +387,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
             usage = param.get("usage") if isinstance(param, dict) else None
             if usage in _INPUT_USAGE:
                 n_input += 1
-            elif usage in {"OUTPUT", "Output"}:
+            elif usage == "OUTPUT":
                 n_output += 1
         if n_output == 0:
             result.error("decisionTableParameters", "at least one OUTPUT column is required.")
@@ -359,9 +405,14 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                 if not isinstance(crit, dict):
                     result.error(loc, "each criterion must be an object.")
                     continue
+                _warn_unknown_keys(result, loc, crit, _SOURCE_CRITERIA_KEYS)
                 if not crit.get("sourceFieldName"):
                     result.error(f"{loc}.sourceFieldName", "is required.")
+                _check_enum(result, f"{loc}.operator", crit.get("operator"),
+                            SOURCE_CRITERIA_OPERATORS, required=True)
                 _check_enum(result, f"{loc}.valueType", crit.get("valueType"),
-                            SOURCE_CRITERIA_VALUE_TYPES)
+                            SOURCE_CRITERIA_VALUE_TYPES, required=True)
+                _check_integer(result, f"{loc}.sequenceNumber", crit.get("sequenceNumber"),
+                               required=True)
 
     return result

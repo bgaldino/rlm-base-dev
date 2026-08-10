@@ -31,6 +31,7 @@ Usage
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -45,10 +46,26 @@ from scripts.decision_tables._resolve import (  # noqa: E402
     load_definition,
 )
 
-# Table-level attributes worth diffing. `table` summary + `metadata` complexvalue.
+# Table-level attributes worth diffing. `table` summary + the author-controlled,
+# structural fields from the `Metadata` complexvalue. Runtime observations such
+# as lastSyncDate / refreshStatus / uploadStatus are intentionally excluded: a
+# definition diff should not report drift merely because one org refreshed later.
 _TABLE_ATTRS = ("Status", "UsageType", "SourceObject")
-_META_ATTRS = ("dataSourceType", "executionType", "filterResultBy", "type",
-               "conditionType", "conditionCriteria", "dtRowLevelOverrideType")
+_META_ATTRS = (
+    "setupName", "dataSourceType", "sourceObject", "executionType",
+    "filterResultBy", "conditionType", "conditionCriteria",
+    "sourceConditionLogic", "type", "usageType", "status", "description",
+    "collectOperator", "dtRowLevelOverrideType", "doesConsiderNullValue",
+    "isIncrementalSyncEnabled", "isVersioned",
+)
+
+_DATASET_LINK_FIELDS = (
+    "DeveloperName", "MasterLabel", "SetupName", "SourceObject", "IsDefault",
+    "Description",
+)
+_SOURCE_CRITERIA_FIELDS = (
+    "SourceFieldName", "Operator", "Value", "ValueType", "SequenceNumber",
+)
 
 
 def _column_key(param):
@@ -65,17 +82,66 @@ def _column_signature(param):
         "isRequired": param.get("IsRequired"),
         "isGroupByField": param.get("IsGroupByField"),
         "sortType": param.get("SortType"),
+        "domainObject": param.get("DomainObject"),
     }
 
 
-def _criteria_key(crit):
-    return f"{crit.get('SourceFieldName')}:{crit.get('Operator')}:{crit.get('Value')}"
+def _record_signature(record, fields):
+    """Return only material fields, retaining explicit nulls for stable equality."""
+    return {field: record.get(field) for field in fields}
+
+
+def _signature_delta(signatures_a, signatures_b):
+    """Multiset difference for JSON-compatible signatures.
+
+    A Counter preserves duplicate structural records, while canonical JSON gives
+    dictionaries a deterministic, sortable identity. The returned values remain
+    dictionaries (rather than opaque strings) for useful ``--json`` output.
+    """
+    encoded_a = [json.dumps(s, sort_keys=True, default=str) for s in signatures_a]
+    encoded_b = [json.dumps(s, sort_keys=True, default=str) for s in signatures_b]
+    counts_a, counts_b = Counter(encoded_a), Counter(encoded_b)
+    by_key = {json.dumps(s, sort_keys=True, default=str): s
+              for s in [*signatures_a, *signatures_b]}
+
+    removed = []
+    added = []
+    for key in sorted(counts_a.keys() | counts_b.keys()):
+        removed.extend([by_key[key]] * max(0, counts_a[key] - counts_b[key]))
+        added.extend([by_key[key]] * max(0, counts_b[key] - counts_a[key]))
+    return {"added": added, "removed": removed}
+
+
+def _dataset_link_identity(link):
+    """Stable logical identity for resolving dataset-parameter foreign keys."""
+    return (link.get("DeveloperName") or link.get("SetupName")
+            or link.get("SourceObject"))
+
+
+def _dataset_parameter_signatures(defn):
+    """Replace org-specific ids with their logical link/column identities."""
+    links_by_id = {link.get("Id"): _dataset_link_identity(link)
+                   for link in defn.get("datasetLinks", []) if link.get("Id")}
+    params_by_id = {param.get("Id"): _column_key(param)
+                    for param in defn.get("parameters", []) if param.get("Id")}
+    signatures = []
+    for row in defn.get("datasetParameters", []):
+        link_id = row.get("DecisionTableDatasetLinkId")
+        param_id = row.get("DecisionTableParameterId")
+        signatures.append({
+            "datasetLink": links_by_id.get(link_id, link_id),
+            "decisionTableParameter": params_by_id.get(param_id, param_id),
+            "datasetFieldName": row.get("DatasetFieldName"),
+            "datasetSourceObject": row.get("DatasetSourceObject"),
+        })
+    return signatures
 
 
 def diff_definitions(a, b):
     """Pure structural diff of two loaded definitions. Returns a dict of deltas."""
     delta = {"attributes": {}, "columns": {"added": [], "removed": [], "changed": []},
              "datasetLinks": {"added": [], "removed": []},
+             "datasetParameters": {"added": [], "removed": []},
              "sourceCriteria": {"added": [], "removed": []}}
 
     # Table-level + metadata attributes.
@@ -104,17 +170,21 @@ def diff_definitions(a, b):
                       for k in sig_a if sig_a[k] != sig_b[k]}
             delta["columns"]["changed"].append({"column": key, "fields": fields})
 
-    # Dataset links keyed by SourceObject.
-    links_a = {lk.get("SourceObject") for lk in a["datasetLinks"]}
-    links_b = {lk.get("SourceObject") for lk in b["datasetLinks"]}
-    delta["datasetLinks"]["removed"] = sorted(links_a - links_b)
-    delta["datasetLinks"]["added"] = sorted(links_b - links_a)
-
-    # Source criteria keyed by field:op:value.
-    crit_a = {_criteria_key(c) for c in a["sourceCriteria"]}
-    crit_b = {_criteria_key(c) for c in b["sourceCriteria"]}
-    delta["sourceCriteria"]["removed"] = sorted(crit_a - crit_b)
-    delta["sourceCriteria"]["added"] = sorted(crit_b - crit_a)
+    # Full material signatures. Org-specific setup ids are deliberately ignored;
+    # dataset-parameter foreign keys are resolved to logical link/column names.
+    delta["datasetLinks"] = _signature_delta(
+        [_record_signature(link, _DATASET_LINK_FIELDS) for link in a.get("datasetLinks", [])],
+        [_record_signature(link, _DATASET_LINK_FIELDS) for link in b.get("datasetLinks", [])],
+    )
+    delta["datasetParameters"] = _signature_delta(
+        _dataset_parameter_signatures(a), _dataset_parameter_signatures(b)
+    )
+    delta["sourceCriteria"] = _signature_delta(
+        [_record_signature(criterion, _SOURCE_CRITERIA_FIELDS)
+         for criterion in a.get("sourceCriteria", [])],
+        [_record_signature(criterion, _SOURCE_CRITERIA_FIELDS)
+         for criterion in b.get("sourceCriteria", [])],
+    )
 
     return delta
 
@@ -123,6 +193,7 @@ def _is_empty(delta):
     return (not delta["attributes"]
             and not any(delta["columns"].values())
             and not any(delta["datasetLinks"].values())
+            and not any(delta["datasetParameters"].values())
             and not any(delta["sourceCriteria"].values()))
 
 
@@ -148,15 +219,21 @@ def _print_delta(name_a, name_b, delta):
     if any(delta["datasetLinks"].values()):
         print("  Dataset links:")
         for s in delta["datasetLinks"]["removed"]:
-            print(f"    - only in A: {s}")
+            print(f"    - only in A: {json.dumps(s, sort_keys=True, default=str)}")
         for s in delta["datasetLinks"]["added"]:
-            print(f"    + only in B: {s}")
+            print(f"    + only in B: {json.dumps(s, sort_keys=True, default=str)}")
+    if any(delta["datasetParameters"].values()):
+        print("  Dataset parameters:")
+        for s in delta["datasetParameters"]["removed"]:
+            print(f"    - only in A: {json.dumps(s, sort_keys=True, default=str)}")
+        for s in delta["datasetParameters"]["added"]:
+            print(f"    + only in B: {json.dumps(s, sort_keys=True, default=str)}")
     if any(delta["sourceCriteria"].values()):
         print("  Source criteria:")
         for s in delta["sourceCriteria"]["removed"]:
-            print(f"    - only in A: {s}")
+            print(f"    - only in A: {json.dumps(s, sort_keys=True, default=str)}")
         for s in delta["sourceCriteria"]["added"]:
-            print(f"    + only in B: {s}")
+            print(f"    + only in B: {json.dumps(s, sort_keys=True, default=str)}")
 
 
 def main(argv=None) -> int:
