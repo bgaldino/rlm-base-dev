@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Enables the Home Services app, tabs, record types, field access, and Apex entry points for internal demo users. Deployed only when the home_services feature is enabled.</description>
+    <description>Enables the Home Services app, tabs, field access, and Apex entry points for internal demo users. Deployed only when the home_services feature is enabled.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Home Services</label>
     <applicationVisibilities>

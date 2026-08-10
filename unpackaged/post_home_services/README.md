@@ -22,49 +22,32 @@ non-PII placeholders afterward, publishes the community, and assigns
 Product demo data is intentionally not seeded by this flow. Use the separate
 Home Services product workflow packaged in `RLM_HomeServices_Skills`.
 
-## Design decision: AccountSource, LeadSource, Industry, and OpportunityType StandardValueSets excluded
+## Runtime gating: Hierarchy custom setting
 
-The Home Services source content (the `homeserveSrc` demo org) uses several
-`AccountSource`/`LeadSource` values, two `Industry` values, and two
-`Opportunity.Type` values that don't exist in a stock org's StandardValueSet.
-Deploying them requires adding entries to that StandardValueSet — which is a
-single org-wide list. There is no way to scope a StandardValueSet *addition*
-to one RecordType: any RecordType without an explicit restriction (including
-every QuantumBit `*_Business_*` Master/unrestricted RecordType on Account and
-Opportunity) immediately exposes the new dropdown values too. Rather than
-leak Home-Services-specific values into every other RecordType on these
-shared standard objects, this bundle **excludes the StandardValueSet
-additions entirely** and narrows each RecordType's picklist restriction to
-only the values already present in a stock org:
+All Home Services automation (6 flows, 2 triggers) is gated by the
+`RLM_HomeServices_Settings__c.RLM_Enabled__c` Hierarchy custom setting. The
+field's `defaultValue` is `true`, so automation is active immediately on
+deploy — no seed data or org-default record is required.
 
-- `RLM_HomeServices_Account`: `AccountSource` restriction removed outright
-  (was 10 values, all absent from a stock org); `Industry` restriction
-  trimmed by 2 (`Financial Services`, `Healthcare & Life Sciences` dropped).
-- `RLM_HomeServices_Opportunity`: `LeadSource` restriction removed outright
-  (was 10 values, 9 absent from a stock org — `Partner` was the only stock
-  value); `Type` restriction trimmed by 2 (`Add-On Business`, `Services`
-  dropped, leaving `Existing Business`/`New Business`).
+To disable: set the org-default record's `RLM_Enabled__c` to `false` (or
+per-profile/user via the Hierarchy). A toggle card on the app homepage
+("Required Demo Setup" tab) provides a one-click UI for this.
 
-The four excluded StandardValueSet files are backed up at
-`unpackaged/_deferred_home_services/` — a sibling directory outside
-`post_home_services` (the `sf` CLI's source-to-MDAPI conversion discovers
-metadata by file-suffix pattern anywhere under the deploy root regardless of
-subfolder name, so a subfolder *inside* `post_home_services` still gets swept
-into the deploy). `AccountSource` additionally failed to deploy via MDAPI on
-its own (`insert isn't supported for the standard value set AccountSource.`,
-reproducible even as a no-op re-deploy of already-present values,
-not root-caused) — an independent problem from the leakage concern above, and
-moot now that the value set isn't part of the deploy either way.
+Flows use a `$Setup.RLM_HomeServices_Settings__c.RLM_Enabled__c` Decision
+node (not start-element filters, which don't support `$Setup`). Triggers
+call `RLM_HomeServices_Settings__c.getOrgDefaults().RLM_Enabled__c` as an
+early-return guard.
 
-`OpportunityStage` is unaffected by this decision and remains in
-`standardValueSets/` — its 3 added values (`New Inquiry`, `On-site
-Assessment`, `Proposal/Quote`) are scoped through
-`RLM_HomeServices_OpptyBizProcess`, a dedicated BusinessProcess rather than a
-shared object-wide StandardValueSet restriction, so they don't carry the same
-cross-RecordType leakage risk.
+## Design decision: StandardValueSets excluded
 
-To restore full fidelity for any of the four excluded fields: move the
-relevant file back from `unpackaged/_deferred_home_services/` into
-`standardValueSets/`, re-add the dropped values to the corresponding
-RecordType's `<picklistValues>` block, and accept that those values become
-selectable on every RecordType for that object org-wide.
+The Home Services source content uses several `AccountSource`, `LeadSource`,
+`Industry`, and `Opportunity.Type` values absent from a stock org. These are
+org-wide additions with no way to scope them to a single app. Rather than
+leak Home-Services-specific dropdown values into the main QuantumBit demo,
+this bundle **excludes the StandardValueSet additions entirely**.
+
+The four excluded files are backed up at `unpackaged/_deferred_home_services/`
+(a sibling directory outside the deploy root). `OpportunityStage` remains in
+`standardValueSets/` — its added values (`New Inquiry`, `On-site Assessment`,
+`Proposal/Quote`) are clearly HS-scoped by name and don't conflict with QB
+stages.
