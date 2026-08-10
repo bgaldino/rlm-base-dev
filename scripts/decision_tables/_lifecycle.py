@@ -107,6 +107,20 @@ class MutationVerificationError(LifecycleError):
     """
 
 
+class DeactivationVerificationError(LifecycleError):
+    """A deactivate write succeeded, but confirming the terminal state timed out.
+
+    :meth:`LifecycleEngine.deactivate` PATCHes the status/versionStatus and then
+    polls for the terminal ``Inactive`` state; a poll timeout previously raised a
+    bare :class:`LifecycleError` indistinguishable from a write that never
+    applied. That let a guarded caller's ``deactivated`` tracking flag stay
+    ``False`` even though the write DID apply — skipping any later reactivation
+    attempt and leaving the table stranded mid-transition. Raising this
+    dedicated subclass lets callers treat "write applied, confirmation timed
+    out" the same as a confirmed deactivation for rollback purposes.
+    """
+
+
 class LifecycleEngine:
     """Decision Table lifecycle engine over a :class:`_client.Transport`.
 
@@ -326,14 +340,26 @@ class LifecycleEngine:
     def deactivate(self, record_id: str) -> None:
         """Set Status → Inactive (synchronous) and confirm.
 
-        CsvUpload tables are version-first — see :meth:`activate`.
+        CsvUpload tables are version-first — see :meth:`activate`. If the
+        status/versionStatus write itself succeeds but the confirmation poll
+        times out, this raises :class:`DeactivationVerificationError` (a
+        :class:`LifecycleError` subclass) rather than a bare
+        :class:`LifecycleError` — callers that track "did the write apply"
+        for rollback purposes distinguish this from a write that never went
+        out at all.
         """
         if self._is_csv_upload(record_id):
             version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
             self._set_version_status(record_id, _STATUS_INACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_INACTIVE)
-        self.wait_for_status(record_id, _STATUS_INACTIVE)
+        try:
+            self.wait_for_status(record_id, _STATUS_INACTIVE)
+        except LifecycleError as exc:
+            raise DeactivationVerificationError(
+                f"DecisionTable {record_id} deactivate write was sent, but "
+                f"confirming Status=Inactive timed out: {exc}"
+            ) from exc
 
     # -- Active-edit guard ---------------------------------------------
 
@@ -387,8 +413,18 @@ class LifecycleEngine:
 
         try:
             if was_active:
-                self.deactivate(record_id)
-                deactivated = True
+                try:
+                    self.deactivate(record_id)
+                    deactivated = True
+                except DeactivationVerificationError:
+                    # The status/versionStatus write was sent (and likely
+                    # applied) — only the confirmation poll timed out. Track
+                    # the transition so the ``finally`` block below still
+                    # attempts to restore Active, then let the outer handler
+                    # record the failure and skip ``mutate()`` on an
+                    # unconfirmed state.
+                    deactivated = True
+                    raise
             else:
                 self.log(
                     f"DecisionTable {record_id} is "
@@ -410,7 +446,14 @@ class LifecycleEngine:
                 )
             )
             if should_reactivate:
-                if failure and not (mutate_succeeded or self.dry_run):
+                if isinstance(failure, DeactivationVerificationError):
+                    self.log(
+                        f"Deactivate write for DecisionTable {record_id} was sent, "
+                        f"but confirmation timed out before {verb} could run; "
+                        f"attempting to restore Active rather than leaving it "
+                        f"stranded mid-transition. The failure is still reported."
+                    )
+                elif failure and not (mutate_succeeded or self.dry_run):
                     self.log(
                         f"{verb} failed, but it is an atomic Tooling PATCH (record "
                         f"unchanged on failure), so reactivating DecisionTable "

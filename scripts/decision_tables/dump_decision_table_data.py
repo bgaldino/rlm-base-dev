@@ -127,7 +127,10 @@ def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_numb
     except DecisionTableClientError as exc:
         _DEGRADABLE_CODES = {"NOT_FOUND", "INSUFFICIENT_ACCESS", "FUNCTIONALITY_NOT_ENABLED",
                              "INVALID_INPUT", "UNKNOWN_EXCEPTION"}
-        if exc.error_codes and not _DEGRADABLE_CODES.intersection(exc.error_codes):
+        # Degrade only when the parsed error carries one of the known-benign codes.
+        # A transport failure (timeout, non-JSON CLI error) parses no codes at all —
+        # that must propagate, not be swallowed into a "may be disabled" note.
+        if not _DEGRADABLE_CODES.intersection(exc.error_codes):
             raise
         out["notes"].append(
             f"CsvUpload data GET (.../{{id}}/data) failed — the endpoint may be "

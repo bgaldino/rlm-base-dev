@@ -34,6 +34,7 @@ from scripts.decision_tables import _resolve  # noqa: E402
 from scripts.decision_tables import _schema  # noqa: E402
 from scripts.decision_tables._client import DecisionTableClientError, DEFINITIONS_PATH  # noqa: E402
 from scripts.decision_tables._lifecycle import (  # noqa: E402
+    DeactivationVerificationError,
     LifecycleEngine,
     LifecycleError,
     MutationVerificationError,
@@ -279,7 +280,8 @@ class _LifecycleFake:
     — so ``wait_for_status`` matches on the first poll (waited=0, before any
     sleep). ``connect`` records DELETE/POST verbs for the delete/refresh paths."""
 
-    def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject"):
+    def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject",
+                 stall_confirmation=False):
         self.status = status
         self.dry_run = dry_run
         self.data_source_type = data_source_type
@@ -289,10 +291,16 @@ class _LifecycleFake:
         self.status_sets = []  # ordered list of statuses PATCHed via Tooling
         self.version_status_sets = []  # ordered list of versionStatus PATCHed via Connect
         self.connect_calls = []
+        # When True, get_status's read reports a frozen pre-write value forever —
+        # simulating a write that applied but whose confirmation poll never sees
+        # the terminal state (eventual-consistency lag / a stuck poll).
+        self.stall_confirmation = stall_confirmation
+        self._reported_status = status
 
     def tooling_query(self, query):
         if "FROM DecisionTable" in query:
-            return [{"Id": "0lDxx0000000001AAA", "Status": self.status}]
+            reported = self._reported_status if self.stall_confirmation else self.status
+            return [{"Id": "0lDxx0000000001AAA", "Status": reported}]
         return []
 
     def tooling_sobject(self, method, sobject, record_id=None, suffix=None, body=None, **kw):
@@ -403,6 +411,28 @@ def test_validate_spec_errors():
     check("overall fails", not result.passed)
 
 
+def test_validate_spec_full_name_path_escape():
+    print("test_validate_spec_full_name_path_escape")
+    # fullName becomes a bare file-system segment
+    # (<fullName>.decisionTable-meta.xml) in the metadata deploy temp dir — an
+    # absolute-path or separator-bearing value must be rejected, not silently
+    # accepted (it would write outside the temp SFDX project via os.path.join's
+    # absolute-path-discards-prefix behavior).
+    base = {
+        "setupName": "X", "dataSourceType": "SingleSobject",
+        "sourceObject": "CostBookEntry", "filterResultBy": "OutputOrder",
+        "decisionTableParameters": [
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
+    }
+    for bad in ("/tmp/escaped", "../escaped", "a/b", "a\\b", "1LeadingDigit", ""):
+        result = validate_spec({**base, "fullName": bad})
+        check(f"fullName {bad!r} errors",
+              any(i.location == "fullName" for i in result.errors), result.format_report())
+    good = validate_spec({**base, "fullName": "RLM_Valid_Name1"})
+    check("valid fullName has no fullName error",
+          not any(i.location == "fullName" for i in good.errors), good.format_report())
+
+
 def test_validate_spec_duplicate_and_unknown():
     print("test_validate_spec_duplicate_and_unknown")
     result = validate_spec({
@@ -510,9 +540,15 @@ def test_validate_spec_create_and_structural_errors():
     check("source criteria require operator, valueType, and sequenceNumber",
           {i.location.rsplit(".", 1)[-1] for i in invalid.errors} >=
           {"operator", "valueType", "sequenceNumber"}, invalid.format_report())
-    check("unknown mutation keys are surfaced as warnings",
+    check("unknown mutation keys are surfaced as ERRORS (a typo must block, not warn — "
+          "the translator silently drops unknown keys, so a warning-only spec with a "
+          "mistyped field name would validate clean and then write a wrong definition)",
           {"unknownTopLevel", "unknownColumn", "unknownCriterion"} <=
-          {i.location.rsplit(".", 1)[-1] for i in invalid.warnings},
+          {i.location.rsplit(".", 1)[-1] for i in invalid.errors},
+          invalid.format_report())
+    check("unknown mutation keys are not merely warnings",
+          not ({"unknownTopLevel", "unknownColumn", "unknownCriterion"} &
+               {i.location.rsplit(".", 1)[-1] for i in invalid.warnings}),
           invalid.format_report())
 
 
@@ -701,17 +737,37 @@ def test_dump_csv_upload_empty():
 
 def test_dump_csv_upload_gated():
     print("test_dump_csv_upload_gated")
-    # A disabled/gated data GET degrades to a note (mirrors the SObject fallbacks),
-    # never an unhandled error.
+    # A disabled/gated data GET (a parsed, allowlisted errorCode) degrades to a
+    # note (mirrors the SObject fallbacks), never an unhandled error.
     t = _FakeTransport(
         table=_table_row(SourceObject="CSV"),
         metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
-        csv_data=DecisionTableClientError("API_DISABLED_FOR_ORG"))
+        csv_data=DecisionTableClientError(
+            "API_DISABLED_FOR_ORG", error_codes=["FUNCTIONALITY_NOT_ENABLED"]))
     defn = _resolve.load_definition(t, "RLM_CostBookEntries")
     dump = dump_data(t, defn, limit=5)
     check("gated csv GET degrades to a note (no raise)",
           any("failed" in n.lower() for n in dump["notes"]), dump["notes"])
     check("gated csv GET samples nothing", not dump["samples"], dump["samples"])
+
+
+def test_dump_csv_upload_unclassified_error_propagates():
+    print("test_dump_csv_upload_unclassified_error_propagates")
+    # A transport failure (timeout, non-JSON CLI error) parses NO errorCode at
+    # all — that must propagate as a real failure, not be swallowed into a
+    # "may be disabled" note (regression for the narrowing that only checked
+    # `if exc.error_codes` instead of intersecting against the allowlist).
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=DecisionTableClientError("transport timeout"))
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    raised = False
+    try:
+        dump_data(t, defn, limit=5)
+    except DecisionTableClientError:
+        raised = True
+    check("unclassified csv GET error propagates (no silent degrade)", raised)
 
 
 def test_dump_empty_source_note():
@@ -1282,6 +1338,63 @@ def test_guarded_update_verification_failure_stays_inactive():
           fake.status_sets)
 
 
+def test_guarded_update_deactivate_confirmation_timeout_still_reactivates():
+    print("test_guarded_update_deactivate_confirmation_timeout_still_reactivates")
+    # The deactivate PATCH is sent (and applies) but wait_for_status's poll never
+    # observes the terminal Inactive state (stall_confirmation freezes get_status
+    # at the pre-write value) — deactivate() raises DeactivationVerificationError.
+    # Before the fix, run_guarded_update's `deactivated` flag was only set AFTER
+    # deactivate() returned cleanly, so this case left it False and skipped
+    # reactivation even though the write had gone out. It must now still attempt
+    # to restore Active.
+    fake = _LifecycleFake(status="Active", stall_confirmation=True)
+    engine = LifecycleEngine(fake, max_wait_seconds=1, poll_interval_seconds=1)
+    calls = []
+
+    restore = _no_sleep()
+    try:
+        raised = None
+        try:
+            engine.run_guarded_update(
+                table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
+                mutate=lambda: calls.append("mutate"), activate_after=True, verb="update")
+        except DeactivationVerificationError as exc:
+            raised = exc
+    finally:
+        restore()
+    check("unconfirmed deactivate re-raises DeactivationVerificationError",
+          raised is not None, raised)
+    check("mutate never ran on an unconfirmed deactivation", calls == [], calls)
+    check("the deactivate PATCH still went out despite the stalled poll",
+          fake.status_sets and fake.status_sets[0] == "Inactive", fake.status_sets)
+    # stall_confirmation only freezes get_status's report — the real status the
+    # fake tracks reflects both the deactivate and the reactivate-attempt PATCHes.
+    check("reactivation was still attempted after the stalled confirmation",
+          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
+
+
+def test_delete_cli_deactivate_confirmation_timeout_still_reactivates():
+    print("test_delete_cli_deactivate_confirmation_timeout_still_reactivates")
+    # Same class of bug in delete_decision_table.py's own deactivated-then-delete
+    # sequence: the deactivate write applies but confirmation times out, so the
+    # delete must be skipped and the table restored to Active rather than left
+    # deleted-attempt-abandoned mid-transition.
+    fake = _LifecycleFake(status="Active", stall_confirmation=True)
+    restore = _no_sleep()
+    try:
+        rc, out = _run_cli_with_fake(
+            delete_cli,
+            ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+             "--deactivate-first", "--confirm"],
+            fake,
+        )
+    finally:
+        restore()
+    check("delete on an unconfirmed deactivation exits 1", rc == 1, (rc, out[:300]))
+    check("delete was never attempted", fake.status_sets == ["Inactive", "Active"],
+          fake.status_sets)
+
+
 def test_refresh_uses_live_verified_flag():
     print("test_refresh_uses_live_verified_flag")
     fake = _LifecycleFake(status="Active")
@@ -1757,6 +1870,7 @@ def main():
     Path(csv_path).write_text("Region,DiscountPercent\nNorth,10\nSouth,5\n", encoding="utf-8")
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
+              test_validate_spec_full_name_path_escape,
               test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
               test_resolve_query_builders,
@@ -1764,6 +1878,7 @@ def main():
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
               test_dump_single_sobject, test_dump_csv_upload_rows, test_dump_csv_upload_empty,
               test_dump_csv_upload_gated,
+              test_dump_csv_upload_unclassified_error_propagates,
               test_dump_empty_source_note,
               # Phase B — dump --filter / --version-number + all-types translator
               test_dump_csv_upload_filter_drops_limit, test_dump_csv_upload_version_number_threads,
@@ -1788,6 +1903,7 @@ def main():
               test_guarded_update_leave_deactivated,
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_verification_failure_stays_inactive,
+              test_guarded_update_deactivate_confirmation_timeout_still_reactivates,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
@@ -1795,6 +1911,7 @@ def main():
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               test_delete_cli_csv_upload_failure_rolls_back_version,
+              test_delete_cli_deactivate_confirmation_timeout_still_reactivates,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_header_validation,
               test_upload_cli_missing_csv_errors)

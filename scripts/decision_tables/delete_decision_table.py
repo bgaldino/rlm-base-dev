@@ -49,7 +49,11 @@ from scripts.decision_tables._client import (  # noqa: E402
     Transport,
     eprint,
 )
-from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
+from scripts.decision_tables._lifecycle import (  # noqa: E402
+    DeactivationVerificationError,
+    LifecycleEngine,
+    LifecycleError,
+)
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 
 
@@ -96,8 +100,17 @@ def main(argv=None) -> int:
     try:
         if was_active:
             if args.deactivate_first:
-                engine.deactivate(record_id)
-                deactivated = True
+                try:
+                    engine.deactivate(record_id)
+                    deactivated = True
+                except DeactivationVerificationError:
+                    # The write was sent (and likely applied) — only the
+                    # confirmation poll timed out. Track it as deactivated so
+                    # the except block below still attempts to restore
+                    # Active instead of leaving the table stranded, and skip
+                    # the delete on an unconfirmed state.
+                    deactivated = True
+                    raise
             else:
                 engine.assert_editable(table_row)
         result = engine.delete_tooling(record_id)

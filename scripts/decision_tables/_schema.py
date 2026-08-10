@@ -24,6 +24,7 @@ Release 262 docs (``meta_decisiontable.htm``, ``dt_setup_objects.htm``,
 Unknown enum values **warn** (forward-compat), they do not error.
 """
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
@@ -230,6 +231,16 @@ _INPUT_USAGE = {"INPUT"}
 # SObject); for the SObject types it is the object api-name.
 _CSV_SOURCE_OBJECT = "CSV"
 
+# ``fullName`` becomes a bare file-system segment
+# (``<fullName>.decisionTable-meta.xml``) in both the metadata deploy's temp
+# package dir (``_lifecycle.deploy_metadata_xml``) and ``_payload.meta_file_name``.
+# A value containing a path separator or an absolute-path leading slash escapes
+# that directory (``os.path.join`` discards everything before an absolute-looking
+# segment) — reject up front rather than let a malformed spec write outside the
+# temp SFDX project. Salesforce API names are themselves restricted to this
+# shape (letter-led, alphanumeric + underscore), so this is not overly strict.
+_FULL_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+
 _TOP_LEVEL_KEYS = {
     "fullName", "setupName", "dataSourceType", "sourceObject", "executionType",
     "filterResultBy", "conditionType", "conditionCriteria", "sourceConditionLogic",
@@ -270,12 +281,25 @@ def _check_integer(result: ValidationResult, location: str, value: Any,
         result.error(location, f"must be an integer; got {value!r}.")
 
 
-def _warn_unknown_keys(result: ValidationResult, location: str,
-                       value: Dict[str, Any], allowed: Set[str]) -> None:
+def _reject_unknown_keys(result: ValidationResult, location: str,
+                         value: Dict[str, Any], allowed: Set[str]) -> None:
+    """Error on any key outside the canonical spec's known vocabulary.
+
+    ``to_metadata`` silently drops unrecognized keys, so a typo (e.g.
+    ``sourceConditionLogc``) would otherwise pass validation, get ignored by the
+    translator, and let a full-replace update land without the field the author
+    actually intended — a validated-but-wrong definition. Unlike an unrecognized
+    *enum value* (forward-compat, kept as a warning via ``_check_enum``), an
+    unrecognized *key* can never be intentional on this closed, hand-maintained
+    schema, so it errors rather than warns.
+    """
     for key in sorted(set(value) - allowed):
         prefix = f"{location}." if location else ""
-        result.warn(f"{prefix}{key}",
-                    "is not part of the Metadata/Tooling canonical spec and will be ignored.")
+        result.error(f"{prefix}{key}",
+                     "is not part of the Metadata/Tooling canonical spec — check for "
+                     "a typo. An unknown key is silently dropped by the translator, "
+                     "so a mistyped field name would otherwise pass validation and "
+                     "then be missing from the definition that is written.")
 
 
 def _validate_parameter(param: Dict[str, Any], location: str, result: ValidationResult,
@@ -283,7 +307,7 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     if not isinstance(param, dict):
         result.error(location, "each column must be an object.")
         return
-    _warn_unknown_keys(result, location, param, _PARAMETER_KEYS)
+    _reject_unknown_keys(result, location, param, _PARAMETER_KEYS)
     usage = param.get("usage")
     _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True)
     field_name = param.get("fieldName")
@@ -327,10 +351,20 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         result.error("<root>", "spec must be a JSON object.")
         return result
 
-    _warn_unknown_keys(result, "", spec, _TOP_LEVEL_KEYS)
+    _reject_unknown_keys(result, "", spec, _TOP_LEVEL_KEYS)
 
-    if not spec.get("fullName"):
+    full_name = spec.get("fullName")
+    if not full_name:
         result.error("fullName", "is required (the api name, e.g. 'RLM_CostBookEntries').")
+    elif not (isinstance(full_name, str) and _FULL_NAME_RE.match(full_name)):
+        result.error(
+            "fullName",
+            f"must be a valid api name (letters/digits/underscore, starting with a "
+            f"letter) — got {full_name!r}. It becomes a bare file name "
+            f"(<fullName>.decisionTable-meta.xml) in the metadata deploy path; a "
+            f"path separator or absolute-path value would write outside the temp "
+            f"SFDX project.",
+        )
     if not spec.get("setupName"):
         result.error("setupName", "is required (the human label).")
 
@@ -405,7 +439,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                 if not isinstance(crit, dict):
                     result.error(loc, "each criterion must be an object.")
                     continue
-                _warn_unknown_keys(result, loc, crit, _SOURCE_CRITERIA_KEYS)
+                _reject_unknown_keys(result, loc, crit, _SOURCE_CRITERIA_KEYS)
                 if not crit.get("sourceFieldName"):
                     result.error(f"{loc}.sourceFieldName", "is required.")
                 _check_enum(result, f"{loc}.operator", crit.get("operator"),
