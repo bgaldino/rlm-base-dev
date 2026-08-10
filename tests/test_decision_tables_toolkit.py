@@ -582,6 +582,92 @@ def test_validate_spec_create_and_structural_errors():
           invalid.format_report())
 
 
+def test_validate_spec_usage_is_strict():
+    print("test_validate_spec_usage_is_strict")
+    # ``usage`` is a CLOSED structural enum (it drives whether operator/sequence are
+    # kept, matched case-sensitively as {"INPUT"}), unlike the descriptive catalogs
+    # that only warn. A mis-cased/off-catalog value must ERROR so a validated spec
+    # can never silently write a wrong definition (drop operator/sequence + fail
+    # GET-back) — the same fail-closed treatment unknown keys get.
+    base = {
+        "fullName": "RLM_UsageCase", "setupName": "Usage Case",
+        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
+        "filterResultBy": "OutputOrder",
+    }
+    # The Connect read-side casing "Input"/"Output" is the classic footgun — an
+    # author copying from a Connect GET response would write exactly this.
+    miscased = validate_spec({
+        **base,
+        "decisionTableParameters": [
+            {"usage": "Input", "fieldName": "ProductId", "dataType": "String",
+             "operator": "Equals", "sequence": 1},
+            {"usage": "Output", "fieldName": "Cost", "dataType": "Currency"},
+        ],
+    })
+    check("mis-cased usage 'Input' is an ERROR, not a warning",
+          any(i.location.endswith(".usage") and "Input" in i.message
+              for i in miscased.errors), miscased.format_report())
+    check("mis-cased usage never lands as a mere warning",
+          not any(i.location.endswith(".usage") for i in miscased.warnings),
+          miscased.format_report())
+    check("a spec with a mis-cased usage does not pass",
+          not miscased.passed, miscased.format_report())
+    # Canonical UPPER usage stays clean (no usage error/warning).
+    canonical = validate_spec({
+        **base,
+        "decisionTableParameters": [
+            {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+             "operator": "Equals", "sequence": 1},
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+        ],
+    })
+    check("canonical UPPER usage raises no usage issue",
+          not any(i.location.endswith(".usage") for i in canonical.issues),
+          canonical.format_report())
+
+
+def test_payload_miscased_usage_would_drop_operator_and_fail_verify():
+    print("test_payload_miscased_usage_would_drop_operator_and_fail_verify")
+    # Demonstrates the DOWNSTREAM harm the strict-usage validation now blocks: if a
+    # mis-cased "Input" reached the translator it would be treated as non-INPUT, so
+    # operator/sequence are dropped from the write — and the GET-back verifier would
+    # flag the resulting definition as wrong. (This is why usage must error, not
+    # warn, at validation time.)
+    miscased_param = {"usage": "Input", "fieldName": "ProductId", "dataType": "String",
+                      "operator": "Equals", "sequence": 1}
+    translated = _payload._param_to_metadata(miscased_param)
+    check("mis-cased usage drops operator in translation",
+          "operator" not in translated and "sequence" not in translated, translated)
+    # verify_requested_metadata normalizes usage casing on BOTH sides, so the
+    # requested "Input" and a live UPPER "INPUT" join on the same identity — the
+    # mismatch surfaced is the dropped operator, not a phantom missing-parameter.
+    canonical_param = {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+                       "operator": "Equals", "sequence": 1}
+    live_metadata = _payload.to_metadata({
+        "fullName": "RLM_UsageCase", "setupName": "Usage Case",
+        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
+        "filterResultBy": "OutputOrder",
+        "decisionTableParameters": [
+            canonical_param,
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+        ],
+    })
+    spec_miscased = {
+        "fullName": "RLM_UsageCase", "setupName": "Usage Case",
+        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
+        "filterResultBy": "OutputOrder",
+        "decisionTableParameters": [
+            miscased_param,
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+        ],
+    }
+    mismatches = _payload.verify_requested_metadata(spec_miscased, live_metadata)
+    check("case-symmetric identity join finds the parameter (no phantom 'missing')",
+          not any("is missing" in m for m in mismatches), mismatches)
+    check("verifier reports the dropped operator as the real drift",
+          any("operator" in m for m in mismatches), mismatches)
+
+
 # --------------------------------------------------------------------------- #
 # _resolve — query builders + definition assembly (fake transport)
 # --------------------------------------------------------------------------- #
@@ -1513,6 +1599,47 @@ def test_delete_cli_deactivate_confirmation_timeout_still_reactivates():
           fake.status_sets)
 
 
+def test_wait_for_status_timeout_message_is_operation_aware():
+    print("test_wait_for_status_timeout_message_is_operation_aware")
+    # The single wait_for_status poll confirms BOTH activation and deactivation, and
+    # its timeout text is embedded verbatim in DeactivationVerificationError — so it
+    # must not hardcode "Activation is asynchronous" when confirming Inactive, and it
+    # must not recommend a --max-wait flag that most reaching CLIs (update/delete/
+    # deactivate) don't expose.
+    restore = _no_sleep()
+    try:
+        # Activation timeout: the table never leaves Inactive while we poll for Active.
+        act_fake = _LifecycleFake(status="Inactive")
+        act_msg = None
+        try:
+            LifecycleEngine(act_fake, max_wait_seconds=1, poll_interval_seconds=1) \
+                .wait_for_status("0lDxx0000000001AAA", "Active")
+        except LifecycleError as exc:
+            act_msg = str(exc)
+        # Deactivation timeout: the table stays Active while we poll for Inactive.
+        deact_fake = _LifecycleFake(status="Active")
+        deact_msg = None
+        try:
+            LifecycleEngine(deact_fake, max_wait_seconds=1, poll_interval_seconds=1) \
+                .wait_for_status("0lDxx0000000001AAA", "Inactive")
+        except LifecycleError as exc:
+            deact_msg = str(exc)
+    finally:
+        restore()
+    check("activation timeout still says activation is asynchronous",
+          act_msg and "Activation is asynchronous" in act_msg, act_msg)
+    check("deactivation timeout does NOT claim activation is asynchronous",
+          deact_msg and "Activation is asynchronous" not in deact_msg, deact_msg)
+    check("deactivation timeout is worded for deactivation",
+          deact_msg and "Deactivation" in deact_msg, deact_msg)
+    check("neither timeout recommends a bare --max-wait flag callers may lack",
+          "--max-wait" not in (act_msg or "") and "--max-wait" not in (deact_msg or ""),
+          (act_msg, deact_msg))
+    check("both timeouts point at a tool-agnostic re-check",
+          "list_decision_tables.py" in (act_msg or "")
+          and "list_decision_tables.py" in (deact_msg or ""), (act_msg, deact_msg))
+
+
 def test_refresh_uses_live_verified_flag():
     print("test_refresh_uses_live_verified_flag")
     fake = _LifecycleFake(status="Active")
@@ -2011,6 +2138,8 @@ def main():
               test_validate_spec_full_name_path_escape,
               test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
+              test_validate_spec_usage_is_strict,
+              test_payload_miscased_usage_would_drop_operator_and_fail_verify,
               test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
@@ -2045,6 +2174,7 @@ def main():
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_verification_failure_stays_inactive,
               test_guarded_update_deactivate_confirmation_timeout_still_reactivates,
+              test_wait_for_status_timeout_message_is_operation_aware,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,

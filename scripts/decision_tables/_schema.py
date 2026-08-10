@@ -262,13 +262,29 @@ _SOURCE_CRITERIA_KEYS = {
 
 
 def _check_enum(result: ValidationResult, location: str, value: Any,
-                allowed: Set[str], *, required: bool = False) -> None:
+                allowed: Set[str], *, required: bool = False,
+                strict: bool = False) -> None:
+    """Validate ``value`` against ``allowed``.
+
+    An unrecognized value **warns** by default — the descriptive catalogs
+    (``usageType`` / ``type`` / ``executionType`` …) grow per release, so a value
+    this toolkit hasn't catalogued yet may still be valid on the org (forward
+    compat). ``strict=True`` makes an unrecognized value an **error** instead: use
+    it for a *closed structural* enum whose value drives translation, where an
+    off-catalog value can never be intentional and would silently produce a wrong
+    write rather than an org-side rejection (see ``usage`` in
+    :func:`_validate_parameter`).
+    """
     if value is None or value == "":
         if required:
             result.error(location, "is required.")
         return
     if value not in allowed:
-        result.warn(location, f"unrecognized value {value!r} (known: {sorted(allowed)}).")
+        message = f"unrecognized value {value!r} (known: {sorted(allowed)})."
+        if strict:
+            result.error(location, message)
+        else:
+            result.warn(location, message)
 
 
 def _check_integer(result: ValidationResult, location: str, value: Any,
@@ -309,7 +325,16 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
         return
     _reject_unknown_keys(result, location, param, _PARAMETER_KEYS)
     usage = param.get("usage")
-    _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True)
+    # ``usage`` is a CLOSED, STRUCTURAL enum, not a descriptive one: it decides
+    # whether the translator keeps ``operator``/``sequence`` (INPUT-only) and it is
+    # matched case-sensitively (``_payload._INPUT_USAGES == {"INPUT"}``). A
+    # mis-cased or off-catalog value (e.g. the Connect read-side ``"Input"``) would
+    # otherwise pass as a warning, then be treated as non-INPUT — silently dropping
+    # ``operator``/``sequence`` and writing a definition that no longer matches the
+    # spec (and fails GET-back verification). So an unrecognized ``usage`` is an
+    # ERROR, the same fail-closed treatment as an unknown key.
+    _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True,
+                strict=True)
     field_name = param.get("fieldName")
     if not field_name:
         result.error(f"{location}.fieldName", "is required.")

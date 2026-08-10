@@ -209,10 +209,22 @@ class LifecycleEngine:
                 return
             time.sleep(self.poll)
             waited += self.poll
+        # Operation-aware diagnostic: this poll confirms BOTH activation (which is
+        # asynchronous — passes through the transient ActivationInProgress) and
+        # deactivation (usually immediate). The message must not assert "activation"
+        # when confirming Inactive — it is embedded verbatim in
+        # DeactivationVerificationError. It also stays remediation-neutral: not every
+        # CLI that reaches this exposes --max-wait (only activate/upload do; update/
+        # delete/deactivate route here via run_guarded_update/deactivate/activate),
+        # so it points at a re-check any caller can run rather than a flag that may
+        # not exist.
+        transition = "Activation is asynchronous" if target == _STATUS_ACTIVE \
+            else "Deactivation is normally immediate but was not observed"
         raise LifecycleError(
             f"DecisionTable {record_id} did not reach Status={target} within "
-            f"{self.max_wait}s (last seen: {last!r}). Activation is asynchronous; "
-            f"re-check with list_decision_tables.py or raise --max-wait."
+            f"{self.max_wait}s (last seen: {last!r}). {transition}; re-check its "
+            f"current status with list_decision_tables.py (raise the engine's "
+            f"max-wait, where the CLI exposes it, to poll longer)."
         )
 
     def get_upload_status(self, record_id: str) -> Optional[str]:

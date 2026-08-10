@@ -304,14 +304,18 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
         if key in spec and spec.get(key) not in (None, ""):
             compare("Metadata", key, _bool_from(spec[key], False), live_metadata.get(key))
 
+    def _param_identity(usage: Any, field_name: Any) -> tuple:
+        # Normalize usage casing identically on BOTH sides of the join so the
+        # requested↔live match never turns on a casing difference. (Post-validation
+        # usage is always canonical UPPER — strict validation rejects anything else —
+        # but keeping the two identities symmetric keeps this verifier correct even
+        # if called directly on an un-validated spec.)
+        return (str(usage).upper() if isinstance(usage, str) else usage, field_name)
+
     live_params: Dict[Any, List[Dict[str, Any]]] = {}
     for param in live_metadata.get("decisionTableParameters") or []:
         if isinstance(param, dict):
-            usage = param.get("usage")
-            identity = (
-                str(usage).upper() if isinstance(usage, str) else usage,
-                param.get("fieldName"),
-            )
+            identity = _param_identity(param.get("usage"), param.get("fieldName"))
             live_params.setdefault(identity, []).append(param)
     parameter_fields = (
         "dataType", "decimalScale", "domainObject", "fieldName", "fieldPath",
@@ -323,7 +327,7 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
         if not isinstance(requested, dict):
             continue
         expected = _param_to_metadata(requested)
-        identity = (expected.get("usage"), expected.get("fieldName"))
+        identity = _param_identity(expected.get("usage"), expected.get("fieldName"))
         requested_param_identities.add(identity)
         live_matches = live_params.get(identity) or []
         location = f"decisionTableParameters[{index}]"
