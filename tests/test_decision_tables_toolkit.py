@@ -996,6 +996,68 @@ def test_translator_tooling():
           len(mismatches) == 1 and "setupName" in mismatches[0], mismatches)
 
 
+def test_verifier_rejects_unexpected_definition_entries():
+    print("test_verifier_rejects_unexpected_definition_entries")
+    spec = _cost_book_spec(decisionTableSourceCriterias=[])
+    live_metadata = _payload.to_metadata(spec)
+    live_metadata["decisionTableParameters"].append({
+        "usage": "OUTPUT", "fieldName": "StaleOutput", "dataType": "String",
+    })
+    live_metadata["decisionTableSourceCriterias"] = [{
+        "sourceFieldName": "Status", "operator": "Equals", "value": "Active",
+        "valueType": "Literal", "sequenceNumber": 1,
+    }]
+
+    mismatches = _payload.verify_requested_metadata(spec, live_metadata)
+    check("verifier rejects an unexpected retained parameter",
+          any("unexpected live parameter" in mismatch
+              and "StaleOutput" in mismatch for mismatch in mismatches),
+          mismatches)
+    check("verifier rejects an unexpected retained source criterion",
+          any("unexpected live source criterion" in mismatch
+              and "sequence 1" in mismatch for mismatch in mismatches),
+          mismatches)
+
+    omitted_criteria_spec = _cost_book_spec()
+    check("verifier ignores live criteria when the spec does not declare that field",
+          not any("source criterion" in mismatch for mismatch in
+                  _payload.verify_requested_metadata(
+                      omitted_criteria_spec, live_metadata
+                  )))
+    null_criteria_spec = _cost_book_spec(decisionTableSourceCriterias=None)
+    check("verifier treats null criteria as omitted",
+          not any("source criterion" in mismatch for mismatch in
+                  _payload.verify_requested_metadata(
+                      null_criteria_spec, live_metadata
+                  )))
+
+
+def test_verifier_rejects_duplicate_definition_entries():
+    print("test_verifier_rejects_duplicate_definition_entries")
+    criterion = {
+        "sourceFieldName": "Status", "operator": "Equals", "value": "Active",
+        "valueType": "Literal", "sequenceNumber": 1,
+    }
+    spec = _cost_book_spec(decisionTableSourceCriterias=[criterion])
+    live_metadata = _payload.to_metadata(spec)
+    live_metadata["decisionTableParameters"].append(
+        dict(live_metadata["decisionTableParameters"][0])
+    )
+    live_metadata["decisionTableSourceCriterias"].append(
+        dict(live_metadata["decisionTableSourceCriterias"][0])
+    )
+
+    mismatches = _payload.verify_requested_metadata(spec, live_metadata)
+    check("verifier rejects a duplicate requested parameter",
+          any("appears 2 times" in mismatch
+              and "parameter" in mismatch for mismatch in mismatches),
+          mismatches)
+    check("verifier rejects a duplicate requested source criterion",
+          any("appears 2 times" in mismatch
+              and "sequence" in mismatch for mismatch in mismatches),
+          mismatches)
+
+
 def test_translator_csv_upload():
     print("test_translator_csv_upload")
     spec = _csv_upload_spec()
@@ -1624,6 +1686,8 @@ def main():
               test_describe_cli_grouped, test_trace_cli_json,
               # Phase 2 — translators + XML round-trip
               test_translator_metadata, test_translator_tooling,
+              test_verifier_rejects_unexpected_definition_entries,
+              test_verifier_rejects_duplicate_definition_entries,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
               test_assert_editable_guard,

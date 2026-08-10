@@ -266,8 +266,12 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
 
     Tooling GET adds response-only fields and server defaults, so comparing the
     entire ``Metadata`` complexvalue produces false drift. This verifier checks
-    only fields the author explicitly supplied, plus the requested parameter and
-    source-criteria entries. Lifecycle ``status`` is intentionally excluded: the
+    only scalar fields the author explicitly supplied, but requires the live
+    parameter set to match exactly. Source criteria are likewise exact when the
+    spec declares ``decisionTableSourceCriterias``; an explicit empty list verifies
+    that no criteria remain. Those arrays are full-replace definition fields, so
+    retained unexpected entries are verification failures when the author supplied
+    the corresponding definition. Lifecycle ``status`` is intentionally excluded: the
     update CLI stamps the table's live status instead of allowing the spec to
     drive activation. ``executionType`` is compared case-insensitively because
     source XML and Tooling use different casing (for example Hbase/HBASE).
@@ -301,48 +305,88 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
         if key in spec and spec.get(key) not in (None, ""):
             compare("Metadata", key, _bool_from(spec[key], False), live_metadata.get(key))
 
-    live_params = {
-        (p.get("usage"), p.get("fieldName")): p
-        for p in (live_metadata.get("decisionTableParameters") or [])
-        if isinstance(p, dict)
-    }
+    live_params: Dict[Any, List[Dict[str, Any]]] = {}
+    for param in live_metadata.get("decisionTableParameters") or []:
+        if isinstance(param, dict):
+            usage = param.get("usage")
+            identity = (
+                str(usage).upper() if isinstance(usage, str) else usage,
+                param.get("fieldName"),
+            )
+            live_params.setdefault(identity, []).append(param)
     parameter_fields = (
         "dataType", "decimalScale", "domainObject", "fieldName", "fieldPath",
         "isGroupByField", "isPriorityField", "isRequired", "length", "operator",
         "sequence", "sortType", "usage",
     )
+    requested_param_identities = set()
     for index, requested in enumerate(spec.get("decisionTableParameters") or []):
         if not isinstance(requested, dict):
             continue
         expected = _param_to_metadata(requested)
         identity = (expected.get("usage"), expected.get("fieldName"))
-        live = live_params.get(identity)
+        requested_param_identities.add(identity)
+        live_matches = live_params.get(identity) or []
         location = f"decisionTableParameters[{index}]"
-        if live is None:
+        if not live_matches:
             mismatches.append(f"{location}: requested parameter {identity!r} is missing")
             continue
+        if len(live_matches) != 1:
+            mismatches.append(
+                f"{location}: requested parameter {identity!r} appears "
+                f"{len(live_matches)} times in live Metadata"
+            )
+        live = live_matches[0]
         for key in parameter_fields:
             if key in requested and requested.get(key) not in (None, ""):
                 compare(location, key, expected.get(key), live.get(key))
+    for identity in sorted(
+        set(live_params) - requested_param_identities, key=repr
+    ):
+        mismatches.append(
+            f"decisionTableParameters: unexpected live parameter {identity!r}"
+        )
 
-    live_criteria = {
-        c.get("sequenceNumber"): c
-        for c in (live_metadata.get("decisionTableSourceCriterias") or [])
-        if isinstance(c, dict)
-    }
+    def criterion_sequence(value: Any) -> Any:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return value
+
+    live_criteria: Dict[Any, List[Dict[str, Any]]] = {}
+    for criterion in live_metadata.get("decisionTableSourceCriterias") or []:
+        if isinstance(criterion, dict):
+            sequence = criterion_sequence(criterion.get("sequenceNumber"))
+            live_criteria.setdefault(sequence, []).append(criterion)
+    requested_criterion_sequences = set()
     for index, requested in enumerate(spec.get("decisionTableSourceCriterias") or []):
         if not isinstance(requested, dict):
             continue
         expected = _criteria_to_metadata(requested)
-        sequence = expected.get("sequenceNumber")
-        live = live_criteria.get(sequence)
+        sequence = criterion_sequence(expected.get("sequenceNumber"))
+        requested_criterion_sequences.add(sequence)
+        live_matches = live_criteria.get(sequence) or []
         location = f"decisionTableSourceCriterias[{index}]"
-        if live is None:
+        if not live_matches:
             mismatches.append(f"{location}: requested sequence {sequence!r} is missing")
             continue
+        if len(live_matches) != 1:
+            mismatches.append(
+                f"{location}: requested sequence {sequence!r} appears "
+                f"{len(live_matches)} times in live Metadata"
+            )
+        live = live_matches[0]
         for key in ("sourceFieldName", "operator", "value", "valueType", "sequenceNumber"):
             if key in requested and requested.get(key) not in (None, ""):
                 compare(location, key, expected.get(key), live.get(key))
+    if spec.get("decisionTableSourceCriterias") is not None:
+        for sequence in sorted(
+            set(live_criteria) - requested_criterion_sequences, key=repr
+        ):
+            mismatches.append(
+                f"decisionTableSourceCriterias: unexpected live source criterion "
+                f"sequence {sequence!r}"
+            )
 
     return mismatches
 
