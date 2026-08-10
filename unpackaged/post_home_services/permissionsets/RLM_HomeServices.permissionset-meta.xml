@@ -107,16 +107,6 @@
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
-        <!-- RLM_HomeServices_CreateQuoteFromOpportunity looks up the HS Quote RecordType by name. -->
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>RecordType</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
         <!-- RLM_HomeServices_BillingDashCtrl reads billing schedule groups, milestones,
              invoices, and saved payment methods for the Account billing dashboard. -->
         <allowCreate>false</allowCreate>
@@ -243,6 +233,11 @@
         <field>RLM_HomeServices_QuoteDataRefresh__e.RLM_HomeServices_QuoteId__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>RLM_HomeServices_Settings__c.RLM_Enabled__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <classAccesses>
         <apexClass>RLM_HomeServices_BillingDashCtrl</apexClass>
         <enabled>true</enabled>
@@ -279,26 +274,6 @@
         <apexClass>RLM_HomeServices_SignupRest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <recordTypeVisibilities>
-        <recordType>Account.RLM_HomeServices_Account</recordType>
-        <visible>true</visible>
-    </recordTypeVisibilities>
-    <recordTypeVisibilities>
-        <recordType>Contract.RLM_HomeServices_Contract</recordType>
-        <visible>true</visible>
-    </recordTypeVisibilities>
-    <recordTypeVisibilities>
-        <recordType>Opportunity.RLM_HomeServices_Opportunity</recordType>
-        <visible>true</visible>
-    </recordTypeVisibilities>
-    <recordTypeVisibilities>
-        <recordType>Order.RLM_HomeServices_Order</recordType>
-        <visible>true</visible>
-    </recordTypeVisibilities>
-    <recordTypeVisibilities>
-        <recordType>Quote.RLM_HomeServices_Quote</recordType>
-        <visible>true</visible>
-    </recordTypeVisibilities>
     <tabSettings>
         <tab>standard-home</tab>
         <visibility>Visible</visibility>

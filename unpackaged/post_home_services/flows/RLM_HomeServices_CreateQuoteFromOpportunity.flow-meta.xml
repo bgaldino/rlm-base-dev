@@ -3,24 +3,24 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
-        <description>Only proceed when the Opportunity RecordType is RLM_HomeServices_Opportunity. Avoids hardcoding a RecordTypeId so this flow is portable across orgs.</description>
-        <name>Is_Home_Services_Record_Type</name>
-        <label>Is Home Services Record Type?</label>
+        <description>Only proceed when Home Services automation is enabled via the org-level custom setting.</description>
+        <name>Is_Home_Services_Enabled</name>
+        <label>Is Home Services Enabled?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <defaultConnectorLabel>Other Record Type</defaultConnectorLabel>
+        <defaultConnectorLabel>Not Enabled</defaultConnectorLabel>
         <rules>
-            <name>Yes_Home_Services</name>
+            <name>Yes_Enabled</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>$Record.RecordType.DeveloperName</leftValueReference>
+                <leftValueReference>$Setup.RLM_HomeServices_Settings__c.RLM_Enabled__c</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
-                    <stringValue>RLM_HomeServices_Opportunity</stringValue>
+                    <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Get_Quote_Record_Type</targetReference>
+                <targetReference>Create_Initial_Quote_Subflow</targetReference>
             </connector>
             <label>Yes</label>
         </rules>
@@ -149,36 +149,6 @@
         <queriedFields>ProductSellingModelId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-    <recordLookups>
-        <description>Retrieves the Quote RecordType Id for RLM_HomeServices_Quote without hardcoding an Id, keeping this flow portable across orgs.</description>
-        <name>Get_Quote_Record_Type</name>
-        <label>Get Quote Record Type</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Create_Initial_Quote_Subflow</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>SobjectType</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Quote</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>DeveloperName</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>RLM_HomeServices_Quote</stringValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>RecordType</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
     <recordUpdates>
         <name>Set_AccountforQuote</name>
         <label>Set AccountforQuote</label>
@@ -194,31 +164,6 @@
             </value>
         </inputAssignments>
         <inputReference>$Record.Quotes</inputReference>
-    </recordUpdates>
-    <recordUpdates>
-        <description>Stamps the RLM_HomeServices_Quote RecordType on the newly created quote using the Id looked up dynamically to avoid hardcoding.</description>
-        <name>Set_Quote_Record_Type</name>
-        <label>Set Quote Record Type</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>Get_Opportunity_Line_Items</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>Create_Initial_Quote_Subflow.quoteId</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>RecordTypeId</field>
-            <value>
-                <elementReference>Get_Quote_Record_Type.Id</elementReference>
-            </value>
-        </inputAssignments>
-        <object>Quote</object>
     </recordUpdates>
     <recordUpdates>
         <name>Update_Ship_To_Address</name>
@@ -262,7 +207,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Is_Home_Services_Record_Type</targetReference>
+            <targetReference>Is_Home_Services_Enabled</targetReference>
         </connector>
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
@@ -333,7 +278,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Set_Quote_Record_Type</targetReference>
+            <targetReference>Get_Opportunity_Line_Items</targetReference>
         </connector>
         <flowName>quotingAI__createInitialQuoteOnOpp</flowName>
         <inputAssignments>

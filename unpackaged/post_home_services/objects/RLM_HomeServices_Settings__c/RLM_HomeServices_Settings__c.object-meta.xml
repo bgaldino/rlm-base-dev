@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>Hierarchy</customSettingsType>
+    <description>Runtime feature toggle for Home Services automation. When the org-default Enabled field is true, Home Services record-triggered flows and triggers are active.</description>
+    <enableFeeds>false</enableFeeds>
+    <label>Home Services Settings</label>
+    <visibility>Public</visibility>
+</CustomObject>

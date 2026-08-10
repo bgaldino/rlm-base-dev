@@ -3,25 +3,26 @@
     <apiVersion>64.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
-        <name>Check_RLM_HomeServices_RecordType</name>
-        <label>Account is RLM HomeServices?</label>
+        <description>Only proceed when Home Services automation is enabled via the org-level custom setting.</description>
+        <name>Is_Home_Services_Enabled</name>
+        <label>Is Home Services Enabled?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <defaultConnectorLabel>No — Skip</defaultConnectorLabel>
+        <defaultConnectorLabel>Not Enabled</defaultConnectorLabel>
         <rules>
-            <name>Is_RLM_HomeServices</name>
+            <name>Yes_Enabled</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Account.RecordType.DeveloperName</leftValueReference>
+                <leftValueReference>$Setup.RLM_HomeServices_Settings__c.RLM_Enabled__c</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
-                    <stringValue>RLM_HomeServices_Account</stringValue>
+                    <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
                 <targetReference>Count_Active_Orders</targetReference>
             </connector>
-            <label>Yes — RLM HomeServices</label>
+            <label>Yes</label>
         </rules>
     </decisions>
     <decisions>
@@ -80,7 +81,7 @@
             <field>AccountId</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>Get_Account.Id</elementReference>
+                <elementReference>$Record.AccountId</elementReference>
             </value>
         </filters>
         <filters>
@@ -95,29 +96,6 @@
         <queriedFields>Id</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-    <recordLookups>
-        <name>Get_Account</name>
-        <label>Get Account with RecordType</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Check_RLM_HomeServices_RecordType</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.AccountId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Account</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>RecordTypeId</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
     <recordUpdates>
         <name>Set_Flag_False</name>
         <label>Set Has Active Order = False</label>
@@ -128,7 +106,7 @@
             <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>Get_Account.Id</elementReference>
+                <elementReference>$Record.AccountId</elementReference>
             </value>
         </filters>
         <inputAssignments>
@@ -155,7 +133,7 @@
             <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>Get_Account.Id</elementReference>
+                <elementReference>$Record.AccountId</elementReference>
             </value>
         </filters>
         <inputAssignments>
@@ -176,7 +154,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Account</targetReference>
+            <targetReference>Is_Home_Services_Enabled</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>

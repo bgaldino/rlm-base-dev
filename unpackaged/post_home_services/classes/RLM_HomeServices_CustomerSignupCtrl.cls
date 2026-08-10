@@ -61,9 +61,8 @@ public with sharing class RLM_HomeServices_CustomerSignupCtrl {
                 return result;
             }
 
-            // 1. Account (all form data; RLM_HomeServices_Account record type)
+            // 1. Account (all form data)
             Account acc = new Account();
-            acc.RecordTypeId = getHomeServicesRecordTypeId('Account');
             acc.Name = (req.firstName + ' ' + req.lastName).trim();
             acc.RLM_HomeServices_FirstName__c = req.firstName;
             acc.RLM_HomeServices_LastName__c = req.lastName;
@@ -87,7 +86,6 @@ public with sharing class RLM_HomeServices_CustomerSignupCtrl {
 
             // 3. Opportunity
             Opportunity opp = new Opportunity();
-            opp.RecordTypeId = getHomeServicesRecordTypeId('Opportunity');
             opp.AccountId = acc.Id;
             opp.Name = acc.Name + ' - Self Service';
             opp.StageName = 'New Inquiry';
@@ -137,14 +135,4 @@ public with sharing class RLM_HomeServices_CustomerSignupCtrl {
         return pb.isEmpty() ? null : pb[0].Id;
     }
 
-    private static Id getHomeServicesRecordTypeId(String sObjectType) {
-        String developerName = 'RLM_HomeServices_' + sObjectType;
-        List<RecordType> rts = [
-            SELECT Id FROM RecordType
-            WHERE SObjectType = :sObjectType
-              AND DeveloperName = :developerName
-            LIMIT 1
-        ];
-        return rts.isEmpty() ? null : rts[0].Id;
-    }
 }

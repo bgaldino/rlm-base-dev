@@ -1,4 +1,8 @@
 trigger RLM_HomeServices_QuoteLineItemQuoteRefresh on QuoteLineItem (after insert, after update, after delete) {
+    if (!RLM_HomeServices_Settings__c.getOrgDefaults().RLM_Enabled__c) {
+        return;
+    }
+
     Set<Id> quoteIds = new Set<Id>();
     if (Trigger.isDelete) {
         for (QuoteLineItem qli : Trigger.old) {

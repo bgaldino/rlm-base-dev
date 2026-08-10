@@ -83,11 +83,34 @@
         </inputAssignments>
         <inputReference>$Record</inputReference>
     </recordUpdates>
+    <decisions>
+        <description>Only proceed when Home Services automation is enabled via the org-level custom setting.</description>
+        <name>Is_Home_Services_Enabled</name>
+        <label>Is Home Services Enabled?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Not Enabled</defaultConnectorLabel>
+        <rules>
+            <name>Yes_Enabled</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Setup.RLM_HomeServices_Settings__c.RLM_Enabled__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Contract_Status</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Update_Contract_Status</targetReference>
+            <targetReference>Is_Home_Services_Enabled</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -102,13 +125,6 @@
             <operator>IsNull</operator>
             <value>
                 <booleanValue>false</booleanValue>
-            </value>
-        </filters>
-        <filters>
-            <field>RecordType.DeveloperName</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>RLM_HomeServices_Contract</stringValue>
             </value>
         </filters>
         <object>Contract</object>
