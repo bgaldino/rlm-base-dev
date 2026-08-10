@@ -28,11 +28,13 @@ the fire-and-forget POST response hides.
   ``YYYY-MM-DDTHH:MM:SS.sssZ`` form (milliseconds + ``Z``) and a ``Boolean`` accepts
   only case-insensitive ``true``/``false`` (``1``/``0`` are rejected).
 * ``--overwrite`` sets ``deleteAllRows:true`` — intended to **delete every existing
-  row** before inserting. Destructive; use it only on a scratch org. **⚠ WARNING
-  (live-verified 262 / v67.0): ``deleteAllRows:true`` currently FAILS reproducibly**
-  — the import returns ``uploadStatus = Failed`` and loads 0 rows (any pre-existing
-  rows are left intact — safe-fail, nothing is lost). The reliable "replace all
-  rows" path on this release is to **create a fresh version/table and append**.
+  row** before inserting. **⚠ It is REFUSED on the pinned release (262 / v67.0):
+  ``deleteAllRows:true`` FAILS reproducibly there** — the import returns
+  ``uploadStatus = Failed`` and loads 0 rows (any pre-existing rows are left intact).
+  Rather than submit a doomed write and report it as success (and, with
+  ``--activate-version``, risk activating the stale prior rows), the tool errors out
+  up front. The reliable "replace all rows" path on this release is to **create a
+  fresh version/table and append**.
 
 ``--activate-version N`` optionally activates version *N* after the upload (Connect
 ``PATCH .../definitions/{id}/versions/N`` ``{"versionStatus":"Active"}``) so the
@@ -46,8 +48,7 @@ write. Re-run with ``--confirm`` to upload.
 
 Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
 ``--target-org`` is the *SF CLI* alias (e.g. ``rlm-base__beta``), never the CCI
-alias. Destructive verbs (``--overwrite``) run on **scratch orgs only**, never the
-shared ``beta``. Pinned to Release 262 / v67.0.
+alias. Pinned to Release 262 / v67.0 (where ``--overwrite`` is refused — see below).
 
 Usage
 -----
@@ -57,10 +58,10 @@ Usage
     python scripts/decision_tables/upload_decision_table_data.py \
         --target-org rlm-base__scratch --developer-name RLM_MyCsvTable --csv rows.csv --confirm
 
-    # overwrite all rows, target version 1, then activate it (scratch only)
+    # append into version 1, wait for the import to finish, then activate it
     python scripts/decision_tables/upload_decision_table_data.py \
         --target-org rlm-base__scratch --developer-name RLM_MyCsvTable --csv rows.csv \
-        --overwrite --version-number 1 --activate-version 1 --confirm
+        --version-number 1 --wait-for-status --activate-version 1 --confirm
 """
 
 import argparse
@@ -72,7 +73,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.decision_tables._client import (  # noqa: E402
-    DEFINITIONS_PATH,
     DEFAULT_API_VERSION,
     DecisionTableClientError,
     Transport,
@@ -141,14 +141,16 @@ def main(argv=None) -> int:
                         help="Path to the CSV file ('-' for stdin). First row = column headers.")
     parser.add_argument("--overwrite", action="store_true",
                         help="deleteAllRows:true — intended to DELETE all existing rows "
-                             "first (destructive; scratch orgs only). Default: append. "
-                             "⚠ WARNING: deleteAllRows:true FAILS on 262/v67.0 "
-                             "(uploadStatus=Failed, 0 rows loaded; existing rows kept). "
+                             "first. ⚠ REFUSED on 262/v67.0: deleteAllRows:true FAILS "
+                             "reproducibly there (uploadStatus=Failed, 0 rows loaded), so "
+                             "the tool errors out instead of submitting a doomed write. "
                              "To replace rows, use a fresh version/table + append.")
     parser.add_argument("--version-number", type=int,
                         help="Optional versionNumber to upload into (default: current version).")
     parser.add_argument("--activate-version", type=int, metavar="N",
-                        help="After upload, activate version N (Connect versions PATCH).")
+                        help="After upload, activate version N via the lifecycle engine "
+                             "(Connect versions PATCH + fail-closed poll of the table "
+                             "Status to Active).")
     parser.add_argument("--wait-for-status", action="store_true",
                         help="After upload, poll Metadata.uploadStatus to a terminal "
                              "state and report it (surfaces CompletedWithErrors/Failed "
@@ -163,6 +165,24 @@ def main(argv=None) -> int:
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit a result summary as JSON.")
     args = parser.parse_args(argv)
+
+    # Fail closed on --overwrite. deleteAllRows:true FAILS reproducibly on the pinned
+    # release (uploadStatus=Failed, 0 rows loaded), so submitting it would burn a
+    # ContentVersion, report a known-broken operation as "submitted", and — with
+    # --activate-version — risk activating the stale prior rows. Refuse up front rather
+    # than let a doomed write proceed. To replace all rows on this release, create a
+    # fresh version/table and append. (Retained as an option so a caller gets this
+    # actionable error, not an argparse "unrecognized argument"; drop the guard if a
+    # later release fixes deleteAllRows.)
+    if args.overwrite:
+        eprint(
+            "Error: --overwrite (deleteAllRows:true) is refused on the pinned release "
+            "262/v67.0 — it FAILS reproducibly there (uploadStatus=Failed, 0 rows "
+            "loaded; existing rows kept). Submitting it would report a known-broken "
+            "operation as success and, with --activate-version, could activate the "
+            "stale prior rows. To replace all rows, create a fresh version/table and "
+            "append.")
+        return 1
 
     try:
         csv_text, header = _read_csv(args.csv)
@@ -202,14 +222,12 @@ def main(argv=None) -> int:
     eprint("Note: the import is async — poll the data GET (dump_decision_table_data.py) "
            "for the rows; uploadStatus lags the data landing.")
 
+    # --overwrite is refused up front (see the guard after arg parsing), so past
+    # this point the mode is always append; the delete_all_rows plumbing below stays
+    # so the path lights back up as a matched set if a later release fixes it.
     summary = {"action": "upload", "developerName": args.developer_name,
                "id": record_id, "mode": "overwrite" if args.overwrite else "append",
                "versionNumber": args.version_number, "dryRun": preview}
-
-    if args.overwrite:
-        eprint("  WARNING: --overwrite (deleteAllRows:true) FAILS reproducibly on "
-               "262/v67.0 (uploadStatus=Failed, 0 rows loaded; existing rows kept). "
-               "To replace all rows, create a fresh version/table and append.")
 
     if preview:
         eprint("\n[preview] Would (1) insert a ContentVersion with the CSV, then "
@@ -222,6 +240,18 @@ def main(argv=None) -> int:
             print(json.dumps(summary, indent=2, default=str))
         return 0
 
+    def _emit_failure(phase: str, message: str) -> int:
+        # A failure in either phase is a partial mutation. Emit the accumulated
+        # --json summary — including fileId once phase 1 created the ContentVersion —
+        # so a structured caller can diagnose/clean up the orphan rather than getting
+        # empty stdout, then exit 1.
+        summary["phase"] = phase
+        summary["error"] = message
+        eprint(f"\nFAILED: {message}")
+        if args.json:
+            print(json.dumps(summary, indent=2, default=str))
+        return 1
+
     try:
         # Phase 1 — ContentVersion insert (base64 CSV) → 068… id.
         title = f"DecisionTable {args.developer_name} rows"
@@ -229,8 +259,9 @@ def main(argv=None) -> int:
         cv = transport.content_version_insert(title, csv_text, path_on_client=path_on_client)
         file_id = cv.get("id") if isinstance(cv, dict) else None
         if not file_id:
-            eprint(f"\nFAILED: ContentVersion insert returned no id (response: {cv!r}).")
-            return 1
+            return _emit_failure(
+                "content-version",
+                f"ContentVersion insert returned no id (response: {cv!r}).")
         summary["fileId"] = file_id
 
         # Phase 2 — POST the file id to the /file sub-resource (async import).
@@ -240,8 +271,8 @@ def main(argv=None) -> int:
         )
         summary["upload"] = upload
     except DecisionTableClientError as exc:
-        eprint(f"\nFAILED: {exc}")
-        return 1
+        return _emit_failure(
+            "file-upload" if summary.get("fileId") else "content-version", str(exc))
 
     eprint("\nUpload submitted. Confirm the rows landed with "
            "dump_decision_table_data.py --developer-name "
@@ -274,41 +305,45 @@ def main(argv=None) -> int:
         eprint("  note: the import is async — the rows may not be visible yet. "
                "Pass --wait-for-status to poll uploadStatus to terminal.")
 
-    # Optional — activate a version AFTER confirming upload succeeded (or if no
-    # wait was requested, fire-and-forget with a warning). Activation before the
-    # async import completes could expose incomplete data.
+    # Optional — activate a version AFTER confirming the import reached a good
+    # terminal state. The outer `exit_code == 0` IS the completed-status gate: when
+    # --wait-for-status was passed, the polling block above set exit_code = 1 for
+    # every value except uploadStatus == 'Completed', so reaching here with
+    # exit_code == 0 proves it completed (no separate `final` re-check needed — that
+    # nested guard was unreachable). Without --wait-for-status exit_code stays 0 and
+    # we activate fire-and-forget with a warning, since the async import may not have
+    # landed yet. (`preview` returned earlier, so this only runs under --confirm.)
     if args.activate_version is not None and exit_code == 0:
-        if args.wait_for_status and final not in ("Completed",):
-            eprint(f"  Skipping --activate-version: uploadStatus is {final!r}, not "
-                   f"'Completed'. Activate manually after confirming rows landed.")
-        else:
-            if not args.wait_for_status:
-                eprint("  WARNING: activating version without --wait-for-status — the "
-                       "async import may not have completed yet. If rows are missing, "
-                       "re-upload or wait for uploadStatus=Completed first.")
-            engine = LifecycleEngine(transport, logger=eprint)
-            # One guarded block over BOTH the version-status pre-check read and the
-            # PATCH. get_version_status does a Tooling GET (via _file_import_versions)
-            # and can raise DecisionTableClientError OR LifecycleError (missing/
-            # malformed Metadata); this runs AFTER the upload already mutated the org,
-            # so an unguarded read failure would escape main() as a traceback and
-            # suppress the accumulated JSON summary below. Catching both here turns any
-            # activation-phase failure into a WARNING + exit_code=1 while the summary
-            # still emits. (The pre-check read is the idempotency guard: the platform
-            # rejects a PATCH of an already-Active version, so we skip it rather than
-            # parse that rejection.)
-            try:
-                current = engine.get_version_status(record_id, args.activate_version)
-                if current == "Active":
-                    eprint(f"  Version {args.activate_version} already Active; nothing to do.")
-                else:
-                    vpath = (f"{DEFINITIONS_PATH}/{record_id}/versions/"
-                             f"{int(args.activate_version)}")
-                    vresp = transport.connect("PATCH", vpath, {"versionStatus": "Active"})
-                    summary["versionActivation"] = vresp
-            except (DecisionTableClientError, LifecycleError) as exc:
-                eprint(f"  WARNING: version activation failed: {exc}")
-                exit_code = 1
+        if not args.wait_for_status:
+            eprint("  WARNING: activating version without --wait-for-status — the "
+                   "async import may not have completed yet. If rows are missing, "
+                   "re-upload or wait for uploadStatus=Completed first.")
+        engine = LifecycleEngine(transport, logger=eprint, max_wait_seconds=args.max_wait)
+        # One guarded block over BOTH the version-status pre-check read and the
+        # activation. Route the activation through engine.activate() (NOT a bare
+        # Connect PATCH) so it is verified fail-closed: activate() PATCHes the
+        # version's versionStatus and then POLLS the table Status to Active — a
+        # no-op / partially-applied PATCH therefore fails the poll and raises,
+        # instead of a raw 200 being reported as success. The get_version_status
+        # pre-check is the idempotency guard (the platform rejects re-activating an
+        # already-Active version). Both the read and the guarded activate can raise
+        # DecisionTableClientError OR LifecycleError; this runs AFTER the upload
+        # already mutated the org, so catching both here turns any activation-phase
+        # failure into a WARNING + exit_code=1 while the accumulated JSON summary
+        # still emits, rather than escaping main() as a traceback.
+        try:
+            current = engine.get_version_status(record_id, args.activate_version)
+            if current == "Active":
+                eprint(f"  Version {args.activate_version} already Active; nothing to do.")
+                summary["versionActivation"] = {
+                    "versionNumber": args.activate_version, "alreadyActive": True}
+            else:
+                engine.activate(record_id, version_number=args.activate_version)
+                summary["versionActivation"] = {
+                    "versionNumber": args.activate_version, "activated": True}
+        except (DecisionTableClientError, LifecycleError) as exc:
+            eprint(f"  WARNING: version activation failed: {exc}")
+            exit_code = 1
 
     if args.json:
         print(json.dumps(summary, indent=2, default=str))

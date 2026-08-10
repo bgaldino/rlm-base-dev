@@ -130,19 +130,31 @@ def main(argv=None) -> int:
                 engine.assert_editable(table_row)
         result = engine.delete_tooling(record_id)
     except (DecisionTableClientError, LifecycleError) as exc:
+        # Track whether the rollback reactivation actually SUCCEEDED — not merely
+        # whether it was attempted. Reporting "reactivated": true on the strength of
+        # `deactivated and not preview` would tell a structured caller the table is
+        # back online even when engine.activate() itself raised below, leaving the
+        # table Inactive. Tri-state: True (restored), False (attempt failed — the
+        # table is still Inactive), None (no rollback needed / attempted).
+        reactivated = None
+        reactivation_error = None
         if deactivated and not preview:
             try:
                 engine.activate(record_id, version_number=guarded_version)
+                reactivated = True
                 eprint("  (reactivated table after failed deletion — DELETE is atomic, "
                        "table unchanged.)")
             except (DecisionTableClientError, LifecycleError) as react_exc:
-                eprint(f"  WARNING: reactivation also failed: {react_exc}")
+                reactivated = False
+                reactivation_error = str(react_exc)
+                eprint(f"  WARNING: reactivation also failed — table {record_id} may "
+                       f"remain Inactive: {react_exc}")
         eprint(f"\nFAILED: {exc}")
         if args.json:
             print(json.dumps(
                 {"action": "delete", "developerName": args.developer_name,
                  "id": record_id, "deleted": False, "error": str(exc),
-                 "reactivated": deactivated and not preview},
+                 "reactivated": reactivated, "reactivationError": reactivation_error},
                 indent=2, default=str))
         return 1
 

@@ -484,6 +484,35 @@ def test_validate_spec_duplicate_and_unknown():
           and not any("usageType" in i.location for i in result.errors))
 
 
+def test_validate_spec_duplicate_source_criterion_sequence():
+    print("test_validate_spec_duplicate_source_criterion_sequence")
+    # Two source criteria sharing a sequenceNumber pass every per-field check, but the
+    # GET-back verifier keys the requested↔live join on sequenceNumber and requires
+    # exactly one live match — so a duplicate guarantees a post-persist
+    # MutationVerificationError ("appears N times") that, on a guarded update, strands
+    # an originally Active table Inactive. validate_spec must reject the duplicate UP
+    # FRONT (F1), mirroring the duplicate-column guard.
+    dup = validate_spec(_cost_book_spec(decisionTableSourceCriterias=[
+        {"sourceFieldName": "Status", "operator": "Equals", "value": "Active",
+         "valueType": "Literal", "sequenceNumber": 1},
+        {"sourceFieldName": "Region", "operator": "Equals", "value": "West",
+         "valueType": "Literal", "sequenceNumber": 1},  # duplicate sequence
+    ]))
+    check("duplicate source-criterion sequenceNumber errors",
+          any("duplicate sequenceNumber" in i.message for i in dup.errors),
+          dup.format_report())
+    check("duplicate source-criterion sequence fails validation", not dup.passed,
+          dup.format_report())
+    # Distinct sequences on otherwise-identical criteria stay clean.
+    ok = validate_spec(_cost_book_spec(decisionTableSourceCriterias=[
+        {"sourceFieldName": "Status", "operator": "Equals", "value": "Active",
+         "valueType": "Literal", "sequenceNumber": 1},
+        {"sourceFieldName": "Region", "operator": "Equals", "value": "West",
+         "valueType": "Literal", "sequenceNumber": 2},
+    ]))
+    check("distinct source-criterion sequences pass", ok.passed, ok.format_report())
+
+
 def _csv_upload_spec(**over):
     """A canonical CsvUpload spec (sourceObject is the literal 'CSV')."""
     spec = {
@@ -1255,6 +1284,52 @@ def test_verifier_rejects_duplicate_definition_entries():
           mismatches)
 
 
+def test_verifier_catches_derived_and_defaulted_field_drift():
+    print("test_verifier_catches_derived_and_defaulted_field_drift")
+    # F3: verify_requested_metadata compares against the NORMALIZED payload actually
+    # written (to_metadata(spec)), not just the author-supplied scalars — so
+    # corruption of the fields to_metadata SYNTHESIZES/DEFAULTS is now caught. The old
+    # verifier iterated only spec scalars, leaving these invisible (a partial write
+    # reported as verified). Each case: take a clean live GET, corrupt ONE derived/
+    # defaulted field, and confirm the verifier flags exactly it.
+    spec = _cost_book_spec()  # two INPUT cols seq 1,2 → conditionCriteria "1 AND 2"
+
+    # (a) conditionCriteria is synthesized from the INPUT sequences, absent from the
+    # author spec. A live value that drifts from the derived "1 AND 2" is a mismatch.
+    check("spec omits conditionCriteria (it is derived)",
+          "conditionCriteria" not in spec)
+    corrupt_cc = dict(_payload.to_metadata(spec), conditionCriteria="1")
+    m_cc = _payload.verify_requested_metadata(spec, corrupt_cc)
+    check("verifier catches drift in the derived conditionCriteria",
+          any("conditionCriteria" in m for m in m_cc), m_cc)
+
+    # (b) the four default booleans are always emitted by to_metadata; a live value
+    # flipped away from the written default is a mismatch even though the author never
+    # set it.
+    corrupt_bool = dict(_payload.to_metadata(spec), isVersioned=True)
+    m_bool = _payload.verify_requested_metadata(spec, corrupt_bool)
+    check("verifier catches drift in a defaulted boolean (isVersioned)",
+          any("isVersioned" in m for m in m_bool), m_bool)
+
+    # (c) a CsvUpload table defaults isVersioned to True; a live False is a mismatch.
+    csv_spec = _csv_upload_spec()
+    check("CsvUpload spec omits isVersioned (defaults True)",
+          "isVersioned" not in csv_spec)
+    csv_written = _payload.to_metadata(csv_spec)
+    check("to_metadata defaults CsvUpload isVersioned to True",
+          csv_written.get("isVersioned") is True, csv_written)
+    corrupt_csv = dict(csv_written, isVersioned=False)
+    m_csv = _payload.verify_requested_metadata(csv_spec, corrupt_csv)
+    check("verifier catches a CsvUpload isVersioned=True→False regression",
+          any("isVersioned" in m for m in m_csv), m_csv)
+
+    # A faithful GET (== the written payload) still verifies clean — the guard adds no
+    # false drift on the derived/defaulted fields.
+    check("a faithful live GET of the derived/defaulted fields verifies clean",
+          _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)) == [],
+          _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)))
+
+
 def test_translator_csv_upload():
     print("test_translator_csv_upload")
     spec = _csv_upload_spec()
@@ -1634,9 +1709,13 @@ def test_delete_cli_ambiguous_version_resolution_returns_controlled_error():
     check("controlled failure emits a --json summary with deleted=false",
           failure.get("deleted") is False and failure.get("action") == "delete",
           failure)
+    # resolve_guarded_version raised BEFORE any deactivation, so no rollback was
+    # attempted — the tri-state reactivated is None ("not needed"), distinct from
+    # False ("attempted and failed").
     check("the --json failure summary carries the error and no rollback",
           "unambiguous" in (failure.get("error") or "")
-          and failure.get("reactivated") is False, failure)
+          and failure.get("reactivated") is None
+          and failure.get("reactivationError") is None, failure)
 
 
 def test_wait_for_status_timeout_message_is_operation_aware():
@@ -1797,6 +1876,32 @@ def test_update_cli_deactivate_first_roundtrip(tmp_spec):
     check("definition edit stamps the live status (Inactive), never the spec's Active",
           any(p[2]["Metadata"].get("status") == "Inactive" for p in defn_patches),
           [p[2]["Metadata"].get("status") for p in defn_patches])
+
+
+def test_update_cli_unreadable_live_status_fails_closed(tmp_spec):
+    print("test_update_cli_unreadable_live_status_fails_closed")
+    # F4: _do_mutate() reads the table's live Status immediately before the definition
+    # PATCH (a Tooling Metadata PATCH REQUIRES status). If that read returns NO row,
+    # the CLI must FAIL CLOSED (MutationVerificationError → exit 1, no PATCH) rather
+    # than silently reuse the stale pre-deactivation status (often Active) — stamping
+    # which could re-activate the table mid-edit and defeat --leave-deactivated while
+    # still exiting 0. On an Inactive table the CLI reaches _do_mutate directly.
+    fake = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=False)
+    orig_query = fake.tooling_query
+
+    def _query(q):
+        # resolve_decision_table matches on DeveloperName (give it the row so
+        # resolution succeeds); get_status matches on Id (return no row — the failure).
+        if "FROM DecisionTable" in q and "WHERE Id =" in q:
+            return []
+        return orig_query(q)
+
+    fake.tooling_query = _query
+    rc, out = _run_cli_with_fake(
+        update_cli, ["--target-org", "x", "--spec", tmp_spec, "--confirm"], fake)
+    check("update with an unreadable live status exits 1", rc == 1, (rc, out[:300]))
+    check("update with an unreadable live status performs NO definition PATCH",
+          not any(m[0] == "PATCH" for m in fake.mutations), fake.mutations)
 
 
 def test_activate_cli_preview_vs_confirm():
@@ -2010,23 +2115,130 @@ def test_upload_cli_preview_vs_confirm(tmp_csv):
     check("upload confirm reports dryRun=False", json.loads(out).get("dryRun") is False)
 
 
-def test_upload_cli_overwrite_and_version(tmp_csv):
-    print("test_upload_cli_overwrite_and_version")
+def test_upload_cli_overwrite_refused(tmp_csv):
+    print("test_upload_cli_overwrite_refused")
+    # Fail-closed: --overwrite (deleteAllRows:true) FAILS reproducibly on the pinned
+    # release 262/v67.0 (uploadStatus=Failed, 0 rows loaded, pre-existing rows kept).
+    # The CLI refuses it UP FRONT — exit 1, no ContentVersion, no /file POST, no
+    # version activation — rather than submit a doomed write and report it as success
+    # (and, with --activate-version, risk activating the stale prior rows). The old
+    # regression here explicitly expected overwrite to exit 0, reporting a known-
+    # broken operation as success; that is exactly what this now guards against.
+    # (a) --overwrite alone.
     fake = _csv_transport(dry_run=False)
     rc, out = _run_cli_with_fake(
         upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
-                     "--csv", tmp_csv, "--overwrite", "--version-number", "1",
-                     "--activate-version", "1", "--confirm", "--json"], fake)
-    check("upload overwrite exits 0", rc == 0, out[:300])
+                     "--csv", tmp_csv, "--overwrite", "--confirm"], fake)
+    check("--overwrite exits 1 (refused up front)", rc == 1, (rc, out[:300]))
+    check("--overwrite performs NO mutation", fake.mutations == [], fake.mutations)
+    # (b) --overwrite + --activate-version: still refused, and NOTHING activated (the
+    # danger the fail-closed guard exists for — activating stale prior rows).
+    fake2 = _csv_transport(dry_run=False)
+    rc2, out2 = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--overwrite", "--activate-version", "1",
+                     "--confirm", "--json"], fake2)
+    check("--overwrite + --activate-version exits 1", rc2 == 1, (rc2, out2[:300]))
+    check("--overwrite + --activate-version performs NO mutation (no stale activation)",
+          fake2.mutations == [], fake2.mutations)
+    # The refusal returns 1 BEFORE the CSV read and the --json summary plumbing, so
+    # stdout carries no JSON summary (the actionable error goes to stderr via eprint).
+    check("refusal is up front — no --json summary emitted to stdout",
+          out2.strip() == "", out2[:200])
+
+
+def test_upload_cli_version_number_and_activation(tmp_csv):
+    print("test_upload_cli_version_number_and_activation")
+    # The non-overwrite happy path the old overwrite test used to cover: append into a
+    # specific version, then activate it. --version-number scopes the /file path;
+    # --activate-version drives a Connect versions PATCH to Active (verified fail-
+    # closed by engine.activate()'s poll of the table Status — here the fake table is
+    # already Active, so the poll matches immediately).
+    restore = _no_sleep()
+    try:
+        fake = _csv_transport(dry_run=False)
+        rc, out = _run_cli_with_fake(
+            upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                         "--csv", tmp_csv, "--version-number", "1",
+                         "--activate-version", "1", "--max-wait", "1",
+                         "--confirm", "--json"], fake)
+    finally:
+        restore()
+    check("append + activate exits 0", rc == 0, out[:300])
     file_posts = [m for m in fake.mutations if m[0] == "POST" and "/file" in m[1]]
-    check("upload --overwrite sets deleteAllRows=True",
-          file_posts and file_posts[0][2].get("deleteAllRows") is True, file_posts)
-    check("upload --version-number scopes the /file path",
+    check("append leaves deleteAllRows=False (never overwrite)",
+          file_posts and file_posts[0][2].get("deleteAllRows") is False, file_posts)
+    check("--version-number scopes the /file path",
           file_posts and "versionNumber=1" in file_posts[0][1], file_posts)
-    # --activate-version drives a Connect versions PATCH to Active.
     vpatch = [m for m in fake.mutations if m[0] == "PATCH" and "/versions/1" in m[1]]
-    check("upload --activate-version PATCHes the version to Active",
+    check("--activate-version PATCHes the version to Active",
           vpatch and vpatch[0][2].get("versionStatus") == "Active", fake.mutations)
+    check("append + activate reports the activation in --json",
+          json.loads(out).get("versionActivation", {}).get("activated") is True,
+          json.loads(out))
+
+
+def test_upload_cli_activate_version_fails_closed_on_noop_patch(tmp_csv):
+    print("test_upload_cli_activate_version_fails_closed_on_noop_patch")
+    # --activate-version routes through engine.activate(), which PATCHes the version's
+    # versionStatus and then POLLS the table Status to Active. A no-op / partially-
+    # applied PATCH (the version PATCH returns 200 but the table Status never cascades
+    # to Active) must therefore FAIL the poll and surface as a WARNING + exit 1 — never
+    # be reported as a successful activation off a bare 200 (the F2 finding). The
+    # accumulated --json summary must still emit (the upload already mutated the org).
+    restore = _no_sleep()
+    try:
+        # Table Status stays Inactive: the fake's version PATCH does not cascade, so
+        # wait_for_status never observes Active and times out at --max-wait.
+        fake = _csv_transport(
+            dry_run=False,
+            table=_table_row(name="RLM_CsvUploadTable", SourceObject="CSV",
+                             Status="Inactive"))
+        rc, out = _run_cli_with_fake(
+            upload_cli,
+            ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+             "--csv", tmp_csv, "--activate-version", "1", "--max-wait", "1",
+             "--confirm", "--json"],
+            fake)
+    finally:
+        restore()
+    check("no-op activation PATCH fails the poll → exit 1", rc == 1, (rc, out[:300]))
+    check("the version activation PATCH was still attempted",
+          any(m[0] == "PATCH" and "/versions/1" in m[1] for m in fake.mutations),
+          fake.mutations)
+    summary = json.loads(out)
+    check("a no-op activation is NOT reported as activated",
+          summary.get("versionActivation", {}).get("activated") is not True, summary)
+    check("the upload's --json summary still emits despite the failed activation",
+          summary.get("action") == "upload" and "fileId" in summary, summary)
+
+
+def test_upload_cli_phase2_failure_emits_json_with_fileid(tmp_csv):
+    print("test_upload_cli_phase2_failure_emits_json_with_fileid")
+    # Phase 1 (ContentVersion insert) succeeds → fileId; phase 2 (POST to /file)
+    # fails. That is a PARTIAL mutation — an orphan ContentVersion now exists — so the
+    # --json summary must still emit, carrying the fileId AND the failing phase, not
+    # empty stdout (the F5 finding: a structured caller needs the id to clean up).
+    fake = _csv_transport(dry_run=False)
+
+    def _fail_file_post(record_id, file_id, *, delete_all_rows=False,
+                        version_number=None, dry_run=None):
+        raise DecisionTableClientError("file sub-resource POST rejected",
+                                       error_codes=["UNKNOWN_EXCEPTION"])
+
+    fake.upload_decision_table_csv = _fail_file_post
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--confirm", "--json"], fake)
+    check("phase-2 upload failure exits 1", rc == 1, (rc, out[:300]))
+    check("phase-1 ContentVersion insert still happened (the orphan)",
+          any(m[1] == "sobjects/ContentVersion" for m in fake.mutations), fake.mutations)
+    summary = json.loads(out)
+    check("the --json failure summary carries the fileId (orphan to clean up)",
+          summary.get("fileId") == "068xx0000000001AAA", summary)
+    check("the --json failure summary names the failing phase + error",
+          summary.get("phase") == "file-upload"
+          and "rejected" in (summary.get("error") or ""), summary)
 
 
 def test_upload_cli_activate_version_already_active_is_noop(tmp_csv):
@@ -2208,6 +2420,53 @@ def test_delete_cli_csv_upload_failure_rolls_back_version():
           fake.status_sets == [], fake.status_sets)
 
 
+def test_delete_cli_rollback_failure_reports_reactivated_false():
+    print("test_delete_cli_rollback_failure_reports_reactivated_false")
+    # F7: when the DELETE fails AND the rollback reactivation ALSO fails, the --json
+    # summary must report reactivated=false + a reactivationError — NOT reactivated=true
+    # off the mere fact that a reactivation was attempted. The tri-state distinguishes
+    # this ("attempted and failed, table may remain Inactive") from None ("no rollback
+    # needed") and True ("restored"). Deactivate succeeds, delete fails, and the
+    # reactivate (version PATCH back to Active) is made to fail too.
+    fake = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+    orig_tooling = fake.tooling_sobject
+    orig_connect = fake.connect
+
+    def _fail_delete(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        if method.upper() == "DELETE" and sobject == "DecisionTable":
+            raise DecisionTableClientError("table is still referenced")
+        return orig_tooling(method, sobject, record_id=record_id, suffix=suffix,
+                            body=body, **kw)
+
+    def _fail_reactivate(method, path, body=None, **kw):
+        # Let the deactivate version PATCH (versionStatus=Inactive) through; fail the
+        # rollback reactivation (versionStatus=Active).
+        if (method.upper() == "PATCH" and "/versions/" in path
+                and isinstance(body, dict) and body.get("versionStatus") == "Active"):
+            raise DecisionTableClientError("reactivation rejected — version conflict")
+        return orig_connect(method, path, body=body, **kw)
+
+    fake.tooling_sobject = _fail_delete
+    fake.connect = _fail_reactivate
+    rc, out = _run_cli_with_fake(
+        delete_cli,
+        ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+         "--deactivate-first", "--confirm", "--json"],
+        fake,
+    )
+    check("delete+rollback double-failure exits 1", rc == 1, (rc, out[:300]))
+    failure = json.loads(out)
+    check("double-failure reports deleted=false", failure.get("deleted") is False, failure)
+    check("double-failure reports reactivated=false (attempt failed, not None/true)",
+          failure.get("reactivated") is False, failure)
+    check("double-failure carries the reactivationError detail",
+          "reactivation rejected" in (failure.get("reactivationError") or ""), failure)
+    # The deactivate version PATCH DID go out (Inactive); reactivation was attempted
+    # (Active) but the fake raised, so the table remains Inactive.
+    check("the deactivate version PATCH went out before the failed delete",
+          fake.version_status_sets == ["Inactive"], fake.version_status_sets)
+
+
 def main():
     import tempfile
 
@@ -2226,7 +2485,9 @@ def main():
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
               test_validate_spec_full_name_path_escape,
-              test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
+              test_validate_spec_duplicate_and_unknown,
+              test_validate_spec_duplicate_source_criterion_sequence,
+              test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
               test_validate_spec_usage_is_strict,
               test_payload_miscased_usage_would_drop_operator_and_fail_verify,
@@ -2251,6 +2512,7 @@ def main():
               test_translator_metadata, test_translator_tooling,
               test_verifier_rejects_unexpected_definition_entries,
               test_verifier_rejects_duplicate_definition_entries,
+              test_verifier_catches_derived_and_defaulted_field_drift,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
               test_assert_editable_guard,
@@ -2272,6 +2534,7 @@ def main():
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               test_delete_cli_csv_upload_failure_rolls_back_version,
+              test_delete_cli_rollback_failure_reports_reactivated_false,
               test_delete_cli_deactivate_confirmation_timeout_still_reactivates,
               test_delete_cli_ambiguous_version_resolution_returns_controlled_error,
               # Phase 2 — CsvUpload data-load CLI gating
@@ -2288,10 +2551,14 @@ def main():
     test_create_cli_invalid_spec_blocks(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
+    test_update_cli_unreadable_live_status_fails_closed(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_missing_header_blocks(csv_path)
     test_upload_cli_preview_vs_confirm(csv_path)
-    test_upload_cli_overwrite_and_version(csv_path)
+    test_upload_cli_overwrite_refused(csv_path)
+    test_upload_cli_version_number_and_activation(csv_path)
+    test_upload_cli_activate_version_fails_closed_on_noop_patch(csv_path)
+    test_upload_cli_phase2_failure_emits_json_with_fileid(csv_path)
     test_upload_cli_activate_version_already_active_is_noop(csv_path)
     test_upload_cli_activate_version_read_failure_is_guarded(csv_path)
     test_upload_cli_wait_for_status_flag(csv_path)

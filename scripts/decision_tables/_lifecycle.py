@@ -186,7 +186,8 @@ class LifecycleEngine:
         self.t.tooling_sobject(
             "PATCH", "DecisionTable", record_id, body={"Metadata": metadata}
         )
-        self.log(f"Set DecisionTable {record_id} Metadata.status = {status}.")
+        verb = "Would set" if self.dry_run else "Set"
+        self.log(f"{verb} DecisionTable {record_id} Metadata.status = {status}.")
 
     def wait_for_status(self, record_id: str, target: str) -> None:
         """Poll until ``Status == target`` (no-op under dry-run).
@@ -319,7 +320,8 @@ class LifecycleEngine:
         """
         vpath = f"{DEFINITIONS_PATH}/{record_id}/versions/{int(version_number)}"
         self.t.connect("PATCH", vpath, {"versionStatus": status})
-        self.log(f"Set DecisionTable {record_id} version {version_number} "
+        verb = "Would set" if self.dry_run else "Set"
+        self.log(f"{verb} DecisionTable {record_id} version {version_number} "
                  f"versionStatus = {status}.")
 
     def get_version_status(self, record_id: str, version_number: int) -> Optional[str]:
@@ -650,6 +652,7 @@ class LifecycleEngine:
     def delete_tooling(self, record_id: str) -> Dict[str, Any]:
         """Delete a DecisionTable via the Tooling setup object (``0lD``)."""
         self.t.tooling_sobject("DELETE", "DecisionTable", record_id)
-        self.log(f"Deleted DecisionTable {record_id} (Tooling).")
+        verb = "Would delete" if self.dry_run else "Deleted"
+        self.log(f"{verb} DecisionTable {record_id} (Tooling).")
         return {"action": "delete", "path": "tooling", "id": record_id,
                 "dryRun": self.dry_run}

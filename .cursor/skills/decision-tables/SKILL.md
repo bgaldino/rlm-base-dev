@@ -127,21 +127,29 @@ restrictions, CSV upload, async refresh, and recipe mapping validation are in
 
 Always start here. Counts and names differ per release and per feature flag.
 
+> ⚠ **The 5 Decision Table setup objects are Tooling-only.** `DecisionTable`,
+> `DecisionTableParameter`, `DecisionTableSourceCriteria` (and the two dataset
+> objects) are not on the standard data API, so every `sf data query` below passes
+> `--use-tooling-api` (`-t`). Without it the query fails
+> (`sObject type 'DecisionTable' is not supported`). The toolkit inspectors
+> (`list_decision_tables.py`, `describe_decision_table.py`) already route through the
+> Tooling surface, so prefer them when you have the toolkit on PATH.
+
 ```bash
-sf data query -q "SELECT DeveloperName, SetupName, SourceObject, DataSourceType, UsageType, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org <alias>
+sf data query -t -q "SELECT DeveloperName, SetupName, SourceObject, DataSourceType, UsageType, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org <alias>
 ```
 
 What a table reads **besides** its source object — the columns it materialises across
 lookups, which is where most surprise staleness comes from:
 
 ```bash
-sf data query -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org <alias>
 ```
 
 The filter a table applies to its source, if any:
 
 ```bash
-sf data query -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org <alias>
 ```
 
 ### Reading `DecisionTableParameter` correctly

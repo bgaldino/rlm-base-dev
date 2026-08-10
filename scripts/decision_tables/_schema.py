@@ -467,6 +467,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         if not isinstance(criteria, list):
             result.error("decisionTableSourceCriterias", "must be a list when present.")
         else:
+            seen_sequences: Set[Any] = set()
             for i, crit in enumerate(criteria):
                 loc = f"decisionTableSourceCriterias[{i}]"
                 if not isinstance(crit, dict):
@@ -481,5 +482,19 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                             SOURCE_CRITERIA_VALUE_TYPES, required=True)
                 _check_integer(result, f"{loc}.sequenceNumber", crit.get("sequenceNumber"),
                                required=True)
+                # sequenceNumber is the criterion's identity — GET-back verification
+                # (_payload.verify_requested_metadata) keys the requested↔live join
+                # on it and requires exactly one live match. Two criteria sharing a
+                # sequence pass here but then guarantee a post-persist
+                # MutationVerificationError ("appears 2 times"), which on a guarded
+                # update leaves an originally Active table stranded Inactive. Reject
+                # the duplicate up front, mirroring the duplicate-column guard above.
+                seq = crit.get("sequenceNumber")
+                if seq not in (None, ""):
+                    seq_key = int(seq) if isinstance(seq, int) and not isinstance(seq, bool) else seq
+                    if seq_key in seen_sequences:
+                        result.error(loc, f"duplicate sequenceNumber {seq!r} — each "
+                                     "source criterion must have a unique sequenceNumber.")
+                    seen_sequences.add(seq_key)
 
     return result

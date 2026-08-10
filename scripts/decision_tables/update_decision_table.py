@@ -139,7 +139,21 @@ def main(argv=None) -> int:
         # LIVE status — read now, so during a deactivate-first sequence it is the
         # already-deactivated Inactive — never the spec's (often Active, which
         # would re-activate the table mid-edit and defeat --leave-deactivated).
-        live_status = engine.get_status(record_id) or table_row.get("Status")
+        # Fail CLOSED on a missing live status: a query returning no row is not
+        # evidence the table still has its pre-deactivation status, so falling back
+        # to the stale table_row.Status (captured before deactivation, often Active)
+        # could re-activate the table mid-edit and silently defeat
+        # --leave-deactivated while the CLI still exits 0. Under dry-run the read is
+        # skipped by nothing (reads always run), but a real query with no row raises.
+        live_status = engine.get_status(record_id)
+        if not live_status:
+            raise MutationVerificationError(
+                f"Could not read the live Status of DecisionTable/{record_id} before "
+                "the definition PATCH; refusing to reuse the pre-deactivation status "
+                "(a Tooling Metadata PATCH requires status, and stamping a stale value "
+                "could reactivate the table mid-edit). Re-check the table with "
+                "list_decision_tables.py and retry."
+            )
         body = _payload.tooling_metadata_only(spec, live_status=live_status)
         transport.tooling_sobject("PATCH", "DecisionTable", record_id, body=body)
         if not preview:

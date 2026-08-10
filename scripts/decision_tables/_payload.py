@@ -265,15 +265,21 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
     """Return requested-field mismatches after a Tooling definition write.
 
     Tooling GET adds response-only fields and server defaults, so comparing the
-    entire ``Metadata`` complexvalue produces false drift. This verifier checks
-    only scalar fields the author explicitly supplied, but requires the live
-    parameter and source-criteria sets to match exactly. Both arrays are
-    full-replace definition fields; omitted/empty source criteria therefore mean
-    that no criteria should remain, and retained unexpected entries are
-    verification failures. Lifecycle ``status`` is intentionally excluded: the
-    update CLI stamps the table's live status instead of allowing the spec to
-    drive activation. ``executionType`` is compared case-insensitively because
-    source XML and Tooling use different casing (for example Hbase/HBASE).
+    entire ``Metadata`` complexvalue produces false drift. This verifier instead
+    compares the live Metadata against the **normalized payload actually written**
+    (``to_metadata(spec)``) — that is what was sent, so it naturally excludes
+    GET-only response fields while still covering the fields ``to_metadata``
+    *synthesizes* or *defaults* (``conditionCriteria`` derived from the INPUT
+    sequences, the four default booleans, CsvUpload ``isVersioned=true``). Comparing
+    only the author-supplied scalars used to leave corruption of those derived
+    fields invisible, letting a partial write be reported as verified. The live
+    parameter and source-criteria sets are additionally required to match exactly:
+    both arrays are full-replace definition fields, so omitted/empty source criteria
+    mean none should remain and retained unexpected entries are verification
+    failures. Lifecycle ``status`` is intentionally excluded: the update CLI stamps
+    the table's live status instead of allowing the spec to drive activation.
+    ``executionType`` is compared case-insensitively because source XML and Tooling
+    use different casing (for example Hbase/HBASE).
     """
     mismatches: List[str] = []
 
@@ -295,14 +301,22 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
                 f"{location}.{field}: requested {expected!r}, live value is {actual!r}"
             )
 
-    for key in _METADATA_SCALARS:
-        if key == "status" or key not in spec or spec.get(key) in (None, ""):
+    # Compare against the NORMALIZED payload actually written (``to_metadata(spec)``),
+    # not the raw author spec. ``to_metadata`` synthesizes ``conditionCriteria`` from
+    # the INPUT sequences, always emits the four default booleans, and defaults a
+    # CsvUpload table's ``isVersioned`` to True — fields absent from the author spec
+    # but present in the persisted definition. Comparing only spec-supplied scalars
+    # left corruption of those derived/defaulted fields invisible (a partial write
+    # reported as verified). Iterating the payload's own keys also naturally excludes
+    # GET-only response fields (they are never in what we send). ``status`` is skipped
+    # (lifecycle-owned — re-stamped from the live table on update); the two array
+    # fields are verified by identity below.
+    expected_metadata = to_metadata(spec)
+    _array_fields = ("decisionTableParameters", "decisionTableSourceCriterias")
+    for key, expected_value in expected_metadata.items():
+        if key == "status" or key in _array_fields:
             continue
-        compare("Metadata", key, spec[key], live_metadata.get(key))
-
-    for key in _METADATA_DEFAULT_BOOLS:
-        if key in spec and spec.get(key) not in (None, ""):
-            compare("Metadata", key, _bool_from(spec[key], False), live_metadata.get(key))
+        compare("Metadata", key, expected_value, live_metadata.get(key))
 
     def _param_identity(usage: Any, field_name: Any) -> tuple:
         # Normalize usage casing identically on BOTH sides of the join so the
