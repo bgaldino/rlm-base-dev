@@ -21,7 +21,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Creates an order from the source quote on the contract, after the typed signature is newly set and the contract status has been set to &quot;signed&quot;</description>
     <environments>Default</environments>

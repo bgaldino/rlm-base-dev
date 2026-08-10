@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_BSG_Id</name>
@@ -97,7 +97,7 @@
         </assignmentItems>
     </assignments>
     <assignments>
-        <name>Set_Record_Type_Error</name>
+        <name>Set_Not_Enabled_Error</name>
         <label>Set Not Enabled Error</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -191,7 +191,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Set_Record_Type_Error</targetReference>
+            <targetReference>Set_Not_Enabled_Error</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Not Enabled</defaultConnectorLabel>
         <rules>

@@ -1,3 +1,4 @@
+// without sharing: org-default Custom Setting must be writable regardless of caller's profile
 public without sharing class RLM_HomeServices_SettingsCtrl {
 
     @AuraEnabled(cacheable=true)
