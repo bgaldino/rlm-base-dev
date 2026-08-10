@@ -148,9 +148,10 @@ create (auto-mints version 1)  →  upload CSV (two-phase)
    (insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the
    table's Connect `/file` sub-resource). **`deleteAllRows:false` (append) is the
    only reliable write** — `--overwrite` (`deleteAllRows:true`) FAILS on 262/v67.0
-   (`uploadStatus=Failed`, 0 rows, existing rows kept). For Salesforce Pricing,
-   multiple CSV versions aren't supported, so replace rows with a **fresh table**
-   plus append. The import is **async** and rows with a cell that
+   (`uploadStatus=Failed`, 0 rows, existing rows kept), so the toolkit **rejects
+   `--overwrite` with exit 1** before any write on the pinned release. For
+   Salesforce Pricing, multiple CSV versions aren't supported, so replace rows
+   with a **fresh table** plus append. The import is **async** and rows with a cell that
    doesn't match a column's `dataType` drop silently → `CompletedWithErrors`; opt
    into `--wait-for-status` to catch that. See the full upload contract in
    `authoring-and-data-model.md` → *CSV Based tables*.

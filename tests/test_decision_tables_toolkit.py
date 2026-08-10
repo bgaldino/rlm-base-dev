@@ -38,6 +38,7 @@ from scripts.decision_tables._lifecycle import (  # noqa: E402
     LifecycleEngine,
     LifecycleError,
     MutationVerificationError,
+    PreWriteVerificationError,
 )
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
 from scripts.decision_tables.diff_decision_tables import diff_definitions  # noqa: E402
@@ -513,6 +514,56 @@ def test_validate_spec_duplicate_source_criterion_sequence():
     check("distinct source-criterion sequences pass", ok.passed, ok.format_report())
 
 
+def test_validate_spec_duplicate_input_sequence():
+    print("test_validate_spec_duplicate_input_sequence")
+    # F5: two INPUT columns sharing a sequence produce a degenerate derived
+    # conditionCriteria like "1 AND 1" — one condition has no distinct column
+    # reference. The dup-sequence guard previously covered only source criteria;
+    # it must also reject duplicate INPUT sequences up front.
+    dup = validate_spec(_cost_book_spec(decisionTableParameters=[
+        {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+         "operator": "Equals", "sequence": 1},
+        {"usage": "INPUT", "fieldName": "Region", "dataType": "String",
+         "operator": "Equals", "sequence": 1},  # duplicate INPUT sequence
+        {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+    ]))
+    check("duplicate INPUT sequence errors",
+          any("duplicate INPUT sequence" in i.message for i in dup.errors),
+          dup.format_report())
+    # Confirm the degenerate expression this prevents (documents WHY it is rejected).
+    degenerate = _payload._derive_condition_criteria(
+        [{"usage": "INPUT", "sequence": 1}, {"usage": "INPUT", "sequence": 1}], "All")
+    check("duplicate INPUT sequences would derive a degenerate '1 AND 1'",
+          degenerate == "1 AND 1", degenerate)
+    # Distinct sequences on the same columns stay clean.
+    ok = validate_spec(_cost_book_spec())
+    check("distinct INPUT sequences pass", ok.passed, ok.format_report())
+
+
+def test_validate_spec_boolean_typo():
+    print("test_validate_spec_boolean_typo")
+    # F4: _bool_from silently maps any unrecognized string to False, so an author
+    # typo like "treu" would validate clean and persist a DIFFERENT definition than
+    # intended. All canonical boolean fields (top-level and parameter-level) must be
+    # validated against the recognized-token set.
+    top = validate_spec(_cost_book_spec(isIncrementalSyncEnabled="treu"))
+    check("top-level boolean typo errors",
+          any(i.location == "isIncrementalSyncEnabled" for i in top.errors),
+          top.format_report())
+    param = validate_spec(_cost_book_spec(decisionTableParameters=[
+        {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+         "operator": "Equals", "sequence": 1, "isRequired": "treu"},  # typo
+        {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+    ]))
+    check("parameter boolean typo errors",
+          any(i.location.endswith(".isRequired") for i in param.errors),
+          param.format_report())
+    # Real bools and recognized string tokens still pass.
+    ok = validate_spec(_cost_book_spec(isIncrementalSyncEnabled="true",
+                                       isVersioned=False))
+    check("recognized boolean tokens/bools pass", ok.passed, ok.format_report())
+
+
 def _csv_upload_spec(**over):
     """A canonical CsvUpload spec (sourceObject is the literal 'CSV')."""
     spec = {
@@ -655,32 +706,23 @@ def test_validate_spec_usage_is_strict():
           canonical.format_report())
 
 
-def test_payload_miscased_usage_would_drop_operator_and_fail_verify():
-    print("test_payload_miscased_usage_would_drop_operator_and_fail_verify")
-    # Demonstrates the DOWNSTREAM harm the strict-usage validation now blocks: if a
-    # mis-cased "Input" reached the translator it would be treated as non-INPUT, so
-    # operator/sequence are dropped from the write — and the GET-back verifier would
-    # flag the resulting definition as wrong. (This is why usage must error, not
-    # warn, at validation time.)
+def test_payload_miscased_usage_is_blocked_upstream():
+    print("test_payload_miscased_usage_is_blocked_upstream")
+    # A mis-cased "Input" would be treated as non-INPUT by the translator, dropping
+    # operator/sequence from the write (demonstrated below). The DEFENSE against that
+    # is strict-usage VALIDATION, which rejects the spec before it ever reaches the
+    # translator — so the corrupt write is never attempted. (This is why usage must
+    # error, not warn.) The GET-back verifier compares against the normalized payload
+    # actually written, so it is not the layer that catches a mis-cased usage; if a
+    # non-INPUT column legitimately drops operator, the verifier correctly does not
+    # flag the (also-absent) operator as drift.
     miscased_param = {"usage": "Input", "fieldName": "ProductId", "dataType": "String",
                       "operator": "Equals", "sequence": 1}
     translated = _payload._param_to_metadata(miscased_param)
     check("mis-cased usage drops operator in translation",
           "operator" not in translated and "sequence" not in translated, translated)
-    # verify_requested_metadata normalizes usage casing on BOTH sides, so the
-    # requested "Input" and a live UPPER "INPUT" join on the same identity — the
-    # mismatch surfaced is the dropped operator, not a phantom missing-parameter.
-    canonical_param = {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
-                       "operator": "Equals", "sequence": 1}
-    live_metadata = _payload.to_metadata({
-        "fullName": "RLM_UsageCase", "setupName": "Usage Case",
-        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
-        "filterResultBy": "OutputOrder",
-        "decisionTableParameters": [
-            canonical_param,
-            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
-        ],
-    })
+    # The real defense: validate_spec rejects the mis-cased usage up front, so this
+    # spec never reaches the translator or an org.
     spec_miscased = {
         "fullName": "RLM_UsageCase", "setupName": "Usage Case",
         "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
@@ -690,11 +732,11 @@ def test_payload_miscased_usage_would_drop_operator_and_fail_verify():
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
         ],
     }
-    mismatches = _payload.verify_requested_metadata(spec_miscased, live_metadata)
-    check("case-symmetric identity join finds the parameter (no phantom 'missing')",
-          not any("is missing" in m for m in mismatches), mismatches)
-    check("verifier reports the dropped operator as the real drift",
-          any("operator" in m for m in mismatches), mismatches)
+    result = _schema.validate_spec(spec_miscased)
+    check("strict-usage validation blocks the mis-cased spec before translation",
+          not result.passed
+          and any("usage" in i.location and "Input" in i.message for i in result.errors),
+          result.format_report())
 
 
 # --------------------------------------------------------------------------- #
@@ -1323,11 +1365,35 @@ def test_verifier_catches_derived_and_defaulted_field_drift():
     check("verifier catches a CsvUpload isVersioned=True→False regression",
           any("isVersioned" in m for m in m_csv), m_csv)
 
+    # (d) F3: the sweep must reach NESTED parameter defaults too. _param_to_metadata
+    # synthesizes fieldPath=fieldName and always emits isGroupByField/isRequired even
+    # when the author omits them; corrupting one in the live GET must be caught even
+    # though it never appeared in the raw author spec. Use an OUTPUT column that sets
+    # none of the three, so all are defaulted/synthesized.
+    output_spec = _cost_book_spec(decisionTableParameters=[
+        {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
+         "operator": "Equals", "sequence": 1},
+        {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
+    ])
+    for field, corrupt_value in (("fieldPath", "WrongPath"),
+                                 ("isRequired", True),
+                                 ("isGroupByField", True)):
+        written = _payload.to_metadata(output_spec)
+        for p in written["decisionTableParameters"]:
+            if p.get("usage") == "OUTPUT":
+                p[field] = corrupt_value
+        m = _payload.verify_requested_metadata(output_spec, written)
+        check(f"verifier catches drift in a defaulted/synthesized parameter field ({field})",
+              any(field in msg for msg in m), (field, m))
+
     # A faithful GET (== the written payload) still verifies clean — the guard adds no
-    # false drift on the derived/defaulted fields.
+    # false drift on the derived/defaulted fields (top-level or nested).
     check("a faithful live GET of the derived/defaulted fields verifies clean",
           _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)) == [],
           _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)))
+    check("a faithful live GET of an all-defaulted OUTPUT column verifies clean",
+          _payload.verify_requested_metadata(output_spec, _payload.to_metadata(output_spec)) == [],
+          _payload.verify_requested_metadata(output_spec, _payload.to_metadata(output_spec)))
 
 
 def test_translator_csv_upload():
@@ -1617,6 +1683,34 @@ def test_guarded_update_verification_failure_stays_inactive():
           fake.status_sets)
 
 
+def test_guarded_update_prewrite_failure_restores_active():
+    print("test_guarded_update_prewrite_failure_restores_active")
+    # F1: a PreWriteVerificationError means the definition PATCH was never sent
+    # (e.g. the update CLI could not read the live status to stamp). Unlike a
+    # MutationVerificationError (write may have landed → stay Inactive), an
+    # originally-Active table MUST be restored to Active, because nothing was
+    # written and leaving it Inactive would silently take a table out of service.
+    # Before the fix this failure was raised as MutationVerificationError and the
+    # table was stranded Inactive.
+    fake = _LifecycleFake(status="Active")
+    engine = LifecycleEngine(fake, max_wait_seconds=1)
+
+    def _prewrite_fails():
+        raise PreWriteVerificationError("could not read live status before PATCH")
+
+    raised = False
+    try:
+        engine.run_guarded_update(
+            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
+            mutate=_prewrite_fails, activate_after=True, verb="update")
+    except PreWriteVerificationError:
+        raised = True
+    check("pre-write failure re-raises", raised)
+    check("pre-write failure restores the originally-Active table to Active",
+          fake.status == "Active" and fake.status_sets == ["Inactive", "Active"],
+          fake.status_sets)
+
+
 def test_guarded_update_deactivate_confirmation_timeout_still_reactivates():
     print("test_guarded_update_deactivate_confirmation_timeout_still_reactivates")
     # The deactivate PATCH is sent (and applies) but wait_for_status's poll never
@@ -1801,6 +1895,69 @@ def test_create_cli_tooling_preview_vs_confirm(tmp_spec):
           any(m[0] == "POST" and m[1] == "tooling/DecisionTable" for m in fake_c.mutations),
           fake_c.mutations)
     check("create confirm reports dryRun=False", json.loads(out).get("dryRun") is False)
+
+
+def test_create_cli_writes_draft_then_activates(tmp_spec):
+    print("test_create_cli_writes_draft_then_activates")
+    # F2/F6: the safe create lifecycle writes the definition as Draft (never
+    # directly Active), GET-back verifies while Draft, then activates as a separate
+    # step only when the spec requested Active. tmp_spec's status is Active. This
+    # both (a) proves the requested lifecycle state is actually established
+    # (activate is not skipped), and (b) proves an unverified definition is never
+    # created Active/serving.
+    fake = _FakeTransport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        create_cli, ["--target-org", "x", "--spec", tmp_spec,
+                     "--path", "tooling", "--confirm", "--json"], fake)
+    check("create-Active exits 0", rc == 0, out[:300])
+    posts = [m for m in fake.mutations if m[0] == "POST" and m[1] == "tooling/DecisionTable"]
+    check("the definition POST is written as Draft, never Active",
+          bool(posts) and all(p[2].get("Metadata", {}).get("status") == "Draft" for p in posts),
+          [p[2].get("Metadata", {}).get("status") for p in posts])
+    patches = [m for m in fake.mutations if m[0] == "PATCH" and m[1] == "tooling/DecisionTable"]
+    check("activation happens as a separate PATCH to Active",
+          any(p[2].get("Metadata", {}).get("status") == "Active" for p in patches),
+          [p[2].get("Metadata", {}).get("status") for p in patches])
+    summary = json.loads(out)
+    check("summary reports the requested status, verified and activated",
+          summary.get("requestedStatus") == "Active"
+          and summary.get("verified") is True and summary.get("activated") is True,
+          summary)
+
+
+def test_create_cli_verification_failure_emits_json_with_id(tmp_spec):
+    print("test_create_cli_verification_failure_emits_json_with_id")
+    # F6: a GET-back that does not match the requested definition must exit 1, and
+    # must still emit the structured --json summary INCLUDING the created id (the
+    # record was written) so it can be inspected/removed. It must NOT activate.
+    fake = _FakeTransport(dry_run=False)
+    orig_get = fake.tooling_sobject
+
+    def _get(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        result = orig_get(method, sobject, record_id=record_id, suffix=suffix, body=body, **kw)
+        # Corrupt the GET-back verification read only: drop a column so the
+        # persisted definition no longer matches the requested one.
+        if method.upper() == "GET" and sobject == "DecisionTable" \
+                and isinstance(result.get("Metadata"), dict):
+            meta = dict(result["Metadata"])
+            meta["decisionTableParameters"] = []  # all requested columns "missing"
+            result = dict(result, Metadata=meta)
+        return result
+
+    fake.tooling_sobject = _get
+    rc, out = _run_cli_with_fake(
+        create_cli, ["--target-org", "x", "--spec", tmp_spec,
+                     "--path", "tooling", "--confirm", "--json"], fake)
+    check("create verification failure exits 1", rc == 1, (rc, out[:300]))
+    summary = json.loads(out)
+    check("failure summary still carries the created id",
+          bool(summary.get("id")), summary)
+    check("failure summary reports not verified / not activated",
+          summary.get("verified") is False and summary.get("activated") is False, summary)
+    check("verification failure never activates the table",
+          not any(m[0] == "PATCH" and isinstance(m[2].get("Metadata"), dict)
+                  and m[2]["Metadata"].get("status") == "Active" for m in fake.mutations),
+          fake.mutations)
 
 
 def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
@@ -2487,10 +2644,12 @@ def main():
               test_validate_spec_full_name_path_escape,
               test_validate_spec_duplicate_and_unknown,
               test_validate_spec_duplicate_source_criterion_sequence,
+              test_validate_spec_duplicate_input_sequence,
+              test_validate_spec_boolean_typo,
               test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
               test_validate_spec_usage_is_strict,
-              test_payload_miscased_usage_would_drop_operator_and_fail_verify,
+              test_payload_miscased_usage_is_blocked_upstream,
               test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
@@ -2525,6 +2684,7 @@ def main():
               test_guarded_update_leave_deactivated,
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_verification_failure_stays_inactive,
+              test_guarded_update_prewrite_failure_restores_active,
               test_guarded_update_deactivate_confirmation_timeout_still_reactivates,
               test_wait_for_status_timeout_message_is_operation_aware,
               test_refresh_uses_live_verified_flag,
@@ -2546,6 +2706,8 @@ def main():
 
     # Phase 2 — create/update CLI tests that need spec/output-file fixtures.
     test_create_cli_tooling_preview_vs_confirm(spec_path)
+    test_create_cli_writes_draft_then_activates(spec_path)
+    test_create_cli_verification_failure_emits_json_with_id(spec_path)
     test_create_cli_generate_only_no_org(spec_path, out_xml)
     test_create_cli_generate_only_rejects_nonmetadata(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)

@@ -261,6 +261,14 @@ _PARAMETER_KEYS = {
     "sequence", "sortType", "usage",
 }
 
+# Canonical boolean fields, by level. Validated against the recognized-token set
+# so an author typo cannot be silently coerced to ``False`` (see _check_bool).
+_TOP_LEVEL_BOOL_KEYS = (
+    "doesConsiderNullValue", "hasIncrementalSyncFailed",
+    "isIncrementalSyncEnabled", "isVersioned",
+)
+_PARAMETER_BOOL_KEYS = ("isGroupByField", "isPriorityField", "isRequired")
+
 _SOURCE_CRITERIA_KEYS = {
     "sourceFieldName", "operator", "value", "valueType", "sequenceNumber",
 }
@@ -302,6 +310,34 @@ def _check_integer(result: ValidationResult, location: str, value: Any,
         result.error(location, f"must be an integer; got {value!r}.")
 
 
+# The string tokens ``_payload._bool_from`` coerces deterministically. Any other
+# string is silently mapped to ``False`` by that coercion, so an author typo like
+# ``"treu"`` would otherwise pass validation and persist a *different* definition
+# than intended. Booleans are validated against this closed set up front.
+_BOOL_STRINGS = {"true", "false", "1", "0", "yes", "no"}
+
+
+def _check_bool(result: ValidationResult, location: str, value: Any) -> None:
+    """Error on a boolean field whose value is not a bool or a recognized token.
+
+    A missing/empty value is fine (the translator applies the documented default).
+    A real ``bool`` is fine. A string is accepted only if it is one of the tokens
+    :func:`_payload._bool_from` coerces deterministically (case-insensitively);
+    anything else (a typo, a number, an object) is an error rather than a silent
+    coercion to ``False``.
+    """
+    if value is None or value == "":
+        return
+    if isinstance(value, bool):
+        return
+    if isinstance(value, str) and value.strip().lower() in _BOOL_STRINGS:
+        return
+    result.error(location,
+                 f"must be a boolean (true/false); got {value!r}. An unrecognized "
+                 "value would be silently coerced to false and persist a different "
+                 "definition than intended.")
+
+
 def _reject_unknown_keys(result: ValidationResult, location: str,
                          value: Dict[str, Any], allowed: Set[str]) -> None:
     """Error on any key outside the canonical spec's known vocabulary.
@@ -327,11 +363,13 @@ def _reject_unknown_keys(result: ValidationResult, location: str,
 
 
 def _validate_parameter(param: Dict[str, Any], location: str, result: ValidationResult,
-                        seen: Set[str]) -> None:
+                        seen: Set[str], seen_input_sequences: Set[int]) -> None:
     if not isinstance(param, dict):
         result.error(location, "each column must be an object.")
         return
     _reject_unknown_keys(result, location, param, _PARAMETER_KEYS)
+    for bool_key in _PARAMETER_BOOL_KEYS:
+        _check_bool(result, f"{location}.{bool_key}", param.get(bool_key))
     usage = param.get("usage")
     # ``usage`` is a CLOSED, STRUCTURAL enum, not a descriptive one: it decides
     # whether the translator keeps ``operator``/``sequence`` (INPUT-only) and it is
@@ -361,6 +399,20 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
                         "INPUT columns are normally sequenced (referenced by conditionCriteria).")
         else:
             _check_integer(result, f"{location}.sequence", param.get("sequence"))
+            # The INPUT sequence drives the derived conditionCriteria expression
+            # (_payload._derive_condition_criteria joins the sequences: "1 AND 2").
+            # Two INPUT columns sharing a sequence produce a degenerate expression
+            # like "1 AND 1" — one condition has no distinct column reference.
+            # Reject the collision up front, mirroring the duplicate-column and
+            # duplicate-source-criterion guards.
+            seq = param.get("sequence")
+            if isinstance(seq, int) and not isinstance(seq, bool):
+                if seq in seen_input_sequences:
+                    result.error(location,
+                                 f"duplicate INPUT sequence {seq!r} — each INPUT column "
+                                 "must have a unique sequence (it drives the derived "
+                                 "conditionCriteria expression).")
+                seen_input_sequences.add(seq)
     else:
         # OUTPUT/ROWCRITERIA carry no operator/sequence.
         if param.get("operator"):
@@ -414,6 +466,9 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
     _check_enum(result, "dtRowLevelOverrideType", spec.get("dtRowLevelOverrideType"),
                 ROW_LEVEL_OVERRIDE_TYPES)
 
+    for bool_key in _TOP_LEVEL_BOOL_KEYS:
+        _check_bool(result, bool_key, spec.get(bool_key))
+
     if spec.get("conditionType") == "Custom" and not spec.get("conditionCriteria"):
         result.error("conditionCriteria", "is required when conditionType is 'Custom'.")
     if spec.get("filterResultBy") == "CollectOperator" and not spec.get("collectOperator"):
@@ -448,9 +503,11 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         result.error("decisionTableParameters", "at least one column is required.")
     else:
         seen: Set[str] = set()
+        seen_input_sequences: Set[int] = set()
         n_input = n_output = 0
         for i, param in enumerate(params):
-            _validate_parameter(param, f"decisionTableParameters[{i}]", result, seen)
+            _validate_parameter(param, f"decisionTableParameters[{i}]", result, seen,
+                                 seen_input_sequences)
             usage = param.get("usage") if isinstance(param, dict) else None
             if usage in _INPUT_USAGE:
                 n_input += 1

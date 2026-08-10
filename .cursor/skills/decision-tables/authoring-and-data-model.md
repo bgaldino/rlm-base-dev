@@ -87,7 +87,9 @@ terminal error exits non-zero), which the fire-and-forget POST response hides.
 > `deleteAllRows:true` itself is the culprit (pilot-gated or bugged), not the
 > CSV/table/version. **For Salesforce Pricing, the reliable replacement path is
 > a fresh table + append**; Pricing does not support multiple CSV-table versions.
-> `--overwrite` carries this warning in its help.
+> On the pinned release `upload_decision_table_data.py` **rejects `--overwrite`
+> with exit 1** before any write, so the fresh-table + append path is the only
+> supported route.
 
 **Per-column CSV encoding (✅ live-verified for generic BRE).** A `usageType=Bre`
 probe round-tripped all 7 Metadata `dataType`s through the CSV transport. That

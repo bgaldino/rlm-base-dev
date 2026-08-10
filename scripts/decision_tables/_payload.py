@@ -79,11 +79,6 @@ def _bool_from(value: Any, default: bool) -> bool:
     return bool(value)
 
 
-def _canonical_usage(usage: Any) -> Optional[str]:
-    """Return canonical Metadata/Tooling ``usage`` (INPUT/OUTPUT/ROWCRITERIA)."""
-    return usage
-
-
 def _derive_condition_criteria(params: List[Dict[str, Any]], condition_type: Any) -> Optional[str]:
     """Build a default ``conditionCriteria`` from the INPUT columns' sequences.
 
@@ -101,7 +96,7 @@ def _derive_condition_criteria(params: List[Dict[str, Any]], condition_type: Any
     for p in params:
         if not isinstance(p, dict):
             continue
-        if _canonical_usage(p.get("usage")) != "INPUT":
+        if p.get("usage") != "INPUT":
             continue
         seq = p.get("sequence")
         if seq in (None, ""):
@@ -124,7 +119,7 @@ def _param_to_metadata(param: Dict[str, Any]) -> Dict[str, Any]:
     defaults to ``fieldName`` (the shipped tables set them equal for direct
     fields). Booleans ``isGroupByField`` / ``isRequired`` default to ``False``.
     """
-    usage = _canonical_usage(param.get("usage"))
+    usage = param.get("usage")
     field_name = param.get("fieldName")
     out: Dict[str, Any] = {}
     if param.get("dataType") is not None:
@@ -251,8 +246,10 @@ def tooling_metadata_only(
     transport in tests; a real PATCH must pass it (the platform rejects the body
     otherwise). The Tooling ``Metadata`` complexvalue is replaced **wholesale** (see
     :meth:`_lifecycle.LifecycleEngine._current_metadata` — a sparse body wipes the
-    omitted fields), so the body carries the full definition. Create, which sets the
-    initial state, keeps the spec's ``status`` and uses :func:`to_tooling`, not this.
+    omitted fields), so the body carries the full definition. Create uses
+    :func:`to_tooling`, not this, and always writes the definition as ``Draft``
+    (never serving); the lifecycle engine activates it afterward if the spec asked
+    for ``Active`` — so create, too, leaves Active↔Inactive to the engine.
     """
     body = to_metadata(spec)
     body.pop("status", None)
@@ -276,8 +273,15 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
     parameter and source-criteria sets are additionally required to match exactly:
     both arrays are full-replace definition fields, so omitted/empty source criteria
     mean none should remain and retained unexpected entries are verification
-    failures. Lifecycle ``status`` is intentionally excluded: the update CLI stamps
-    the table's live status instead of allowing the spec to drive activation.
+    failures. Per parameter, comparison iterates the fields the normalized payload
+    actually wrote (``_param_to_metadata(requested)``) — including the synthesized
+    ``fieldPath`` and the always-emitted ``isGroupByField``/``isRequired`` defaults —
+    not just the fields present in the raw author spec, so corruption of a defaulted
+    nested field is caught rather than reported as verified.
+    Lifecycle ``status`` is intentionally excluded: the update CLI stamps
+    the table's live status instead of allowing the spec to drive activation, and
+    create writes the definition as Draft and activates separately, so the spec's
+    status never rides along on the definition write either.
     ``executionType`` is compared case-insensitively because source XML and Tooling
     use different casing (for example Hbase/HBASE).
     """
@@ -331,11 +335,6 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
         if isinstance(param, dict):
             identity = _param_identity(param.get("usage"), param.get("fieldName"))
             live_params.setdefault(identity, []).append(param)
-    parameter_fields = (
-        "dataType", "decimalScale", "domainObject", "fieldName", "fieldPath",
-        "isGroupByField", "isPriorityField", "isRequired", "length", "operator",
-        "sequence", "sortType", "usage",
-    )
     requested_param_identities = set()
     for index, requested in enumerate(spec.get("decisionTableParameters") or []):
         if not isinstance(requested, dict):
@@ -354,9 +353,18 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
                 f"{len(live_matches)} times in live Metadata"
             )
         live = live_matches[0]
-        for key in parameter_fields:
-            if key in requested and requested.get(key) not in (None, ""):
-                compare(location, key, expected.get(key), live.get(key))
+        # Compare every field the NORMALIZED payload actually wrote
+        # (``_param_to_metadata(requested)``), not just the fields present in the
+        # raw author spec. ``_param_to_metadata`` synthesizes ``fieldPath`` and
+        # always emits ``isGroupByField``/``isRequired`` defaults; iterating only
+        # raw author keys left corruption of those defaulted fields invisible (a
+        # partial write reported as verified). ``usage`` and ``fieldName`` are the
+        # identity keys — already matched by the join above (``usage`` case-
+        # normalized), so skip them here to avoid a spurious casing mismatch.
+        for key, expected_value in expected.items():
+            if key in ("usage", "fieldName"):
+                continue
+            compare(location, key, expected_value, live.get(key))
     for identity in sorted(
         set(live_params) - requested_param_identities, key=repr
     ):

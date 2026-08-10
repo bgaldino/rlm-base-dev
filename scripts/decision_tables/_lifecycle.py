@@ -107,6 +107,20 @@ class MutationVerificationError(LifecycleError):
     """
 
 
+class PreWriteVerificationError(LifecycleError):
+    """A guarded mutation's pre-write check failed *before* any write went out.
+
+    Distinct from :class:`MutationVerificationError` on purpose: that class means
+    "a write may have landed, so leave the table Inactive", whereas this means
+    "nothing was written". :meth:`LifecycleEngine.run_guarded_update` therefore
+    treats it like a rejected atomic PATCH — an originally Active table is
+    restored to Active rather than stranded deactivated — while the failure is
+    still re-raised so the CLI exits non-zero. Example: the update CLI cannot read
+    the table's live Status to stamp onto the definition PATCH (a Tooling Metadata
+    PATCH requires status), so it refuses to send the write at all.
+    """
+
+
 class DeactivationVerificationError(LifecycleError):
     """A deactivate write succeeded, but confirming the terminal state timed out.
 

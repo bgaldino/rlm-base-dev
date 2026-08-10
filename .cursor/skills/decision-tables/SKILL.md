@@ -136,8 +136,14 @@ Always start here. Counts and names differ per release and per feature flag.
 > Tooling surface, so prefer them when you have the toolkit on PATH.
 
 ```bash
-sf data query -t -q "SELECT DeveloperName, SetupName, SourceObject, DataSourceType, UsageType, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org <alias>
+sf data query -t -q "SELECT DeveloperName, MasterLabel, SourceObject, UsageType, Status, LastSyncDate FROM DecisionTable ORDER BY UsageType, MasterLabel" --target-org <alias>
 ```
+
+> `SetupName` and `DataSourceType` are **not** top-level queryable `DecisionTable`
+> columns — they live in the `Metadata` complexvalue (the label is the top-level
+> `MasterLabel`; the source type comes through the metadata body). Selecting them
+> in a SOQL `SELECT` fails even with `-t`. Read those metadata-body fields via
+> `describe_decision_table.py`, which pulls the full `Metadata` complexvalue.
 
 What a table reads **besides** its source object — the columns it materialises across
 lookups, which is where most surprise staleness comes from:

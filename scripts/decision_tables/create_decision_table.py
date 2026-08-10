@@ -13,6 +13,15 @@ the table via one of two authoring paths:
   mode leaves a file behind, at a location you name.
 * ``--path tooling`` — Tooling ``DecisionTable`` POST (``{"FullName","Metadata"}``).
 
+**Safe create lifecycle: write Draft → verify → activate.** The definition is
+always written as ``Draft`` (never directly ``Active``), GET-back verified while
+Draft — so an unverified definition never serves traffic — then activated as a
+separate step only if the spec requested ``Active``. A CsvUpload table is left
+Draft even when Active is requested (it cannot activate until rows are uploaded
+and a version is made active). A verification/activation failure after the record
+is written exits non-zero and always emits the structured ``--json`` summary,
+including the created id, so the Draft record can be inspected or removed.
+
 **Preview by default.** Without ``--confirm`` the tool validates the spec and logs
 the planned write (or prints the XML for ``metadata``) but performs no org write.
 Re-run with ``--confirm`` to create. (``--generate-only`` always writes its file —
@@ -136,23 +145,38 @@ def main(argv=None) -> int:
     transport = Transport(args.target_org, api_version=args.api_version,
                           dry_run=preview, logger=eprint)
     engine = LifecycleEngine(transport, logger=eprint)
+
+    # SAFE CREATE LIFECYCLE: write Draft → verify while Draft → activate.
+    # The definition is always written as Draft, never directly Active, even when
+    # the spec asks for Active. A freshly-written definition is unverified, so
+    # creating it Active would put an unconfirmed definition into service before
+    # GET-back; and a CsvUpload table cannot activate at all until rows are
+    # uploaded and a version is made active. We therefore create Draft (never
+    # serving), GET-back verify, then run the normal activate step only if the
+    # spec requested Active. This also keeps the verifier status-agnostic — the
+    # lifecycle engine owns Active↔Inactive on every path.
+    requested_status = spec.get("status")
+    write_spec = dict(spec, status="Draft")
     summary = {"action": "create", "path": args.path, "apiName": api_name,
-               "dryRun": preview}
+               "requestedStatus": requested_status, "dryRun": preview,
+               "verified": False, "activated": False}
 
     eprint(f"\nCreate DecisionTable '{api_name}' via --path {args.path}, "
-           f"{'PREVIEW' if preview else 'CONFIRM'}")
+           f"requested status={requested_status} (written Draft, then activated "
+           f"if Active), {'PREVIEW' if preview else 'CONFIRM'}")
 
     try:
         if args.path == "metadata":
-            xml = _payload.to_metadata_xml(spec)
+            xml = _payload.to_metadata_xml(write_spec)
             if preview:
-                eprint("[preview] would deploy this .decisionTable-meta.xml:\n")
+                eprint("[preview] would deploy this .decisionTable-meta.xml "
+                       "(status Draft; activated separately if requested):\n")
                 eprint(xml)
             else:
                 deploy = engine.deploy_metadata_xml(api_name, xml)
                 summary["deploy"] = deploy
         else:  # tooling
-            body = _payload.to_tooling(spec)
+            body = _payload.to_tooling(write_spec)
             resp = transport.tooling_sobject("POST", "DecisionTable", body=body)
             summary["response"] = resp
             if not preview and isinstance(resp, dict) and resp.get("id"):
@@ -160,7 +184,8 @@ def main(argv=None) -> int:
 
         # Neither Metadata deploy success nor Tooling POST's id/success envelope
         # proves the full definition survived. Confirm every requested field with
-        # a Tooling GET-back before reporting the create as complete.
+        # a Tooling GET-back — while the table is still Draft, so an unverified
+        # definition is never serving — before activating or reporting complete.
         if not preview:
             record_id = summary.get("id")
             if not record_id:
@@ -172,14 +197,39 @@ def main(argv=None) -> int:
                 raise LifecycleError(
                     f"Create verification could not read DecisionTable/{record_id} Metadata."
                 )
-            mismatches = _payload.verify_requested_metadata(spec, live_metadata)
+            mismatches = _payload.verify_requested_metadata(write_spec, live_metadata)
             if mismatches:
                 raise LifecycleError(
                     "Create GET-back did not match the requested definition:\n- "
                     + "\n- ".join(mismatches)
                 )
+            summary["verified"] = True
+
+            # Activate only now that the Draft definition is verified, and only if
+            # the spec asked for Active. A CsvUpload table has no active version yet
+            # (rows must be uploaded first), so it is left Draft with guidance.
+            if requested_status == "Active":
+                if live_metadata.get("dataSourceType") == "CsvUpload":
+                    eprint("\nNOTE: created as Draft. A CsvUpload table cannot be "
+                           "activated until rows are uploaded and a version is made "
+                           "active — load rows then run "
+                           "upload_decision_table_data.py --activate-version N.")
+                else:
+                    engine.activate(record_id)
+                    summary["activated"] = True
     except (DecisionTableClientError, LifecycleError, ResolveError) as exc:
+        # A failure can land AFTER the record was created (verification/activation
+        # failure on an already-written definition). The table is Draft (never
+        # serving), so no compensation is required, but always emit the structured
+        # state — including the created id — so the caller can inspect or clean up.
         eprint(f"\nFAILED: {exc}")
+        if summary.get("id"):
+            eprint(f"The definition was written as Draft (id {summary['id']}); it is "
+                   f"not serving traffic. Inspect with describe_decision_table.py or "
+                   f"remove with delete_decision_table.py.")
+        summary["error"] = str(exc)
+        if args.json:
+            print(json.dumps(summary, indent=2, default=str))
         return 1
 
     if preview:

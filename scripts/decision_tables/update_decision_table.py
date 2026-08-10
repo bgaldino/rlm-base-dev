@@ -59,6 +59,7 @@ from scripts.decision_tables._lifecycle import (  # noqa: E402
     LifecycleEngine,
     LifecycleError,
     MutationVerificationError,
+    PreWriteVerificationError,
 )
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
@@ -145,9 +146,16 @@ def main(argv=None) -> int:
         # could re-activate the table mid-edit and silently defeat
         # --leave-deactivated while the CLI still exits 0. Under dry-run the read is
         # skipped by nothing (reads always run), but a real query with no row raises.
+        #
+        # This is a PRE-write failure: the definition PATCH has NOT been sent. It
+        # must NOT be a MutationVerificationError — that class tells run_guarded_update
+        # "a write may have landed, leave the table Inactive", which for an originally
+        # Active table under --deactivate-first would strand it deactivated even though
+        # nothing was written. PreWriteVerificationError instead signals "no write
+        # happened", so the guard restores the original Active status.
         live_status = engine.get_status(record_id)
         if not live_status:
-            raise MutationVerificationError(
+            raise PreWriteVerificationError(
                 f"Could not read the live Status of DecisionTable/{record_id} before "
                 "the definition PATCH; refusing to reuse the pre-deactivation status "
                 "(a Tooling Metadata PATCH requires status, and stamping a stale value "

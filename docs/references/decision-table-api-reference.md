@@ -300,7 +300,9 @@ required on create.
 > (safe-fail). The **same CSV appended succeeds**, so `deleteAllRows:true` itself is
 > the culprit (pilot-gated or bugged). For Salesforce Pricing, which doesn't
 > support multiple CSV versions, the reliable replacement is a **fresh table**
-> plus append. `--overwrite` carries this warning.
+> plus append. On the pinned release the toolkit therefore **rejects `--overwrite`
+> outright** (`upload_decision_table_data.py` exits 1 before any write); the
+> supported path is the fresh-table-plus-append replacement above.
 
 **Per-column CSV encoding (✅ live-verified on a generic `usageType=Bre` table).**
 Each cell is coerced to the column's `dataType`; a cell that fails coercion drops
@@ -534,7 +536,7 @@ encodes.
 | Stale `Status = "ActivationInProgress"` after a 204 | Reading status immediately after an activate PATCH | Activate is **async** — poll past `ActivationInProgress` (raise `--max-wait` for slow orgs). |
 | Empty `"parameters": []` in a Connect POST/PATCH response | Trusting the Connect echo for the column set | **GET-back** to confirm; the columns persist despite the empty echo. |
 | Benign `…@DecisionTable` advisory alongside `isSuccess: true` | Connect PATCH that removes a row-level override | Non-fatal — treat any `@`-suffixed message as advisory when `isSuccess` is true. |
-| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). For Salesforce Pricing, replace with a fresh table and append. |
+| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). The toolkit **rejects `--overwrite` with exit 1** on the pinned release so you never reach this state; for Salesforce Pricing, replace with a fresh table and append. |
 | `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; use `--wait-for-status` to catch it. |
 | `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
 | `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
