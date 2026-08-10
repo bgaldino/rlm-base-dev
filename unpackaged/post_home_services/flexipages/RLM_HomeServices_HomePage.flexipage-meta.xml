@@ -72,6 +72,12 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
+                <componentName>rlmHomeServicesSettingsToggle</componentName>
+                <identifier>c_rlmHomeServicesSettingsToggle</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>rlmRebuildSearchIndex</componentName>
                 <identifier>c_rlmRebuildSearchIndex2</identifier>
             </componentInstance>

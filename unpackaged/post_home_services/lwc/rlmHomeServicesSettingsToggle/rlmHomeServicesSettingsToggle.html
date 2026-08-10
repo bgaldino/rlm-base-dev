@@ -1,0 +1,19 @@
+<template>
+    <lightning-card title="Home Services Automation" icon-name="standard:settings">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_regular slds-m-bottom_medium">
+                Controls whether Home Services flows and triggers are active in this org.
+                When disabled, no automation fires on record changes.
+            </p>
+            <lightning-input
+                type="toggle"
+                label="Automation Enabled"
+                message-toggle-active="Active"
+                message-toggle-inactive="Inactive"
+                checked={isEnabled}
+                disabled={isLoading}
+                onchange={handleToggle}
+            ></lightning-input>
+        </div>
+    </lightning-card>
+</template>
