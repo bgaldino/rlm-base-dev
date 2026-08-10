@@ -1177,6 +1177,59 @@ def test_guarded_update_active_roundtrip():
     check("guarded update left the table Active", fake.status == "Active")
 
 
+def test_guarded_update_csv_upload_composed_paths():
+    print("test_guarded_update_csv_upload_composed_paths")
+    record_id = "0lDxx0000000001AAA"
+
+    success = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+    calls = []
+    LifecycleEngine(success, max_wait_seconds=1).run_guarded_update(
+        table_row={"Id": record_id, "Status": "Active"},
+        mutate=lambda: calls.append("mutate"),
+        activate_after=True,
+        verb="update",
+    )
+    check("CsvUpload guarded update mutates once", calls == ["mutate"], calls)
+    check("CsvUpload guarded update deactivates/reactivates the version",
+          success.version_status_sets == ["Inactive", "Active"],
+          success.version_status_sets)
+    check("CsvUpload guarded update never PATCHes table Metadata.status",
+          success.status_sets == [], success.status_sets)
+
+    leave_off = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+    LifecycleEngine(leave_off, max_wait_seconds=1).run_guarded_update(
+        table_row={"Id": record_id, "Status": "Active"},
+        mutate=lambda: None,
+        activate_after=False,
+        verb="update",
+    )
+    check("CsvUpload guarded update honors leave-deactivated",
+          leave_off.status == "Inactive"
+          and leave_off.version_status_sets == ["Inactive"],
+          leave_off.version_status_sets)
+
+    rejected = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+
+    def _rejected_patch():
+        raise DecisionTableClientError("tooling PATCH rejected")
+
+    raised = False
+    try:
+        LifecycleEngine(rejected, max_wait_seconds=1).run_guarded_update(
+            table_row={"Id": record_id, "Status": "Active"},
+            mutate=_rejected_patch,
+            activate_after=True,
+            verb="update",
+        )
+    except DecisionTableClientError:
+        raised = True
+    check("CsvUpload rejected atomic update re-raises", raised)
+    check("CsvUpload rejected atomic update restores the active version",
+          rejected.status == "Active"
+          and rejected.version_status_sets == ["Inactive", "Active"],
+          rejected.version_status_sets)
+
+
 def test_guarded_update_leave_deactivated():
     print("test_guarded_update_leave_deactivated")
     fake = _LifecycleFake(status="Active")
@@ -1650,6 +1703,34 @@ def test_delete_cli_active_refused_without_flag():
           not any(m[0] == "DELETE" for m in fake.mutations), fake.mutations)
 
 
+def test_delete_cli_csv_upload_failure_rolls_back_version():
+    print("test_delete_cli_csv_upload_failure_rolls_back_version")
+    fake = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+    original_tooling_sobject = fake.tooling_sobject
+
+    def _fail_delete(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        if method.upper() == "DELETE" and sobject == "DecisionTable":
+            raise DecisionTableClientError("table is still referenced")
+        return original_tooling_sobject(
+            method, sobject, record_id=record_id, suffix=suffix, body=body, **kw
+        )
+
+    fake.tooling_sobject = _fail_delete
+    rc, _ = _run_cli_with_fake(
+        delete_cli,
+        ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+         "--deactivate-first", "--confirm"],
+        fake,
+    )
+    check("failed CsvUpload delete exits 1", rc == 1, rc)
+    check("failed CsvUpload delete deactivates then restores the active version",
+          fake.status == "Active"
+          and fake.version_status_sets == ["Inactive", "Active"],
+          fake.version_status_sets)
+    check("failed CsvUpload delete never PATCHes table Metadata.status",
+          fake.status_sets == [], fake.status_sets)
+
+
 def main():
     import tempfile
 
@@ -1694,6 +1775,7 @@ def main():
               test_activate_deactivate_csv_upload_is_version_first,
               test_activate_deactivate_sobject_is_table_first,
               test_guarded_update_active_roundtrip,
+              test_guarded_update_csv_upload_composed_paths,
               test_guarded_update_leave_deactivated,
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_verification_failure_stays_inactive,
@@ -1703,6 +1785,7 @@ def main():
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
+              test_delete_cli_csv_upload_failure_rolls_back_version,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_header_mismatch_is_intentional,
               test_upload_cli_missing_csv_errors)
