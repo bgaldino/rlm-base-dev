@@ -323,42 +323,72 @@ class LifecycleEngine:
                 return version.get("versionStatus")
         return None
 
-    def activate(self, record_id: str) -> None:
+    def resolve_guarded_version(self, record_id: str) -> Optional[int]:
+        """The CsvUpload version to thread through a guarded deactivate → mutate →
+        reactivate (or deactivate → delete → restore) sequence — ``None`` for a
+        non-CsvUpload table.
+
+        Resolve it ONCE, while the table is still active, and pass it to BOTH
+        :meth:`deactivate` and :meth:`activate`. Re-resolving inside
+        :meth:`activate` *after* the deactivation would strand a multi-version
+        table Inactive: deactivation resolves the sole active version, but once
+        it is Inactive a multi-version table no longer has a unique active version
+        for reactivation to select, so :meth:`_resolve_lifecycle_version` would
+        raise. Reads run even under dry-run, so the logged sequence stays real.
+        """
+        if not self._is_csv_upload(record_id):
+            return None
+        return self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
+
+    def activate(self, record_id: str, *, version_number: Optional[int] = None) -> None:
         """Set Status → Active and poll past ``ActivationInProgress`` (async).
 
-        CsvUpload tables are version-first (see module docstring): resolves and
-        PATCHes the sole file-import version instead of the table's
-        ``Metadata.status`` — the table's Status cascades from it.
+        CsvUpload tables are version-first (see module docstring): PATCHes a
+        file-import version instead of the table's ``Metadata.status`` — the
+        table's Status cascades from it. ``version_number`` pins which version to
+        activate; when omitted it is resolved from the table (the sole version, or
+        the one active version). A guarded deactivate → reactivate sequence MUST
+        pass the version it deactivated (see :meth:`resolve_guarded_version`) —
+        after deactivation a multi-version table has no unique active version to
+        re-resolve.
         """
         if self._is_csv_upload(record_id):
-            version_number = self._resolve_lifecycle_version(record_id, _STATUS_ACTIVE)
+            if version_number is None:
+                version_number = self._resolve_lifecycle_version(record_id, _STATUS_ACTIVE)
             self._set_version_status(record_id, _STATUS_ACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_ACTIVE)
         self.wait_for_status(record_id, _STATUS_ACTIVE)
 
-    def deactivate(self, record_id: str) -> None:
+    def deactivate(self, record_id: str, *, version_number: Optional[int] = None) -> None:
         """Set Status → Inactive (synchronous) and confirm.
 
-        CsvUpload tables are version-first — see :meth:`activate`. If the
-        status/versionStatus write itself succeeds but the confirmation poll
-        times out, this raises :class:`DeactivationVerificationError` (a
-        :class:`LifecycleError` subclass) rather than a bare
-        :class:`LifecycleError` — callers that track "did the write apply"
-        for rollback purposes distinguish this from a write that never went
-        out at all.
+        CsvUpload tables are version-first — see :meth:`activate`. ``version_number``
+        pins the CsvUpload version to deactivate; when omitted it is resolved (the
+        sole version, or the unique active one). If the status/versionStatus write
+        itself succeeds but confirmation fails, this raises
+        :class:`DeactivationVerificationError` (a :class:`LifecycleError` subclass)
+        rather than a bare :class:`LifecycleError` — callers that track "did the
+        write apply" for rollback purposes distinguish this from a write that never
+        went out at all.
         """
         if self._is_csv_upload(record_id):
-            version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
+            if version_number is None:
+                version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
             self._set_version_status(record_id, _STATUS_INACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_INACTIVE)
+        # The write has already gone out. Any confirmation failure — a poll
+        # timeout (LifecycleError) OR a status-read error (get_status/tooling_query
+        # raise DecisionTableClientError, which is NOT a LifecycleError) — must
+        # surface as DeactivationVerificationError so guarded callers still treat
+        # the table as deactivated and restore Active rather than stranding it.
         try:
             self.wait_for_status(record_id, _STATUS_INACTIVE)
-        except LifecycleError as exc:
+        except (LifecycleError, DecisionTableClientError) as exc:
             raise DeactivationVerificationError(
                 f"DecisionTable {record_id} deactivate write was sent, but "
-                f"confirming Status=Inactive timed out: {exc}"
+                f"confirming Status=Inactive failed: {exc}"
             ) from exc
 
     # -- Active-edit guard ---------------------------------------------
@@ -410,11 +440,16 @@ class LifecycleEngine:
         deactivated = False
         failure: Optional[Exception] = None
         mutate_succeeded = False
+        # Pin the CsvUpload version to move BEFORE deactivating, while the table
+        # still has a unique active version, and reuse it for the reactivate below.
+        # Re-resolving after deactivation would strand a multi-version table (no
+        # unique active version to select). None for non-CsvUpload tables.
+        guarded_version = self.resolve_guarded_version(record_id) if was_active else None
 
         try:
             if was_active:
                 try:
-                    self.deactivate(record_id)
+                    self.deactivate(record_id, version_number=guarded_version)
                     deactivated = True
                 except DeactivationVerificationError:
                     # The status/versionStatus write was sent (and likely
@@ -461,7 +496,7 @@ class LifecycleEngine:
                         f"still reported."
                     )
                 try:
-                    self.activate(record_id)
+                    self.activate(record_id, version_number=guarded_version)
                 except Exception as reactivate_exc:  # noqa: BLE001
                     if failure:
                         raise LifecycleError(

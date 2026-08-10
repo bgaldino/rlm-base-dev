@@ -281,7 +281,7 @@ class _LifecycleFake:
     sleep). ``connect`` records DELETE/POST verbs for the delete/refresh paths."""
 
     def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject",
-                 stall_confirmation=False):
+                 stall_confirmation=False, versions=None, raise_status_read=False):
         self.status = status
         self.dry_run = dry_run
         self.data_source_type = data_source_type
@@ -296,9 +296,36 @@ class _LifecycleFake:
         # the terminal state (eventual-consistency lag / a stuck poll).
         self.stall_confirmation = stall_confirmation
         self._reported_status = status
+        # CsvUpload file-import versions as {versionNumber: versionStatus}. Given a
+        # list of dicts it is normalized; omitted → a single version {1: status}.
+        # A version PATCH updates the specific version and the table Status cascades
+        # (Active iff any version is active) — modeling the multi-version platform.
+        if data_source_type == "CsvUpload":
+            if versions is not None:
+                self.versions = {int(v["versionNumber"]): v["versionStatus"] for v in versions}
+            else:
+                self.versions = {1: status}
+        else:
+            self.versions = {}
+        # When True, the FIRST DecisionTable status read raises (get_status /
+        # tooling_query fail AFTER a deactivate write already applied); later reads
+        # succeed. Distinct from stall_confirmation (a read that returns a stale
+        # value) — this is a read that errors.
+        self.raise_status_read = raise_status_read
+        self._status_reads = 0
+
+    def _recompute_status_from_versions(self):
+        self.status = ("Active" if any(
+            v in ("Active", "ActivationInProgress") for v in self.versions.values())
+            else "Inactive")
 
     def tooling_query(self, query):
         if "FROM DecisionTable" in query:
+            if self.raise_status_read and self._status_reads == 0:
+                self._status_reads += 1
+                raise DecisionTableClientError(
+                    "status read failed", error_codes=["UNKNOWN_EXCEPTION"])
+            self._status_reads += 1
             reported = self._reported_status if self.stall_confirmation else self.status
             return [{"Id": "0lDxx0000000001AAA", "Status": reported}]
         return []
@@ -308,10 +335,10 @@ class _LifecycleFake:
             metadata = _sample_metadata(status=self.status,
                                         dataSourceType=self.data_source_type)
             if self.data_source_type == "CsvUpload":
-                metadata["decisionTableFileImportVersions"] = [{
-                    "versionNumber": 1,
-                    "versionStatus": self.status,
-                }]
+                metadata["decisionTableFileImportVersions"] = [
+                    {"versionNumber": n, "versionStatus": s}
+                    for n, s in sorted(self.versions.items())
+                ]
             return {"Id": record_id,
                     "Metadata": metadata}
         if method.upper() == "PATCH" and isinstance(body, dict):
@@ -328,13 +355,16 @@ class _LifecycleFake:
         # invocable-action envelope carrying outputValues.Status="Queued".
         if path.endswith("refreshDecisionTable"):
             return [{"isSuccess": True, "outputValues": {"Status": "Queued"}}]
-        # Mirror the platform's CsvUpload cascade: PATCHing the file-import
-        # version's versionStatus is what actually moves the table's own Status.
+        # Mirror the platform's CsvUpload cascade: PATCHing a file-import version's
+        # versionStatus updates THAT version, and the table's own Status cascades
+        # from whether any version is active.
         if "/versions/" in path and method.upper() == "PATCH" and isinstance(body, dict):
             new = body.get("versionStatus")
             if new:
-                self.status = new
+                vnum = int(path.rsplit("/", 1)[-1])
+                self.versions[vnum] = new
                 self.version_status_sets.append(new)
+                self._recompute_status_from_versions()
         return {}
 
 
@@ -768,6 +798,35 @@ def test_dump_csv_upload_unclassified_error_propagates():
     except DecisionTableClientError:
         raised = True
     check("unclassified csv GET error propagates (no silent degrade)", raised)
+
+
+def test_dump_csv_upload_auth_and_generic_errors_propagate():
+    print("test_dump_csv_upload_auth_and_generic_errors_propagate")
+    # Only FUNCTIONALITY_NOT_ENABLED / NOT_FOUND are benign ("no rows to read").
+    # Authorization (INSUFFICIENT_ACCESS), bad request (INVALID_INPUT), and
+    # generic/unknown (UNKNOWN_EXCEPTION) are REAL failures and must propagate —
+    # never be swallowed into an empty-but-successful "may be disabled" note.
+    for code in ("INSUFFICIENT_ACCESS", "INVALID_INPUT", "UNKNOWN_EXCEPTION"):
+        t = _FakeTransport(
+            table=_table_row(SourceObject="CSV"),
+            metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+            csv_data=DecisionTableClientError(code, error_codes=[code]))
+        defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+        raised = False
+        try:
+            dump_data(t, defn, limit=5)
+        except DecisionTableClientError:
+            raised = True
+        check(f"csv GET {code} propagates (not degraded to a note)", raised)
+    # NOT_FOUND (no version uploaded) still degrades to a note, not a raise.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=DecisionTableClientError("no version", error_codes=["NOT_FOUND"]))
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump = dump_data(t, defn, limit=5)
+    check("csv GET NOT_FOUND still degrades to a note (no raise)",
+          any("failed" in n.lower() for n in dump["notes"]), dump["notes"])
 
 
 def test_dump_empty_source_note():
@@ -1282,6 +1341,65 @@ def test_guarded_update_csv_upload_composed_paths():
           rejected.version_status_sets)
 
 
+def test_guarded_update_csv_upload_multi_version_roundtrip():
+    print("test_guarded_update_csv_upload_multi_version_roundtrip")
+    # A CsvUpload table with several versions where version 2 is the active one.
+    # Deactivation resolves version 2 (the unique active one); reactivation must
+    # re-use THAT version number, not re-resolve after v2 went Inactive (which
+    # would strand the table Inactive — there is then no unique active version).
+    record_id = "0lDxx0000000001AAA"
+    fake = _LifecycleFake(
+        status="Active", data_source_type="CsvUpload",
+        versions=[{"versionNumber": 1, "versionStatus": "Inactive"},
+                  {"versionNumber": 2, "versionStatus": "Active"}])
+    calls = []
+    LifecycleEngine(fake, max_wait_seconds=1).run_guarded_update(
+        table_row={"Id": record_id, "Status": "Active"},
+        mutate=lambda: calls.append("mutate"),
+        activate_after=True,
+        verb="update",
+    )
+    check("multi-version guarded update mutates once", calls == ["mutate"], calls)
+    check("multi-version guarded update deactivated then reactivated version 2",
+          fake.connect_calls == [
+              ("PATCH", f"{DEFINITIONS_PATH}/{record_id}/versions/2", {"versionStatus": "Inactive"}),
+              ("PATCH", f"{DEFINITIONS_PATH}/{record_id}/versions/2", {"versionStatus": "Active"})],
+          fake.connect_calls)
+    check("multi-version guarded update left version 2 Active",
+          fake.versions == {1: "Inactive", 2: "Active"} and fake.status == "Active",
+          fake.versions)
+
+
+def test_guarded_update_status_read_error_after_write_still_reactivates():
+    print("test_guarded_update_status_read_error_after_write_still_reactivates")
+    # The deactivate versionStatus/status PATCH applies, but the FIRST confirming
+    # DecisionTable status read then ERRORS (get_status → tooling_query raises
+    # DecisionTableClientError, which is NOT a LifecycleError). deactivate() must
+    # still surface this as DeactivationVerificationError so run_guarded_update
+    # treats the table as deactivated and restores Active rather than stranding it.
+    fake = _LifecycleFake(status="Active", raise_status_read=True)
+    engine = LifecycleEngine(fake, max_wait_seconds=1, poll_interval_seconds=1)
+    calls = []
+    restore = _no_sleep()
+    try:
+        raised = None
+        try:
+            engine.run_guarded_update(
+                table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
+                mutate=lambda: calls.append("mutate"), activate_after=True, verb="update")
+        except DeactivationVerificationError as exc:
+            raised = exc
+    finally:
+        restore()
+    check("post-write status-read error re-raises DeactivationVerificationError",
+          raised is not None, raised)
+    check("mutate never ran on an unconfirmed deactivation", calls == [], calls)
+    check("the deactivate PATCH still went out despite the failed status read",
+          fake.status_sets and fake.status_sets[0] == "Inactive", fake.status_sets)
+    check("reactivation was still attempted after the failed status read",
+          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
+
+
 def test_guarded_update_leave_deactivated():
     print("test_guarded_update_leave_deactivated")
     fake = _LifecycleFake(status="Active")
@@ -1615,6 +1733,26 @@ def test_upload_header_validation():
           extra == ["Unexpected"], extra)
 
 
+def test_upload_header_validation_ignores_rowcriteria():
+    print("test_upload_header_validation_ignores_rowcriteria")
+    # The CSV file contract is INPUT/OUTPUT headers only. A ROWCRITERIA column is a
+    # definition-level row filter, NOT a file column — a CSV of the INPUT+OUTPUT
+    # headers must validate clean, and a header matching the ROWCRITERIA field is
+    # "extra" (a warning), never "missing" (a fatal reject).
+    t = _csv_transport(params=[
+        _param("INPUT", "Region"),
+        _param("OUTPUT", "Discount", DataType="Percent"),
+        _param("ROWCRITERIA", "InternalRule")])
+    defn = _resolve.load_definition(t, "RLM_CsvUploadTable")
+    missing, extra = upload_cli._check_headers(["Region", "Discount"], defn)
+    check("ROWCRITERIA is not a required CSV header", missing == [], missing)
+    check("documented INPUT/OUTPUT CSV validates clean", extra == [], extra)
+    # A CSV that DOES include the ROWCRITERIA field → extra (warning), not missing.
+    missing2, extra2 = upload_cli._check_headers(["Region", "Discount", "InternalRule"], defn)
+    check("a ROWCRITERIA header is extra, not missing",
+          missing2 == [] and extra2 == ["InternalRule"], (missing2, extra2))
+
+
 def test_upload_cli_missing_header_blocks(tmp_csv):
     print("test_upload_cli_missing_header_blocks")
     bad_csv = str(Path(tmp_csv).with_name("missing_output_header.csv"))
@@ -1879,6 +2017,7 @@ def main():
               test_dump_single_sobject, test_dump_csv_upload_rows, test_dump_csv_upload_empty,
               test_dump_csv_upload_gated,
               test_dump_csv_upload_unclassified_error_propagates,
+              test_dump_csv_upload_auth_and_generic_errors_propagate,
               test_dump_empty_source_note,
               # Phase B — dump --filter / --version-number + all-types translator
               test_dump_csv_upload_filter_drops_limit, test_dump_csv_upload_version_number_threads,
@@ -1900,6 +2039,8 @@ def main():
               test_activate_deactivate_sobject_is_table_first,
               test_guarded_update_active_roundtrip,
               test_guarded_update_csv_upload_composed_paths,
+              test_guarded_update_csv_upload_multi_version_roundtrip,
+              test_guarded_update_status_read_error_after_write_still_reactivates,
               test_guarded_update_leave_deactivated,
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_verification_failure_stays_inactive,
@@ -1914,6 +2055,7 @@ def main():
               test_delete_cli_deactivate_confirmation_timeout_still_reactivates,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_header_validation,
+              test_upload_header_validation_ignores_rowcriteria,
               test_upload_cli_missing_csv_errors)
     for fn in simple:
         fn()

@@ -100,13 +100,23 @@ def _read_csv(path):
     return text, [h.strip() for h in header]
 
 
-def _check_headers(header, defn):
-    """Compare CSV headers to the definition's column fieldNames.
+# The CsvUpload file contract is INPUT/OUTPUT ``fieldName`` headers only.
+# ROWCRITERIA columns are row-filter criteria on the definition, NOT columns in
+# the uploaded CSV — requiring their headers would reject a valid file before
+# Salesforce sees it.
+_CSV_HEADER_USAGES = {"INPUT", "OUTPUT"}
 
-    Returns ``(missing, extra)``. Missing definition columns are fatal because
-    the platform rejects that CSV asynchronously; extra columns remain a warning
-    because a valid superset and reordered headers are accepted."""
-    columns = {p.get("FieldName") for p in defn.get("parameters", []) if p.get("FieldName")}
+
+def _check_headers(header, defn):
+    """Compare CSV headers to the definition's INPUT/OUTPUT column fieldNames.
+
+    Returns ``(missing, extra)``. Only INPUT/OUTPUT columns belong in the uploaded
+    CSV (ROWCRITERIA are definition-level row filters, not file columns), so only
+    those are required. Missing INPUT/OUTPUT columns are fatal because the platform
+    rejects that CSV asynchronously; extra columns remain a warning because a valid
+    superset and reordered headers are accepted."""
+    columns = {p.get("FieldName") for p in defn.get("parameters", [])
+               if p.get("FieldName") and p.get("Usage") in _CSV_HEADER_USAGES}
     if not columns:
         return [], []
     header_set = {h for h in header if h}

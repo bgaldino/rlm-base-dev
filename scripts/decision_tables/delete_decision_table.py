@@ -97,11 +97,17 @@ def main(argv=None) -> int:
 
     was_active = current in ("Active", "ActivationInProgress")
     deactivated = False
+    # Pin the CsvUpload version to move BEFORE deactivating (while the table still
+    # has a unique active version) and reuse it for a rollback reactivation — re-
+    # resolving after deactivation would strand a multi-version table. None for
+    # non-CsvUpload tables / when we won't deactivate.
+    guarded_version = (engine.resolve_guarded_version(record_id)
+                       if was_active and args.deactivate_first else None)
     try:
         if was_active:
             if args.deactivate_first:
                 try:
-                    engine.deactivate(record_id)
+                    engine.deactivate(record_id, version_number=guarded_version)
                     deactivated = True
                 except DeactivationVerificationError:
                     # The write was sent (and likely applied) — only the
@@ -117,7 +123,7 @@ def main(argv=None) -> int:
     except (DecisionTableClientError, LifecycleError) as exc:
         if deactivated and not preview:
             try:
-                engine.activate(record_id)
+                engine.activate(record_id, version_number=guarded_version)
                 eprint("  (reactivated table after failed deletion — DELETE is atomic, "
                        "table unchanged.)")
             except (DecisionTableClientError, LifecycleError) as react_exc:

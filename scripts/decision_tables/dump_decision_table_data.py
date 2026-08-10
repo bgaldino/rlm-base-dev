@@ -64,6 +64,16 @@ from scripts.decision_tables._resolve import (  # noqa: E402
     load_definition,
 )
 
+# The CsvUpload data GET is degraded to a note (rather than raised) only for the
+# two error codes that genuinely mean "no rows to read here", not a real failure:
+#   * FUNCTIONALITY_NOT_ENABLED — the /data endpoint is disabled/pilot-gated on the org.
+#   * NOT_FOUND — no uploaded version exists yet.
+# Everything else — authorization (INSUFFICIENT_ACCESS), bad request (INVALID_INPUT),
+# server/unknown (UNKNOWN_EXCEPTION), or a transport error that parses no code at all —
+# is a real failure the caller must see, so it propagates.
+_CSV_DATA_BENIGN_CODES = frozenset({"NOT_FOUND", "FUNCTIONALITY_NOT_ENABLED"})
+
+
 def _projection_fields(defn):
     """Distinct source field names from the definition's columns (+ Id)."""
     fields = ["Id"]
@@ -125,12 +135,12 @@ def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_numb
             version_number=version_number,
         )
     except DecisionTableClientError as exc:
-        _DEGRADABLE_CODES = {"NOT_FOUND", "INSUFFICIENT_ACCESS", "FUNCTIONALITY_NOT_ENABLED",
-                             "INVALID_INPUT", "UNKNOWN_EXCEPTION"}
-        # Degrade only when the parsed error carries one of the known-benign codes.
-        # A transport failure (timeout, non-JSON CLI error) parses no codes at all —
-        # that must propagate, not be swallowed into a "may be disabled" note.
-        if not _DEGRADABLE_CODES.intersection(exc.error_codes):
+        # Degrade only when the parsed error carries one of the known-benign codes
+        # (endpoint disabled / no version uploaded). Authorization, invalid-input,
+        # generic/unknown, and transport failures (which parse no code at all) must
+        # propagate — swallowing them into a "may be disabled" note would report a
+        # real error as an empty-but-successful read.
+        if not _CSV_DATA_BENIGN_CODES.intersection(exc.error_codes):
             raise
         out["notes"].append(
             f"CsvUpload data GET (.../{{id}}/data) failed — the endpoint may be "
