@@ -2258,6 +2258,17 @@ tasks:
     options:
       path: scripts/apex/createRuleLibrary.apex
 
+  assign_public_group_role_members:
+    group: Revenue Lifecycle Management
+    description: >
+      Assign the CEO Role as a member of the Manager, Director, and VP
+      Public Groups. Idempotent — skips groups that already have the
+      membership. Runs after deploy_full (which deploys the Groups and
+      Roles via force-app metadata).
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/assignPublicGroupRoleMembers.apex
+
   create_docgen_library:
     group: Revenue Lifecycle Management
     description: Create DocGen Library
@@ -3929,6 +3940,9 @@ flows:
     steps:
       1:
         task: deploy_post_utils
+        when: project_config.project__custom__quantumbit
+      1.1:
+        task: assign_public_group_role_members
         when: project_config.project__custom__quantumbit
       2:
         flow: prepare_approvals
