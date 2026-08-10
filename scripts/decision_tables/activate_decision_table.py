@@ -13,11 +13,10 @@ multi-object table); the platform rejects an incomplete one. Re-enable a table
 left DEACTIVATED by a failed ``update_decision_table.py`` here after
 inspecting/restoring it.
 
-For a ``CsvUpload`` table, ``LifecycleEngine.activate()`` instead PATCHes
-version 1's ``versionStatus`` (Connect) — the table's own Status is a
-platform-derived mirror of the version's and cannot activate without an Active
-version already present (live-verified: ``INVALID_INPUT: We couldn't find an
-active decision table version for this date``).
+For a ``CsvUpload`` table, ``LifecycleEngine.activate()`` instead resolves the
+sole/active file-import version and PATCHes its ``versionStatus`` (Connect). The
+table's own Status is a platform-derived mirror of the version's; ambiguous
+multi-version tables are refused rather than silently targeting version 1.
 
 **Preview by default.** Without ``--confirm`` the tool logs the planned state
 change and performs no write. Re-run with ``--confirm`` to apply.

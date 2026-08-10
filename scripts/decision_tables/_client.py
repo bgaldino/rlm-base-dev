@@ -12,7 +12,7 @@ which authenticates with the CLI's stored credentials.
 NEVER the CCI alias — there is no token on any command line and no CCI-vs-SF
 alias ambiguity.
 
-**Three transport surfaces**, because Decision Table authoring spans three APIs:
+**Three transport surfaces**, because Decision Table management spans three APIs:
 
 - **Tooling API** — the 5 setup objects (``DecisionTable`` ``0lD``,
   ``DecisionTableParameter`` ``0lP``, ``DecisionTableDatasetLink`` ``0lX``,
@@ -20,9 +20,10 @@ alias ambiguity.
   ``0VT``). Reached via ``tooling_query()`` → ``/tooling/query?q=…`` and
   ``tooling_sobject_request()`` → ``/tooling/sobjects/<Object>[/<id>|/describe]``.
   These objects are **not** on the normal REST ``/sobjects`` surface.
-- **Connect API** — the Decision Table Definitions CRUD resource
-  (``connect/business-rules/decision-table/definitions[/{id}]``), reached via
-  ``connect_request()`` / ``connect_get()``.
+- **Connect API** — an optional read-only Definitions comparison plus the CSV
+  table ``/file``, ``/data``, and ``/versions`` sub-resources, reached via
+  ``connect_request()`` / ``connect_get()``. Definition writes are deliberately
+  limited to Metadata deployment and Tooling ``Metadata`` updates.
 - **Normal REST** — ``PricingRecipeTableMapping`` (trace) and source-object row
   dumps, reached via ``sobjects_request()`` / ``soql_query()``.
 
@@ -40,22 +41,12 @@ from urllib.parse import quote
 
 DEFAULT_API_VERSION = "67.0"
 _REQUEST_TIMEOUT = 120  # seconds — reads
-# A Connect/Metadata mutation that (de)activates or rebuilds a table can take
+# A REST/Metadata mutation that (de)activates or rebuilds a table can take
 # minutes server-side; mirror the expression-set / context-service timeout.
 _MUTATION_TIMEOUT = 600  # seconds
 
 CONNECT_BASE = "connect/business-rules/decision-table"
 DEFINITIONS_PATH = f"{CONNECT_BASE}/definitions"
-
-# The 5 Decision Table setup objects — Tooling API only (see module docstring).
-SETUP_OBJECTS = (
-    "DecisionTable",
-    "DecisionTableParameter",
-    "DecisionTableDatasetLink",
-    "DecisionTblDatasetParameter",
-    "DecisionTableSourceCriteria",
-)
-
 
 class DecisionTableClientError(RuntimeError):
     """Raised when a CLI call fails in a way the caller should surface.

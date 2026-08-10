@@ -267,11 +267,10 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
     Tooling GET adds response-only fields and server defaults, so comparing the
     entire ``Metadata`` complexvalue produces false drift. This verifier checks
     only scalar fields the author explicitly supplied, but requires the live
-    parameter set to match exactly. Source criteria are likewise exact when the
-    spec declares ``decisionTableSourceCriterias``; an explicit empty list verifies
-    that no criteria remain. Those arrays are full-replace definition fields, so
-    retained unexpected entries are verification failures when the author supplied
-    the corresponding definition. Lifecycle ``status`` is intentionally excluded: the
+    parameter and source-criteria sets to match exactly. Both arrays are
+    full-replace definition fields; omitted/empty source criteria therefore mean
+    that no criteria should remain, and retained unexpected entries are
+    verification failures. Lifecycle ``status`` is intentionally excluded: the
     update CLI stamps the table's live status instead of allowing the spec to
     drive activation. ``executionType`` is compared case-insensitively because
     source XML and Tooling use different casing (for example Hbase/HBASE).
@@ -379,14 +378,13 @@ def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any
         for key in ("sourceFieldName", "operator", "value", "valueType", "sequenceNumber"):
             if key in requested and requested.get(key) not in (None, ""):
                 compare(location, key, expected.get(key), live.get(key))
-    if spec.get("decisionTableSourceCriterias") is not None:
-        for sequence in sorted(
-            set(live_criteria) - requested_criterion_sequences, key=repr
-        ):
-            mismatches.append(
-                f"decisionTableSourceCriterias: unexpected live source criterion "
-                f"sequence {sequence!r}"
-            )
+    for sequence in sorted(
+        set(live_criteria) - requested_criterion_sequences, key=repr
+    ):
+        mismatches.append(
+            f"decisionTableSourceCriterias: unexpected live source criterion "
+            f"sequence {sequence!r}"
+        )
 
     return mismatches
 

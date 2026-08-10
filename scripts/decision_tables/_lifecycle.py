@@ -90,8 +90,6 @@ _STATUS_INACTIVE = "Inactive"
 # and it can lag the rows landing by ~1 min). ``CompletedWithErrors`` (some rows
 # silently dropped) and ``Failed`` (e.g. a ``deleteAllRows`` overwrite) are the
 # states the fire-and-forget POST response hides — the value of waiting.
-_UPLOAD_IN_PROGRESS = "UploadInProgress"
-_UPLOAD_COMPLETED = "Completed"
 _UPLOAD_TERMINAL = {"Completed", "CompletedWithErrors", "Failed"}
 _UPLOAD_ERROR = {"CompletedWithErrors", "Failed"}
 

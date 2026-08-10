@@ -197,7 +197,7 @@ as surface differences rather than a shared validator catalog.
 
 ---
 
-## Field-name divergence (the three paths) — ✅ live-verified
+## Field-name divergence (authoring vs read-only Connect representation) — ✅ live-verified
 
 | Concept | Metadata / Tooling `Metadata` | Connect Definitions |
 |---|---|---|

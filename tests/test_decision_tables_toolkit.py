@@ -1019,17 +1019,13 @@ def test_verifier_rejects_unexpected_definition_entries():
           mismatches)
 
     omitted_criteria_spec = _cost_book_spec()
-    check("verifier ignores live criteria when the spec does not declare that field",
-          not any("source criterion" in mismatch for mismatch in
-                  _payload.verify_requested_metadata(
-                      omitted_criteria_spec, live_metadata
-                  )))
+    check("verifier treats omitted criteria as an empty full-replace array",
+          any("unexpected live source criterion" in mismatch for mismatch in
+              _payload.verify_requested_metadata(omitted_criteria_spec, live_metadata)))
     null_criteria_spec = _cost_book_spec(decisionTableSourceCriterias=None)
-    check("verifier treats null criteria as omitted",
-          not any("source criterion" in mismatch for mismatch in
-                  _payload.verify_requested_metadata(
-                      null_criteria_spec, live_metadata
-                  )))
+    check("verifier treats null criteria as an empty full-replace array",
+          any("unexpected live source criterion" in mismatch for mismatch in
+              _payload.verify_requested_metadata(null_criteria_spec, live_metadata)))
 
 
 def test_verifier_rejects_duplicate_definition_entries():
@@ -1496,14 +1492,27 @@ def _csv_transport(**over):
     return _FakeTransport(**kw)
 
 
-def test_upload_header_mismatch_is_intentional():
-    print("test_upload_header_mismatch_is_intentional")
+def test_upload_header_validation():
+    print("test_upload_header_validation")
     defn = _resolve.load_definition(_csv_transport(), "RLM_CsvUploadTable")
-    notes = upload_cli._check_headers(["Region", "Unexpected"], defn)
-    check("header mismatch reports the missing table column",
-          any("DiscountPercent" in note and "missing" in note for note in notes), notes)
-    check("header mismatch reports the unexpected CSV column",
-          any("Unexpected" in note and "no matching" in note for note in notes), notes)
+    missing, extra = upload_cli._check_headers(["Region", "Unexpected"], defn)
+    check("header validation reports the missing table column",
+          missing == ["DiscountPercent"], missing)
+    check("header validation reports the unexpected CSV column",
+          extra == ["Unexpected"], extra)
+
+
+def test_upload_cli_missing_header_blocks(tmp_csv):
+    print("test_upload_cli_missing_header_blocks")
+    bad_csv = str(Path(tmp_csv).with_name("missing_output_header.csv"))
+    Path(bad_csv).write_text("Region\nNorth\n", encoding="utf-8")
+    fake = _csv_transport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", bad_csv, "--confirm"], fake)
+    check("upload with a missing definition header exits 1", rc == 1, out[:300])
+    check("upload with a missing definition header performs no mutation",
+          fake.mutations == [], fake.mutations)
 
 
 def test_upload_cli_preview_vs_confirm(tmp_csv):
@@ -1787,7 +1796,7 @@ def main():
               test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
               test_delete_cli_csv_upload_failure_rolls_back_version,
               # Phase 2 — CsvUpload data-load CLI gating
-              test_upload_header_mismatch_is_intentional,
+              test_upload_header_validation,
               test_upload_cli_missing_csv_errors)
     for fn in simple:
         fn()
@@ -1800,6 +1809,7 @@ def main():
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
+    test_upload_cli_missing_header_blocks(csv_path)
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_and_version(csv_path)
     test_upload_cli_activate_version_already_active_is_noop(csv_path)

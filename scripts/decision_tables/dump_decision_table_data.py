@@ -19,8 +19,10 @@ table's ``dataSourceType`` (live-verified):
     * ``--filter FIELD:VALUE`` — server-side **exact, case-sensitive** equality on
       one column (``Region:North`` ≠ ``Region:north``; no substring/prefix match).
       An unknown field silently returns 0 rows (no error).
-    * ``--version-number N`` — reads a specific import version (defaults to the
-      current/active version). A non-existent version errors ``INVALID_API_INPUT``.
+    * ``--version-number N`` — reads a specific historical import version. Omitting
+      it reads the current/active version; explicitly passing the current version
+      returns an empty ``rowData`` array on 262/v67.0. A non-existent version
+      errors ``INVALID_API_INPUT``.
   ⚠ ``--filter`` and ``--limit`` **cannot be combined** when the limit would
   truncate the matched set — the platform throws ``UNKNOWN_EXCEPTION`` unless the
   limit strictly exceeds the match count. This tool therefore **drops ``--limit``
@@ -61,9 +63,6 @@ from scripts.decision_tables._resolve import (  # noqa: E402
     ResolveError,
     load_definition,
 )
-
-_SOBJECT_TYPES = {"SingleSobject", "MultipleSobjects"}
-
 
 def _projection_fields(defn):
     """Distinct source field names from the definition's columns (+ Id)."""

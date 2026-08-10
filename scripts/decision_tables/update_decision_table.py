@@ -7,8 +7,10 @@ Tooling API. The metadata path is deploy-based (re-run
 ``update`` covers the Tooling REST verb:
 
 * Tooling ``DecisionTable`` PATCH with ``{"Metadata": {…}}`` (the id is in the
-  URL). The ``decisionTableParameters`` array is a **full replace**: send the
-  complete column set you want, not a delta. A PATCH is **atomic** — a rejected
+  URL). The ``Metadata`` complex value is a **full replace**: send the complete
+  definition you want, not a delta. That includes the complete
+  ``decisionTableParameters`` and ``decisionTableSourceCriterias`` arrays;
+  omitted/empty source criteria mean none. A PATCH is **atomic** — a rejected
   PATCH leaves the record byte-identical.
 
 **Active-edit guard.** An Active (or activating) table's definition cannot be

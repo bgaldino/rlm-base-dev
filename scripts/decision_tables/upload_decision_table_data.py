@@ -101,23 +101,18 @@ def _read_csv(path):
 
 
 def _check_headers(header, defn):
-    """Compare CSV headers to the definition's column fieldNames → list of notes.
+    """Compare CSV headers to the definition's column fieldNames.
 
-    Non-blocking: a header/column mismatch is the most common upload failure, so
-    it is surfaced up front, but the upload is not refused (a valid superset or a
-    differently-ordered header is legal)."""
-    notes = []
+    Returns ``(missing, extra)``. Missing definition columns are fatal because
+    the platform rejects that CSV asynchronously; extra columns remain a warning
+    because a valid superset and reordered headers are accepted."""
     columns = {p.get("FieldName") for p in defn.get("parameters", []) if p.get("FieldName")}
     if not columns:
-        return notes
+        return [], []
     header_set = {h for h in header if h}
     missing = sorted(columns - header_set)
     extra = sorted(header_set - columns)
-    if missing:
-        notes.append(f"CSV is missing a header for these columns: {missing}.")
-    if extra:
-        notes.append(f"CSV has headers with no matching column: {extra}.")
-    return notes
+    return missing, extra
 
 
 def main(argv=None) -> int:
@@ -187,8 +182,13 @@ def main(argv=None) -> int:
     eprint(f"\nUpload CSV into DecisionTable '{args.developer_name}' ({record_id}), "
            f"mode={mode}, version={args.version_number or 'current'}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
-    for note in _check_headers(header, defn):
-        eprint(f"  note: {note}")
+    missing_headers, extra_headers = _check_headers(header, defn)
+    if missing_headers:
+        eprint("Error: CSV is missing a header for these definition columns: "
+               f"{missing_headers}. The platform rejects this file; no upload submitted.")
+        return 1
+    if extra_headers:
+        eprint(f"  note: CSV has headers with no matching column: {extra_headers}.")
     eprint("Note: the import is async — poll the data GET (dump_decision_table_data.py) "
            "for the rows; uploadStatus lags the data landing.")
 

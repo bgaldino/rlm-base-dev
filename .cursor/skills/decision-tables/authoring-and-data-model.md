@@ -2,8 +2,9 @@
 
 > Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 262 /
 > API v67.0.** Read this when you need the setup-object model, the metadata XML
-> shape, the enum catalog, the field-name divergence across the three authoring
-> APIs, or the definition-vs-data two-layer model in depth. The exhaustive
+> shape, the enum catalog, the field-name divergence between the two supported
+> authoring paths and the read-only Connect representation, or the
+> definition-vs-data two-layer model in depth. The exhaustive
 > object/ID/enum/error reference is
 > `docs/references/decision-table-api-reference.md`.
 

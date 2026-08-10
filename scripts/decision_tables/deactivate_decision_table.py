@@ -7,11 +7,10 @@ v67.0): unlike activation there is no ``InactivationInProgress`` transient — t
 record reports ``Inactive`` immediately — but this tool still confirms the
 terminal state.
 
-For a ``CsvUpload`` table, ``LifecycleEngine.deactivate()`` instead PATCHes
-version 1's ``versionStatus`` (Connect) — the table's own Status is a
-platform-derived mirror of the version's and cannot be set directly while a
-version is Active (live-verified: ``INVALID_INPUT: A version cannot be in the
-Active status when the decision table's status is not active``).
+For a ``CsvUpload`` table, ``LifecycleEngine.deactivate()`` instead resolves the
+sole/active file-import version and PATCHes its ``versionStatus`` (Connect). The
+table's own Status is a platform-derived mirror of the version's; ambiguous
+multi-version tables are refused rather than silently targeting version 1.
 
 Deactivate a table before editing its definition in place (an Active table's
 definition is locked — see ``update_decision_table.py --deactivate-first``), or

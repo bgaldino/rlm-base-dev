@@ -127,9 +127,9 @@ SETUP_OBJECT_PREFIXES = {
     "DecisionTableSourceCriteria": "0VT",
 }
 
-# The field-name divergence across the three authoring paths (concept →
-# per-path key). Phase-2 translators read this; the read CLIs use it to label a
-# Connect response with its Metadata-equivalent concept.
+# The field-name divergence between the supported Metadata/Tooling authoring
+# shape and the optional read-only Connect representation (concept → per-surface
+# key). Inspectors use it to label Connect fields with Metadata-equivalent names.
 FIELD_NAME_MAP = {
     # concept:          (metadata/tooling,            connect)
     "data_source":      ("dataSourceType",            "sourceType"),

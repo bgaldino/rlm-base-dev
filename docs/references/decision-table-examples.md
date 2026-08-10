@@ -1,7 +1,8 @@
 # Decision Table Management Task Examples
 
 > **See also:** `docs/references/decision-table-api-reference.md` (the setup
-> objects, Metadata/Tooling/Connect authoring paths, enum catalog, and
+> objects, Metadata deploy + Tooling authoring paths, read-only Connect
+> vocabulary, enum catalog, and
 > definition-vs-data model), the Decision Tables skill
 > (`.cursor/skills/decision-tables/SKILL.md`), and the standalone read/mutate
 > toolkit (`scripts/decision_tables/`). This file stays **ops/task-centric** —
@@ -11,7 +12,15 @@ This document provides working examples for the `manage_decision_tables` Cumulus
 
 ## Decision Table Management (`manage_decision_tables`)
 
-Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh** (full or incremental), **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
+Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh**, **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
+
+> ⚠ **Incremental-refresh caveat.** The current CCI task implementations send
+> `isIncremental`, which the Release 262 action silently ignores; their
+> `--is_incremental true` option therefore still queues a **full** refresh. Use
+> `scripts/decision_tables/refresh_decision_table.py --incremental --confirm`
+> when an actual incremental refresh is required. It sends the live-verified
+> `isDecisionTableIncremental` input. Fixing the CCI tasks is a separate
+> behavioral change that requires live-org verification.
 
 > **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
 > `--org <cci_alias>`. The examples below omit it and therefore run against your **default**
@@ -77,7 +86,7 @@ cci task run manage_decision_tables --operation list --developer_names RLM_Produ
 cci task run manage_decision_tables --operation refresh
 ```
 
-#### 11. Refresh All Active Decision Tables (Incremental Refresh)
+#### 11. Legacy Incremental Option (Currently Falls Back to Full Refresh)
 ```bash
 cci task run manage_decision_tables --operation refresh --is_incremental true
 ```
@@ -87,7 +96,7 @@ cci task run manage_decision_tables --operation refresh --is_incremental true
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification"
 ```
 
-#### 13. Refresh Specific Decision Tables (Incremental Refresh)
+#### 13. Legacy Incremental Option for Specific Tables (Currently Full)
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification" --is_incremental true
 ```
@@ -97,7 +106,7 @@ cci task run manage_decision_tables --operation refresh --developer_names "RLM_C
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification
 ```
 
-#### 15. Refresh Single Decision Table (Incremental Refresh)
+#### 15. Legacy Incremental Option for One Table (Currently Full)
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification --is_incremental true
 ```
@@ -163,7 +172,7 @@ cci task run manage_decision_tables --operation list --status Active --sort_by L
 cci task run manage_decision_tables --operation query --status Inactive
 ```
 
-#### 25. Refresh Active Decision Tables (Incremental) with Limit
+#### 25. Legacy Incremental Option with Limit (Currently Full)
 ```bash
 cci task run manage_decision_tables --operation refresh --status Active --is_incremental true
 ```
@@ -181,15 +190,17 @@ When setting up a new org, you typically need to refresh all decision tables:
 cci task run manage_decision_tables --operation refresh
 ```
 
-**Note:** There is a limit of 100 refreshes per hour. For initial setup, refresh all tables. For subsequent updates, use incremental refresh or refresh specific tables.
+**Note:** Full refreshes use separate org-wide hourly pools: 40 Standard and 60
+Advanced; CSV tables use the Advanced pool. Batch initial setup accordingly.
 
 ### Regular Maintenance - Incremental Refresh
 
-For regular maintenance, use incremental refresh:
+For a real incremental refresh, use the standalone toolkit:
 
 ```bash
-# Incremental refresh of all active decision tables
-cci task run manage_decision_tables --operation refresh --is_incremental true
+python scripts/decision_tables/refresh_decision_table.py \
+  --target-org rlm-base__scratch --developer-name RLM_CostBookEntries \
+  --incremental --confirm
 ```
 
 ### Refresh Specific Decision Tables
@@ -242,8 +253,8 @@ Home page, which also shows a freshness verdict per table. (It replaced the
 task does the same job non-interactively:
 
 ```bash
-# Instead of running the flow manually, use the task:
-cci task run manage_decision_tables --operation refresh --is_incremental true
+# Instead of running the flow manually, use the task for a full refresh:
+cci task run manage_decision_tables --operation refresh
 ```
 
 ### Using with Deployment Flows
@@ -304,19 +315,21 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 
 **Refresh Types:**
 - **Full Refresh** (`is_incremental: false`): Complete refresh of all data
-- **Incremental Refresh** (`is_incremental: true`): Only refresh changed data since last sync
+- **Incremental Refresh**: Only refresh changed data since last sync. The CCI
+  option is currently ineffective; use the standalone toolkit command above.
 
 **Refresh Process:**
-1. The task calls the Salesforce `refreshDecisionTable` action via Connect API
+1. The task calls the Salesforce `refreshDecisionTable` standard action
 2. Salesforce processes the refresh asynchronously
 3. The task reports success/failure for each table
-4. Status is updated to reflect the refresh operation
+4. The relevant sync timestamp advances when the asynchronous refresh completes
 
 **Important Notes:**
 - Refresh operations are asynchronous and may take several minutes
-- There is a limit of 100 refreshes per hour per org
-- Active decision tables cannot be edited until refreshed/deactivated
-- Refresh status can be checked via the `Status` field after refresh
+- Full refreshes use separate hourly pools: 40 Standard and 60 Advanced per org
+- Active decision tables must be deactivated before their definitions can be edited
+- Refresh completion can be checked via `LastSyncDate` (full) or
+  `LastIncrementalSyncDate` (incremental), not the table lifecycle `Status`
 
 ---
 
@@ -343,7 +356,8 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 - **Required**: No (only for `refresh` operation)
 - **Type**: Boolean
 - **Default**: `false` (full refresh)
-- **Description**: `true` for incremental refresh, `false` for full refresh
+- **Description**: Intended to request incremental refresh, but currently sends
+  the unsupported `isIncremental` action input and therefore falls back to full
 
 ### Sort By
 - **Required**: No
@@ -423,12 +437,13 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 
 - **Developer Names**: Use the exact `DeveloperName` of the decision table (e.g., `RLM_CostBookEntries`)
 - **Status Values**: `Active`, `Inactive`
-- **Refresh Limits**: Maximum 100 refreshes per hour per org
+- **Refresh Limits**: Separate 40 Standard / 60 Advanced full-refresh pools per org/hour
 - **Active Tables**: Active decision tables cannot be edited. Use `rlm_exclude_active_decision_tables` task to exclude them from deployment, or deactivate them first.
 - **Refresh Timing**: Refresh operations are asynchronous. Check the `LastSyncDate` field to verify completion.
-- **Incremental vs Full**: 
+- **Incremental vs Full**:
   - Use **full refresh** for initial setup or when you need complete data refresh
-  - Use **incremental refresh** for regular maintenance to only update changed data
+  - Use the standalone toolkit for a true **incremental refresh** until the CCI
+    action input is corrected and live-verified
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name
@@ -447,10 +462,10 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 2. Use `rlm_exclude_active_decision_tables` task to exclude from deployment
 3. Wait for the table to be refreshed/deactivated
 
-### Error: "Limit of 100 refreshes per hour exceeded"
+### Error: Full-refresh hourly limit exceeded
 **Solution**: 
 - Wait before refreshing more tables
-- Use incremental refresh when possible
+- Use the standalone toolkit's incremental refresh when the table supports it
 - Refresh only specific tables that need updating
 
 ### Refresh Operation Shows Success But Status Not Updated
