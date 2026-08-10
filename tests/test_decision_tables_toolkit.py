@@ -1628,6 +1628,15 @@ def test_delete_cli_ambiguous_version_resolution_returns_controlled_error():
     check("nothing was deactivated before the resolution failed",
           fake.version_status_sets == [] and fake.status_sets == [],
           (fake.version_status_sets, fake.status_sets))
+    # --json callers must still get a structured failure summary on the error path
+    # (not an empty stdout / traceback) — the controlled-failure JSON contract.
+    failure = json.loads(out)
+    check("controlled failure emits a --json summary with deleted=false",
+          failure.get("deleted") is False and failure.get("action") == "delete",
+          failure)
+    check("the --json failure summary carries the error and no rollback",
+          "unambiguous" in (failure.get("error") or "")
+          and failure.get("reactivated") is False, failure)
 
 
 def test_wait_for_status_timeout_message_is_operation_aware():
@@ -1909,6 +1918,56 @@ def test_upload_header_validation_ignores_rowcriteria():
     missing2, extra2 = upload_cli._check_headers(["Region", "Discount", "InternalRule"], defn)
     check("a ROWCRITERIA header is extra, not missing",
           missing2 == [] and extra2 == ["InternalRule"], (missing2, extra2))
+
+
+def test_upload_cli_activate_version_read_failure_is_guarded(tmp_csv):
+    print("test_upload_cli_activate_version_read_failure_is_guarded")
+    # The --activate-version pre-check (get_version_status → a Tooling GET via
+    # _file_import_versions) runs AFTER the upload already mutated the org. A
+    # transient read failure there must NOT escape main() as a traceback and
+    # suppress the accumulated --json summary — it becomes a WARNING + exit 1 with
+    # the summary still emitted. Both DecisionTableClientError and LifecycleError
+    # (missing/malformed Metadata) must be caught.
+    fake = _csv_transport(
+        dry_run=False,
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"))
+    orig_tooling = fake.tooling_sobject
+
+    def _get_raises_after_upload(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        # Fail the version-status GET only AFTER the upload has run — load_definition
+        # at the start also issues a Tooling GET, so gate the raise on the /file
+        # upload mutation being recorded (the post-mutation read is the one at risk).
+        if (method.upper() == "GET" and sobject == "DecisionTable"
+                and any("/file" in m[1] for m in fake.mutations)):
+            raise DecisionTableClientError(
+                "transient status read failure", error_codes=["UNKNOWN_EXCEPTION"])
+        return orig_tooling(method, sobject, record_id=record_id, suffix=suffix,
+                            body=body, **kw)
+
+    fake.tooling_sobject = _get_raises_after_upload
+    escaped = None
+    try:
+        rc, out = _run_cli_with_fake(
+            upload_cli,
+            ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+             "--csv", tmp_csv, "--activate-version", "1", "--confirm", "--json"],
+            fake)
+    except BaseException as exc:  # noqa: BLE001 — the bug was an escaping exception
+        escaped = exc
+        rc, out = None, ""
+    check("post-upload read failure does not escape main()", escaped is None, escaped)
+    check("post-upload read failure returns exit 1", rc == 1, (rc, out[:300]))
+    # The upload itself still happened and the JSON summary still emits (proving the
+    # read failure was folded into the controlled exit, not a lost traceback).
+    check("upload phases ran before the guarded read failure",
+          any(m[1] == "sobjects/ContentVersion" for m in fake.mutations)
+          and any("/file" in m[1] for m in fake.mutations), fake.mutations)
+    summary = json.loads(out)
+    check("the accumulated --json summary is still emitted on the read failure",
+          summary.get("action") == "upload" and "fileId" in summary, summary)
+    check("no version activation PATCH landed after the failed read",
+          not any(m[0] == "PATCH" and "/versions/" in m[1] for m in fake.mutations),
+          fake.mutations)
 
 
 def test_upload_cli_missing_header_blocks(tmp_csv):
@@ -2234,6 +2293,7 @@ def main():
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_and_version(csv_path)
     test_upload_cli_activate_version_already_active_is_noop(csv_path)
+    test_upload_cli_activate_version_read_failure_is_guarded(csv_path)
     test_upload_cli_wait_for_status_flag(csv_path)
     test_upload_cli_wait_for_status_failed_exits_nonzero(csv_path)
     test_upload_cli_no_wait_default(csv_path)

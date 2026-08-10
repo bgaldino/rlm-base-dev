@@ -108,9 +108,9 @@ def main(argv=None) -> int:
         # does Tooling GETs and deliberately raises (LifecycleError for an
         # ambiguous multi-version CsvUpload table, DecisionTableClientError on a
         # transport failure), so it must be caught by the handler below and turned
-        # into a controlled 'FAILED …' + exit 1, not leak an unhandled traceback
-        # (and give --json callers no result). deactivated is still False here, so
-        # a failure at this point performs no rollback — nothing was deactivated.
+        # into a controlled 'FAILED …' + exit 1 (with a --json failure summary),
+        # not leak an unhandled traceback. deactivated is still False here, so a
+        # failure at this point performs no rollback — nothing was deactivated.
         if was_active and args.deactivate_first:
             guarded_version = engine.resolve_guarded_version(record_id)
         if was_active:
@@ -138,6 +138,12 @@ def main(argv=None) -> int:
             except (DecisionTableClientError, LifecycleError) as react_exc:
                 eprint(f"  WARNING: reactivation also failed: {react_exc}")
         eprint(f"\nFAILED: {exc}")
+        if args.json:
+            print(json.dumps(
+                {"action": "delete", "developerName": args.developer_name,
+                 "id": record_id, "deleted": False, "error": str(exc),
+                 "reactivated": deactivated and not preview},
+                indent=2, default=str))
         return 1
 
     if preview:

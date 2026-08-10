@@ -287,18 +287,28 @@ def main(argv=None) -> int:
                        "async import may not have completed yet. If rows are missing, "
                        "re-upload or wait for uploadStatus=Completed first.")
             engine = LifecycleEngine(transport, logger=eprint)
-            current = engine.get_version_status(record_id, args.activate_version)
-            if current == "Active":
-                eprint(f"  Version {args.activate_version} already Active; nothing to do.")
-            else:
-                try:
+            # One guarded block over BOTH the version-status pre-check read and the
+            # PATCH. get_version_status does a Tooling GET (via _file_import_versions)
+            # and can raise DecisionTableClientError OR LifecycleError (missing/
+            # malformed Metadata); this runs AFTER the upload already mutated the org,
+            # so an unguarded read failure would escape main() as a traceback and
+            # suppress the accumulated JSON summary below. Catching both here turns any
+            # activation-phase failure into a WARNING + exit_code=1 while the summary
+            # still emits. (The pre-check read is the idempotency guard: the platform
+            # rejects a PATCH of an already-Active version, so we skip it rather than
+            # parse that rejection.)
+            try:
+                current = engine.get_version_status(record_id, args.activate_version)
+                if current == "Active":
+                    eprint(f"  Version {args.activate_version} already Active; nothing to do.")
+                else:
                     vpath = (f"{DEFINITIONS_PATH}/{record_id}/versions/"
                              f"{int(args.activate_version)}")
                     vresp = transport.connect("PATCH", vpath, {"versionStatus": "Active"})
                     summary["versionActivation"] = vresp
-                except DecisionTableClientError as exc:
-                    eprint(f"  WARNING: version activation failed: {exc}")
-                    exit_code = 1
+            except (DecisionTableClientError, LifecycleError) as exc:
+                eprint(f"  WARNING: version activation failed: {exc}")
+                exit_code = 1
 
     if args.json:
         print(json.dumps(summary, indent=2, default=str))
