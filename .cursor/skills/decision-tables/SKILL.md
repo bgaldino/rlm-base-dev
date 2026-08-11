@@ -96,7 +96,7 @@ All mutators preview by default and write only with `--confirm`.
 | Trace recipe-table mappings | `trace_decision_table.py` |
 | Sample the materialized data layer | `dump_decision_table_data.py` |
 | Upload `CsvUpload` rows | `upload_decision_table_data.py` |
-| Create/update/activate/deactivate/delete | Preview-by-default Tooling commands under `scripts/decision_tables/`; `create --generate-only` renders Metadata XML offline |
+| Create/update/activate/deactivate/delete | Preview-by-default Tooling commands under `scripts/decision_tables/` |
 | Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
 
 Start with:
@@ -114,8 +114,9 @@ Decision tables have two independently managed layers:
 
 1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
    Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
-   five setup objects. The toolkit writes org definitions through Tooling and can
-   render Metadata XML for standard `sf` or CCI deployment.
+   five setup objects. The toolkit writes org definitions through Tooling;
+   source-controlled definitions use native Metadata XML with standard `sf` or
+   CCI deployment.
 2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
    Context Definition. The engine does not re-read those rows after materialization.
 

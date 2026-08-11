@@ -40,7 +40,7 @@ A Decision Table has two independently managed layers:
 
 | Command | Purpose |
 |---|---|
-| `create_decision_table.py` | Create with one Tooling POST. `--generate-only` writes Metadata XML without contacting an org. |
+| `create_decision_table.py` | Create with one Tooling POST. |
 | `update_decision_table.py` | Replace an existing Tooling definition with one PATCH. Active tables are rejected by Salesforce. |
 | `activate_decision_table.py` | Activate a table and wait for the terminal status. CSV tables activate their unambiguous file-import version. |
 | `deactivate_decision_table.py` | Deactivate a table and confirm the terminal status. |
@@ -87,10 +87,6 @@ Use a disposable org for destructive experiments.
 SF_ORG="your-disposable-sf-alias"
 TABLE="your-decision-table-api-name"
 CSV_TABLE="your-csv-table-api-name"
-
-# Generate source-controlled Metadata XML without contacting an org.
-python scripts/decision_tables/create_decision_table.py \
-  --spec table.json --generate-only table.decisionTable-meta.xml
 
 # Preview, then create through Tooling.
 python scripts/decision_tables/create_decision_table.py \

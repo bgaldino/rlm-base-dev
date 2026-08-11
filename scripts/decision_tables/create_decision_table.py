@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Create a BRE Decision Table through Tooling from a canonical JSON spec.
 
-``--generate-only`` writes Metadata XML without contacting an org. Otherwise the
-command sends one Tooling create and returns the platform result unchanged. It
-previews by default and requires ``--confirm`` to write to an org.
+The command sends one Tooling create and returns the platform result unchanged.
+It previews by default and requires ``--confirm`` to write to an org.
 """
 
 import argparse
@@ -42,29 +41,17 @@ def main(argv=None) -> int:
                     "(preview by default; --confirm to create).",
     )
     parser.add_argument(
-        "--target-org",
-        help="SF CLI alias or username; required unless --generate-only.",
+        "--target-org", required=True,
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--spec", required=True,
                         help="Path to the canonical spec JSON ('-' for stdin).")
-    parser.add_argument("--generate-only", metavar="XML_PATH",
-                        help="Write .decisionTable-meta.xml to this path without "
-                             "contacting an org.")
     parser.add_argument("--confirm", action="store_true",
-                        help="Actually create. Without it, only PREVIEWS "
-                             "(--generate-only writes its file regardless).")
+                        help="Actually create. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit a result summary as JSON.")
     args = parser.parse_args(argv)
-
-    if not args.generate_only and not args.target_org:
-        return fail_json(
-            args.json,
-            "Error: --target-org is required unless --generate-only is used.",
-            {"action": "create", "path": "tooling"},
-            code=2,
-        )
 
     try:
         spec = _load_spec(args.spec)
@@ -79,27 +66,6 @@ def main(argv=None) -> int:
 
     api_name = spec.get("fullName")
     preview = not args.confirm
-
-    # --generate-only is an offline file write (no org write) — always honored.
-    if args.generate_only:
-        xml = _payload.to_metadata_xml(spec)
-        try:
-            with open(args.generate_only, "w", encoding="utf-8") as fh:
-                fh.write(xml)
-        except OSError as exc:
-            return fail_json(
-                args.json,
-                f"Error: could not write '{args.generate_only}': {exc}",
-                {"action": "create", "path": "metadata",
-                 "generateOnly": args.generate_only, "apiName": api_name},
-            )
-        eprint(f"\nWrote {args.generate_only}. Deploy it with the standard "
-               "sf project deploy or CCI workflow.")
-        if args.json:
-            print(json.dumps({"action": "create", "path": "metadata",
-                              "generateOnly": args.generate_only,
-                              "apiName": api_name, "dryRun": False}, indent=2))
-        return 0
 
     transport = Transport(args.target_org, api_version=args.api_version,
                           dry_run=preview, logger=eprint)

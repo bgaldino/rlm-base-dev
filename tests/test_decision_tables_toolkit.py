@@ -53,12 +53,6 @@ import scripts.decision_tables.upload_decision_table_data as upload_cli  # noqa:
 import scripts.decision_tables.dump_decision_table_data as dump_cli  # noqa: E402
 import scripts.decision_tables._lifecycle as _lifecycle  # noqa: E402
 
-# Shipped source-format table used as the byte-identical round-trip fixture for
-# the Metadata XML serializer.
-_SHIPPED_XML = (Path(__file__).resolve().parents[1]
-                / "unpackaged" / "pre" / "5_decisiontables"
-                / "RLM_CostBookEntries.decisionTable-meta.xml")
-
 _PASS = 0
 _FAIL = 0
 
@@ -1268,7 +1262,7 @@ def test_trace_cli_json():
 
 
 # --------------------------------------------------------------------------- #
-# _payload — Metadata/Tooling translators + XML round-trip
+# _payload — Tooling payload translation
 # --------------------------------------------------------------------------- #
 
 def _cost_book_spec(**over):
@@ -1361,18 +1355,6 @@ def test_translator_csv_upload():
           meta.get("sourceObject") == "CSV", meta.get("sourceObject"))
     check("metadata CsvUpload keeps both columns",
           len(meta["decisionTableParameters"]) == 2)
-
-
-def test_metadata_xml_roundtrip():
-    print("test_metadata_xml_roundtrip")
-    produced = _payload.to_metadata_xml(_cost_book_spec())
-    shipped = _SHIPPED_XML.read_text(encoding="utf-8")
-    check("to_metadata_xml is byte-identical to the shipped source XML",
-          produced == shipped,
-          "produced XML diverged from RLM_CostBookEntries.decisionTable-meta.xml")
-    check("meta_file_name derives the source-format name",
-          _payload.meta_file_name(_cost_book_spec()) ==
-          "RLM_CostBookEntries.decisionTable-meta.xml")
 
 
 # --------------------------------------------------------------------------- #
@@ -1548,49 +1530,6 @@ def test_create_cli_failure_emits_json_with_error(tmp_spec):
           "rejected" in (summary.get("error") or ""), summary)
 
 
-def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
-    print("test_create_cli_generate_only_no_org")
-    fake = _FakeTransport(dry_run=True)
-    rc, out = _run_cli_with_fake(
-        create_cli, ["--spec", tmp_spec, "--generate-only", tmp_out_xml, "--json"], fake)
-    check("generate-only exits 0", rc == 0, out[:300])
-    check("generate-only performs NO org mutation", fake.mutations == [])
-    produced = Path(tmp_out_xml).read_text(encoding="utf-8")
-    check("generate-only wrote a DecisionTable XML",
-          produced.startswith('<?xml') and "<DecisionTable" in produced, produced[:80])
-
-
-def test_create_cli_generate_only_rejects_malformed_text(tmp_path_factory):
-    print("test_create_cli_generate_only_rejects_malformed_text")
-    spec_path = tmp_path_factory("malformed_generate_spec.json")
-    output_path = tmp_path_factory("malformed.decisionTable-meta.xml")
-    Path(spec_path).write_text(
-        json.dumps(_cost_book_spec(conditionCriteria=["1"])), encoding="utf-8"
-    )
-    fake = _FakeTransport(dry_run=True)
-    rc, out = _run_cli_with_fake(
-        create_cli,
-        ["--spec", spec_path, "--generate-only", output_path, "--json"],
-        fake,
-    )
-    check("malformed generate-only exits nonzero", rc == 1, (rc, out[:300]))
-    check("malformed generate-only writes no XML", not Path(output_path).exists())
-    check("malformed generate-only performs no org mutation", fake.mutations == [])
-    payload = json.loads(out)
-    check("malformed generate-only emits a JSON error", bool(payload.get("error")), payload)
-
-
-def test_create_cli_requires_target_org(tmp_spec):
-    print("test_create_cli_requires_target_org")
-    fake = _FakeTransport(dry_run=True)
-    rc, out = _run_cli_with_fake(
-        create_cli, ["--spec", tmp_spec, "--json"], fake)
-    check("org create without --target-org exits 2", rc == 2, rc)
-    payload = json.loads(out)
-    check("missing target-org error emits JSON",
-          payload.get("action") == "create" and bool(payload.get("error")), payload)
-
-
 def test_create_cli_invalid_spec_blocks(tmp_path_factory):
     print("test_create_cli_invalid_spec_blocks")
     bad = tmp_path_factory("bad_spec.json")
@@ -1631,24 +1570,6 @@ def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
     check("invalid-spec JSON carries an error and the action",
           bool(payload2.get("error")) and payload2.get("action") == "create", payload2)
     check("invalid-spec performs NO mutation", fake2.mutations == [], fake2.mutations)
-    # (c) generate-only output path is not writable (a directory, not a file).
-    valid = Path(tmp_path_factory("valid_generate_spec.json"))
-    valid.write_text(json.dumps(_cost_book_spec()), encoding="utf-8")
-    output_dir = Path(tmp_path_factory("xml_output_dir"))
-    output_dir.mkdir()
-    fake3 = _FakeTransport(dry_run=True)
-    rc3, out3 = _run_cli_with_fake(
-        create_cli,
-        ["--spec", str(valid), "--generate-only", str(output_dir), "--json"],
-        fake3,
-    )
-    check("generate-only write failure exits 1", rc3 == 1, (rc3, out3[:300]))
-    payload3 = json.loads(out3)
-    check("generate-only write failure emits JSON",
-          payload3.get("generateOnly") == str(output_dir)
-          and bool(payload3.get("error")), payload3)
-
-
 def test_update_cli_returns_platform_error(tmp_spec):
     print("test_update_cli_returns_platform_error")
     fake = _FakeTransport(table=_table_row(Status="Active"), dry_run=False)
@@ -2089,7 +2010,6 @@ def main():
     # A shared valid spec file for the mutator CLI tests.
     spec_path = _tmp("cost_book_spec.json")
     Path(spec_path).write_text(json.dumps(_cost_book_spec()), encoding="utf-8")
-    out_xml = _tmp("out.decisionTable-meta.xml")
     # A shared CSV file for the CsvUpload upload-CLI tests (headers = column fieldNames).
     csv_path = _tmp("rows.csv")
     Path(csv_path).write_text("Region,DiscountPercent\nNorth,10\nSouth,5\n", encoding="utf-8")
@@ -2119,9 +2039,9 @@ def main():
               test_translator_csv_upload_all_types,
               test_trace_correlation, test_list_cli_json,
               test_describe_cli_grouped, test_trace_cli_json,
-              # Translators + XML round-trip
+              # Tooling translators
               test_translator_metadata, test_translator_tooling,
-              test_translator_csv_upload, test_metadata_xml_roundtrip,
+              test_translator_csv_upload,
               # Explicit lifecycle transitions
               test_activate_deactivate_csv_upload_is_version_first,
               test_activate_deactivate_sobject_is_table_first,
@@ -2140,13 +2060,10 @@ def main():
     for fn in simple:
         fn()
 
-    # Create/update CLI tests that need spec/output-file fixtures.
+    # Create/update CLI tests that need a spec fixture.
     test_create_cli_tooling_preview_vs_confirm(spec_path)
     test_create_cli_honors_requested_active_status(spec_path)
     test_create_cli_failure_emits_json_with_error(spec_path)
-    test_create_cli_generate_only_no_org(spec_path, out_xml)
-    test_create_cli_generate_only_rejects_malformed_text(_tmp)
-    test_create_cli_requires_target_org(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)
     test_create_cli_premutation_failures_emit_json(_tmp)
     test_update_cli_returns_platform_error(spec_path)

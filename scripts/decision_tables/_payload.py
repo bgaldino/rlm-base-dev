@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
-"""Translate canonical Decision Table specs into Metadata and Tooling shapes.
+"""Translate canonical Decision Table specs into Tooling API shapes.
 
-The pure helpers return new structures and do not mutate their input. Metadata
-XML elements are emitted alphabetically for stable diffs.
+The pure helpers return new structures and do not mutate their input.
 """
 
 from typing import Any, Dict, List, Optional
-from xml.sax.saxutils import escape as _xml_escape
 
-# The MDAPI DecisionTable root namespace (matches the shipped source XML).
-METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
-
-# ``usage`` values that carry an operator + sequence (INPUT columns only). Any
-# other usage (OUTPUT / ROWCRITERIA) drops those on both paths.
+# Only INPUT columns carry an operator and sequence.
 _INPUT_USAGES = {"INPUT"}
 
-# Booleans the MDAPI serializer always emits (shipped XML carries all four even
-# at their defaults). Filled with ``False`` in the metadata body for a stable,
-# diff-clean XML + Tooling shape.
+# Boolean defaults included in every Tooling Metadata body.
 _METADATA_DEFAULT_BOOLS = {
     "doesConsiderNullValue": False,
     "hasIncrementalSyncFailed": False,
@@ -25,9 +17,8 @@ _METADATA_DEFAULT_BOOLS = {
     "isVersioned": False,
 }
 
-# Top-level scalar fields carried into the metadata body when present in the spec
-# (fullName is NOT here — it is the file name / top-level ``FullName``, never a
-# child element). Order is irrelevant: :func:`to_metadata_xml` sorts alphabetically.
+# Scalar fields copied into the Tooling Metadata body. ``fullName`` belongs in
+# the top-level ``FullName`` field instead.
 _METADATA_SCALARS = (
     "setupName",
     "dataSourceType",
@@ -92,10 +83,9 @@ def _derive_condition_criteria(params: List[Dict[str, Any]], condition_type: Any
 def _param_to_metadata(param: Dict[str, Any]) -> Dict[str, Any]:
     """One canonical column → its Metadata/Tooling ``decisionTableParameters`` entry.
 
-    INPUT columns keep ``operator`` + ``sequence``; OUTPUT/ROWCRITERIA drop them
-    (matching the shipped XML, where OUTPUT columns carry neither). ``fieldPath``
-    defaults to ``fieldName`` (the shipped tables set them equal for direct
-    fields). Booleans ``isGroupByField`` / ``isRequired`` default to ``False``.
+    INPUT columns keep ``operator`` + ``sequence``; OUTPUT/ROWCRITERIA drop them.
+    ``fieldPath`` defaults to ``fieldName``. Booleans ``isGroupByField`` and
+    ``isRequired`` default to ``False``.
     """
     usage = param.get("usage")
     field_name = param.get("fieldName")
@@ -141,13 +131,12 @@ def _criteria_to_metadata(crit: Dict[str, Any]) -> Dict[str, Any]:
 def to_metadata(spec: Dict[str, Any]) -> Dict[str, Any]:
     """Canonical spec → the Metadata **body** (the ``Metadata`` complexvalue).
 
-    This body is shared by both metadata-authoring paths: :func:`to_metadata_xml`
-    serializes it to a ``.decisionTable-meta.xml`` and :func:`to_tooling` wraps it
-    under ``{"FullName", "Metadata"}``. Field names and casing are the
-    Metadata/Tooling vocabulary (``dataSourceType`` / ``filterResultBy`` /
-    ``decisionTableParameters``; ``usage`` UPPER). ``fullName`` is intentionally
-    NOT included (it is the file name / top-level ``FullName``). A missing
-    ``conditionCriteria`` is synthesized from the INPUT sequences.
+    :func:`to_tooling` wraps this body under ``{"FullName", "Metadata"}``.
+    Field names and casing are the Metadata/Tooling vocabulary
+    (``dataSourceType`` / ``filterResultBy`` / ``decisionTableParameters``;
+    ``usage`` UPPER). ``fullName`` is intentionally excluded because it belongs
+    in the top-level ``FullName`` field. A missing ``conditionCriteria`` is
+    synthesized from the INPUT sequences.
 
     Returns a new dict (JSON-friendly: real ``bool``s, ``int`` sequences).
     """
@@ -213,67 +202,3 @@ def tooling_metadata_only(
     if live_status:
         body["status"] = live_status
     return {"Metadata": body}
-
-
-# --------------------------------------------------------------------------- #
-# Metadata API XML serialization
-# --------------------------------------------------------------------------- #
-
-def _xml_scalar(value: Any) -> str:
-    """Render a scalar as XML element text (bools lower-cased, everything escaped)."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    return _xml_escape(str(value))
-
-
-def _render_element(name: str, value: Any, indent: str) -> List[str]:
-    """Render one top-level element (scalar, or repeated blocks for a list value).
-
-    A list value (``decisionTableParameters`` / ``decisionTableSourceCriterias``)
-    emits one ``<name>…</name>`` block per entry, each with its own children
-    sorted alphabetically (matching the MDAPI serializer). ``None``/empty scalars
-    are skipped by the caller, so this only sees real values.
-    """
-    lines: List[str] = []
-    if isinstance(value, list):
-        for entry in value:
-            lines.append(f"{indent}<{name}>")
-            if isinstance(entry, dict):
-                for child in sorted(entry.keys()):
-                    child_val = entry[child]
-                    if child_val is None or child_val == "":
-                        continue
-                    lines.append(
-                        f"{indent}    <{child}>{_xml_scalar(child_val)}</{child}>"
-                    )
-            lines.append(f"{indent}</{name}>")
-    else:
-        lines.append(f"{indent}<{name}>{_xml_scalar(value)}</{name}>")
-    return lines
-
-
-def to_metadata_xml(spec: Dict[str, Any]) -> str:
-    """Canonical spec → a ``.decisionTable-meta.xml`` string (Metadata API source).
-
-    Elements are emitted **alphabetically** to match the platform's MDAPI
-    serializer and the shipped ``unpackaged/pre/5_decisiontables/*.xml`` (so a
-    round-trip / drift diff stays clean). The result is written to an SFDX package
-    and deployed with ``sf project deploy start``; the *file name* carries the api
-    name (``<fullName>.decisionTable-meta.xml``), so ``fullName`` is not an
-    element here — see :func:`meta_file_name`.
-    """
-    body = to_metadata(spec)
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             f'<DecisionTable xmlns="{METADATA_NAMESPACE}">']
-    for name in sorted(body.keys()):
-        value = body[name]
-        if value is None or value == "":
-            continue
-        lines.extend(_render_element(name, value, "    "))
-    lines.append("</DecisionTable>")
-    return "\n".join(lines) + "\n"
-
-
-def meta_file_name(spec: Dict[str, Any]) -> str:
-    """The source-format file name for a spec: ``<fullName>.decisionTable-meta.xml``."""
-    return f"{spec.get('fullName')}.decisionTable-meta.xml"

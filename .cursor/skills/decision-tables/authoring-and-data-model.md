@@ -256,7 +256,7 @@ Important XML rules:
 
 | You want to… | Use | Toolkit CLI | Vocabulary |
 |---|---|---|---|
-| **Ship a table in the build**, source-controlled, reviewable | **Metadata API** (`.decisionTable-meta.xml`) — the primary path | Standard `sf`/CCI deploy; `create --generate-only` can render XML offline | `dataSourceType`, `filterResultBy`, `decisionTableParameters`, `usage=INPUT` |
+| **Ship a table in the build**, source-controlled, reviewable | **Metadata API** (`.decisionTable-meta.xml`) — the primary path | Standard `sf`/CCI deploy | `dataSourceType`, `filterResultBy`, `decisionTableParameters`, `usage=INPUT` |
 | **Create or one-off edit** the whole definition in one REST call | **Tooling API** — POST/PATCH the `DecisionTable.Metadata` complexvalue | `create`, `update`, `delete` | same as Metadata (Metadata-API field names) |
 
 The toolkit does not expose raw Connect definition operations because Connect
