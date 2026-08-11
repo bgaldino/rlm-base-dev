@@ -170,6 +170,7 @@ file `RLM_CostBookEntries`):
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
 | `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped on a generic `usageType=Bre` CSV probe; Salesforce Pricing CSV support is narrower—see *CSV Based tables*) |
 | `DecisionTableParameter.operator` | **Equals**, NotEquals, GreaterThan, **GreaterOrEqual**, LessThan, **LessOrEqual**, ExistsIn, Matches, IsNull, … |
+| `DecisionTableParameter.sortType` | AscNullFirst, AscNullLast, DescNullFirst, DescNullLast, **None** |
 | `DecisionTableSourceCriteria.valueType` | Formula, **Literal**, Lookup, Parameter, Picklist |
 | `collectOperator` | Count, Maximum, Minimum, **None**, Sum |
 | `dtRowLevelOverrideType` | Both, Condition, **None**, Operator |

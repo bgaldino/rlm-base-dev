@@ -286,11 +286,11 @@ The `list` operation displays decision tables in a formatted table with:
 ```
 Found 3 decision table(s):
 
-DeveloperName                                    Status     LastSyncDate            SetupName
+DeveloperName                                      Status     UsageType                    LastSyncDate              SetupName
 -------------------------------------------------------------------------------------------------------------------
-RLM_CostBookEntries                              Active     2026-01-17 10:30:00     Cost Book Entries
-RLM_ProductCategoryQualification                 Active     2026-01-17 09:15:00     Product Category Qualification
-RLM_ProductQualification                         Active     2026-01-16 14:20:00     Product Qualification
+RLM_CostBookEntries                                Active     DefaultPricing               2026-01-17 10:30:00       Cost Book Entries
+RLM_ProductCategoryQualification                   Active     DefaultPricing               2026-01-17 09:15:00       Product Category Qualification
+RLM_ProductQualification                           Active     DefaultPricing               2026-01-16 14:20:00       Product Qualification
 ```
 
 ### Query Operation
@@ -301,10 +301,12 @@ The `query` operation returns decision table data as JSON, useful for scripting 
 ```json
 [
   {
+    "Id": "0lD...",
     "DeveloperName": "RLM_CostBookEntries",
     "Status": "Active",
     "LastSyncDate": "2026-01-17T10:30:00.000Z",
-    "SetupName": "Cost Book Entries"
+    "SetupName": "Cost Book Entries",
+    "UsageType": "DefaultPricing"
   }
 ]
 ```
@@ -349,7 +351,7 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 ### Status
 - **Required**: No
 - **Options**: `Active`, `Inactive`, or `null` (for all)
-- **Default**: `Active` (for `list` and `refresh` operations)
+- **Default**: `Active` (applied by `_build_soql_query`, so it backs `list`, `query`, `refresh`, and `validate_lists`; pass `--status null` to include all statuses)
 - **Description**: Filter decision tables by status
 
 ### Is Incremental
@@ -420,9 +422,12 @@ remains under `post_utils` is autolaunched — no UI to click through.
 | `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled |
 | `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table |
 
-⚠ The incremental input is `isDecisionTableIncremental` — **NOT** `IsIncremental`, which is
-not a valid input name and which the action silently ignores. Under `post_utils` it now
-appears on exactly one flow, `RLM_Refresh_Decision_Tables_Bulk`.
+⚠ The action's incremental input is `isDecisionTableIncremental` — **NOT** `isIncremental`,
+which is not a valid input name and which the action silently ignores (this is exactly the
+bug in the CCI tasks, which send `isIncremental`). The `RLM_Refresh_Decision_Tables_Bulk`
+flow gets it right: it carries a flow variable named `isIncremental` but correctly maps it
+to the action's `isDecisionTableIncremental` input. Under `post_utils` the incremental input
+now appears on exactly this one flow.
 
 ⚠ Incremental sync is **disabled on every decision table this repo ships**, so an
 incremental request is accepted and then changes nothing. The Manager refuses one on such
