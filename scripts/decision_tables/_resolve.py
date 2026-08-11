@@ -1,28 +1,12 @@
 #!/usr/bin/env python3
-"""Resolve Decision Table api-names to Tooling ids and load the definition graph.
+"""Resolve Decision Table API names and assemble Tooling definitions.
 
-All setup-object reads go through the **Tooling** surface (``_client.tooling_query``
-/ ``tooling_sobject_request``) — the 5 Decision Table objects are Tooling-only.
-
-Resolution model (live-verified 2026-07-09):
-
-- ``DecisionTable.DeveloperName`` is the api name; ``Id`` (``0lD…``) is the key
-  every child object foreign-keys to.
-- A Tooling **GET of ``DecisionTable/{id}``** returns the ``Metadata``
-  complexvalue with the parameters / dataset link / source criteria inlined —
-  the cheapest full-definition read. The individual child objects
-  (``DecisionTableParameter`` ``0lP``, ``DecisionTableDatasetLink`` ``0lX``,
-  ``DecisionTblDatasetParameter`` ``0lZ``, ``DecisionTableSourceCriteria``
-  ``0VT``) are queried separately when the caller needs record ids (e.g. a
-  Phase-2 in-place child PATCH).
-
-Functions take the bound :class:`_client.Transport` so they are unit-testable
-against a fake transport, mirroring ``scripts/expression_sets/_resolve.py``.
+``DeveloperName`` identifies the table. Child setup objects reference its
+``0lD`` id; the parent Tooling GET supplies the complete Metadata value.
 """
 
 from typing import Any, Dict, List, Optional
 
-from scripts.decision_tables import _client
 from scripts.decision_tables._client import soql_literal
 
 
@@ -31,7 +15,7 @@ class ResolveError(RuntimeError):
 
 
 # Columns pulled for the list / resolve views. Kept in sync with the
-# live-verified DecisionTable Tooling describe field set.
+# DecisionTable fields used by the toolkit.
 _TABLE_COLUMNS = (
     "Id", "DeveloperName", "SetupName", "MasterLabel", "Status", "UsageType",
     "SourceObject", "LastSyncDate", "LastIncrementalSyncDate",
@@ -137,8 +121,7 @@ def list_dataset_links(transport, decision_table_id: str) -> List[Dict[str, Any]
 def list_dataset_parameters(transport, dataset_link_ids: List[str]) -> List[Dict[str, Any]]:
     """Join layer (``DecisionTblDatasetParameter`` ``0lZ``) for the given links.
 
-    Often empty — the join layer is only populated for certain multi-object
-    configs (observed 0 rows on the probed orgs).
+    The join layer is populated only for applicable multi-object configurations.
     """
     ids = [i for i in dataset_link_ids if i]
     if not ids:
@@ -195,22 +178,3 @@ def load_definition(transport, developer_name: str, *, with_metadata: bool = Tru
         ),
         "sourceCriteria": list_source_criteria(transport, dt_id),
     }
-
-
-def get_connect_definition(transport, record_id: str) -> Dict[str, Any]:
-    """Connect Decision Table Definitions GET by-id → the ``decisionTable`` object.
-
-    The by-id GET envelope is ``{"code":"200","decisionTable":{…}}``; this unwraps
-    it. Connect uses a **different field vocabulary** (``sourceType``,
-    ``decisionResultPolicy``, ``parameters``, title-case ``usage``) — see the
-    reference doc's field-name divergence table. The collection endpoint is
-    POST-only (no list-GET), so callers resolve the id via Tooling first.
-    """
-    resp = transport.connect_get(f"{_client.DEFINITIONS_PATH}/{record_id}")
-    if isinstance(resp, dict) and isinstance(resp.get("decisionTable"), dict):
-        return resp["decisionTable"]
-    if isinstance(resp, dict):
-        return resp
-    raise ResolveError(
-        f"Unexpected Connect Definitions GET response for id '{record_id}'."
-    )

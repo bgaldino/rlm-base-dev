@@ -4,8 +4,7 @@
 No org, no ``sf`` CLI, no pytest — a plain ``check()`` runner matching the style
 of ``tests/test_expression_sets_toolkit.py``. Exercises the package's pure logic:
 
-- ``_schema`` — enum catalogs, key prefixes, field-name divergence map, and the
-  canonical-spec validator (``validate_spec``).
+- ``_schema`` — enum catalogs, key prefixes, and canonical-spec validation.
 - ``_resolve`` — the Tooling SOQL query builders (via a fake transport that
   records the queries it is asked to run) and definition assembly.
 - ``diff_decision_tables.diff_definitions`` — the pure structural diff.
@@ -130,8 +129,7 @@ def _metadata_param(param):
 
 
 class _FakeTransport:
-    """Duck-types _client.Transport; routes tooling_query / soql / tooling_sobject
-    / connect / connect_get by content. Records the queries it was asked to run.
+    """Duck-types _client.Transport and records requests.
 
     Mirrors the real transport's dry-run contract: when ``dry_run`` is set, a
     **mutating** verb (anything but GET/HEAD) is logged+skipped and NOT appended to
@@ -141,7 +139,7 @@ class _FakeTransport:
     ``wait_for_status`` resolves on the first poll (no ``time.sleep``)."""
 
     def __init__(self, *, table=None, params=None, links=None, dataset_params=None,
-                 criteria=None, mappings=None, source_rows=None, connect_def=None,
+                 criteria=None, mappings=None, source_rows=None,
                  metadata=None, csv_data=None,
                  refresh_response=None, upload_statuses=None, dry_run=False):
         self.table = table if table is not None else _table_row()
@@ -152,7 +150,6 @@ class _FakeTransport:
         self.criteria = criteria or []
         self.mappings = mappings or []
         self.source_rows = source_rows if source_rows is not None else [{"Id": "01txx", "Cost": 5}]
-        self.connect_def = connect_def
         # Metadata complexvalue returned by the DecisionTable Tooling GET. None →
         # the default SingleSobject sample; pass a CsvUpload sample to exercise the
         # CSV branch.
@@ -230,8 +227,6 @@ class _FakeTransport:
         return {}
 
     def connect(self, method, path, body=None, **kw):
-        if method.upper() in ("GET", "HEAD"):
-            return self.connect_get(path)
         if self._skip_mutation(method, path, body):
             return {}
         if path.endswith("refreshDecisionTable"):
@@ -239,12 +234,6 @@ class _FakeTransport:
                 return self.refresh_response
             return [{"isSuccess": True, "outputValues": {"Status": "Queued"}}]
         return {}
-
-    def connect_get(self, path):
-        return {"code": "200", "decisionTable": self.connect_def or {
-            "id": "0lDxx0000000001", "sourceType": "SingleSobject",
-            "decisionResultPolicy": "OutputOrder", "parameters": [{}, {}],
-            "sourceCriteria": [], "rowLevelOverrideType": "None"}}
 
     def soql(self, query):
         self.soql_queries.append(query)
@@ -270,10 +259,9 @@ class _FakeTransport:
         self.upload_submitted = True
         return {"message": "We are uploading and processing the CSV file."}
 
-    def get_decision_table_data(self, record_id, *, version_number=None,
-                                row_filter=None, limit=None):
+    def get_decision_table_data(self, record_id, *, row_filter=None, limit=None):
         # A read — always executes, even under dry_run.
-        self.csv_data_calls.append({"record_id": record_id, "version_number": version_number,
+        self.csv_data_calls.append({"record_id": record_id,
                                     "row_filter": row_filter, "limit": limit})
         if isinstance(self.csv_data, Exception):
             raise self.csv_data
@@ -502,10 +490,7 @@ def test_validate_spec_duplicate_source_criterion_sequence():
 
 def test_validate_spec_duplicate_input_sequence():
     print("test_validate_spec_duplicate_input_sequence")
-    # F5: two INPUT columns sharing a sequence produce a degenerate derived
-    # conditionCriteria like "1 AND 1" — one condition has no distinct column
-    # reference. The dup-sequence guard previously covered only source criteria;
-    # it must also reject duplicate INPUT sequences up front.
+    # Each INPUT column needs a distinct conditionCriteria reference.
     dup = validate_spec(_cost_book_spec(decisionTableParameters=[
         {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
          "operator": "Equals", "sequence": 1},
@@ -744,11 +729,7 @@ def test_validate_spec_rejects_non_string_enum_values():
 
 def test_validate_spec_rejects_malformed_scalar_enum_and_text():
     print("test_validate_spec_rejects_malformed_scalar_enum_and_text")
-    # A malformed *scalar* (an int/bool where a string enum belongs, or a list where
-    # the setupName text belongs) previously passed as a mere warning and rode into
-    # the write payload verbatim — the unhashable-crash guard only caught list/dict
-    # enums. Enum values are always strings and setupName is text, so these must be
-    # hard ERRORS that block the write, never a "forward-compat" warning.
+    # Structural enums and text fields reject non-string values before translation.
     base = {
         "fullName": "RLM_Malformed2", "setupName": "Malformed2",
         "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
@@ -866,13 +847,6 @@ def test_load_definition_assembly():
     param_q = [q for q in t.tooling_queries if "FROM DecisionTableParameter" in q][0]
     check("param query filters on DecisionTableId",
           "DecisionTableId = '0lDxx0000000001AAA'" in param_q, param_q)
-
-
-def test_connect_definition_unwrap():
-    print("test_connect_definition_unwrap")
-    t = _FakeTransport()
-    cdef = _resolve.get_connect_definition(t, "0lDxx0000000001AAA")
-    check("connect def unwrapped from envelope", cdef.get("sourceType") == "SingleSobject", cdef)
 
 
 # --------------------------------------------------------------------------- #
@@ -1114,27 +1088,13 @@ def test_dump_csv_upload_filter_drops_limit():
           any("--limit" in n and "ignored" in n for n in dump["notes"]), dump["notes"])
 
 
-def test_dump_csv_upload_version_number_threads():
-    print("test_dump_csv_upload_version_number_threads")
-    # --version-number alone (no filter) → threaded through; limit is kept.
-    t = _FakeTransport(
-        table=_table_row(SourceObject="CSV"),
-        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
-        csv_data=_csv_all_types_data())
-    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
-    dump_data(t, defn, limit=5, version_number=1)
-    call = t.csv_data_calls[-1]
-    check("version_number threads into the data GET", call["version_number"] == 1, call)
-    check("version_number alone keeps the limit", call["limit"] == 5, call)
-
-
-def test_dump_filter_version_ignored_on_non_csv():
-    print("test_dump_filter_version_ignored_on_non_csv")
-    # On a SingleSobject table --filter/--version-number are ignored with a note.
+def test_dump_filter_ignored_on_non_csv():
+    print("test_dump_filter_ignored_on_non_csv")
+    # On a SingleSobject table --filter is ignored with a note.
     t = _FakeTransport(source_rows=[{"Id": "01t1", "Cost": 5}])
     defn = _resolve.load_definition(t, "RLM_CostBookEntries")
-    dump = dump_data(t, defn, limit=5, row_filter="Region:North", version_number=2)
-    check("non-CsvUpload notes that filter/version were ignored",
+    dump = dump_data(t, defn, limit=5, row_filter="Region:North")
+    check("non-CsvUpload notes that filter was ignored",
           any("only to CsvUpload" in n for n in dump["notes"]), dump["notes"])
     check("non-CsvUpload made no CSV data GET", t.csv_data_calls == [], t.csv_data_calls)
 
@@ -1156,20 +1116,6 @@ def test_dump_cli_filter_flag(tmp_dummy=None):
     check("dump --filter drops limit (guard)",
           t.csv_data_calls and t.csv_data_calls[-1]["limit"] is None, t.csv_data_calls)
     check("dump --filter note in json", "ignored" in out, out[:400])
-
-
-def test_dump_cli_version_flag():
-    print("test_dump_cli_version_flag")
-    t = _FakeTransport(
-        table=_table_row(SourceObject="CSV"),
-        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
-        csv_data=_csv_all_types_data())
-    rc, out = _run_cli_with_fake(
-        dump_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
-                   "--version-number", "1", "--json"], t)
-    check("dump --version-number exits 0", rc == 0, out[:300])
-    check("dump --version-number threads version_number",
-          t.csv_data_calls and t.csv_data_calls[-1]["version_number"] == 1, t.csv_data_calls)
 
 
 def _all_types_spec(**over):
@@ -1443,12 +1389,8 @@ def test_activate_deactivate_sobject_is_table_first():
           fake.connect_calls)
 
 
-def test_wait_for_status_timeout_message_is_operation_aware():
-    print("test_wait_for_status_timeout_message_is_operation_aware")
-    # The single wait_for_status poll confirms BOTH activation and deactivation, so
-    # its timeout text must not hardcode "Activation is asynchronous" when confirming
-    # Inactive, and it must not recommend a --max-wait flag that deactivate does
-    # not expose.
+def test_wait_for_status_timeout_message():
+    print("test_wait_for_status_timeout_message")
     restore = _no_sleep()
     try:
         # Activation timeout: the table never leaves Inactive while we poll for Active.
@@ -1469,22 +1411,15 @@ def test_wait_for_status_timeout_message_is_operation_aware():
             deact_msg = str(exc)
     finally:
         restore()
-    check("activation timeout still says activation is asynchronous",
-          act_msg and "Activation is asynchronous" in act_msg, act_msg)
-    check("deactivation timeout does NOT claim activation is asynchronous",
-          deact_msg and "Activation is asynchronous" not in deact_msg, deact_msg)
-    check("deactivation timeout is worded for deactivation",
-          deact_msg and "Deactivation" in deact_msg, deact_msg)
-    check("neither timeout recommends a bare --max-wait flag callers may lack",
-          "--max-wait" not in (act_msg or "") and "--max-wait" not in (deact_msg or ""),
-          (act_msg, deact_msg))
-    check("both timeouts point at a tool-agnostic re-check",
-          "list_decision_tables.py" in (act_msg or "")
-          and "list_decision_tables.py" in (deact_msg or ""), (act_msg, deact_msg))
+    check("activation timeout reports target and last status",
+          act_msg and "Status=Active" in act_msg and "'Inactive'" in act_msg, act_msg)
+    check("deactivation timeout reports target and last status",
+          deact_msg and "Status=Inactive" in deact_msg and "'Active'" in deact_msg,
+          deact_msg)
 
 
-def test_refresh_uses_live_verified_flag():
-    print("test_refresh_uses_live_verified_flag")
+def test_refresh_uses_platform_flag():
+    print("test_refresh_uses_platform_flag")
     fake = _LifecycleFake(status="Active")
     engine = LifecycleEngine(fake)
     outcome = engine.refresh("RLM_MyTable", incremental=True)
@@ -1912,12 +1847,9 @@ def test_upload_cli_preview_vs_confirm(tmp_csv):
           summary)
 
 
-def test_upload_cli_phase2_failure_emits_json_with_fileid(tmp_csv):
-    print("test_upload_cli_phase2_failure_emits_json_with_fileid")
-    # Phase 1 (ContentVersion insert) succeeds → fileId; phase 2 (POST to /file)
-    # fails. That is a PARTIAL mutation — an orphan ContentVersion now exists — so the
-    # --json summary must still emit, carrying the fileId AND the failing phase, not
-    # empty stdout (the F5 finding: a structured caller needs the id to clean up).
+def test_upload_cli_file_submission_failure_emits_fileid(tmp_csv):
+    print("test_upload_cli_file_submission_failure_emits_fileid")
+    # Preserve the ContentVersion id when submission fails so callers can clean up.
     fake = _csv_transport(dry_run=False)
 
     def _fail_file_post(record_id, file_id, *, dry_run=None):
@@ -1928,8 +1860,8 @@ def test_upload_cli_phase2_failure_emits_json_with_fileid(tmp_csv):
     rc, out = _run_cli_with_fake(
         upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
                      "--csv", tmp_csv, "--confirm", "--json"], fake)
-    check("phase-2 upload failure exits 1", rc == 1, (rc, out[:300]))
-    check("phase-1 ContentVersion insert still happened (the orphan)",
+    check("file submission failure exits 1", rc == 1, (rc, out[:300]))
+    check("ContentVersion insert still happened",
           any(m[1] == "sobjects/ContentVersion" for m in fake.mutations), fake.mutations)
     summary = json.loads(out)
     check("the --json failure summary carries the fileId (orphan to clean up)",
@@ -2123,40 +2055,39 @@ def main():
               test_payload_miscased_usage_is_blocked_upstream,
               test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
-              test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
+              test_diff_identical, test_diff_detects_changes,
               test_dump_single_sobject, test_dump_csv_upload_rows, test_dump_csv_upload_empty,
               test_dump_csv_upload_gated,
               test_dump_csv_upload_unclassified_error_propagates,
               test_dump_csv_upload_auth_and_generic_errors_propagate,
               test_dump_empty_source_note,
-              # Phase B — dump --filter / --version-number + all-types translator
-              test_dump_csv_upload_filter_drops_limit, test_dump_csv_upload_version_number_threads,
-              test_dump_filter_version_ignored_on_non_csv, test_dump_cli_filter_flag,
-              test_dump_cli_version_flag, test_translator_csv_upload_all_types,
+              test_dump_csv_upload_filter_drops_limit,
+              test_dump_filter_ignored_on_non_csv, test_dump_cli_filter_flag,
+              test_translator_csv_upload_all_types,
               test_trace_correlation, test_list_cli_json,
               test_describe_cli_grouped, test_trace_cli_json,
-              # Phase 2 — translators + XML round-trip
+              # Translators + XML round-trip
               test_translator_metadata, test_translator_tooling,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
-              # Phase 2 — explicit lifecycle transitions
+              # Explicit lifecycle transitions
               test_activate_deactivate_csv_upload_is_version_first,
               test_activate_deactivate_sobject_is_table_first,
-              test_wait_for_status_timeout_message_is_operation_aware,
-              test_refresh_uses_live_verified_flag,
-              # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
+              test_wait_for_status_timeout_message,
+              test_refresh_uses_platform_flag,
+              # Mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_delete_cli_requires_confirm, test_delete_cli_returns_platform_error,
               test_delete_cli_failure_emits_json,
-              # Phase 2 — CsvUpload data-load CLI gating
+              # CsvUpload data-load CLI gating
               test_upload_header_validation,
               test_upload_header_validation_ignores_rowcriteria,
               test_upload_cli_missing_csv_errors)
     for fn in simple:
         fn()
 
-    # Phase 2 — create/update CLI tests that need spec/output-file fixtures.
+    # Create/update CLI tests that need spec/output-file fixtures.
     test_create_cli_tooling_preview_vs_confirm(spec_path)
     test_create_cli_honors_requested_active_status(spec_path)
     test_create_cli_failure_emits_json_with_error(spec_path)
@@ -2167,11 +2098,11 @@ def main():
     test_update_cli_returns_platform_error(spec_path)
     test_update_cli_sends_one_patch(spec_path)
     test_update_cli_missing_resolved_status_fails_closed(spec_path)
-    # Phase B — CsvUpload upload CLI (needs a CSV fixture).
+    # CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_missing_header_blocks(csv_path)
     test_upload_cli_utf8_bom_header_accepted(csv_path)
     test_upload_cli_preview_vs_confirm(csv_path)
-    test_upload_cli_phase2_failure_emits_json_with_fileid(csv_path)
+    test_upload_cli_file_submission_failure_emits_fileid(csv_path)
     test_upload_cli_waits_for_new_terminal_status(csv_path)
     test_upload_cli_returns_platform_terminal_errors(csv_path)
     test_upload_cli_times_out_on_stale_status(csv_path)

@@ -27,7 +27,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    object. A table that pulls a column across a lookup goes stale when that lookup's
    record changes, with no row of its own touched.
 4. **A refresh must fire when the table's source CRITERIA become true**, not when the
-   triggering row is written. See *The timing rule* — this one has already shipped a bug.
+   triggering row is written. See *The timing rule*.
 5. **Discover tables from the org; do not trust a hardcoded list** as an inventory.
    `cumulusci.yml`'s `dt_*_decision_tables` lists are refresh *instructions* scoped by
    feature flag, not a census of what exists.
@@ -66,9 +66,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
   `sf` CLI and take an SF CLI alias via `--target-org`, not a CCI alias.
 - **DO NOT** use the raw Connect Definitions POST/PATCH/DELETE resources as a
   toolkit authoring path. Definition writes are Metadata/Tooling-only; Connect is
-  retained for optional comparative GETs and the CSV data/version sub-resources.
-  Its vocabulary still differs from Metadata/Tooling, so consult the reference
-  before interpreting a Connect response.
+  used for CSV data/version resources.
 
 ## Entry Conditions
 
@@ -113,13 +111,12 @@ Decision tables have two independently managed layers:
 
 1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
    Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
-   five setup objects. The toolkit writes definitions only through these two surfaces.
-   Raw Connect Definitions GET exposes a third vocabulary for comparison/reference.
+   five setup objects. The toolkit writes definitions only through these surfaces.
 2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
    Context Definition. The engine does not re-read those rows after materialization.
 
-The complete setup-object model, ID prefixes, metadata shape, enums, and field-name
-divergence are in `authoring-and-data-model.md`. Deployment paths, active-edit
+The complete setup-object model, ID prefixes, metadata shape, and enums are in
+`authoring-and-data-model.md`. Deployment paths, active-edit
 restrictions, CSV upload, async refresh, and recipe mapping validation are in
 `lifecycle-and-refresh.md`. Exhaustive API/error detail lives in
 `docs/references/decision-table-api-reference.md`.
@@ -141,8 +138,7 @@ sf data query -t -q "SELECT DeveloperName, SetupName, DataSourceType, SourceObje
 ```
 
 > `SetupName` (the human label) and `DataSourceType` (`SingleSobject` /
-> `MultipleSobjects` / `CsvUpload`) **are** top-level Tooling-queryable columns —
-> ✅ live-verified on v67.0, returning distinct per-record values. Don't confuse
+> `MultipleSobjects` / `CsvUpload`) are top-level Tooling-queryable columns. Don't confuse
 > them with `MasterLabel`, which on `DecisionTable` is the constant object label
 > `"Decision Tables"` on every row (useless for sorting/identifying a specific
 > table) — use `SetupName` to label and order.
@@ -162,11 +158,10 @@ sf data query -t -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, V
 
 ### Reading `DecisionTableParameter` correctly
 
-Two traps, both live, both already shipped as bugs once:
+Two important edge cases:
 
-- ⚠ **`DomainObject` holds the literal four-character STRING `'null'`** for a column that
-  comes from the table's own object — on a stock build, 206 of 309 parameters, against 14
-  genuine SQL nulls. `String.isBlank` does **not** catch it.
+- ⚠ **`DomainObject` can hold the literal string `'null'`** for a column that
+  comes from the table's own object. `String.isBlank` does **not** catch it.
 - ⚠ **`DomainObject` names only the object that owns the FINAL field of a path.** For
   `AssetRateCardEntryId.RateCardEntryId.RateUnitOfMeasureName` it says `RateCardEntry`
   and never mentions `AssetRateCardEntry` — yet re-pointing that intermediate's lookup
@@ -236,12 +231,10 @@ An **incremental** sync advances only `LastIncrementalSyncDate`. It does **not**
 > **A refresh must fire when the table's source criteria become TRUE — not when the
 > triggering row is written.**
 
-Learned the expensive way. A refresh was hooked to contract *creation*. Both tier tables
-filter their source on `...ContractId.StatusCode = 'Activated'`, so at creation time the
-rows were excluded — the refresh ran, **excluded the rows, and stamped `LastSyncDate`
-anyway**. The table then read Fresh while holding nothing: worse than visibly stale. A
-third table with no such filter did pick up its rows, so 2 of 3 failed and it looked like
-it worked.
+For example, if a table filters on
+`...ContractId.StatusCode = 'Activated'`, refreshing at contract creation excludes
+those rows and still advances `LastSyncDate`. Refresh when the contract becomes
+Active instead.
 
 Before wiring any automatic refresh:
 
@@ -268,7 +261,7 @@ triggering DML. A refresh that fails must not take the contract with it.
 | `DecisionTable` is a setup object | Apex DML on it is rejected **at compile time**, so the class will not deploy at all; in-memory test fixtures need `JSON.deserialize`. |
 | `refreshDecisionTable` is Flow/REST-invocable only | Apex bridges through a flow. |
 | `MasterLabel` is a constant | Never a table identifier. |
-| A parent edit does not touch the child's `LastModifiedDate` | Measured 200/200. This is why criteria that traverse a lookup cannot be verified from child timestamps alone. |
+| A parent edit does not touch the child's `LastModifiedDate` | Criteria that traverse a lookup cannot be verified from child timestamps alone. |
 | `SourceConditionLogic` is a non-filterable textarea | Cannot be used in a `WHERE`; read it and inspect. It is populated on every table with criteria (the platform writes `"1"`, `"1 AND 2"`), so "not blank" does **not** mean custom logic. |
 | `DecisionTableDataset` / `DecisionTableRecordset` reject aggregates and partial filters | A table's **own** row count is not queryable. Only source counts exist — and those are `USER_MODE`, so a **zero** source count means "nothing *you* can see", never "nothing". |
 | `CalculationMatrix.DecisionMatrixType` joins `Name` ↔ `SetupName` | The only way to tell a Decision Table from a Decision Matrix. |
@@ -311,7 +304,7 @@ not know read that object.
 ## Related
 
 - `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
-  metadata shape, API vocabulary divergence, enums, and the definition/data model.
+  metadata shape, enums, and the definition/data model.
 - `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — explicit lifecycle,
   deployment, upload, refresh, and recipe-table mappings.
 - `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.

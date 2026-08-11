@@ -1,38 +1,8 @@
 #!/usr/bin/env python3
-"""Delete a BRE Decision Table (DESTRUCTIVE, MUTATING).
+"""Delete a BRE Decision Table through Tooling API.
 
-Deletes the table via the Tooling API setup-object DELETE
-(``tooling/sobjects/DecisionTable/{id}``).
-
-An Active (or activating) table cannot be deleted in place. This tool sends one
-Tooling DELETE and returns the platform error unchanged; exact error codes depend
-on the table's state and dependencies. Deactivate it explicitly first. Deletion
-also fails while the table is referenced by an active Expression Set / Context
-Rule / recipe; those platform errors are returned to the caller as well.
-
-**Destructive — double-gated.** Preview by default: without ``--confirm`` the tool
-resolves the id and logs the plan but deletes nothing. ``--confirm`` is REQUIRED
-to actually delete (absence of ``--confirm`` IS the dry run).
-
-Delete only disposable tables you created — never a shipped/managed one.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias, never the CCI alias. Pinned to Release
-262 / v67.0. Destructive round-trips run on **scratch orgs only**, never ``beta``.
-
-Usage
------
-    # preview then delete a throwaway table
-    python scripts/decision_tables/delete_decision_table.py \
-        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT
-    python scripts/decision_tables/delete_decision_table.py \
-        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
-
-    # if the table is Active, deactivate it first (separate script), then delete
-    python scripts/decision_tables/deactivate_decision_table.py \
-        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
-    python scripts/decision_tables/delete_decision_table.py \
-        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
+The command previews by default and requires ``--confirm``. It sends one delete
+request and returns platform lifecycle or dependency errors to the caller.
 """
 
 import argparse
@@ -58,7 +28,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")

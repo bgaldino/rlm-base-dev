@@ -1,50 +1,8 @@
 #!/usr/bin/env python3
-"""Sample the *data layer* of a BRE Decision Table (read-only).
+"""Sample a Decision Table's materialized data layer (read-only).
 
-The definition (columns / criteria) is one layer; the **rows the engine
-evaluates** are another. This dumps a sample of those rows, branching on the
-table's ``dataSourceType`` (live-verified):
-
-- **SingleSobject** — SOQL a sample of the ``sourceObject`` (normal REST),
-  projecting the columns' ``fieldName``/``fieldPath`` when resolvable, else ``*``
-  via a bounded ``FIELDS(...)`` fallback is avoided — we project the definition's
-  fields plus ``Id``.
-- **MultipleSobjects** — one sample per ``DecisionTableDatasetLink.SourceObject``.
-- **CsvUpload** — the rows live in an uploaded CSV, not on a queryable SObject;
-  they are read via the Connect **CSV Based Decision Table** data GET
-  (``.../{id}/data``, v62+), which returns ``rowData`` per row. Read once with an
-  optional ``--limit`` (the endpoint's ``totalRows`` counts returned rows, not a
-  grand total, and ``offset`` is unreliable — see ``_client``). Two CsvUpload-only
-  reads narrow the GET (both live-verified 262 / v67.0):
-    * ``--filter FIELD:VALUE`` — server-side **exact, case-sensitive** equality on
-      one column (``Region:North`` ≠ ``Region:north``; no substring/prefix match).
-      An unknown field silently returns 0 rows (no error).
-    * ``--version-number N`` — reads a specific historical import version. Omitting
-      it reads the current/active version; explicitly passing the current version
-      returns an empty ``rowData`` array on 262/v67.0. A non-existent version
-      errors ``INVALID_API_INPUT``.
-  ⚠ ``--filter`` and ``--limit`` **cannot be combined** when the limit would
-  truncate the matched set — the platform throws ``UNKNOWN_EXCEPTION`` unless the
-  limit strictly exceeds the match count. This tool therefore **drops ``--limit``
-  (with a note) when ``--filter`` is also given** and reads the full matched set.
-- **ContextDefinition** — rows are hydrated by a Context Definition at runtime;
-  there is no static source table to sample, so this is reported and skipped.
-
-``--filter`` / ``--version-number`` apply **only** to CsvUpload tables; on any
-other ``dataSourceType`` they are ignored with a note.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled.
-``--target-org`` is the *SF CLI* alias. Read-only. Pinned to Release 262 / v67.0.
-
-Usage
------
-    python scripts/decision_tables/dump_decision_table_data.py \
-        --target-org rlm-base__beta --developer-name RLM_CostBookEntries --limit 5
-
-    # CsvUpload table — a version-scoped, column-filtered read
-    python scripts/decision_tables/dump_decision_table_data.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyCsvTable \
-        --version-number 1 --filter Region:North
+SObject-backed tables are queried through REST, CSV tables through Connect, and
+runtime-hydrated ContextDefinition tables are reported without a static sample.
 """
 
 import argparse
@@ -98,23 +56,20 @@ def _sample_sobject(transport, sobject, fields, limit):
                       f"fell back to Id-only.")
 
 
-def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_number=None):
+def _dump_csv_upload(transport, table, out, limit, row_filter=None):
     """Populate ``out`` from a CsvUpload table's Connect ``.../{id}/data`` GET.
 
     The rows live in an uploaded CSV, not on a queryable SObject, so this reads the
     Connect data sub-resource once with an optional ``limit`` (the endpoint's
     ``totalRows`` counts *returned* rows and ``offset`` is unreliable — no paging).
-    ``row_filter`` (``"Field:Value"``, exact + case-sensitive) narrows server-side;
-    ``version_number`` targets a specific import version (defaults to the
-    current/active version). The row envelope's ``rowData`` maps are surfaced under
+    ``row_filter`` (``"Field:Value"``, exact + case-sensitive) narrows server-side.
+    The row envelope's ``rowData`` maps are surfaced under
     a synthetic ``"CSV (uploaded rows)"`` sample key so ``_print_dump`` renders them
     like any other sample. A disabled/pilot-gated endpoint degrades to a note rather
     than an error (mirroring the SObject-branch fallbacks).
 
-    ⚠ ``filter`` + ``limit`` together throw ``UNKNOWN_EXCEPTION`` on the platform
-    unless the limit strictly exceeds the matched-row count (live-verified). When a
-    ``row_filter`` is present the ``limit`` is therefore **dropped** (with a note) so
-    the filtered read can't hit that trap — the caller gets the full matched set."""
+    The platform can reject ``filter`` with a truncating ``limit``. When a filter
+    is present, the limit is omitted and the full matched set is returned."""
     record_id = table.get("Id")
     if not record_id:
         out["notes"].append("CsvUpload table has no id; cannot read its data layer.")
@@ -132,7 +87,6 @@ def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_numb
     try:
         resp = transport.get_decision_table_data(
             record_id, limit=effective_limit, row_filter=row_filter,
-            version_number=version_number,
         )
     except DecisionTableClientError as exc:
         # Degrade only when the parsed error carries one of the known-benign codes
@@ -171,12 +125,11 @@ def _dump_csv_upload(transport, table, out, limit, row_filter=None, version_numb
     out["samples"]["CSV (uploaded rows)"] = samples
 
 
-def dump_data(transport, defn, limit, row_filter=None, version_number=None):
+def dump_data(transport, defn, limit, row_filter=None):
     """Return a dict describing the data-layer sample for a loaded definition.
 
-    ``row_filter`` / ``version_number`` apply **only** to the CsvUpload branch; on
-    any other ``dataSourceType`` they are ignored (a note records that they were
-    dropped) so passing them against, say, a SingleSobject table is harmless."""
+    ``row_filter`` applies only to the CsvUpload branch; other source types ignore
+    it with a note."""
     table = defn["table"]
     meta = defn.get("metadata") or {}
     source_type = meta.get("dataSourceType")
@@ -184,9 +137,9 @@ def dump_data(transport, defn, limit, row_filter=None, version_number=None):
     out = {"developerName": table.get("DeveloperName"),
            "dataSourceType": source_type, "samples": {}, "notes": []}
 
-    if (row_filter or version_number is not None) and source_type != "CsvUpload":
+    if row_filter and source_type != "CsvUpload":
         out["notes"].append(
-            "--filter/--version-number apply only to CsvUpload tables; ignored for "
+            "--filter applies only to CsvUpload tables; ignored for "
             f"dataSourceType {source_type!r}."
         )
 
@@ -214,8 +167,7 @@ def dump_data(transport, defn, limit, row_filter=None, version_number=None):
             if fallback_note:
                 out["notes"].append(fallback_note)
     elif source_type == "CsvUpload":
-        _dump_csv_upload(transport, table, out, limit,
-                         row_filter=row_filter, version_number=version_number)
+        _dump_csv_upload(transport, table, out, limit, row_filter=row_filter)
     elif source_type == "ContextDefinition":
         out["notes"].append(
             "ContextDefinition-backed table: rows are hydrated by a Context "
@@ -247,7 +199,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")
@@ -258,10 +210,6 @@ def main(argv=None) -> int:
              "column (e.g. Region:North). Unknown field → 0 rows (no error). When "
              "set, --limit is dropped (filter+limit can throw UNKNOWN_EXCEPTION).",
     )
-    parser.add_argument(
-        "--version-number", type=int, metavar="N",
-        help="CsvUpload only — read a specific import version (default: current).",
-    )
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit the dump as JSON.")
@@ -270,9 +218,7 @@ def main(argv=None) -> int:
     transport = Transport(args.target_org, api_version=args.api_version)
     try:
         defn = load_definition(transport, args.developer_name)
-        dump = dump_data(transport, defn, args.limit,
-                         row_filter=args.row_filter,
-                         version_number=args.version_number)
+        dump = dump_data(transport, defn, args.limit, row_filter=args.row_filter)
     except (DecisionTableClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1

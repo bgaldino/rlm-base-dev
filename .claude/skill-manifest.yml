@@ -157,27 +157,21 @@ foundations:
 
     - id: decision-tables
       path: .cursor/skills/decision-tables/SKILL.md
-      purpose: "BRE Decision Table inspect/author/manage: the definition-vs-data two-layer model, the 5 Tooling setup objects, Metadata deploy + Tooling definition writes (with read-only Connect comparison), activate/deactivate + deactivate-first active-edit rule, async refresh (isDecisionTableIncremental; separate 40 Standard / 60 Advanced full-refresh pools), recipe-table-mapping trace"
+      purpose: "BRE Decision Table inspect/author/manage: the definition-vs-data model, Tooling setup objects, Metadata and Tooling definition writes, explicit lifecycle commands, async refresh, CSV data, and recipe-mapping trace"
       consumed_by_pmos: [spec, technical-review]
-      provenance: hand-authored + live probing (read-only on rlm-base__beta; destructive CRUD on scratch orgs) + doc-grounded (meta_decisiontable.htm, dt_setup_objects.htm, lookup_table_resources.htm)
+      provenance: hand-authored + Salesforce documentation + org validation
       sub_skills:
         - .cursor/skills/decision-tables/authoring-and-data-model.md
         - .cursor/skills/decision-tables/lifecycle-and-refresh.md
         - docs/references/decision-table-api-reference.md
       tooling:
-        # Read-only inspectors (safe anytime, any org incl. beta); sf-CLI
-        # transport only. The CCI tasks (tasks/rlm_manage_decision_tables.py, …)
-        # remain the org-build path; this toolkit is the ad-hoc inspection path.
+        # Read-only inspectors using sf CLI transport.
         - scripts/decision_tables/list_decision_tables.py
         - scripts/decision_tables/describe_decision_table.py
         - scripts/decision_tables/diff_decision_tables.py
         - scripts/decision_tables/trace_decision_table.py
         - scripts/decision_tables/dump_decision_table_data.py
-        # Guarded lifecycle mutators: preview-by-default (--confirm to write),
-        # designed after live CRUD probing on scratch orgs only. An update never
-        # lets the spec's status drive the lifecycle (a Tooling PATCH requires
-        # status, so update stamps the live status; Connect drops it) — the
-        # lifecycle engine alone owns activate/deactivate.
+        # Guarded lifecycle mutators preview by default (--confirm to write).
         - scripts/decision_tables/create_decision_table.py
         - scripts/decision_tables/update_decision_table.py
         - scripts/decision_tables/activate_decision_table.py

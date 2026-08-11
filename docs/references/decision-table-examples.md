@@ -1,8 +1,7 @@
 # Decision Table Management Task Examples
 
 > **See also:** `docs/references/decision-table-api-reference.md` (the setup
-> objects, Metadata deploy + Tooling authoring paths, read-only Connect
-> vocabulary, enum catalog, and
+> objects, Metadata deploy + Tooling authoring paths, enum catalog, and
 > definition-vs-data model), the Decision Tables skill
 > (`.cursor/skills/decision-tables/SKILL.md`), and the standalone read/mutate
 > toolkit (`scripts/decision_tables/`). This file stays **ops/task-centric** —
@@ -14,18 +13,16 @@ This document provides working examples for the `manage_decision_tables` Cumulus
 
 Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh**, **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
 
-> ⚠ **Incremental-refresh caveat.** The current CCI task implementations send
+> ⚠ **Incremental-refresh caveat.** The CCI task implementations send
 > `isIncremental`, which the Release 262 action silently ignores; their
 > `--is_incremental true` option therefore still queues a **full** refresh. Use
 > `scripts/decision_tables/refresh_decision_table.py --incremental --confirm`
-> when an actual incremental refresh is required. It sends the live-verified
-> `isDecisionTableIncremental` input. Fixing the CCI tasks is a separate
-> behavioral change that requires live-org verification.
+> when an actual incremental refresh is required; it sends the platform's
+> `isDecisionTableIncremental` input.
 
 > **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
-> `--org <cci_alias>`. The examples below omit it and therefore run against your **default**
-> CCI org — pass `--org` to target another. (Both task classes rejected `--org` until
-> 2026-07-27; if you find a doc still saying they take no `--org` flag, it is stale.)
+> `--org <cci_alias>`. The examples below omit it and therefore run against the
+> default CCI org; pass `--org` to target another.
 
 ### Basic Operations
 
@@ -199,7 +196,7 @@ For a real incremental refresh, use the standalone toolkit:
 
 ```bash
 python scripts/decision_tables/refresh_decision_table.py \
-  --target-org rlm-base__scratch --developer-name RLM_CostBookEntries \
+  --target-org <sf_alias> --developer-name RLM_CostBookEntries \
   --incremental --confirm
 ```
 
@@ -288,9 +285,9 @@ Found 3 decision table(s):
 
 DeveloperName                                      Status     UsageType                    LastSyncDate              SetupName
 -------------------------------------------------------------------------------------------------------------------
-RLM_CostBookEntries                                Active     DefaultPricing               2026-01-17 10:30:00       Cost Book Entries
-RLM_ProductCategoryQualification                   Active     DefaultPricing               2026-01-17 09:15:00       Product Category Qualification
-RLM_ProductQualification                           Active     DefaultPricing               2026-01-16 14:20:00       Product Qualification
+RLM_CostBookEntries                                Active     DefaultPricing               <timestamp>               Cost Book Entries
+RLM_ProductCategoryQualification                   Active     DefaultPricing               <timestamp>               Product Category Qualification
+RLM_ProductQualification                           Active     DefaultPricing               <timestamp>               Product Qualification
 ```
 
 ### Query Operation
@@ -304,7 +301,7 @@ The `query` operation returns decision table data as JSON, useful for scripting 
     "Id": "0lD...",
     "DeveloperName": "RLM_CostBookEntries",
     "Status": "Active",
-    "LastSyncDate": "2026-01-17T10:30:00.000Z",
+    "LastSyncDate": "<timestamp>",
     "SetupName": "Cost Book Entries",
     "UsageType": "DefaultPricing"
   }
@@ -317,8 +314,8 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 
 **Refresh Types:**
 - **Full Refresh** (`is_incremental: false`): Complete refresh of all data
-- **Incremental Refresh**: Only refresh changed data since last sync. The CCI
-  option is currently ineffective; use the standalone toolkit command above.
+- **Incremental Refresh**: Use the standalone toolkit command above; the CCI
+  tasks perform full refreshes.
 
 **Refresh Process:**
 1. The task calls the Salesforce `refreshDecisionTable` standard action
@@ -358,8 +355,8 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 - **Required**: No (only for `refresh` operation)
 - **Type**: Boolean
 - **Default**: `false` (full refresh)
-- **Description**: Intended to request incremental refresh, but currently sends
-  the unsupported `isIncremental` action input and therefore falls back to full
+- **Description**: These CCI tasks perform a full refresh. Use the standalone
+  toolkit when an incremental refresh is required.
 
 ### Sort By
 - **Required**: No
@@ -403,16 +400,15 @@ Decision table lists are defined in `cumulusci.yml` under `project.custom` as YA
 
 The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_default_pricing (always) → refresh_dt_commerce (when `commerce: true` **or** `tso: true`) → refresh_dt_prm_pricing (when `prm` and `prm_pricing`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
 
-> `refresh_dt_default_pricing` was **absent from this flow entirely** until 2026-07-27 — the task existed but nothing called it, so `StandardTax` was never refreshed by any build. The Commerce step is gated on `tso` as well because a TSO template ships those tables whether or not the Commerce feature is configured, and a build that skips them leaves five tables holding the template org's rows.
+The Commerce step is also gated on `tso` because that template includes Commerce
+tables even when the Commerce feature is not configured.
 
 ---
 
 ## In-Org Refresh Entry Points
 
-⚠ **The per-category `post_utils` screen flows are gone.** Interactive refresh happens in
-the **Decision Table Manager** component on the Revenue Cloud Home page, which replaced
-them: it lists every table with a freshness verdict and refreshes any selection. What
-remains under `post_utils` is autolaunched — no UI to click through.
+Interactive refresh uses the **Decision Table Manager** component on the Revenue
+Cloud Home page. The remaining `post_utils` refresh flows are autolaunched.
 
 | Entry point | Location | Type | Use |
 |---|---|---|---|
@@ -422,12 +418,9 @@ remains under `post_utils` is autolaunched — no UI to click through.
 | `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled |
 | `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table |
 
-⚠ The action's incremental input is `isDecisionTableIncremental` — **NOT** `isIncremental`,
-which is not a valid input name and which the action silently ignores (this is exactly the
-bug in the CCI tasks, which send `isIncremental`). The `RLM_Refresh_Decision_Tables_Bulk`
-flow gets it right: it carries a flow variable named `isIncremental` but correctly maps it
-to the action's `isDecisionTableIncremental` input. Under `post_utils` the incremental input
-now appears on exactly this one flow.
+The action input is `isDecisionTableIncremental`, not `isIncremental`. The
+`RLM_Refresh_Decision_Tables_Bulk` flow maps its flow variable to the correct
+action input.
 
 ⚠ Incremental sync is **disabled on every decision table this repo ships**, so an
 incremental request is accepted and then changes nothing. The Manager refuses one on such
@@ -447,8 +440,7 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 - **Refresh Timing**: Refresh operations are asynchronous. Check the `LastSyncDate` field to verify completion.
 - **Incremental vs Full**:
   - Use **full refresh** for initial setup or when you need complete data refresh
-  - Use the standalone toolkit for a true **incremental refresh** until the CCI
-    action input is corrected and live-verified
+  - Use the standalone toolkit for a true **incremental refresh**
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name

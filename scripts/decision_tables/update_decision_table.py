@@ -1,39 +1,9 @@
 #!/usr/bin/env python3
-"""Update a BRE Decision Table definition from a canonical spec (MUTATING).
+"""Replace an existing BRE Decision Table definition through Tooling API.
 
-Applies a canonical spec (see ``_schema.py``) to an **existing** table via the
-Tooling API. The metadata path is deploy-based (re-run
-``create_decision_table.py --path metadata``, which is an idempotent upsert), so
-``update`` covers the Tooling REST verb:
-
-* Tooling ``DecisionTable`` PATCH with ``{"Metadata": {…}}`` (the id is in the
-  URL). The ``Metadata`` complex value is a **full replace**: send the complete
-  definition you want, not a delta. That includes the complete
-  ``decisionTableParameters`` and ``decisionTableSourceCriterias`` arrays;
-  omitted/empty source criteria mean none. A PATCH is **atomic** — a rejected
-  PATCH leaves the record byte-identical.
-
-An Active (or activating) table's definition cannot be edited in place. This
-tool sends one Tooling PATCH and returns the platform's
-``FIELD_NOT_UPDATABLE`` error unchanged. Run ``deactivate_decision_table.py``
-first when the table must be edited, then reactivate it explicitly afterward.
-
-**Preview by default.** Without ``--confirm`` the tool validates the spec and logs
-the planned write but performs no org write. Re-run with ``--confirm`` to apply.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias, never the CCI alias. Pinned to Release
-262 / v67.0. Destructive round-trips run on **scratch orgs only**, never ``beta``.
-
-Usage
------
-    # preview then apply a Tooling-path update
-    python scripts/decision_tables/update_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json
-    python scripts/decision_tables/update_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json --confirm
-
-    # edit an ACTIVE table: run deactivate, update, then activate as separate commands
+The command sends the complete Metadata value in one request and returns
+platform errors directly. Active tables must be deactivated explicitly first.
+Writing requires ``--confirm``.
 """
 
 import argparse
@@ -68,7 +38,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--spec", required=True,
                         help="Path to the canonical spec JSON ('-' for stdin).")

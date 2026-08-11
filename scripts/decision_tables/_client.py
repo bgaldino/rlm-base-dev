@@ -1,35 +1,9 @@
 #!/usr/bin/env python3
-"""Shared ``sf``-CLI transport for the Decision Table scripts (read *and* mutate).
+"""Authenticated ``sf``-CLI transport for the Decision Table toolkit.
 
-Auth is delegated entirely to the ``sf`` CLI — this module never handles access
-tokens, matching the standalone-script pattern already used in this repo
-(``scripts/expression_sets/_client.py``, ``scripts/context_service/_client.py``,
-``scripts/erd/*``). Every request goes through
-``sf api request rest '<path>' -X <METHOD> [-b -] --target-org <alias>``,
-which authenticates with the CLI's stored credentials.
-
-``--target-org`` is always the *SF CLI* alias/username (e.g. ``rlm-base__beta``),
-NEVER the CCI alias — there is no token on any command line and no CCI-vs-SF
-alias ambiguity.
-
-**Three transport surfaces**, because Decision Table management spans three APIs:
-
-- **Tooling API** — the 5 setup objects (``DecisionTable`` ``0lD``,
-  ``DecisionTableParameter`` ``0lP``, ``DecisionTableDatasetLink`` ``0lX``,
-  ``DecisionTblDatasetParameter`` ``0lZ``, ``DecisionTableSourceCriteria``
-  ``0VT``). Reached via ``tooling_query()`` → ``/tooling/query?q=…`` and
-  ``tooling_sobject_request()`` → ``/tooling/sobjects/<Object>[/<id>|/describe]``.
-  These objects are **not** on the normal REST ``/sobjects`` surface.
-- **Connect API** — an optional read-only Definitions comparison plus the CSV
-  table ``/file``, ``/data``, and ``/versions`` sub-resources, reached via
-  ``connect_request()`` / ``connect_get()``. Definition writes are deliberately
-  limited to Metadata deployment and Tooling ``Metadata`` updates.
-- **Normal REST** — ``PricingRecipeTableMapping`` (trace) and source-object row
-  dumps, reached via ``sobjects_request()`` / ``soql_query()``.
-
-Mutation bodies are piped on **stdin** via ``-b -`` — no temp files, no
-shell-quoting. The pure enum/field/spec logic lives in ``_schema``; this module
-is transport only.
+Tooling handles setup objects, Connect handles CSV data/version resources, and
+normal REST handles source rows and recipe mappings. Request bodies travel on
+stdin; this module never handles access tokens.
 """
 
 import base64
@@ -185,7 +159,7 @@ def connect_request(
             message = (
                 f"sf api request {method} '{path}' failed for org '{target_org}':\n"
                 f"{detail}\n\nConfirm the SF CLI alias is correct (this is the *sf* "
-                f"alias, e.g. 'rlm-base__beta', not the CCI alias) and that you are "
+                f"alias or username, not the CCI alias) and that you are "
                 f"authenticated (`sf org login web --alias {target_org}`)."
             )
         raise DecisionTableClientError(
@@ -202,11 +176,6 @@ def connect_request(
             f"Could not parse JSON from 'sf api request rest {method} {path}': {exc}\n"
             f"Raw output (truncated): {stdout[:400]}"
         ) from exc
-
-
-def connect_get(path: str, target_org: str, api_version: str = DEFAULT_API_VERSION) -> Any:
-    """GET a Salesforce REST/Connect resource via the sf CLI and return parsed JSON."""
-    return connect_request("GET", path, None, target_org=target_org, api_version=api_version)
 
 
 # --------------------------------------------------------------------------- #
@@ -243,8 +212,8 @@ def tooling_sobject_request(
 
     ``suffix`` supports ``describe`` (``tooling/sobjects/DecisionTable/describe``).
     A Tooling GET of ``DecisionTable/{id}`` returns the ``Metadata`` complexvalue
-    with the definition's children (parameters/criteria) inlined. Phase-2 mutators
-    POST/PATCH/DELETE through the same path.
+    with the definition's children (parameters/criteria) inlined. Definition
+    mutations use the same path.
     """
     path = f"tooling/sobjects/{sobject}"
     if record_id:
@@ -287,8 +256,7 @@ def sobjects_request(
 # CSV Based Decision Table — data upload + read (dataSourceType == CsvUpload).
 #
 # A CsvUpload table's rows do NOT live on a queryable SObject; they are loaded by
-# a two-phase Connect flow (live-verified 262 / v67.0) and read back through a
-# Connect data sub-resource:
+# a two-request upload flow and read back through a Connect data sub-resource:
 #
 #   1. Insert a ``ContentVersion`` holding the CSV (first row = column headers
 #      matching the INPUT/OUTPUT ``fieldName``s) → a ``068…`` ContentVersion id.
@@ -300,12 +268,11 @@ def sobjects_request(
 #      queryable via the data GET within seconds.
 #
 # The ``/data`` **GET** (v62+) reads rows back:
-#   ``.../{0lD…}/data[?versionNumber=N][&filter=Field:Value][&limit=N]``
+#   ``.../{0lD…}/data[?filter=Field:Value][&limit=N]``
 #   → ``{"rows":[{"id":"1FI…","rowData":{…}}],"totalRows":<count returned>}``.
 # ⚠ ``totalRows`` is the count of rows IN THE RESPONSE (not a grand total) and
 # ``offset`` is unreliable — read once with an optional ``limit``, never page by
-# offset. (The ``/data`` **POST** row-edit path is non-functional on the probed
-# org — the authoritative write path is ``/file``.)
+# offset. The authoritative write path is ``/file``.
 # --------------------------------------------------------------------------- #
 
 def content_version_insert(
@@ -320,11 +287,9 @@ def content_version_insert(
 ) -> Any:
     """Insert a ``ContentVersion`` holding ``csv_text`` (base64) → the ``068…`` id.
 
-    Phase 1 of a CsvUpload data load. The CSV body is UTF-8 encoded and
-    base64-wrapped into ``VersionData`` (the same pattern ``scripts/docgen`` uses
-    for binary uploads). Returns the parsed POST response (``{"id","success"}``);
-    honors ``dry_run`` via :func:`sobjects_request` (skipped+logged, returns
-    ``{}``). The returned ``id`` is fed to :func:`upload_decision_table_csv`.
+    The CSV body is UTF-8 encoded and base64-wrapped into ``VersionData``.
+    Returns the parsed POST response; the returned id is passed to
+    :func:`upload_decision_table_csv`.
     """
     version_data = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
     body = {"Title": title, "PathOnClient": path_on_client, "VersionData": version_data}
@@ -345,13 +310,8 @@ def upload_decision_table_csv(
 ) -> Any:
     """POST a ContentVersion ``file_id`` to a table's ``/file`` sub-resource (async).
 
-    Phase 2 of a CsvUpload data load. The rows are **appended** to the table's
-    current (single) version — CsvUpload tables are single-version here and
-    ``deleteAllRows:true`` (overwrite) fails reproducibly on 262/v67.0, so this
-    toolkit only appends. The import is asynchronous — poll the ``/data`` GET (or
-    ``Metadata.uploadStatus``) for completion, not this response
-    (``{"message":"We are uploading and processing the CSV file."}``).
-    Honors ``dry_run`` via :func:`connect_request`.
+    Rows are appended. The import is asynchronous; callers must poll
+    ``Metadata.uploadStatus`` rather than treating this response as completion.
     """
     path = f"{CONNECT_BASE}/{record_id}/file"
     body = {"fileId": file_id}
@@ -364,7 +324,6 @@ def upload_decision_table_csv(
 def get_decision_table_data(
     record_id: str,
     *,
-    version_number: Optional[int] = None,
     row_filter: Optional[str] = None,
     limit: Optional[int] = None,
     target_org: str,
@@ -372,8 +331,7 @@ def get_decision_table_data(
 ) -> Any:
     """GET the uploaded rows of a CsvUpload table (``.../{id}/data``, v62+).
 
-    Optional ``version_number`` (defaults to the current/active version),
-    ``row_filter`` (``"Field:Value"`` server-side filter), and ``limit``. Returns
+    Accepts an optional ``row_filter`` (``"Field:Value"``) and ``limit``. Returns
     the parsed envelope ``{"rows":[{"id","rowData":{…}}],"totalRows":<count>}``.
     A read — always executes, even under a dry-run transport. Reads the response
     in ONE call (``totalRows`` counts returned rows, not a grand total; ``offset``
@@ -381,8 +339,6 @@ def get_decision_table_data(
     paging.
     """
     query: List[str] = []
-    if version_number is not None:
-        query.append(f"versionNumber={int(version_number)}")
     if row_filter:
         query.append(f"filter={quote(row_filter)}")
     if limit is not None:
@@ -473,11 +429,8 @@ def fail_json(as_json, message, summary=None, code=1):
 class Transport:
     """Binds the CLI transport to one org / api-version / dry-run setting.
 
-    A thin OO wrapper over the module functions above. It is the injectable seam
-    the read CLIs (Phase 1) and the lifecycle engine + mutator CLIs (Phase 2)
-    take, so all can be unit-tested with a fake transport (no org): any object
-    exposing ``connect`` / ``connect_get`` / ``tooling_query`` /
-    ``tooling_sobject`` / ``soql`` with these signatures works.
+    A thin OO wrapper over the module functions above and the injectable seam
+    used by the CLIs and offline tests.
 
     ``dry_run`` on the bound transport short-circuits *mutating* verbs
     (everything but GET/HEAD) — they are logged and skipped; reads always execute
@@ -499,10 +452,6 @@ class Transport:
             dry_run=self.dry_run if dry_run is None else dry_run,
             logger=self.logger, timeout=timeout,
         )
-
-    def connect_get(self, path: str) -> Any:
-        """GET a Connect/REST resource (reads always execute, even under dry_run)."""
-        return connect_get(path, self.target_org, self.api_version)
 
     def tooling_query(self, query: str) -> List[Dict[str, Any]]:
         # Reads always execute (non-mutating), even under dry_run.
@@ -548,11 +497,10 @@ class Transport:
         )
 
     def get_decision_table_data(self, record_id: str, *,
-                                version_number: Optional[int] = None,
                                 row_filter: Optional[str] = None,
                                 limit: Optional[int] = None) -> Any:
         # Reads always execute (non-mutating), even under dry_run.
         return get_decision_table_data(
-            record_id, version_number=version_number, row_filter=row_filter,
+            record_id, row_filter=row_filter,
             limit=limit, target_org=self.target_org, api_version=self.api_version,
         )

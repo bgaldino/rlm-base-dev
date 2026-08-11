@@ -1,30 +1,8 @@
 #!/usr/bin/env python3
-"""Pure canonical-spec → Metadata/Tooling payload translators for Decision Tables.
+"""Translate canonical Decision Table specs into Metadata and Tooling shapes.
 
-Part of the self-contained ``scripts/decision_tables/`` toolkit (imports only
-``_schema`` from the package; nothing from ``tasks/``). Transport-agnostic and
-dependency-free (stdlib only — no ``requests``, no CumulusCI, no ``sf`` CLI):
-just the field-shaping the two supported authoring paths demand. This is the
-Decision Table analogue of ``scripts/expression_sets/_payload.py``.
-
-One author-facing *canonical spec* (validated by ``_schema.validate_spec``) is
-translated onto the source-controlled Metadata and REST Tooling paths:
-
-  * :func:`to_metadata` — the ``Metadata`` body shared by the Metadata API and
-    the Tooling ``Metadata`` complexvalue (field names ``dataSourceType`` /
-    ``filterResultBy`` / ``decisionTableParameters``, ``usage`` UPPER-case).
-  * :func:`to_metadata_xml` — serializes that body to a ``.decisionTable-meta.xml``
-    for a ``sf project deploy`` (elements emitted **alphabetically**, matching the
-    MDAPI serializer and the shipped ``unpackaged/pre/5_decisiontables/*.xml``).
-  * :func:`to_tooling` — wraps the metadata body as ``{"FullName", "Metadata"}``
-    for a Tooling ``DecisionTable`` POST/PATCH.
-Every function operates on plain dicts/lists and returns **new** structures —
-none mutate their input, so a caller can translate the same spec for multiple
-paths or verify against the original.
-
-Provenance — all shapes live-verified on 262 / v67.0 against scratch orgs (the
-create/update/GET-back captures behind each rule); see
-``docs/references/decision-table-api-reference.md`` for the field-by-field detail.
+The pure helpers return new structures and do not mutate their input. Metadata
+XML elements are emitted alphabetically for stable diffs.
 """
 
 from typing import Any, Dict, List, Optional
@@ -213,7 +191,7 @@ def to_metadata(spec: Dict[str, Any]) -> Dict[str, Any]:
 def to_tooling(spec: Dict[str, Any]) -> Dict[str, Any]:
     """Canonical spec → a Tooling ``DecisionTable`` POST/PATCH body.
 
-    Shape: ``{"FullName": <api name>, "Metadata": {…}}`` — the live-verified
+    Shape: ``{"FullName": <api name>, "Metadata": {…}}`` — the
     Tooling create/update body. On a **PATCH** the caller sends only
     ``{"Metadata": {…}}`` (the id is in the URL); use :func:`tooling_metadata_only`
     for that. The ``decisionTableParameters`` array is a **full replace** on PATCH.
@@ -224,29 +202,11 @@ def to_tooling(spec: Dict[str, Any]) -> Dict[str, Any]:
 def tooling_metadata_only(
     spec: Dict[str, Any], *, live_status: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Canonical spec → ``{"Metadata": {…}}`` for a Tooling PATCH (id is in the URL).
+    """Return the complete Metadata body for a Tooling update.
 
-    The spec's own ``status`` is always **dropped** — it must never drive the
-    table's lifecycle on an *update*. An author reusing a create spec or a describe
-    round-trip may carry a stale status, so the caller supplies the table's resolved
-    live value instead.
-
-    A Tooling ``Metadata`` PATCH nonetheless **requires** ``status`` — a status-free
-    body is rejected with ``FIELD_INTEGRITY_EXCEPTION: Required field is missing:
-    status`` (live-confirmed 262 / v67.0 against a Draft scratch table). So the
-    caller passes the table's resolved **current live** ``status`` as
-    ``live_status`` and it is stamped onto the body. The update therefore re-asserts
-    the existing status and never performs a lifecycle transition.
-
-    ``live_status`` is optional only so this pure translator stays callable without a
-    transport in tests; a real PATCH must pass it (the platform rejects the body
-    otherwise). The Tooling ``Metadata`` complexvalue is replaced **wholesale** (see
-    :meth:`_lifecycle.LifecycleEngine._current_metadata` — a sparse body wipes the
-    omitted fields), so the body carries the full definition. Create uses
-    :func:`to_tooling`, not this: it honors the spec's requested ``status`` directly
-    (the platform is the authority — an accepted write is faithful, a bad status is
-    rejected with a clear error), so this update-only status-stripping does not apply
-    there.
+    Updates retain the platform's current status rather than taking lifecycle
+    state from the spec. Tooling requires status and replaces the complex value,
+    so callers must supply ``live_status`` for real requests.
     """
     body = to_metadata(spec)
     body.pop("status", None)

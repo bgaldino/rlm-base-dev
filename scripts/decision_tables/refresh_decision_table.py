@@ -1,46 +1,9 @@
 #!/usr/bin/env python3
-"""Refresh a BRE Decision Table's cached data via ``refreshDecisionTable`` (MUTATING).
+"""Queue a full or incremental BRE Decision Table refresh.
 
-A Decision Table has **two layers**: the DEFINITION (columns/source-object, in
-metadata/Tooling) and the DATA (the source SObject/CSV rows synced into the BRE
-engine cache). Editing the source data does NOT update what the engine serves
-until a **refresh** re-syncs it. This tool invokes the ``refreshDecisionTable``
-standard action to trigger that sync.
-
-* **Full refresh** (default) re-syncs the whole dataset.
-* ``--incremental`` re-syncs only changed rows.
-
-Two facts encoded here from live probing (262 / v67.0):
-
-* The accepted action input is ``isDecisionTableIncremental``.
-* The refresh is **asynchronous** and returns ``outputValues.Status = "Queued"``
-  — it does **not** create an ``AsyncOperationTracker`` row. The completion
-  signal depends on the mode: a full refresh advances ``LastSyncDate`` and an
-  incremental refresh advances ``LastIncrementalSyncDate`` only. Re-check with
-  ``describe_decision_table.py``.
-
-⚠ **Full-refresh limits use separate org-wide pools:** 40 Standard and 60
-Advanced refreshes/hour; CSV tables use the Advanced pool. Batch accordingly.
-
-**Preview by default.** Without ``--confirm`` the tool logs the planned action
-invocation and performs no write. Re-run with ``--confirm`` to invoke.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias, never the CCI alias. Pinned to Release
-262 / v67.0.
-
-Usage
------
-    # full refresh (preview, then confirm)
-    python scripts/decision_tables/refresh_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable
-    python scripts/decision_tables/refresh_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable --confirm
-
-    # incremental refresh
-    python scripts/decision_tables/refresh_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable \
-        --incremental --confirm
+The command uses the standard ``refreshDecisionTable`` action. Refresh is
+asynchronous, previews by default, and requires ``--confirm`` to write.
+Versioned CSV tables also require ``--version-number``.
 """
 
 import argparse
@@ -67,7 +30,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")

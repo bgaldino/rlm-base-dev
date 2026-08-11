@@ -1,32 +1,8 @@
 #!/usr/bin/env python3
-"""Enum / field catalogs + canonical-spec validation for BRE Decision Tables.
+"""Canonical Decision Table schema catalogs and offline validation.
 
-Pure, dependency-free (stdlib only) so it is unit-testable from a plain
-``python`` invocation with no org and no CumulusCI import. This is the Decision
-Table analogue of ``scripts/expression_sets/_schema.py``.
-
-Two roles:
-
-1. **Enum / field catalogs** — the documented Metadata/Tooling authoring
-   vocabulary and the setup objects. Read-side Connect field-name divergence is
-   retained for inspectors, but definition mutation is Metadata/Tooling-only.
-2. **Canonical-spec validation** — ``validate_spec(spec)`` checks an
-   author-facing canonical Decision Table spec (path-agnostic) *before* it is
-   translated and sent to an org, where a Tooling handler can turn a precise
-   local defect into an opaque failure.
-
-Provenance: values captured from a live v67.0 read of ``rlm-base__beta`` /
-scratch orgs on 2026-07-09 (Tooling ``Metadata`` complexvalue + describes,
-Connect Definitions GET, ``refreshDecisionTable`` action describe) plus the
-Release 262 docs (``meta_decisiontable.htm``, ``dt_setup_objects.htm``,
-``lookup_table_resources.htm``). See
-``docs/references/decision-table-api-reference.md`` for the full evidence.
-Unknown values in the *descriptive* enums (``usageType`` / ``type`` /
-``executionType`` …) **warn** (forward-compat), they do not error. The one
-exception is the *closed structural* enum ``usage`` (INPUT/OUTPUT/ROWCRITERIA):
-an unrecognized/mis-cased value there is an **error**, because it silently
-changes translation (see :func:`_validate_parameter` and the ``strict`` arg of
-:func:`_check_enum`) rather than merely being unrecognized by the org.
+Unknown descriptive enum values warn for forward compatibility. Parameter
+``usage`` is structural and therefore rejects unknown or mis-cased values.
 """
 
 import re
@@ -35,16 +11,15 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
 # --------------------------------------------------------------------------- #
-# Verified enum catalogs (v67.0 / Release 262)
-# Values observed live are noted; the sets are the documented supersets.
+# Enum catalogs (v67.0 / Release 262).
 # --------------------------------------------------------------------------- #
 
 # Metadata/Tooling ``dataSourceType``.
 DATA_SOURCE_TYPES = {
     "ContextDefinition",
     "CsvUpload",
-    "MultipleSobjects",   # observed
-    "SingleSobject",      # observed
+    "MultipleSobjects",
+    "SingleSobject",
 }
 
 # `executionType` — DLO replaces DMO at v67.0. Every shipped table's MDAPI XML
@@ -58,14 +33,14 @@ EXECUTION_TYPES = {
     "SOQL",
 }
 
-CONDITION_TYPES = {"All", "Any", "Custom"}  # All observed
+CONDITION_TYPES = {"All", "Any", "Custom"}
 
 # Metadata/Tooling ``filterResultBy`` (hit policy).
 FILTER_RESULT_BY = {
     "AnyValue",
     "CollectOperator",
     "FirstMatch",
-    "OutputOrder",   # observed
+    "OutputOrder",
     "Priority",
     "RuleOrder",
     "UniqueValues",
@@ -77,21 +52,21 @@ TABLE_TYPES = {
     "HighScaleExecution",
     "HighVolume",
     "LowVolume",
-    "MediumVolume",  # observed
+    "MediumVolume",
     "RealTime",
 }
 
-STATUSES = {"ActivationInProgress", "Active", "Draft", "Inactive"}  # Active observed
+STATUSES = {"ActivationInProgress", "Active", "Draft", "Inactive"}
 
 # `usageType` (ExpsSetProcessType) — Revenue Cloud subset; grows per release,
 # so this is representative, not exhaustive (unknown → warn).
 USAGE_TYPES = {
     "Bre",
-    "DefaultPricing",             # observed
-    "DefaultRating",              # observed
-    "PricingDiscovery",           # observed
-    "RatingDiscovery",            # observed
-    "RevenueStandardTax",         # observed
+    "DefaultPricing",
+    "DefaultRating",
+    "PricingDiscovery",
+    "RatingDiscovery",
+    "RevenueStandardTax",
     "ProductCategoryQualification",
     "ProductQualification",
     "RecordAlert",
@@ -104,10 +79,10 @@ COLLECT_OPERATORS = {"Count", "Maximum", "Minimum", "None", "Sum"}
 
 # ---- DecisionTableParameter (a column) -----------------------------------
 # ``usage`` is UPPER on Metadata/Tooling.
-PARAM_USAGE = {"INPUT", "OUTPUT", "ROWCRITERIA"}  # observed INPUT/OUTPUT
+PARAM_USAGE = {"INPUT", "OUTPUT", "ROWCRITERIA"}
 
 PARAM_DATA_TYPES = {
-    "Boolean", "Currency", "Date", "DateTime", "Number", "Percent", "String",  # String observed
+    "Boolean", "Currency", "Date", "DateTime", "Number", "Percent", "String",
 }
 
 PARAM_OPERATORS = {
@@ -123,7 +98,7 @@ SOURCE_CRITERIA_VALUE_TYPES = {"Formula", "Literal", "Lookup", "Parameter", "Pic
 SOURCE_CRITERIA_OPERATORS = set(PARAM_OPERATORS)
 
 # --------------------------------------------------------------------------- #
-# Setup objects — Tooling API only, with live-verified key prefixes.
+# Setup objects — Tooling API only.
 # --------------------------------------------------------------------------- #
 
 SETUP_OBJECT_PREFIXES = {
@@ -215,9 +190,7 @@ class ValidationResult:
 #   }
 # --------------------------------------------------------------------------- #
 
-# `sourceObject` is Required-since-58.0 for **every** dataSourceType — all three
-# Metadata/Tooling authoring paths reject a create without it (live-verified 262 /
-# v67.0: Tooling ``FIELD_INTEGRITY_EXCEPTION`` and Metadata deploy error).
+# `sourceObject` is required for every dataSourceType since API v58.0.
 # For a CsvUpload table the value is the literal string "CSV" (there is no backing
 # SObject); for the SObject types it is the object api-name.
 _CSV_SOURCE_OBJECT = "CSV"
@@ -225,11 +198,8 @@ _CSV_SOURCE_OBJECT = "CSV"
 # ``fullName`` becomes a bare file-system segment
 # (``<fullName>.decisionTable-meta.xml``) in both the metadata deploy's temp
 # package dir (``_lifecycle.deploy_metadata_xml``) and ``_payload.meta_file_name``.
-# A value containing a path separator or an absolute-path leading slash escapes
-# that directory (``os.path.join`` discards everything before an absolute-looking
-# segment) — reject up front rather than let a malformed spec write outside the
-# temp SFDX project. Salesforce API names are themselves restricted to this
-# shape (letter-led, alphanumeric + underscore), so this is not overly strict.
+# Reject path separators and absolute paths before constructing the temp-project
+# path. Salesforce API names use the same letter-led alphanumeric/underscore shape.
 _FULL_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 _TOP_LEVEL_KEYS = {

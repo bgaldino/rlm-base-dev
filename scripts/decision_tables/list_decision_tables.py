@@ -1,30 +1,5 @@
 #!/usr/bin/env python3
-"""List BRE Decision Tables in an org, grouped by usageType (read-only).
-
-Surfaces every ``DecisionTable`` (Tooling API) with its ``UsageType``
-(DefaultPricing / DefaultRating / RatingDiscovery / PricingDiscovery /
-RevenueStandardTax / …), ``Status``, ``SourceObject``, and ``LastSyncDate`` —
-the "what tables exist, of what kind, and when were they last synced?" view.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens are handled
-here. ``--target-org`` is the *SF CLI* alias (e.g. ``rlm-base__beta``), never the
-CCI alias. Read-only: never mutates. Pinned to Release 262 / v67.0.
-
-Usage
------
-    # every decision table, grouped by usageType
-    python scripts/decision_tables/list_decision_tables.py \
-        --target-org rlm-base__beta
-
-    # only active pricing tables
-    python scripts/decision_tables/list_decision_tables.py \
-        --target-org rlm-base__beta --usage-type DefaultPricing --status Active
-
-    # specific tables as JSON
-    python scripts/decision_tables/list_decision_tables.py \
-        --target-org rlm-base__beta \
-        --developer-name RLM_CostBookEntries,RLM_ProductQualification --json
-"""
+"""List BRE Decision Tables through Tooling API (read-only)."""
 
 import argparse
 import json
@@ -67,7 +42,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--status", help="Filter by Status (Active / Inactive / Draft).")
     parser.add_argument("--usage-type", help="Filter by UsageType (e.g. DefaultPricing).")

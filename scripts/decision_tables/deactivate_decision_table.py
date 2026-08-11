@@ -1,37 +1,9 @@
 #!/usr/bin/env python3
-"""Deactivate a BRE Decision Table — Status → Inactive (MUTATING).
+"""Deactivate a BRE Decision Table (mutating, preview by default).
 
-Sets the table's ``Metadata.status`` to ``Inactive`` (Tooling PATCH of the whole
-``Metadata`` complexvalue). Deactivation is **synchronous** (verified 262 /
-v67.0): unlike activation there is no ``InactivationInProgress`` transient — the
-record reports ``Inactive`` immediately — but this tool still confirms the
-terminal state.
-
-For a ``CsvUpload`` table, ``LifecycleEngine.deactivate()`` instead resolves the
-sole/active file-import version and PATCHes its ``versionStatus`` (Connect). The
-table's own Status is a platform-derived mirror of the version's; ambiguous
-multi-version tables are refused rather than silently targeting version 1.
-
-Deactivate a table before editing its definition in place (an Active table's
-definition is locked), or to take a table offline. Run update and activation as
-separate commands so each failure is returned independently. The platform blocks
-deactivation of a table still
-referenced by an active Expression Set / Context Rule / recipe; that surfaces as
-the underlying platform error.
-
-**Preview by default.** Without ``--confirm`` the tool logs the planned state
-change and performs no write. Re-run with ``--confirm`` to apply.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias, never the CCI alias. Pinned to Release
-262 / v67.0.
-
-Usage
------
-    python scripts/decision_tables/deactivate_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable
-    python scripts/decision_tables/deactivate_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable --confirm
+SObject-backed tables use Tooling status. CSV-backed tables deactivate their
+unambiguous file-import version through Connect. Platform dependency errors are
+returned to the caller. Writing requires ``--confirm``.
 """
 
 import argparse
@@ -58,7 +30,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")

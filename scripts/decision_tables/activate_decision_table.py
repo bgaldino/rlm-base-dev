@@ -1,36 +1,9 @@
 #!/usr/bin/env python3
-"""Activate a BRE Decision Table — Status → Active (MUTATING).
+"""Activate a BRE Decision Table (mutating, preview by default).
 
-Sets the table's ``Metadata.status`` to ``Active`` (Tooling PATCH of the whole
-``Metadata`` complexvalue) and then **polls** until ``Status = Active``.
-Activation is **asynchronous** (verified 262 / v67.0): the PATCH returns 204 but
-the record transits ``ActivationInProgress`` for ~10–15s before settling to
-``Active``. This tool waits past that transient; use ``--max-wait`` to raise the
-timeout for a large table.
-
-Activation requires a valid definition (e.g. a default dataset mapping for a
-multi-object table); the platform rejects an incomplete one. Re-enable a table
-left DEACTIVATED by a failed ``update_decision_table.py`` here after
-inspecting/restoring it.
-
-For a ``CsvUpload`` table, ``LifecycleEngine.activate()`` instead resolves the
-sole/active file-import version and PATCHes its ``versionStatus`` (Connect). The
-table's own Status is a platform-derived mirror of the version's; ambiguous
-multi-version tables are refused rather than silently targeting version 1.
-
-**Preview by default.** Without ``--confirm`` the tool logs the planned state
-change and performs no write. Re-run with ``--confirm`` to apply.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias, never the CCI alias. Pinned to Release
-262 / v67.0.
-
-Usage
------
-    python scripts/decision_tables/activate_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable
-    python scripts/decision_tables/activate_decision_table.py \
-        --target-org rlm-base__scratch --developer-name RLM_MyTable --confirm
+SObject-backed tables use Tooling status. CSV-backed tables activate their
+unambiguous file-import version through Connect. The command polls asynchronous
+activation to a terminal state and requires ``--confirm`` to write.
 """
 
 import argparse
@@ -57,7 +30,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")

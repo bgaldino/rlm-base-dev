@@ -1,58 +1,10 @@
 #!/usr/bin/env python3
-"""Create a BRE Decision Table from a canonical spec (MUTATING).
+"""Create a BRE Decision Table from a canonical JSON spec.
 
-Reads an author-facing **canonical spec** (JSON — see ``_schema.py`` for the
-shape and ``validate_spec`` for the rules), validates it offline, then creates
-the table via one of two authoring paths:
-
-* ``--path metadata`` (default) — generate a ``.decisionTable-meta.xml`` and
-  deploy it via a **temp SFDX project outside the repo** (``sf project deploy
-  start --ignore-conflicts``, cleaned up after — no generated churn in
-  ``git status``). ``--generate-only <path>`` skips the deploy and instead writes
-  the XML to an explicit path you choose (+ prints deploy instructions); only that
-  mode leaves a file behind, at a location you name.
-* ``--path tooling`` — Tooling ``DecisionTable`` POST (``{"FullName","Metadata"}``).
-
-**The spec's ``status`` is honored as-requested; the platform is the authority.**
-An accepted Tooling/Metadata write stores the definition faithfully and a bad one
-is rejected with a clear error (both live-verified 262/v67.0), so create simply
-sends the requested status rather than second-guessing it:
-
-* an SObject table (``SingleSobject``/``MultipleSobjects``) may be created directly
-  ``Active`` (activation is async — the table passes through
-  ``ActivationInProgress`` to ``Active``), ``Inactive``, or ``Draft``;
-* a ``CsvUpload`` table cannot be ``Active`` at create time — it has no active
-  file-import version yet — so the platform rejects ``status: Active`` with
-  ``INVALID_INPUT``. Create it ``Draft``, upload rows (``upload_decision_table_data.py``),
-  then activate (``activate_decision_table.py``). The tool warns before sending an
-  Active CsvUpload create so the platform error is not a surprise.
-
-**Preview by default.** Without ``--confirm`` the tool validates the spec and logs
-the planned write (or prints the XML for ``metadata``) but performs no org write.
-Re-run with ``--confirm`` to create. (``--generate-only`` always writes its file —
-it does not touch the org, so ``--confirm`` is not required for it.)
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled here.
-``--target-org`` is the *SF CLI* alias (e.g. ``rlm-base__beta``), never the CCI
-alias. Pinned to Release 262 / v67.0. Destructive probing / round-trips run on
-**scratch orgs only**, never the shared ``beta``.
-
-Usage
------
-    # preview a metadata-path create (prints the XML), then deploy it
-    python scripts/decision_tables/create_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json
-    python scripts/decision_tables/create_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json --confirm
-
-    # write the .decisionTable-meta.xml to a path you choose (no deploy)
-    python scripts/decision_tables/create_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json \
-        --generate-only ./RLM_MyTable.decisionTable-meta.xml
-
-    # create via the Tooling API instead of metadata deploy
-    python scripts/decision_tables/create_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json --path tooling --confirm
+The default path deploys generated Metadata from a temporary SFDX project;
+``--path tooling`` uses a Tooling create. The requested status is sent unchanged
+so platform validation remains authoritative. The command previews by default
+and requires ``--confirm`` to write to an org.
 """
 
 import argparse
@@ -92,7 +44,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--spec", required=True,
                         help="Path to the canonical spec JSON ('-' for stdin).")
@@ -160,7 +112,7 @@ def main(argv=None) -> int:
 
     # Honor the spec's requested status as-is — the platform is the authority.
     # An accepted write stores the definition faithfully; a bad one is rejected
-    # with a clear error (both live-verified). A CsvUpload table cannot be Active
+    # with a clear error. A CsvUpload table cannot be Active
     # at create time (no active file-import version yet), so warn — the platform
     # would otherwise reject it with INVALID_INPUT.
     requested_status = spec.get("status")

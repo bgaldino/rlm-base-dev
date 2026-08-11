@@ -1,32 +1,5 @@
 #!/usr/bin/env python3
-"""Structurally diff two BRE Decision Tables (read-only).
-
-Compares two definitions — either two tables in one org, or the *same* table
-across two orgs (``--other-org``, e.g. a scratch clone vs beta). Reports
-differences in the table-level attributes (dataSource / hitPolicy / status /
-usageType / sourceObject / executionType) and the column set (added / removed /
-changed columns keyed by ``usage:fieldName``), dataset links, and source
-criteria. Useful before a Phase-2 update, or to confirm a deploy landed.
-
-The comparison core (:func:`diff_definitions`) is a **pure function** over two
-loaded definition dicts, so it is unit-testable with no org.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled.
-``--target-org`` is the *SF CLI* alias. Read-only. Pinned to Release 262 / v67.0.
-
-Usage
------
-    # two tables in one org
-    python scripts/decision_tables/diff_decision_tables.py \
-        --target-org rlm-base__beta \
-        --developer-name RLM_CostBookEntries --other RLM_ContractPricingEntries
-
-    # the same table across two orgs
-    python scripts/decision_tables/diff_decision_tables.py \
-        --target-org rlm-base__scratch \
-        --developer-name RLM_CostBookEntries \
-        --other RLM_CostBookEntries --other-org rlm-base__beta
-"""
+"""Structurally diff two BRE Decision Table definitions (read-only)."""
 
 import argparse
 import json

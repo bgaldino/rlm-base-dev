@@ -177,7 +177,7 @@ def test_csv_transport_shapes_and_timeout():
         _client.content_version_insert("Rows", "Region\nNorth\n", target_org="x")
         _client.upload_decision_table_csv("0lDxx", "068xx", target_org="x")
         _client.get_decision_table_data(
-            "0lDxx", version_number=2, row_filter="Region:North West", limit=5,
+            "0lDxx", row_filter="Region:North West", limit=5,
             target_org="x",
         )
     finally:
@@ -191,9 +191,8 @@ def test_csv_transport_shapes_and_timeout():
     check("CSV upload POSTs a bare append body (fileId only, no version query)",
           captured[1][1].endswith("/file")
           and captured[1][2] == {"fileId": "068xx"}, captured[1])
-    check("CSV data GET URL-encodes the filter and keeps version/limit",
-          "versionNumber=2" in captured[2][1]
-          and "filter=Region%3ANorth%20West" in captured[2][1]
+    check("CSV data GET URL-encodes the filter and keeps the limit",
+          "filter=Region%3ANorth%20West" in captured[2][1]
           and "limit=5" in captured[2][1], captured[2])
 
     _client.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(

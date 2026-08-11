@@ -1,28 +1,9 @@
 #!/usr/bin/env python3
-"""Trace which pricing recipes reference a BRE Decision Table (read-only).
+"""Trace pricing recipes that reference a BRE Decision Table (read-only).
 
-Answers "what uses this table?" by correlating across two API surfaces:
-
-1. Resolve the ``DecisionTable`` (DeveloperName → ``Id`` ``0lD…``, plus the
-   ``LastSyncDate`` and file-based name) via the **Tooling** API.
-2. Query ``PricingRecipeTableMapping`` (**normal REST**) and match on
-   **``LookupTableId`` == ``DecisionTable.Id``** (SObject-backed tables) OR
-   **``FileBasedDecisionTableName`` == DeveloperName** (file/CSV-backed) — there
-   is **no** ``DecisionTableId`` field on the mapping (live-verified).
-3. Correlate in Python (no single cross-surface SOQL join) and print the recipes
-   + ``PricingComponentType`` (ListPrice / VolumeDiscount / AttributeDiscount /
-   BundleDiscount / …) that reference the table.
-
-This is read-only introspection; ``manage_decision_tables --operation
-validate_lists`` remains the authoritative project-list validator.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled.
-``--target-org`` is the *SF CLI* alias. Read-only. Pinned to Release 262 / v67.0.
-
-Usage
------
-    python scripts/decision_tables/trace_decision_table.py \
-        --target-org rlm-base__beta --developer-name Price_Book_Entry_Decision_Table_v2
+The command resolves definitions through Tooling, queries
+``PricingRecipeTableMapping`` through REST, and correlates on ``LookupTableId``
+or ``FileBasedDecisionTableName``.
 """
 
 import argparse
@@ -94,7 +75,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")

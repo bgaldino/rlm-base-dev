@@ -1,32 +1,5 @@
 #!/usr/bin/env python3
-"""Pretty-print one BRE Decision Table's full definition (read-only).
-
-Assembles the definition across the 5 Tooling setup objects — columns
-(``DecisionTableParameter``, grouped INPUT / OUTPUT / ROWCRITERIA), dataset links
-(``DecisionTableDatasetLink``) and their join params
-(``DecisionTblDatasetParameter``), and row-filter criteria
-(``DecisionTableSourceCriteria``) — plus the ``DecisionTable`` summary (source
-object, hit policy, status, usageType, lastSync).
-
-``--connect`` additionally reads the table through the **Connect Decision Table
-Definitions** GET (by-id) and prints its divergent field vocabulary
-(``sourceType`` / ``decisionResultPolicy`` / title-case ``usage``), so the two
-representations can be compared side by side.
-
-Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled.
-``--target-org`` is the *SF CLI* alias. Read-only. Pinned to Release 262 / v67.0.
-
-Usage
------
-    python scripts/decision_tables/describe_decision_table.py \
-        --target-org rlm-base__beta --developer-name RLM_CostBookEntries
-
-    # include the Connect Definitions representation, or emit JSON
-    python scripts/decision_tables/describe_decision_table.py \
-        --target-org rlm-base__beta --developer-name RLM_CostBookEntries --connect
-    python scripts/decision_tables/describe_decision_table.py \
-        --target-org rlm-base__beta --developer-name RLM_CostBookEntries --json
-"""
+"""Print one Decision Table's Tooling definition (read-only)."""
 
 import argparse
 import json
@@ -42,12 +15,11 @@ from scripts.decision_tables._client import (  # noqa: E402
 )
 from scripts.decision_tables._resolve import (  # noqa: E402
     ResolveError,
-    get_connect_definition,
     load_definition,
 )
 
 
-def _print_definition(defn, show_connect):
+def _print_definition(defn):
     table = defn["table"]
     meta_early = defn.get("metadata") or {}
     # The per-table label is SetupName (also metadata.setupName). MasterLabel is the
@@ -114,32 +86,16 @@ def _print_definition(defn, show_connect):
             print(f"    - {c.get('SourceFieldName')} {c.get('Operator')} "
                   f"{c.get('Value')!r}  ({c.get('ValueType')})")
 
-    if show_connect:
-        print("\n  Connect Definitions representation (divergent vocabulary):")
-        cdef = defn.get("connect")
-        if cdef is None:
-            print("    (Connect definition not loaded)")
-        else:
-            print(f"    id            : {cdef.get('id')}  (15-char)")
-            print(f"    sourceType    : {cdef.get('sourceType')}")
-            print(f"    decisionResultPolicy: {cdef.get('decisionResultPolicy')}")
-            print(f"    parameters    : {len(cdef.get('parameters') or [])}")
-            print(f"    sourceCriteria: {len(cdef.get('sourceCriteria') or [])}")
-            print(f"    rowLevelOverrideType: {cdef.get('rowLevelOverrideType')}")
-
-
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Pretty-print one Decision Table's full definition. Read-only.",
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
+        help="SF CLI alias or username; not a CCI org alias.",
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")
-    parser.add_argument("--connect", action="store_true",
-                        help="Also read + show the Connect Definitions representation.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true",
@@ -149,8 +105,6 @@ def main(argv=None) -> int:
     transport = Transport(args.target_org, api_version=args.api_version)
     try:
         defn = load_definition(transport, args.developer_name)
-        if args.connect:
-            defn["connect"] = get_connect_definition(transport, defn["table"]["Id"])
     except (DecisionTableClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1
@@ -159,7 +113,7 @@ def main(argv=None) -> int:
         print(json.dumps(defn, indent=2, default=str))
         return 0
 
-    _print_definition(defn, args.connect)
+    _print_definition(defn)
     return 0
 
 

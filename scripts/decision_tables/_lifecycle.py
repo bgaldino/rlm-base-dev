@@ -1,48 +1,10 @@
 #!/usr/bin/env python3
-"""Safety-critical lifecycle for BRE Decision Table mutations.
+"""Decision Table lifecycle operations over an injectable transport.
 
-Part of the self-contained ``scripts/decision_tables/`` toolkit (imports only
-``_client`` from the package; nothing from ``tasks/``). :class:`LifecycleEngine`
-wraps a :class:`_client.Transport` and encapsulates the Decision Table
-lifecycle transitions the mutator CLIs need:
-
-  * **activate** — for SObject-backed tables, set ``Metadata.status = Active``
-    (Tooling PATCH), then **poll** past the transient ``ActivationInProgress``
-    until ``Status = Active``. Activation is **asynchronous** (verified 262 /
-    v67.0).
-  * **deactivate** — for SObject-backed tables, set ``Metadata.status =
-    Inactive``. Deactivation is **synchronous** (no ``InactivationInProgress``
-    transient), but the engine still confirms the terminal state.
-  * **CsvUpload is version-first, not table-first (live-verified).** A CsvUpload
-    table's own ``Status`` is a platform-derived mirror of its file-import
-    version's ``versionStatus`` — once a version is Active, a direct
-    ``Metadata.status`` PATCH to Inactive is rejected (``INVALID_INPUT: A
-    version cannot be in the Active status when the decision table's status is
-    not active``); conversely the table cannot activate without an Active
-    version (``INVALID_INPUT: We couldn't find an active decision table version
-    for this date``). :meth:`activate`/:meth:`deactivate` detect
-    ``dataSourceType == CsvUpload`` and safely resolve the sole/active file-import
-    version before PATCHing its ``versionStatus`` (Connect) instead of the table's
-    ``Metadata.status`` — the table's own Status cascades with no separate Tooling
-    PATCH. Ambiguous multi-version tables are refused rather than silently targeting
-    version 1.
-  * **refresh** — invoke the ``refreshDecisionTable`` standard action with the
-    **live-verified** ``isDecisionTableIncremental`` flag. Async; full-refresh
-    limits use separate Standard (40/hour) and Advanced (60/hour) pools.
-  * **metadata deploy** — generate a ``.decisionTable-meta.xml`` into an **OS temp
-    SFDX project outside the repo**, ``sf project deploy start`` it with
-    ``--ignore-conflicts`` (temp project has no source tracking), and remove the
-    temp tree — so no generated metadata churn lands in ``git status``.
-
-Dry-run is driven by the injected ``Transport`` (``Transport(dry_run=True)``):
-mutating verbs are logged and skipped at the request layer; reads always run so a
-dry-run still resolves ids and logs the real sequence. The engine additionally
-skips the state *polls* under dry-run (nothing changes to wait for) and skips the
-metadata deploy (logging what it would deploy).
-
-Errors raise :class:`LifecycleError`. The engine takes the transport as its one
-dependency, so a unit test can pass a fake transport and assert the call sequence
-without an org.
+SObject-backed tables use Tooling status updates. CSV-backed tables use Connect
+file-import versions. Activation and CSV import are asynchronous; metadata
+deploys run from a temporary SFDX project. Dry-run transports preserve reads and
+skip writes and state polling.
 """
 
 import copy
@@ -163,20 +125,9 @@ class LifecycleEngine:
                 return
             time.sleep(self.poll)
             waited += self.poll
-        # Operation-aware diagnostic: this poll confirms BOTH activation (which is
-        # asynchronous — passes through the transient ActivationInProgress) and
-        # deactivation (usually immediate), so the message must not assert
-        # "activation" when confirming Inactive. It also stays remediation-neutral:
-        # not every CLI that reaches this exposes --max-wait (only activate does;
-        # deactivate/activate), so it points at a re-check any caller can run rather
-        # than a flag that may not exist.
-        transition = "Activation is asynchronous" if target == _STATUS_ACTIVE \
-            else "Deactivation is normally immediate but was not observed"
         raise LifecycleError(
             f"DecisionTable {record_id} did not reach Status={target} within "
-            f"{self.max_wait}s (last seen: {last!r}). {transition}; re-check its "
-            f"current status with list_decision_tables.py (raise the engine's "
-            f"max-wait, where the CLI exposes it, to poll longer)."
+            f"{self.max_wait}s (last seen: {last!r})."
         )
 
     def _file_import_versions(self, record_id: str) -> List[Dict[str, Any]]:
@@ -194,10 +145,8 @@ class LifecycleEngine:
     def _resolve_lifecycle_version(self, record_id: str, target_status: str) -> int:
         """Resolve the safe CsvUpload version for an activate/deactivate transition.
 
-        The current toolkit has no version-selection flag on the table-level lifecycle
-        CLIs. A sole version is unambiguous. For deactivation, an already-active version
-        is also unambiguous. Any other multi-version shape is refused so a future org
-        cannot be damaged by the historical hardcoded-version-1 assumption.
+        A sole version is unambiguous. For deactivation, an already-active version
+        is also unambiguous. Other multi-version shapes are rejected.
         """
         versions = self._file_import_versions(record_id)
         numbered = [v for v in versions if isinstance(v.get("versionNumber"), int)]
@@ -268,7 +217,7 @@ class LifecycleEngine:
                 version_number: Optional[int] = None) -> Dict[str, Any]:
         """Invoke the asynchronous ``refreshDecisionTable`` standard action.
 
-        Uses the **live-verified** ``isDecisionTableIncremental`` flag. Returns the
+        Uses the platform ``isDecisionTableIncremental`` flag. Returns the
         normalized action result
         (``{"isSuccess", "status", "raw"}``); ``status`` is typically ``Queued``.
         The refresh is asynchronous. ``DecisionTable.LastSyncDate`` is the full

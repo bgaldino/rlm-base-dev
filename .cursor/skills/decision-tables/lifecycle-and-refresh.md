@@ -2,8 +2,8 @@
 
 > Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 262 /
 > API v67.0.** Read this when you need the deploy paths + source locations, the
-> active-edit restriction, activate/deactivate, refresh in depth (the
-> live-verified payload field name, async + rate limit), recipe-table mappings +
+> active-edit restriction, activate/deactivate, refresh inputs and limits,
+> recipe-table mappings +
 > `validate_lists`, or a brief runtime-execution note. The exhaustive reference
 > is `docs/references/decision-table-api-reference.md`; the CCI ops cookbook is
 > `docs/references/decision-table-examples.md`.
@@ -22,12 +22,12 @@ after a successful refresh. These are independent — see the two-layer model in
 
 ## Deploy paths + source locations
 
-The shipped definitions live in metadata and deploy via the Metadata API:
+Project definitions live in metadata and deploy through the Metadata API:
 
-| Source location | Deployed by | Contents |
-|---|---|---|
-| `unpackaged/pre/5_decisiontables/` | `deploy_decision_tables` | Core tables: `RLM_CostBookEntries`, `RLM_ProductQualification`, `RLM_ProductCategoryQualification` |
-| `unpackaged/post_prm_pricing/decisionTables/` | `deploy_post_prm_pricing_decision_tables` | PRM-pricing: `RLM_Channel_Program_Level_Partner` (uses `replace_record_id_query` to resolve `DecisionTable` Ids) |
+| Source location | Deployed by |
+|---|---|
+| `unpackaged/pre/5_decisiontables/` | `deploy_decision_tables` |
+| `unpackaged/post_prm_pricing/decisionTables/` | `deploy_post_prm_pricing_decision_tables` |
 
 Both are step-5-era deploys in `prepare_rlm_org`. A one-off / out-of-build deploy
 uses `sf project deploy start --target-org <sf_alias>`; the toolkit's
@@ -52,7 +52,7 @@ manages it three ways:
 **An Active table's definition cannot be modified in place.** An update is
 platform-blocked with `FIELD_NOT_UPDATABLE` / "Can't edit an active Decision
 Table". An active delete can instead return `INVALID_OPERATION` plus
-`DEPENDENCY_EXISTS` (live-confirmed on a scratch org). To edit:
+`DEPENDENCY_EXISTS`. To edit:
 
 ```
 deactivate  →  edit/redeploy the definition  →  reactivate  →  refresh
@@ -70,10 +70,9 @@ change lifecycle state during the definition PATCH.
 
 The toolkit updates definitions only through **Tooling `Metadata` PATCH**.
 `status` is a **required field** (a status-free body is rejected with
-`FIELD_INTEGRITY_EXCEPTION: Required field is missing: status`, live-confirmed on
-a Draft scratch table). `update` stamps the status returned by its table-resolution
-query onto `_payload.tooling_metadata_only(spec, live_status=…)`; the spec's own
-status is dropped. Salesforce then accepts or rejects the single complete PATCH.
+`FIELD_INTEGRITY_EXCEPTION: Required field is missing: status`). `update` stamps
+the status returned by its table-resolution query; the spec's own status is
+dropped. Salesforce then accepts or rejects the single complete PATCH.
 Raw Connect Definitions mutations are reference-only and are not exposed as
 toolkit definition-write paths.
 
@@ -94,19 +93,10 @@ live to the engine.
 
   > \* `VersionNumber` is action-describe-optional but **required for versioned
   > CSV-based tables** — omitting it there fails `INVALID_API_INPUT: Enter a valid
-  > versionNumber for versioned CSV-based decision tables.` (live-verified). See
-  > *CSV Based tables* below.
+  > versionNumber for versioned CSV-based decision tables.` See *CSV Based
+  > tables* below.
 
-> ⚠ **The accepted incremental flag is `isDecisionTableIncremental`.** The
-> existing CCI tasks send **`isIncremental`** instead —
-> `tasks/rlm_refresh_decision_table.py` posts
-> `{"decisionTableApiName": …, "isIncremental": is_incremental}` (and
-> `rlm_manage_decision_tables.py`'s refresh op likewise). That flag name does not
-> match the action-describe input, so incremental almost certainly falls back to
-> a full refresh silently. The toolkit's `refresh_decision_table.py` CLI uses the
-> **correct** `isDecisionTableIncremental` name (live-verified); **fixing the CCI
-> tasks is a candidate follow-up** (behavioral change — verify on a live org
-> before merging).
+> ⚠ The action input is `isDecisionTableIncremental`, not `isIncremental`.
 
 - **Async + rate-limited.** The action is asynchronous. Full refreshes use
   separate hourly pools: **40 Standard** and **60 Advanced**; CSV-based tables
@@ -114,17 +104,12 @@ live to the engine.
 - A completed **full refresh** advances `LastSyncDate`; a completed
   **incremental refresh** advances `LastIncrementalSyncDate` and does not advance
   `LastSyncDate`. `list`/`describe` surface both fields.
-- The async-response shape is live-verified: the action returns an invocable-action
-  envelope carrying `outputValues.Status = "Queued"` (no synchronous result, and no
-  `AsyncOperationTracker` row was observed for the refresh on the probed scratch
-  org). No tracker ID is returned. Poll the appropriate timestamp/status field
-  rather than expecting a tracker resource. The hourly rejection behavior was not
-  exercised (the probe stayed well under both pools).
+- The response carries `outputValues.Status = "Queued"` and no tracker id. Poll
+  the appropriate timestamp rather than treating the response as completion.
 
-Incremental refresh is only meaningful when `isIncrementalSyncEnabled` is true on
-the table (observed `false` on the shipped SObject-backed tables).
+Incremental refresh is meaningful only when `isIncrementalSyncEnabled` is true.
 
-## CSV Based tables — upload + version lifecycle (✅ live-verified)
+## CSV Based tables — upload + version lifecycle
 
 A `CsvUpload` table's data layer is loaded from an uploaded CSV rather than a
 source SObject, so its lifecycle has an extra step between deploy and refresh:
@@ -135,18 +120,13 @@ create (auto-mints version 1)  →  upload CSV (two-phase, append)
   →  activate (table Status → Active)  →  refresh
 ```
 
-1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); this auto-mints
-   version 1. A generic `usageType=Bre` live probe returned **Draft**; Salesforce
-   Pricing documentation describes the initial Pricing version as **Inactive**.
-   Preserve that product/surface distinction. Re-uploading does **not** mint a v2 (see the version note
-   below) — every upload targets version 1.
+1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); the platform
+   creates its initial file-import version.
 2. **Upload** the rows with `upload_decision_table_data.py` — a two-phase load
    (insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the
    table's Connect `/file` sub-resource). The loader **appends only** — rows are
-   added to the table's current (single) version. Overwrite (`deleteAllRows:true`)
-   FAILS on 262/v67.0 (`uploadStatus=Failed`, 0 rows, existing rows kept), so the
-   toolkit doesn't expose it; for Salesforce Pricing, multiple CSV versions aren't
-   supported, so replace rows with a **fresh table** plus append. The import is
+   added to the current version. The toolkit does not expose overwrite; replace
+   rows with a **fresh table** plus append. The import is
    **async**. The loader waits for `uploadStatus` and exits nonzero on
    `CompletedWithErrors` / `Failed`; the platform does not identify individual
    rejected rows, so dump the rows only when row-level inspection is needed.
@@ -158,29 +138,13 @@ create (auto-mints version 1)  →  upload CSV (two-phase, append)
    `ActivationInProgress` (raise `--max-wait` for slow orgs).
 4. **Refresh** — `refreshDecisionTable` requires an **Active** table; run it after
    activation, with the same `isDecisionTableIncremental` flag as above. For a
-   **versioned** CSV table `VersionNumber` is **required** (not optional as the
-   action-describe implies), and the two version failures differ (live-verified):
-   - **Absent** `VersionNumber` → `INVALID_API_INPUT: Enter a valid versionNumber
-     for versioned CSV-based decision tables.`
-   - **Non-existent** `--version-number 99` → `INVALID_ID_FIELD: The decision table
-     version number is invalid. Specify a valid version number of an active
-     decision table…` (a distinct error code from the absent case).
+   **versioned** CSV table `VersionNumber` is required. Pass a valid
+   `refresh_decision_table.py --version-number N`.
 
-   So pass a real `refresh_decision_table.py --version-number N`.
+Read rows with `dump_decision_table_data.py` (Connect `/data` GET), optionally
+using `--filter Field:Value` for exact, case-sensitive matching.
 
-> **No v2 on re-upload (✅ live-verified for a generic BRE table).** Create
-> auto-minted Draft version 1 in that probe;
-> re-uploading (append or overwrite, with or without `--version-number`) does NOT
-> mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
-> v1. There is no scripted multi-version fan-out via this toolkit; uploading to a
-> non-existent version (`?versionNumber=2` when only v1 exists) → `INVALID_API_INPUT`.
-
-> ⚠ **The `/data` POST (row-by-row edit) is non-functional** on the probed
-> release — load and replace rows through the `/file` upload, not the data POST.
-> Read the rows back with `dump_decision_table_data.py` (Connect `/data` GET),
-> optionally `--filter Field:Value` (exact/case-sensitive) or `--version-number N`.
-
-> ⚠ **Teardown order — deactivate the VERSION before the table (✅ live-verified).**
+> ⚠ **Teardown order — deactivate the version before the table.**
 > `deactivate_decision_table.py` uses the version-aware lifecycle engine: it
 > resolves and deactivates the CSV version first
 > (`PATCH …/versions/{N}` `{"versionStatus":"Inactive"}`). That **cascades the
