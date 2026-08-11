@@ -47,11 +47,12 @@ DATA_SOURCE_TYPES = {
     "SingleSobject",      # observed
 }
 
-# `executionType` — DLO replaces DMO at v67.0. MDAPI XML casing is `Hbase`;
-# Tooling returns `HBASE`. Both spellings accepted here.
+# `executionType` — DLO replaces DMO at v67.0. Every shipped table's MDAPI XML
+# uses `HBASE` (also the Tooling/official spelling); the mixed-case `Hbase` is
+# tolerated for forward-compat but is not the form this repo ships.
 EXECUTION_TYPES = {
     "DLO",      # v67.0+, replaces DMO
-    "HBASE", "Hbase",  # observed (HBASE via API, Hbase in source XML)
+    "HBASE", "Hbase",  # shipped XML + Tooling use HBASE; Hbase tolerated for compat
     "HBPO",
     "SOLR",
     "SOQL",
@@ -196,7 +197,7 @@ class ValidationResult:
 #     "setupName":      "Cost Book Entries",       # label (required)
 #     "dataSourceType": "SingleSobject",           # required
 #     "sourceObject":   "CostBookEntry",           # required (all types; "CSV" for CsvUpload)
-#     "executionType":  "Hbase",                   # optional
+#     "executionType":  "HBASE",                   # optional
 #     "filterResultBy": "OutputOrder",             # required (hit policy)
 #     "conditionType":  "All",                     # optional
 #     "type":           "MediumVolume",            # optional

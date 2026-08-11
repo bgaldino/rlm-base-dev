@@ -137,7 +137,7 @@ file `RLM_CostBookEntries`):
         <usage>OUTPUT</usage>                           <!-- no operator/sequence -->
     </decisionTableParameters>
     <doesConsiderNullValue>false</doesConsiderNullValue>
-    <executionType>Hbase</executionType>               <!-- repo XML accepted live; official enum/Tooling use HBASE -->
+    <executionType>HBASE</executionType>               <!-- storage/eval engine; shipped XML + Tooling use HBASE -->
     <filterResultBy>OutputOrder</filterResultBy>        <!-- hit policy -->
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
@@ -149,10 +149,11 @@ file `RLM_CostBookEntries`):
 </DecisionTable>
 ```
 
-> ⚠ **`executionType` casing needs context.** Official Metadata documentation
-> and Tooling reads use `HBASE`; this repo's shipped XML uses `Hbase` and was
-> accepted live. Preserve shipped XML for repo consistency, but don't generalize
-> that spelling as the sole Metadata form.
+> ⚠ **`executionType` casing.** All four shipped `*.decisionTable-meta.xml` files
+> use uppercase `HBASE` — the same spelling official Metadata documentation and
+> Tooling reads use. Write `HBASE`. The mixed-case `Hbase` is tolerated by the
+> platform (and by this toolkit's validator, for forward-compat) but is not the
+> form this repo ships; don't introduce it.
 
 ---
 
