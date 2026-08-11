@@ -115,7 +115,7 @@ when reading specifications for compatibility.
 | `status` | `ActivationInProgress`, `Active`, `Draft`, `Inactive` |
 | parameter `usage` | `INPUT`, `OUTPUT`, `ROWCRITERIA` |
 | parameter `dataType` | `Boolean`, `Currency`, `Date`, `DateTime`, `Number`, `Percent`, `String` |
-| parameter `operator` | `Equals`, `NotEquals`, `GreaterThan`, `GreaterOrEqual`, `LessThan`, `LessOrEqual`, `ExistsIn`, `Matches`, `IsNull` |
+| parameter `operator` | `Contains`, `DoesNotExistIn`, `DoesNotMatch`, `Equals`, `ExistsIn`, `GreaterOrEqual`, `GreaterThan`, `IsNotNull`, `IsNull`, `LessOrEqual`, `LessThan`, `Matches`, `NotEquals` |
 
 `DLO` replaces `DMO` as an execution type in API v67.0. Availability of table
 types and usage types depends on installed products and entitlements; return

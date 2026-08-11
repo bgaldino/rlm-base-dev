@@ -2,9 +2,8 @@
 """Decision Table lifecycle operations over an injectable transport.
 
 SObject-backed tables use Tooling status updates. CSV-backed tables use Connect
-file-import versions. Activation and CSV import are asynchronous; metadata
-deploys run from a temporary SFDX project. Dry-run transports preserve reads and
-skip writes and state polling.
+file-import versions. Activation is asynchronous. Dry-run transports preserve
+reads and skip writes and state polling.
 """
 
 import copy

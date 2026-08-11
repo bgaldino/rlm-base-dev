@@ -48,8 +48,9 @@ A Decision Table has two independently managed layers:
 | `upload_decision_table_data.py` | Append CSV rows and wait for `Completed`, `CompletedWithErrors`, or `Failed`. |
 | `delete_decision_table.py` | Delete with one Tooling request. Active or referenced tables are rejected by Salesforce. |
 
-Every command supports `--help` and `--json` for structured output; controlled
-failures then return a nonzero exit and a JSON `error`.
+Every command supports `--help` and `--json` for successful structured output.
+Mutators also emit a JSON `error` for controlled failures; read-only inspectors
+write errors to stderr. All failures exit nonzero.
 
 ## Inspect
 

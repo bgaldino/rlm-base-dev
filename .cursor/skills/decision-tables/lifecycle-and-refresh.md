@@ -26,11 +26,11 @@ Project definitions live in metadata and deploy through the Metadata API:
 
 | Source location | Deployed by |
 |---|---|
-| `unpackaged/pre/5_decisiontables/` | `deploy_decision_tables` |
+| `unpackaged/pre/5_decisiontables/` | `deploy_pre` |
 | `unpackaged/post_prm_pricing/decisionTables/` | `deploy_post_prm_pricing_decision_tables` |
 
-Both are step-5-era deploys in `prepare_rlm_org`. A one-off / out-of-build deploy
-uses `sf project deploy start`.
+`deploy_pre` runs through `prepare_core`; the PRM bundle runs later through
+`prepare_prm`. A one-off / out-of-build deploy uses `sf project deploy start`.
 
 ## Activate / deactivate
 
