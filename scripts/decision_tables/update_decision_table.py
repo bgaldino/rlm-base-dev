@@ -54,6 +54,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import (  # noqa: E402
     LifecycleEngine,
@@ -100,19 +101,19 @@ def main(argv=None) -> int:
     try:
         spec = _load_spec(args.spec)
     except (OSError, ValueError) as exc:
-        eprint(f"Error: could not read spec '{args.spec}': {exc}")
-        return 1
+        return fail_json(args.json, f"Error: could not read spec '{args.spec}': {exc}")
 
     result = validate_spec(spec)
     eprint(result.format_report())
     if not result.passed:
-        eprint("\nSpec has errors; not updating. Fix them and retry.")
-        return 1
+        return fail_json(args.json, "Spec has errors; not updating. Fix them and retry.",
+                         {"action": "update"})
 
     dev_name = args.developer_name or spec.get("fullName")
     if not dev_name:
-        eprint("Error: no DeveloperName — pass --developer-name or set fullName in the spec.")
-        return 1
+        return fail_json(
+            args.json,
+            "Error: no DeveloperName — pass --developer-name or set fullName in the spec.")
 
     preview = not args.confirm
     transport = Transport(args.target_org, api_version=args.api_version,
@@ -125,8 +126,7 @@ def main(argv=None) -> int:
     try:
         table_row = resolve_decision_table(transport, dev_name)
     except (DecisionTableClientError, ResolveError) as exc:
-        eprint(f"Error: {exc}")
-        return 1
+        return fail_json(args.json, f"Error: {exc}", summary)
 
     record_id = table_row["Id"]
     summary["id"] = record_id
@@ -169,11 +169,7 @@ def main(argv=None) -> int:
             engine.assert_editable(table_row)
             _do_mutate()
     except (DecisionTableClientError, LifecycleError) as exc:
-        eprint(f"\nFAILED: {exc}")
-        summary["error"] = str(exc)
-        if args.json:
-            print(json.dumps(summary, indent=2, default=str))
-        return 1
+        return fail_json(args.json, f"FAILED: {exc}", summary)
 
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")

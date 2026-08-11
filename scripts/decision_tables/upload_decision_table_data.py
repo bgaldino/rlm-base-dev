@@ -77,6 +77,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import (  # noqa: E402
     _UPLOAD_ERROR,
@@ -87,11 +88,17 @@ from scripts.decision_tables._resolve import ResolveError, load_definition  # no
 
 
 def _read_csv(path):
-    """Read the CSV (or stdin for '-') and return (text, header_list)."""
+    """Read the CSV (or stdin for '-') and return (text, header_list).
+
+    Open files as ``utf-8-sig`` so a UTF-8 BOM (Excel writes one by default) is
+    consumed rather than left on the first header as U+FEFF. For stdin the bytes
+    are already decoded, so strip a leading BOM from the text. Without this the
+    first header parses as ``\ufeffFieldName`` and header validation reports the
+    real column missing plus a phantom extra one, refusing a valid file."""
     if path == "-":
-        text = sys.stdin.read()
+        text = sys.stdin.read().lstrip("\ufeff")
     else:
-        with open(path, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8-sig") as fh:
             text = fh.read()
     if not text.strip():
         raise ValueError("the CSV file is empty.")
@@ -177,14 +184,15 @@ def main(argv=None) -> int:
     # actionable error, not an argparse "unrecognized argument"; drop the guard if a
     # later release fixes deleteAllRows.)
     if args.overwrite:
-        eprint(
+        return fail_json(
+            args.json,
             "Error: --overwrite (deleteAllRows:true) is refused on the pinned release "
             "262/v67.0 — it FAILS reproducibly there (uploadStatus=Failed, 0 rows "
             "loaded; existing rows kept). Submitting it would report a known-broken "
             "operation as success and, with --activate-version, could activate the "
             "stale prior rows. To replace all rows, create a fresh version/table and "
-            "append.")
-        return 1
+            "append.",
+            {"action": "upload", "developerName": args.developer_name})
 
     # The upload target and the activation target must be the SAME version — uploading
     # into version 2 then activating version 1 would put a different, potentially stale
@@ -194,18 +202,20 @@ def main(argv=None) -> int:
         if args.version_number is None:
             args.version_number = args.activate_version
         elif args.version_number != args.activate_version:
-            eprint(f"Error: --version-number ({args.version_number}) and "
-                   f"--activate-version ({args.activate_version}) must be the same "
-                   "version — activating a version other than the one just uploaded "
-                   "would put a different (possibly stale) version live. Omit "
-                   "--version-number to upload into the version being activated.")
-            return 1
+            return fail_json(
+                args.json,
+                f"Error: --version-number ({args.version_number}) and "
+                f"--activate-version ({args.activate_version}) must be the same "
+                "version — activating a version other than the one just uploaded "
+                "would put a different (possibly stale) version live. Omit "
+                "--version-number to upload into the version being activated.",
+                {"action": "upload", "developerName": args.developer_name})
 
     try:
         csv_text, header = _read_csv(args.csv)
     except (OSError, ValueError) as exc:
-        eprint(f"Error: could not read CSV '{args.csv}': {exc}")
-        return 1
+        return fail_json(args.json, f"Error: could not read CSV '{args.csv}': {exc}",
+                         {"action": "upload", "developerName": args.developer_name})
 
     preview = not args.confirm
     transport = Transport(args.target_org, api_version=args.api_version,
@@ -214,16 +224,18 @@ def main(argv=None) -> int:
     try:
         defn = load_definition(transport, args.developer_name)
     except (DecisionTableClientError, ResolveError) as exc:
-        eprint(f"Error: {exc}")
-        return 1
+        return fail_json(args.json, f"Error: {exc}",
+                         {"action": "upload", "developerName": args.developer_name})
 
     table_row = defn["table"]
     record_id = table_row["Id"]
     source_type = (defn.get("metadata") or {}).get("dataSourceType") or table_row.get("SourceObject")
     if source_type not in ("CsvUpload", "CSV"):
-        eprint(f"Error: '{args.developer_name}' dataSourceType is {source_type!r}, not "
-               f"'CsvUpload'. The /file upload only applies to CSV Based Decision Tables.")
-        return 1
+        return fail_json(
+            args.json,
+            f"Error: '{args.developer_name}' dataSourceType is {source_type!r}, not "
+            f"'CsvUpload'. The /file upload only applies to CSV Based Decision Tables.",
+            {"action": "upload", "developerName": args.developer_name, "id": record_id})
 
     # --overwrite is refused up front (see the guard after arg parsing), so the mode
     # is always append past this point.
@@ -232,9 +244,11 @@ def main(argv=None) -> int:
            f"{'PREVIEW' if preview else 'CONFIRM'}")
     missing_headers, extra_headers = _check_headers(header, defn)
     if missing_headers:
-        eprint("Error: CSV is missing a header for these definition columns: "
-               f"{missing_headers}. The platform rejects this file; no upload submitted.")
-        return 1
+        return fail_json(
+            args.json,
+            "Error: CSV is missing a header for these definition columns: "
+            f"{missing_headers}. The platform rejects this file; no upload submitted.",
+            {"action": "upload", "developerName": args.developer_name, "id": record_id})
     if extra_headers:
         eprint(f"  note: CSV has headers with no matching column: {extra_headers}.")
     eprint("Note: the import is async — poll the data GET (dump_decision_table_data.py) "

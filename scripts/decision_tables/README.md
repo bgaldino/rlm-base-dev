@@ -98,12 +98,12 @@ destructive probing on scratch orgs.
 |--------|---------|
 | `_client.py` | The `sf api request rest` wrapper, `DEFAULT_API_VERSION="67.0"`. Exposes **explicit Tooling helpers** (`tooling_query` → `/tooling/query`, `tooling_sobject_request` → `/tooling/sobjects/<Obj>[/<id>][/describe]`) distinct from **normal REST** (`sobjects_request`, `soql_query`) and Connect helpers used for optional comparative definition GETs plus CSV `/file`, `/data`, and `/versions` sub-resources. SOQL follows `nextRecordsUrl`. `DecisionTableClientError` carries `error_codes`/`body`. |
 | `_resolve.py` | DeveloperName → `DecisionTable` (`0lD`) summary + child resolution across the 5 Tooling objects. `load_definition()` assembles the whole definition dict (`table` / `metadata` / `parameters` / `datasetLinks` / `datasetParameters` / `sourceCriteria`); `get_connect_definition()` reads + unwraps the Connect `decisionTable` envelope. `ResolveError` on a missing table. |
-| `_schema.py` | Enum + key-prefix catalogs (`DATA_SOURCE_TYPES`, `EXECUTION_TYPES` incl. `DLO`, `FILTER_RESULT_BY`, `PARAM_USAGE`, `SETUP_OBJECT_PREFIXES`, …), a response-interpretation map for Metadata/Tooling vs raw Connect GET vocabulary, and `validate_spec()` — a **pure** validator over a canonical Metadata-vocabulary DT spec. Stdlib-only; reused by the offline tests. |
+| `_schema.py` | Enum + key-prefix catalogs (`DATA_SOURCE_TYPES`, `EXECUTION_TYPES` incl. `DLO`, `FILTER_RESULT_BY`, `PARAM_USAGE`, `SETUP_OBJECT_PREFIXES`, …) and `validate_spec()` — a **pure** validator over a canonical Metadata-vocabulary DT spec. Stdlib-only; reused by the offline tests. |
 | `_payload.py` | **Pure** canonical-spec → supported write translators: `to_metadata` (the shared `Metadata` body), `to_metadata_xml` (byte-identical to the shipped source XML — elements emitted alphabetically), `to_tooling` (`{FullName, Metadata}` for create), and `tooling_metadata_only` (`{Metadata}` for PATCH — drops the spec's `status`, stamping the caller-supplied **live** status the required-field PATCH demands). Dependency-free — no `requests`, no CCI, no `sf`. |
 | `_lifecycle.py` | `LifecycleEngine` over a `Transport`: `activate` (async — polls past `ActivationInProgress`) / `deactivate` (sync), the **active-edit guard** (`assert_editable` + `run_guarded_update`: deactivate → mutate → reactivate), `refresh` (`isDecisionTableIncremental`), the temp-SFDX `deploy_metadata_xml`, and Tooling `delete`. `LifecycleError` on failure. |
 
 **Tests:** `tests/test_decision_tables_toolkit.py` — offline unit tests (no org,
-no `sf`, no pytest) for `_schema` (enums / prefixes / divergence map / validator,
+no `sf`, no pytest) for `_schema` (enums / prefixes / validator,
 incl. the `CsvUpload` `sourceObject="CSV"` convention), `_resolve` query builders
 + definition assembly, `diff_definitions`, `dump_data` branch selection (incl. the
 `CsvUpload` `/data` rows / empty / gated cases), `trace_recipe_mappings`
@@ -119,6 +119,12 @@ writes) — including `dump_decision_table_data.py`'s `--filter`
 non-CsvUpload table, and `upload_decision_table_data.py`'s two-phase upload,
 `--overwrite`, `--activate-version`, and `--wait-for-status` (non-zero exit on a
 terminal `Failed`). Run: `python tests/test_decision_tables_toolkit.py`.
+
+`tests/test_decision_tables_client.py` is a companion offline suite for the
+`_client.py` transport itself — the `sf api request` shape, dry-run skipping
+writes but not reads, Salesforce error-detail preservation, SOQL pagination over
+the Tooling path, and the CSV/timeout wrapper. Run:
+`python tests/test_decision_tables_client.py`.
 
 ## Quick start — list → describe → trace → dump
 

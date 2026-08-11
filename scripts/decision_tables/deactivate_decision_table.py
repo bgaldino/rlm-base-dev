@@ -44,6 +44,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
@@ -75,8 +76,8 @@ def main(argv=None) -> int:
     try:
         table_row = resolve_decision_table(transport, args.developer_name)
     except (DecisionTableClientError, ResolveError) as exc:
-        eprint(f"Error: {exc}")
-        return 1
+        return fail_json(args.json, f"Error: {exc}",
+                         {"action": "deactivate", "developerName": args.developer_name})
 
     record_id = table_row["Id"]
     current = table_row.get("Status")
@@ -89,8 +90,9 @@ def main(argv=None) -> int:
         try:
             engine.deactivate(record_id)
         except (DecisionTableClientError, LifecycleError) as exc:
-            eprint(f"\nFAILED: {exc}")
-            return 1
+            return fail_json(args.json, f"FAILED: {exc}",
+                             {"action": "deactivate", "developerName": args.developer_name,
+                              "id": record_id})
 
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")

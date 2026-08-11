@@ -23,7 +23,7 @@ against a fake transport, mirroring ``scripts/expression_sets/_resolve.py``.
 from typing import Any, Dict, List, Optional
 
 from scripts.decision_tables import _client
-from scripts.decision_tables._client import DecisionTableClientError, soql_literal
+from scripts.decision_tables._client import soql_literal
 
 
 class ResolveError(RuntimeError):

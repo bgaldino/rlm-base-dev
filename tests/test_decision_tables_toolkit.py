@@ -1798,6 +1798,37 @@ def test_create_cli_invalid_spec_blocks(tmp_path_factory):
     check("invalid spec performs NO mutation", fake.mutations == [], fake.mutations)
 
 
+def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
+    print("test_create_cli_premutation_failures_emit_json")
+    # --json advertises structured result output, and the mutation-failure path already
+    # emits JSON. A caller passing --json must get the SAME contract on the PRE-mutation
+    # failure phases (unreadable spec, schema rejection) — valid JSON on stdout carrying
+    # "error" — never empty stdout that forces it to switch to stderr parsing based on
+    # which phase failed. Both inputs below are realistic automation mistakes: a spec
+    # path that doesn't exist, and a well-formed-but-invalid spec.
+    fake = _FakeTransport(dry_run=False)
+    # (a) unreadable spec file.
+    rc, out = _run_cli_with_fake(
+        create_cli, ["--target-org", "x", "--spec", tmp_path_factory("does_not_exist.json"),
+                     "--path", "tooling", "--confirm", "--json"], fake)
+    check("missing spec exits 1", rc == 1, rc)
+    payload = json.loads(out)  # must be valid JSON, not empty stdout
+    check("missing-spec JSON carries an error", bool(payload.get("error")), payload)
+    check("missing-spec performs NO mutation", fake.mutations == [], fake.mutations)
+    # (b) schema-invalid spec (missing required fields).
+    bad = tmp_path_factory("invalid_spec.json")
+    Path(bad).write_text(json.dumps({"dataSourceType": "SingleSobject"}), encoding="utf-8")
+    fake2 = _FakeTransport(dry_run=False)
+    rc2, out2 = _run_cli_with_fake(
+        create_cli, ["--target-org", "x", "--spec", bad, "--path", "tooling",
+                     "--confirm", "--json"], fake2)
+    check("invalid spec exits 1", rc2 == 1, rc2)
+    payload2 = json.loads(out2)
+    check("invalid-spec JSON carries an error and the action",
+          bool(payload2.get("error")) and payload2.get("action") == "create", payload2)
+    check("invalid-spec performs NO mutation", fake2.mutations == [], fake2.mutations)
+
+
 def test_update_cli_active_refused_without_flag(tmp_spec):
     print("test_update_cli_active_refused_without_flag")
     # Active table + no --deactivate-first → the CLI must refuse (exit 1) and not
@@ -2048,6 +2079,35 @@ def test_upload_cli_missing_header_blocks(tmp_csv):
           fake.mutations == [], fake.mutations)
 
 
+def test_upload_cli_utf8_bom_header_accepted(tmp_csv):
+    print("test_upload_cli_utf8_bom_header_accepted")
+    # Excel writes UTF-8 CSVs with a leading BOM (U+FEFF) by default. Without BOM-aware
+    # reading the first header parses as "﻿Region", so header validation reports the
+    # real column (Region) missing plus a phantom extra ("﻿Region") and refuses an
+    # otherwise-valid file. _read_csv opens files as utf-8-sig, so the BOM is consumed and
+    # the upload proceeds. Encode the fixture WITH a BOM to reproduce the Excel case.
+    bom_csv = str(Path(tmp_csv).with_name("bom_rows.csv"))
+    Path(bom_csv).write_text("Region,DiscountPercent\nNorth,10\n", encoding="utf-8-sig")
+    # Sanity: the file really begins with the BOM bytes.
+    check("fixture CSV starts with a UTF-8 BOM",
+          Path(bom_csv).read_bytes().startswith(b"\xef\xbb\xbf"))
+    fake = _csv_transport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", bom_csv, "--confirm", "--json"], fake)
+    check("BOM CSV uploads (exit 0)", rc == 0, out[:300])
+    # The header check saw a clean "Region" (no phantom extra, no missing), so the two-phase
+    # upload ran: a ContentVersion insert + a /file POST.
+    check("BOM CSV inserts a ContentVersion and POSTs /file",
+          any(m[0] == "POST" and m[1] == "sobjects/ContentVersion" for m in fake.mutations)
+          and any(m[0] == "POST" and "/file" in m[1] for m in fake.mutations),
+          fake.mutations)
+    # And the parsed header used for validation carries no BOM.
+    _text, header = upload_cli._read_csv(bom_csv)
+    check("_read_csv strips the BOM from the first header",
+          header[:2] == ["Region", "DiscountPercent"], header)
+
+
 def test_upload_cli_preview_vs_confirm(tmp_csv):
     print("test_upload_cli_preview_vs_confirm")
     # Preview (no --confirm): dry-run transport → no ContentVersion / /file mutation.
@@ -2101,10 +2161,12 @@ def test_upload_cli_overwrite_refused(tmp_csv):
     check("--overwrite + --activate-version exits 1", rc2 == 1, (rc2, out2[:300]))
     check("--overwrite + --activate-version performs NO mutation (no stale activation)",
           fake2.mutations == [], fake2.mutations)
-    # The refusal returns 1 BEFORE the CSV read and the --json summary plumbing, so
-    # stdout carries no JSON summary (the actionable error goes to stderr via eprint).
-    check("refusal is up front — no --json summary emitted to stdout",
-          out2.strip() == "", out2[:200])
+    # The refusal is a PRE-mutation failure, and --json must carry the same structured
+    # contract there as on every other failure phase (uniform --json): stdout holds a
+    # valid JSON object with "error", while the actionable message also goes to stderr.
+    payload = json.loads(out2)
+    check("refusal emits a --json error object",
+          bool(payload.get("error")) and payload.get("action") == "upload", payload)
 
 
 def test_upload_cli_version_number_and_activation(tmp_csv):
@@ -2541,11 +2603,13 @@ def main():
     test_create_cli_generate_only_no_org(spec_path, out_xml)
     test_create_cli_generate_only_rejects_nonmetadata(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)
+    test_create_cli_premutation_failures_emit_json(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
     test_update_cli_unreadable_live_status_fails_closed(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_missing_header_blocks(csv_path)
+    test_upload_cli_utf8_bom_header_accepted(csv_path)
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_refused(csv_path)
     test_upload_cli_version_number_and_activation(csv_path)

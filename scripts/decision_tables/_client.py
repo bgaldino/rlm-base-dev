@@ -449,6 +449,25 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
+def fail_json(as_json, message, summary=None, code=1):
+    """Report a controlled CLI failure and return the exit `code` (default 1).
+
+    Always logs `message` to stderr. When `as_json` is set, also writes a JSON
+    object to stdout carrying `message` under ``"error"`` (merged over any partial
+    `summary` already accumulated). This makes the ``--json`` contract uniform:
+    a structured caller gets JSON on stdout for EVERY non-zero exit — input,
+    validation, resolve, or mutation phase — instead of empty stdout on the
+    pre-mutation phases that forces it to switch to stderr parsing based on where
+    the run failed.
+    """
+    eprint(message)
+    if as_json:
+        payload = dict(summary or {})
+        payload["error"] = message
+        print(json.dumps(payload, indent=2, default=str))
+    return code
+
+
 class Transport:
     """Binds the CLI transport to one org / api-version / dry-run setting.
 

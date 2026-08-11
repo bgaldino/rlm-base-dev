@@ -67,6 +67,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.decision_tables._resolve import (  # noqa: E402
@@ -116,14 +117,13 @@ def main(argv=None) -> int:
     try:
         spec = _load_spec(args.spec)
     except (OSError, ValueError) as exc:
-        eprint(f"Error: could not read spec '{args.spec}': {exc}")
-        return 1
+        return fail_json(args.json, f"Error: could not read spec '{args.spec}': {exc}")
 
     result = validate_spec(spec, path=args.path)
     eprint(result.format_report())
     if not result.passed:
-        eprint("\nSpec has errors; not creating. Fix them and retry.")
-        return 1
+        return fail_json(args.json, "Spec has errors; not creating. Fix them and retry.",
+                         {"action": "create"})
 
     api_name = spec.get("fullName")
     preview = not args.confirm
@@ -192,11 +192,7 @@ def main(argv=None) -> int:
             summary["id"] = record_id
             engine.wait_for_status(record_id, "Active")
     except (DecisionTableClientError, LifecycleError, ResolveError) as exc:
-        eprint(f"\nFAILED: {exc}")
-        summary["error"] = str(exc)
-        if args.json:
-            print(json.dumps(summary, indent=2, default=str))
-        return 1
+        return fail_json(args.json, f"FAILED: {exc}", summary)
 
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to create.")

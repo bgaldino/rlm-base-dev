@@ -70,7 +70,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from ._client import (
     DEFINITIONS_PATH,
-    DecisionTableClientError,
     soql_literal,
 )
 

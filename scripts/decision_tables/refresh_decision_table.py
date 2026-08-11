@@ -54,6 +54,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
@@ -90,8 +91,8 @@ def main(argv=None) -> int:
     try:
         table_row = resolve_decision_table(transport, args.developer_name)
     except (DecisionTableClientError, ResolveError) as exc:
-        eprint(f"Error: {exc}")
-        return 1
+        return fail_json(args.json, f"Error: {exc}",
+                         {"action": "refresh", "developerName": args.developer_name})
 
     mode = "incremental" if args.incremental else "full"
     signal_field = "LastIncrementalSyncDate" if args.incremental else "LastSyncDate"
@@ -110,8 +111,9 @@ def main(argv=None) -> int:
             version_number=args.version_number,
         )
     except (DecisionTableClientError, LifecycleError) as exc:
-        eprint(f"\nFAILED: {exc}")
-        return 1
+        return fail_json(args.json, f"FAILED: {exc}",
+                         {"action": "refresh", "developerName": args.developer_name,
+                          "id": table_row.get("Id"), "mode": mode})
 
     exit_code = 0
     if preview:

@@ -48,6 +48,7 @@ from scripts.decision_tables._client import (  # noqa: E402
     DecisionTableClientError,
     Transport,
     eprint,
+    fail_json,
 )
 from scripts.decision_tables._lifecycle import (  # noqa: E402
     LifecycleEngine,
@@ -85,8 +86,9 @@ def main(argv=None) -> int:
     try:
         table_row = resolve_decision_table(transport, args.developer_name)
     except (DecisionTableClientError, ResolveError) as exc:
-        eprint(f"Error: {exc}")
-        return 1
+        return fail_json(args.json, f"Error: {exc}",
+                         {"action": "delete", "developerName": args.developer_name,
+                          "deleted": False})
 
     record_id = table_row["Id"]
     current = table_row.get("Status")
@@ -143,14 +145,11 @@ def main(argv=None) -> int:
                 reactivation_error = str(react_exc)
                 eprint(f"  WARNING: reactivation also failed — table {record_id} may "
                        f"remain Inactive: {react_exc}")
-        eprint(f"\nFAILED: {exc}")
-        if args.json:
-            print(json.dumps(
-                {"action": "delete", "developerName": args.developer_name,
-                 "id": record_id, "deleted": False, "error": str(exc),
-                 "reactivated": reactivated, "reactivationError": reactivation_error},
-                indent=2, default=str))
-        return 1
+        return fail_json(
+            args.json, f"FAILED: {exc}",
+            {"action": "delete", "developerName": args.developer_name,
+             "id": record_id, "deleted": False,
+             "reactivated": reactivated, "reactivationError": reactivation_error})
 
     if preview:
         eprint("\n[preview] No deletion performed. Re-run with --confirm to delete.")
