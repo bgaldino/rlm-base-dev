@@ -11,7 +11,7 @@ Use this skill when refreshing, diagnosing, adding, or wiring a decision table, 
 whenever an agent is maintaining an org this toolchain built and needs to know whether
 its lookups still reflect the data.
 
-It also routes definition authoring, cross-org comparison, CSV upload, and guarded
+It also routes definition authoring, cross-org comparison, CSV upload, and explicit
 lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 `authoring-and-data-model.md` for the definition layer and API vocabularies; read
 `lifecycle-and-refresh.md` for deploy, activation, data loading, and refresh details.
@@ -36,8 +36,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 7. **Definition and data are separate layers.** Editing columns or source bindings does
    not synchronize source rows; refresh (or CSV upload, where applicable) updates the
    materialized data layer.
-8. **Deactivate before modifying an Active definition.** Use the guarded lifecycle
-   scripts, which preview by default and require `--confirm` to write.
+8. **Deactivate before modifying an Active definition.** Run deactivate, update, and
+   activate as separate commands so each platform failure returns independently. All
+   mutators preview by default and require `--confirm` to write.
 
 ## DO NOT
 
@@ -97,7 +98,7 @@ All mutators preview by default and write only with `--confirm`.
 | Trace recipe-table mappings | `trace_decision_table.py` |
 | Sample the materialized data layer | `dump_decision_table_data.py` |
 | Upload `CsvUpload` rows | `upload_decision_table_data.py` |
-| Create/update/activate/deactivate/delete | Guarded Metadata/Tooling lifecycle scripts under `scripts/decision_tables/` |
+| Create/update/activate/deactivate/delete | Preview-by-default Metadata/Tooling commands under `scripts/decision_tables/` |
 | Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
 
 Start with:
@@ -311,7 +312,7 @@ not know read that object.
 
 - `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
   metadata shape, API vocabulary divergence, enums, and the definition/data model.
-- `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — guarded lifecycle,
+- `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — explicit lifecycle,
   deployment, upload, refresh, and recipe-table mappings.
 - `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.
 - `docs/references/decision-table-api-reference.md` — exhaustive API and error reference.

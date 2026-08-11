@@ -116,6 +116,19 @@ def _param(usage, field_name, **over):
     return p
 
 
+def _metadata_param(param):
+    """Translate the fake's Tooling parameter row to the parent Metadata shape."""
+    fields = {
+        "dataType": "DataType", "decimalScale": "DecimalScale",
+        "domainObject": "DomainObject", "fieldName": "FieldName",
+        "fieldPath": "FieldPath", "isGroupByField": "IsGroupByField",
+        "isPriorityField": "IsPriorityField", "isRequired": "IsRequired",
+        "length": "Length", "operator": "Operator", "sequence": "Sequence",
+        "sortType": "SortType", "usage": "Usage",
+    }
+    return {target: param.get(source) for target, source in fields.items()}
+
+
 class _FakeTransport:
     """Duck-types _client.Transport; routes tooling_query / soql / tooling_sobject
     / connect / connect_get by content. Records the queries it was asked to run.
@@ -130,7 +143,7 @@ class _FakeTransport:
     def __init__(self, *, table=None, params=None, links=None, dataset_params=None,
                  criteria=None, mappings=None, source_rows=None, connect_def=None,
                  metadata=None, csv_data=None,
-                 refresh_response=None, dry_run=False):
+                 refresh_response=None, upload_statuses=None, dry_run=False):
         self.table = table if table is not None else _table_row()
         self.params = params if params is not None else [
             _param("INPUT", "ProductId"), _param("OUTPUT", "Cost", DataType="Currency")]
@@ -151,6 +164,8 @@ class _FakeTransport:
         # Override for the refreshDecisionTable action response (a list, matching
         # the real invocable-action envelope). None → the default success/Queued.
         self.refresh_response = refresh_response
+        self.upload_statuses = list(upload_statuses or ["UploadInProgress", "Completed"])
+        self.upload_submitted = False
         self.dry_run = dry_run
         self.api_version = "67.0"
         self.target_org = "fake-org"
@@ -185,7 +200,14 @@ class _FakeTransport:
 
     def tooling_sobject(self, method, sobject, record_id=None, suffix=None, body=None, **kw):
         if method.upper() == "GET" and sobject == "DecisionTable":
-            meta = self.metadata if self.metadata is not None else _sample_metadata()
+            meta = dict(self.metadata if self.metadata is not None else _sample_metadata())
+            meta.setdefault(
+                "decisionTableParameters", [_metadata_param(p) for p in self.params]
+            )
+            if self.upload_submitted and self.upload_statuses:
+                meta["uploadStatus"] = self.upload_statuses[0]
+                if len(self.upload_statuses) > 1:
+                    self.upload_statuses.pop(0)
             return dict(self.table, Metadata=meta)
         if self._skip_mutation(method, f"tooling/{sobject}", body):
             return {}
@@ -245,6 +267,7 @@ class _FakeTransport:
         body = {"fileId": file_id}
         if self._skip_mutation("POST", path, body):
             return {}
+        self.upload_submitted = True
         return {"message": "We are uploading and processing the CSV file."}
 
     def get_decision_table_data(self, record_id, *, version_number=None,
@@ -266,7 +289,7 @@ class _LifecycleFake:
     Holds a mutable ``status``; a Tooling PATCH of ``Metadata.status`` updates it
     and records the transition, and the ``get_status`` Tooling query reads it back
     — so ``wait_for_status`` matches on the first poll (waited=0, before any
-    sleep). ``connect`` records DELETE/POST verbs for the delete/refresh paths."""
+    sleep). ``connect`` records refresh and CsvUpload-version mutations."""
 
     def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject",
                  versions=None):
@@ -873,16 +896,20 @@ def test_diff_identical():
 
 def test_diff_detects_changes():
     print("test_diff_detects_changes")
-    input_a = _param("INPUT", "ProductId", DomainObject="Product2")
+    input_a = _param("INPUT", "ProductId", DomainObject="Product2",
+                     DecimalScale=2, IsPriorityField=False, Length=80)
     output_a = _param("OUTPUT", "Cost", DataType="Currency")
-    input_b = _param("INPUT", "ProductId", DataType="Number", DomainObject="Product2")
+    input_b = _param("INPUT", "ProductId", DataType="Number", DomainObject="Product2",
+                     DecimalScale=3, IsPriorityField=True, Length=120)
     output_b = _param("OUTPUT", "Margin", DataType="Percent")
     link_a = {"Id": "0lX-A", "DeveloperName": "Products", "MasterLabel": "Products",
               "SetupName": "Products", "SourceObject": "Product2", "IsDefault": True,
               "Description": "Default product dataset"}
     link_b = dict(link_a, Id="0lX-B", IsDefault=False)
     a = {"table": _table_row(Status="Active"),
-         "metadata": _sample_metadata(collectOperator="None"),
+         "metadata": _sample_metadata(
+             collectOperator="None",
+             decisionTableParameters=[_metadata_param(input_a), _metadata_param(output_a)]),
          "parameters": [input_a, output_a],
          "datasetLinks": [link_a],
          "datasetParameters": [{
@@ -895,7 +922,9 @@ def test_diff_detects_changes():
                               "Value": "Active", "ValueType": "Literal",
                               "SequenceNumber": 1}]}
     b = {"table": _table_row(Status="Inactive"),
-         "metadata": _sample_metadata(filterResultBy="Priority", collectOperator="Maximum"),
+         "metadata": _sample_metadata(
+             filterResultBy="Priority", collectOperator="Maximum",
+             decisionTableParameters=[_metadata_param(input_b), _metadata_param(output_b)]),
          "parameters": [input_b, output_b],
          "datasetLinks": [link_b],
          "datasetParameters": [{
@@ -917,6 +946,12 @@ def test_diff_detects_changes():
     check("detects changed column (INPUT:ProductId dataType)",
           any(c["column"] == "INPUT:ProductId" and "dataType" in c["fields"]
               for c in delta["columns"]["changed"]), delta["columns"]["changed"])
+    input_change = next(
+        c for c in delta["columns"]["changed"] if c["column"] == "INPUT:ProductId"
+    )
+    check("detects Metadata-only column fields",
+          {"decimalScale", "isPriorityField", "length"} <= set(input_change["fields"]),
+          input_change)
     check("detects dataset-link property changes",
           bool(delta["datasetLinks"]["removed"] and delta["datasetLinks"]["added"]),
           delta["datasetLinks"])
@@ -1191,13 +1226,18 @@ def test_trace_correlation():
 def _run_cli_with_fake(module, argv, fake):
     """Run a CLI's main() with its Transport swapped for a fake; capture stdout."""
     orig = module.Transport
+    orig_sleep = upload_cli.time.sleep if module is upload_cli else None
     module.Transport = lambda *a, **k: fake
+    if orig_sleep is not None:
+        upload_cli.time.sleep = lambda *a, **k: None
     buf = io.StringIO()
     try:
         with redirect_stdout(buf):
             rc = module.main(argv)
     finally:
         module.Transport = orig
+        if orig_sleep is not None:
+            upload_cli.time.sleep = orig_sleep
     return rc, buf.getvalue()
 
 
@@ -1350,33 +1390,8 @@ def test_metadata_xml_roundtrip():
 
 
 # --------------------------------------------------------------------------- #
-# _lifecycle — active-edit guard + guarded-update transitions (no org, no sleep)
+# _lifecycle — explicit lifecycle transitions (no org, no sleep)
 # --------------------------------------------------------------------------- #
-
-def test_assert_editable_guard():
-    print("test_assert_editable_guard")
-    engine = LifecycleEngine(_LifecycleFake(status="Active"))
-    raised = False
-    try:
-        engine.assert_editable(_table_row(Status="Active"))
-    except LifecycleError as exc:
-        raised = "active" in str(exc).lower()
-    check("assert_editable raises on Active", raised)
-    # In-progress activation is likewise locked.
-    raised2 = False
-    try:
-        engine.assert_editable(_table_row(Status="ActivationInProgress"))
-    except LifecycleError:
-        raised2 = True
-    check("assert_editable raises on ActivationInProgress", raised2)
-    # Draft/Inactive are editable — no raise.
-    ok = True
-    try:
-        engine.assert_editable(_table_row(Status="Draft"))
-        engine.assert_editable(_table_row(Status="Inactive"))
-    except LifecycleError:
-        ok = False
-    check("assert_editable allows Draft/Inactive", ok)
 
 
 def test_activate_deactivate_csv_upload_is_version_first():
@@ -1428,188 +1443,12 @@ def test_activate_deactivate_sobject_is_table_first():
           fake.connect_calls)
 
 
-def test_guarded_update_active_roundtrip():
-    print("test_guarded_update_active_roundtrip")
-    fake = _LifecycleFake(status="Active")
-    engine = LifecycleEngine(fake, max_wait_seconds=1)
-    calls = []
-    engine.run_guarded_update(
-        table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-        mutate=lambda: calls.append("mutate"),
-        verb="update")
-    check("guarded update called mutate once", calls == ["mutate"], calls)
-    check("guarded update deactivated then reactivated",
-          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
-    check("guarded update left the table Active", fake.status == "Active")
-
-
-def test_guarded_update_csv_upload_composed_paths():
-    print("test_guarded_update_csv_upload_composed_paths")
-    record_id = "0lDxx0000000001AAA"
-
-    success = _LifecycleFake(status="Active", data_source_type="CsvUpload")
-    calls = []
-    LifecycleEngine(success, max_wait_seconds=1).run_guarded_update(
-        table_row={"Id": record_id, "Status": "Active"},
-        mutate=lambda: calls.append("mutate"),
-        verb="update",
-    )
-    check("CsvUpload guarded update mutates once", calls == ["mutate"], calls)
-    check("CsvUpload guarded update deactivates/reactivates the version",
-          success.version_status_sets == ["Inactive", "Active"],
-          success.version_status_sets)
-    check("CsvUpload guarded update never PATCHes table Metadata.status",
-          success.status_sets == [], success.status_sets)
-
-    rejected = _LifecycleFake(status="Active", data_source_type="CsvUpload")
-
-    def _rejected_patch():
-        raise DecisionTableClientError("tooling PATCH rejected")
-
-    raised = False
-    try:
-        LifecycleEngine(rejected, max_wait_seconds=1).run_guarded_update(
-            table_row={"Id": record_id, "Status": "Active"},
-            mutate=_rejected_patch,
-            verb="update",
-        )
-    except DecisionTableClientError:
-        raised = True
-    check("CsvUpload rejected atomic update re-raises", raised)
-    check("CsvUpload rejected atomic update restores the active version",
-          rejected.status == "Active"
-          and rejected.version_status_sets == ["Inactive", "Active"],
-          rejected.version_status_sets)
-
-
-def test_guarded_update_csv_upload_multi_version_roundtrip():
-    print("test_guarded_update_csv_upload_multi_version_roundtrip")
-    # A CsvUpload table with several versions where version 2 is the active one.
-    # Deactivation resolves version 2 (the unique active one); reactivation must
-    # re-use THAT version number, not re-resolve after v2 went Inactive (which
-    # would strand the table Inactive — there is then no unique active version).
-    record_id = "0lDxx0000000001AAA"
-    fake = _LifecycleFake(
-        status="Active", data_source_type="CsvUpload",
-        versions=[{"versionNumber": 1, "versionStatus": "Inactive"},
-                  {"versionNumber": 2, "versionStatus": "Active"}])
-    calls = []
-    LifecycleEngine(fake, max_wait_seconds=1).run_guarded_update(
-        table_row={"Id": record_id, "Status": "Active"},
-        mutate=lambda: calls.append("mutate"),
-        verb="update",
-    )
-    check("multi-version guarded update mutates once", calls == ["mutate"], calls)
-    check("multi-version guarded update deactivated then reactivated version 2",
-          fake.connect_calls == [
-              ("PATCH", f"{DEFINITIONS_PATH}/{record_id}/versions/2", {"versionStatus": "Inactive"}),
-              ("PATCH", f"{DEFINITIONS_PATH}/{record_id}/versions/2", {"versionStatus": "Active"})],
-          fake.connect_calls)
-    check("multi-version guarded update left version 2 Active",
-          fake.versions == {1: "Inactive", 2: "Active"} and fake.status == "Active",
-          fake.versions)
-
-
-def test_guarded_update_tooling_failure_reactivates():
-    print("test_guarded_update_tooling_failure_reactivates")
-    # An atomic Tooling PATCH that fails leaves the record byte-identical, so the
-    # table IS reactivated — a failed edit never
-    # knocks a live table offline. The failure is still re-raised.
-    fake = _LifecycleFake(status="Active")
-    engine = LifecycleEngine(fake, max_wait_seconds=1)
-
-    def _boom():
-        raise DecisionTableClientError("tooling PATCH rejected")
-
-    raised = False
-    try:
-        engine.run_guarded_update(
-            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_boom, verb="update")
-    except DecisionTableClientError:
-        raised = True
-    check("tooling-path failure re-raises", raised)
-    check("tooling-path failure reactivates (record unchanged)",
-          fake.status == "Active" and fake.status_sets == ["Inactive", "Active"],
-          fake.status_sets)
-
-
-def test_guarded_update_double_failure_chains_original_cause():
-    print("test_guarded_update_double_failure_chains_original_cause")
-    # F9: when the mutation fails AND the reactivation ALSO fails, the raised
-    # LifecycleError must name BOTH — why the mutation failed and why the table is
-    # still offline — and chain the original mutation failure as its __cause__ so a
-    # caller printing the traceback sees the root cause, not just the reactivation
-    # error. Deactivate succeeds against the fake; mutate raises; the reactivate step
-    # is forced to fail by overriding engine.activate.
-    fake = _LifecycleFake(status="Active")
-    engine = LifecycleEngine(fake, max_wait_seconds=1)
-
-    def _boom():
-        raise DecisionTableClientError("tooling PATCH rejected")
-
-    def _activate_fails(*a, **k):
-        raise DecisionTableClientError("reactivation PATCH rejected")
-
-    engine.activate = _activate_fails
-    raised = None
-    try:
-        engine.run_guarded_update(
-            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_boom, verb="update")
-    except LifecycleError as exc:
-        raised = exc
-    check("double failure raises LifecycleError", raised is not None, raised)
-    check("double-failure message names the original mutation failure",
-          raised and "tooling PATCH rejected" in str(raised), str(raised))
-    check("double-failure message names the reactivation failure",
-          raised and "reactivation also failed" in str(raised), str(raised))
-    check("double failure chains the original mutation error as __cause__",
-          raised and isinstance(raised.__cause__, DecisionTableClientError),
-          raised.__cause__ if raised else None)
-
-
-def test_guarded_update_rejected_deactivate_does_not_reactivate():
-    print("test_guarded_update_rejected_deactivate_does_not_reactivate")
-    # If the DEACTIVATE itself is rejected (e.g. the table is referenced by an active
-    # Expression Set), the table never went offline — so the guarded sequencer must
-    # NOT attempt a redundant reactivation. Reactivating an already-Active table
-    # would be rejected by the platform and reported as a misleading "reactivation
-    # also failed". The original deactivate failure is surfaced verbatim, and no
-    # reactivation PATCH goes out.
-    fake = _LifecycleFake(status="Active", data_source_type="CsvUpload")
-    orig_connect = fake.connect
-
-    def _reject_deactivate(method, path, body=None, **kw):
-        if (method.upper() == "PATCH" and "/versions/" in path
-                and isinstance(body, dict) and body.get("versionStatus") == "Inactive"):
-            raise DecisionTableClientError("deactivate rejected — table still referenced")
-        return orig_connect(method, path, body=body, **kw)
-
-    fake.connect = _reject_deactivate
-    raised = None
-    try:
-        engine = LifecycleEngine(fake, max_wait_seconds=1)
-        engine.run_guarded_update(
-            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=lambda: None, verb="update")
-    except DecisionTableClientError as exc:
-        raised = exc
-    check("rejected deactivate re-raises the original error (not a chained one)",
-          raised is not None and "deactivate rejected" in str(raised)
-          and "reactivation also failed" not in str(raised), str(raised))
-    check("no reactivation PATCH is attempted after a rejected deactivate",
-          fake.version_status_sets == [], fake.version_status_sets)
-    check("the table is left Active (it never went offline)",
-          fake.status == "Active", fake.status)
-
-
 def test_wait_for_status_timeout_message_is_operation_aware():
     print("test_wait_for_status_timeout_message_is_operation_aware")
     # The single wait_for_status poll confirms BOTH activation and deactivation, so
     # its timeout text must not hardcode "Activation is asynchronous" when confirming
-    # Inactive, and it must not recommend a --max-wait flag that most reaching CLIs
-    # (update/delete/deactivate) don't expose.
+    # Inactive, and it must not recommend a --max-wait flag that deactivate does
+    # not expose.
     restore = _no_sleep()
     try:
         # Activation timeout: the table never leaves Inactive while we poll for Active.
@@ -1752,10 +1591,14 @@ def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
 def test_create_cli_generate_only_rejects_nonmetadata(tmp_spec):
     print("test_create_cli_generate_only_rejects_nonmetadata")
     fake = _FakeTransport(dry_run=True)
-    rc, _ = _run_cli_with_fake(
+    rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--generate-only", "/tmp/x.xml"], fake)
+                     "--path", "tooling", "--generate-only", "/tmp/x.xml", "--json"],
+        fake)
     check("generate-only + non-metadata path exits 2", rc == 2, rc)
+    payload = json.loads(out)
+    check("generate-only path error emits JSON",
+          payload.get("action") == "create" and bool(payload.get("error")), payload)
 
 
 def test_create_cli_invalid_spec_blocks(tmp_path_factory):
@@ -1799,71 +1642,76 @@ def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
     check("invalid-spec JSON carries an error and the action",
           bool(payload2.get("error")) and payload2.get("action") == "create", payload2)
     check("invalid-spec performs NO mutation", fake2.mutations == [], fake2.mutations)
+    # (c) generate-only output path is not writable (a directory, not a file).
+    valid = Path(tmp_path_factory("valid_generate_spec.json"))
+    valid.write_text(json.dumps(_cost_book_spec()), encoding="utf-8")
+    output_dir = Path(tmp_path_factory("xml_output_dir"))
+    output_dir.mkdir()
+    fake3 = _FakeTransport(dry_run=True)
+    rc3, out3 = _run_cli_with_fake(
+        create_cli,
+        ["--target-org", "x", "--spec", str(valid), "--generate-only", str(output_dir),
+         "--json"],
+        fake3,
+    )
+    check("generate-only write failure exits 1", rc3 == 1, (rc3, out3[:300]))
+    payload3 = json.loads(out3)
+    check("generate-only write failure emits JSON",
+          payload3.get("generateOnly") == str(output_dir)
+          and bool(payload3.get("error")), payload3)
 
 
-def test_update_cli_active_refused_without_flag(tmp_spec):
-    print("test_update_cli_active_refused_without_flag")
-    # Active table + no --deactivate-first → the CLI must refuse (exit 1) and not
-    # mutate, even under --confirm.
+def test_update_cli_returns_platform_error(tmp_spec):
+    print("test_update_cli_returns_platform_error")
     fake = _FakeTransport(table=_table_row(Status="Active"), dry_run=False)
+    attempted = []
+    original = fake.tooling_sobject
+
+    def _reject_active(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        if method.upper() == "PATCH" and sobject == "DecisionTable":
+            attempted.append((method, sobject, body))
+            raise DecisionTableClientError(
+                "FIELD_NOT_UPDATABLE: Can't edit an active Decision Table",
+                error_codes=["FIELD_NOT_UPDATABLE"],
+            )
+        return original(method, sobject, record_id=record_id, suffix=suffix,
+                        body=body, **kw)
+
+    fake.tooling_sobject = _reject_active
+    rc, out = _run_cli_with_fake(
+        update_cli,
+        ["--target-org", "x", "--spec", tmp_spec, "--confirm", "--json"],
+        fake,
+    )
+    payload = json.loads(out)
+    check("active update returns the platform failure", rc == 1 and len(attempted) == 1,
+          (rc, attempted))
+    check("active update JSON returns the platform error unchanged",
+          payload.get("error") ==
+          "FIELD_NOT_UPDATABLE: Can't edit an active Decision Table", payload)
+
+
+def test_update_cli_sends_one_patch(tmp_spec):
+    print("test_update_cli_sends_one_patch")
+    fake = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=False)
     rc, _ = _run_cli_with_fake(
         update_cli, ["--target-org", "x", "--spec", tmp_spec, "--confirm"], fake)
-    check("update of Active table without --deactivate-first exits 1", rc == 1, rc)
-    check("refused update performs NO PATCH",
-          not any(m[0] == "PATCH" for m in fake.mutations), fake.mutations)
-
-
-def test_update_cli_deactivate_first_roundtrip(tmp_spec):
-    print("test_update_cli_deactivate_first_roundtrip")
-    fake = _FakeTransport(table=_table_row(Status="Active"), dry_run=False)
-    rc, _ = _run_cli_with_fake(
-        update_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--deactivate-first", "--confirm"], fake)
-    check("deactivate-first update exits 0", rc == 0, rc)
+    check("inactive update exits 0", rc == 0, rc)
     patches = [m for m in fake.mutations if m[0] == "PATCH" and m[1] == "tooling/DecisionTable"]
-    # The lifecycle engine drives the status flips: deactivate (Inactive) first,
-    # reactivate (Active) last.
-    statuses = [p[2]["Metadata"].get("status") for p in patches
-                if isinstance(p[2].get("Metadata"), dict) and p[2]["Metadata"].get("status")]
-    check("deactivate-first flips Inactive first, Active last",
-          bool(statuses) and statuses[0] == "Inactive" and statuses[-1] == "Active", statuses)
-    # The definition-edit PATCH is the one carrying the columns. A Tooling Metadata
-    # PATCH REQUIRES status (a status-free body is rejected), so the edit stamps the
-    # CURRENT LIVE status — Inactive, because the table was just deactivated — never
-    # the spec's Active (which would re-activate mid-edit).
-    defn_patches = [p for p in patches
-                    if isinstance(p[2].get("Metadata"), dict)
-                    and "decisionTableParameters" in p[2]["Metadata"]]
-    check("deactivate-first PATCHes a definition body with columns",
-          bool(defn_patches), defn_patches)
-    check("definition edit stamps the live status (Inactive), never the spec's Active",
-          any(p[2]["Metadata"].get("status") == "Inactive" for p in defn_patches),
-          [p[2]["Metadata"].get("status") for p in defn_patches])
+    check("update sends exactly one Tooling PATCH", len(patches) == 1, patches)
+    check("update stamps the resolved live status",
+          patches[0][2]["Metadata"].get("status") == "Inactive", patches)
+    check("update PATCH carries the complete definition",
+          "decisionTableParameters" in patches[0][2]["Metadata"], patches)
 
 
-def test_update_cli_unreadable_live_status_fails_closed(tmp_spec):
-    print("test_update_cli_unreadable_live_status_fails_closed")
-    # _do_mutate() reads the table's live Status immediately before the definition
-    # PATCH (a Tooling Metadata PATCH REQUIRES status). If that read returns NO row,
-    # the CLI must FAIL CLOSED (LifecycleError → exit 1, no PATCH) rather than
-    # silently reuse the stale pre-deactivation status (often Active) — stamping
-    # which could re-activate the table mid-edit, before the guarded reactivate,
-    # while still exiting 0. On an Inactive table the CLI reaches _do_mutate directly.
-    fake = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=False)
-    orig_query = fake.tooling_query
-
-    def _query(q):
-        # resolve_decision_table matches on DeveloperName (give it the row so
-        # resolution succeeds); get_status matches on Id (return no row — the failure).
-        if "FROM DecisionTable" in q and "WHERE Id =" in q:
-            return []
-        return orig_query(q)
-
-    fake.tooling_query = _query
+def test_update_cli_missing_resolved_status_fails_closed(tmp_spec):
+    print("test_update_cli_missing_resolved_status_fails_closed")
+    fake = _FakeTransport(table=_table_row(Status=None), dry_run=False)
     rc, out = _run_cli_with_fake(
         update_cli, ["--target-org", "x", "--spec", tmp_spec, "--confirm"], fake)
-    check("update with an unreadable live status exits 1", rc == 1, (rc, out[:300]))
-    check("update with an unreadable live status performs NO definition PATCH",
+    check("update with no resolved status exits 1", rc == 1, (rc, out[:300]))
+    check("update with no resolved status performs NO definition PATCH",
           not any(m[0] == "PATCH" for m in fake.mutations), fake.mutations)
 
 
@@ -1946,6 +1794,10 @@ def test_refresh_cli_exits_nonzero_on_bad_outcomes():
             refresh_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries",
                           "--confirm", "--json"], fake)
         check(f"refresh confirm exits 1 on {label}", rc == 1, (label, out[:300]))
+        payload = json.loads(out)
+        check(f"refresh {label} emits one JSON failure with the raw result",
+              bool(payload.get("error")) and payload.get("result", {}).get("raw")
+              == refresh_response, payload)
 
 
 def _csv_transport(**over):
@@ -2054,7 +1906,10 @@ def test_upload_cli_preview_vs_confirm(tmp_csv):
           len(file_posts) == 1, fake_c.mutations)
     check("upload confirm POSTs a bare append body (fileId only, no deleteAllRows)",
           file_posts and file_posts[0][2] == {"fileId": "068xx0000000001AAA"}, file_posts)
-    check("upload confirm reports dryRun=False", json.loads(out).get("dryRun") is False)
+    summary = json.loads(out)
+    check("upload confirm reports platform completion",
+          summary.get("dryRun") is False and summary.get("uploadStatus") == "Completed",
+          summary)
 
 
 def test_upload_cli_phase2_failure_emits_json_with_fileid(tmp_csv):
@@ -2091,25 +1946,66 @@ def _no_sleep():
     return lambda: setattr(_lifecycle.time, "sleep", orig)
 
 
-def test_upload_cli_loads_and_returns(tmp_csv):
-    print("test_upload_cli_loads_and_returns")
-    # The simplified loader does exactly two phases and returns — no status poll, no
-    # activation. It never emits an uploadStatus key (that lifecycle machinery is gone)
-    # and it points the caller at dump/activate for the async follow-up.
-    fake = _csv_transport(dry_run=False)
+def test_upload_cli_waits_for_new_terminal_status(tmp_csv):
+    print("test_upload_cli_waits_for_new_terminal_status")
+    metadata = _sample_metadata(
+        dataSourceType="CsvUpload", sourceObject="CSV", uploadStatus="Completed"
+    )
+    fake = _csv_transport(
+        dry_run=False, metadata=metadata,
+        upload_statuses=["Completed", "UploadInProgress", "Completed"],
+    )
     rc, out = _run_cli_with_fake(
         upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
                      "--csv", tmp_csv, "--confirm", "--json"], fake)
     check("upload exits 0", rc == 0, out[:300])
     summary = json.loads(out)
-    check("upload summary omits uploadStatus (no polling)",
-          "uploadStatus" not in summary, summary)
-    check("upload summary omits versionActivation (no activation)",
-          "versionActivation" not in summary, summary)
+    check("upload does not accept a stale preceding terminal status",
+          summary.get("uploadStatus") == "Completed" and fake.upload_statuses == ["Completed"],
+          (summary, fake.upload_statuses))
     check("upload did exactly two mutations (ContentVersion + /file)",
           [m[0] for m in fake.mutations] == ["POST", "POST"]
           and fake.mutations[0][1] == "sobjects/ContentVersion"
           and "/file" in fake.mutations[1][1], fake.mutations)
+
+
+def test_upload_cli_returns_platform_terminal_errors(tmp_csv):
+    print("test_upload_cli_returns_platform_terminal_errors")
+    for terminal in ("CompletedWithErrors", "Failed"):
+        fake = _csv_transport(
+            dry_run=False, upload_statuses=["UploadInProgress", terminal]
+        )
+        rc, out = _run_cli_with_fake(
+            upload_cli,
+            ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+             "--csv", tmp_csv, "--confirm", "--json"],
+            fake,
+        )
+        summary = json.loads(out)
+        check(f"upload exits 1 on {terminal}", rc == 1, (terminal, out[:300]))
+        check(f"upload returns platform status {terminal}",
+              summary.get("uploadStatus") == terminal and terminal in summary.get("error", ""),
+              summary)
+
+
+def test_upload_cli_times_out_on_stale_status(tmp_csv):
+    print("test_upload_cli_times_out_on_stale_status")
+    metadata = _sample_metadata(
+        dataSourceType="CsvUpload", sourceObject="CSV", uploadStatus="Completed"
+    )
+    fake = _csv_transport(
+        dry_run=False, metadata=metadata, upload_statuses=["Completed"]
+    )
+    rc, out = _run_cli_with_fake(
+        upload_cli,
+        ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+         "--csv", tmp_csv, "--confirm", "--json"],
+        fake,
+    )
+    summary = json.loads(out)
+    check("upload exits 1 when no new status is observed", rc == 1, (rc, out[:300]))
+    check("upload timeout reports the stale platform status",
+          "last seen: 'Completed'" in summary.get("error", ""), summary)
 
 
 def test_upload_cli_missing_csv_errors():
@@ -2141,26 +2037,39 @@ def test_delete_cli_requires_confirm():
           fake_c.mutations)
 
 
-def test_delete_cli_active_refused():
-    print("test_delete_cli_active_refused")
-    # An Active table is refused up front (assert_editable) and points at
-    # deactivate_decision_table.py — delete has no --deactivate-first option, so
-    # there is no partial state to unwind. Nothing is deleted.
+def test_delete_cli_returns_platform_error():
+    print("test_delete_cli_returns_platform_error")
     fake = _FakeTransport(table=_table_row(Status="Active"), dry_run=False)
-    rc, _ = _run_cli_with_fake(
+    attempted = []
+    original = fake.tooling_sobject
+
+    def _reject_active(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        if method.upper() == "DELETE" and sobject == "DecisionTable":
+            attempted.append(record_id)
+            raise DecisionTableClientError(
+                "INVALID_OPERATION: deactivate the table first",
+                error_codes=["INVALID_OPERATION", "DEPENDENCY_EXISTS"],
+            )
+        return original(method, sobject, record_id=record_id, suffix=suffix,
+                        body=body, **kw)
+
+    fake.tooling_sobject = _reject_active
+    rc, out = _run_cli_with_fake(
         delete_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries",
-                     "--confirm"], fake)
-    check("delete of an Active table exits 1", rc == 1, rc)
-    check("refused delete performs NO deletion",
-          not any(m[0] == "DELETE" for m in fake.mutations), fake.mutations)
+                     "--confirm", "--json"], fake)
+    payload = json.loads(out)
+    check("active delete returns the platform failure",
+          rc == 1 and attempted == ["0lDxx0000000001AAA"], (rc, attempted))
+    check("active delete JSON returns the platform error unchanged",
+          payload.get("error") == "INVALID_OPERATION: deactivate the table first",
+          payload)
 
 
 def test_delete_cli_failure_emits_json():
     print("test_delete_cli_failure_emits_json")
     # A DELETE that the platform rejects (e.g. the table is still referenced by an
-    # active Expression Set) surfaces as a controlled 'FAILED …' + exit 1, and the
-    # --json path still emits a structured summary with deleted=false. delete_tooling
-    # is atomic, so there is nothing to roll back.
+    # active Expression Set) surfaces as a controlled error + exit 1, and the
+    # --json path still emits a structured summary with deleted=false.
     fake = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=False)
     original = fake.tooling_sobject
 
@@ -2229,23 +2138,16 @@ def main():
               # Phase 2 — translators + XML round-trip
               test_translator_metadata, test_translator_tooling,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
-              # Phase 2 — lifecycle guards + transitions
-              test_assert_editable_guard,
+              # Phase 2 — explicit lifecycle transitions
               test_activate_deactivate_csv_upload_is_version_first,
               test_activate_deactivate_sobject_is_table_first,
-              test_guarded_update_active_roundtrip,
-              test_guarded_update_csv_upload_composed_paths,
-              test_guarded_update_csv_upload_multi_version_roundtrip,
-              test_guarded_update_tooling_failure_reactivates,
-              test_guarded_update_double_failure_chains_original_cause,
-              test_guarded_update_rejected_deactivate_does_not_reactivate,
               test_wait_for_status_timeout_message_is_operation_aware,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
-              test_delete_cli_requires_confirm, test_delete_cli_active_refused,
+              test_delete_cli_requires_confirm, test_delete_cli_returns_platform_error,
               test_delete_cli_failure_emits_json,
               # Phase 2 — CsvUpload data-load CLI gating
               test_upload_header_validation,
@@ -2262,15 +2164,17 @@ def main():
     test_create_cli_generate_only_rejects_nonmetadata(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)
     test_create_cli_premutation_failures_emit_json(_tmp)
-    test_update_cli_active_refused_without_flag(spec_path)
-    test_update_cli_deactivate_first_roundtrip(spec_path)
-    test_update_cli_unreadable_live_status_fails_closed(spec_path)
+    test_update_cli_returns_platform_error(spec_path)
+    test_update_cli_sends_one_patch(spec_path)
+    test_update_cli_missing_resolved_status_fails_closed(spec_path)
     # Phase B — CsvUpload upload CLI (needs a CSV fixture).
     test_upload_cli_missing_header_blocks(csv_path)
     test_upload_cli_utf8_bom_header_accepted(csv_path)
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_phase2_failure_emits_json_with_fileid(csv_path)
-    test_upload_cli_loads_and_returns(csv_path)
+    test_upload_cli_waits_for_new_terminal_status(csv_path)
+    test_upload_cli_returns_platform_terminal_errors(csv_path)
+    test_upload_cli_times_out_on_stale_status(csv_path)
 
     import shutil
     shutil.rmtree(tmpdir, ignore_errors=True)

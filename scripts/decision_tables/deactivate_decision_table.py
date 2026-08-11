@@ -13,8 +13,9 @@ table's own Status is a platform-derived mirror of the version's; ambiguous
 multi-version tables are refused rather than silently targeting version 1.
 
 Deactivate a table before editing its definition in place (an Active table's
-definition is locked — see ``update_decision_table.py --deactivate-first``), or
-to take a table offline. Note the platform blocks deactivation of a table still
+definition is locked), or to take a table offline. Run update and activation as
+separate commands so each failure is returned independently. The platform blocks
+deactivation of a table still
 referenced by an active Expression Set / Context Rule / recipe; that surfaces as
 the underlying platform error.
 

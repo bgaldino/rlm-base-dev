@@ -19,12 +19,12 @@ encodings are strict — notably a ``DateTime`` column requires the full
 only case-insensitive ``true``/``false`` (``1``/``0`` are rejected).
 
 The import is **asynchronous** — the POST returns *"We are uploading and
-processing the CSV file."*; the rows become queryable via the data GET within
-seconds. **This tool does one thing — load the rows — and returns.** Read back
-what landed with ``dump_decision_table_data.py`` (that is also how you catch
-silently-dropped rows). To activate the table's version afterward, run
-``activate_decision_table.py`` (a single-version CsvUpload table has one version;
-the lifecycle engine resolves and activates it).
+processing the CSV file."*. The tool waits for the platform's
+``Metadata.uploadStatus`` and succeeds only on ``Completed``;
+``CompletedWithErrors`` / ``Failed`` are returned as failures. The platform does
+not identify individual rejected rows, so use ``dump_decision_table_data.py``
+only when row-level inspection is needed. Activate the version afterward with
+``activate_decision_table.py``.
 
 **Preview by default.** Without ``--confirm`` the tool validates the CSV against
 the definition's columns and logs the planned two-phase upload but performs no
@@ -48,6 +48,7 @@ import csv
 import io
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -86,6 +87,9 @@ def _read_csv(path):
 # the uploaded CSV — requiring their headers would reject a valid file before
 # Salesforce sees it.
 _CSV_HEADER_USAGES = {"INPUT", "OUTPUT"}
+_UPLOAD_TERMINAL_STATUSES = {"Completed", "CompletedWithErrors", "Failed"}
+_UPLOAD_TIMEOUT_SECONDS = 120
+_UPLOAD_POLL_SECONDS = 3
 
 
 def _check_headers(header, defn):
@@ -104,6 +108,37 @@ def _check_headers(header, defn):
     missing = sorted(columns - header_set)
     extra = sorted(header_set - columns)
     return missing, extra
+
+
+def _wait_for_upload_status(transport, record_id, previous_status):
+    """Wait for this submission's platform uploadStatus to become terminal.
+
+    A table can retain the preceding upload's terminal value briefly after the
+    new POST. Do not accept that stale value until the status changes. On a first
+    upload, any non-null status establishes the new submission.
+    """
+    waited = 0
+    transitioned = False
+    last = previous_status
+    while waited <= _UPLOAD_TIMEOUT_SECONDS:
+        record = transport.tooling_sobject("GET", "DecisionTable", record_id)
+        metadata = record.get("Metadata") if isinstance(record, dict) else None
+        if not isinstance(metadata, dict):
+            raise DecisionTableClientError(
+                f"Tooling GET of DecisionTable/{record_id} returned no Metadata "
+                "while checking uploadStatus."
+            )
+        last = metadata.get("uploadStatus")
+        if last != previous_status and last is not None:
+            transitioned = True
+        if transitioned and last in _UPLOAD_TERMINAL_STATUSES:
+            return last
+        time.sleep(_UPLOAD_POLL_SECONDS)
+        waited += _UPLOAD_POLL_SECONDS
+    raise DecisionTableClientError(
+        f"DecisionTable/{record_id} upload did not reach a new terminal "
+        f"uploadStatus within {_UPLOAD_TIMEOUT_SECONDS}s (last seen: {last!r})."
+    )
 
 
 def main(argv=None) -> int:
@@ -168,6 +203,7 @@ def main(argv=None) -> int:
 
     summary = {"action": "upload", "developerName": args.developer_name,
                "id": record_id, "mode": "append", "dryRun": preview}
+    previous_upload_status = (defn.get("metadata") or {}).get("uploadStatus")
 
     if preview:
         eprint("\n[preview] Would (1) insert a ContentVersion with the CSV, then "
@@ -177,18 +213,6 @@ def main(argv=None) -> int:
             print(json.dumps(summary, indent=2, default=str))
         return 0
 
-    def _emit_failure(phase: str, message: str) -> int:
-        # A failure in either phase is a partial mutation. Emit the accumulated
-        # --json summary — including fileId once phase 1 created the ContentVersion —
-        # so a structured caller can diagnose/clean up the orphan rather than getting
-        # empty stdout, then exit 1.
-        summary["phase"] = phase
-        summary["error"] = message
-        eprint(f"\nFAILED: {message}")
-        if args.json:
-            print(json.dumps(summary, indent=2, default=str))
-        return 1
-
     try:
         # Phase 1 — ContentVersion insert (base64 CSV) → 068… id.
         title = f"DecisionTable {args.developer_name} rows"
@@ -196,22 +220,41 @@ def main(argv=None) -> int:
         cv = transport.content_version_insert(title, csv_text, path_on_client=path_on_client)
         file_id = cv.get("id") if isinstance(cv, dict) else None
         if not file_id:
-            return _emit_failure(
-                "content-version",
-                f"ContentVersion insert returned no id (response: {cv!r}).")
+            summary["phase"] = "content-version"
+            return fail_json(
+                args.json,
+                f"FAILED: ContentVersion insert returned no id (response: {cv!r}).",
+                summary,
+            )
         summary["fileId"] = file_id
 
         # Phase 2 — POST the file id to the /file sub-resource (async import).
         upload = transport.upload_decision_table_csv(record_id, file_id)
         summary["upload"] = upload
+        summary["phase"] = "processing"
+        upload_status = _wait_for_upload_status(
+            transport, record_id, previous_upload_status
+        )
+        summary["uploadStatus"] = upload_status
     except DecisionTableClientError as exc:
-        return _emit_failure(
-            "file-upload" if summary.get("fileId") else "content-version", str(exc))
+        summary.setdefault(
+            "phase", "file-upload" if summary.get("fileId") else "content-version"
+        )
+        return fail_json(args.json, f"FAILED: {exc}", summary)
 
-    eprint("\nUpload submitted (async). Confirm the rows landed — and catch any "
-           "silently-dropped rows — with dump_decision_table_data.py --developer-name "
-           f"{args.developer_name} --limit 5. Activate the version with "
-           "activate_decision_table.py.")
+    if upload_status != "Completed":
+        return fail_json(
+            args.json,
+            f"FAILED: Salesforce finished the CSV import with "
+            f"uploadStatus={upload_status}. The platform does not report which "
+            "rows were rejected.",
+            summary,
+        )
+
+    summary["phase"] = "completed"
+    eprint("\nUpload completed successfully (uploadStatus=Completed). Activate the "
+           "version with activate_decision_table.py. Use dump_decision_table_data.py "
+           "only when you need to inspect the landed rows.")
 
     if args.json:
         print(json.dumps(summary, indent=2, default=str))

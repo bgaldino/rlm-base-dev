@@ -13,13 +13,10 @@ Tooling API. The metadata path is deploy-based (re-run
   omitted/empty source criteria mean none. A PATCH is **atomic** — a rejected
   PATCH leaves the record byte-identical.
 
-**Active-edit guard.** An Active (or activating) table's definition cannot be
-edited in place — the platform returns ``FIELD_NOT_UPDATABLE`` / "Can't edit an
-active Decision Table". By default this tool **refuses** up front on an active
-table. Pass ``--deactivate-first`` to run the guarded
-deactivate → update → reactivate sequence instead: the table is deactivated,
-patched, and reactivated. On the atomic Tooling PATCH a failed edit is still
-reactivated because the definition remains unchanged.
+An Active (or activating) table's definition cannot be edited in place. This
+tool sends one Tooling PATCH and returns the platform's
+``FIELD_NOT_UPDATABLE`` error unchanged. Run ``deactivate_decision_table.py``
+first when the table must be edited, then reactivate it explicitly afterward.
 
 **Preview by default.** Without ``--confirm`` the tool validates the spec and logs
 the planned write but performs no org write. Re-run with ``--confirm`` to apply.
@@ -36,10 +33,7 @@ Usage
     python scripts/decision_tables/update_decision_table.py \
         --target-org rlm-base__scratch --spec my_table.json --confirm
 
-    # edit an ACTIVE table: deactivate → patch → reactivate
-    python scripts/decision_tables/update_decision_table.py \
-        --target-org rlm-base__scratch --spec my_table.json \
-        --deactivate-first --confirm
+    # edit an ACTIVE table: run deactivate, update, then activate as separate commands
 """
 
 import argparse
@@ -55,10 +49,6 @@ from scripts.decision_tables._client import (  # noqa: E402
     Transport,
     eprint,
     fail_json,
-)
-from scripts.decision_tables._lifecycle import (  # noqa: E402
-    LifecycleEngine,
-    LifecycleError,
 )
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
@@ -84,10 +74,6 @@ def main(argv=None) -> int:
                         help="Path to the canonical spec JSON ('-' for stdin).")
     parser.add_argument("--developer-name",
                         help="DecisionTable DeveloperName (default: the spec's fullName).")
-    parser.add_argument("--deactivate-first", action="store_true",
-                        help="If the table is Active, deactivate → update → reactivate "
-                             "(the deactivate-first guarded sequence). Without it, an "
-                             "active table is REFUSED.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually apply. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -115,9 +101,8 @@ def main(argv=None) -> int:
     preview = not args.confirm
     transport = Transport(args.target_org, api_version=args.api_version,
                           dry_run=preview, logger=eprint)
-    engine = LifecycleEngine(transport, logger=eprint)
     summary = {"action": "update", "path": "tooling", "developerName": dev_name,
-               "dryRun": preview, "deactivateFirst": bool(args.deactivate_first)}
+               "dryRun": preview}
 
     try:
         table_row = resolve_decision_table(transport, dev_name)
@@ -130,41 +115,21 @@ def main(argv=None) -> int:
            f"status={table_row.get('Status')}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
 
-    def _do_mutate():
-        # A Tooling Metadata PATCH REQUIRES status. Stamp the table's CURRENT
-        # LIVE status — read now, so during a deactivate-first sequence it is the
-        # already-deactivated Inactive — never the spec's (often Active, which
-        # would re-activate the table mid-edit before the guarded reactivate).
-        # A missing live status raises (fail closed): reusing the pre-deactivation
-        # status could reactivate the table mid-edit. The PATCH is atomic, so on any
-        # failure the guarded sequencer restores the original Active status.
-        live_status = engine.get_status(record_id)
-        if not live_status:
-            raise LifecycleError(
-                f"Could not read the live Status of DecisionTable/{record_id} before "
-                "the definition PATCH; refusing to reuse the pre-deactivation status "
-                "(a Tooling Metadata PATCH requires status). Re-check the table with "
-                "list_decision_tables.py and retry."
-            )
-        body = _payload.tooling_metadata_only(spec, live_status=live_status)
-        # An accepted Tooling PATCH stores the definition faithfully and a rejected
-        # one changes nothing (both live-verified), so the platform's own acceptance
-        # is the verification — no GET-back field-by-field re-check is needed.
-        transport.tooling_sobject("PATCH", "DecisionTable", record_id, body=body)
-
+    # Tooling Metadata PATCH requires status. Reuse the status returned by the
+    # resolve query and let Salesforce enforce lifecycle state and payload validity.
+    live_status = table_row.get("Status")
+    if not live_status:
+        return fail_json(
+            args.json,
+            f"Error: DecisionTable/{record_id} returned no Status; cannot build the "
+            "required Metadata payload.",
+            summary,
+        )
+    body = _payload.tooling_metadata_only(spec, live_status=live_status)
     try:
-        if args.deactivate_first:
-            engine.run_guarded_update(
-                table_row=table_row,
-                mutate=_do_mutate,
-                verb="update",
-            )
-        else:
-            # Refuse up front on an active table (with actionable guidance).
-            engine.assert_editable(table_row)
-            _do_mutate()
-    except (DecisionTableClientError, LifecycleError) as exc:
-        return fail_json(args.json, f"FAILED: {exc}", summary)
+        transport.tooling_sobject("PATCH", "DecisionTable", record_id, body=body)
+    except DecisionTableClientError as exc:
+        return fail_json(args.json, str(exc), summary)
 
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")

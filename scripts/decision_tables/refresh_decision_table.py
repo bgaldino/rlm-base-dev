@@ -115,21 +115,25 @@ def main(argv=None) -> int:
                          {"action": "refresh", "developerName": args.developer_name,
                           "id": table_row.get("Id"), "mode": mode})
 
-    exit_code = 0
+    summary = {"action": "refresh", "developerName": args.developer_name,
+               "id": table_row.get("Id"), "mode": mode,
+               "result": outcome, "dryRun": preview}
     if preview:
         eprint("\n[preview] No refresh invoked. Re-run with --confirm to invoke.")
     elif outcome.get("isSuccess") is False:
-        eprint(f"\nRefresh REJECTED (isSuccess=false, "
-               f"status={outcome.get('status')}). The platform may have hit the "
-               f"applicable full-refresh pool limit or the table's source binding "
-               f"is invalid.")
-        exit_code = 1
+        return fail_json(
+            args.json,
+            f"FAILED: Salesforce rejected the refresh "
+            f"(isSuccess=false, status={outcome.get('status')!r}).",
+            summary,
+        )
     elif outcome.get("isSuccess") is None:
-        eprint(f"\nRefresh returned an unexpected response (isSuccess absent/null, "
-               f"status={outcome.get('status')}). The action may have been invoked "
-               f"but the result envelope is unrecognized — re-check {signal_field} "
-               f"with describe_decision_table.py.")
-        exit_code = 1
+        return fail_json(
+            args.json,
+            f"FAILED: Salesforce returned no isSuccess value for the refresh "
+            f"(status={outcome.get('status')!r}).",
+            summary,
+        )
     else:
         status = outcome.get("status")
         if status == "Queued":
@@ -137,15 +141,15 @@ def main(argv=None) -> int:
                    f"{signal_field} with describe_decision_table.py to confirm the "
                    f"sync landed.")
         else:
-            eprint(f"\nRefresh accepted but status is {status!r}, not the expected "
-                   f"'Queued' — the action may not have queued successfully. "
-                   f"Re-check {signal_field} with describe_decision_table.py.")
-            exit_code = 1
+            return fail_json(
+                args.json,
+                f"FAILED: Salesforce returned isSuccess=true but refresh status "
+                f"{status!r}, not 'Queued'.",
+                summary,
+            )
     if args.json:
-        print(json.dumps({"action": "refresh", "developerName": args.developer_name,
-                          "id": table_row.get("Id"), "mode": mode,
-                          "result": outcome, "dryRun": preview}, indent=2, default=str))
-    return exit_code
+        print(json.dumps(summary, indent=2, default=str))
+    return 0
 
 
 if __name__ == "__main__":

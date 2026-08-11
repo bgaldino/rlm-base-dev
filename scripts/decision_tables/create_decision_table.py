@@ -111,8 +111,12 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.generate_only and args.path != "metadata":
-        eprint("Error: --generate-only is only valid with --path metadata.")
-        return 2
+        return fail_json(
+            args.json,
+            "Error: --generate-only is only valid with --path metadata.",
+            {"action": "create", "path": args.path},
+            code=2,
+        )
 
     try:
         spec = _load_spec(args.spec)
@@ -135,8 +139,12 @@ def main(argv=None) -> int:
             with open(args.generate_only, "w", encoding="utf-8") as fh:
                 fh.write(xml)
         except OSError as exc:
-            eprint(f"Error: could not write '{args.generate_only}': {exc}")
-            return 1
+            return fail_json(
+                args.json,
+                f"Error: could not write '{args.generate_only}': {exc}",
+                {"action": "create", "path": "metadata",
+                 "generateOnly": args.generate_only, "apiName": api_name},
+            )
         eprint(f"\nWrote {args.generate_only}. Deploy it with:\n"
                f"  sf project deploy start --source-dir <dir-containing-it> "
                f"--target-org {args.target_org}")

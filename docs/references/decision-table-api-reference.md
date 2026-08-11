@@ -292,10 +292,11 @@ required on create.
 - The import is **asynchronous**. The POST returns immediately; rows become
   queryable via the data GET within ~5s. `uploadStatus`
   (`UploadInProgress` → `Completed` / `CompletedWithErrors` / `Failed`) **lags**
-  the data landing (~1 min to go terminal). Read the rows back with
-  `dump_decision_table_data.py` and compare the count against the CSV — that is
-  the only signal for `CompletedWithErrors`/`Failed`, which the fire-and-forget
-  POST response hides.
+  the data landing (~1 min to go terminal). The upload CLI waits for a status
+  belonging to the new submission, succeeds only on `Completed`, and returns
+  `CompletedWithErrors` / `Failed` as failures. Use
+  `dump_decision_table_data.py` only for row-level inspection; the platform does
+  not identify which rows were rejected.
 
 > ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
 > Every overwrite variant — Active table, Draft table, empty table, with or without
@@ -326,8 +327,8 @@ that **row silently** (below). Confirmed encodings:
 A mixed valid/invalid upload loads **only the valid rows** and finishes
 `uploadStatus = CompletedWithErrors`; the dropped rows surface **no per-row error**
 (neither the `/data` GET nor the `Metadata` reports which failed, only the aggregate
-status). Dump the rows back after the load and compare the count against the CSV to
-detect silent drops.
+status). The upload CLI returns that aggregate failure; dump rows afterward only
+when you need to identify what actually landed.
 
 Salesforce Pricing documentation describes a narrower supported input set:
 DateTime/Text (`String` in Metadata), Boolean, and Number; Currency isn't
@@ -347,10 +348,9 @@ Activate the version before activating the table:
 |---|---|---|
 | **PATCH** | `connect/business-rules/decision-table/definitions/{id}/versions/{N}` | `{"versionStatus":"Active"}` |
 
-`activate_decision_table.py` drives this via a `Metadata.status` PATCH: for a
-CsvUpload table the platform activates the single version underneath and the
-table's `Status` cascades to Active (async — the tool polls past
-`ActivationInProgress`).
+`activate_decision_table.py` resolves the unambiguous file-import version and
+PATCHes its `versionStatus` through Connect. The table's `Status` cascades to
+Active (async — the tool polls past `ActivationInProgress`).
 
 > **No v2 on re-upload (✅ live-verified for generic BRE).** Create auto-minted
 > Draft version 1 in that probe;
@@ -360,7 +360,7 @@ table's `Status` cascades to Active (async — the tool polls past
 > → `INVALID_API_INPUT`.
 
 `refreshDecisionTable` requires an **Active** table, so the order is:
-upload → activate version → activate table → refresh. For a **versioned** CSV
+upload → activate version (table status cascades) → refresh. For a **versioned** CSV
 table the refresh's `VersionNumber` input is **required** (not optional as the
 action-describe implies), and the two version failures differ (live-verified):
 
@@ -439,13 +439,13 @@ degrade to a note).
   status-free body is rejected with
   `FIELD_INTEGRITY_EXCEPTION: Required field is missing: status` (live-verified
   on a Draft scratch table). To keep the spec from driving the lifecycle
-  on an *update*, the `update` CLI drops the spec's `status` and
-  stamps the table's **current live** `status` instead (read at PATCH time via
-  `LifecycleEngine.get_status`; during a deactivate-first sequence that is the
-  already-deactivated `Inactive`). The lifecycle engine solely owns
-  activate/deactivate.
-- **Activate / deactivate** by setting `Metadata.status` (Active ↔
-  Inactive/Draft). The repo build does this via Apex + the
+  on an *update*, the `update` CLI drops the spec's `status` and stamps the
+  `Status` returned by its table-resolution query. Salesforce then accepts or
+  rejects the one complete PATCH.
+- **Activate / deactivate** SObject-backed tables by setting `Metadata.status`
+  (Active ↔ Inactive/Draft). CsvUpload tables instead PATCH the unambiguous
+  Connect version's `versionStatus`, from which table `Status` cascades. The repo
+  build does this via Apex + the
   `exclude_active_decision_tables` (`.skip/`) pattern and
   `manage_decision_tables --operation activate|deactivate`. **Asymmetry
   (live-verified):** **activate is ASYNC** — the 204 is followed by
@@ -459,12 +459,11 @@ degrade to a note).
   [{"message": "Can't edit an active Decision Table",
     "errorCode": "FIELD_NOT_UPDATABLE", "fields": []}]
   ```
-  Deactivate first (analogous to Context Service's `RECORD_UPDATE_FAILED`
-  deactivate-first rule, but DT uses `FIELD_NOT_UPDATABLE`). The `update` and
-  `delete` mutators refuse an Active table up front: `update` takes
-  `--deactivate-first` to run the guarded deactivate → edit → reactivate in one
-  call; `delete` points at `deactivate_decision_table.py` (its own script — delete
-  keeps no partial state to unwind).
+  Deactivate first. The `update` mutator issues one platform request and returns
+  this error. Active DELETE is also rejected, but the exact codes can be
+  `INVALID_OPERATION` plus `DEPENDENCY_EXISTS`; `delete` returns those platform
+  errors rather than predicting one locally. Run deactivate, the requested
+  mutation, and activation as separate commands.
 - **Delete** — Tooling (`…/tooling/sobjects/DecisionTable/{id}`) DELETE with an
   **empty body piped on stdin** (`-b -`); `-b ""` / `-b "@file"` / an `-f`
   request-spec all fail with "No 'mode' found in 'body' entry". GET-back →
@@ -535,9 +534,10 @@ encodes.
 
 | Error (code / message) | Path & trigger | Resolution |
 |---|---|---|
-| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling PATCH of an **Active** table | Deactivate first. `update` refuses an Active table unless `--deactivate-first` runs the guarded deactivate → edit → reactivate; `delete` refuses it and points at `deactivate_decision_table.py`. |
+| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling PATCH of an **Active** table | Returned directly by `update`. Run `deactivate_decision_table.py`, retry the update, then activate explicitly. |
+| `INVALID_OPERATION` + `DEPENDENCY_EXISTS` — active / referenced table cannot be deleted | Tooling DELETE of an **Active** table | Returned directly by `delete`; deactivate first, remove any remaining references, then retry. Exact codes depend on current state and dependencies. |
 | `MISSING_ARGUMENT` — "Specify a valid value for status parameter" | Raw Connect POST create without `status` | `status` is required on raw Connect create. The toolkit does not expose this path. |
-| `FIELD_INTEGRITY_EXCEPTION` — "Required field is missing: status" | Tooling `Metadata` PATCH with a status-free body | `status` is **required** on a Tooling PATCH too. `update` drops the spec's `status` and stamps the table's **current live** status (via `LifecycleEngine.get_status`) so the edit never re-activates the table — in a deactivate-first sequence that live status is the already-deactivated `Inactive`. |
+| `FIELD_INTEGRITY_EXCEPTION` — "Required field is missing: status" | Tooling `Metadata` PATCH with a status-free body | `status` is required on a Tooling PATCH. `update` drops the spec's value and stamps the status returned by its table-resolution query. |
 | `JSON_PARSER_ERROR` — `Unrecognized field "label"` / `"masterLabel"` | Connect POST/PATCH using the wrong label key | The Connect label field is **`setupName`** (not `label`/`masterLabel`). |
 | `JSON_PARSER_ERROR: Unexpected character ('/' …)` | Any POST/PATCH passing a file path without the `@` prefix | Use `--body "@/abs/file.json"` (or `-` for stdin); a bare path is read as literal JSON. |
 | "No 'mode' found in 'body' entry" | DELETE with `-b ""` / `-b "@file"` / an `-f` request-spec | Pipe an **empty body on stdin** via `-b -` (`printf '' \| sf api request rest … -X DELETE -b -`). The client already does this. |
@@ -547,7 +547,7 @@ encodes.
 | Empty `"parameters": []` in a Connect POST/PATCH response | Trusting the Connect echo for the column set | **GET-back** to confirm; the columns persist despite the empty echo. |
 | Benign `…@DecisionTable` advisory alongside `isSuccess: true` | Connect PATCH that removes a row-level override | Non-fatal — treat any `@`-suffixed message as advisory when `isSuccess` is true. |
 | `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (overwrite) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). The toolkit **doesn't expose overwrite** (it appends only) so you never reach this state; for Salesforce Pricing, replace with a fresh table and append. |
-| `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; dump the rows back and compare the count against the CSV to catch it. |
+| `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | The upload CLI exits nonzero with this platform status. Only valid rows land and Salesforce identifies no rejected row; inspect with `dump` if needed, fix the CSV encoding, and re-append. |
 | `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
 | `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
 | `INVALID_API_INPUT` | CsvUpload `/data` GET or `/file` POST targeting a `versionNumber` that doesn't exist (only v1 is minted) | Re-upload does not mint a v2 — target v1 (or omit `versionNumber` for the current version). |

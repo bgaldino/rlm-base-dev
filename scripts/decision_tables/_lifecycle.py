@@ -6,12 +6,13 @@ Part of the self-contained ``scripts/decision_tables/`` toolkit (imports only
 wraps a :class:`_client.Transport` and encapsulates the Decision Table
 lifecycle transitions the mutator CLIs need:
 
-  * **activate** — set ``Metadata.status = Active`` (Tooling PATCH), then **poll**
-    past the transient ``ActivationInProgress`` until ``Status = Active``.
-    Activation is **asynchronous** (verified 262 / v67.0).
-  * **deactivate** — set ``Metadata.status = Inactive``. Deactivation is
-    **synchronous** (no ``InactivationInProgress`` transient), but the engine
-    still confirms the terminal state.
+  * **activate** — for SObject-backed tables, set ``Metadata.status = Active``
+    (Tooling PATCH), then **poll** past the transient ``ActivationInProgress``
+    until ``Status = Active``. Activation is **asynchronous** (verified 262 /
+    v67.0).
+  * **deactivate** — for SObject-backed tables, set ``Metadata.status =
+    Inactive``. Deactivation is **synchronous** (no ``InactivationInProgress``
+    transient), but the engine still confirms the terminal state.
   * **CsvUpload is version-first, not table-first (live-verified).** A CsvUpload
     table's own ``Status`` is a platform-derived mirror of its file-import
     version's ``versionStatus`` — once a version is Active, a direct
@@ -25,10 +26,6 @@ lifecycle transitions the mutator CLIs need:
     ``Metadata.status`` — the table's own Status cascades with no separate Tooling
     PATCH. Ambiguous multi-version tables are refused rather than silently targeting
     version 1.
-  * **the active-edit guard** — an Active table's definition cannot be modified
-    or deleted in place (``FIELD_NOT_UPDATABLE`` / "Can't edit an active Decision
-    Table"). :meth:`assert_editable` refuses up front; :meth:`run_guarded_update`
-    runs the deactivate → mutate → reactivate sequence for callers that opt in.
   * **refresh** — invoke the ``refreshDecisionTable`` standard action with the
     **live-verified** ``isDecisionTableIncremental`` flag. Async; full-refresh
     limits use separate Standard (40/hour) and Advanced (60/hour) pools.
@@ -36,17 +33,6 @@ lifecycle transitions the mutator CLIs need:
     SFDX project outside the repo**, ``sf project deploy start`` it with
     ``--ignore-conflicts`` (temp project has no source tracking), and remove the
     temp tree — so no generated metadata churn lands in ``git status``.
-  * **delete** — Tooling DELETE (setup object).
-
-Two safety rules mirror the Expression Set engine
-(``scripts/expression_sets/_lifecycle.py``):
-
-  * Definition updates use the atomic Tooling ``Metadata`` PATCH. A rejected PATCH
-    leaves the record unchanged and an accepted one is faithful (both live-verified),
-    so a guarded update reactivates a was-active table unconditionally — on both the
-    success and the failure path (see :meth:`LifecycleEngine.run_guarded_update`).
-  * The engine only reactivates a table that **was active** before the edit; a
-    Draft/Inactive table is left as-is.
 
 Dry-run is driven by the injected ``Transport`` (``Transport(dry_run=True)``):
 mutating verbs are logged and skipped at the request layer; reads always run so a
@@ -85,18 +71,7 @@ _STATUS_ACTIVE = "Active"
 _STATUS_INACTIVE = "Inactive"
 
 class LifecycleError(RuntimeError):
-    """Raised on any lifecycle failure in the Decision Table toolkit.
-
-    A single error class (matching ``scripts/expression_sets/_lifecycle.py``) is
-    enough because a Decision Table definition write is an **atomic** Tooling
-    ``Metadata`` PATCH: the stored definition is always either the valid old one
-    (write rejected — live-verified byte-identical) or the valid new one (write
-    accepted — live-verified faithful), never a corrupt half-write. So a guarded
-    caller does not need to distinguish "write may have landed" from "nothing was
-    written" — reactivating a was-active table is safe in every case. Failures are
-    reported (the CLI exits non-zero with a clear message) rather than triggering
-    bespoke recovery.
-    """
+    """Raised on any lifecycle failure in the Decision Table toolkit."""
 
 
 class LifecycleEngine:
@@ -193,9 +168,8 @@ class LifecycleEngine:
         # deactivation (usually immediate), so the message must not assert
         # "activation" when confirming Inactive. It also stays remediation-neutral:
         # not every CLI that reaches this exposes --max-wait (only activate does;
-        # update/delete/deactivate route here via run_guarded_update/deactivate/
-        # activate), so it points at a re-check any caller can run rather than a flag
-        # that may not exist.
+        # deactivate/activate), so it points at a re-check any caller can run rather
+        # than a flag that may not exist.
         transition = "Activation is asynchronous" if target == _STATUS_ACTIVE \
             else "Deactivation is normally immediate but was not observed"
         raise LifecycleError(
@@ -259,155 +233,34 @@ class LifecycleEngine:
         self.log(f"{verb} DecisionTable {record_id} version {version_number} "
                  f"versionStatus = {status}.")
 
-    def resolve_guarded_version(self, record_id: str) -> Optional[int]:
-        """The CsvUpload version to thread through a guarded deactivate → mutate →
-        reactivate (or deactivate → delete → restore) sequence — ``None`` for a
-        non-CsvUpload table.
-
-        Resolve it ONCE, while the table is still active, and pass it to BOTH
-        :meth:`deactivate` and :meth:`activate`. Re-resolving inside
-        :meth:`activate` *after* the deactivation would strand a multi-version
-        table Inactive: deactivation resolves the sole active version, but once
-        it is Inactive a multi-version table no longer has a unique active version
-        for reactivation to select, so :meth:`_resolve_lifecycle_version` would
-        raise. Reads run even under dry-run, so the logged sequence stays real.
-        """
-        if not self._is_csv_upload(record_id):
-            return None
-        return self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
-
-    def activate(self, record_id: str, *, version_number: Optional[int] = None) -> None:
+    def activate(self, record_id: str) -> None:
         """Set Status → Active and poll past ``ActivationInProgress`` (async).
 
         CsvUpload tables are version-first (see module docstring): PATCHes a
         file-import version instead of the table's ``Metadata.status`` — the
-        table's Status cascades from it. ``version_number`` pins which version to
-        activate; when omitted it is resolved from the table (the sole version, or
-        the one active version). A guarded deactivate → reactivate sequence MUST
-        pass the version it deactivated (see :meth:`resolve_guarded_version`) —
-        after deactivation a multi-version table has no unique active version to
-        re-resolve.
+        table's Status cascades from it. The sole/active version is resolved from
+        the platform; ambiguous multi-version tables are refused.
         """
         if self._is_csv_upload(record_id):
-            if version_number is None:
-                version_number = self._resolve_lifecycle_version(record_id, _STATUS_ACTIVE)
+            version_number = self._resolve_lifecycle_version(record_id, _STATUS_ACTIVE)
             self._set_version_status(record_id, _STATUS_ACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_ACTIVE)
         self.wait_for_status(record_id, _STATUS_ACTIVE)
 
-    def deactivate(self, record_id: str, *, version_number: Optional[int] = None) -> None:
+    def deactivate(self, record_id: str) -> None:
         """Set Status → Inactive (synchronous) and confirm.
 
-        CsvUpload tables are version-first — see :meth:`activate`. ``version_number``
-        pins the CsvUpload version to deactivate; when omitted it is resolved (the
-        sole version, or the unique active one). A confirmation failure raises
-        :class:`LifecycleError`; the guarded sequencer reactivates the table anyway
-        (the definition is unchanged — see :meth:`run_guarded_update`), so a
-        deactivate that half-applied is not left stranded.
+        CsvUpload tables are version-first — see :meth:`activate`. The sole/active
+        version is resolved from the platform. A confirmation failure is returned
+        to the caller; this command never performs a second lifecycle transition.
         """
         if self._is_csv_upload(record_id):
-            if version_number is None:
-                version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
+            version_number = self._resolve_lifecycle_version(record_id, _STATUS_INACTIVE)
             self._set_version_status(record_id, _STATUS_INACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_INACTIVE)
         self.wait_for_status(record_id, _STATUS_INACTIVE)
-
-    # -- Active-edit guard ---------------------------------------------
-
-    def assert_editable(self, table_row: Dict[str, Any]) -> None:
-        """Raise unless the table can be edited/deleted in place.
-
-        An **Active** (or activating) table's definition cannot be modified or
-        deleted (``FIELD_NOT_UPDATABLE`` / "Can't edit an active Decision Table").
-        This refuses up front so a mutator that does NOT opt into deactivate-first
-        fails with actionable guidance rather than an opaque platform error.
-        """
-        status = table_row.get("Status")
-        name = table_row.get("DeveloperName") or table_row.get("Id")
-        if status in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS):
-            raise LifecycleError(
-                f"DecisionTable '{name}' is {status}; its definition cannot be "
-                f"edited or deleted in place (platform error "
-                f"'FIELD_NOT_UPDATABLE' / \"Can't edit an active Decision Table\"). "
-                f"Deactivate it first — run deactivate_decision_table.py (or, for "
-                f"update, pass --deactivate-first to deactivate → edit → reactivate "
-                f"in one run)."
-            )
-
-    def run_guarded_update(
-        self,
-        *,
-        table_row: Dict[str, Any],
-        mutate: Callable[[], None],
-        verb: str = "update",
-    ) -> None:
-        """Deactivate → mutate → reactivate an Active table (deactivate-first).
-
-        ``mutate`` is the verb-specific body; it runs while the table is
-        deactivated. Only a table that **was Active** is deactivated and later
-        reactivated. A Draft/Inactive table is mutated in place with no status
-        change.
-
-        The reactivation rule is unconditional because the mutation is an **atomic**
-        Tooling ``Metadata`` PATCH (live-verified): whether it is accepted (valid
-        new definition) or rejected (valid old definition, byte-identical), the
-        stored definition is always valid, so a was-active table is safe to
-        reactivate on both the success and failure paths. The original failure is
-        always re-raised; if reactivation ALSO fails, both messages are chained so
-        the caller sees why the mutation failed *and* why the table is still offline.
-        """
-        record_id = table_row["Id"]
-        was_active = table_row.get("Status") in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS)
-        failure: Optional[Exception] = None
-        # Reactivation is owed only if WE took the table offline. A rejected
-        # deactivate leaves the table Active, so re-activating it would be a
-        # redundant PATCH the platform rejects ("already active") — reported as a
-        # spurious "reactivation also failed". Flip this only after deactivate
-        # returns cleanly.
-        deactivated = False
-        # Pin the CsvUpload version to move BEFORE deactivating, while the table
-        # still has a unique active version, and reuse it for the reactivate below.
-        # Re-resolving after deactivation would strand a multi-version table (no
-        # unique active version to select). None for non-CsvUpload tables.
-        guarded_version = self.resolve_guarded_version(record_id) if was_active else None
-
-        try:
-            if was_active:
-                self.deactivate(record_id, version_number=guarded_version)
-                deactivated = True
-            else:
-                self.log(
-                    f"DecisionTable {record_id} is "
-                    f"{table_row.get('Status')!r}; editing in place (no deactivate)."
-                )
-            mutate()
-        except Exception as exc:  # noqa: BLE001 — re-raised below
-            failure = exc
-        finally:
-            # Only restore what we deactivated. If the deactivate itself failed the
-            # table never went offline, so there is nothing to reactivate.
-            if deactivated:
-                if failure:
-                    self.log(
-                        f"{verb} failed, but the definition write is atomic (the "
-                        f"stored definition is unchanged), so restoring "
-                        f"DecisionTable {record_id} to Active. The failure is still "
-                        f"reported."
-                    )
-                try:
-                    self.activate(record_id, version_number=guarded_version)
-                except Exception as reactivate_exc:  # noqa: BLE001
-                    if failure:
-                        raise LifecycleError(
-                            f"{verb} failed ({failure}), and reactivation also "
-                            f"failed: {reactivate_exc}"
-                        ) from failure
-                    raise
-
-        if failure:
-            raise failure
 
     # -- Refresh -------------------------------------------------------
 
@@ -522,13 +375,3 @@ class LifecycleEngine:
             return {"deployed": True, "dryRun": False, "apiName": api_name, "raw": parsed}
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-
-    # -- Delete --------------------------------------------------------
-
-    def delete_tooling(self, record_id: str) -> Dict[str, Any]:
-        """Delete a DecisionTable via the Tooling setup object (``0lD``)."""
-        self.t.tooling_sobject("DELETE", "DecisionTable", record_id)
-        verb = "Would delete" if self.dry_run else "Deleted"
-        self.log(f"{verb} DecisionTable {record_id} (Tooling).")
-        return {"action": "delete", "path": "tooling", "id": record_id,
-                "dryRun": self.dry_run}

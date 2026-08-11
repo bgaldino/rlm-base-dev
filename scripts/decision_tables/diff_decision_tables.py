@@ -66,24 +66,22 @@ _DATASET_LINK_FIELDS = (
 _SOURCE_CRITERIA_FIELDS = (
     "SourceFieldName", "Operator", "Value", "ValueType", "SequenceNumber",
 )
+_COLUMN_FIELDS = (
+    "dataType", "decimalScale", "domainObject", "fieldPath",
+    "isGroupByField", "isPriorityField", "isRequired", "length", "operator",
+    "sequence", "sortType",
+)
 
 
 def _column_key(param):
-    return f"{param.get('Usage')}:{param.get('FieldName')}"
+    usage = param.get("usage") if "usage" in param else param.get("Usage")
+    field_name = param.get("fieldName") if "fieldName" in param else param.get("FieldName")
+    return f"{usage}:{field_name}"
 
 
 def _column_signature(param):
     """The comparable fields of a column (ignores record Id / table Id)."""
-    return {
-        "dataType": param.get("DataType"),
-        "operator": param.get("Operator"),
-        "sequence": param.get("Sequence"),
-        "fieldPath": param.get("FieldPath"),
-        "isRequired": param.get("IsRequired"),
-        "isGroupByField": param.get("IsGroupByField"),
-        "sortType": param.get("SortType"),
-        "domainObject": param.get("DomainObject"),
-    }
+    return {field: param.get(field) for field in _COLUMN_FIELDS}
 
 
 def _record_signature(record, fields):
@@ -156,9 +154,13 @@ def diff_definitions(a, b):
         if av != bv:
             delta["attributes"][attr] = {"a": av, "b": bv}
 
-    # Columns keyed by usage:fieldName.
-    cols_a = {_column_key(p): p for p in a["parameters"]}
-    cols_b = {_column_key(p): p for p in b["parameters"]}
+    # The parent Metadata complexvalue is the canonical column view. It includes
+    # decimalScale/isPriorityField/length, which are not queryable columns on the
+    # DecisionTableParameter Tooling object in API v67.0.
+    params_a = (a.get("metadata") or {}).get("decisionTableParameters") or []
+    params_b = (b.get("metadata") or {}).get("decisionTableParameters") or []
+    cols_a = {_column_key(p): p for p in params_a}
+    cols_b = {_column_key(p): p for p in params_b}
     for key in sorted(set(cols_a) - set(cols_b)):
         delta["columns"]["removed"].append(key)
     for key in sorted(set(cols_b) - set(cols_a)):

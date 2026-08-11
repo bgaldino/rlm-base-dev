@@ -228,20 +228,15 @@ def tooling_metadata_only(
 
     The spec's own ``status`` is always **dropped** — it must never drive the
     table's lifecycle on an *update*. An author reusing a create spec or a describe
-    round-trip very plausibly carries ``Active``; letting it ride along in the
-    definition-edit PATCH would fight the deactivate-first guard and re-activate
-    the table mid-sequence, before the guarded reactivate.
+    round-trip may carry a stale status, so the caller supplies the table's resolved
+    live value instead.
 
     A Tooling ``Metadata`` PATCH nonetheless **requires** ``status`` — a status-free
     body is rejected with ``FIELD_INTEGRITY_EXCEPTION: Required field is missing:
     status`` (live-confirmed 262 / v67.0 against a Draft scratch table). So the
-    caller passes the table's **current live** ``status`` (read at PATCH time, e.g.
-    via :meth:`_lifecycle.LifecycleEngine.get_status`) as ``live_status`` and it is
-    stamped onto the body. In the deactivate-first sequence the engine has already
-    flipped the live status to ``Inactive``, so the definition edit *re-asserts the
-    status the table already has* and stays lifecycle-neutral — never the spec's.
-    The lifecycle engine (:class:`_lifecycle.LifecycleEngine`) remains the **sole**
-    owner of the Active↔Inactive transitions (its own full-``Metadata`` PATCHes).
+    caller passes the table's resolved **current live** ``status`` as
+    ``live_status`` and it is stamped onto the body. The update therefore re-asserts
+    the existing status and never performs a lifecycle transition.
 
     ``live_status`` is optional only so this pure translator stays callable without a
     transport in tests; a real PATCH must pass it (the platform rejects the body

@@ -97,6 +97,7 @@ def test_errors_preserve_salesforce_details():
         _completed(returncode=1,
                    stdout='[{"message":"bad field","errorCode":"INVALID_FIELD"}]'),
         _completed(stdout="not-json"),
+        _completed(returncode=1, stderr="not authenticated"),
     ]
     original = _client._run_sf
     _client._run_sf = lambda *a, **k: responses.pop(0)
@@ -108,12 +109,23 @@ def test_errors_preserve_salesforce_details():
             check("Salesforce error code is retained",
                   "INVALID_FIELD" in exc.error_codes, exc)
             check("response body is retained", "bad field" in exc.body, exc.body)
+            check("structured Salesforce error is returned unchanged",
+                  str(exc) == '[{"message":"bad field","errorCode":"INVALID_FIELD"}]',
+                  exc)
+            check("structured Salesforce error has no speculative auth hint",
+                  "authenticated" not in str(exc), exc)
         try:
             _client.connect_request("GET", "query?q=bad-json", target_org="x")
             check("invalid JSON raises", False, "no exception")
         except _client.DecisionTableClientError as exc:
             check("invalid JSON error includes a bounded raw response",
                   "Could not parse JSON" in str(exc) and "not-json" in str(exc), exc)
+        try:
+            _client.connect_request("GET", "query?q=auth", target_org="x")
+            check("unstructured transport failure raises", False, "no exception")
+        except _client.DecisionTableClientError as exc:
+            check("unstructured failure retains transport context and auth guidance",
+                  "not authenticated" in str(exc) and "sf org login web" in str(exc), exc)
     finally:
         _client._run_sf = original
 

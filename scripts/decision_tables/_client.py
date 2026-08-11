@@ -176,13 +176,20 @@ def connect_request(
     if result.returncode != 0:
         error_codes = _extract_error_codes(stdout)
         detail = stdout or (result.stderr or "").strip()
-        code_note = f" [{', '.join(error_codes)}]" if error_codes else ""
+        if error_codes:
+            # Salesforce returned a structured platform error. Preserve it exactly;
+            # callers already know which action they attempted, and speculative auth
+            # advice only obscures the authoritative failure.
+            message = detail
+        else:
+            message = (
+                f"sf api request {method} '{path}' failed for org '{target_org}':\n"
+                f"{detail}\n\nConfirm the SF CLI alias is correct (this is the *sf* "
+                f"alias, e.g. 'rlm-base__beta', not the CCI alias) and that you are "
+                f"authenticated (`sf org login web --alias {target_org}`)."
+            )
         raise DecisionTableClientError(
-            f"sf api request {method} '{path}' failed for org '{target_org}'"
-            f"{code_note}:\n{detail}\n\n"
-            f"Confirm the SF CLI alias is correct (this is the *sf* alias, e.g. "
-            f"'rlm-base__beta', not the CCI alias) and that you are "
-            f"authenticated (`sf org login web --alias {target_org}`).",
+            message,
             error_codes=error_codes,
             body=stdout,
         )
@@ -450,11 +457,10 @@ def fail_json(as_json, message, summary=None, code=1):
 
     Always logs `message` to stderr. When `as_json` is set, also writes a JSON
     object to stdout carrying `message` under ``"error"`` (merged over any partial
-    `summary` already accumulated). This makes the ``--json`` contract uniform:
-    a structured caller gets JSON on stdout for EVERY non-zero exit — input,
-    validation, resolve, or mutation phase — instead of empty stdout on the
-    pre-mutation phases that forces it to switch to stderr parsing based on where
-    the run failed.
+    `summary` already accumulated). This makes the post-argument-parsing
+    ``--json`` contract uniform: a structured caller gets JSON on stdout for every
+    controlled non-zero exit — input, validation, resolve, or mutation phase —
+    instead of switching to stderr parsing based on where the run failed.
     """
     eprint(message)
     if as_json:

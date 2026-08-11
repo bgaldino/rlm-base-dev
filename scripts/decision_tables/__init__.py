@@ -3,9 +3,9 @@
 A self-contained toolkit for Salesforce Revenue Cloud **BRE Decision Tables** —
 the *definition* (columns + source binding + hit policy) and its *data/refresh*
 lifecycle. Phase 1 ships the **read-only inspectors** (list / describe / diff /
-trace / dump); Phase 2 adds the guarded lifecycle **mutators**
-(create/update/activate/deactivate/refresh/delete), preview-by-default and
-``--confirm`` to write.
+trace / dump); Phase 2 adds lifecycle **mutators**
+(create/update/activate/deactivate/refresh/delete), all preview-by-default with
+``--confirm`` required to write.
 
 Auth is delegated to the ``sf`` CLI (``sf api request rest --target-org …``), so
 **no access token is ever handled or passed**. ``--target-org`` is always the

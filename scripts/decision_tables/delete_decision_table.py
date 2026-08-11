@@ -4,14 +4,11 @@
 Deletes the table via the Tooling API setup-object DELETE
 (``tooling/sobjects/DecisionTable/{id}``).
 
-**Active-edit guard.** An Active (or activating) table cannot be deleted in place
-(same platform lock as an edit: ``FIELD_NOT_UPDATABLE`` / "Can't edit an active
-Decision Table"). This tool **refuses** up front on an active table and points at
-``deactivate_decision_table.py`` — deactivate it there first, then delete. Keeping
-deactivation in its own script (rather than a ``--deactivate-first`` option here)
-means one deactivate implementation, and delete has no partial-state to roll back.
-Deleting also fails while the table is still referenced by an active Expression
-Set / Context Rule / recipe — resolve those references first.
+An Active (or activating) table cannot be deleted in place. This tool sends one
+Tooling DELETE and returns the platform error unchanged; exact error codes depend
+on the table's state and dependencies. Deactivate it explicitly first. Deletion
+also fails while the table is referenced by an active Expression Set / Context
+Rule / recipe; those platform errors are returned to the caller as well.
 
 **Destructive — double-gated.** Preview by default: without ``--confirm`` the tool
 resolves the id and logs the plan but deletes nothing. ``--confirm`` is REQUIRED
@@ -51,10 +48,6 @@ from scripts.decision_tables._client import (  # noqa: E402
     eprint,
     fail_json,
 )
-from scripts.decision_tables._lifecycle import (  # noqa: E402
-    LifecycleEngine,
-    LifecycleError,
-)
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 
 
@@ -79,8 +72,6 @@ def main(argv=None) -> int:
     preview = not args.confirm
     transport = Transport(args.target_org, api_version=args.api_version,
                           dry_run=preview, logger=eprint)
-    engine = LifecycleEngine(transport, logger=eprint)
-
     try:
         table_row = resolve_decision_table(transport, args.developer_name)
     except (DecisionTableClientError, ResolveError) as exc:
@@ -95,15 +86,10 @@ def main(argv=None) -> int:
            f"{'PREVIEW' if preview else 'CONFIRM'}")
 
     try:
-        # An Active table cannot be deleted in place — refuse up front (the platform
-        # would reject it with FIELD_NOT_UPDATABLE). Deactivation lives in its own
-        # script (deactivate_decision_table.py); assert_editable's message points
-        # there. delete_tooling is atomic, so there is no partial state to unwind.
-        engine.assert_editable(table_row)
-        result = engine.delete_tooling(record_id)
-    except (DecisionTableClientError, LifecycleError) as exc:
+        transport.tooling_sobject("DELETE", "DecisionTable", record_id)
+    except DecisionTableClientError as exc:
         return fail_json(
-            args.json, f"FAILED: {exc}",
+            args.json, str(exc),
             {"action": "delete", "developerName": args.developer_name,
              "id": record_id, "deleted": False})
 
@@ -113,8 +99,10 @@ def main(argv=None) -> int:
         eprint("\nDeletion complete. Verify with list_decision_tables.py "
                "(the table should no longer appear).")
     if args.json:
-        result.setdefault("developerName", args.developer_name)
-        print(json.dumps(result, indent=2, default=str))
+        print(json.dumps({"action": "delete", "path": "tooling",
+                          "developerName": args.developer_name, "id": record_id,
+                          "deleted": not preview, "dryRun": preview},
+                         indent=2, default=str))
     return 0
 
 

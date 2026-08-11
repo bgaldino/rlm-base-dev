@@ -11,8 +11,8 @@
 ## Lifecycle at a glance
 
 ```
-author/deploy  →  activate  →  (edit needs deactivate-first)  →  refresh (async)
- .decisionTable    Status=      deactivate → edit → reactivate     rows sync into engine cache
+author/deploy  →  activate  →  deactivate  →  edit  →  activate  →  refresh (async)
+ .decisionTable    Status=        explicit, separate commands        rows sync into cache
  -meta.xml         Active
 ```
 
@@ -49,39 +49,33 @@ manages it three ways:
 
 ### The active-edit restriction — deactivate first
 
-**An Active table's definition cannot be modified in place.** Modifying or
-deleting an existing artifact on an **Active** table is platform-blocked
-(consistent with Context Service's `RECORD_UPDATE_FAILED` deactivate-first rule —
-the DT error is `FIELD_NOT_UPDATABLE` / "Can't edit an active Decision Table",
-live-confirmed on a scratch org). To edit:
+**An Active table's definition cannot be modified in place.** An update is
+platform-blocked with `FIELD_NOT_UPDATABLE` / "Can't edit an active Decision
+Table". An active delete can instead return `INVALID_OPERATION` plus
+`DEPENDENCY_EXISTS` (live-confirmed on a scratch org). To edit:
 
 ```
 deactivate  →  edit/redeploy the definition  →  reactivate  →  refresh
 ```
 
 This is why `exclude_active_decision_tables`/`.skip/` exists: a redeploy over an
-active table would otherwise fail. The toolkit's `update_decision_table.py` /
-`delete_decision_table.py` mutators enforce the same guard, and refuse an Active
-table up front. `update` takes `--deactivate-first` to run the guarded
-deactivate → edit → reactivate sequence in one call; `delete` has no such option —
-it points at `deactivate_decision_table.py` (deactivation lives in its own script,
-so delete keeps no partial state to unwind). Crucially, **the spec's `status`
-never drives the update** — so a `status` of `Active` carried over from a create
-spec or a describe round-trip can't re-activate the table mid-sequence, before the
-guarded reactivate.
+active table would otherwise fail. The toolkit does not reproduce this platform
+guard or compose lifecycle transitions. `update_decision_table.py` sends one
+Tooling PATCH and `delete_decision_table.py` sends one Tooling DELETE; Salesforce
+returns its own lifecycle/dependency errors when the table is Active. Run
+`deactivate_decision_table.py`, the requested mutation, and
+`activate_decision_table.py` as separate commands. Crucially, **the spec's
+`status` never drives an update** — a create spec or describe round-trip cannot
+change lifecycle state during the definition PATCH.
 
 The toolkit updates definitions only through **Tooling `Metadata` PATCH**.
-`status` is a **required field** (a status-free
-  body is rejected with `FIELD_INTEGRITY_EXCEPTION: Required field is missing:
-  status`, live-confirmed on a Draft scratch table). So `update` reads the table's
-  **current live** `status` at PATCH time (via `LifecycleEngine.get_status`) and
-  stamps *that* onto `_payload.tooling_metadata_only(spec, live_status=…)` — during
-  a deactivate-first sequence the engine has already flipped it to `Inactive`, so
-  the definition edit merely re-asserts the status the table already has. The
-  spec's own `status` is dropped first regardless. The lifecycle engine
-  (`_lifecycle.LifecycleEngine`) alone owns the Active↔Inactive transitions.
-  Raw Connect Definitions mutations are reference-only and are not exposed as
-  toolkit definition-write paths.
+`status` is a **required field** (a status-free body is rejected with
+`FIELD_INTEGRITY_EXCEPTION: Required field is missing: status`, live-confirmed on
+a Draft scratch table). `update` stamps the status returned by its table-resolution
+query onto `_payload.tooling_metadata_only(spec, live_status=…)`; the spec's own
+status is dropped. Salesforce then accepts or rejects the single complete PATCH.
+Raw Connect Definitions mutations are reference-only and are not exposed as
+toolkit definition-write paths.
 
 ## Refresh (data sync) — in depth
 
@@ -153,14 +147,15 @@ create (auto-mints version 1)  →  upload CSV (two-phase, append)
    FAILS on 262/v67.0 (`uploadStatus=Failed`, 0 rows, existing rows kept), so the
    toolkit doesn't expose it; for Salesforce Pricing, multiple CSV versions aren't
    supported, so replace rows with a **fresh table** plus append. The import is
-   **async** and rows with a cell that doesn't match a column's `dataType` drop
-   silently → `CompletedWithErrors`; dump the rows back (step below) to catch that.
+   **async**. The loader waits for `uploadStatus` and exits nonzero on
+   `CompletedWithErrors` / `Failed`; the platform does not identify individual
+   rejected rows, so dump the rows only when row-level inspection is needed.
    See the full upload contract in `authoring-and-data-model.md` → *CSV Based tables*.
-3. **Activate** with `activate_decision_table.py`, which PATCHes the table's
-   `Metadata.status` to Active. For a CsvUpload table the platform activates the
-   single file-import version underneath; the table's own `Status` is
-   platform-derived and reaches **Active**. Activation is **async** — the tool
-   polls past `ActivationInProgress` (raise `--max-wait` for slow orgs).
+3. **Activate** with `activate_decision_table.py`. For a CsvUpload table the
+   lifecycle engine PATCHes the unambiguous file-import version's
+   `versionStatus` through Connect; the table's own `Status` cascades to
+   **Active**. Activation is **async** — the tool polls past
+   `ActivationInProgress` (raise `--max-wait` for slow orgs).
 4. **Refresh** — `refreshDecisionTable` requires an **Active** table; run it after
    activation, with the same `isDecisionTableIncremental` flag as above. For a
    **versioned** CSV table `VersionNumber` is **required** (not optional as the
@@ -189,9 +184,9 @@ create (auto-mints version 1)  →  upload CSV (two-phase, append)
 > `deactivate_decision_table.py` uses the version-aware lifecycle engine: it
 > resolves and deactivates the CSV version first
 > (`PATCH …/versions/{N}` `{"versionStatus":"Inactive"}`). That **cascades the
-> table to Inactive**, after which `delete_decision_table.py` (which refuses an
-> Active table up front) can proceed. A direct table status PATCH while a version
-> remains Active is rejected with `INVALID_INPUT`.
+> table to Inactive**, after which `delete_decision_table.py` can proceed. A
+> direct table status PATCH while a version remains Active is rejected with
+> `INVALID_INPUT`.
 
 ## Recipe-table mappings + `validate_lists`
 

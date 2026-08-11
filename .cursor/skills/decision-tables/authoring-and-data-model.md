@@ -74,9 +74,9 @@ object), but it is still **required** on create like every other source type.
 The upload **appends** to the current (single) version's existing rows. The import
 is **asynchronous**: the POST returns immediately, the rows become queryable within
 ~5s, and `uploadStatus` (`UploadInProgress` → `Completed` / `CompletedWithErrors`
-/ `Failed`) lags the data landing — it can take ~1 min to go terminal. Dump the
-rows back (`dump_decision_table_data.py`) to confirm the load; the fire-and-forget
-POST response hides `CompletedWithErrors`/`Failed`.
+/ `Failed`) lags the data landing — it can take ~1 min to go terminal. The loader
+waits for that platform status and succeeds only on `Completed`; dump rows with
+`dump_decision_table_data.py` only when row-level inspection is needed.
 
 > ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
 > Every overwrite variant — Active table, Draft table, empty table, with or
