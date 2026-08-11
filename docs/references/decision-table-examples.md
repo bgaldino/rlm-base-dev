@@ -21,7 +21,7 @@ Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cl
 > `isDecisionTableIncremental` input.
 
 > **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
-> `--org <cci_alias>`. The examples below omit it and therefore run against the
+> `--org "your-cci-alias"`. The examples below omit it and therefore run against the
 > default CCI org; pass `--org` to target another.
 
 ### Basic Operations
@@ -196,7 +196,7 @@ For a real incremental refresh, use the standalone toolkit:
 
 ```bash
 python scripts/decision_tables/refresh_decision_table.py \
-  --target-org <sf_alias> --developer-name RLM_CostBookEntries \
+  --target-org "your-sf-alias" --developer-name RLM_CostBookEntries \
   --incremental --confirm
 ```
 

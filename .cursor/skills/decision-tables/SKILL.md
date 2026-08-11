@@ -21,7 +21,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
-2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org <alias>`.
+2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table.
 3. **Freshness is measured against EVERY object a table reads**, not just its source
    object. A table that pulls a column across a lookup goes stale when that lookup's
@@ -96,22 +96,26 @@ All mutators preview by default and write only with `--confirm`.
 | Trace recipe-table mappings | `trace_decision_table.py` |
 | Sample the materialized data layer | `dump_decision_table_data.py` |
 | Upload `CsvUpload` rows | `upload_decision_table_data.py` |
-| Create/update/activate/deactivate/delete | Preview-by-default Metadata/Tooling commands under `scripts/decision_tables/` |
+| Create/update/activate/deactivate/delete | Preview-by-default Tooling commands under `scripts/decision_tables/`; `create --generate-only` renders Metadata XML offline |
 | Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
 
 Start with:
 
 ```bash
-python scripts/decision_tables/list_decision_tables.py --target-org <sf_alias>
+SF_ORG="your-sf-alias"
+TABLE="your-decision-table-api-name"
+
+python scripts/decision_tables/list_decision_tables.py --target-org "$SF_ORG"
 python scripts/decision_tables/describe_decision_table.py \
-  --target-org <sf_alias> --developer-name <DeveloperName>
+  --target-org "$SF_ORG" --developer-name "$TABLE"
 ```
 
 Decision tables have two independently managed layers:
 
 1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
    Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
-   five setup objects. The toolkit writes definitions only through these surfaces.
+   five setup objects. The toolkit writes org definitions through Tooling and can
+   render Metadata XML for standard `sf` or CCI deployment.
 2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
    Context Definition. The engine does not re-read those rows after materialization.
 
@@ -134,7 +138,7 @@ Always start here. Counts and names differ per release and per feature flag.
 > Tooling surface, so prefer them when you have the toolkit on PATH.
 
 ```bash
-sf data query -t -q "SELECT DeveloperName, SetupName, DataSourceType, SourceObject, UsageType, Status, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org <alias>
+sf data query -t -q "SELECT DeveloperName, SetupName, DataSourceType, SourceObject, UsageType, Status, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org "your-sf-alias"
 ```
 
 > `SetupName` (the human label) and `DataSourceType` (`SingleSobject` /
@@ -147,13 +151,13 @@ What a table reads **besides** its source object — the columns it materialises
 lookups, which is where most surprise staleness comes from:
 
 ```bash
-sf data query -t -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org "your-sf-alias"
 ```
 
 The filter a table applies to its source, if any:
 
 ```bash
-sf data query -t -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org "your-sf-alias"
 ```
 
 ### Reading `DecisionTableParameter` correctly
@@ -218,7 +222,7 @@ header — read it there rather than re-deriving it.
 
 | Path | Use when |
 |---|---|
-| `cci task run refresh_all_decision_tables --org <alias>` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
+| `cci task run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
 | The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh, status polling, why a table is stale. |
 | Setup → Decision Tables | One table, manually. |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. |
@@ -272,13 +276,13 @@ triggering DML. A refresh that fails must not take the contract with it.
 **Is this org ready after a build?**
 
 ```bash
-cci task run check_decision_table_freshness --org <alias>
+cci task run check_decision_table_freshness --org "your-cci-alias"
 ```
 
 **Gate a build on it** (only where no data load follows the refresh):
 
 ```bash
-cci task run check_decision_table_freshness --org <alias> -o param1 strict
+cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 strict
 ```
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
@@ -293,7 +297,7 @@ not know read that object.
 
 - `python tests/test_decision_tables_toolkit.py` passes offline.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
-- `cci task run check_decision_table_freshness --org <alias>` reports every table with a
+- `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
 - After `refresh_all_decision_tables`, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the

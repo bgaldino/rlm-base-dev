@@ -195,11 +195,7 @@ class ValidationResult:
 # SObject); for the SObject types it is the object api-name.
 _CSV_SOURCE_OBJECT = "CSV"
 
-# ``fullName`` becomes a bare file-system segment
-# (``<fullName>.decisionTable-meta.xml``) in both the metadata deploy's temp
-# package dir (``_lifecycle.deploy_metadata_xml``) and ``_payload.meta_file_name``.
-# Reject path separators and absolute paths before constructing the temp-project
-# path. Salesforce API names use the same letter-led alphanumeric/underscore shape.
+# Salesforce API names use a letter-led alphanumeric/underscore shape.
 _FULL_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 _TOP_LEVEL_KEYS = {
@@ -275,6 +271,18 @@ def _check_integer(result: ValidationResult, location: str, value: Any,
         return
     if isinstance(value, bool) or not isinstance(value, int):
         result.error(location, f"must be an integer; got {value!r}.")
+
+
+def _check_string(result: ValidationResult, location: str, value: Any,
+                  *, required: bool = False) -> None:
+    """Validate a Metadata string field without duplicating platform semantics."""
+    if value is None or value == "":
+        if required:
+            result.error(location, "is required and must be a string.")
+        return
+    if not isinstance(value, str):
+        result.error(location,
+                     f"must be a string; got {type(value).__name__} {value!r}.")
 
 
 # The string tokens ``_payload._bool_from`` coerces deterministically. Any other
@@ -359,13 +367,10 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     if not isinstance(usage, (str, int, float, bool)):
         usage = None
     field_name = param.get("fieldName")
-    if not field_name:
-        result.error(f"{location}.fieldName", "is required.")
-    elif not isinstance(field_name, str):
-        result.error(f"{location}.fieldName",
-                     f"must be a string; got {type(field_name).__name__} {field_name!r}.")
-        field_name = None
-    else:
+    _check_string(result, f"{location}.fieldName", field_name, required=True)
+    for key in ("fieldPath", "domainObject"):
+        _check_string(result, f"{location}.{key}", param.get(key))
+    if isinstance(field_name, str) and field_name:
         key = f"{usage}:{field_name}"
         if key in seen:
             result.error(location, f"duplicate column {field_name!r} for usage {usage!r}.")
@@ -404,16 +409,11 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     return usage
 
 
-def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> ValidationResult:
+def validate_spec(spec: Dict[str, Any], *, require_status: bool = False) -> ValidationResult:
     """Validate a Metadata/Tooling canonical Decision Table spec. Pure; no org.
 
-    ``path`` is optional and enables one **create**-specific requirement
-    (missing ``status``) — pass the authoring path (``"metadata"``/``"tooling"``)
-    when validating a spec that is about to *create* a table. Leave it unset
-    (the default) for update validation, where the spec's ``status`` is
-    intentionally dropped and re-stamped from the live table — see
-    ``update_decision_table.py`` — so a missing ``status`` there is normal,
-    not a defect.
+    ``require_status`` is true for create. Update leaves it false because the
+    caller reuses the live table status and ignores lifecycle state in the spec.
     """
     result = ValidationResult()
     if not isinstance(spec, dict):
@@ -429,18 +429,11 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         result.error(
             "fullName",
             f"must be a valid api name (letters/digits/underscore, starting with a "
-            f"letter) — got {full_name!r}. It becomes a bare file name "
-            f"(<fullName>.decisionTable-meta.xml) in the metadata deploy path; a "
-            f"path separator or absolute-path value would write outside the temp "
-            f"SFDX project.",
+            f"letter) — got {full_name!r}.",
         )
-    setup_name = spec.get("setupName")
-    if not setup_name:
-        result.error("setupName", "is required (the human label).")
-    elif not isinstance(setup_name, str):
-        result.error("setupName",
-                     f"must be a string (the human label); got "
-                     f"{type(setup_name).__name__} {setup_name!r}.")
+    _check_string(result, "setupName", spec.get("setupName"), required=True)
+    for key in ("conditionCriteria", "sourceConditionLogic", "description"):
+        _check_string(result, key, spec.get(key))
 
     _check_enum(result, "dataSourceType", spec.get("dataSourceType"),
                 DATA_SOURCE_TYPES, required=True)
@@ -465,13 +458,16 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
 
     dst = spec.get("dataSourceType")
     source_object = spec.get("sourceObject")
-    if not source_object:
+    if source_object is None or source_object == "":
         # Required for every source type (Required-since-58.0). CsvUpload gets a
         # value-convention hint so the author knows it is not an SObject name.
         hint = (" (use the literal 'CSV' for a CsvUpload table)"
                 if dst == "CsvUpload" else "")
         result.error("sourceObject", f"is required (dataSourceType is {dst!r}){hint}.")
-    elif dst == "CsvUpload" and source_object != _CSV_SOURCE_OBJECT:
+    else:
+        _check_string(result, "sourceObject", source_object)
+    if isinstance(source_object, str) and dst == "CsvUpload" \
+            and source_object != _CSV_SOURCE_OBJECT:
         result.warn("sourceObject",
                     f"a CsvUpload table normally uses sourceObject "
                     f"{_CSV_SOURCE_OBJECT!r}; got {source_object!r}.")
@@ -482,7 +478,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                     "isVersioned explicitly — to_metadata() defaults it to true "
                     "when omitted, which may not match what you intend.")
 
-    if path in ("metadata", "tooling") and not spec.get("status"):
+    if require_status and not spec.get("status"):
         result.error("status",
                      "is required by Metadata/Tooling create; set it explicitly "
                      "(normally 'Draft').")
@@ -522,12 +518,9 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                     continue
                 _reject_unknown_keys(result, loc, crit, _SOURCE_CRITERIA_KEYS)
                 source_field = crit.get("sourceFieldName")
-                if not source_field:
-                    result.error(f"{loc}.sourceFieldName", "is required.")
-                elif not isinstance(source_field, str):
-                    result.error(f"{loc}.sourceFieldName",
-                                 f"must be a string; got "
-                                 f"{type(source_field).__name__} {source_field!r}.")
+                _check_string(result, f"{loc}.sourceFieldName", source_field,
+                              required=True)
+                _check_string(result, f"{loc}.value", crit.get("value"))
                 _check_enum(result, f"{loc}.operator", crit.get("operator"),
                             SOURCE_CRITERIA_OPERATORS, required=True)
                 _check_enum(result, f"{loc}.valueType", crit.get("valueType"),

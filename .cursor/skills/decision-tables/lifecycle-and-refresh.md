@@ -30,10 +30,9 @@ Project definitions live in metadata and deploy through the Metadata API:
 | `unpackaged/post_prm_pricing/decisionTables/` | `deploy_post_prm_pricing_decision_tables` |
 
 Both are step-5-era deploys in `prepare_rlm_org`. A one-off / out-of-build deploy
-uses `sf project deploy start --target-org <sf_alias>`; the toolkit's
-`create_decision_table.py --path metadata` generates the XML into an **OS temp
-dir outside the repo** and deploys it (cleaned up after), so no generated churn
-lands in `git status`.
+uses `sf project deploy start`. The toolkit can render a canonical JSON spec to
+an explicit XML path with `create_decision_table.py --generate-only`; deployment
+remains with the standard `sf` or CCI workflow.
 
 ## Activate / deactivate
 

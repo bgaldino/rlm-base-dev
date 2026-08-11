@@ -8,11 +8,6 @@ skip writes and state polling.
 """
 
 import copy
-import json
-import os
-import shutil
-import subprocess
-import tempfile
 import time
 from typing import Any, Callable, Dict, List, Optional
 
@@ -20,9 +15,6 @@ from ._client import (
     DEFINITIONS_PATH,
     soql_literal,
 )
-
-# A metadata deploy / activation can take minutes server-side; mirror the client.
-_DEPLOY_TIMEOUT = 600  # seconds
 
 # The refreshDecisionTable standard action (relative to /services/data/vXX.0/).
 REFRESH_ACTION_PATH = "actions/standard/refreshDecisionTable"
@@ -244,83 +236,3 @@ class LifecycleEngine:
             "status": status,
             "raw": resp,
         }
-
-    # -- Metadata deploy (--path metadata) -----------------------------
-
-    def deploy_metadata_xml(self, api_name: str, xml: str) -> Dict[str, Any]:
-        """Deploy a ``.decisionTable-meta.xml`` via a temp SFDX project outside the repo.
-
-        The temp project is created with ``tempfile.mkdtemp()`` (an OS temp dir, NOT
-        under the repo), the XML is written under ``force-app/main/default/
-        decisionTables/``, and ``sf project deploy start --source-dir force-app
-        --ignore-conflicts`` runs **with cwd = the temp project root** (an absolute
-        ``--source-dir`` from the repo trips ``UnsafeFilepathError``). The temp tree
-        is always removed afterward, so no generated metadata lands in ``git
-        status``. Under dry-run the deploy is logged and skipped.
-        """
-        if self.dry_run:
-            self.log(
-                f"[dry-run] would deploy DecisionTable '{api_name}' via a temp "
-                f"SFDX project (sf project deploy start --ignore-conflicts) to org "
-                f"'{self.t.target_org}'."
-            )
-            return {"deployed": False, "dryRun": True, "apiName": api_name}
-
-        tmp = tempfile.mkdtemp(prefix="dt_deploy_")
-        try:
-            pkg_dir = os.path.join(tmp, "force-app", "main", "default", "decisionTables")
-            os.makedirs(pkg_dir)
-            with open(os.path.join(tmp, "sfdx-project.json"), "w", encoding="utf-8") as fh:
-                json.dump(
-                    {
-                        "packageDirectories": [{"path": "force-app", "default": True}],
-                        "namespace": "",
-                        "sfdcLoginUrl": "https://login.salesforce.com",
-                        "sourceApiVersion": self.t.api_version,
-                    },
-                    fh,
-                )
-            xml_path = os.path.join(pkg_dir, f"{api_name}.decisionTable-meta.xml")
-            with open(xml_path, "w", encoding="utf-8") as fh:
-                fh.write(xml)
-
-            try:
-                proc = subprocess.run(
-                    [
-                        "sf", "project", "deploy", "start",
-                        "--source-dir", "force-app",
-                        "--ignore-conflicts",
-                        "--target-org", self.t.target_org,
-                        "--json",
-                    ],
-                    cwd=tmp,
-                    capture_output=True,
-                    text=True,
-                    timeout=_DEPLOY_TIMEOUT,
-                )
-            except FileNotFoundError as exc:
-                raise LifecycleError(
-                    "The 'sf' CLI was not found on PATH; cannot deploy the "
-                    "DecisionTable metadata."
-                ) from exc
-            except subprocess.TimeoutExpired as exc:
-                raise LifecycleError(
-                    f"'sf project deploy start' timed out after {_DEPLOY_TIMEOUT}s "
-                    f"deploying DecisionTable '{api_name}'."
-                ) from exc
-
-            stdout = (proc.stdout or "").strip()
-            if proc.returncode != 0:
-                detail = stdout or (proc.stderr or "").strip()
-                raise LifecycleError(
-                    f"Metadata deploy of DecisionTable '{api_name}' failed for org "
-                    f"'{self.t.target_org}':\n{detail}"
-                )
-            self.log(f"Deployed DecisionTable '{api_name}' to org '{self.t.target_org}'.")
-            try:
-                parsed = json.loads(stdout) if stdout else {}
-            except json.JSONDecodeError:
-                parsed = {}
-            return {"deployed": True, "dryRun": False, "apiName": api_name, "raw": parsed}
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)

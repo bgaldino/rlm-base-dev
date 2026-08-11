@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Create a BRE Decision Table from a canonical JSON spec.
+"""Create a BRE Decision Table through Tooling from a canonical JSON spec.
 
-The default path deploys generated Metadata from a temporary SFDX project;
-``--path tooling`` uses a Tooling create. The requested status is sent unchanged
-so platform validation remains authoritative. The command previews by default
-and requires ``--confirm`` to write to an org.
+``--generate-only`` writes Metadata XML without contacting an org. Otherwise the
+command sends one Tooling create and returns the platform result unchanged. It
+previews by default and requires ``--confirm`` to write to an org.
 """
 
 import argparse
@@ -43,17 +42,14 @@ def main(argv=None) -> int:
                     "(preview by default; --confirm to create).",
     )
     parser.add_argument(
-        "--target-org", required=True,
-        help="SF CLI alias or username; not a CCI org alias.",
+        "--target-org",
+        help="SF CLI alias or username; required unless --generate-only.",
     )
     parser.add_argument("--spec", required=True,
                         help="Path to the canonical spec JSON ('-' for stdin).")
-    parser.add_argument("--path", choices=("metadata", "tooling"),
-                        default="metadata",
-                        help="Authoring path (default: metadata → temp SFDX deploy).")
     parser.add_argument("--generate-only", metavar="XML_PATH",
-                        help="metadata path only: write the .decisionTable-meta.xml to "
-                             "this explicit path and skip the deploy.")
+                        help="Write .decisionTable-meta.xml to this path without "
+                             "contacting an org.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually create. Without it, only PREVIEWS "
                              "(--generate-only writes its file regardless).")
@@ -62,11 +58,11 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit a result summary as JSON.")
     args = parser.parse_args(argv)
 
-    if args.generate_only and args.path != "metadata":
+    if not args.generate_only and not args.target_org:
         return fail_json(
             args.json,
-            "Error: --generate-only is only valid with --path metadata.",
-            {"action": "create", "path": args.path},
+            "Error: --target-org is required unless --generate-only is used.",
+            {"action": "create", "path": "tooling"},
             code=2,
         )
 
@@ -75,7 +71,7 @@ def main(argv=None) -> int:
     except (OSError, ValueError) as exc:
         return fail_json(args.json, f"Error: could not read spec '{args.spec}': {exc}")
 
-    result = validate_spec(spec, path=args.path)
+    result = validate_spec(spec, require_status=True)
     eprint(result.format_report())
     if not result.passed:
         return fail_json(args.json, "Spec has errors; not creating. Fix them and retry.",
@@ -97,9 +93,8 @@ def main(argv=None) -> int:
                 {"action": "create", "path": "metadata",
                  "generateOnly": args.generate_only, "apiName": api_name},
             )
-        eprint(f"\nWrote {args.generate_only}. Deploy it with:\n"
-               f"  sf project deploy start --source-dir <dir-containing-it> "
-               f"--target-org {args.target_org}")
+        eprint(f"\nWrote {args.generate_only}. Deploy it with the standard "
+               "sf project deploy or CCI workflow.")
         if args.json:
             print(json.dumps({"action": "create", "path": "metadata",
                               "generateOnly": args.generate_only,
@@ -123,26 +118,18 @@ def main(argv=None) -> int:
                "status=Active. Create it Draft, then load rows with "
                "upload_decision_table_data.py and activate with "
                "activate_decision_table.py.")
-    summary = {"action": "create", "path": args.path, "apiName": api_name,
+    summary = {"action": "create", "path": "tooling", "apiName": api_name,
                "requestedStatus": requested_status, "dryRun": preview}
 
-    eprint(f"\nCreate DecisionTable '{api_name}' via --path {args.path}, "
+    eprint(f"\nCreate DecisionTable '{api_name}' via Tooling, "
            f"status={requested_status}, {'PREVIEW' if preview else 'CONFIRM'}")
 
     try:
-        if args.path == "metadata":
-            xml = _payload.to_metadata_xml(spec)
-            if preview:
-                eprint("[preview] would deploy this .decisionTable-meta.xml:\n")
-                eprint(xml)
-            else:
-                summary["deploy"] = engine.deploy_metadata_xml(api_name, xml)
-        else:  # tooling
-            resp = transport.tooling_sobject(
-                "POST", "DecisionTable", body=_payload.to_tooling(spec))
-            summary["response"] = resp
-            if not preview and isinstance(resp, dict) and resp.get("id"):
-                summary["id"] = resp["id"]
+        resp = transport.tooling_sobject(
+            "POST", "DecisionTable", body=_payload.to_tooling(spec))
+        summary["response"] = resp
+        if not preview and isinstance(resp, dict) and resp.get("id"):
+            summary["id"] = resp["id"]
 
         # Activation is async: if Active was requested, poll past
         # ActivationInProgress so a follow-on read sees a settled state.

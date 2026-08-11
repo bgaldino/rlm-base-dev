@@ -418,13 +418,9 @@ def test_validate_spec_errors():
     check("overall fails", not result.passed)
 
 
-def test_validate_spec_full_name_path_escape():
-    print("test_validate_spec_full_name_path_escape")
-    # fullName becomes a bare file-system segment
-    # (<fullName>.decisionTable-meta.xml) in the metadata deploy temp dir — an
-    # absolute-path or separator-bearing value must be rejected, not silently
-    # accepted (it would write outside the temp SFDX project via os.path.join's
-    # absolute-path-discards-prefix behavior).
+def test_validate_spec_full_name_shape():
+    print("test_validate_spec_full_name_shape")
+    # fullName is a Salesforce API name, not a path or arbitrary identifier.
     base = {
         "setupName": "X", "dataSourceType": "SingleSobject",
         "sourceObject": "CostBookEntry", "filterResultBy": "OutputOrder",
@@ -584,18 +580,17 @@ def test_validate_spec_create_and_structural_errors():
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
         ],
     }
-    # No path (update validation) — the live status is stamped by update.
-    no_path = validate_spec(spec)
+    # Update validation does not require status; the live value is stamped by update.
+    update_result = validate_spec(spec)
     check("update validation does not require spec status",
-          not any(i.location == "status" for i in no_path.errors), no_path.format_report())
-    # Metadata/Tooling create paths without status are blocked locally.
-    for authoring_path in ("metadata", "tooling"):
-        result = validate_spec(spec, path=authoring_path)
-        check(f"{authoring_path} create without status errors",
-              any(i.location == "status" for i in result.errors), result.format_report())
-    # Metadata/Tooling create WITH status set is valid.
-    with_status = validate_spec({**spec, "status": "Draft"}, path="metadata")
-    check("metadata create with status set passes", with_status.passed,
+          not any(i.location == "status" for i in update_result.errors),
+          update_result.format_report())
+    create_result = validate_spec(spec, require_status=True)
+    check("create without status errors",
+          any(i.location == "status" for i in create_result.errors),
+          create_result.format_report())
+    with_status = validate_spec({**spec, "status": "Draft"}, require_status=True)
+    check("create with status set passes", with_status.passed,
           with_status.format_report())
 
     invalid = validate_spec({
@@ -770,6 +765,51 @@ def test_validate_spec_rejects_malformed_scalar_enum_and_text():
           and any(i.location.endswith(".fieldName") and "string" in i.message
                   for i in bad_field.errors),
           bad_field.format_report())
+
+    # Sweep every non-enum string field carried by the canonical translator. These
+    # are local shape checks only; Salesforce remains authoritative for names,
+    # expressions, lifecycle state, and supported values.
+    malformed = [
+        ("sourceObject", {**base, "sourceObject": ["CostBookEntry"]}),
+        ("conditionCriteria", {**base, "conditionCriteria": ["1"]}),
+        ("sourceConditionLogic", {**base, "sourceConditionLogic": {"x": 1}}),
+        ("description", {**base, "description": ["description"]}),
+        ("decisionTableParameters[0].fieldPath", {
+            **base,
+            "decisionTableParameters": [{
+                "usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency",
+                "fieldPath": ["Cost"],
+            }],
+        }),
+        ("decisionTableParameters[0].domainObject", {
+            **base,
+            "decisionTableParameters": [{
+                "usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency",
+                "domainObject": {"name": "CostBookEntry"},
+            }],
+        }),
+        ("decisionTableSourceCriterias[0].value", {
+            **base,
+            "decisionTableSourceCriterias": [{
+                "sourceFieldName": "UsageType", "operator": "Equals",
+                "value": ["Pricing"], "valueType": "Literal", "sequenceNumber": 1,
+            }],
+        }),
+        ("decisionTableSourceCriterias[0].sourceFieldName", {
+            **base,
+            "decisionTableSourceCriterias": [{
+                "sourceFieldName": ["UsageType"], "operator": "Equals",
+                "value": "Pricing", "valueType": "Literal", "sequenceNumber": 1,
+            }],
+        }),
+    ]
+    for location, malformed_spec in malformed:
+        result = validate_spec(malformed_spec)
+        check(f"non-string {location} is a hard error",
+              not result.passed
+              and any(i.location == location and "string" in i.message
+                      for i in result.errors),
+              result.format_report())
 
 
 def test_payload_miscased_usage_is_blocked_upstream():
@@ -1445,8 +1485,7 @@ def test_create_cli_tooling_preview_vs_confirm(tmp_spec):
     # Preview: dry_run transport → no mutation recorded.
     fake_p = _FakeTransport(dry_run=True)
     rc, out = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--json"], fake_p)
+        create_cli, ["--target-org", "x", "--spec", tmp_spec, "--json"], fake_p)
     check("create preview exits 0", rc == 0, out[:300])
     check("create preview performs NO mutation", fake_p.mutations == [], fake_p.mutations)
     check("create preview reports dryRun=True", json.loads(out).get("dryRun") is True)
@@ -1454,7 +1493,7 @@ def test_create_cli_tooling_preview_vs_confirm(tmp_spec):
     fake_c = _FakeTransport(dry_run=False)
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--confirm", "--json"], fake_c)
+                     "--confirm", "--json"], fake_c)
     check("create confirm exits 0", rc == 0, out[:300])
     check("create confirm records a POST DecisionTable",
           any(m[0] == "POST" and m[1] == "tooling/DecisionTable" for m in fake_c.mutations),
@@ -1471,7 +1510,7 @@ def test_create_cli_honors_requested_active_status(tmp_spec):
     fake = _FakeTransport(dry_run=False)
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--confirm", "--json"], fake)
+                     "--confirm", "--json"], fake)
     check("create-Active exits 0", rc == 0, out[:300])
     posts = [m for m in fake.mutations if m[0] == "POST" and m[1] == "tooling/DecisionTable"]
     check("a single definition POST carries the requested Active status",
@@ -1502,7 +1541,7 @@ def test_create_cli_failure_emits_json_with_error(tmp_spec):
     fake.tooling_sobject = _boom
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--confirm", "--json"], fake)
+                     "--confirm", "--json"], fake)
     check("create failure exits 1", rc == 1, (rc, out[:300]))
     summary = json.loads(out)
     check("failure summary carries the error string",
@@ -1513,8 +1552,7 @@ def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
     print("test_create_cli_generate_only_no_org")
     fake = _FakeTransport(dry_run=True)
     rc, out = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--generate-only", tmp_out_xml, "--json"], fake)
+        create_cli, ["--spec", tmp_spec, "--generate-only", tmp_out_xml, "--json"], fake)
     check("generate-only exits 0", rc == 0, out[:300])
     check("generate-only performs NO org mutation", fake.mutations == [])
     produced = Path(tmp_out_xml).read_text(encoding="utf-8")
@@ -1522,17 +1560,34 @@ def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
           produced.startswith('<?xml') and "<DecisionTable" in produced, produced[:80])
 
 
-
-def test_create_cli_generate_only_rejects_nonmetadata(tmp_spec):
-    print("test_create_cli_generate_only_rejects_nonmetadata")
+def test_create_cli_generate_only_rejects_malformed_text(tmp_path_factory):
+    print("test_create_cli_generate_only_rejects_malformed_text")
+    spec_path = tmp_path_factory("malformed_generate_spec.json")
+    output_path = tmp_path_factory("malformed.decisionTable-meta.xml")
+    Path(spec_path).write_text(
+        json.dumps(_cost_book_spec(conditionCriteria=["1"])), encoding="utf-8"
+    )
     fake = _FakeTransport(dry_run=True)
     rc, out = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", tmp_spec,
-                     "--path", "tooling", "--generate-only", "/tmp/x.xml", "--json"],
-        fake)
-    check("generate-only + non-metadata path exits 2", rc == 2, rc)
+        create_cli,
+        ["--spec", spec_path, "--generate-only", output_path, "--json"],
+        fake,
+    )
+    check("malformed generate-only exits nonzero", rc == 1, (rc, out[:300]))
+    check("malformed generate-only writes no XML", not Path(output_path).exists())
+    check("malformed generate-only performs no org mutation", fake.mutations == [])
     payload = json.loads(out)
-    check("generate-only path error emits JSON",
+    check("malformed generate-only emits a JSON error", bool(payload.get("error")), payload)
+
+
+def test_create_cli_requires_target_org(tmp_spec):
+    print("test_create_cli_requires_target_org")
+    fake = _FakeTransport(dry_run=True)
+    rc, out = _run_cli_with_fake(
+        create_cli, ["--spec", tmp_spec, "--json"], fake)
+    check("org create without --target-org exits 2", rc == 2, rc)
+    payload = json.loads(out)
+    check("missing target-org error emits JSON",
           payload.get("action") == "create" and bool(payload.get("error")), payload)
 
 
@@ -1542,7 +1597,7 @@ def test_create_cli_invalid_spec_blocks(tmp_path_factory):
     Path(bad).write_text(json.dumps({"dataSourceType": "SingleSobject"}), encoding="utf-8")
     fake = _FakeTransport(dry_run=False)
     rc, _ = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", bad, "--path", "tooling", "--confirm"],
+        create_cli, ["--target-org", "x", "--spec", bad, "--confirm"],
         fake)
     check("invalid spec exits 1", rc == 1, rc)
     check("invalid spec performs NO mutation", fake.mutations == [], fake.mutations)
@@ -1560,7 +1615,7 @@ def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
     # (a) unreadable spec file.
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_path_factory("does_not_exist.json"),
-                     "--path", "tooling", "--confirm", "--json"], fake)
+                     "--confirm", "--json"], fake)
     check("missing spec exits 1", rc == 1, rc)
     payload = json.loads(out)  # must be valid JSON, not empty stdout
     check("missing-spec JSON carries an error", bool(payload.get("error")), payload)
@@ -1570,8 +1625,7 @@ def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
     Path(bad).write_text(json.dumps({"dataSourceType": "SingleSobject"}), encoding="utf-8")
     fake2 = _FakeTransport(dry_run=False)
     rc2, out2 = _run_cli_with_fake(
-        create_cli, ["--target-org", "x", "--spec", bad, "--path", "tooling",
-                     "--confirm", "--json"], fake2)
+        create_cli, ["--target-org", "x", "--spec", bad, "--confirm", "--json"], fake2)
     check("invalid spec exits 1", rc2 == 1, rc2)
     payload2 = json.loads(out2)
     check("invalid-spec JSON carries an error and the action",
@@ -1585,8 +1639,7 @@ def test_create_cli_premutation_failures_emit_json(tmp_path_factory):
     fake3 = _FakeTransport(dry_run=True)
     rc3, out3 = _run_cli_with_fake(
         create_cli,
-        ["--target-org", "x", "--spec", str(valid), "--generate-only", str(output_dir),
-         "--json"],
+        ["--spec", str(valid), "--generate-only", str(output_dir), "--json"],
         fake3,
     )
     check("generate-only write failure exits 1", rc3 == 1, (rc3, out3[:300]))
@@ -2042,7 +2095,7 @@ def main():
     Path(csv_path).write_text("Region,DiscountPercent\nNorth,10\nSouth,5\n", encoding="utf-8")
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
-              test_validate_spec_full_name_path_escape,
+              test_validate_spec_full_name_shape,
               test_validate_spec_duplicate_and_unknown,
               test_validate_spec_duplicate_source_criterion_sequence,
               test_validate_spec_duplicate_input_sequence,
@@ -2092,7 +2145,8 @@ def main():
     test_create_cli_honors_requested_active_status(spec_path)
     test_create_cli_failure_emits_json_with_error(spec_path)
     test_create_cli_generate_only_no_org(spec_path, out_xml)
-    test_create_cli_generate_only_rejects_nonmetadata(spec_path)
+    test_create_cli_generate_only_rejects_malformed_text(_tmp)
+    test_create_cli_requires_target_org(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)
     test_create_cli_premutation_failures_emit_json(_tmp)
     test_update_cli_returns_platform_error(spec_path)
