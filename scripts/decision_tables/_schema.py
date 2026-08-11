@@ -214,9 +214,6 @@ class ValidationResult:
 #   }
 # --------------------------------------------------------------------------- #
 
-# The `usage` values that require an operator + sequence (INPUT columns only).
-_INPUT_USAGE = {"INPUT"}
-
 # `sourceObject` is Required-since-58.0 for **every** dataSourceType — all three
 # Metadata/Tooling authoring paths reject a create without it (live-verified 262 /
 # v67.0: Tooling ``FIELD_INTEGRITY_EXCEPTION`` and Metadata deploy error).
@@ -357,10 +354,12 @@ def _reject_unknown_keys(result: ValidationResult, location: str,
 
 
 def _validate_parameter(param: Dict[str, Any], location: str, result: ValidationResult,
-                        seen: Set[str], seen_input_sequences: Set[int]) -> None:
+                        seen: Set[str], seen_input_sequences: Set[int]) -> Optional[str]:
+    """Validate one column. Returns its normalized ``usage`` (a scalar or None) so the
+    caller's INPUT/OUTPUT tally reuses this classification instead of re-reading it."""
     if not isinstance(param, dict):
         result.error(location, "each column must be an object.")
-        return
+        return None
     _reject_unknown_keys(result, location, param, _PARAMETER_KEYS)
     for bool_key in _PARAMETER_BOOL_KEYS:
         _check_bool(result, f"{location}.{bool_key}", param.get(bool_key))
@@ -375,11 +374,12 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     # as an unknown key.
     _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True,
                 strict=True)
-    # _check_enum has recorded an error for a non-scalar (unhashable) usage; normalize
-    # it to None so the rest of this function — the `usage in _INPUT_USAGE` branch and
-    # the dedup key below — operates on a hashable value instead of raising TypeError
-    # and escaping as a traceback. The spec is already invalid; the branch taken here
-    # no longer matters, only that validation completes and returns a clean report.
+    # _check_enum has already recorded an error for a non-scalar (unhashable) usage;
+    # normalize it to None here — once — so it is safe to interpolate into the dedup
+    # key and compare below without a per-site guard. From here `usage` is a plain
+    # scalar, and every classification is exact equality (no set membership), so no
+    # unhashable value can reach a hashing operation. The spec is already invalid; the
+    # branch taken no longer matters, only that validation completes cleanly.
     if not isinstance(usage, (str, int, float, bool)):
         usage = None
     field_name = param.get("fieldName")
@@ -393,7 +393,7 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     _check_enum(result, f"{location}.dataType", param.get("dataType"), PARAM_DATA_TYPES)
     _check_integer(result, f"{location}.decimalScale", param.get("decimalScale"))
     _check_integer(result, f"{location}.length", param.get("length"))
-    if usage in _INPUT_USAGE:
+    if usage == "INPUT":
         _check_enum(result, f"{location}.operator", param.get("operator"), PARAM_OPERATORS)
         if param.get("sequence") in (None, ""):
             result.warn(f"{location}.sequence",
@@ -405,7 +405,9 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
             # Two INPUT columns sharing a sequence produce a degenerate expression
             # like "1 AND 1" — one condition has no distinct column reference.
             # Reject the collision up front, mirroring the duplicate-column and
-            # duplicate-source-criterion guards.
+            # duplicate-source-criterion guards. Only a validated int is deduped:
+            # _check_integer already errored on any non-int (incl. an unhashable
+            # list/dict), so skipping it here keeps the set insertion crash-free.
             seq = param.get("sequence")
             if isinstance(seq, int) and not isinstance(seq, bool):
                 if seq in seen_input_sequences:
@@ -419,6 +421,7 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
         if param.get("operator"):
             result.warn(f"{location}.operator", f"ignored for usage {usage!r} (INPUT-only).")
     _check_enum(result, f"{location}.sortType", param.get("sortType"), PARAM_SORT_TYPES)
+    return usage
 
 
 def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> ValidationResult:
@@ -507,14 +510,11 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         seen_input_sequences: Set[int] = set()
         n_input = n_output = 0
         for i, param in enumerate(params):
-            _validate_parameter(param, f"decisionTableParameters[{i}]", result, seen,
-                                 seen_input_sequences)
-            usage = param.get("usage") if isinstance(param, dict) else None
-            # A non-scalar usage is unhashable — _validate_parameter already errored on
-            # it; normalize to None so this membership test can't raise TypeError.
-            if not isinstance(usage, (str, int, float, bool)):
-                usage = None
-            if usage in _INPUT_USAGE:
+            # _validate_parameter returns the normalized (scalar) usage, so the tally
+            # reuses that classification — no re-read, and no unhashable value here.
+            usage = _validate_parameter(param, f"decisionTableParameters[{i}]", result,
+                                        seen, seen_input_sequences)
+            if usage == "INPUT":
                 n_input += 1
             elif usage == "OUTPUT":
                 n_output += 1
