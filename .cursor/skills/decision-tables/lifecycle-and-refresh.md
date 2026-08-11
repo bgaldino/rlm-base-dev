@@ -95,6 +95,14 @@ live to the engine.
 
 > ⚠ The action input is `isDecisionTableIncremental`, not `isIncremental`.
 
+> **Casing is not the trap; the name is.** Input names match
+> **case-insensitively** — `DecisionTableApiName` (the describe spelling, used by
+> the flows and `scripts/decision_tables/`) and `decisionTableApiName` (the
+> Salesforce doc sample, used by `tasks/rlm_*.py`) both refresh correctly,
+> verified live on v67.0 by confirming `LastSyncDate` advanced to
+> `RefreshStatus=Completed` for each. Prefer the describe spelling in new code.
+> A wrong *name* is a different matter: `isIncremental` is silently ignored.
+
 - **Async + rate-limited.** The action is asynchronous. Full refreshes use
   separate hourly pools: **40 Standard** and **60 Advanced**; CSV-based tables
   inherit the Advanced pool. Do **not** loop refreshes in a tight build step.

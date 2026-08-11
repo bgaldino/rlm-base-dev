@@ -252,6 +252,18 @@ Call the standard `refreshDecisionTable` action with:
 Use the exact `isDecisionTableIncremental` field name. A successful request
 queues asynchronous work; it does not mean the refresh has completed.
 
+**Input-name casing.** The action describe declares `DecisionTableApiName`
+(initial capital), while the Salesforce doc sample
+(`docs/salesforce/262/dev-guide-industries/articles/dt_actions_refresh_decision_table.htm.md`)
+shows `decisionTableApiName`. Both are accepted — the invocable-action REST
+layer matches input names **case-insensitively**, verified live on v67.0 by
+running each spelling and confirming `LastSyncDate` advanced with
+`RefreshStatus=Completed`. This is why the repo carries both: the flows and
+`scripts/decision_tables/` use the describe spelling, `tasks/rlm_*.py` use the
+doc spelling, and both refresh correctly. Prefer the describe spelling in new
+code. Casing tolerance does **not** extend to using a wrong *name* —
+`isIncremental` is a different key and is silently ignored.
+
 Full refresh completion is reflected by `Metadata.refreshStatus` and
 `Metadata.lastSyncDate`. Incremental refresh completion advances
 `Metadata.lastIncrementalSyncDate`. Full-refresh hourly pools are 40 Standard
