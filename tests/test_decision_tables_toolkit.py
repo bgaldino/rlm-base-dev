@@ -1709,6 +1709,25 @@ def test_refresh_cli_exits_nonzero_on_bad_outcomes():
               == refresh_response, payload)
 
 
+def test_refresh_cli_soft_success_when_status_absent():
+    # isSuccess=true with no Status reported: the action POST already fired, so
+    # the refresh was accepted. The CLI must NOT fail conservatively (which would
+    # mislead the user into thinking nothing was queued) — exit 0 as a soft success.
+    print("test_refresh_cli_soft_success_when_status_absent")
+    for label, refresh_response in [
+        ("Status omitted", [{"isSuccess": True, "outputValues": {}}]),
+        ("Status null", [{"isSuccess": True, "outputValues": {"Status": None}}]),
+        ("outputValues omitted", [{"isSuccess": True}]),
+    ]:
+        fake = _FakeTransport(dry_run=False, refresh_response=refresh_response)
+        rc, out = _run_cli_with_fake(
+            refresh_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries",
+                          "--confirm", "--json"], fake)
+        check(f"refresh confirm exits 0 on {label}", rc == 0, (label, out[:300]))
+        payload = json.loads(out)
+        check(f"refresh {label} emits no JSON error", not payload.get("error"), payload)
+
+
 def _csv_transport(**over):
     """A fake transport shaped like a CsvUpload table for the upload-CLI tests."""
     kw = dict(table=_table_row(name="RLM_CsvUploadTable", SourceObject="CSV"),
@@ -2051,6 +2070,7 @@ def main():
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
+              test_refresh_cli_soft_success_when_status_absent,
               test_delete_cli_requires_confirm, test_delete_cli_returns_platform_error,
               test_delete_cli_failure_emits_json,
               # CsvUpload data-load CLI gating

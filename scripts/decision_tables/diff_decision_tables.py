@@ -19,15 +19,21 @@ from scripts.decision_tables._resolve import (  # noqa: E402
     load_definition,
 )
 
-# Table-level attributes worth diffing. `table` summary + the author-controlled,
-# structural fields from the `Metadata` complexvalue. Runtime observations such
-# as lastSyncDate / refreshStatus / uploadStatus are intentionally excluded: a
-# definition diff should not report drift merely because one org refreshed later.
+# Table-level attributes worth diffing, taken from the head record. Runtime
+# observations such as lastSyncDate / refreshStatus / uploadStatus are
+# intentionally excluded: a definition diff should not report drift merely
+# because one org refreshed later.
 _TABLE_ATTRS = ("Status", "UsageType", "SourceObject")
+# Author-controlled structural fields from the `Metadata` complexvalue.
+# `Status`/`UsageType`/`SourceObject` are deliberately NOT repeated here — they
+# are covered by `_TABLE_ATTRS` (the head record, always queried by
+# load_definition). Listing their lowercase Metadata twins (`status` /
+# `usageType` / `sourceObject`) would report the same drift twice under two
+# different-cased keys.
 _META_ATTRS = (
-    "setupName", "dataSourceType", "sourceObject", "executionType",
+    "setupName", "dataSourceType", "executionType",
     "filterResultBy", "conditionType", "conditionCriteria",
-    "sourceConditionLogic", "type", "usageType", "status", "description",
+    "sourceConditionLogic", "type", "description",
     "collectOperator", "dtRowLevelOverrideType", "doesConsiderNullValue",
     "isIncrementalSyncEnabled", "isVersioned",
 )

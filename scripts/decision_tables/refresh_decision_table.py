@@ -103,6 +103,14 @@ def main(argv=None) -> int:
             eprint(f"\nRefresh queued (isSuccess=true, status=Queued). Re-check "
                    f"{signal_field} with describe_decision_table.py to confirm the "
                    f"sync landed.")
+        elif status is None:
+            # isSuccess=true but the action reported no Status. The POST already
+            # fired, so the refresh was accepted — don't fail conservatively and
+            # mislead the user into thinking nothing was queued. Treat as a soft
+            # success and point them at the async completion signal.
+            eprint(f"\nRefresh accepted (isSuccess=true, no status reported). "
+                   f"Re-check {signal_field} with describe_decision_table.py to "
+                   f"confirm the sync landed.")
         else:
             return fail_json(
                 args.json,
