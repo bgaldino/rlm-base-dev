@@ -361,6 +361,12 @@ class LifecycleEngine:
         record_id = table_row["Id"]
         was_active = table_row.get("Status") in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS)
         failure: Optional[Exception] = None
+        # Reactivation is owed only if WE took the table offline. A rejected
+        # deactivate leaves the table Active, so re-activating it would be a
+        # redundant PATCH the platform rejects ("already active") — reported as a
+        # spurious "reactivation also failed". Flip this only after deactivate
+        # returns cleanly.
+        deactivated = False
         # Pin the CsvUpload version to move BEFORE deactivating, while the table
         # still has a unique active version, and reuse it for the reactivate below.
         # Re-resolving after deactivation would strand a multi-version table (no
@@ -370,6 +376,7 @@ class LifecycleEngine:
         try:
             if was_active:
                 self.deactivate(record_id, version_number=guarded_version)
+                deactivated = True
             else:
                 self.log(
                     f"DecisionTable {record_id} is "
@@ -379,7 +386,9 @@ class LifecycleEngine:
         except Exception as exc:  # noqa: BLE001 — re-raised below
             failure = exc
         finally:
-            if was_active:
+            # Only restore what we deactivated. If the deactivate itself failed the
+            # table never went offline, so there is nothing to reactivate.
+            if deactivated:
                 if failure:
                     self.log(
                         f"{verb} failed, but the definition write is atomic (the "

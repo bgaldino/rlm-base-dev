@@ -277,11 +277,16 @@ def _check_enum(result: ValidationResult, location: str, value: Any,
         if required:
             result.error(location, "is required.")
         return
-    # Enum values are scalar strings. A non-scalar (list/dict) is unhashable, so the
-    # membership test below would raise TypeError and escape as a traceback instead
-    # of a controlled ValidationResult — reject it as an error up front.
-    if not isinstance(value, (str, int, float, bool)):
-        result.error(location, f"must be a scalar value; got {type(value).__name__} {value!r}.")
+    # Enum values are ALWAYS strings in the Metadata/Tooling vocabulary. The
+    # warn-on-unknown path below exists for forward compat — a future release may
+    # add a new *string* value this toolkit hasn't catalogued. A non-string (int,
+    # bool, list, dict) can never be a valid enum value, so it is a hard error, not
+    # a forward-compat warning; this also keeps an unhashable list/dict from
+    # reaching the membership test (which would raise TypeError and escape as a
+    # traceback instead of a controlled ValidationResult).
+    if not isinstance(value, str):
+        result.error(location,
+                     f"must be a string enum value; got {type(value).__name__} {value!r}.")
         return
     if value not in allowed:
         message = f"unrecognized value {value!r} (known: {sorted(allowed)})."
@@ -385,6 +390,10 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     field_name = param.get("fieldName")
     if not field_name:
         result.error(f"{location}.fieldName", "is required.")
+    elif not isinstance(field_name, str):
+        result.error(f"{location}.fieldName",
+                     f"must be a string; got {type(field_name).__name__} {field_name!r}.")
+        field_name = None
     else:
         key = f"{usage}:{field_name}"
         if key in seen:
@@ -454,8 +463,13 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
             f"path separator or absolute-path value would write outside the temp "
             f"SFDX project.",
         )
-    if not spec.get("setupName"):
+    setup_name = spec.get("setupName")
+    if not setup_name:
         result.error("setupName", "is required (the human label).")
+    elif not isinstance(setup_name, str):
+        result.error("setupName",
+                     f"must be a string (the human label); got "
+                     f"{type(setup_name).__name__} {setup_name!r}.")
 
     _check_enum(result, "dataSourceType", spec.get("dataSourceType"),
                 DATA_SOURCE_TYPES, required=True)
@@ -536,8 +550,13 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                     result.error(loc, "each criterion must be an object.")
                     continue
                 _reject_unknown_keys(result, loc, crit, _SOURCE_CRITERIA_KEYS)
-                if not crit.get("sourceFieldName"):
+                source_field = crit.get("sourceFieldName")
+                if not source_field:
                     result.error(f"{loc}.sourceFieldName", "is required.")
+                elif not isinstance(source_field, str):
+                    result.error(f"{loc}.sourceFieldName",
+                                 f"must be a string; got "
+                                 f"{type(source_field).__name__} {source_field!r}.")
                 _check_enum(result, f"{loc}.operator", crit.get("operator"),
                             SOURCE_CRITERIA_OPERATORS, required=True)
                 _check_enum(result, f"{loc}.valueType", crit.get("valueType"),

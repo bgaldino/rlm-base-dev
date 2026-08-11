@@ -669,26 +669,27 @@ def test_validate_spec_usage_is_strict():
           canonical.format_report())
 
 
-def test_validate_spec_rejects_non_scalar_enum_values():
-    print("test_validate_spec_rejects_non_scalar_enum_values")
-    # A malformed JSON value (list/dict) where a scalar enum is expected must produce
-    # a controlled ValidationResult error, NOT crash the validator with
-    # "TypeError: unhashable type" on the enum membership test / dedup set insertion —
-    # which would leak a traceback out of create/update instead of the --json result.
+def test_validate_spec_rejects_non_string_enum_values():
+    print("test_validate_spec_rejects_non_string_enum_values")
+    # Enum values are ALWAYS strings in the Metadata/Tooling vocabulary; a non-string
+    # (int/bool/list/dict) can never be valid, so it is a hard ERROR, not a
+    # forward-compat warning. This also keeps a list/dict from reaching the enum
+    # membership test / dedup set (which would crash with "TypeError: unhashable type"
+    # and leak a traceback out of create/update instead of the --json result).
     base = {
         "fullName": "RLM_Malformed", "setupName": "Malformed",
         "sourceObject": "CostBookEntry", "filterResultBy": "OutputOrder",
     }
-    # (a) top-level enum: status/dataSourceType as non-scalars.
+    # (a) top-level enum: status/dataSourceType as non-strings.
     top = validate_spec({
         **base, "status": [], "dataSourceType": {},
         "decisionTableParameters": [
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
     })
-    check("non-scalar status errors (no crash)",
-          any(i.location == "status" and "scalar" in i.message for i in top.errors),
+    check("non-string status errors (no crash)",
+          any(i.location == "status" and "string" in i.message for i in top.errors),
           top.format_report())
-    check("non-scalar dataSourceType errors (no crash)",
+    check("non-string dataSourceType errors (no crash)",
           any(i.location == "dataSourceType" for i in top.errors), top.format_report())
     # (b) parameter enum: usage as a list.
     param = validate_spec({
@@ -697,8 +698,8 @@ def test_validate_spec_rejects_non_scalar_enum_values():
             {"usage": [], "fieldName": "ProductId", "dataType": "String"},
             {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
     })
-    check("non-scalar parameter usage errors (no crash)",
-          any(i.location.endswith(".usage") and "scalar" in i.message for i in param.errors),
+    check("non-string parameter usage errors (no crash)",
+          any(i.location.endswith(".usage") and "string" in i.message for i in param.errors),
           param.format_report())
     # (c) source-criterion enum + sequenceNumber as non-scalars (dedup-set crash site).
     crit = validate_spec({
@@ -716,6 +717,55 @@ def test_validate_spec_rejects_non_scalar_enum_values():
           any("sequenceNumber" in i.location for i in crit.errors), crit.format_report())
     for label, res in (("top", top), ("param", param), ("crit", crit)):
         check(f"malformed {label} spec fails cleanly", not res.passed, res.format_report())
+
+
+def test_validate_spec_rejects_malformed_scalar_enum_and_text():
+    print("test_validate_spec_rejects_malformed_scalar_enum_and_text")
+    # A malformed *scalar* (an int/bool where a string enum belongs, or a list where
+    # the setupName text belongs) previously passed as a mere warning and rode into
+    # the write payload verbatim — the unhashable-crash guard only caught list/dict
+    # enums. Enum values are always strings and setupName is text, so these must be
+    # hard ERRORS that block the write, never a "forward-compat" warning.
+    base = {
+        "fullName": "RLM_Malformed2", "setupName": "Malformed2",
+        "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
+        "filterResultBy": "OutputOrder", "status": "Draft",
+        "decisionTableParameters": [
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
+    }
+    # (a) an integer where a string enum is expected — must error, not warn.
+    int_enum = validate_spec({**base, "filterResultBy": 7})
+    check("integer enum value is a hard error (not an accepted warning)",
+          not int_enum.passed
+          and any(i.location == "filterResultBy" and "string" in i.message
+                  for i in int_enum.errors),
+          int_enum.format_report())
+    # (b) a boolean where a string enum is expected — bool is an int subclass, so the
+    #     old `isinstance(value, (str, int, float, bool))` scalar guard let it through.
+    bool_enum = validate_spec({**base, "executionType": True})
+    check("boolean enum value is a hard error",
+          not bool_enum.passed
+          and any(i.location == "executionType" and "string" in i.message
+                  for i in bool_enum.errors),
+          bool_enum.format_report())
+    # (c) a list where the setupName text belongs — must error.
+    list_text = validate_spec({**base, "setupName": ["x"]})
+    check("non-string setupName is a hard error",
+          not list_text.passed
+          and any(i.location == "setupName" and "string" in i.message
+                  for i in list_text.errors),
+          list_text.format_report())
+    # (d) a non-string column fieldName rides verbatim into the payload — must error.
+    bad_field = validate_spec({
+        **base,
+        "decisionTableParameters": [
+            {"usage": "OUTPUT", "fieldName": ["Cost"], "dataType": "Currency"}],
+    })
+    check("non-string parameter fieldName is a hard error",
+          not bad_field.passed
+          and any(i.location.endswith(".fieldName") and "string" in i.message
+                  for i in bad_field.errors),
+          bad_field.format_report())
 
 
 def test_payload_miscased_usage_is_blocked_upstream():
@@ -1519,6 +1569,41 @@ def test_guarded_update_double_failure_chains_original_cause():
           raised.__cause__ if raised else None)
 
 
+def test_guarded_update_rejected_deactivate_does_not_reactivate():
+    print("test_guarded_update_rejected_deactivate_does_not_reactivate")
+    # If the DEACTIVATE itself is rejected (e.g. the table is referenced by an active
+    # Expression Set), the table never went offline — so the guarded sequencer must
+    # NOT attempt a redundant reactivation. Reactivating an already-Active table
+    # would be rejected by the platform and reported as a misleading "reactivation
+    # also failed". The original deactivate failure is surfaced verbatim, and no
+    # reactivation PATCH goes out.
+    fake = _LifecycleFake(status="Active", data_source_type="CsvUpload")
+    orig_connect = fake.connect
+
+    def _reject_deactivate(method, path, body=None, **kw):
+        if (method.upper() == "PATCH" and "/versions/" in path
+                and isinstance(body, dict) and body.get("versionStatus") == "Inactive"):
+            raise DecisionTableClientError("deactivate rejected — table still referenced")
+        return orig_connect(method, path, body=body, **kw)
+
+    fake.connect = _reject_deactivate
+    raised = None
+    try:
+        engine = LifecycleEngine(fake, max_wait_seconds=1)
+        engine.run_guarded_update(
+            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
+            mutate=lambda: None, verb="update")
+    except DecisionTableClientError as exc:
+        raised = exc
+    check("rejected deactivate re-raises the original error (not a chained one)",
+          raised is not None and "deactivate rejected" in str(raised)
+          and "reactivation also failed" not in str(raised), str(raised))
+    check("no reactivation PATCH is attempted after a rejected deactivate",
+          fake.version_status_sets == [], fake.version_status_sets)
+    check("the table is left Active (it never went offline)",
+          fake.status == "Active", fake.status)
+
+
 def test_wait_for_status_timeout_message_is_operation_aware():
     print("test_wait_for_status_timeout_message_is_operation_aware")
     # The single wait_for_status poll confirms BOTH activation and deactivation, so
@@ -2121,7 +2206,8 @@ def main():
               test_validate_spec_duplicate_source_criterion_sequence,
               test_validate_spec_duplicate_input_sequence,
               test_validate_spec_boolean_typo,
-              test_validate_spec_rejects_non_scalar_enum_values,
+              test_validate_spec_rejects_non_string_enum_values,
+              test_validate_spec_rejects_malformed_scalar_enum_and_text,
               test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
               test_validate_spec_usage_is_strict,
@@ -2152,6 +2238,7 @@ def main():
               test_guarded_update_csv_upload_multi_version_roundtrip,
               test_guarded_update_tooling_failure_reactivates,
               test_guarded_update_double_failure_chains_original_cause,
+              test_guarded_update_rejected_deactivate_does_not_reactivate,
               test_wait_for_status_timeout_message_is_operation_aware,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
