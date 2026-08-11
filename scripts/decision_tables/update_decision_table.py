@@ -58,8 +58,6 @@ from scripts.decision_tables._client import (  # noqa: E402
 from scripts.decision_tables._lifecycle import (  # noqa: E402
     LifecycleEngine,
     LifecycleError,
-    MutationVerificationError,
-    PreWriteVerificationError,
 )
 from scripts.decision_tables._resolve import ResolveError, resolve_decision_table  # noqa: E402
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
@@ -121,7 +119,8 @@ def main(argv=None) -> int:
                           dry_run=preview, logger=eprint)
     engine = LifecycleEngine(transport, logger=eprint)
     summary = {"action": "update", "path": "tooling", "developerName": dev_name,
-               "dryRun": preview}
+               "dryRun": preview, "deactivateFirst": bool(args.deactivate_first),
+               "leaveDeactivated": bool(args.leave_deactivated)}
 
     try:
         table_row = resolve_decision_table(transport, dev_name)
@@ -140,44 +139,22 @@ def main(argv=None) -> int:
         # LIVE status — read now, so during a deactivate-first sequence it is the
         # already-deactivated Inactive — never the spec's (often Active, which
         # would re-activate the table mid-edit and defeat --leave-deactivated).
-        # Fail CLOSED on a missing live status: a query returning no row is not
-        # evidence the table still has its pre-deactivation status, so falling back
-        # to the stale table_row.Status (captured before deactivation, often Active)
-        # could re-activate the table mid-edit and silently defeat
-        # --leave-deactivated while the CLI still exits 0. Under dry-run the read is
-        # skipped by nothing (reads always run), but a real query with no row raises.
-        #
-        # This is a PRE-write failure: the definition PATCH has NOT been sent. It
-        # must NOT be a MutationVerificationError — that class tells run_guarded_update
-        # "a write may have landed, leave the table Inactive", which for an originally
-        # Active table under --deactivate-first would strand it deactivated even though
-        # nothing was written. PreWriteVerificationError instead signals "no write
-        # happened", so the guard restores the original Active status.
+        # A missing live status raises (fail closed): reusing the pre-deactivation
+        # status could reactivate the table mid-edit. The PATCH is atomic, so on any
+        # failure the guarded sequencer restores the original Active status.
         live_status = engine.get_status(record_id)
         if not live_status:
-            raise PreWriteVerificationError(
+            raise LifecycleError(
                 f"Could not read the live Status of DecisionTable/{record_id} before "
                 "the definition PATCH; refusing to reuse the pre-deactivation status "
-                "(a Tooling Metadata PATCH requires status, and stamping a stale value "
-                "could reactivate the table mid-edit). Re-check the table with "
+                "(a Tooling Metadata PATCH requires status). Re-check the table with "
                 "list_decision_tables.py and retry."
             )
         body = _payload.tooling_metadata_only(spec, live_status=live_status)
+        # An accepted Tooling PATCH stores the definition faithfully and a rejected
+        # one changes nothing (both live-verified), so the platform's own acceptance
+        # is the verification — no GET-back field-by-field re-check is needed.
         transport.tooling_sobject("PATCH", "DecisionTable", record_id, body=body)
-        if not preview:
-            written = transport.tooling_sobject("GET", "DecisionTable", record_id)
-            live_metadata = written.get("Metadata") if isinstance(written, dict) else None
-            if not isinstance(live_metadata, dict):
-                raise MutationVerificationError(
-                    f"Tooling update verification could not read DecisionTable/{record_id} "
-                    "Metadata after PATCH."
-                )
-            mismatches = _payload.verify_requested_metadata(spec, live_metadata)
-            if mismatches:
-                raise MutationVerificationError(
-                    "Tooling update GET-back did not match the requested definition:\n- "
-                    + "\n- ".join(mismatches)
-                )
 
     try:
         if args.deactivate_first:
@@ -193,6 +170,9 @@ def main(argv=None) -> int:
             _do_mutate()
     except (DecisionTableClientError, LifecycleError) as exc:
         eprint(f"\nFAILED: {exc}")
+        summary["error"] = str(exc)
+        if args.json:
+            print(json.dumps(summary, indent=2, default=str))
         return 1
 
     if preview:

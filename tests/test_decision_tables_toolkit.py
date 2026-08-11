@@ -34,11 +34,8 @@ from scripts.decision_tables import _resolve  # noqa: E402
 from scripts.decision_tables import _schema  # noqa: E402
 from scripts.decision_tables._client import DecisionTableClientError, DEFINITIONS_PATH  # noqa: E402
 from scripts.decision_tables._lifecycle import (  # noqa: E402
-    DeactivationVerificationError,
     LifecycleEngine,
     LifecycleError,
-    MutationVerificationError,
-    PreWriteVerificationError,
 )
 from scripts.decision_tables._schema import validate_spec  # noqa: E402
 from scripts.decision_tables.diff_decision_tables import diff_definitions  # noqa: E402
@@ -282,7 +279,7 @@ class _LifecycleFake:
     sleep). ``connect`` records DELETE/POST verbs for the delete/refresh paths."""
 
     def __init__(self, status="Active", *, dry_run=False, data_source_type="SingleSobject",
-                 stall_confirmation=False, versions=None, raise_status_read=False):
+                 stall_confirmation=False, versions=None):
         self.status = status
         self.dry_run = dry_run
         self.data_source_type = data_source_type
@@ -308,11 +305,6 @@ class _LifecycleFake:
                 self.versions = {1: status}
         else:
             self.versions = {}
-        # When True, the FIRST DecisionTable status read raises (get_status /
-        # tooling_query fail AFTER a deactivate write already applied); later reads
-        # succeed. Distinct from stall_confirmation (a read that returns a stale
-        # value) — this is a read that errors.
-        self.raise_status_read = raise_status_read
         self._status_reads = 0
 
     def _recompute_status_from_versions(self):
@@ -322,10 +314,6 @@ class _LifecycleFake:
 
     def tooling_query(self, query):
         if "FROM DecisionTable" in query:
-            if self.raise_status_read and self._status_reads == 0:
-                self._status_reads += 1
-                raise DecisionTableClientError(
-                    "status read failed", error_codes=["UNKNOWN_EXCEPTION"])
             self._status_reads += 1
             reported = self._reported_status if self.stall_confirmation else self.status
             return [{"Id": "0lDxx0000000001AAA", "Status": reported}]
@@ -487,12 +475,10 @@ def test_validate_spec_duplicate_and_unknown():
 
 def test_validate_spec_duplicate_source_criterion_sequence():
     print("test_validate_spec_duplicate_source_criterion_sequence")
-    # Two source criteria sharing a sequenceNumber pass every per-field check, but the
-    # GET-back verifier keys the requested↔live join on sequenceNumber and requires
-    # exactly one live match — so a duplicate guarantees a post-persist
-    # MutationVerificationError ("appears N times") that, on a guarded update, strands
-    # an originally Active table Inactive. validate_spec must reject the duplicate UP
-    # FRONT (F1), mirroring the duplicate-column guard.
+    # Two source criteria sharing a sequenceNumber pass every per-field check, but
+    # sourceConditionLogic references criteria by sequence ("1 AND 2"), so a duplicate
+    # sequence is ambiguous. validate_spec must reject it UP FRONT, mirroring the
+    # duplicate-column guard.
     dup = validate_spec(_cost_book_spec(decisionTableSourceCriterias=[
         {"sourceFieldName": "Status", "operator": "Equals", "value": "Active",
          "valueType": "Literal", "sequenceNumber": 1},
@@ -1257,143 +1243,6 @@ def test_translator_tooling():
           live["Metadata"].get("status") == "Inactive", live["Metadata"].get("status"))
     check("tooling PATCH never carries the spec's own status",
           live["Metadata"].get("status") != spec_active["status"])
-    live_metadata = _payload.to_metadata(spec_active)
-    live_metadata["executionType"] = "Hbase"  # Tooling/XML casing divergence is benign.
-    live_metadata["refreshStatus"] = "Completed"  # response-only field is ignored.
-    check("requested-field verifier ignores casing and response-only fields",
-          _payload.verify_requested_metadata(spec_active, live_metadata) == [])
-    changed = dict(live_metadata, setupName="Wrong Label")
-    mismatches = _payload.verify_requested_metadata(spec_active, changed)
-    check("requested-field verifier reports requested drift",
-          len(mismatches) == 1 and "setupName" in mismatches[0], mismatches)
-
-
-def test_verifier_rejects_unexpected_definition_entries():
-    print("test_verifier_rejects_unexpected_definition_entries")
-    spec = _cost_book_spec(decisionTableSourceCriterias=[])
-    live_metadata = _payload.to_metadata(spec)
-    live_metadata["decisionTableParameters"].append({
-        "usage": "OUTPUT", "fieldName": "StaleOutput", "dataType": "String",
-    })
-    live_metadata["decisionTableSourceCriterias"] = [{
-        "sourceFieldName": "Status", "operator": "Equals", "value": "Active",
-        "valueType": "Literal", "sequenceNumber": 1,
-    }]
-
-    mismatches = _payload.verify_requested_metadata(spec, live_metadata)
-    check("verifier rejects an unexpected retained parameter",
-          any("unexpected live parameter" in mismatch
-              and "StaleOutput" in mismatch for mismatch in mismatches),
-          mismatches)
-    check("verifier rejects an unexpected retained source criterion",
-          any("unexpected live source criterion" in mismatch
-              and "sequence 1" in mismatch for mismatch in mismatches),
-          mismatches)
-
-    omitted_criteria_spec = _cost_book_spec()
-    check("verifier treats omitted criteria as an empty full-replace array",
-          any("unexpected live source criterion" in mismatch for mismatch in
-              _payload.verify_requested_metadata(omitted_criteria_spec, live_metadata)))
-    null_criteria_spec = _cost_book_spec(decisionTableSourceCriterias=None)
-    check("verifier treats null criteria as an empty full-replace array",
-          any("unexpected live source criterion" in mismatch for mismatch in
-              _payload.verify_requested_metadata(null_criteria_spec, live_metadata)))
-
-
-def test_verifier_rejects_duplicate_definition_entries():
-    print("test_verifier_rejects_duplicate_definition_entries")
-    criterion = {
-        "sourceFieldName": "Status", "operator": "Equals", "value": "Active",
-        "valueType": "Literal", "sequenceNumber": 1,
-    }
-    spec = _cost_book_spec(decisionTableSourceCriterias=[criterion])
-    live_metadata = _payload.to_metadata(spec)
-    live_metadata["decisionTableParameters"].append(
-        dict(live_metadata["decisionTableParameters"][0])
-    )
-    live_metadata["decisionTableSourceCriterias"].append(
-        dict(live_metadata["decisionTableSourceCriterias"][0])
-    )
-
-    mismatches = _payload.verify_requested_metadata(spec, live_metadata)
-    check("verifier rejects a duplicate requested parameter",
-          any("appears 2 times" in mismatch
-              and "parameter" in mismatch for mismatch in mismatches),
-          mismatches)
-    check("verifier rejects a duplicate requested source criterion",
-          any("appears 2 times" in mismatch
-              and "sequence" in mismatch for mismatch in mismatches),
-          mismatches)
-
-
-def test_verifier_catches_derived_and_defaulted_field_drift():
-    print("test_verifier_catches_derived_and_defaulted_field_drift")
-    # F3: verify_requested_metadata compares against the NORMALIZED payload actually
-    # written (to_metadata(spec)), not just the author-supplied scalars — so
-    # corruption of the fields to_metadata SYNTHESIZES/DEFAULTS is now caught. The old
-    # verifier iterated only spec scalars, leaving these invisible (a partial write
-    # reported as verified). Each case: take a clean live GET, corrupt ONE derived/
-    # defaulted field, and confirm the verifier flags exactly it.
-    spec = _cost_book_spec()  # two INPUT cols seq 1,2 → conditionCriteria "1 AND 2"
-
-    # (a) conditionCriteria is synthesized from the INPUT sequences, absent from the
-    # author spec. A live value that drifts from the derived "1 AND 2" is a mismatch.
-    check("spec omits conditionCriteria (it is derived)",
-          "conditionCriteria" not in spec)
-    corrupt_cc = dict(_payload.to_metadata(spec), conditionCriteria="1")
-    m_cc = _payload.verify_requested_metadata(spec, corrupt_cc)
-    check("verifier catches drift in the derived conditionCriteria",
-          any("conditionCriteria" in m for m in m_cc), m_cc)
-
-    # (b) the four default booleans are always emitted by to_metadata; a live value
-    # flipped away from the written default is a mismatch even though the author never
-    # set it.
-    corrupt_bool = dict(_payload.to_metadata(spec), isVersioned=True)
-    m_bool = _payload.verify_requested_metadata(spec, corrupt_bool)
-    check("verifier catches drift in a defaulted boolean (isVersioned)",
-          any("isVersioned" in m for m in m_bool), m_bool)
-
-    # (c) a CsvUpload table defaults isVersioned to True; a live False is a mismatch.
-    csv_spec = _csv_upload_spec()
-    check("CsvUpload spec omits isVersioned (defaults True)",
-          "isVersioned" not in csv_spec)
-    csv_written = _payload.to_metadata(csv_spec)
-    check("to_metadata defaults CsvUpload isVersioned to True",
-          csv_written.get("isVersioned") is True, csv_written)
-    corrupt_csv = dict(csv_written, isVersioned=False)
-    m_csv = _payload.verify_requested_metadata(csv_spec, corrupt_csv)
-    check("verifier catches a CsvUpload isVersioned=True→False regression",
-          any("isVersioned" in m for m in m_csv), m_csv)
-
-    # (d) F3: the sweep must reach NESTED parameter defaults too. _param_to_metadata
-    # synthesizes fieldPath=fieldName and always emits isGroupByField/isRequired even
-    # when the author omits them; corrupting one in the live GET must be caught even
-    # though it never appeared in the raw author spec. Use an OUTPUT column that sets
-    # none of the three, so all are defaulted/synthesized.
-    output_spec = _cost_book_spec(decisionTableParameters=[
-        {"usage": "INPUT", "fieldName": "ProductId", "dataType": "String",
-         "operator": "Equals", "sequence": 1},
-        {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"},
-    ])
-    for field, corrupt_value in (("fieldPath", "WrongPath"),
-                                 ("isRequired", True),
-                                 ("isGroupByField", True)):
-        written = _payload.to_metadata(output_spec)
-        for p in written["decisionTableParameters"]:
-            if p.get("usage") == "OUTPUT":
-                p[field] = corrupt_value
-        m = _payload.verify_requested_metadata(output_spec, written)
-        check(f"verifier catches drift in a defaulted/synthesized parameter field ({field})",
-              any(field in msg for msg in m), (field, m))
-
-    # A faithful GET (== the written payload) still verifies clean — the guard adds no
-    # false drift on the derived/defaulted fields (top-level or nested).
-    check("a faithful live GET of the derived/defaulted fields verifies clean",
-          _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)) == [],
-          _payload.verify_requested_metadata(spec, _payload.to_metadata(spec)))
-    check("a faithful live GET of an all-defaulted OUTPUT column verifies clean",
-          _payload.verify_requested_metadata(output_spec, _payload.to_metadata(output_spec)) == [],
-          _payload.verify_requested_metadata(output_spec, _payload.to_metadata(output_spec)))
 
 
 def test_translator_csv_upload():
@@ -1597,36 +1446,6 @@ def test_guarded_update_csv_upload_multi_version_roundtrip():
           fake.versions)
 
 
-def test_guarded_update_status_read_error_after_write_still_reactivates():
-    print("test_guarded_update_status_read_error_after_write_still_reactivates")
-    # The deactivate versionStatus/status PATCH applies, but the FIRST confirming
-    # DecisionTable status read then ERRORS (get_status → tooling_query raises
-    # DecisionTableClientError, which is NOT a LifecycleError). deactivate() must
-    # still surface this as DeactivationVerificationError so run_guarded_update
-    # treats the table as deactivated and restores Active rather than stranding it.
-    fake = _LifecycleFake(status="Active", raise_status_read=True)
-    engine = LifecycleEngine(fake, max_wait_seconds=1, poll_interval_seconds=1)
-    calls = []
-    restore = _no_sleep()
-    try:
-        raised = None
-        try:
-            engine.run_guarded_update(
-                table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-                mutate=lambda: calls.append("mutate"), activate_after=True, verb="update")
-        except DeactivationVerificationError as exc:
-            raised = exc
-    finally:
-        restore()
-    check("post-write status-read error re-raises DeactivationVerificationError",
-          raised is not None, raised)
-    check("mutate never ran on an unconfirmed deactivation", calls == [], calls)
-    check("the deactivate PATCH still went out despite the failed status read",
-          fake.status_sets and fake.status_sets[0] == "Inactive", fake.status_sets)
-    check("reactivation was still attempted after the failed status read",
-          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
-
-
 def test_guarded_update_leave_deactivated():
     print("test_guarded_update_leave_deactivated")
     fake = _LifecycleFake(status="Active")
@@ -1662,96 +1481,47 @@ def test_guarded_update_tooling_failure_reactivates():
           fake.status_sets)
 
 
-def test_guarded_update_verification_failure_stays_inactive():
-    print("test_guarded_update_verification_failure_stays_inactive")
+def test_guarded_update_double_failure_chains_original_cause():
+    print("test_guarded_update_double_failure_chains_original_cause")
+    # F9: when the mutation fails AND the reactivation ALSO fails, the raised
+    # LifecycleError must name BOTH — why the mutation failed and why the table is
+    # still offline — and chain the original mutation failure as its __cause__ so a
+    # caller printing the traceback sees the root cause, not just the reactivation
+    # error. Deactivate succeeds against the fake; mutate raises; the reactivate step
+    # is forced to fail by overriding engine.activate.
     fake = _LifecycleFake(status="Active")
     engine = LifecycleEngine(fake, max_wait_seconds=1)
 
-    def _unverified():
-        raise MutationVerificationError("PATCH returned success; GET-back mismatched")
+    def _boom():
+        raise DecisionTableClientError("tooling PATCH rejected")
 
-    raised = False
+    def _activate_fails(*a, **k):
+        raise DecisionTableClientError("reactivation PATCH rejected")
+
+    engine.activate = _activate_fails
+    raised = None
     try:
         engine.run_guarded_update(
             table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_unverified, activate_after=True, verb="update")
-    except MutationVerificationError:
-        raised = True
-    check("verification failure re-raises", raised)
-    check("verification failure leaves table inactive",
-          fake.status == "Inactive" and fake.status_sets == ["Inactive"],
-          fake.status_sets)
-
-
-def test_guarded_update_prewrite_failure_restores_active():
-    print("test_guarded_update_prewrite_failure_restores_active")
-    # F1: a PreWriteVerificationError means the definition PATCH was never sent
-    # (e.g. the update CLI could not read the live status to stamp). Unlike a
-    # MutationVerificationError (write may have landed → stay Inactive), an
-    # originally-Active table MUST be restored to Active, because nothing was
-    # written and leaving it Inactive would silently take a table out of service.
-    # Before the fix this failure was raised as MutationVerificationError and the
-    # table was stranded Inactive.
-    fake = _LifecycleFake(status="Active")
-    engine = LifecycleEngine(fake, max_wait_seconds=1)
-
-    def _prewrite_fails():
-        raise PreWriteVerificationError("could not read live status before PATCH")
-
-    raised = False
-    try:
-        engine.run_guarded_update(
-            table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-            mutate=_prewrite_fails, activate_after=True, verb="update")
-    except PreWriteVerificationError:
-        raised = True
-    check("pre-write failure re-raises", raised)
-    check("pre-write failure restores the originally-Active table to Active",
-          fake.status == "Active" and fake.status_sets == ["Inactive", "Active"],
-          fake.status_sets)
-
-
-def test_guarded_update_deactivate_confirmation_timeout_still_reactivates():
-    print("test_guarded_update_deactivate_confirmation_timeout_still_reactivates")
-    # The deactivate PATCH is sent (and applies) but wait_for_status's poll never
-    # observes the terminal Inactive state (stall_confirmation freezes get_status
-    # at the pre-write value) — deactivate() raises DeactivationVerificationError.
-    # Before the fix, run_guarded_update's `deactivated` flag was only set AFTER
-    # deactivate() returned cleanly, so this case left it False and skipped
-    # reactivation even though the write had gone out. It must now still attempt
-    # to restore Active.
-    fake = _LifecycleFake(status="Active", stall_confirmation=True)
-    engine = LifecycleEngine(fake, max_wait_seconds=1, poll_interval_seconds=1)
-    calls = []
-
-    restore = _no_sleep()
-    try:
-        raised = None
-        try:
-            engine.run_guarded_update(
-                table_row={"Id": "0lDxx0000000001AAA", "Status": "Active"},
-                mutate=lambda: calls.append("mutate"), activate_after=True, verb="update")
-        except DeactivationVerificationError as exc:
-            raised = exc
-    finally:
-        restore()
-    check("unconfirmed deactivate re-raises DeactivationVerificationError",
-          raised is not None, raised)
-    check("mutate never ran on an unconfirmed deactivation", calls == [], calls)
-    check("the deactivate PATCH still went out despite the stalled poll",
-          fake.status_sets and fake.status_sets[0] == "Inactive", fake.status_sets)
-    # stall_confirmation only freezes get_status's report — the real status the
-    # fake tracks reflects both the deactivate and the reactivate-attempt PATCHes.
-    check("reactivation was still attempted after the stalled confirmation",
-          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
+            mutate=_boom, activate_after=True, verb="update")
+    except LifecycleError as exc:
+        raised = exc
+    check("double failure raises LifecycleError", raised is not None, raised)
+    check("double-failure message names the original mutation failure",
+          raised and "tooling PATCH rejected" in str(raised), str(raised))
+    check("double-failure message names the reactivation failure",
+          raised and "reactivation also failed" in str(raised), str(raised))
+    check("double failure chains the original mutation error as __cause__",
+          raised and isinstance(raised.__cause__, DecisionTableClientError),
+          raised.__cause__ if raised else None)
 
 
 def test_delete_cli_deactivate_confirmation_timeout_still_reactivates():
     print("test_delete_cli_deactivate_confirmation_timeout_still_reactivates")
-    # Same class of bug in delete_decision_table.py's own deactivated-then-delete
-    # sequence: the deactivate write applies but confirmation times out, so the
-    # delete must be skipped and the table restored to Active rather than left
-    # deleted-attempt-abandoned mid-transition.
+    # delete_decision_table.py marks the table `deactivated` BEFORE issuing the
+    # deactivate PATCH, so if the write applies but its confirmation poll times out
+    # (stall_confirmation freezes get_status), the guarded handler still skips the
+    # DELETE and restores Active rather than abandoning the table mid-transition.
     fake = _LifecycleFake(status="Active", stall_confirmation=True)
     restore = _no_sleep()
     try:
@@ -1764,8 +1534,8 @@ def test_delete_cli_deactivate_confirmation_timeout_still_reactivates():
     finally:
         restore()
     check("delete on an unconfirmed deactivation exits 1", rc == 1, (rc, out[:300]))
-    check("delete was never attempted", fake.status_sets == ["Inactive", "Active"],
-          fake.status_sets)
+    check("delete was never attempted; table restored to Active",
+          fake.status_sets == ["Inactive", "Active"], fake.status_sets)
 
 
 def test_delete_cli_ambiguous_version_resolution_returns_controlled_error():
@@ -1814,11 +1584,10 @@ def test_delete_cli_ambiguous_version_resolution_returns_controlled_error():
 
 def test_wait_for_status_timeout_message_is_operation_aware():
     print("test_wait_for_status_timeout_message_is_operation_aware")
-    # The single wait_for_status poll confirms BOTH activation and deactivation, and
-    # its timeout text is embedded verbatim in DeactivationVerificationError — so it
-    # must not hardcode "Activation is asynchronous" when confirming Inactive, and it
-    # must not recommend a --max-wait flag that most reaching CLIs (update/delete/
-    # deactivate) don't expose.
+    # The single wait_for_status poll confirms BOTH activation and deactivation, so
+    # its timeout text must not hardcode "Activation is asynchronous" when confirming
+    # Inactive, and it must not recommend a --max-wait flag that most reaching CLIs
+    # (update/delete/deactivate) don't expose.
     restore = _no_sleep()
     try:
         # Activation timeout: the table never leaves Inactive while we poll for Active.
@@ -1897,67 +1666,51 @@ def test_create_cli_tooling_preview_vs_confirm(tmp_spec):
     check("create confirm reports dryRun=False", json.loads(out).get("dryRun") is False)
 
 
-def test_create_cli_writes_draft_then_activates(tmp_spec):
-    print("test_create_cli_writes_draft_then_activates")
-    # F2/F6: the safe create lifecycle writes the definition as Draft (never
-    # directly Active), GET-back verifies while Draft, then activates as a separate
-    # step only when the spec requested Active. tmp_spec's status is Active. This
-    # both (a) proves the requested lifecycle state is actually established
-    # (activate is not skipped), and (b) proves an unverified definition is never
-    # created Active/serving.
+def test_create_cli_honors_requested_active_status(tmp_spec):
+    print("test_create_cli_honors_requested_active_status")
+    # The platform is the authority: create sends the spec's requested status AS-IS
+    # (no Draft-then-activate two-step, no GET-back verifier). tmp_spec's status is
+    # Active, so the single definition POST carries Metadata.status == "Active", and
+    # the CLI then polls wait_for_status past the async ActivationInProgress.
     fake = _FakeTransport(dry_run=False)
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
                      "--path", "tooling", "--confirm", "--json"], fake)
     check("create-Active exits 0", rc == 0, out[:300])
     posts = [m for m in fake.mutations if m[0] == "POST" and m[1] == "tooling/DecisionTable"]
-    check("the definition POST is written as Draft, never Active",
-          bool(posts) and all(p[2].get("Metadata", {}).get("status") == "Draft" for p in posts),
+    check("a single definition POST carries the requested Active status",
+          len(posts) == 1 and posts[0][2].get("Metadata", {}).get("status") == "Active",
           [p[2].get("Metadata", {}).get("status") for p in posts])
-    patches = [m for m in fake.mutations if m[0] == "PATCH" and m[1] == "tooling/DecisionTable"]
-    check("activation happens as a separate PATCH to Active",
-          any(p[2].get("Metadata", {}).get("status") == "Active" for p in patches),
-          [p[2].get("Metadata", {}).get("status") for p in patches])
+    check("create does NOT do a Draft-then-activate two-step (no status PATCH)",
+          not any(m[0] == "PATCH" for m in fake.mutations), fake.mutations)
     summary = json.loads(out)
-    check("summary reports the requested status, verified and activated",
-          summary.get("requestedStatus") == "Active"
-          and summary.get("verified") is True and summary.get("activated") is True,
+    check("summary reports the requested status and the created id",
+          summary.get("requestedStatus") == "Active" and bool(summary.get("id")),
           summary)
 
 
-def test_create_cli_verification_failure_emits_json_with_id(tmp_spec):
-    print("test_create_cli_verification_failure_emits_json_with_id")
-    # F6: a GET-back that does not match the requested definition must exit 1, and
-    # must still emit the structured --json summary INCLUDING the created id (the
-    # record was written) so it can be inspected/removed. It must NOT activate.
+def test_create_cli_failure_emits_json_with_error(tmp_spec):
+    print("test_create_cli_failure_emits_json_with_error")
+    # A rejected write (the platform is the authority — e.g. it refuses the status)
+    # must exit 1 and still emit the structured --json summary carrying the error,
+    # so a caller can read a clean failure rather than an empty stdout.
     fake = _FakeTransport(dry_run=False)
-    orig_get = fake.tooling_sobject
+    orig = fake.tooling_sobject
 
-    def _get(method, sobject, record_id=None, suffix=None, body=None, **kw):
-        result = orig_get(method, sobject, record_id=record_id, suffix=suffix, body=body, **kw)
-        # Corrupt the GET-back verification read only: drop a column so the
-        # persisted definition no longer matches the requested one.
-        if method.upper() == "GET" and sobject == "DecisionTable" \
-                and isinstance(result.get("Metadata"), dict):
-            meta = dict(result["Metadata"])
-            meta["decisionTableParameters"] = []  # all requested columns "missing"
-            result = dict(result, Metadata=meta)
-        return result
+    def _boom(method, sobject, record_id=None, suffix=None, body=None, **kw):
+        if method.upper() == "POST" and sobject == "DecisionTable":
+            raise DecisionTableClientError(
+                "INVALID_INPUT: rejected", error_codes=["INVALID_INPUT"])
+        return orig(method, sobject, record_id=record_id, suffix=suffix, body=body, **kw)
 
-    fake.tooling_sobject = _get
+    fake.tooling_sobject = _boom
     rc, out = _run_cli_with_fake(
         create_cli, ["--target-org", "x", "--spec", tmp_spec,
                      "--path", "tooling", "--confirm", "--json"], fake)
-    check("create verification failure exits 1", rc == 1, (rc, out[:300]))
+    check("create failure exits 1", rc == 1, (rc, out[:300]))
     summary = json.loads(out)
-    check("failure summary still carries the created id",
-          bool(summary.get("id")), summary)
-    check("failure summary reports not verified / not activated",
-          summary.get("verified") is False and summary.get("activated") is False, summary)
-    check("verification failure never activates the table",
-          not any(m[0] == "PATCH" and isinstance(m[2].get("Metadata"), dict)
-                  and m[2]["Metadata"].get("status") == "Active" for m in fake.mutations),
-          fake.mutations)
+    check("failure summary carries the error string",
+          "rejected" in (summary.get("error") or ""), summary)
 
 
 def test_create_cli_generate_only_no_org(tmp_spec, tmp_out_xml):
@@ -2037,10 +1790,10 @@ def test_update_cli_deactivate_first_roundtrip(tmp_spec):
 
 def test_update_cli_unreadable_live_status_fails_closed(tmp_spec):
     print("test_update_cli_unreadable_live_status_fails_closed")
-    # F4: _do_mutate() reads the table's live Status immediately before the definition
+    # _do_mutate() reads the table's live Status immediately before the definition
     # PATCH (a Tooling Metadata PATCH REQUIRES status). If that read returns NO row,
-    # the CLI must FAIL CLOSED (MutationVerificationError → exit 1, no PATCH) rather
-    # than silently reuse the stale pre-deactivation status (often Active) — stamping
+    # the CLI must FAIL CLOSED (LifecycleError → exit 1, no PATCH) rather than
+    # silently reuse the stale pre-deactivation status (often Active) — stamping
     # which could re-activate the table mid-edit and defeat --leave-deactivated while
     # still exiting 0. On an Inactive table the CLI reaches _do_mutate directly.
     fake = _FakeTransport(table=_table_row(Status="Inactive"), dry_run=False)
@@ -2669,9 +2422,6 @@ def main():
               test_describe_cli_grouped, test_trace_cli_json,
               # Phase 2 — translators + XML round-trip
               test_translator_metadata, test_translator_tooling,
-              test_verifier_rejects_unexpected_definition_entries,
-              test_verifier_rejects_duplicate_definition_entries,
-              test_verifier_catches_derived_and_defaulted_field_drift,
               test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
               test_assert_editable_guard,
@@ -2680,12 +2430,9 @@ def main():
               test_guarded_update_active_roundtrip,
               test_guarded_update_csv_upload_composed_paths,
               test_guarded_update_csv_upload_multi_version_roundtrip,
-              test_guarded_update_status_read_error_after_write_still_reactivates,
               test_guarded_update_leave_deactivated,
               test_guarded_update_tooling_failure_reactivates,
-              test_guarded_update_verification_failure_stays_inactive,
-              test_guarded_update_prewrite_failure_restores_active,
-              test_guarded_update_deactivate_confirmation_timeout_still_reactivates,
+              test_guarded_update_double_failure_chains_original_cause,
               test_wait_for_status_timeout_message_is_operation_aware,
               test_refresh_uses_live_verified_flag,
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
@@ -2706,8 +2453,8 @@ def main():
 
     # Phase 2 — create/update CLI tests that need spec/output-file fixtures.
     test_create_cli_tooling_preview_vs_confirm(spec_path)
-    test_create_cli_writes_draft_then_activates(spec_path)
-    test_create_cli_verification_failure_emits_json_with_id(spec_path)
+    test_create_cli_honors_requested_active_status(spec_path)
+    test_create_cli_failure_emits_json_with_error(spec_path)
     test_create_cli_generate_only_no_org(spec_path, out_xml)
     test_create_cli_generate_only_rejects_nonmetadata(spec_path)
     test_create_cli_invalid_spec_blocks(_tmp)

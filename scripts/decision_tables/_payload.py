@@ -190,8 +190,9 @@ def to_metadata(spec: Dict[str, Any]) -> Dict[str, Any]:
         body[key] = _bool_from(spec.get(key), default)
 
     # CsvUpload tables are versioned by nature; default isVersioned to True unless
-    # the spec explicitly set it to False.
-    if spec.get("dataSourceType") == "CsvUpload" and spec.get("isVersioned") is None:
+    # the spec explicitly set it to False. Treat an empty string as unset (the same
+    # "missing/empty ⇒ default" rule `_bool_from` applies everywhere else).
+    if spec.get("dataSourceType") == "CsvUpload" and spec.get("isVersioned") in (None, ""):
         body["isVersioned"] = True
 
     params = spec.get("decisionTableParameters")
@@ -247,172 +248,16 @@ def tooling_metadata_only(
     otherwise). The Tooling ``Metadata`` complexvalue is replaced **wholesale** (see
     :meth:`_lifecycle.LifecycleEngine._current_metadata` — a sparse body wipes the
     omitted fields), so the body carries the full definition. Create uses
-    :func:`to_tooling`, not this, and always writes the definition as ``Draft``
-    (never serving); the lifecycle engine activates it afterward if the spec asked
-    for ``Active`` — so create, too, leaves Active↔Inactive to the engine.
+    :func:`to_tooling`, not this: it honors the spec's requested ``status`` directly
+    (the platform is the authority — an accepted write is faithful, a bad status is
+    rejected with a clear error), so this update-only status-stripping does not apply
+    there.
     """
     body = to_metadata(spec)
     body.pop("status", None)
     if live_status:
         body["status"] = live_status
     return {"Metadata": body}
-
-
-def verify_requested_metadata(spec: Dict[str, Any], live_metadata: Dict[str, Any]) -> List[str]:
-    """Return requested-field mismatches after a Tooling definition write.
-
-    Tooling GET adds response-only fields and server defaults, so comparing the
-    entire ``Metadata`` complexvalue produces false drift. This verifier instead
-    compares the live Metadata against the **normalized payload actually written**
-    (``to_metadata(spec)``) — that is what was sent, so it naturally excludes
-    GET-only response fields while still covering the fields ``to_metadata``
-    *synthesizes* or *defaults* (``conditionCriteria`` derived from the INPUT
-    sequences, the four default booleans, CsvUpload ``isVersioned=true``). Comparing
-    only the author-supplied scalars used to leave corruption of those derived
-    fields invisible, letting a partial write be reported as verified. The live
-    parameter and source-criteria sets are additionally required to match exactly:
-    both arrays are full-replace definition fields, so omitted/empty source criteria
-    mean none should remain and retained unexpected entries are verification
-    failures. Per parameter, comparison iterates the fields the normalized payload
-    actually wrote (``_param_to_metadata(requested)``) — including the synthesized
-    ``fieldPath`` and the always-emitted ``isGroupByField``/``isRequired`` defaults —
-    not just the fields present in the raw author spec, so corruption of a defaulted
-    nested field is caught rather than reported as verified.
-    Lifecycle ``status`` is intentionally excluded: the update CLI stamps
-    the table's live status instead of allowing the spec to drive activation, and
-    create writes the definition as Draft and activates separately, so the spec's
-    status never rides along on the definition write either.
-    ``executionType`` is compared case-insensitively because source XML and Tooling
-    use different casing (for example Hbase/HBASE).
-    """
-    mismatches: List[str] = []
-
-    def equivalent(field: str, expected: Any, actual: Any) -> bool:
-        if field == "executionType" and expected is not None and actual is not None:
-            return str(expected).upper() == str(actual).upper()
-        if isinstance(expected, bool):
-            return expected == _bool_from(actual, False)
-        if isinstance(expected, int) and not isinstance(expected, bool):
-            try:
-                return expected == int(actual)
-            except (TypeError, ValueError):
-                return False
-        return expected == actual
-
-    def compare(location: str, field: str, expected: Any, actual: Any) -> None:
-        if not equivalent(field, expected, actual):
-            mismatches.append(
-                f"{location}.{field}: requested {expected!r}, live value is {actual!r}"
-            )
-
-    # Compare against the NORMALIZED payload actually written (``to_metadata(spec)``),
-    # not the raw author spec. ``to_metadata`` synthesizes ``conditionCriteria`` from
-    # the INPUT sequences, always emits the four default booleans, and defaults a
-    # CsvUpload table's ``isVersioned`` to True — fields absent from the author spec
-    # but present in the persisted definition. Comparing only spec-supplied scalars
-    # left corruption of those derived/defaulted fields invisible (a partial write
-    # reported as verified). Iterating the payload's own keys also naturally excludes
-    # GET-only response fields (they are never in what we send). ``status`` is skipped
-    # (lifecycle-owned — re-stamped from the live table on update); the two array
-    # fields are verified by identity below.
-    expected_metadata = to_metadata(spec)
-    _array_fields = ("decisionTableParameters", "decisionTableSourceCriterias")
-    for key, expected_value in expected_metadata.items():
-        if key == "status" or key in _array_fields:
-            continue
-        compare("Metadata", key, expected_value, live_metadata.get(key))
-
-    def _param_identity(usage: Any, field_name: Any) -> tuple:
-        # Normalize usage casing identically on BOTH sides of the join so the
-        # requested↔live match never turns on a casing difference. (Post-validation
-        # usage is always canonical UPPER — strict validation rejects anything else —
-        # but keeping the two identities symmetric keeps this verifier correct even
-        # if called directly on an un-validated spec.)
-        return (str(usage).upper() if isinstance(usage, str) else usage, field_name)
-
-    live_params: Dict[Any, List[Dict[str, Any]]] = {}
-    for param in live_metadata.get("decisionTableParameters") or []:
-        if isinstance(param, dict):
-            identity = _param_identity(param.get("usage"), param.get("fieldName"))
-            live_params.setdefault(identity, []).append(param)
-    requested_param_identities = set()
-    for index, requested in enumerate(spec.get("decisionTableParameters") or []):
-        if not isinstance(requested, dict):
-            continue
-        expected = _param_to_metadata(requested)
-        identity = _param_identity(expected.get("usage"), expected.get("fieldName"))
-        requested_param_identities.add(identity)
-        live_matches = live_params.get(identity) or []
-        location = f"decisionTableParameters[{index}]"
-        if not live_matches:
-            mismatches.append(f"{location}: requested parameter {identity!r} is missing")
-            continue
-        if len(live_matches) != 1:
-            mismatches.append(
-                f"{location}: requested parameter {identity!r} appears "
-                f"{len(live_matches)} times in live Metadata"
-            )
-        live = live_matches[0]
-        # Compare every field the NORMALIZED payload actually wrote
-        # (``_param_to_metadata(requested)``), not just the fields present in the
-        # raw author spec. ``_param_to_metadata`` synthesizes ``fieldPath`` and
-        # always emits ``isGroupByField``/``isRequired`` defaults; iterating only
-        # raw author keys left corruption of those defaulted fields invisible (a
-        # partial write reported as verified). ``usage`` and ``fieldName`` are the
-        # identity keys — already matched by the join above (``usage`` case-
-        # normalized), so skip them here to avoid a spurious casing mismatch.
-        for key, expected_value in expected.items():
-            if key in ("usage", "fieldName"):
-                continue
-            compare(location, key, expected_value, live.get(key))
-    for identity in sorted(
-        set(live_params) - requested_param_identities, key=repr
-    ):
-        mismatches.append(
-            f"decisionTableParameters: unexpected live parameter {identity!r}"
-        )
-
-    def criterion_sequence(value: Any) -> Any:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return value
-
-    live_criteria: Dict[Any, List[Dict[str, Any]]] = {}
-    for criterion in live_metadata.get("decisionTableSourceCriterias") or []:
-        if isinstance(criterion, dict):
-            sequence = criterion_sequence(criterion.get("sequenceNumber"))
-            live_criteria.setdefault(sequence, []).append(criterion)
-    requested_criterion_sequences = set()
-    for index, requested in enumerate(spec.get("decisionTableSourceCriterias") or []):
-        if not isinstance(requested, dict):
-            continue
-        expected = _criteria_to_metadata(requested)
-        sequence = criterion_sequence(expected.get("sequenceNumber"))
-        requested_criterion_sequences.add(sequence)
-        live_matches = live_criteria.get(sequence) or []
-        location = f"decisionTableSourceCriterias[{index}]"
-        if not live_matches:
-            mismatches.append(f"{location}: requested sequence {sequence!r} is missing")
-            continue
-        if len(live_matches) != 1:
-            mismatches.append(
-                f"{location}: requested sequence {sequence!r} appears "
-                f"{len(live_matches)} times in live Metadata"
-            )
-        live = live_matches[0]
-        for key in ("sourceFieldName", "operator", "value", "valueType", "sequenceNumber"):
-            if key in requested and requested.get(key) not in (None, ""):
-                compare(location, key, expected.get(key), live.get(key))
-    for sequence in sorted(
-        set(live_criteria) - requested_criterion_sequences, key=repr
-    ):
-        mismatches.append(
-            f"decisionTableSourceCriterias: unexpected live source criterion "
-            f"sequence {sequence!r}"
-        )
-
-    return mismatches
 
 
 # --------------------------------------------------------------------------- #

@@ -95,43 +95,17 @@ _UPLOAD_ERROR = {"CompletedWithErrors", "Failed"}
 
 
 class LifecycleError(RuntimeError):
-    """Raised on a lifecycle failure in the Decision Table toolkit."""
+    """Raised on any lifecycle failure in the Decision Table toolkit.
 
-
-class MutationVerificationError(LifecycleError):
-    """A write returned success, but its persisted definition is unverified.
-
-    Guarded updates must not reactivate the table automatically in this state:
-    unlike a rejected atomic PATCH, the mutation may already have changed the
-    definition. Leaving it inactive is the safer failure mode.
-    """
-
-
-class PreWriteVerificationError(LifecycleError):
-    """A guarded mutation's pre-write check failed *before* any write went out.
-
-    Distinct from :class:`MutationVerificationError` on purpose: that class means
-    "a write may have landed, so leave the table Inactive", whereas this means
-    "nothing was written". :meth:`LifecycleEngine.run_guarded_update` therefore
-    treats it like a rejected atomic PATCH — an originally Active table is
-    restored to Active rather than stranded deactivated — while the failure is
-    still re-raised so the CLI exits non-zero. Example: the update CLI cannot read
-    the table's live Status to stamp onto the definition PATCH (a Tooling Metadata
-    PATCH requires status), so it refuses to send the write at all.
-    """
-
-
-class DeactivationVerificationError(LifecycleError):
-    """A deactivate write succeeded, but confirming the terminal state timed out.
-
-    :meth:`LifecycleEngine.deactivate` PATCHes the status/versionStatus and then
-    polls for the terminal ``Inactive`` state; a poll timeout previously raised a
-    bare :class:`LifecycleError` indistinguishable from a write that never
-    applied. That let a guarded caller's ``deactivated`` tracking flag stay
-    ``False`` even though the write DID apply — skipping any later reactivation
-    attempt and leaving the table stranded mid-transition. Raising this
-    dedicated subclass lets callers treat "write applied, confirmation timed
-    out" the same as a confirmed deactivation for rollback purposes.
+    A single error class (matching ``scripts/expression_sets/_lifecycle.py``) is
+    enough because a Decision Table definition write is an **atomic** Tooling
+    ``Metadata`` PATCH: the stored definition is always either the valid old one
+    (write rejected — live-verified byte-identical) or the valid new one (write
+    accepted — live-verified faithful), never a corrupt half-write. So a guarded
+    caller does not need to distinguish "write may have landed" from "nothing was
+    written" — reactivating a was-active table is safe in every case. Failures are
+    reported (the CLI exits non-zero with a clear message) rather than triggering
+    bespoke recovery.
     """
 
 
@@ -226,13 +200,12 @@ class LifecycleEngine:
             waited += self.poll
         # Operation-aware diagnostic: this poll confirms BOTH activation (which is
         # asynchronous — passes through the transient ActivationInProgress) and
-        # deactivation (usually immediate). The message must not assert "activation"
-        # when confirming Inactive — it is embedded verbatim in
-        # DeactivationVerificationError. It also stays remediation-neutral: not every
-        # CLI that reaches this exposes --max-wait (only activate/upload do; update/
-        # delete/deactivate route here via run_guarded_update/deactivate/activate),
-        # so it points at a re-check any caller can run rather than a flag that may
-        # not exist.
+        # deactivation (usually immediate), so the message must not assert
+        # "activation" when confirming Inactive. It also stays remediation-neutral:
+        # not every CLI that reaches this exposes --max-wait (only activate/upload do;
+        # update/delete/deactivate route here via run_guarded_update/deactivate/
+        # activate), so it points at a re-check any caller can run rather than a flag
+        # that may not exist.
         transition = "Activation is asynchronous" if target == _STATUS_ACTIVE \
             else "Deactivation is normally immediate but was not observed"
         raise LifecycleError(
@@ -393,12 +366,10 @@ class LifecycleEngine:
 
         CsvUpload tables are version-first — see :meth:`activate`. ``version_number``
         pins the CsvUpload version to deactivate; when omitted it is resolved (the
-        sole version, or the unique active one). If the status/versionStatus write
-        itself succeeds but confirmation fails, this raises
-        :class:`DeactivationVerificationError` (a :class:`LifecycleError` subclass)
-        rather than a bare :class:`LifecycleError` — callers that track "did the
-        write apply" for rollback purposes distinguish this from a write that never
-        went out at all.
+        sole version, or the unique active one). A confirmation failure raises
+        :class:`LifecycleError`; the guarded sequencer reactivates the table anyway
+        (the definition is unchanged — see :meth:`run_guarded_update`), so a
+        deactivate that half-applied is not left stranded.
         """
         if self._is_csv_upload(record_id):
             if version_number is None:
@@ -406,18 +377,7 @@ class LifecycleEngine:
             self._set_version_status(record_id, _STATUS_INACTIVE, version_number)
         else:
             self._set_status(record_id, _STATUS_INACTIVE)
-        # The write has already gone out. Any confirmation failure — a poll
-        # timeout (LifecycleError) OR a status-read error (get_status/tooling_query
-        # raise DecisionTableClientError, which is NOT a LifecycleError) — must
-        # surface as DeactivationVerificationError so guarded callers still treat
-        # the table as deactivated and restore Active rather than stranding it.
-        try:
-            self.wait_for_status(record_id, _STATUS_INACTIVE)
-        except (LifecycleError, DecisionTableClientError) as exc:
-            raise DeactivationVerificationError(
-                f"DecisionTable {record_id} deactivate write was sent, but "
-                f"confirming Status=Inactive failed: {exc}"
-            ) from exc
+        self.wait_for_status(record_id, _STATUS_INACTIVE)
 
     # -- Active-edit guard ---------------------------------------------
 
@@ -453,21 +413,21 @@ class LifecycleEngine:
 
         ``mutate`` is the verb-specific body; it runs while the table is
         deactivated. Only a table that **was Active** is deactivated and later
-        reactivated (``activate_after`` gates the reactivation). A Draft/Inactive
-        table is mutated in place with no status change.
+        reactivated (``activate_after`` gates the reactivation — ``--leave-
+        deactivated`` passes ``False``). A Draft/Inactive table is mutated in place
+        with no status change.
 
-        Definition mutations use the atomic Tooling ``Metadata`` PATCH. On a
-        rejected PATCH, an originally Active table is reactivated because its
-        definition is unchanged. A :class:`MutationVerificationError` means the
-        PATCH returned success but GET-back verification failed; that table stays
-        inactive because reactivating an unverified definition is unsafe. The
-        failure is always re-raised.
+        The reactivation rule is unconditional because the mutation is an **atomic**
+        Tooling ``Metadata`` PATCH (live-verified): whether it is accepted (valid
+        new definition) or rejected (valid old definition, byte-identical), the
+        stored definition is always valid, so a was-active table is safe to
+        reactivate on both the success and failure paths. The original failure is
+        always re-raised; if reactivation ALSO fails, both messages are chained so
+        the caller sees why the mutation failed *and* why the table is still offline.
         """
         record_id = table_row["Id"]
         was_active = table_row.get("Status") in (_STATUS_ACTIVE, _ACTIVATION_IN_PROGRESS)
-        deactivated = False
         failure: Optional[Exception] = None
-        mutate_succeeded = False
         # Pin the CsvUpload version to move BEFORE deactivating, while the table
         # still has a unique active version, and reuse it for the reactivate below.
         # Re-resolving after deactivation would strand a multi-version table (no
@@ -476,72 +436,37 @@ class LifecycleEngine:
 
         try:
             if was_active:
-                try:
-                    self.deactivate(record_id, version_number=guarded_version)
-                    deactivated = True
-                except DeactivationVerificationError:
-                    # The status/versionStatus write was sent (and likely
-                    # applied) — only the confirmation poll timed out. Track
-                    # the transition so the ``finally`` block below still
-                    # attempts to restore Active, then let the outer handler
-                    # record the failure and skip ``mutate()`` on an
-                    # unconfirmed state.
-                    deactivated = True
-                    raise
+                self.deactivate(record_id, version_number=guarded_version)
             else:
                 self.log(
                     f"DecisionTable {record_id} is "
                     f"{table_row.get('Status')!r}; editing in place (no deactivate)."
                 )
             mutate()
-            mutate_succeeded = True
         except Exception as exc:  # noqa: BLE001 — re-raised below
             failure = exc
         finally:
-            verification_failure = isinstance(failure, MutationVerificationError)
-            should_reactivate = (
-                activate_after
-                and was_active
-                and (
-                    mutate_succeeded
-                    or self.dry_run
-                    or (deactivated and not verification_failure)
-                )
-            )
-            if should_reactivate:
-                if isinstance(failure, DeactivationVerificationError):
+            if was_active and activate_after:
+                if failure:
                     self.log(
-                        f"Deactivate write for DecisionTable {record_id} was sent, "
-                        f"but confirmation timed out before {verb} could run; "
-                        f"attempting to restore Active rather than leaving it "
-                        f"stranded mid-transition. The failure is still reported."
-                    )
-                elif failure and not (mutate_succeeded or self.dry_run):
-                    self.log(
-                        f"{verb} failed, but it is an atomic Tooling PATCH (record "
-                        f"unchanged on failure), so reactivating DecisionTable "
-                        f"{record_id} rather than leaving it offline. The failure is "
-                        f"still reported."
+                        f"{verb} failed, but the definition write is atomic (the "
+                        f"stored definition is unchanged), so restoring "
+                        f"DecisionTable {record_id} to Active. The failure is still "
+                        f"reported."
                     )
                 try:
                     self.activate(record_id, version_number=guarded_version)
                 except Exception as reactivate_exc:  # noqa: BLE001
                     if failure:
                         raise LifecycleError(
-                            f"{verb} failed, and reactivation also failed: "
-                            f"{reactivate_exc}"
+                            f"{verb} failed ({failure}), and reactivation also "
+                            f"failed: {reactivate_exc}"
                         ) from failure
                     raise
-            elif deactivated and not self.dry_run and not activate_after:
+            elif was_active and not self.dry_run:
                 self.log(
                     f"activate_after=false; leaving DecisionTable {record_id} "
                     f"DEACTIVATED as requested."
-                )
-            elif deactivated and verification_failure:
-                self.log(
-                    f"{verb} returned success but GET-back verification failed; "
-                    f"leaving DecisionTable {record_id} DEACTIVATED so an "
-                    "unverified definition is not put back into service."
                 )
 
         if failure:

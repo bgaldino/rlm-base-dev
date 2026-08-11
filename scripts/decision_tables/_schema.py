@@ -487,7 +487,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                     f"a CsvUpload table normally uses sourceObject "
                     f"{_CSV_SOURCE_OBJECT!r}; got {source_object!r}.")
 
-    if dst == "CsvUpload" and spec.get("isVersioned") is None:
+    if dst == "CsvUpload" and spec.get("isVersioned") in (None, ""):
         result.warn("isVersioned",
                     "CsvUpload tables are versioned by nature; consider setting "
                     "isVersioned explicitly — to_metadata() defaults it to true "
@@ -539,13 +539,10 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                             SOURCE_CRITERIA_VALUE_TYPES, required=True)
                 _check_integer(result, f"{loc}.sequenceNumber", crit.get("sequenceNumber"),
                                required=True)
-                # sequenceNumber is the criterion's identity — GET-back verification
-                # (_payload.verify_requested_metadata) keys the requested↔live join
-                # on it and requires exactly one live match. Two criteria sharing a
-                # sequence pass here but then guarantee a post-persist
-                # MutationVerificationError ("appears 2 times"), which on a guarded
-                # update leaves an originally Active table stranded Inactive. Reject
-                # the duplicate up front, mirroring the duplicate-column guard above.
+                # sequenceNumber is the criterion's identity — sourceConditionLogic
+                # references criteria by it ("1 AND 2"), so two criteria sharing a
+                # sequence are ambiguous. Reject the duplicate up front (an obvious
+                # author error), mirroring the duplicate-column guard above.
                 seq = crit.get("sequenceNumber")
                 if seq not in (None, ""):
                     seq_key = int(seq) if isinstance(seq, int) and not isinstance(seq, bool) else seq

@@ -50,7 +50,6 @@ from scripts.decision_tables._client import (  # noqa: E402
     eprint,
 )
 from scripts.decision_tables._lifecycle import (  # noqa: E402
-    DeactivationVerificationError,
     LifecycleEngine,
     LifecycleError,
 )
@@ -107,27 +106,22 @@ def main(argv=None) -> int:
         # version table. This runs INSIDE the guarded try: resolve_guarded_version
         # does Tooling GETs and deliberately raises (LifecycleError for an
         # ambiguous multi-version CsvUpload table, DecisionTableClientError on a
-        # transport failure), so it must be caught by the handler below and turned
-        # into a controlled 'FAILED …' + exit 1 (with a --json failure summary),
-        # not leak an unhandled traceback. deactivated is still False here, so a
-        # failure at this point performs no rollback — nothing was deactivated.
+        # transport failure), so it is caught by the handler below and turned into
+        # a controlled 'FAILED …' + exit 1 (with a --json failure summary), not a
+        # leaked traceback. deactivated is still False at that point, so a failure
+        # there performs no rollback — nothing was deactivated.
         if was_active and args.deactivate_first:
             guarded_version = engine.resolve_guarded_version(record_id)
-        if was_active:
-            if args.deactivate_first:
-                try:
-                    engine.deactivate(record_id, version_number=guarded_version)
-                    deactivated = True
-                except DeactivationVerificationError:
-                    # The write was sent (and likely applied) — only the
-                    # confirmation poll timed out. Track it as deactivated so
-                    # the except block below still attempts to restore
-                    # Active instead of leaving the table stranded, and skip
-                    # the delete on an unconfirmed state.
-                    deactivated = True
-                    raise
-            else:
-                engine.assert_editable(table_row)
+            # Mark BEFORE the write: deactivate() PATCHes then confirms, so a
+            # confirmation timeout (LifecycleError) means the write likely applied.
+            # DELETE is atomic (the table still exists on any failure), so once the
+            # deactivate PATCH has been attempted the rollback below is warranted —
+            # and reactivating an already-Active table is a harmless no-op if the
+            # PATCH was in fact rejected.
+            deactivated = True
+            engine.deactivate(record_id, version_number=guarded_version)
+        elif was_active:
+            engine.assert_editable(table_row)
         result = engine.delete_tooling(record_id)
     except (DecisionTableClientError, LifecycleError) as exc:
         # Track whether the rollback reactivation actually SUCCEEDED — not merely
