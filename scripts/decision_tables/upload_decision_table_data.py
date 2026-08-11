@@ -208,9 +208,10 @@ def main(argv=None) -> int:
                f"'CsvUpload'. The /file upload only applies to CSV Based Decision Tables.")
         return 1
 
-    mode = "OVERWRITE (deleteAllRows)" if args.overwrite else "append"
+    # --overwrite is refused up front (see the guard after arg parsing), so the mode
+    # is always append past this point.
     eprint(f"\nUpload CSV into DecisionTable '{args.developer_name}' ({record_id}), "
-           f"mode={mode}, version={args.version_number or 'current'}, "
+           f"mode=append, version={args.version_number or 'current'}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
     missing_headers, extra_headers = _check_headers(header, defn)
     if missing_headers:
@@ -222,11 +223,8 @@ def main(argv=None) -> int:
     eprint("Note: the import is async — poll the data GET (dump_decision_table_data.py) "
            "for the rows; uploadStatus lags the data landing.")
 
-    # --overwrite is refused up front (see the guard after arg parsing), so past
-    # this point the mode is always append; the delete_all_rows plumbing below stays
-    # so the path lights back up as a matched set if a later release fixes it.
     summary = {"action": "upload", "developerName": args.developer_name,
-               "id": record_id, "mode": "overwrite" if args.overwrite else "append",
+               "id": record_id, "mode": "append",
                "versionNumber": args.version_number, "dryRun": preview}
 
     if preview:
@@ -265,9 +263,10 @@ def main(argv=None) -> int:
         summary["fileId"] = file_id
 
         # Phase 2 — POST the file id to the /file sub-resource (async import).
+        # Always append: --overwrite is refused up front, so deleteAllRows is never
+        # sent (the client-layer flag stays available for a future release fix).
         upload = transport.upload_decision_table_csv(
-            record_id, file_id, delete_all_rows=args.overwrite,
-            version_number=args.version_number,
+            record_id, file_id, version_number=args.version_number,
         )
         summary["upload"] = upload
     except DecisionTableClientError as exc:
@@ -293,7 +292,7 @@ def main(argv=None) -> int:
         summary["uploadStatus"] = final
         if final in _UPLOAD_ERROR:
             eprint(f"  WARNING: uploadStatus = {final} — some or all rows did NOT load "
-                   "(bad rows drop silently; --overwrite fails on this release). "
+                   "(bad rows drop silently). "
                    "Inspect what landed with dump_decision_table_data.py.")
             exit_code = 1
         elif final not in ("Completed",):

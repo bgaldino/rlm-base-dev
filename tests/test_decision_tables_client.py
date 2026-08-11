@@ -105,9 +105,9 @@ def test_errors_preserve_salesforce_details():
             _client.connect_request("GET", "query?q=bad", target_org="x")
             check("non-zero response raises", False, "no exception")
         except _client.DecisionTableClientError as exc:
-            check("Salesforce error code is retained", exc.has_error_code("INVALID_FIELD"), exc)
-            check("return code and response body are retained",
-                  exc.returncode == 1 and "bad field" in exc.body, exc.body)
+            check("Salesforce error code is retained",
+                  "INVALID_FIELD" in exc.error_codes, exc)
+            check("response body is retained", "bad field" in exc.body, exc.body)
         try:
             _client.connect_request("GET", "query?q=bad-json", target_org="x")
             check("invalid JSON raises", False, "no exception")

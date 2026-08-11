@@ -42,9 +42,9 @@ Two safety rules mirror the Expression Set engine
 (``scripts/expression_sets/_lifecycle.py``):
 
   * Definition updates use the atomic Tooling ``Metadata`` PATCH. A rejected PATCH
-    leaves the record unchanged, so a guarded update reactivates the table even when
-    the request fails. If the PATCH returns success but GET-back verification fails,
-    the table stays inactive rather than serving an unverified definition.
+    leaves the record unchanged and an accepted one is faithful (both live-verified),
+    so a guarded update reactivates a was-active table unconditionally — on both the
+    success and the failure path (see :meth:`LifecycleEngine.run_guarded_update`).
   * The engine only reactivates a table that **was active** before the edit; a
     Draft/Inactive table is left as-is.
 

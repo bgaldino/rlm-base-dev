@@ -382,11 +382,6 @@ def test_schema_catalogs():
     check("documented parameter operators included",
           {"Contains", "DoesNotExistIn", "DoesNotMatch", "IsNotNull"} <=
           _schema.PARAM_OPERATORS)
-    # Field-name divergence map — the concept keys and both per-path names.
-    fm = _schema.FIELD_NAME_MAP
-    check("divergence: data_source", fm["data_source"] == ("dataSourceType", "sourceType"))
-    check("divergence: hit_policy", fm["hit_policy"] == ("filterResultBy", "decisionResultPolicy"))
-    check("divergence: columns", fm["columns"] == ("decisionTableParameters", "parameters"))
 
 
 def test_validate_spec_clean():

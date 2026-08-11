@@ -52,18 +52,14 @@ class DecisionTableClientError(RuntimeError):
     """Raised when a CLI call fails in a way the caller should surface.
 
     Carries the parsed Salesforce ``error_codes`` (e.g. ``["INVALID_FIELD"]``)
-    and the raw response ``body`` so callers can branch on them.
+    and the raw response ``body`` so callers can surface them.
     """
 
     def __init__(self, message: str, *, error_codes: Optional[List[str]] = None,
-                 body: str = "", returncode: Optional[int] = None):
+                 body: str = ""):
         super().__init__(message)
         self.error_codes = error_codes or []
         self.body = body
-        self.returncode = returncode
-
-    def has_error_code(self, code: str) -> bool:
-        return code in self.error_codes
 
 
 def _extract_error_codes(text: str) -> List[str]:
@@ -189,7 +185,6 @@ def connect_request(
             f"authenticated (`sf org login web --alias {target_org}`).",
             error_codes=error_codes,
             body=stdout,
-            returncode=result.returncode,
         )
     if not stdout:
         return {}
@@ -461,7 +456,7 @@ class Transport:
     the read CLIs (Phase 1) and the lifecycle engine + mutator CLIs (Phase 2)
     take, so all can be unit-tested with a fake transport (no org): any object
     exposing ``connect`` / ``connect_get`` / ``tooling_query`` /
-    ``tooling_sobject`` / ``sobject`` / ``soql`` with these signatures works.
+    ``tooling_sobject`` / ``soql`` with these signatures works.
 
     ``dry_run`` on the bound transport short-circuits *mutating* verbs
     (everything but GET/HEAD) — they are logged and skipped; reads always execute
@@ -499,15 +494,6 @@ class Transport:
                         *, dry_run: Optional[bool] = None) -> Any:
         return tooling_sobject_request(
             method, sobject, record_id, suffix, body,
-            target_org=self.target_org, api_version=self.api_version,
-            dry_run=self.dry_run if dry_run is None else dry_run,
-            logger=self.logger,
-        )
-
-    def sobject(self, method: str, sobject: str, record_id: Optional[str] = None,
-                body: Any = None, *, dry_run: Optional[bool] = None) -> Any:
-        return sobjects_request(
-            method, sobject, record_id, body,
             target_org=self.target_org, api_version=self.api_version,
             dry_run=self.dry_run if dry_run is None else dry_run,
             logger=self.logger,

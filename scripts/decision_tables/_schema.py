@@ -133,18 +133,6 @@ SETUP_OBJECT_PREFIXES = {
     "DecisionTableSourceCriteria": "0VT",
 }
 
-# The field-name divergence between the supported Metadata/Tooling authoring
-# shape and the optional read-only Connect representation (concept → per-surface
-# key). Inspectors use it to label Connect fields with Metadata-equivalent names.
-FIELD_NAME_MAP = {
-    # concept:          (metadata/tooling,            connect)
-    "data_source":      ("dataSourceType",            "sourceType"),
-    "hit_policy":       ("filterResultBy",            "decisionResultPolicy"),
-    "columns":          ("decisionTableParameters",   "parameters"),
-    "source_criteria":  ("decisionTableSourceCriterias", "sourceCriteria"),
-    "row_override":     ("dtRowLevelOverrideType",    "rowLevelOverrideType"),
-}
-
 
 # --------------------------------------------------------------------------- #
 # ValidationResult (mirrors scripts/expression_sets/_schema.py)
