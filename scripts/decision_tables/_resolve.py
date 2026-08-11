@@ -14,6 +14,22 @@ class ResolveError(RuntimeError):
     """A Decision Table (or child record) could not be resolved by the given key."""
 
 
+def tristate_bool(value: Any) -> Optional[bool]:
+    """Coerce a platform boolean to ``True``/``False``, or ``None`` when unknown.
+
+    Unlike ``_payload._bool_from`` this keeps "absent" distinct from "false", so
+    a caller gating on a Metadata flag can refuse on a *known* false and only
+    warn when the platform did not report the flag at all. A string ``"true"`` /
+    ``"false"`` is accepted because complexvalue booleans are not guaranteed to
+    deserialize as ``bool``.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    return None
+
+
 # Columns pulled for the list / resolve views. Kept in sync with the
 # DecisionTable fields used by the toolkit.
 _TABLE_COLUMNS = (

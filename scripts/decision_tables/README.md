@@ -44,7 +44,7 @@ A Decision Table has two independently managed layers:
 | `update_decision_table.py` | Replace an existing Tooling definition with one PATCH. Active tables are rejected by Salesforce. |
 | `activate_decision_table.py` | Activate a table and wait for the terminal status. CSV tables activate their unambiguous file-import version. |
 | `deactivate_decision_table.py` | Deactivate a table and confirm the terminal status. |
-| `refresh_decision_table.py` | Queue a full or incremental refresh. Versioned CSV tables require `--version-number`. |
+| `refresh_decision_table.py` | Queue a full or incremental refresh. Versioned CSV tables require `--version-number`. `--incremental` is refused unless the table has `isIncrementalSyncEnabled = true`. |
 | `upload_decision_table_data.py` | Append CSV rows and wait for `Completed`, `CompletedWithErrors`, or `Failed`. |
 | `delete_decision_table.py` | Delete with one Tooling request. Active or referenced tables are rejected by Salesforce. |
 
@@ -132,6 +132,12 @@ lifecycle and dependency errors.
   on overwrite behavior.
 - Refresh is asynchronous. Confirm completion from `LastSyncDate` or
   `LastIncrementalSyncDate`, not from the queued response alone.
+- `--incremental` requires `isIncrementalSyncEnabled = true` on the table.
+  Salesforce accepts the request when it is false and then syncs nothing, so
+  there is no platform error to return — the one place this toolkit pre-checks
+  instead of deferring. `refresh_decision_table.py` refuses; pass
+  `--allow-disabled-incremental` to queue the no-op deliberately. Read the flag
+  with `describe_decision_table.py` (`incrSync`).
 
 ## Verification
 

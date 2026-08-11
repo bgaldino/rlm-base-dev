@@ -18,7 +18,9 @@ Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cl
 > `--is_incremental true` option therefore still queues a **full** refresh. Use
 > `scripts/decision_tables/refresh_decision_table.py --incremental --confirm`
 > when an actual incremental refresh is required; it sends the platform's
-> `isDecisionTableIncremental` input.
+> `isDecisionTableIncremental` input. That input only does anything on a table
+> with `isIncrementalSyncEnabled = true`, which is **false on every table this
+> repo ships** — see *Regular Maintenance - Incremental Refresh* below.
 
 > **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
 > `--org "your-cci-alias"`. The examples below omit it and therefore run against the
@@ -195,13 +197,34 @@ Advanced; CSV tables use the Advanced pool. Batch initial setup accordingly.
 
 ### Regular Maintenance - Incremental Refresh
 
-For a real incremental refresh, use the standalone toolkit:
+Incremental refresh needs `isIncrementalSyncEnabled = true` on the table, and
+**every Decision Table this repo ships has it `false`** (`RLM_CostBookEntries`,
+`RLM_ProductQualification`, `RLM_ProductCategoryQualification`,
+`RLM_Channel_Program_Level_Partner`). An incremental request against one of
+those is accepted by the action and then syncs nothing, so there is no shipped
+table to demonstrate it on — use a **full** refresh for them.
+
+Check the flag before reaching for `--incremental`:
+
+```bash
+python scripts/decision_tables/describe_decision_table.py \
+  --target-org "your-sf-alias" --developer-name RLM_CostBookEntries
+# → incrSync : disabled
+```
+
+Where the flag *is* true, the standalone toolkit sends the platform's
+`isDecisionTableIncremental` input:
 
 ```bash
 python scripts/decision_tables/refresh_decision_table.py \
-  --target-org "your-sf-alias" --developer-name RLM_CostBookEntries \
+  --target-org "your-sf-alias" --developer-name "your-incremental-enabled-table" \
   --incremental --confirm
 ```
+
+`refresh_decision_table.py` reads the flag first and **refuses** `--incremental`
+on a table where it is false rather than queueing a no-op — the same rule the
+in-org Decision Table Manager applies. `--allow-disabled-incremental` overrides
+the refusal if you need to reproduce the platform's silent no-op.
 
 ### Refresh Specific Decision Tables
 
@@ -318,7 +341,8 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 **Refresh Types:**
 - **Full Refresh** (`is_incremental: false`): Complete refresh of all data
 - **Incremental Refresh**: Use the standalone toolkit command above; the CCI
-  tasks perform full refreshes.
+  tasks perform full refreshes. Requires `isIncrementalSyncEnabled = true` on
+  the table, which no table this repo ships has.
 
 **Refresh Process:**
 1. The task calls the Salesforce `refreshDecisionTable` standard action
@@ -428,7 +452,8 @@ action input.
 
 ⚠ Incremental sync is **disabled on every decision table this repo ships**, so an
 incremental request is accepted and then changes nothing. The Manager refuses one on such
-a table rather than queueing a no-op.
+a table rather than queueing a no-op, and so does
+`scripts/decision_tables/refresh_decision_table.py --incremental`.
 
 Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`
 (or enable `deploy_post_commerce` in prepare when `commerce: true`).
@@ -444,7 +469,8 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 - **Refresh Timing**: Refresh operations are asynchronous. Check the `LastSyncDate` field to verify completion.
 - **Incremental vs Full**:
   - Use **full refresh** for initial setup or when you need complete data refresh
-  - Use the standalone toolkit for a true **incremental refresh**
+  - Use the standalone toolkit for a true **incremental refresh** — and only on a
+    table with `isIncrementalSyncEnabled = true`; no table this repo ships has it
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name

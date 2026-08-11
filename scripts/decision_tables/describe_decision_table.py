@@ -16,6 +16,7 @@ from scripts.decision_tables._client import (  # noqa: E402
 from scripts.decision_tables._resolve import (  # noqa: E402
     ResolveError,
     load_definition,
+    tristate_bool,
 )
 
 
@@ -36,6 +37,11 @@ def _print_definition(defn):
 
     meta = defn.get("metadata") or {}
     if meta:
+        # The precondition for refresh_decision_table.py --incremental: with this
+        # false the action accepts an incremental request and syncs nothing.
+        incremental = tristate_bool(meta.get("isIncrementalSyncEnabled"))
+        print("  incrSync     : " + {True: "enabled", False: "disabled",
+                                     None: "unknown"}[incremental])
         print(f"  dataSource   : {meta.get('dataSourceType')}")
         print(f"  execution    : {meta.get('executionType')}")
         print(f"  hitPolicy    : {meta.get('filterResultBy')}")

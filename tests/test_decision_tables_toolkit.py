@@ -80,6 +80,10 @@ def _sample_metadata(**over):
         "conditionCriteria": "1",
         "dtRowLevelOverrideType": "None",
         "sourceObject": "CostBookEntry",
+        # The platform always reports this key, and it is false on every table
+        # this repo ships (and on all 45 in a built org) — so the realistic
+        # default here is false, which the refresh CLI refuses --incremental on.
+        "isIncrementalSyncEnabled": False,
     }
     meta.update(over)
     return meta
@@ -1672,7 +1676,10 @@ def test_deactivate_cli_preview_vs_confirm():
 
 def test_refresh_cli_preview_vs_confirm():
     print("test_refresh_cli_preview_vs_confirm")
-    fake_p = _FakeTransport(dry_run=True)
+    # --incremental needs a table whose isIncrementalSyncEnabled is true; the
+    # disabled case is gated and covered by test_refresh_cli_incremental_gate.
+    fake_p = _FakeTransport(
+        dry_run=True, metadata=_sample_metadata(isIncrementalSyncEnabled=True))
     rc, out = _run_cli_with_fake(
         refresh_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries",
                       "--incremental", "--json"], fake_p)
@@ -1726,6 +1733,102 @@ def test_refresh_cli_soft_success_when_status_absent():
         check(f"refresh confirm exits 0 on {label}", rc == 0, (label, out[:300]))
         payload = json.loads(out)
         check(f"refresh {label} emits no JSON error", not payload.get("error"), payload)
+
+
+def test_refresh_cli_incremental_gate():
+    # An incremental request against isIncrementalSyncEnabled=false is ACCEPTED by
+    # the platform action and then syncs nothing (isSuccess=true / Status=Queued
+    # over stale data). Measured false on every table this repo ships, so the CLI
+    # refuses instead of queueing the no-op — the same rule
+    # RLM_DecisionTableManagerController.refreshTables applies in-org.
+    print("test_refresh_cli_incremental_gate")
+    base = ["--target-org", "x", "--developer-name", "RLM_CostBookEntries"]
+
+    for label, meta_over in [("bool false", {"isIncrementalSyncEnabled": False}),
+                             ("string 'false'", {"isIncrementalSyncEnabled": "false"})]:
+        fake = _FakeTransport(dry_run=False, metadata=_sample_metadata(**meta_over))
+        rc, out = _run_cli_with_fake(
+            refresh_cli, base + ["--incremental", "--confirm", "--json"], fake)
+        check(f"refresh refuses --incremental on {label}", rc == 1, (label, out[:300]))
+        check(f"refresh posts NOTHING when refused on {label}",
+              fake.mutations == [], fake.mutations)
+        payload = json.loads(out)
+        check(f"refresh names the flag in the {label} error",
+              "isIncrementalSyncEnabled" in (payload.get("error") or ""), payload)
+
+    # The gate fires in PREVIEW too: a preview reporting a queued no-op would be
+    # exactly the misreport it guards against.
+    fake_p = _FakeTransport(dry_run=True)
+    rc, out = _run_cli_with_fake(refresh_cli, base + ["--incremental", "--json"], fake_p)
+    check("refresh refuses --incremental in preview", rc == 1, out[:300])
+
+    # A full refresh on the same table is untouched by the gate.
+    fake_full = _FakeTransport(dry_run=False)
+    rc, out = _run_cli_with_fake(refresh_cli, base + ["--confirm", "--json"], fake_full)
+    check("full refresh is not gated", rc == 0, out[:300])
+    check("full refresh still posts the action",
+          any(m[0] == "POST" and m[1].endswith("refreshDecisionTable")
+              for m in fake_full.mutations), fake_full.mutations)
+
+    # isIncrementalSyncEnabled=true → the incremental refresh goes through.
+    fake_ok = _FakeTransport(dry_run=False,
+                             metadata=_sample_metadata(isIncrementalSyncEnabled=True))
+    rc, out = _run_cli_with_fake(
+        refresh_cli, base + ["--incremental", "--confirm", "--json"], fake_ok)
+    check("refresh allows --incremental when enabled", rc == 0, out[:300])
+    check("enabled incremental posts the action",
+          any(m[0] == "POST" and m[1].endswith("refreshDecisionTable")
+              for m in fake_ok.mutations), fake_ok.mutations)
+    payload = json.loads(out)
+    check("enabled incremental reports mode=incremental",
+          payload.get("mode") == "incremental", payload)
+
+    # An explicit override queues the no-op deliberately.
+    fake_ovr = _FakeTransport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        refresh_cli,
+        base + ["--incremental", "--allow-disabled-incremental", "--confirm", "--json"],
+        fake_ovr)
+    check("--allow-disabled-incremental overrides the refusal", rc == 0, out[:300])
+    check("overridden incremental posts the action",
+          any(m[0] == "POST" and m[1].endswith("refreshDecisionTable")
+              for m in fake_ovr.mutations), fake_ovr.mutations)
+
+    # An unreported flag cannot be gated on — warn and proceed rather than block
+    # a table the platform never described.
+    unknown = _sample_metadata()
+    unknown.pop("isIncrementalSyncEnabled")
+    fake_unk = _FakeTransport(dry_run=False, metadata=unknown)
+    rc, out = _run_cli_with_fake(
+        refresh_cli, base + ["--incremental", "--confirm", "--json"], fake_unk)
+    check("unknown incremental flag proceeds", rc == 0, out[:300])
+    check("unknown incremental flag still posts the action",
+          any(m[0] == "POST" and m[1].endswith("refreshDecisionTable")
+              for m in fake_unk.mutations), fake_unk.mutations)
+
+
+def test_describe_cli_shows_incremental_flag():
+    print("test_describe_cli_shows_incremental_flag")
+    for label, meta_over, expected in [
+        ("disabled", {"isIncrementalSyncEnabled": False}, "disabled"),
+        ("enabled", {"isIncrementalSyncEnabled": True}, "enabled"),
+    ]:
+        fake = _FakeTransport(metadata=_sample_metadata(**meta_over))
+        rc, out = _run_cli_with_fake(
+            describe_cli, ["--target-org", "x", "--developer-name",
+                           "RLM_CostBookEntries"], fake)
+        line = next((ln for ln in out.splitlines() if "incrSync" in ln), "")
+        check(f"describe reports incrSync {label}", rc == 0 and expected in line,
+              (label, line))
+
+    unknown = _sample_metadata()
+    unknown.pop("isIncrementalSyncEnabled")
+    fake = _FakeTransport(metadata=unknown)
+    rc, out = _run_cli_with_fake(
+        describe_cli, ["--target-org", "x", "--developer-name", "RLM_CostBookEntries"], fake)
+    line = next((ln for ln in out.splitlines() if "incrSync" in ln), "")
+    check("describe reports incrSync unknown when absent",
+          rc == 0 and "unknown" in line, line)
 
 
 def _csv_transport(**over):
@@ -2071,6 +2174,8 @@ def main():
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
               test_refresh_cli_exits_nonzero_on_bad_outcomes,
               test_refresh_cli_soft_success_when_status_absent,
+              test_refresh_cli_incremental_gate,
+              test_describe_cli_shows_incremental_flag,
               test_delete_cli_requires_confirm, test_delete_cli_returns_platform_error,
               test_delete_cli_failure_emits_json,
               # CsvUpload data-load CLI gating

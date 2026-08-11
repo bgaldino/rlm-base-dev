@@ -105,6 +105,14 @@ live to the engine.
   the appropriate timestamp rather than treating the response as completion.
 
 Incremental refresh is meaningful only when `isIncrementalSyncEnabled` is true.
+When it is false the action still returns `isSuccess=true` / `Status=Queued`
+and syncs nothing — measured false on all four tables this repo ships and on
+all 45 in a built org, so a silent no-op is the **default** outcome of asking
+for incremental, not an edge case. Both callers refuse rather than queue it:
+`refresh_decision_table.py --incremental` (override with
+`--allow-disabled-incremental`) and the in-org Decision Table Manager
+(`RLM_DecisionTableManagerController.refreshTables`). Read the flag from
+`describe_decision_table.py` → `incrSync`.
 
 ## CSV Based tables — upload + version lifecycle
 
