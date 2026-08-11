@@ -160,6 +160,14 @@ create (auto-mints version 1)  →  upload CSV (two-phase)
    `{"versionStatus":"Active"}`. `upload_decision_table_data.py --activate-version N`
    does this in the same run. The table's own `Status` is platform-derived and
    cascades to **Active**; do not issue a separate Tooling status PATCH.
+
+   > **Upload and activation target the same version.** `--activate-version N`
+   > defaults the upload target to version N, so `--activate-version N` alone
+   > uploads *into* N and then activates N. If you pass both flags they must
+   > agree: `--version-number M --activate-version N` with `M != N` is rejected
+   > (exit 1) **before any CSV read or mutation** — uploading into M then
+   > activating N would put a different, possibly stale, version live while
+   > reporting success. Omit `--version-number` unless it matches.
 4. **Refresh** — `refreshDecisionTable` requires an **Active** table; run it after
    activation, with the same `isDecisionTableIncremental` flag as above. For a
    **versioned** CSV table `VersionNumber` is **required** (not optional as the

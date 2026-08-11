@@ -216,13 +216,14 @@ Folder `decisionTables/`; MDAPI suffix `.decisionTable`; **source format
 source-controlled** authoring path (deploy via `sf project deploy start` or CCI
 `Deploy`).
 
-Annotated real file (`RLM_CostBookEntries` — a `SingleSobject`, one INPUT + one
-OUTPUT column):
+Annotated real file (`RLM_CostBookEntries` — a `SingleSobject` with two INPUT
+columns and one OUTPUT column). This is the file verbatim; comments are added:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <DecisionTable xmlns="http://soap.sforce.com/2006/04/metadata">
-    <conditionCriteria>1</conditionCriteria>          <!-- boolean logic over INPUT sequences -->
+    <collectOperator>None</collectOperator>            <!-- aggregate over hits; None | Sum | Min | Max | … -->
+    <conditionCriteria>1 AND 2</conditionCriteria>     <!-- boolean logic over INPUT sequences -->
     <conditionType>All</conditionType>                <!-- All | Any | Custom -->
     <dataSourceType>SingleSobject</dataSourceType>     <!-- see enums -->
     <decisionTableParameters>                          <!-- one block per column -->
@@ -235,6 +236,16 @@ OUTPUT column):
         <sequence>1</sequence>                          <!-- INPUT only; referenced by conditionCriteria -->
         <usage>INPUT</usage>                            <!-- INPUT | OUTPUT | ROWCRITERIA -->
     </decisionTableParameters>
+    <decisionTableParameters>                          <!-- second INPUT column -->
+        <dataType>String</dataType>
+        <fieldName>CurrencyIsoCode</fieldName>
+        <fieldPath>CurrencyIsoCode</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>2</sequence>                          <!-- paired with sequence 1 by conditionCriteria "1 AND 2" -->
+        <usage>INPUT</usage>
+    </decisionTableParameters>
     <decisionTableParameters>
         <dataType>String</dataType>
         <fieldName>Cost</fieldName>
@@ -244,10 +255,12 @@ OUTPUT column):
         <usage>OUTPUT</usage>                           <!-- no operator/sequence -->
     </decisionTableParameters>
     <doesConsiderNullValue>false</doesConsiderNullValue>
-    <executionType>Hbase</executionType>               <!-- repo XML accepted live; official enum/Tooling use HBASE -->
+    <dtRowLevelOverrideType>None</dtRowLevelOverrideType>
+    <executionType>HBASE</executionType>               <!-- storage/eval engine; see enums -->
     <filterResultBy>OutputOrder</filterResultBy>        <!-- hit policy -->
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
+    <isVersioned>false</isVersioned>
     <setupName>Cost Book Entries</setupName>            <!-- human label (spaces OK) -->
     <sourceObject>CostBookEntry</sourceObject>
     <status>Active</status>                             <!-- deploy-time status -->
@@ -262,15 +275,13 @@ Notes from the shipped files:
   in file order `ParentProductId(seq2), IsQualified(OUTPUT), RootProductId(seq3),
   ProductId(seq1)` with `conditionCriteria` `1 AND 2 AND 3` — the `sequence`
   numbers, not the XML order, define the condition wiring.
-- **`executionType` is optional in XML** — `RLM_ProductQualification` omits it
-  (defaults) while `RLM_CostBookEntries` sets `Hbase`.
+- **`executionType` is `HBASE` in every shipped table.** All four repo tables
+  (`RLM_CostBookEntries`, `RLM_ProductQualification`,
+  `RLM_ProductCategoryQualification`, `RLM_Channel_Program_Level_Partner`) set it
+  to uppercase `HBASE` — this is the official Metadata/Tooling spelling; don't
+  write it as `Hbase`.
 - **`setupName`** is the human label; the file base name is the `DeveloperName`
   (api name). Keep them consistent with the repo's existing naming.
-
-> ⚠ **`executionType` casing needs context.** Official Metadata documentation
-> and Tooling reads use `HBASE`; this repo's shipped XML uses `Hbase` and was
-> accepted live. Preserve shipped XML for repo consistency, but don't generalize
-> that spelling as the sole Metadata form.
 
 ---
 
@@ -319,7 +330,7 @@ Re-verify live observations on the target release at merge time.
 | Metadata/Tooling field | Values |
 |---|---|
 | `dataSourceType` | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
-| `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
+| `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
 | `filterResultBy` | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
 | `type` | Advanced, HighScaleExecution, HighVolume, **LowVolume**, **MediumVolume**, RealTime |
