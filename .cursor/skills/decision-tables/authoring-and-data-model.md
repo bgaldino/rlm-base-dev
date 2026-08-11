@@ -274,7 +274,7 @@ values warn for forward compatibility; invalid structural values such as column
 | Metadata/Tooling field | Values |
 |---|---|
 | `dataSourceType` | ContextDefinition, CsvUpload, MultipleSobjects, SingleSobject |
-| `executionType` | DLO (v67.0+, replaces DMO), HBASE, HBPO, SOLR, SOQL |
+| `executionType` | DLO (v67.0+, replaces DMO), HBASE, HBPO, SOLR, SOQL (the toolkit also tolerates the mixed-case `Hbase` for forward-compat; `HBASE` is the canonical shipped/Tooling spelling) |
 | `conditionType` | All, Any, Custom |
 | `filterResultBy` | AnyValue, CollectOperator, FirstMatch, OutputOrder, Priority, RuleOrder, UniqueValues |
 | `type` | Advanced, HighScaleExecution, HighVolume, LowVolume, MediumVolume, RealTime |
@@ -282,13 +282,16 @@ values warn for forward compatibility; invalid structural values such as column
 | `usageType` (ExpsSetProcessType) | Bre, DefaultPricing, DefaultRating, PricingDiscovery, RatingDiscovery, RevenueStandardTax, ProductCategoryQualification, ProductQualification, RecordAlert, … |
 | `DecisionTableParameter.usage` | INPUT, OUTPUT, ROWCRITERIA |
 | `DecisionTableParameter.dataType` | Boolean, Currency, Date, DateTime, Number, Percent, String; Salesforce Pricing supports a narrower CSV subset |
-| `DecisionTableParameter.operator` | Equals, NotEquals, GreaterThan, GreaterOrEqual, LessThan, LessOrEqual, ExistsIn, Matches, IsNull, … |
+| `DecisionTableParameter.operator` | Contains, DoesNotExistIn, DoesNotMatch, Equals, ExistsIn, GreaterOrEqual, GreaterThan, IsNotNull, IsNull, LessOrEqual, LessThan, Matches, NotEquals (full set of 13) |
+| `DecisionTableParameter.sortType` | AscNullFirst, AscNullLast, DescNullFirst, DescNullLast, None |
 | `DecisionTableSourceCriteria.valueType` | Formula, Literal, Lookup, Parameter, Picklist |
 | `collectOperator` | Count, Maximum, Minimum, None, Sum |
 | `dtRowLevelOverrideType` | None, Both, Condition, Operator |
 
-API v67 adds `decisionTableFileImportVersions[]` and `isVersioned`. Treat
-`isVersioned` as surface-specific rather than assuming one default.
+API v67 adds `decisionTableFileImportVersions[]` and `isVersioned`. When a spec
+omits `isVersioned`, the toolkit defaults it to `False` — except for `CsvUpload`
+tables, which are versioned by nature and default to `True` unless the spec
+explicitly sets `isVersioned: false`.
 
 These Metadata/Tooling enum sets are the source of truth for canonical specs and
 `validate_spec()`, which the offline tests exercise with no org.

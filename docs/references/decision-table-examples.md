@@ -56,8 +56,11 @@ cci task run manage_decision_tables --operation list --status Inactive
 
 #### 6. Query All Decision Tables (No Status Filter)
 ```bash
-cci task run manage_decision_tables --operation query --status null
+cci task run manage_decision_tables --operation query --status ""
 ```
+(The status filter defaults to `Active`. Pass an **empty string** to clear it and
+include every status — a literal `--status null` would filter for a status named
+`null` and match nothing.)
 
 ### Filtering by Developer Names
 
@@ -136,7 +139,7 @@ cci task run manage_decision_tables --operation validate_lists
 
 #### 19. Validate Specific List Anchors
 ```bash
-cci task run manage_decision_tables --operation validate_lists -o list_anchors:"['dt_rating_decision_tables','dt_commerce_decision_tables']"
+cci task run manage_decision_tables --operation validate_lists -o list_anchors "dt_rating_decision_tables,dt_commerce_decision_tables"
 ```
 Validates only the specified anchors. Useful when you add a new list and want to verify it without scanning all anchors.
 
@@ -347,8 +350,8 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 
 ### Status
 - **Required**: No
-- **Options**: `Active`, `Inactive`, or `null` (for all)
-- **Default**: `Active` (applied by `_build_soql_query`, so it backs `list`, `query`, `refresh`, and `validate_lists`; pass `--status null` to include all statuses)
+- **Options**: `Active`, `Inactive`, or `""` (empty string, for all)
+- **Default**: `Active` (applied by `_build_soql_query`, so it backs `list`, `query`, `refresh`, and `validate_lists`; pass an empty `--status ""` to include all statuses — a non-empty value including the literal `null` is used as-is in the `Status =` filter and matches only a status of that name)
 - **Description**: Filter decision tables by status
 
 ### Is Incremental
@@ -397,6 +400,7 @@ Decision table lists are defined in `cumulusci.yml` under `project.custom` as YA
 | `dt_pricing_discovery_decision_tables` | Pricing discovery and derived pricing tables |
 | `dt_activation_decision_tables` | Tables activated during org prepare (RLM_ProductCategoryQualification, RLM_ProductQualification, RLM_CostBookEntries) |
 | `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true` **or** `tso: true`) |
+| `dt_prm_pricing_decision_tables` | PRM partner-pricing decision tables (refreshed when `prm` **and** `prm_pricing`) |
 
 The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_default_pricing (always) → refresh_dt_commerce (when `commerce: true` **or** `tso: true`) → refresh_dt_prm_pricing (when `prm` and `prm_pricing`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
 
@@ -474,5 +478,5 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 ### No Decision Tables Found
 **Solution**:
 - Check if decision tables exist in the org
-- Try querying without status filter: `--status null`
+- Try querying without status filter: `--status ""` (empty string; the default is `Active`)
 - Verify you're connected to the correct org

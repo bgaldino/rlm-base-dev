@@ -136,10 +136,10 @@ POST /services/data/v67.0/tooling/sobjects/DecisionTable
 Required metadata includes source type/object, usage type, hit policy,
 condition type/criteria, status, table type, and the full parameter list.
 
-Metadata creates use a temporary SFDX project and `sf project deploy start`.
-Run the command from that project root with a relative `--source-dir` and
-`--ignore-conflicts`; absolute or parent-relative source paths can trigger
-`UnsafeFilepathError`.
+For source-controlled create/update, the same definition can also be deployed
+through the Metadata API `.decisionTable-meta.xml` source (see *Metadata source
+format* above). The toolkit itself creates through the single Tooling POST shown
+here.
 
 ### Update
 
@@ -273,8 +273,6 @@ mappings through REST, and correlates the results locally.
 | `FIELD_NOT_UPDATABLE: Can't edit an active Decision Table` | Deactivate, perform the update, then activate explicitly. |
 | `INVALID_OPERATION` or `DEPENDENCY_EXISTS` on delete | Deactivate and remove references before retrying. |
 | `FIELD_INTEGRITY_EXCEPTION: Required field is missing: status` | Send the complete Tooling metadata body with current status. |
-| `UnsafeFilepathError` during Metadata deploy | Run from the temporary project root and use a relative source directory. |
-| `Conflict` during Metadata deploy | Use `--ignore-conflicts` for the temporary project. |
 | `CompletedWithErrors` after CSV upload | Some rows failed platform coercion; inspect landed rows and correct the CSV. |
 | `INVALID_API_INPUT` for CSV refresh without a version | Pass an existing active `--version-number`. |
 | `UNKNOWN_EXCEPTION` for filtered CSV reads | Do not combine a truncating `limit` with `filter`. |
