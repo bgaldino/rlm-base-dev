@@ -23,9 +23,9 @@ sends the requested status rather than second-guessing it:
   ``ActivationInProgress`` to ``Active``), ``Inactive``, or ``Draft``;
 * a ``CsvUpload`` table cannot be ``Active`` at create time — it has no active
   file-import version yet — so the platform rejects ``status: Active`` with
-  ``INVALID_INPUT``. Create it ``Draft``, upload rows, then activate a version
-  (``upload_decision_table_data.py --activate-version N``). The tool warns before
-  sending an Active CsvUpload create so the platform error is not a surprise.
+  ``INVALID_INPUT``. Create it ``Draft``, upload rows (``upload_decision_table_data.py``),
+  then activate (``activate_decision_table.py``). The tool warns before sending an
+  Active CsvUpload create so the platform error is not a surprise.
 
 **Preview by default.** Without ``--confirm`` the tool validates the spec and logs
 the planned write (or prints the XML for ``metadata``) but performs no org write.
@@ -160,8 +160,9 @@ def main(argv=None) -> int:
             and spec.get("dataSourceType") == "CsvUpload"):
         eprint("\nNOTE: a CsvUpload table cannot be created Active — it has no "
                "active file-import version yet, and the platform will reject "
-               "status=Active. Create it Draft, then load rows and activate a "
-               "version with upload_decision_table_data.py --activate-version N.")
+               "status=Active. Create it Draft, then load rows with "
+               "upload_decision_table_data.py and activate with "
+               "activate_decision_table.py.")
     summary = {"action": "create", "path": args.path, "apiName": api_name,
                "requestedStatus": requested_status, "dryRun": preview}
 

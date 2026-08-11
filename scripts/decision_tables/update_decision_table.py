@@ -18,8 +18,8 @@ edited in place — the platform returns ``FIELD_NOT_UPDATABLE`` / "Can't edit a
 active Decision Table". By default this tool **refuses** up front on an active
 table. Pass ``--deactivate-first`` to run the guarded
 deactivate → update → reactivate sequence instead: the table is deactivated,
-patched, and (unless ``--leave-deactivated``) reactivated. On the atomic Tooling
-PATCH a failed edit is still reactivated because the definition remains unchanged.
+patched, and reactivated. On the atomic Tooling PATCH a failed edit is still
+reactivated because the definition remains unchanged.
 
 **Preview by default.** Without ``--confirm`` the tool validates the spec and logs
 the planned write but performs no org write. Re-run with ``--confirm`` to apply.
@@ -88,9 +88,6 @@ def main(argv=None) -> int:
                         help="If the table is Active, deactivate → update → reactivate "
                              "(the deactivate-first guarded sequence). Without it, an "
                              "active table is REFUSED.")
-    parser.add_argument("--leave-deactivated", action="store_true",
-                        help="With --deactivate-first: skip the reactivate step, leaving "
-                             "the table Inactive after the update.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually apply. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -120,8 +117,7 @@ def main(argv=None) -> int:
                           dry_run=preview, logger=eprint)
     engine = LifecycleEngine(transport, logger=eprint)
     summary = {"action": "update", "path": "tooling", "developerName": dev_name,
-               "dryRun": preview, "deactivateFirst": bool(args.deactivate_first),
-               "leaveDeactivated": bool(args.leave_deactivated)}
+               "dryRun": preview, "deactivateFirst": bool(args.deactivate_first)}
 
     try:
         table_row = resolve_decision_table(transport, dev_name)
@@ -138,7 +134,7 @@ def main(argv=None) -> int:
         # A Tooling Metadata PATCH REQUIRES status. Stamp the table's CURRENT
         # LIVE status — read now, so during a deactivate-first sequence it is the
         # already-deactivated Inactive — never the spec's (often Active, which
-        # would re-activate the table mid-edit and defeat --leave-deactivated).
+        # would re-activate the table mid-edit before the guarded reactivate).
         # A missing live status raises (fail closed): reusing the pre-deactivation
         # status could reactivate the table mid-edit. The PATCH is atomic, so on any
         # failure the guarded sequencer restores the original Active status.
@@ -161,7 +157,6 @@ def main(argv=None) -> int:
             engine.run_guarded_update(
                 table_row=table_row,
                 mutate=_do_mutate,
-                activate_after=not args.leave_deactivated,
                 verb="update",
             )
         else:

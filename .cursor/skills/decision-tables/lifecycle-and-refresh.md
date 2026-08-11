@@ -61,12 +61,14 @@ deactivate  →  edit/redeploy the definition  →  reactivate  →  refresh
 
 This is why `exclude_active_decision_tables`/`.skip/` exists: a redeploy over an
 active table would otherwise fail. The toolkit's `update_decision_table.py` /
-`delete_decision_table.py` mutators enforce the same guard: they refuse to mutate
-an Active table up front unless `--deactivate-first` runs the guarded
-deactivate → mutate → reactivate sequence. Crucially, **the spec's `status` never
-drives the update** — so a `status` of `Active` carried over from a create spec or
-a describe round-trip can't re-activate the table mid-sequence and silently defeat
-`--leave-deactivated`.
+`delete_decision_table.py` mutators enforce the same guard, and refuse an Active
+table up front. `update` takes `--deactivate-first` to run the guarded
+deactivate → edit → reactivate sequence in one call; `delete` has no such option —
+it points at `deactivate_decision_table.py` (deactivation lives in its own script,
+so delete keeps no partial state to unwind). Crucially, **the spec's `status`
+never drives the update** — so a `status` of `Active` carried over from a create
+spec or a describe round-trip can't re-activate the table mid-sequence, before the
+guarded reactivate.
 
 The toolkit updates definitions only through **Tooling `Metadata` PATCH**.
 `status` is a **required field** (a status-free
@@ -135,8 +137,8 @@ source SObject, so its lifecycle has an extra step between deploy and refresh:
 **upload the rows**. The full sequence:
 
 ```
-create (auto-mints version 1)  →  upload CSV (two-phase)
-  →  activate the version (table Status cascades to Active)  →  refresh
+create (auto-mints version 1)  →  upload CSV (two-phase, append)
+  →  activate (table Status → Active)  →  refresh
 ```
 
 1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); this auto-mints
@@ -146,28 +148,19 @@ create (auto-mints version 1)  →  upload CSV (two-phase)
    below) — every upload targets version 1.
 2. **Upload** the rows with `upload_decision_table_data.py` — a two-phase load
    (insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the
-   table's Connect `/file` sub-resource). **`deleteAllRows:false` (append) is the
-   only reliable write** — `--overwrite` (`deleteAllRows:true`) FAILS on 262/v67.0
-   (`uploadStatus=Failed`, 0 rows, existing rows kept), so the toolkit **rejects
-   `--overwrite` with exit 1** before any write on the pinned release. For
-   Salesforce Pricing, multiple CSV versions aren't supported, so replace rows
-   with a **fresh table** plus append. The import is **async** and rows with a cell that
-   doesn't match a column's `dataType` drop silently → `CompletedWithErrors`; opt
-   into `--wait-for-status` to catch that. See the full upload contract in
-   `authoring-and-data-model.md` → *CSV Based tables*.
-3. **Activate the version**:
-   `PATCH connect/business-rules/decision-table/definitions/{id}/versions/{N}`
-   `{"versionStatus":"Active"}`. `upload_decision_table_data.py --activate-version N`
-   does this in the same run. The table's own `Status` is platform-derived and
-   cascades to **Active**; do not issue a separate Tooling status PATCH.
-
-   > **Upload and activation target the same version.** `--activate-version N`
-   > defaults the upload target to version N, so `--activate-version N` alone
-   > uploads *into* N and then activates N. If you pass both flags they must
-   > agree: `--version-number M --activate-version N` with `M != N` is rejected
-   > (exit 1) **before any CSV read or mutation** — uploading into M then
-   > activating N would put a different, possibly stale, version live while
-   > reporting success. Omit `--version-number` unless it matches.
+   table's Connect `/file` sub-resource). The loader **appends only** — rows are
+   added to the table's current (single) version. Overwrite (`deleteAllRows:true`)
+   FAILS on 262/v67.0 (`uploadStatus=Failed`, 0 rows, existing rows kept), so the
+   toolkit doesn't expose it; for Salesforce Pricing, multiple CSV versions aren't
+   supported, so replace rows with a **fresh table** plus append. The import is
+   **async** and rows with a cell that doesn't match a column's `dataType` drop
+   silently → `CompletedWithErrors`; dump the rows back (step below) to catch that.
+   See the full upload contract in `authoring-and-data-model.md` → *CSV Based tables*.
+3. **Activate** with `activate_decision_table.py`, which PATCHes the table's
+   `Metadata.status` to Active. For a CsvUpload table the platform activates the
+   single file-import version underneath; the table's own `Status` is
+   platform-derived and reaches **Active**. Activation is **async** — the tool
+   polls past `ActivationInProgress` (raise `--max-wait` for slow orgs).
 4. **Refresh** — `refreshDecisionTable` requires an **Active** table; run it after
    activation, with the same `isDecisionTableIncremental` flag as above. For a
    **versioned** CSV table `VersionNumber` is **required** (not optional as the
@@ -193,11 +186,12 @@ create (auto-mints version 1)  →  upload CSV (two-phase)
 > optionally `--filter Field:Value` (exact/case-sensitive) or `--version-number N`.
 
 > ⚠ **Teardown order — deactivate the VERSION before the table (✅ live-verified).**
-> `delete_decision_table.py --deactivate-first` uses the version-aware lifecycle
-> engine: it resolves and deactivates the CSV version first
+> `deactivate_decision_table.py` uses the version-aware lifecycle engine: it
+> resolves and deactivates the CSV version first
 > (`PATCH …/versions/{N}` `{"versionStatus":"Inactive"}`). That **cascades the
-> table to Inactive**, after which the Tooling delete can proceed. A direct table
-> status PATCH while a version remains Active is rejected with `INVALID_INPUT`.
+> table to Inactive**, after which `delete_decision_table.py` (which refuses an
+> Active table up front) can proceed. A direct table status PATCH while a version
+> remains Active is rejected with `INVALID_INPUT`.
 
 ## Recipe-table mappings + `validate_lists`
 

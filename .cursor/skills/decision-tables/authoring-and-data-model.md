@@ -67,17 +67,16 @@ object), but it is still **required** on create like every other source type.
    the column headers, matching the table's INPUT/OUTPUT `fieldName`s. Body
    `{"Title", "PathOnClient", "VersionData"}` → returns a `068…` id.
 2. POST that id to the table's Connect `/file` sub-resource:
-   `POST connect/business-rules/decision-table/{0lD…}/file[?versionNumber=N]`
-   with `{"fileId":"068…","deleteAllRows":false}`. Response:
+   `POST connect/business-rules/decision-table/{0lD…}/file`
+   with a bare `{"fileId":"068…"}`. Response:
    *"We are uploading and processing the CSV file."*
 
-`deleteAllRows:false` **appends** to any existing rows. The import is
-**asynchronous**: the POST returns immediately, the rows become queryable within
+The upload **appends** to the current (single) version's existing rows. The import
+is **asynchronous**: the POST returns immediately, the rows become queryable within
 ~5s, and `uploadStatus` (`UploadInProgress` → `Completed` / `CompletedWithErrors`
-/ `Failed`) lags the data landing — it can take ~1 min to go terminal. Opt into
-`upload_decision_table_data.py --wait-for-status` to poll `Metadata.uploadStatus`
-to a terminal state; its value is surfacing `CompletedWithErrors`/`Failed` (a
-terminal error exits non-zero), which the fire-and-forget POST response hides.
+/ `Failed`) lags the data landing — it can take ~1 min to go terminal. Dump the
+rows back (`dump_decision_table_data.py`) to confirm the load; the fire-and-forget
+POST response hides `CompletedWithErrors`/`Failed`.
 
 > ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
 > Every overwrite variant — Active table, Draft table, empty table, with or
@@ -87,9 +86,9 @@ terminal error exits non-zero), which the fire-and-forget POST response hides.
 > `deleteAllRows:true` itself is the culprit (pilot-gated or bugged), not the
 > CSV/table/version. **For Salesforce Pricing, the reliable replacement path is
 > a fresh table + append**; Pricing does not support multiple CSV-table versions.
-> On the pinned release `upload_decision_table_data.py` **rejects `--overwrite`
-> with exit 1** before any write, so the fresh-table + append path is the only
-> supported route.
+> Because overwrite can only ever fail on the pinned release,
+> `upload_decision_table_data.py` doesn't expose it — it appends only, and the
+> fresh-table + append path is the only supported replacement route.
 
 **Per-column CSV encoding (✅ live-verified for generic BRE).** A `usageType=Bre`
 probe round-tripped all 7 Metadata `dataType`s through the CSV transport. That
@@ -114,8 +113,8 @@ coercion drops that **row** silently (see below). Confirmed encodings:
 An upload with a mix of valid + invalid rows loads **only the valid rows** and
 finishes `uploadStatus = CompletedWithErrors`. The dropped rows surface **no
 per-row error** — neither the `/data` GET nor the `Metadata` reports which rows
-failed, only the aggregate status. This is why `--wait-for-status` is worth the
-wait: it is the only signal that rows were silently dropped.
+failed, only the aggregate status. Dump the rows back after the load and compare
+the count against the CSV to detect silent drops.
 
 **Read — the data GET** (`dump_decision_table_data.py`):
 `GET connect/business-rules/decision-table/{id}/data[?versionNumber=N][&filter=Field:Value][&limit=N]`
@@ -149,8 +148,8 @@ wait: it is the only signal that rows were silently dropped.
 **Versions — no v2 is auto-minted by re-upload (✅ live).** The generic BRE
 API probe returned **Draft version 1** after create; Salesforce Pricing Help calls
 the initial version **Inactive**, so preserve that product/surface distinction.
-Uploading again (append or overwrite, with or without
-`--version-number`) does **not** mint a v2 — every upload targets version 1.
+Re-uploading does **not** mint a v2 — every upload targets version 1, so the
+toolkit's loader is version-agnostic (it appends to the single version).
 Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
 → `INVALID_API_INPUT`.
 

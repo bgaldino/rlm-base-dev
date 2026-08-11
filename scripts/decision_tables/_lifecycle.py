@@ -84,15 +84,6 @@ _ACTIVATION_IN_PROGRESS = "ActivationInProgress"
 _STATUS_ACTIVE = "Active"
 _STATUS_INACTIVE = "Inactive"
 
-# CsvUpload ``/file`` import — the ``Metadata.uploadStatus`` values. The import is
-# async: ``UploadInProgress`` → one of the terminal states (live-verified 262/v67.0,
-# and it can lag the rows landing by ~1 min). ``CompletedWithErrors`` (some rows
-# silently dropped) and ``Failed`` (e.g. a ``deleteAllRows`` overwrite) are the
-# states the fire-and-forget POST response hides — the value of waiting.
-_UPLOAD_TERMINAL = {"Completed", "CompletedWithErrors", "Failed"}
-_UPLOAD_ERROR = {"CompletedWithErrors", "Failed"}
-
-
 class LifecycleError(RuntimeError):
     """Raised on any lifecycle failure in the Decision Table toolkit.
 
@@ -201,7 +192,7 @@ class LifecycleEngine:
         # asynchronous — passes through the transient ActivationInProgress) and
         # deactivation (usually immediate), so the message must not assert
         # "activation" when confirming Inactive. It also stays remediation-neutral:
-        # not every CLI that reaches this exposes --max-wait (only activate/upload do;
+        # not every CLI that reaches this exposes --max-wait (only activate does;
         # update/delete/deactivate route here via run_guarded_update/deactivate/
         # activate), so it points at a re-check any caller can run rather than a flag
         # that may not exist.
@@ -213,48 +204,6 @@ class LifecycleEngine:
             f"current status with list_decision_tables.py (raise the engine's "
             f"max-wait, where the CLI exposes it, to poll longer)."
         )
-
-    def get_upload_status(self, record_id: str) -> Optional[str]:
-        """Current ``Metadata.uploadStatus`` for a CsvUpload table (or ``None``).
-
-        ``uploadStatus`` is **not** a top-level Tooling column — it lives in the
-        ``Metadata`` complexvalue (same GET :meth:`_current_metadata` uses), so it
-        is read there rather than via SOQL.
-        """
-        metadata = self._current_metadata(record_id)
-        return metadata.get("uploadStatus")
-
-    def wait_for_upload_status(self, record_id: str) -> Optional[str]:
-        """Poll ``Metadata.uploadStatus`` until terminal or ``max_wait``.
-
-        Returns the last-seen status: a terminal value (``Completed`` /
-        ``CompletedWithErrors`` / ``Failed``) once reached, else the last
-        non-terminal value on timeout (the caller decides how to report it).
-        No-op returning ``None`` under dry-run. The CsvUpload ``/file`` import is
-        **async and can lag the rows landing by ~1 min**, so this reuses the
-        standard ``max_wait``/``poll`` cadence and never blocks by default — the
-        upload CLI opts in with ``--wait-for-status``.
-        """
-        if self.dry_run:
-            return None
-        waited = 0
-        last: Optional[str] = None
-        while waited <= self.max_wait:
-            last = self.get_upload_status(record_id)
-            if last in _UPLOAD_TERMINAL:
-                self.log(
-                    f"DecisionTable {record_id} uploadStatus={last} after {waited}s."
-                )
-                return last
-            time.sleep(self.poll)
-            waited += self.poll
-        self.log(
-            f"DecisionTable {record_id} uploadStatus did not reach a terminal state "
-            f"within {self.max_wait}s (last seen: {last!r}). The import is async and "
-            f"can lag the rows landing by ~1 min — the rows may still be arriving; "
-            f"re-check with dump_decision_table_data.py or raise --max-wait."
-        )
-        return last
 
     def _file_import_versions(self, record_id: str) -> List[Dict[str, Any]]:
         """Return validated file-import version entries from Tooling Metadata."""
@@ -309,19 +258,6 @@ class LifecycleEngine:
         verb = "Would set" if self.dry_run else "Set"
         self.log(f"{verb} DecisionTable {record_id} version {version_number} "
                  f"versionStatus = {status}.")
-
-    def get_version_status(self, record_id: str, version_number: int) -> Optional[str]:
-        """Current ``versionStatus`` of one file-import version (Tooling GET).
-
-        Reads ``Metadata.decisionTableFileImportVersions[]`` — the same Tooling
-        GET :meth:`_current_metadata` uses — and returns the matching version's
-        ``versionStatus``, or ``None`` if that version doesn't exist.
-        """
-        versions = self._file_import_versions(record_id)
-        for version in versions:
-            if version.get("versionNumber") == version_number:
-                return version.get("versionStatus")
-        return None
 
     def resolve_guarded_version(self, record_id: str) -> Optional[int]:
         """The CsvUpload version to thread through a guarded deactivate → mutate →
@@ -395,9 +331,9 @@ class LifecycleEngine:
                 f"DecisionTable '{name}' is {status}; its definition cannot be "
                 f"edited or deleted in place (platform error "
                 f"'FIELD_NOT_UPDATABLE' / \"Can't edit an active Decision Table\"). "
-                f"Deactivate it first (pass --deactivate-first to do it "
-                f"automatically, or run deactivate_decision_table.py), then edit "
-                f"and reactivate."
+                f"Deactivate it first — run deactivate_decision_table.py (or, for "
+                f"update, pass --deactivate-first to deactivate → edit → reactivate "
+                f"in one run)."
             )
 
     def run_guarded_update(
@@ -405,16 +341,14 @@ class LifecycleEngine:
         *,
         table_row: Dict[str, Any],
         mutate: Callable[[], None],
-        activate_after: bool,
         verb: str = "update",
     ) -> None:
         """Deactivate → mutate → reactivate an Active table (deactivate-first).
 
         ``mutate`` is the verb-specific body; it runs while the table is
         deactivated. Only a table that **was Active** is deactivated and later
-        reactivated (``activate_after`` gates the reactivation — ``--leave-
-        deactivated`` passes ``False``). A Draft/Inactive table is mutated in place
-        with no status change.
+        reactivated. A Draft/Inactive table is mutated in place with no status
+        change.
 
         The reactivation rule is unconditional because the mutation is an **atomic**
         Tooling ``Metadata`` PATCH (live-verified): whether it is accepted (valid
@@ -445,7 +379,7 @@ class LifecycleEngine:
         except Exception as exc:  # noqa: BLE001 — re-raised below
             failure = exc
         finally:
-            if was_active and activate_after:
+            if was_active:
                 if failure:
                     self.log(
                         f"{verb} failed, but the definition write is atomic (the "
@@ -462,11 +396,6 @@ class LifecycleEngine:
                             f"failed: {reactivate_exc}"
                         ) from failure
                     raise
-            elif was_active and not self.dry_run:
-                self.log(
-                    f"activate_after=false; leaving DecisionTable {record_id} "
-                    f"DEACTIVATED as requested."
-                )
 
         if failure:
             raise failure

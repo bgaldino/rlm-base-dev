@@ -281,18 +281,21 @@ required on create.
 
    | Verb | Path | Body |
    |---|---|---|
-   | **POST** | `connect/business-rules/decision-table/{0lD…}/file[?versionNumber=N]` | `{"fileId":"068…","deleteAllRows":false}` |
+   | **POST** | `connect/business-rules/decision-table/{0lD…}/file` | `{"fileId":"068…"}` |
 
    Response: `{"message":"We are uploading and processing the CSV file."}`.
 
-- `deleteAllRows:false` **appends** to existing rows — the **only reliable write**.
+- The upload **appends** to the current (single) version's rows — the **only
+  reliable write**. The toolkit sends a bare `{"fileId"}` (no `deleteAllRows`, no
+  `versionNumber`): CsvUpload tables are single-version here, so there is no
+  version to target and overwrite is broken (below).
 - The import is **asynchronous**. The POST returns immediately; rows become
   queryable via the data GET within ~5s. `uploadStatus`
   (`UploadInProgress` → `Completed` / `CompletedWithErrors` / `Failed`) **lags**
-  the data landing (~1 min to go terminal). `upload_decision_table_data.py
-  --wait-for-status` (`--max-wait N`, default 120s) opts into polling
-  `Metadata.uploadStatus` to a terminal state and exits non-zero on
-  `CompletedWithErrors`/`Failed` — the only signal the fire-and-forget POST hides.
+  the data landing (~1 min to go terminal). Read the rows back with
+  `dump_decision_table_data.py` and compare the count against the CSV — that is
+  the only signal for `CompletedWithErrors`/`Failed`, which the fire-and-forget
+  POST response hides.
 
 > ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
 > Every overwrite variant — Active table, Draft table, empty table, with or without
@@ -301,9 +304,9 @@ required on create.
 > (safe-fail). The **same CSV appended succeeds**, so `deleteAllRows:true` itself is
 > the culprit (pilot-gated or bugged). For Salesforce Pricing, which doesn't
 > support multiple CSV versions, the reliable replacement is a **fresh table**
-> plus append. On the pinned release the toolkit therefore **rejects `--overwrite`
-> outright** (`upload_decision_table_data.py` exits 1 before any write); the
-> supported path is the fresh-table-plus-append replacement above.
+> plus append. Because overwrite can only ever fail on the pinned release,
+> `upload_decision_table_data.py` doesn't expose it — it appends only, and the
+> fresh-table-plus-append replacement above is the supported route.
 
 **Per-column CSV encoding (✅ live-verified on a generic `usageType=Bre` table).**
 Each cell is coerced to the column's `dataType`; a cell that fails coercion drops
@@ -323,7 +326,8 @@ that **row silently** (below). Confirmed encodings:
 A mixed valid/invalid upload loads **only the valid rows** and finishes
 `uploadStatus = CompletedWithErrors`; the dropped rows surface **no per-row error**
 (neither the `/data` GET nor the `Metadata` reports which failed, only the aggregate
-status). This is why `--wait-for-status` is worth the wait.
+status). Dump the rows back after the load and compare the count against the CSV to
+detect silent drops.
 
 Salesforce Pricing documentation describes a narrower supported input set:
 DateTime/Text (`String` in Metadata), Boolean, and Number; Currency isn't
@@ -343,13 +347,16 @@ Activate the version before activating the table:
 |---|---|---|
 | **PATCH** | `connect/business-rules/decision-table/definitions/{id}/versions/{N}` | `{"versionStatus":"Active"}` |
 
-`upload_decision_table_data.py --activate-version N` does this in the same run.
+`activate_decision_table.py` drives this via a `Metadata.status` PATCH: for a
+CsvUpload table the platform activates the single version underneath and the
+table's `Status` cascades to Active (async — the tool polls past
+`ActivationInProgress`).
 
 > **No v2 on re-upload (✅ live-verified for generic BRE).** Create auto-minted
 > Draft version 1 in that probe;
-> re-uploading (append or overwrite, with or without `--version-number`) does **not**
-> mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
-> v1. Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
+> re-uploading does **not** mint a v2 — the version list stays `[{versionNumber:1}]`
+> and every upload targets v1, so the toolkit's loader is version-agnostic.
+> Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
 > → `INVALID_API_INPUT`.
 
 `refreshDecisionTable` requires an **Active** table, so the order is:
@@ -453,9 +460,11 @@ degrade to a note).
     "errorCode": "FIELD_NOT_UPDATABLE", "fields": []}]
   ```
   Deactivate first (analogous to Context Service's `RECORD_UPDATE_FAILED`
-  deactivate-first rule, but DT uses `FIELD_NOT_UPDATABLE`). The `update` /
-  `delete` mutators refuse an Active table up front unless `--deactivate-first`
-  runs the guarded deactivate → mutate → reactivate sequence.
+  deactivate-first rule, but DT uses `FIELD_NOT_UPDATABLE`). The `update` and
+  `delete` mutators refuse an Active table up front: `update` takes
+  `--deactivate-first` to run the guarded deactivate → edit → reactivate in one
+  call; `delete` points at `deactivate_decision_table.py` (its own script — delete
+  keeps no partial state to unwind).
 - **Delete** — Tooling (`…/tooling/sobjects/DecisionTable/{id}`) DELETE with an
   **empty body piped on stdin** (`-b -`); `-b ""` / `-b "@file"` / an `-f`
   request-spec all fail with "No 'mode' found in 'body' entry". GET-back →
@@ -526,7 +535,7 @@ encodes.
 
 | Error (code / message) | Path & trigger | Resolution |
 |---|---|---|
-| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling PATCH of an **Active** table | Deactivate first. `update`/`delete` refuse an Active table unless `--deactivate-first` runs the guarded deactivate → mutate → reactivate. |
+| `FIELD_NOT_UPDATABLE` — "Can't edit an active Decision Table" | Tooling PATCH of an **Active** table | Deactivate first. `update` refuses an Active table unless `--deactivate-first` runs the guarded deactivate → edit → reactivate; `delete` refuses it and points at `deactivate_decision_table.py`. |
 | `MISSING_ARGUMENT` — "Specify a valid value for status parameter" | Raw Connect POST create without `status` | `status` is required on raw Connect create. The toolkit does not expose this path. |
 | `FIELD_INTEGRITY_EXCEPTION` — "Required field is missing: status" | Tooling `Metadata` PATCH with a status-free body | `status` is **required** on a Tooling PATCH too. `update` drops the spec's `status` and stamps the table's **current live** status (via `LifecycleEngine.get_status`) so the edit never re-activates the table — in a deactivate-first sequence that live status is the already-deactivated `Inactive`. |
 | `JSON_PARSER_ERROR` — `Unrecognized field "label"` / `"masterLabel"` | Connect POST/PATCH using the wrong label key | The Connect label field is **`setupName`** (not `label`/`masterLabel`). |
@@ -537,8 +546,8 @@ encodes.
 | Stale `Status = "ActivationInProgress"` after a 204 | Reading status immediately after an activate PATCH | Activate is **async** — poll past `ActivationInProgress` (raise `--max-wait` for slow orgs). |
 | Empty `"parameters": []` in a Connect POST/PATCH response | Trusting the Connect echo for the column set | **GET-back** to confirm; the columns persist despite the empty echo. |
 | Benign `…@DecisionTable` advisory alongside `isSuccess: true` | Connect PATCH that removes a row-level override | Non-fatal — treat any `@`-suffixed message as advisory when `isSuccess` is true. |
-| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). The toolkit **rejects `--overwrite` with exit 1** on the pinned release so you never reach this state; for Salesforce Pricing, replace with a fresh table and append. |
-| `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; use `--wait-for-status` to catch it. |
+| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (overwrite) | **Broken on the probed 262/v67.0 generic BRE table** — overwrite failed safe (existing rows kept). The toolkit **doesn't expose overwrite** (it appends only) so you never reach this state; for Salesforce Pricing, replace with a fresh table and append. |
+| `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; dump the rows back and compare the count against the CSV to catch it. |
 | `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
 | `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
 | `INVALID_API_INPUT` | CsvUpload `/data` GET or `/file` POST targeting a `versionNumber` that doesn't exist (only v1 is minted) | Re-upload does not mint a v2 — target v1 (or omit `versionNumber` for the current version). |

@@ -285,10 +285,10 @@ def sobjects_request(
 #
 #   1. Insert a ``ContentVersion`` holding the CSV (first row = column headers
 #      matching the INPUT/OUTPUT ``fieldName``s) → a ``068…`` ContentVersion id.
-#   2. POST that id to the table's ``/file`` sub-resource, scoped to a version:
-#      ``connect/business-rules/decision-table/{0lD…}/file?versionNumber=N``
-#      with ``{"fileId":"068…","deleteAllRows":<bool>}`` — ``false`` appends,
-#      ``true`` overwrites (destructive). The import is **async**
+#   2. POST that id to the table's ``/file`` sub-resource:
+#      ``connect/business-rules/decision-table/{0lD…}/file`` with
+#      ``{"fileId":"068…"}`` — the rows are **appended** to the table's current
+#      (single) version. The import is **async**
 #      (``Metadata.uploadStatus``: UploadInProgress → Completed/…), but rows are
 #      queryable via the data GET within seconds.
 #
@@ -331,8 +331,6 @@ def upload_decision_table_csv(
     record_id: str,
     file_id: str,
     *,
-    delete_all_rows: bool = False,
-    version_number: Optional[int] = None,
     target_org: str,
     api_version: str = DEFAULT_API_VERSION,
     dry_run: bool = False,
@@ -340,18 +338,16 @@ def upload_decision_table_csv(
 ) -> Any:
     """POST a ContentVersion ``file_id`` to a table's ``/file`` sub-resource (async).
 
-    Phase 2 of a CsvUpload data load. ``delete_all_rows=False`` **appends** to the
-    existing rows; ``True`` **overwrites** (destructive — deletes all rows first).
-    ``version_number`` targets a specific version (a 262 addition; when omitted the
-    platform uses the current/active version). The import is asynchronous — poll
-    the ``/data`` GET (or ``Metadata.uploadStatus``) for completion, not this
-    response (``{"message":"We are uploading and processing the CSV file."}``).
+    Phase 2 of a CsvUpload data load. The rows are **appended** to the table's
+    current (single) version — CsvUpload tables are single-version here and
+    ``deleteAllRows:true`` (overwrite) fails reproducibly on 262/v67.0, so this
+    toolkit only appends. The import is asynchronous — poll the ``/data`` GET (or
+    ``Metadata.uploadStatus``) for completion, not this response
+    (``{"message":"We are uploading and processing the CSV file."}``).
     Honors ``dry_run`` via :func:`connect_request`.
     """
     path = f"{CONNECT_BASE}/{record_id}/file"
-    if version_number is not None:
-        path += f"?versionNumber={int(version_number)}"
-    body = {"fileId": file_id, "deleteAllRows": bool(delete_all_rows)}
+    body = {"fileId": file_id}
     return connect_request(
         "POST", path, body,
         target_org=target_org, api_version=api_version, dry_run=dry_run, logger=logger,
@@ -537,12 +533,9 @@ class Transport:
         )
 
     def upload_decision_table_csv(self, record_id: str, file_id: str,
-                                  *, delete_all_rows: bool = False,
-                                  version_number: Optional[int] = None,
-                                  dry_run: Optional[bool] = None) -> Any:
+                                  *, dry_run: Optional[bool] = None) -> Any:
         return upload_decision_table_csv(
-            record_id, file_id, delete_all_rows=delete_all_rows,
-            version_number=version_number,
+            record_id, file_id,
             target_org=self.target_org, api_version=self.api_version,
             dry_run=self.dry_run if dry_run is None else dry_run,
             logger=self.logger,

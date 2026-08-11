@@ -6,12 +6,12 @@ Deletes the table via the Tooling API setup-object DELETE
 
 **Active-edit guard.** An Active (or activating) table cannot be deleted in place
 (same platform lock as an edit: ``FIELD_NOT_UPDATABLE`` / "Can't edit an active
-Decision Table"). This tool **refuses** up front on an active table; pass
-``--deactivate-first`` to deactivate it before deleting. Deleting also fails while
-the table is still referenced by an active Expression Set / Context Rule / recipe
-— resolve those references first. ``--deactivate-first``/reactivate-on-failure
-route through ``LifecycleEngine.deactivate()``/``activate()``, which are
-version-aware for ``CsvUpload`` tables (see ``_lifecycle.py``).
+Decision Table"). This tool **refuses** up front on an active table and points at
+``deactivate_decision_table.py`` — deactivate it there first, then delete. Keeping
+deactivation in its own script (rather than a ``--deactivate-first`` option here)
+means one deactivate implementation, and delete has no partial-state to roll back.
+Deleting also fails while the table is still referenced by an active Expression
+Set / Context Rule / recipe — resolve those references first.
 
 **Destructive — double-gated.** Preview by default: without ``--confirm`` the tool
 resolves the id and logs the plan but deletes nothing. ``--confirm`` is REQUIRED
@@ -31,10 +31,11 @@ Usage
     python scripts/decision_tables/delete_decision_table.py \
         --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
 
-    # deactivate an active table first, then delete
+    # if the table is Active, deactivate it first (separate script), then delete
+    python scripts/decision_tables/deactivate_decision_table.py \
+        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
     python scripts/decision_tables/delete_decision_table.py \
-        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT \
-        --deactivate-first --confirm
+        --target-org rlm-base__scratch --developer-name ZZ_Probe_DT --confirm
 """
 
 import argparse
@@ -68,9 +69,6 @@ def main(argv=None) -> int:
     )
     parser.add_argument("--developer-name", required=True,
                         help="DecisionTable DeveloperName (case-sensitive).")
-    parser.add_argument("--deactivate-first", action="store_true",
-                        help="If the table is Active, deactivate it before deleting "
-                             "(an active table cannot be deleted in place).")
     parser.add_argument("--confirm", action="store_true",
                         help="REQUIRED to actually delete. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -96,60 +94,18 @@ def main(argv=None) -> int:
            f"currently Status={current}, "
            f"{'PREVIEW' if preview else 'CONFIRM'}")
 
-    was_active = current in ("Active", "ActivationInProgress")
-    deactivated = False
-    # None for non-CsvUpload tables / when we won't deactivate; otherwise pinned
-    # inside the try below.
-    guarded_version = None
     try:
-        # Pin the CsvUpload version to move BEFORE deactivating (while the table
-        # still has a unique active version) and reuse it for a rollback
-        # reactivation — re-resolving after deactivation would strand a multi-
-        # version table. This runs INSIDE the guarded try: resolve_guarded_version
-        # does Tooling GETs and deliberately raises (LifecycleError for an
-        # ambiguous multi-version CsvUpload table, DecisionTableClientError on a
-        # transport failure), so it is caught by the handler below and turned into
-        # a controlled 'FAILED …' + exit 1 (with a --json failure summary), not a
-        # leaked traceback. deactivated is still False at that point, so a failure
-        # there performs no rollback — nothing was deactivated.
-        if was_active and args.deactivate_first:
-            guarded_version = engine.resolve_guarded_version(record_id)
-            # Mark BEFORE the write: deactivate() PATCHes then confirms, so a
-            # confirmation timeout (LifecycleError) means the write likely applied.
-            # DELETE is atomic (the table still exists on any failure), so once the
-            # deactivate PATCH has been attempted the rollback below is warranted —
-            # and reactivating an already-Active table is a harmless no-op if the
-            # PATCH was in fact rejected.
-            deactivated = True
-            engine.deactivate(record_id, version_number=guarded_version)
-        elif was_active:
-            engine.assert_editable(table_row)
+        # An Active table cannot be deleted in place — refuse up front (the platform
+        # would reject it with FIELD_NOT_UPDATABLE). Deactivation lives in its own
+        # script (deactivate_decision_table.py); assert_editable's message points
+        # there. delete_tooling is atomic, so there is no partial state to unwind.
+        engine.assert_editable(table_row)
         result = engine.delete_tooling(record_id)
     except (DecisionTableClientError, LifecycleError) as exc:
-        # Track whether the rollback reactivation actually SUCCEEDED — not merely
-        # whether it was attempted. Reporting "reactivated": true on the strength of
-        # `deactivated and not preview` would tell a structured caller the table is
-        # back online even when engine.activate() itself raised below, leaving the
-        # table Inactive. Tri-state: True (restored), False (attempt failed — the
-        # table is still Inactive), None (no rollback needed / attempted).
-        reactivated = None
-        reactivation_error = None
-        if deactivated and not preview:
-            try:
-                engine.activate(record_id, version_number=guarded_version)
-                reactivated = True
-                eprint("  (reactivated table after failed deletion — DELETE is atomic, "
-                       "table unchanged.)")
-            except (DecisionTableClientError, LifecycleError) as react_exc:
-                reactivated = False
-                reactivation_error = str(react_exc)
-                eprint(f"  WARNING: reactivation also failed — table {record_id} may "
-                       f"remain Inactive: {react_exc}")
         return fail_json(
             args.json, f"FAILED: {exc}",
             {"action": "delete", "developerName": args.developer_name,
-             "id": record_id, "deleted": False,
-             "reactivated": reactivated, "reactivationError": reactivation_error})
+             "id": record_id, "deleted": False})
 
     if preview:
         eprint("\n[preview] No deletion performed. Re-run with --confirm to delete.")

@@ -163,9 +163,7 @@ def test_csv_transport_shapes_and_timeout():
     _client.connect_request = fake_connect
     try:
         _client.content_version_insert("Rows", "Region\nNorth\n", target_org="x")
-        _client.upload_decision_table_csv(
-            "0lDxx", "068xx", delete_all_rows=True, version_number=2, target_org="x"
-        )
+        _client.upload_decision_table_csv("0lDxx", "068xx", target_org="x")
         _client.get_decision_table_data(
             "0lDxx", version_number=2, row_filter="Region:North West", limit=5,
             target_org="x",
@@ -178,9 +176,9 @@ def test_csv_transport_shapes_and_timeout():
     check("ContentVersion body contains the exact base64 CSV",
           base64.b64decode(cv_body["VersionData"]).decode("utf-8") == "Region\nNorth\n",
           cv_body)
-    check("CSV upload carries version and destructive flag explicitly",
-          captured[1][1].endswith("/file?versionNumber=2")
-          and captured[1][2] == {"fileId": "068xx", "deleteAllRows": True}, captured[1])
+    check("CSV upload POSTs a bare append body (fileId only, no version query)",
+          captured[1][1].endswith("/file")
+          and captured[1][2] == {"fileId": "068xx"}, captured[1])
     check("CSV data GET URL-encodes the filter and keeps version/limit",
           "versionNumber=2" in captured[2][1]
           and "filter=Region%3ANorth%20West" in captured[2][1]

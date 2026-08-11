@@ -78,13 +78,13 @@ A Decision Table is **two layers**:
 
 | Script | Writes (path) |
 |--------|---------------|
-| `create_decision_table.py` | Create from a canonical spec: Metadata deploy (`--path metadata`, default → temp SFDX package outside the repo) · Tooling POST (`--path tooling`). `--generate-only <path>` (metadata only) writes the `.decisionTable-meta.xml` to a chosen path without deploying. **The spec's `status` is honored as-requested — the platform is the authority** (an accepted write is faithful; a bad one is rejected with a clear error, both live-verified): an SObject table can be created directly `Active` (activation is async — the tool polls past `ActivationInProgress`), `Inactive`, or `Draft`. A `CsvUpload` table can't be `Active` at create time (no active file-import version yet), so the tool **warns** before sending an Active CsvUpload create; create it `Draft`, upload rows, then `upload_decision_table_data.py --activate-version N`. A rejected write exits non-zero and still emits the `--json` summary carrying the error. |
-| `update_decision_table.py` | Tooling `Metadata` PATCH of an existing table. **Active-edit guard:** an Active table is refused unless `--deactivate-first`, which runs the guarded deactivate → edit → reactivate (`--leave-deactivated` keeps it off). The spec's `status` **never drives an update** — the lifecycle engine owns activate/deactivate, so the spec can't re-activate the table mid-edit. Tooling PATCH requires `status`, so `update` stamps the current **live** status. The `Metadata` complex value is a **full definition replace**, including complete parameter and source-criteria arrays; omitted/empty source criteria mean none. |
+| `create_decision_table.py` | Create from a canonical spec: Metadata deploy (`--path metadata`, default → temp SFDX package outside the repo) · Tooling POST (`--path tooling`). `--generate-only <path>` (metadata only) writes the `.decisionTable-meta.xml` to a chosen path without deploying. **The spec's `status` is honored as-requested — the platform is the authority** (an accepted write is faithful; a bad one is rejected with a clear error, both live-verified): an SObject table can be created directly `Active` (activation is async — the tool polls past `ActivationInProgress`), `Inactive`, or `Draft`. A `CsvUpload` table can't be `Active` at create time (no active file-import version yet), so the tool **warns** before sending an Active CsvUpload create; create it `Draft`, load rows with `upload_decision_table_data.py`, then activate with `activate_decision_table.py`. A rejected write exits non-zero and still emits the `--json` summary carrying the error. |
+| `update_decision_table.py` | Tooling `Metadata` PATCH of an existing table. **Active-edit guard:** an Active table is refused unless `--deactivate-first`, which runs the guarded deactivate → edit → reactivate. The spec's `status` **never drives an update** — the lifecycle engine owns activate/deactivate, so the spec can't re-activate the table mid-edit. Tooling PATCH requires `status`, so `update` stamps the current **live** status. The `Metadata` complex value is a **full definition replace**, including complete parameter and source-criteria arrays; omitted/empty source criteria mean none. |
 | `activate_decision_table.py` | `Status` → Active (Tooling `Metadata.status` PATCH). **Async** — polls past `ActivationInProgress` (raise `--max-wait` for slow orgs). Skips a no-op if already Active. |
 | `deactivate_decision_table.py` | `Status` → Inactive (**synchronous**). Blocked while the table is still referenced by an active Expression Set / Context Rule / recipe. |
 | `refresh_decision_table.py` | `refreshDecisionTable` action (full / `--incremental`). Sends the **live-verified `isDecisionTableIncremental`** flag (the CCI tasks send `isIncremental`, which the action ignores). Async; full-refresh pools are **40 Standard and 60 Advanced per hour** (CSV inherits Advanced), and the response is `Queued` with no tracker ID. Watch `LastSyncDate` for full refreshes and `LastIncrementalSyncDate` for incremental refreshes. |
-| `upload_decision_table_data.py` | Loads the **data layer** of a `CsvUpload` table (two-phase: insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the Connect `/file` sub-resource). **Append (default) is the only reliable write** — `--overwrite` (`deleteAllRows:true`) is **rejected up front with exit 1 before any write** on the pinned 262/v67.0 release, where `deleteAllRows:true` fails reproducibly (`uploadStatus=Failed`, 0 rows). Salesforce Pricing doesn't support multiple CSV versions, so replacement there means a fresh table plus append. `--activate-version N` activates version *N* after the upload. Async — poll `dump_decision_table_data.py` for the rows, or opt into `--wait-for-status` (`--max-wait N`, default 120s) to poll `Metadata.uploadStatus` to a terminal state and surface `CompletedWithErrors` (bad rows drop silently) / `Failed` (non-zero exit). |
-| `delete_decision_table.py` | Tooling DELETE. Same active-edit guard as update (`--deactivate-first` to deactivate an Active table before deleting). `--confirm` required. |
+| `upload_decision_table_data.py` | Loads the **data layer** of a `CsvUpload` table (two-phase: insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the Connect `/file` sub-resource). **Append only** — rows are added to the table's current (single) version. CsvUpload tables are single-version here and overwrite (`deleteAllRows:true`) fails reproducibly on 262/v67.0, so the loader appends and nothing else; replacement means a fresh table plus append. The import is **async** — poll `dump_decision_table_data.py` for the rows (which also catches silently-dropped bad rows), then activate with `activate_decision_table.py`. |
+| `delete_decision_table.py` | Tooling DELETE. Refuses an Active table up front, pointing at `deactivate_decision_table.py` (deactivation lives in its own script — no `--deactivate-first` option here, so delete has no partial state to unwind). `--confirm` required. |
 
 They mirror the `scripts/expression_sets/` mutator convention (preview-by-default,
 `--confirm`, sf-CLI transport, no token). The Metadata/Tooling definition-write
@@ -110,15 +110,13 @@ incl. the `CsvUpload` `sourceObject="CSV"` convention), `_resolve` query builder
 correlation, the `_payload` translators + the XML round-trip (incl. a `CsvUpload`
 spec preserving the generic BRE probe's 7 `dataType`s through
 `to_metadata`/`to_tooling`), the `_lifecycle` active-edit guard and guarded
-Tooling-update transitions (deactivate/reactivate, the refresh flag) plus the
-`wait_for_upload_status` poll (terminates on a terminal
-status, surfaces `CompletedWithErrors`/`Failed`, no-ops in dry-run), and every
+Tooling-update transitions (deactivate/reactivate, the refresh flag), and every
 CLI's argparse + preview-vs-`--confirm` gating via a stubbed transport (no real
 writes) — including `dump_decision_table_data.py`'s `--filter`
 (drops `--limit`) / `--version-number` threading and its degrade-to-note on a
-non-CsvUpload table, and `upload_decision_table_data.py`'s two-phase upload,
-`--overwrite`, `--activate-version`, and `--wait-for-status` (non-zero exit on a
-terminal `Failed`). Run: `python tests/test_decision_tables_toolkit.py`.
+non-CsvUpload table, and `upload_decision_table_data.py`'s two-phase append
+(ContentVersion → Connect `/file`, a bare `fileId` body). Run:
+`python tests/test_decision_tables_toolkit.py`.
 
 `tests/test_decision_tables_client.py` is a companion offline suite for the
 `_client.py` transport itself — the `sf api request` shape, dry-run skipping
@@ -189,14 +187,14 @@ python scripts/decision_tables/activate_decision_table.py   --target-org $ORG \
 python scripts/decision_tables/deactivate_decision_table.py --target-org $ORG \
     --developer-name RLM_MyTable --confirm
 
-# Load a CsvUpload table's rows (two-phase, append), then activate its version. Preview, then confirm.
-# --wait-for-status polls uploadStatus to terminal (surfaces silent per-row drops → CompletedWithErrors).
-# --activate-version defaults the upload target to the SAME version (omit --version-number); passing a
-# different --version-number is rejected so you never activate a version other than the one just uploaded.
+# Load a CsvUpload table's rows (two-phase append). Preview, then confirm. The import is
+# async — dump the rows to confirm the load (catches silently-dropped bad rows), then activate.
 python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \
     --developer-name RLM_MyCsvTable --csv rows.csv
 python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \
-    --developer-name RLM_MyCsvTable --csv rows.csv --activate-version 1 --wait-for-status --confirm
+    --developer-name RLM_MyCsvTable --csv rows.csv --confirm
+python scripts/decision_tables/activate_decision_table.py --target-org $ORG \
+    --developer-name RLM_MyCsvTable --confirm
 
 # Read the data layer back; --filter is exact/case-sensitive on one column (CsvUpload only).
 python scripts/decision_tables/dump_decision_table_data.py --target-org $ORG \
@@ -208,9 +206,11 @@ python scripts/decision_tables/dump_decision_table_data.py --target-org $ORG \
 python scripts/decision_tables/refresh_decision_table.py --target-org $ORG \
     --developer-name RLM_MyTable --incremental --confirm
 
-# Delete a throwaway table (deactivate first if Active).
+# Delete a throwaway table. If it's Active, deactivate it first (separate script), then delete.
+python scripts/decision_tables/deactivate_decision_table.py --target-org $ORG \
+    --developer-name RLM_MyTable --confirm
 python scripts/decision_tables/delete_decision_table.py --target-org $ORG \
-    --developer-name RLM_MyTable --deactivate-first --confirm
+    --developer-name RLM_MyTable --confirm
 ```
 
 ## Safety model
@@ -224,9 +224,11 @@ python scripts/decision_tables/delete_decision_table.py --target-org $ORG \
   only**, never the shared `beta`.
 - **Active tables can't be edited in place.** Modifying or deleting an existing
   artifact on an **Active** table is platform-blocked (`FIELD_NOT_UPDATABLE` /
-  "Can't edit an active Decision Table") — deactivate first. `update` / `delete`
-  refuse an Active table up front unless `--deactivate-first` runs the guarded
-  deactivate → mutate → reactivate. The spec's `status` never drives an update, so
+  "Can't edit an active Decision Table") — deactivate first. `update` refuses an
+  Active table up front unless `--deactivate-first` runs the guarded
+  deactivate → edit → reactivate; `delete` refuses an Active table and points at
+  `deactivate_decision_table.py` (its own script — no partial state to unwind).
+  The spec's `status` never drives an update, so
   it can't re-activate the table mid-edit — the lifecycle engine alone drives
   activate/deactivate. (A Tooling `Metadata` PATCH *requires* `status`, so `update`
   stamps the table's current live status.)

@@ -229,8 +229,8 @@ def tooling_metadata_only(
     The spec's own ``status`` is always **dropped** — it must never drive the
     table's lifecycle on an *update*. An author reusing a create spec or a describe
     round-trip very plausibly carries ``Active``; letting it ride along in the
-    definition-edit PATCH would fight the deactivate-first guard and silently defeat
-    ``--leave-deactivated`` by re-activating the table mid-sequence.
+    definition-edit PATCH would fight the deactivate-first guard and re-activate
+    the table mid-sequence, before the guarded reactivate.
 
     A Tooling ``Metadata`` PATCH nonetheless **requires** ``status`` — a status-free
     body is rejected with ``FIELD_INTEGRITY_EXCEPTION: Required field is missing:
