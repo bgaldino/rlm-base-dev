@@ -1,0 +1,80 @@
+<template>
+    <lightning-card title="Account Asset Portfolio Timeline" icon-name="custom:custom63">
+        <div class="slds-p-around_medium">
+
+            <!-- KPI Summary Row -->
+            <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="kpi-card">
+                        <p class="kpi-label">Total Current MRR</p>
+                        <p class="kpi-value">{totalCurrentMrrFormatted}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="kpi-card">
+                        <p class="kpi-label">Total Current Quantity</p>
+                        <p class="kpi-value">{totalCurrentQuantityFormatted}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="kpi-card">
+                        <p class="kpi-label">Active Assets</p>
+                        <p class="kpi-value">{activeAssetCount}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Row -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
+                <!-- Metric picker -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label">Metric</label>
+                        <div class="slds-form-element__control">
+                            <lightning-combobox
+                                name="metric"
+                                value={selectedMetric}
+                                options={metricOptions}
+                                onchange={handleMetricChange}>
+                            </lightning-combobox>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset name filter -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_9-of-12">
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label">Filter Assets by Name</label>
+                        <div class="slds-form-element__control">
+                            <lightning-input
+                                type="search"
+                                name="assetFilter"
+                                value={assetFilter}
+                                onchange={handleFilterChange}
+                                placeholder="Start typing to filter by asset or product name">
+                            </lightning-input>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error state -->
+            <template if:true={wiredError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <p>Unable to load asset data. Please refresh the page.</p>
+                </div>
+            </template>
+
+            <!-- Chart area (canvas always in DOM to avoid renderedCallback timing issues) -->
+            <div class="chart-container">
+                <canvas class="chart-canvas"></canvas>
+                <template if:true={hasNoData}>
+                    <div class="empty-state">
+                        <p class="slds-text-color_weak">No asset state period data available for this account.</p>
+                    </div>
+                </template>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

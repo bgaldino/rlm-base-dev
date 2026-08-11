@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Suspension_Resume_Date__c</fullName>
+    <label>RLM Suspension Resume Date</label>
+    <description>Scheduled date on which a suspended asset should auto-resume. Set by RLM_AssetSuspensionService.suspend; read by RLM_AssetResumeScheduler to flip RLM_Asset_Status__c back to Active.</description>
+    <type>Date</type>
+    <required>false</required>
+</CustomField>

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
+**42 feature flags**, **85 configuration values**, **42 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,6 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
+| `asset_ordering` | `False` | 2 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
@@ -85,6 +86,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
+
+### `asset_ordering` (default: `False`)
+
+- `prepare_asset_ordering` step 1 → `deploy_post_asset_ordering`
+- `prepare_asset_ordering` step 2 → `assign_permission_sets`
 
 ### `billing` (default: `True`)
 
@@ -706,6 +712,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_Approvals`
+
+### `ps_asset_ordering`
+
+*1 items:*
+
+- `RLM_AssetBasedOrdering`
 
 ### `ps_calmdelete`
 

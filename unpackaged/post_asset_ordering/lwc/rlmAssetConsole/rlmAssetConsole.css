@@ -1,0 +1,7 @@
+.slds-box_x-small {
+    background: #ffffff;
+}
+
+lightning-datatable {
+    --slds-c-datatable-row-color-background-selected: #f3f9ff;
+}

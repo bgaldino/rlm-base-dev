@@ -1,0 +1,43 @@
+<template>
+    <div class="slds-box slds-box_x-small slds-m-top_small">
+        <p class="slds-text-title_caps slds-m-bottom_x-small">Guided Reconfiguration</p>
+        <div class="slds-grid slds-wrap slds-gutters slds-grid_vertical-align-end">
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_5-of-12">
+                <lightning-input
+                    label="Product Id"
+                    value={productId}
+                    placeholder="01t..."
+                    onchange={handleProductId}></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12">
+                <lightning-input
+                    type="number"
+                    label="Quantity"
+                    value={quantity}
+                    onchange={handleQuantity}></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
+                <lightning-button
+                    variant="neutral"
+                    label="Start configuration"
+                    disabled={startDisabled}
+                    onclick={handleStart}></lightning-button>
+                <template if:true={working}>
+                    <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+                </template>
+            </div>
+        </div>
+
+        <template if:true={hasResult}>
+            <div class="slds-m-top_small">
+                <p class="slds-text-body_small">
+                    Configuration id: <strong>{configurationId}</strong> &middot; {nodeCount} node(s)
+                </p>
+                <template for:each={nodes} for:item="n">
+                    <lightning-tile key={n.id} label={n.name} class="slds-m-bottom_xx-small">
+                    </lightning-tile>
+                </template>
+            </div>
+        </template>
+    </div>
+</template>

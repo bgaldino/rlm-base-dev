@@ -102,6 +102,7 @@ project:
     calmdelete: true          # CALM Delete
     collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
+    asset_ordering: false     # Asset-Based Ordering Console (post_asset_ordering: LWC asset console, native lifecycle-action orchestration, multi-contract consolidation)
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration
@@ -410,6 +411,10 @@ project:
     ps_large_stx: &ps_large_stx
       # Large STX-specific permission sets
       - RLM_LargeSalesTransaction
+
+    ps_asset_ordering: &ps_asset_ordering
+      # Asset-Based Ordering Console permission set
+      - RLM_AssetBasedOrdering
 
     ps_inapp: &ps_inapp
       # In-App Learning framework permission set
@@ -1408,6 +1413,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_large_stx
+
+  deploy_post_asset_ordering:
+    group: Revenue Lifecycle Management
+    description: Deploy Asset-Based Ordering Console metadata (rlmAssetConsole LWC, Apex lifecycle-action orchestration services, Asset custom field, permission set).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_asset_ordering
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -3721,12 +3733,14 @@ flows:
       30:
         flow: prepare_inapp
       31:
-        flow: prepare_scratch
+        flow: prepare_asset_ordering
       32:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       33:
-        task: rebuild_search_index
+        flow: refresh_all_decision_tables
       34:
+        task: rebuild_search_index
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4040,6 +4054,18 @@ flows:
       3:
         task: seed_large_deal_billing_treatment
         when: project_config.project__custom__large_stx and project_config.project__custom__billing
+
+  prepare_asset_ordering:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_asset_ordering
+        when: project_config.project__custom__asset_ordering
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__asset_ordering
+        options:
+          api_names: *ps_asset_ordering
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management

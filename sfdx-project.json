@@ -23,6 +23,7 @@
     { "path": "unpackaged/post_exp_customer" },
     { "path": "unpackaged/post_guidedselling" },
     { "path": "unpackaged/post_large_stx" },
+    { "path": "unpackaged/post_asset_ordering" },
     { "path": "unpackaged/post_payments" },
     { "path": "unpackaged/post_payments_settings" },
     { "path": "unpackaged/post_personas" },

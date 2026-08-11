@@ -1,0 +1,135 @@
+<template>
+    <lightning-card title="Asset-Based Ordering Console" icon-name="standard:asset_object">
+        <span slot="actions" class="slds-text-body_small slds-text-color_weak">
+            {accountName}
+        </span>
+
+        <div class="slds-p-around_medium">
+            <template if:true={loadError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <p>{loadError}</p>
+                </div>
+            </template>
+
+            <lightning-tabset variant="scoped">
+                <!-- ============ ASSETS + ACTIONS ============ -->
+                <lightning-tab label="Assets & Actions">
+                    <template if:true={hasNoRows}>
+                        <div class="slds-align_absolute-center slds-p-vertical_large slds-text-color_weak">
+                            No lifecycle-managed assets found for this account.
+                        </div>
+                    </template>
+
+                    <template if:true={hasRows}>
+                        <!-- Action toolbar -->
+                        <div class="slds-box slds-box_x-small slds-m-bottom_small">
+                            <div class="slds-grid slds-wrap slds-gutters slds-grid_vertical-align-end">
+                                <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                    <lightning-combobox
+                                        label="Action"
+                                        value={actionType}
+                                        options={actionOptions}
+                                        onchange={handleActionChange}></lightning-combobox>
+                                </div>
+                                <template if:true={showEffectiveDate}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                        <lightning-input
+                                            type="date"
+                                            label={effectiveDateLabel}
+                                            value={effectiveDate}
+                                            onchange={handleEffectiveDate}></lightning-input>
+                                    </div>
+                                </template>
+                                <template if:true={showResumptionDate}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                        <lightning-input
+                                            type="date"
+                                            label="Resumption Date"
+                                            value={resumptionDate}
+                                            onchange={handleResumptionDate}></lightning-input>
+                                    </div>
+                                </template>
+                                <template if:true={showQuantityChange}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                        <lightning-input
+                                            type="number"
+                                            label="Quantity Change"
+                                            value={quantityChange}
+                                            onchange={handleQuantityChange}></lightning-input>
+                                    </div>
+                                </template>
+                                <template if:true={showRenewalEndDate}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                        <lightning-input
+                                            type="date"
+                                            label="Renewal End Date"
+                                            value={renewalEndDate}
+                                            onchange={handleRenewalEndDate}></lightning-input>
+                                    </div>
+                                </template>
+                                <template if:true={showOutput}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
+                                        <lightning-combobox
+                                            label="Output"
+                                            value={outputType}
+                                            options={outputOptions}
+                                            onchange={handleOutputChange}></lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12 slds-p-bottom_x-small">
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="Skip pricing"
+                                            checked={skipPricing}
+                                            onchange={handleSkipPricing}></lightning-input>
+                                    </div>
+                                </template>
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_12-of-12 slds-m-top_x-small">
+                                    <span class="slds-text-body_small slds-m-right_small">{selectionSummary}</span>
+                                    <lightning-button
+                                        variant="brand"
+                                        label="Launch Consolidated Action"
+                                        title="Combine the selected assets across contracts into a single output"
+                                        disabled={launchDisabled}
+                                        onclick={handleLaunch}></lightning-button>
+                                    <template if:true={working}>
+                                        <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result banner -->
+                        <template if:true={hasResult}>
+                            <template if:true={resultOutputId}>
+                                <div class="slds-notify slds-notify_alert slds-theme_success slds-m-bottom_small" role="status">
+                                    <span class="slds-m-right_small">Consolidated output created.</span>
+                                    <lightning-button
+                                        variant="base"
+                                        label="Open output record"
+                                        onclick={handleOpenResult}></lightning-button>
+                                </div>
+                                <!-- Phase 2: guided reconfiguration scoped to the consolidated quote -->
+                                <c-rlm-asset-configurator
+                                    transaction-id={resultOutputId}></c-rlm-asset-configurator>
+                            </template>
+                        </template>
+
+                        <!-- Asset grid (grouped by contract via the Contract column) -->
+                        <lightning-datatable
+                            key-field="id"
+                            data={rows}
+                            columns={columns}
+                            onrowselection={handleRowSelection}
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </template>
+                </lightning-tab>
+
+                <!-- ============ PORTFOLIO TIMELINE ============ -->
+                <lightning-tab label="Portfolio Timeline">
+                    <c-rlm-account-asset-portfolio record-id={accountId}></c-rlm-account-asset-portfolio>
+                </lightning-tab>
+            </lightning-tabset>
+        </div>
+    </lightning-card>
+</template>

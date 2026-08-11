@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -198,6 +198,16 @@ Extract rating and rates data from an org into CSV files
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
    - `api_names`: `['RLM_Approvals']`
 4. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+
+---
+
+### `prepare_asset_ordering`
+
+**Steps:**
+
+1. **task** `deploy_post_asset_ordering`  `when: project_config.project__custom__asset_ordering`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__asset_ordering`
+   - `api_names`: `['RLM_AssetBasedOrdering']`
 
 ---
 
@@ -629,10 +639,11 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 28. **flow** `prepare_personas`
 29. **flow** `prepare_ux`
 30. **flow** `prepare_inapp`
-31. **flow** `prepare_scratch`
-32. **flow** `refresh_all_decision_tables`
-33. **task** `rebuild_search_index`
-34. **flow** `stamp_git_commit`
+31. **flow** `prepare_asset_ordering`
+32. **flow** `prepare_scratch`
+33. **flow** `refresh_all_decision_tables`
+34. **task** `rebuild_search_index`
+35. **flow** `stamp_git_commit`
 
 ---
 

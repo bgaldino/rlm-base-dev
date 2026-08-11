@@ -576,6 +576,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
 | `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 27 |
+| `asset_ordering` | `false` | Deploy the Asset-Based Ordering Console (asset navigation across contracts + native amend/upgrade/downgrade/renew/cancel/suspend consolidated into one Quote) via `prepare_asset_ordering` at step 31. See [Asset-Based Ordering](docs/features/asset-based-ordering.md). |
 
 ### Deployment Flags
 
@@ -912,12 +913,13 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 28 | `prepare_personas` | `personas` |
 | 29 | `prepare_ux` | `ux` |
 | 30 | `prepare_inapp` | `inapp` |
-| 31 | `prepare_scratch` | Always |
-| 32 | `refresh_all_decision_tables` | Always |
-| 33 | `rebuild_search_index` | Always |
-| 34 | `stamp_git_commit` | Always |
+| 31 | `prepare_asset_ordering` | `asset_ordering` |
+| 32 | `prepare_scratch` | Always |
+| 33 | `refresh_all_decision_tables` | Always |
+| 34 | `rebuild_search_index` | Always |
+| 35 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 33 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 34 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`prepare_asset_ordering`) deploys the opt-in Asset-Based Ordering Console (gated by `asset_ordering`, default `false`). Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -1165,6 +1167,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 ### Robot Framework
 
 - [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings, Pricing Setup, Product Discovery, Timeline)
+- [Asset-Based Ordering](docs/features/asset-based-ordering.md) -- Native-first asset console: navigate assets across contracts, launch amend/upgrade/downgrade/renew/cancel/suspend, consolidate into one Quote, guided reconfiguration
 - [E2E Test Framework](docs/features/e2e-test-framework.md) -- End-to-end UI tests (Quote-to-Order flow), shadow DOM architecture, and debugging guide
 
 ### Configuration Files

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **10 groups**.
+**275 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -1839,6 +1839,18 @@
 **Options:**
 
 - `path`: `force-app/main/default/permissionsetgroups`
+
+---
+
+### `deploy_post_asset_ordering`
+
+**Description:** Deploy Asset-Based Ordering Console metadata (rlmAssetConsole LWC, Apex lifecycle-action orchestration services, Asset custom field, permission set).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_asset_ordering`
 
 ---
 
