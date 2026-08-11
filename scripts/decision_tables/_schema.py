@@ -280,6 +280,12 @@ def _check_enum(result: ValidationResult, location: str, value: Any,
         if required:
             result.error(location, "is required.")
         return
+    # Enum values are scalar strings. A non-scalar (list/dict) is unhashable, so the
+    # membership test below would raise TypeError and escape as a traceback instead
+    # of a controlled ValidationResult — reject it as an error up front.
+    if not isinstance(value, (str, int, float, bool)):
+        result.error(location, f"must be a scalar value; got {type(value).__name__} {value!r}.")
+        return
     if value not in allowed:
         message = f"unrecognized value {value!r} (known: {sorted(allowed)})."
         if strict:
@@ -365,10 +371,17 @@ def _validate_parameter(param: Dict[str, Any], location: str, result: Validation
     # mis-cased or off-catalog value (e.g. the Connect read-side ``"Input"``) would
     # otherwise pass as a warning, then be treated as non-INPUT — silently dropping
     # ``operator``/``sequence`` and writing a definition that no longer matches the
-    # spec (and fails GET-back verification). So an unrecognized ``usage`` is an
-    # ERROR, the same fail-closed treatment as an unknown key.
+    # spec. So an unrecognized ``usage`` is an ERROR, the same fail-closed treatment
+    # as an unknown key.
     _check_enum(result, f"{location}.usage", usage, PARAM_USAGE, required=True,
                 strict=True)
+    # _check_enum has recorded an error for a non-scalar (unhashable) usage; normalize
+    # it to None so the rest of this function — the `usage in _INPUT_USAGE` branch and
+    # the dedup key below — operates on a hashable value instead of raising TypeError
+    # and escaping as a traceback. The spec is already invalid; the branch taken here
+    # no longer matters, only that validation completes and returns a clean report.
+    if not isinstance(usage, (str, int, float, bool)):
+        usage = None
     field_name = param.get("fieldName")
     if not field_name:
         result.error(f"{location}.fieldName", "is required.")
@@ -497,6 +510,10 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
             _validate_parameter(param, f"decisionTableParameters[{i}]", result, seen,
                                  seen_input_sequences)
             usage = param.get("usage") if isinstance(param, dict) else None
+            # A non-scalar usage is unhashable — _validate_parameter already errored on
+            # it; normalize to None so this membership test can't raise TypeError.
+            if not isinstance(usage, (str, int, float, bool)):
+                usage = None
             if usage in _INPUT_USAGE:
                 n_input += 1
             elif usage == "OUTPUT":
@@ -512,7 +529,7 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
         if not isinstance(criteria, list):
             result.error("decisionTableSourceCriterias", "must be a list when present.")
         else:
-            seen_sequences: Set[Any] = set()
+            seen_sequences: Set[int] = set()
             for i, crit in enumerate(criteria):
                 loc = f"decisionTableSourceCriterias[{i}]"
                 if not isinstance(crit, dict):
@@ -530,13 +547,15 @@ def validate_spec(spec: Dict[str, Any], *, path: Optional[str] = None) -> Valida
                 # sequenceNumber is the criterion's identity — sourceConditionLogic
                 # references criteria by it ("1 AND 2"), so two criteria sharing a
                 # sequence are ambiguous. Reject the duplicate up front (an obvious
-                # author error), mirroring the duplicate-column guard above.
+                # author error), mirroring the duplicate-column guard above. Only a
+                # validated int is deduped: _check_integer already errored on any
+                # non-int (incl. an unhashable list/dict), so skipping it here keeps
+                # the set insertion from raising TypeError on malformed input.
                 seq = crit.get("sequenceNumber")
-                if seq not in (None, ""):
-                    seq_key = int(seq) if isinstance(seq, int) and not isinstance(seq, bool) else seq
-                    if seq_key in seen_sequences:
+                if isinstance(seq, int) and not isinstance(seq, bool):
+                    if seq in seen_sequences:
                         result.error(loc, f"duplicate sequenceNumber {seq!r} — each "
                                      "source criterion must have a unique sequenceNumber.")
-                    seen_sequences.add(seq_key)
+                    seen_sequences.add(seq)
 
     return result

@@ -185,6 +185,8 @@ python scripts/decision_tables/deactivate_decision_table.py --target-org $ORG \
 
 # Load a CsvUpload table's rows (two-phase, append), then activate its version. Preview, then confirm.
 # --wait-for-status polls uploadStatus to terminal (surfaces silent per-row drops → CompletedWithErrors).
+# --activate-version defaults the upload target to the SAME version (omit --version-number); passing a
+# different --version-number is rejected so you never activate a version other than the one just uploaded.
 python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \
     --developer-name RLM_MyCsvTable --csv rows.csv
 python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \

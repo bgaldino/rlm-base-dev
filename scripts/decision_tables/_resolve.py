@@ -33,7 +33,7 @@ class ResolveError(RuntimeError):
 # Columns pulled for the list / resolve views. Kept in sync with the
 # live-verified DecisionTable Tooling describe field set.
 _TABLE_COLUMNS = (
-    "Id", "DeveloperName", "MasterLabel", "Status", "UsageType",
+    "Id", "DeveloperName", "SetupName", "MasterLabel", "Status", "UsageType",
     "SourceObject", "LastSyncDate", "LastIncrementalSyncDate",
 )
 _PARAM_COLUMNS = (

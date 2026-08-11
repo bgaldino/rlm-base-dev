@@ -49,8 +49,13 @@ from scripts.decision_tables._resolve import (  # noqa: E402
 
 def _print_definition(defn, show_connect):
     table = defn["table"]
+    meta_early = defn.get("metadata") or {}
+    # The per-table label is SetupName (also metadata.setupName). MasterLabel is the
+    # constant object label "Decision Tables" on every row — never identify a table
+    # by it.
+    label = table.get("SetupName") or meta_early.get("setupName") or "-"
     print(f"Decision Table: {table.get('DeveloperName')}   ({table.get('Id')})")
-    print(f"  label        : {table.get('MasterLabel')}")
+    print(f"  label        : {label}")
     print(f"  status       : {table.get('Status')}")
     print(f"  usageType    : {table.get('UsageType')}")
     print(f"  sourceObject : {table.get('SourceObject') or '-'}")

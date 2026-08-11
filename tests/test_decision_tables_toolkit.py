@@ -94,7 +94,10 @@ def _sample_metadata(**over):
 
 def _table_row(name="RLM_CostBookEntries", **over):
     row = {
-        "Id": "0lDxx0000000001AAA", "DeveloperName": name, "MasterLabel": name,
+        "Id": "0lDxx0000000001AAA", "DeveloperName": name,
+        # MasterLabel is the constant object label on every row (never a per-table
+        # label); SetupName is the distinct per-table label describe/list should show.
+        "MasterLabel": "Decision Tables", "SetupName": "Cost Book Entries",
         "Status": "Active", "UsageType": "DefaultPricing",
         "SourceObject": "CostBookEntry", "LastSyncDate": "2026-07-01T00:00:00.000Z",
     }
@@ -203,7 +206,7 @@ class _FakeTransport:
             self.table = dict(self.table, Status=body["Metadata"]["status"])
             self.metadata = dict(body["Metadata"])
         if method.upper() == "POST" and sobject == "DecisionTable":
-            # A confirmed create is immediately visible to the GET-back verifier.
+            # A confirmed create is immediately visible to a follow-on read/resolve.
             if isinstance(body, dict) and isinstance(body.get("Metadata"), dict):
                 self.metadata = dict(body["Metadata"])
                 self.table = dict(
@@ -648,8 +651,8 @@ def test_validate_spec_usage_is_strict():
     # ``usage`` is a CLOSED structural enum (it drives whether operator/sequence are
     # kept, matched case-sensitively as {"INPUT"}), unlike the descriptive catalogs
     # that only warn. A mis-cased/off-catalog value must ERROR so a validated spec
-    # can never silently write a wrong definition (drop operator/sequence + fail
-    # GET-back) — the same fail-closed treatment unknown keys get.
+    # can never silently write a wrong definition (drop operator/sequence) — the same
+    # fail-closed treatment unknown keys get.
     base = {
         "fullName": "RLM_UsageCase", "setupName": "Usage Case",
         "dataSourceType": "SingleSobject", "sourceObject": "CostBookEntry",
@@ -687,16 +690,62 @@ def test_validate_spec_usage_is_strict():
           canonical.format_report())
 
 
+def test_validate_spec_rejects_non_scalar_enum_values():
+    print("test_validate_spec_rejects_non_scalar_enum_values")
+    # A malformed JSON value (list/dict) where a scalar enum is expected must produce
+    # a controlled ValidationResult error, NOT crash the validator with
+    # "TypeError: unhashable type" on the enum membership test / dedup set insertion —
+    # which would leak a traceback out of create/update instead of the --json result.
+    base = {
+        "fullName": "RLM_Malformed", "setupName": "Malformed",
+        "sourceObject": "CostBookEntry", "filterResultBy": "OutputOrder",
+    }
+    # (a) top-level enum: status/dataSourceType as non-scalars.
+    top = validate_spec({
+        **base, "status": [], "dataSourceType": {},
+        "decisionTableParameters": [
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
+    })
+    check("non-scalar status errors (no crash)",
+          any(i.location == "status" and "scalar" in i.message for i in top.errors),
+          top.format_report())
+    check("non-scalar dataSourceType errors (no crash)",
+          any(i.location == "dataSourceType" for i in top.errors), top.format_report())
+    # (b) parameter enum: usage as a list.
+    param = validate_spec({
+        **base, "dataSourceType": "SingleSobject",
+        "decisionTableParameters": [
+            {"usage": [], "fieldName": "ProductId", "dataType": "String"},
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
+    })
+    check("non-scalar parameter usage errors (no crash)",
+          any(i.location.endswith(".usage") and "scalar" in i.message for i in param.errors),
+          param.format_report())
+    # (c) source-criterion enum + sequenceNumber as non-scalars (dedup-set crash site).
+    crit = validate_spec({
+        **base, "dataSourceType": "SingleSobject", "conditionType": "Custom",
+        "conditionCriteria": "1",
+        "decisionTableParameters": [
+            {"usage": "OUTPUT", "fieldName": "Cost", "dataType": "Currency"}],
+        "decisionTableSourceCriterias": [
+            {"sourceFieldName": "Region", "operator": {}, "valueType": "Value",
+             "sequenceNumber": []}],
+    })
+    check("non-scalar criterion operator errors (no crash)",
+          any(i.location.endswith(".operator") for i in crit.errors), crit.format_report())
+    check("non-scalar sequenceNumber errors (no crash)",
+          any("sequenceNumber" in i.location for i in crit.errors), crit.format_report())
+    for label, res in (("top", top), ("param", param), ("crit", crit)):
+        check(f"malformed {label} spec fails cleanly", not res.passed, res.format_report())
+
+
 def test_payload_miscased_usage_is_blocked_upstream():
     print("test_payload_miscased_usage_is_blocked_upstream")
     # A mis-cased "Input" would be treated as non-INPUT by the translator, dropping
     # operator/sequence from the write (demonstrated below). The DEFENSE against that
     # is strict-usage VALIDATION, which rejects the spec before it ever reaches the
     # translator — so the corrupt write is never attempted. (This is why usage must
-    # error, not warn.) The GET-back verifier compares against the normalized payload
-    # actually written, so it is not the layer that catches a mis-cased usage; if a
-    # non-INPUT column legitimately drops operator, the verifier correctly does not
-    # flag the (also-absent) operator as drift.
+    # error, not warn.)
     miscased_param = {"usage": "Input", "fieldName": "ProductId", "dataType": "String",
                       "operator": "Equals", "sequence": 1}
     translated = _payload._param_to_metadata(miscased_param)
@@ -1142,6 +1191,12 @@ def test_describe_cli_grouped():
     check("describe exits 0", rc == 0, rc)
     check("describe groups INPUT columns", "INPUT:" in out or "INPUT" in out, out[:200])
     check("describe shows the source object", "CostBookEntry" in out, out[:200])
+    # The label line must show the per-table SetupName, never the constant MasterLabel
+    # ("Decision Tables") that is identical on every row.
+    label_line = next((ln for ln in out.splitlines() if "label" in ln.lower()), "")
+    check("describe shows SetupName as the label", "Cost Book Entries" in label_line, label_line)
+    check("describe never shows the constant MasterLabel as the label",
+          "Decision Tables" not in label_line, label_line)
 
 
 def test_trace_cli_json():
@@ -2083,6 +2138,38 @@ def test_upload_cli_version_number_and_activation(tmp_csv):
           json.loads(out))
 
 
+def test_upload_cli_version_activation_consistency(tmp_csv):
+    print("test_upload_cli_version_activation_consistency")
+    # Guard the "upload into one version, activate another" footgun: --version-number 2
+    # with --activate-version 1 uploads into v2 then activates v1 — both are individually
+    # valid operations, so the platform can't catch it; it would silently put a different
+    # (possibly stale) version live while reporting success. Reject the mismatch up front
+    # (before any mutation), and default the upload target to --activate-version when only
+    # it is given so the documented one-flag form uploads into the version it activates.
+    restore = _no_sleep()
+    try:
+        # (a) explicit mismatch → refused, no mutation.
+        fake = _csv_transport(dry_run=False)
+        rc, out = _run_cli_with_fake(
+            upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                         "--csv", tmp_csv, "--version-number", "2",
+                         "--activate-version", "1", "--confirm"], fake)
+        check("version/activation mismatch exits 1", rc == 1, (rc, out[:200]))
+        check("mismatch performs NO mutation", fake.mutations == [], fake.mutations)
+        # (b) --activate-version alone defaults the upload target to the SAME version.
+        fake_def = _csv_transport(dry_run=False)
+        rc2, out2 = _run_cli_with_fake(
+            upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                         "--csv", tmp_csv, "--activate-version", "3", "--max-wait", "1",
+                         "--confirm"], fake_def)
+        check("activate-version alone exits 0", rc2 == 0, out2[:300])
+        file_posts = [m for m in fake_def.mutations if m[0] == "POST" and "/file" in m[1]]
+        check("upload defaults to the activation version (versionNumber=3)",
+              file_posts and "versionNumber=3" in file_posts[0][1], file_posts)
+    finally:
+        restore()
+
+
 def test_upload_cli_activate_version_fails_closed_on_noop_patch(tmp_csv):
     print("test_upload_cli_activate_version_fails_closed_on_noop_patch")
     # --activate-version routes through engine.activate(), which PATCHes the version's
@@ -2394,6 +2481,7 @@ def main():
               test_validate_spec_duplicate_source_criterion_sequence,
               test_validate_spec_duplicate_input_sequence,
               test_validate_spec_boolean_typo,
+              test_validate_spec_rejects_non_scalar_enum_values,
               test_validate_spec_csv_upload,
               test_validate_spec_create_and_structural_errors,
               test_validate_spec_usage_is_strict,
@@ -2461,6 +2549,7 @@ def main():
     test_upload_cli_preview_vs_confirm(csv_path)
     test_upload_cli_overwrite_refused(csv_path)
     test_upload_cli_version_number_and_activation(csv_path)
+    test_upload_cli_version_activation_consistency(csv_path)
     test_upload_cli_activate_version_fails_closed_on_noop_patch(csv_path)
     test_upload_cli_phase2_failure_emits_json_with_fileid(csv_path)
     test_upload_cli_activate_version_already_active_is_noop(csv_path)

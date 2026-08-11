@@ -150,7 +150,9 @@ def main(argv=None) -> int:
     parser.add_argument("--activate-version", type=int, metavar="N",
                         help="After upload, activate version N via the lifecycle engine "
                              "(Connect versions PATCH + fail-closed poll of the table "
-                             "Status to Active).")
+                             "Status to Active). The upload targets the SAME version: "
+                             "omit --version-number (it defaults to N), or pass the "
+                             "matching value — a mismatch is rejected.")
     parser.add_argument("--wait-for-status", action="store_true",
                         help="After upload, poll Metadata.uploadStatus to a terminal "
                              "state and report it (surfaces CompletedWithErrors/Failed "
@@ -183,6 +185,21 @@ def main(argv=None) -> int:
             "stale prior rows. To replace all rows, create a fresh version/table and "
             "append.")
         return 1
+
+    # The upload target and the activation target must be the SAME version — uploading
+    # into version 2 then activating version 1 would put a different, potentially stale
+    # version live while reporting success. If only --activate-version is given, default
+    # the upload target to it; if both are given, they must match.
+    if args.activate_version is not None:
+        if args.version_number is None:
+            args.version_number = args.activate_version
+        elif args.version_number != args.activate_version:
+            eprint(f"Error: --version-number ({args.version_number}) and "
+                   f"--activate-version ({args.activate_version}) must be the same "
+                   "version — activating a version other than the one just uploaded "
+                   "would put a different (possibly stale) version live. Omit "
+                   "--version-number to upload into the version being activated.")
+            return 1
 
     try:
         csv_text, header = _read_csv(args.csv)
