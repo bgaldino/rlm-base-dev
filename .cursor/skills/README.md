@@ -18,7 +18,7 @@ repo root.
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
 | Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | `constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions; inspect/validate context plans | Context Service | `context-service/SKILL.md` |
-| Refresh/diagnose/verify decision tables; wire an automatic refresh at the right moment | Decision Tables | `decision-tables/SKILL.md` |
+| Inspect/author/manage, refresh, diagnose, or verify decision tables | Decision Tables | `decision-tables/SKILL.md` |
 | Find, claim or close durable work items across workstations and agents | Todo Tracker | `todo-tracker/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
