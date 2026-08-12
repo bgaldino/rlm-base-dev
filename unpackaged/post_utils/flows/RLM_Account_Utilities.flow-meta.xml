@@ -35,6 +35,12 @@
                 <elementReference>Delete_Fulfillment</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>PreserveContractsWithContractedPrices</name>
+            <value>
+                <elementReference>Preserve_Contracts_With_Contracted_Prices</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>RLM_AccountUtilities</nameSegment>
         <offset>0</offset>
     </actionCalls>
@@ -146,6 +152,25 @@
                 <booleanValue>true</booleanValue>
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Preserve_Contracts_With_Contracted_Prices</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>false</booleanValue>
+            </defaultValue>
+            <fieldText>Preserve Contracts with Contracted Prices</fieldText>
             <fieldType>InputField</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
