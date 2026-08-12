@@ -79,6 +79,11 @@ public without sharing class RLM_AccountUtilities {
         
         @InvocableVariable(required=true)
         public Boolean DeleteBilling;
+
+        // Optional (required=false) so callers that don't pass it keep working;
+        // a null value is treated as false.
+        @InvocableVariable(required=false)
+        public Boolean PreserveContractsWithContractedPrices;
     }
 
     /**
@@ -266,6 +271,9 @@ public without sharing class RLM_AccountUtilities {
         Boolean deleteAssets = request.get(0).DeleteAssets;
         Boolean deleteFulfillment = request.get(0).DeleteFulfillment;
         Boolean deleteBilling = request.get(0).DeleteBilling;
+        // '== true' collapses both null (flag omitted) and false to false, so the
+        // default/unchecked behavior is identical to the legacy delete-all path.
+        Boolean preserveContractsWithPrices = request.get(0).PreserveContractsWithContractedPrices == true;
 
             // Start a savepoint for transaction control
         // ------------------------------------------------------------------
@@ -347,7 +355,7 @@ public without sharing class RLM_AccountUtilities {
             }
             
             // Then handle contracts and orders
-            deleteContracts(accountId);
+            deleteContracts(accountId, preserveContractsWithPrices);
             deleteOrders(accountId, orderData);
 
             if (deleteFulfillment) {
@@ -1704,13 +1712,49 @@ public without sharing class RLM_AccountUtilities {
      * 
      * This method must be called after deleting Orders but before deleting Assets
      * to maintain referential integrity.
-     * 
+     *
+     * When preserveContractsWithPrices is true, contracts that have at least one
+     * ContractItemPrice (contracted price) child are kept. Because
+     * ContractItemPrice.ContractId is a master-detail relationship, a surviving
+     * Contract retains its contracted prices automatically — no explicit child
+     * handling is required.
+     *
      * @param accountId The ID of the account whose records should be deleted
+     * @param preserveContractsWithPrices When true, skip contracts that have
+     *        ContractItemPrice children; when false, delete all contracts
      * @return Boolean indicating success of the operation
      */
-    private static Boolean deleteContracts(String accountId) {
-        Contract[] contractsToDelete = 
-            [SELECT Id FROM Contract WHERE AccountId = :accountId];
+    private static Boolean deleteContracts(String accountId, Boolean preserveContractsWithPrices) {
+        Id acctId = accountId;
+
+        if (preserveContractsWithPrices) {
+            List<Contract> contractsToDelete;
+
+            if (!Schema.getGlobalDescribe().containsKey('ContractItemPrice')) {
+                // Contract Pricing is unavailable, so no contract can have a
+                // ContractItemPrice child. Every contract is therefore unpriced
+                // and remains eligible for deletion under the preserve-mode rule.
+                contractsToDelete = [
+                    SELECT Id FROM Contract WHERE AccountId = :acctId
+                ];
+            } else {
+                // Select only contracts with NO ContractItemPrice children via a
+                // semi-join on the master-detail FK. Dynamic SOQL keeps this class
+                // deployable on editions where Contract Pricing is unavailable.
+                contractsToDelete = (List<Contract>) Database.query(
+                    'SELECT Id FROM Contract WHERE AccountId = :acctId ' +
+                    'AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)');
+            }
+
+            if (!contractsToDelete.isEmpty()) {
+                Database.delete(contractsToDelete);
+            }
+            return true;
+        }
+
+        // Unchanged legacy behavior: delete all contracts on the account.
+        Contract[] contractsToDelete =
+            [SELECT Id FROM Contract WHERE AccountId = :acctId];
         if (!contractsToDelete.isEmpty()) {
             Database.delete(contractsToDelete);
         }
