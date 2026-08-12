@@ -25,7 +25,8 @@ class PatchNetworkEmailForDeploy(BaseTask):
     a placeholder; this task reads the Network's actual current value and substitutes it
     only during deployment so the deployed value exactly matches the org's existing value.
 
-    Run AFTER create_partner_central and BEFORE deploy_post_prm.
+    This task is parameterized for any Network metadata bundle. Run it after the
+    target community is created and before deploying that community's metadata.
     """
 
     task_options = {
@@ -121,10 +122,12 @@ class PatchNetworkEmailForDeploy(BaseTask):
 class RevertNetworkEmailAfterDeploy(BaseTask):
     """
     Restores the placeholder emailSenderAddress in the Network .network-meta.xml
-    after deploy_post_prm so the repo never stores the target org's real email.
+    after a community metadata deploy so the repo never stores the target org's
+    real email.
 
-    Run AFTER deploy_post_prm in the same flow so the file on disk is reverted
-    before the next commit.
+    This task is parameterized for any Network metadata bundle. Run it after the
+    corresponding deploy in the same flow so the file on disk is reverted before
+    the next commit.
     """
 
     task_options = {

@@ -226,20 +226,20 @@ Extract rating and rates data from an org into CSV files
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
+Create Self-Service Billing Portal community and optionally deploy site content. When billing and billing_portal are true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
 
 **Steps:**
 
-1. **task** `create_billing_portal`  `when: project_config.project__custom__billing_portal`
-2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+1. **task** `create_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
+2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
    - `network_name`: `Billing Portal`
    - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
    - `placeholder_email`: `billing-portal-sender@example.com`
-3. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
-4. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+3. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+4. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
    - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
    - `placeholder_email`: `billing-portal-sender@example.com`
-5. **task** `publish_community`  `when: project_config.project__custom__billing_portal`
+5. **task** `publish_community`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
    - `name`: `Billing Portal`
 
 ---

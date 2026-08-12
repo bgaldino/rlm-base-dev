@@ -47,7 +47,8 @@ All three committed files must agree with the Network Name: the `networks/*.netw
 
 Use the `prepare_billing_portal` flow so community creation, the required Network email patch,
 metadata deployment, placeholder restoration, and publication run in the correct order. The flow
-is also invoked as the last step of `prepare_billing`:
+is also invoked as the last step of `prepare_billing`. Every step requires both `billing` and
+`billing_portal`:
 
 ```bash
 cci flow run prepare_billing_portal --org <org-alias>
@@ -102,11 +103,12 @@ Enable the Billing Portal in `cumulusci.yml`:
 ```yaml
 project_config:
   project__custom__:
+    billing: true                # Required parent feature
     billing_portal: true         # Create the community
     billing_portal_deploy: true  # Also deploy this bundle's site content and publish with it applied
 ```
 
-`prepare_billing_portal` is invoked automatically as step 14 of `prepare_billing` (see `README.md`'s Sub-Flows table), so it runs as part of `prepare_rlm_org` whenever these flags are set — no separate wiring is needed.
+`prepare_billing_portal` is invoked automatically as step 14 of `prepare_billing` (see `README.md`'s Sub-Flows table), so it runs as part of `prepare_rlm_org` whenever `billing` and `billing_portal` are true — no separate wiring is needed. Set `billing_portal_deploy` to false to keep the generated standard-template content instead of deploying this bundle.
 
 ## Testing
 

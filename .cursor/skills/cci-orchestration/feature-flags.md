@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 16 flow step(s) |
+| `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `True` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -102,6 +102,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 9 → `deploy_billing_id_settings`
 - `prepare_billing` step 10 → `deploy_billing_template_settings`
 - `prepare_billing` step 13 → `apply_context_billing_order`
+- `prepare_billing_portal` step 1 → `create_billing_portal`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
