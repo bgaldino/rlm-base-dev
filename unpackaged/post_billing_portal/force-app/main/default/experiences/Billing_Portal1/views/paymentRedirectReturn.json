@@ -3,7 +3,7 @@
   "componentName" : "siteforce:sldsOneColLayout",
   "dataProviders" : [ ],
   "id" : "95372db0-fff2-416d-87c5-9a84f5685d32",
-  "label" : "__MISSING LABEL__ Flexipage_rlmSelfServicePortal_view-pymnt-redirect-return_title not found! Please add it to the correct section in sites.xml",
+  "label" : "Payment Redirect Return",
   "regions" : [ {
     "components" : [ {
       "componentAttributes" : { },

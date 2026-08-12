@@ -226,7 +226,7 @@ Extract rating and rates data from an org into CSV files
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates the community; when billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, reverts the placeholder, and publishes.
+Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
 
 **Steps:**
 

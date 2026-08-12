@@ -45,13 +45,9 @@ All three committed files must agree with the Network Name: the `networks/*.netw
 
 ## Deployment
 
-Deploy this metadata bundle using:
-
-```bash
-cci task run deploy_post_billing_portal --org <org-alias>
-```
-
-This task is automatically included in the `prepare_billing_portal` flow, which is itself invoked as the last step of `prepare_billing`:
+Use the `prepare_billing_portal` flow so community creation, the required Network email patch,
+metadata deployment, placeholder restoration, and publication run in the correct order. The flow
+is also invoked as the last step of `prepare_billing`:
 
 ```bash
 cci flow run prepare_billing_portal --org <org-alias>
@@ -69,15 +65,33 @@ Steps 2-4 are skipped when `billing_portal_deploy` is false: the community is cr
 
 ## PII Handling
 
-`Network.EmailSenderAddress` is immutable after community creation and required by the metadata deploy. The committed `Billing Portal.network-meta.xml` stores the non-PII placeholder `billing-portal-sender@example.com`. `patch_network_email_for_deploy` reads the target org's actual current value and substitutes it into the file **only for the duration of the deploy**; `revert_network_email_after_deploy` restores the placeholder immediately afterward so the repo never persists a real org's email address. This is the same pattern `post_prm` uses for `rlm.network-meta.xml`, reusing the same parameterized task classes (`tasks/rlm_community.py`) via `options:` overrides — no new Python code.
+`Network.EmailSenderAddress` is immutable after community creation and required by the metadata deploy. The committed `Billing Portal.network-meta.xml` stores the non-PII placeholder `billing-portal-sender@example.com`. `patch_network_email_for_deploy` reads the target org's actual current value and substitutes it into the file for deployment; after a successful deploy, `revert_network_email_after_deploy` restores the placeholder. This is the same pattern `post_prm` uses for `rlm.network-meta.xml`, reusing the same parameterized task classes (`tasks/rlm_community.py`) via `options:` overrides — no new Python code.
+
+If the deployment step fails, CumulusCI stops the flow before the revert step. Restore the placeholder
+before committing or rerunning the flow:
+
+```bash
+cci task run revert_network_email_after_deploy \
+  -o network_meta_xml_path "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml" \
+  -o placeholder_email billing-portal-sender@example.com
+```
+
+This local recovery task does not take `--org`. The shared failure-path limitation and proposed
+in-memory deployment-transform replacement are tracked in
+[`#354`](https://github.com/bgaldino/rlm-base-dev/issues/354).
 
 The retrieved metadata also carried a `newSenderAddress` element (a pending-sender-change artifact set by the org, not required by the deploy) and was dropped entirely rather than placeholdered, matching `post_prm`'s `rlm.network-meta.xml`, which never carries this field either.
 
 ## Portability Notes
 
-This metadata is retrieved via `sf project retrieve start --metadata "ExperienceBundle:..." --metadata "Network:..." --metadata "NavigationMenu:..."`, which pulls in whatever the source org's template instance contains. One fix is required to keep that extraction portable across orgs — the same class of issue `post_prm` addresses for its Embedded Messaging component:
+This metadata is retrieved via `sf project retrieve start --metadata "ExperienceBundle:..." --metadata "Network:..." --metadata "NavigationMenu:..."`, which pulls in whatever the source org's template instance contains. Two fixes are applied to keep that extraction portable and understandable:
 
 - **Embedded Messaging removed.** The "Self-Service Billing Portal" template drops an unconfigured `experience_messaging:embeddedMessaging` component into the Home and Inner theme regions by default. Each instance carries a `scrtUrl` hardcoded to the org's auto-generated SCRT (Salesforce Content Relay Target) domain, which is meaningless on any other org. The component isn't wired to a real Messaging Deployment (no channel reference in its attributes), so removing it costs no functionality. Both occurrences are stripped from `themes/selfServiceBillingPortal.json`, leaving the sibling `forceCommunity:htmlBlock` component in each region untouched. Adding real chat support later requires provisioning an actual Embedded Service Messaging Deployment and re-patching `scrtUrl` at deploy time — it can't be a static placeholder, since it's genuinely per-org.
+- **Payment redirect view label repaired.** The retrieved payment-redirect view used a generated
+  `__MISSING LABEL__ ... not found` value as both its label and filename. Its route already supplies
+  the canonical `Payment Redirect Return` label and references the view by UUID, so the view now uses
+  that label and the conventional `paymentRedirectReturn.json` filename without changing its ID,
+  component, or route type.
 
 No other portability fixes were needed: `appPageId` references are internally consistent, `enableImageOptimizationCDN` was already `false`, and no `trustedSites` entries or other org-specific domains were found elsewhere in the bundle.
 
@@ -97,14 +111,11 @@ project_config:
 ## Testing
 
 ```bash
-# Deploy metadata
-cci task run deploy_post_billing_portal --org dev
-
 # Run the full flow (create, patch, deploy, revert, publish)
 cci flow run prepare_billing_portal --org dev
 
 # Verify the Network exists with the expected name
-sf data query --query "SELECT Name, Status, UrlPathPrefix FROM Network WHERE UrlPathPrefix='billing'" --target-org dev
+sf data query --query "SELECT Name, Status, UrlPathPrefix FROM Network WHERE UrlPathPrefix='billing'" --target-org rlm-base__dev
 
 # Confirm the repo file was reverted to the placeholder (should show no diff)
 git diff --stat unpackaged/post_billing_portal/force-app/main/default/networks/

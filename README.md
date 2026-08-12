@@ -948,7 +948,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle); invokes `prepare_billing_portal` | `billing`, `qb`, `q3`, `refresh`, `billing_portal`, `billing_portal_deploy` |
-| `prepare_billing_portal` | Create Self-Service Billing Portal community; when deploying, patch Network email, deploy `unpackaged/post_billing_portal` site content, revert Network email, then publish community | `billing_portal`, `billing_portal_deploy` |
+| `prepare_billing_portal` | Create and publish the Self-Service Billing Portal community; optionally patch Network email, deploy `unpackaged/post_billing_portal` site content, and revert Network email before publishing | `billing_portal`, `billing_portal_deploy` |
 | `prepare_prm` | Create community, patch Network email, deploy PRM metadata, revert Network email, publish community, assign RLM_PRM permission set, load PRM data; optionally invokes `prepare_prm_pricing` when `prm_pricing=true` | `prm`, `prm_exp_bundle`, `prm_pricing`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |

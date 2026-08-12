@@ -4267,9 +4267,9 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Create Self-Service Billing Portal community and optionally deploy site content.
-      When billing_portal is true, creates the community; when billing_portal_deploy is also true,
-      patches the network email placeholder, deploys unpackaged/post_billing_portal, reverts the
-      placeholder, and publishes.
+      When billing_portal is true, creates and publishes the community. When billing_portal_deploy
+      is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal,
+      and reverts the placeholder before publishing.
     steps:
       1:
         task: create_billing_portal
