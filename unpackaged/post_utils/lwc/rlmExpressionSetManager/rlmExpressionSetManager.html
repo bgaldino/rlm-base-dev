@@ -1,5 +1,12 @@
 <template>
-    <lightning-card title="Expression Set Manager" icon-name="standard:activations">
+    <lightning-card icon-name="standard:activations">
+        <div slot="title">
+            <div class="slds-text-heading_small">Expression Set Manager</div>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                Activate or deactivate Expression Sets linked to a Context Definition. No action is
+                needed on a new org &mdash; Expression Sets are already active out of the box.
+            </p>
+        </div>
         <section class="slds-p-around_medium" aria-label="Expression Set Manager">
 
             <template lwc:if={hasPreviousError}>
