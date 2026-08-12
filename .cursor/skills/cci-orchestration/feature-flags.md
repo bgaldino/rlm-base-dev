@@ -16,9 +16,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
-| `billing_portal` | `False` | 3 flow step(s) |
-| `billing_portal_deploy` | `True` | 1 flow step(s) |
+| `billing` | `True` | 24 flow step(s) |
+| `billing_portal` | `True` | 5 flow step(s) |
+| `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
@@ -106,20 +106,26 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 12 → `assign_permission_sets`
 - `prepare_billing` step 13 → `apply_context_billing_order`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
-### `billing_portal` (default: `False`)
+### `billing_portal` (default: `True`)
 
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 
 ### `billing_portal_deploy` (default: `True`)
 
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
 
 ### `billing_ui` (default: `True`)
 

@@ -220,18 +220,26 @@ Extract rating and rates data from an org into CSV files
 12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
 13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+14. **flow** `prepare_billing_portal`
 
 ---
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates the community; when billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, reverts the placeholder, and publishes.
 
 **Steps:**
 
 1. **task** `create_billing_portal`  `when: project_config.project__custom__billing_portal`
-2. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
-3. **task** `publish_community`  `when: project_config.project__custom__billing_portal`
+2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_name`: `Billing Portal`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+3. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+4. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+5. **task** `publish_community`  `when: project_config.project__custom__billing_portal`
    - `name`: `Billing Portal`
 
 ---
