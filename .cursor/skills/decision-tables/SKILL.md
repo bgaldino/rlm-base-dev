@@ -11,23 +11,34 @@ Use this skill when refreshing, diagnosing, adding, or wiring a decision table, 
 whenever an agent is maintaining an org this toolchain built and needs to know whether
 its lookups still reflect the data.
 
+It also routes definition authoring, cross-org comparison, CSV upload, and explicit
+lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
+`authoring-and-data-model.md` for the definition layer and API vocabularies; read
+`lifecycle-and-refresh.md` for deploy, activation, data loading, and refresh details.
+
 ## Quick Rules
 
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
-2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org <alias>`.
+2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table.
 3. **Freshness is measured against EVERY object a table reads**, not just its source
    object. A table that pulls a column across a lookup goes stale when that lookup's
    record changes, with no row of its own touched.
 4. **A refresh must fire when the table's source CRITERIA become true**, not when the
-   triggering row is written. See *The timing rule* — this one has already shipped a bug.
+   triggering row is written. See *The timing rule*.
 5. **Discover tables from the org; do not trust a hardcoded list** as an inventory.
    `cumulusci.yml`'s `dt_*_decision_tables` lists are refresh *instructions* scoped by
    feature flag, not a census of what exists.
 6. **"Not comparable" is a refusal, not a failure.** It means the freshness check
    declined to guess. Only **Stale** is a positive finding.
+7. **Definition and data are separate layers.** Editing columns or source bindings does
+   not synchronize source rows; refresh (or CSV upload, where applicable) updates the
+   materialized data layer.
+8. **Deactivate before modifying an Active definition.** Run deactivate, update, and
+   activate as separate commands so each platform failure returns independently. All
+   mutators preview by default and require `--confirm` to write.
 
 ## DO NOT
 
@@ -49,6 +60,13 @@ its lookups still reflect the data.
   predates the org. A Trialforce spin inherits the template's timestamps.
 - **DO NOT** add a name to a `dt_*_decision_tables` list without confirming the table
   exists in an org **built with that feature flag on**.
+- **DO NOT** run destructive toolkit probing against `beta`; use a disposable scratch
+  org. Read-only list/describe/diff/trace operations are safe.
+- **DO NOT** pass access tokens to toolkit scripts. They delegate authentication to the
+  `sf` CLI and take an SF CLI alias via `--target-org`, not a CCI alias.
+- **DO NOT** use the raw Connect Definitions POST/PATCH/DELETE resources as a
+  toolkit authoring path. Definition writes are Metadata/Tooling-only; Connect is
+  used for CSV data/version resources.
 
 ## Entry Conditions
 
@@ -59,39 +77,96 @@ Use this skill when you are:
 - adding a decision table, or wiring one into `cumulusci.yml`
 - building automation that must fire a refresh at the right moment
 - maintaining an org headlessly and needing its readiness state
+- inspecting, diffing, tracing, creating, updating, activating, or deleting a definition
+- sampling source-backed rows or uploading data to a `CsvUpload` table
 
 Not this skill: authoring the pricing procedures that *consume* a lookup
 (`.cursor/skills/pricing-wiring/SKILL.md`), or expression-set overlays
 (`.cursor/skills/expression-sets/SKILL.md`).
 
+## Toolkit and authoring routes
+
+The standalone toolkit complements the CCI org-build tasks; it does not replace them.
+All mutators preview by default and write only with `--confirm`.
+
+| Goal | Route |
+|---|---|
+| Inventory or inspect definitions | `list_decision_tables.py`, `describe_decision_table.py` |
+| Compare orgs/specs | `diff_decision_tables.py` |
+| Trace recipe-table mappings | `trace_decision_table.py` |
+| Sample the materialized data layer | `dump_decision_table_data.py` |
+| Upload `CsvUpload` rows | `upload_decision_table_data.py` |
+| Create/update/activate/deactivate/delete | Preview-by-default Tooling commands under `scripts/decision_tables/` |
+| Build-critical deploy and refresh | CCI tasks and flows in `cumulusci.yml` |
+
+Start with:
+
+```bash
+SF_ORG="your-sf-alias"
+TABLE="your-decision-table-api-name"
+
+python scripts/decision_tables/list_decision_tables.py --target-org "$SF_ORG"
+python scripts/decision_tables/describe_decision_table.py \
+  --target-org "$SF_ORG" --developer-name "$TABLE"
+```
+
+Decision tables have two independently managed layers:
+
+1. **Definition** — columns, source binding, criteria, hit policy, and execution shape.
+   Metadata API represents it as `.decisionTable-meta.xml`; Tooling spreads it across
+   five setup objects. The toolkit writes org definitions through Tooling;
+   source-controlled definitions use native Metadata XML with standard `sf` or
+   CCI deployment.
+2. **Data** — rows copied from source sObjects, uploaded from CSV, or hydrated from a
+   Context Definition. The engine does not re-read those rows after materialization.
+
+The complete setup-object model, ID prefixes, metadata shape, and enums are in
+`authoring-and-data-model.md`. Deployment paths, active-edit
+restrictions, CSV upload, async refresh, and recipe mapping validation are in
+`lifecycle-and-refresh.md`. Exhaustive API/error detail lives in
+`docs/references/decision-table-api-reference.md`.
+
 ## Discovery — what this org actually has
 
 Always start here. Counts and names differ per release and per feature flag.
 
+> ⚠ **The 5 Decision Table setup objects are Tooling-only.** `DecisionTable`,
+> `DecisionTableParameter`, `DecisionTableSourceCriteria` (and the two dataset
+> objects) are not on the standard data API, so every `sf data query` below passes
+> `--use-tooling-api` (`-t`). Without it the query fails
+> (`sObject type 'DecisionTable' is not supported`). The toolkit inspectors
+> (`list_decision_tables.py`, `describe_decision_table.py`) already route through the
+> Tooling surface, so prefer them when you have the toolkit on PATH.
+
 ```bash
-sf data query -q "SELECT DeveloperName, SetupName, SourceObject, DataSourceType, UsageType, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org <alias>
+sf data query -t -q "SELECT DeveloperName, SetupName, DataSourceType, SourceObject, UsageType, Status, LastSyncDate FROM DecisionTable ORDER BY UsageType, SetupName" --target-org "your-sf-alias"
 ```
+
+> `SetupName` (the human label) and `DataSourceType` (`SingleSobject` /
+> `MultipleSobjects` / `CsvUpload`) are top-level Tooling-queryable columns. Don't confuse
+> them with `MasterLabel`, which on `DecisionTable` is the constant object label
+> `"Decision Tables"` on every row (useless for sorting/identifying a specific
+> table) — use `SetupName` to label and order.
 
 What a table reads **besides** its source object — the columns it materialises across
 lookups, which is where most surprise staleness comes from:
 
 ```bash
-sf data query -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, FieldPath, DomainObject FROM DecisionTableParameter" --target-org "your-sf-alias"
 ```
 
 The filter a table applies to its source, if any:
 
 ```bash
-sf data query -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org <alias>
+sf data query -t -q "SELECT DecisionTableId, SourceFieldName, Operator, Value, ValueType FROM DecisionTableSourceCriteria" --target-org "your-sf-alias"
 ```
 
 ### Reading `DecisionTableParameter` correctly
 
-Two traps, both live, both already shipped as bugs once:
+Two important edge cases:
 
-- ⚠ **`DomainObject` holds the literal four-character STRING `'null'`** for a column that
-  comes from the table's own object — on a stock build, 206 of 309 parameters, against 14
-  genuine SQL nulls. `String.isBlank` does **not** catch it.
+- ⚠ **`DomainObject` can hold the literal string `'null'`** for a column that
+  comes from the table's own object. `String.isBlank` does **not** catch it.
 - ⚠ **`DomainObject` names only the object that owns the FINAL field of a path.** For
   `AssetRateCardEntryId.RateCardEntryId.RateUnitOfMeasureName` it says `RateCardEntry`
   and never mentions `AssetRateCardEntry` — yet re-pointing that intermediate's lookup
@@ -148,25 +223,27 @@ header — read it there rather than re-deriving it.
 
 | Path | Use when |
 |---|---|
-| `cci task run refresh_all_decision_tables --org <alias>` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
+| `cci task run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
 | The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh, status polling, why a table is stale. |
 | Setup → Decision Tables | One table, manually. |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. |
 
 An **incremental** sync advances only `LastIncrementalSyncDate`. It does **not** move
-`LastSyncDate`, and freshness is measured against the full sync.
+`LastSyncDate`, and freshness is measured against the full sync. It also needs
+`isIncrementalSyncEnabled = true`, which **no table this repo ships has** — asking for
+incremental elsewhere returns `Queued` and syncs nothing. Both the Manager and
+`scripts/decision_tables/refresh_decision_table.py` refuse it rather than queue the
+no-op; see `lifecycle-and-refresh.md` → *Refresh*.
 
 ## The timing rule
 
 > **A refresh must fire when the table's source criteria become TRUE — not when the
 > triggering row is written.**
 
-Learned the expensive way. A refresh was hooked to contract *creation*. Both tier tables
-filter their source on `...ContractId.StatusCode = 'Activated'`, so at creation time the
-rows were excluded — the refresh ran, **excluded the rows, and stamped `LastSyncDate`
-anyway**. The table then read Fresh while holding nothing: worse than visibly stale. A
-third table with no such filter did pick up its rows, so 2 of 3 failed and it looked like
-it worked.
+For example, if a table filters on
+`...ContractId.StatusCode = 'Activated'`, refreshing at contract creation excludes
+those rows and still advances `LastSyncDate`. Refresh when the contract becomes
+Active instead.
 
 Before wiring any automatic refresh:
 
@@ -193,7 +270,7 @@ triggering DML. A refresh that fails must not take the contract with it.
 | `DecisionTable` is a setup object | Apex DML on it is rejected **at compile time**, so the class will not deploy at all; in-memory test fixtures need `JSON.deserialize`. |
 | `refreshDecisionTable` is Flow/REST-invocable only | Apex bridges through a flow. |
 | `MasterLabel` is a constant | Never a table identifier. |
-| A parent edit does not touch the child's `LastModifiedDate` | Measured 200/200. This is why criteria that traverse a lookup cannot be verified from child timestamps alone. |
+| A parent edit does not touch the child's `LastModifiedDate` | Criteria that traverse a lookup cannot be verified from child timestamps alone. |
 | `SourceConditionLogic` is a non-filterable textarea | Cannot be used in a `WHERE`; read it and inspect. It is populated on every table with criteria (the platform writes `"1"`, `"1 AND 2"`), so "not blank" does **not** mean custom logic. |
 | `DecisionTableDataset` / `DecisionTableRecordset` reject aggregates and partial filters | A table's **own** row count is not queryable. Only source counts exist — and those are `USER_MODE`, so a **zero** source count means "nothing *you* can see", never "nothing". |
 | `CalculationMatrix.DecisionMatrixType` joins `Name` ↔ `SetupName` | The only way to tell a Decision Table from a Decision Matrix. |
@@ -204,13 +281,13 @@ triggering DML. A refresh that fails must not take the contract with it.
 **Is this org ready after a build?**
 
 ```bash
-cci task run check_decision_table_freshness --org <alias>
+cci task run check_decision_table_freshness --org "your-cci-alias"
 ```
 
 **Gate a build on it** (only where no data load follows the refresh):
 
 ```bash
-cci task run check_decision_table_freshness --org <alias> -o param1 strict
+cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 strict
 ```
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
@@ -223,7 +300,9 @@ not know read that object.
 
 ## Validation Checks
 
-- `cci task run check_decision_table_freshness --org <alias>` reports every table with a
+- `python tests/test_decision_tables_toolkit.py` passes offline.
+- `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
+- `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
 - After `refresh_all_decision_tables`, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
@@ -233,6 +312,13 @@ not know read that object.
 
 ## Related
 
+- `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
+  metadata shape, enums, and the definition/data model.
+- `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — explicit lifecycle,
+  deployment, upload, refresh, and recipe-table mappings.
+- `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.
+- `docs/references/decision-table-api-reference.md` — exhaustive API and error reference.
+- `docs/references/decision-table-examples.md` — CCI operations cookbook.
 - `.cursor/skills/pricing-wiring/SKILL.md` — the procedures and plans that consume these
   lookups, and the timing rule in its pricing context.
 - `.cursor/skills/troubleshooting/SKILL.md` — build and deploy failures.
