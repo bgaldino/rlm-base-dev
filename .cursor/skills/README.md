@@ -29,6 +29,7 @@ repo root.
 | Build, rate, and verify metered consumption demos | Usage & Consumption | `usage-consumption/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
+| Stand up / inspect the MCP surface on an org (hosted + custom servers) | MCP Integration | `mcp-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | Transaction Data Harness | `txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |

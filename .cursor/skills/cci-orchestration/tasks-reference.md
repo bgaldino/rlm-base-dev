@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **10 groups**.
+**277 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*168 task(s)*
 
 ### `activate_agents`
 
@@ -1396,6 +1396,18 @@
 - `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
 - `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_mcp_servers`
+
+**Description:** Activate the hosted Salesforce MCP servers (McpServerAccess) and build the custom rampdealsconnect server — McpServerDefinition plus two McpServerToolDefinition tools and their McpServerToolApiDefinition bindings — via the Tooling API, because only McpServerDefinition is a deployable metadata type. Idempotent; every write checks first. Use -o operation list to report the org's surface without changing it, -o dry_run True to preview, and -o platform_servers True to also activate sobject-all and headless-360 (off by default: sobject-all grants read/write across every object).
+
+**Class:** `tasks.rlm_mcp.ConfigureMcpServers`
+
+**Options:**
+
+- `operation`: `ensure`
 
 ---
 
@@ -1911,6 +1923,31 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_mcp`
+
+**Description:** Deploy the MCP bundle — the ClaudeMcpClientRC External Client Application (5 components: app, global OAuth settings, OAuth settings, and the two policy sets) plus the RampCloneSalesTransaction invocable that backs the custom server's CLASSIC-bound cloneSalesTransaction tool. The invocable here is the 67.0, synchronous-only copy; deploy_post_mcp_264 overlays the async-capable one on newer orgs. Must run before configure_mcp_servers, which references that invocable by action path.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp`
+
+---
+
+### `deploy_post_mcp_264`
+
+**Description:** Overlay the 264 / v68.0 copy of RampCloneSalesTransaction, which adds the async clone path (contextId in, trackerId/trackerUrl out). Those members do not exist on 262 / v67.0, so the base bundle ships a synchronous-only copy and this task replaces it — but only on orgs at v68.0 or later. On an older org it logs a skip and changes nothing, rather than failing the flow. Run after deploy_post_mcp.
+
+**Class:** `tasks.rlm_mcp.DeployMcpOverlay`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp_264`
+- `min_api_version`: `68.0`
 
 ---
 

@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 34-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 35-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -201,7 +201,9 @@ The 34 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Search index rebuild** (Step 33, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**Git commit stamp** (Step 34) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**MCP surface** (Step 34, `mcp` flag) — Deploys the `ClaudeMcpClientRC` External Client Application and the clone invocable behind the custom server's CLASSIC-bound tool, then activates the hosted Salesforce MCP servers and builds the custom `rampdealsconnect` server via the Tooling API. Off by default, because the flow cannot finish the job on its own: each person still completes a browser OAuth login against the ECA, which no automation can do for them. Enable with `mcp: true`. See `.cursor/skills/mcp-integration/SKILL.md`.
+
+**Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 
