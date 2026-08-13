@@ -169,23 +169,48 @@ sf data query -q "SELECT DeveloperName, OauthScopesMCP_API, OauthScopesREFRESH_T
 
 ## Verification Status
 
-- `unpackaged/post_mcp` **deployed and its Apex tests executed** on a 262 / v67.0 scratch
-  org: 2 components, `RampCloneSalesTransactionTest` 4/4 passing. The 264 overlay
-  validated on a v68.0 org; the version gate skips and proceeds respectively.
+**Both Apex copies have executed their tests, 4/4 each, on a 264 / v68.0 scratch org.**
+
+- `unpackaged/post_mcp` (the 67.0 copy) deployed with `RunSpecifiedTests`: 2 components,
+  4/4 passing. Its 262 evidence is a *check-only* validate on a 262 TSO org — that proves
+  it compiles at 262, but the tests themselves have only run at 68.
+- `unpackaged/post_mcp_264` deployed through the real `deploy_post_mcp_264` task, which
+  logged `Org is v68; deploying the v68+ overlay`, then `sf apex run test --synchronous`:
+  4/4 passing. The gate's skip path is verified separately on a v67 org.
 - `configure_mcp_servers` verified live: `list` and `dry_run` on a v68 org already
   carrying the surface (all `already`), and `dry_run` on a fresh 262 org (11 planned).
-- **The overlay's own tests have not been executed** — that needs a v68.0 org, and the
-  only one available is a trial (TSO), where `RunSpecifiedTests` on a *check-only* deploy
-  reports `numTestsRun: 0`. The overlay differs from the base copy only in the async
-  members; the parity test pins that. Run them on a 264 scratch org when the dev hub
-  offers one.
 
-A scratch org needs `RevenueManagementSettings.enableCoreCPQ` and
-`enableTransactionCloning` **on** before either copy will compile —
-`ConnectApi.CloneSalesTransactionConnect` is not visible otherwise, and the failure reads
-as `Type is not visible`, not as a missing feature. `prepare_rlm_org` sets both at step 1,
-so this only bites when deploying the bundle to a bare org. It is not a permission
-problem: assigning `RevenueLifecycleManagementUserPsl` does not fix it.
+Neither copy compiles until `RevenueManagementSettings.enableCoreCPQ` and
+`enableTransactionCloning` are **on** — `ConnectApi.CloneSalesTransactionConnect` is
+invisible otherwise, and it fails as `Type is not visible`, which reads like a permission
+problem and is not one (`RevenueLifecycleManagementUserPsl` does not fix it).
+`prepare_rlm_org` sets both at step 1, so this only bites a bare org. On a **264** org,
+note that a scratch create from `config/project-scratch-def.json` currently leaves
+`RevenueManagementSettings` entirely unapplied — see *Scratch Orgs on a 264 Dev Hub*.
+
+## Scratch Orgs on a 264 Dev Hub
+
+`sf org create scratch` against a 264 dev hub reports
+`status: 68, code: ProblemDeployingSettings` and this error:
+
+```
+[Error] RevenueManagement : Error parsing file: Element {}enableScaleAttributes
+        invalid at this location in type DeclarativeMetadataForSettings
+```
+
+The org is still created and **the shell exit code is 0**, so a harness that gates on the
+exit code alone treats it as good. The failure is per settings file, not global —
+`Order`, `Quote`, and `IndustriesPricing` all applied on the org used here — but the whole
+`RevenueManagementSettings` block is dropped, which is what silently left `enableCoreCPQ`
+false and produced the `Type is not visible` diagnosis above.
+
+`enableScaleAttributes` is declared in `config/project-scratch-def.json`, 14 files under
+`orgs/`, and `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`. Deploying
+that last file to a 264 org fails with the same parse error, so **build step 1 is exposed
+too** — `cleanup_settings_for_dev` does not strip this field. A 262-built org such as
+`laulima26` is unaffected and does not carry the field in its retrieved settings at all,
+consistent with 264 having dropped it. This is a 264-cutover item, not an MCP one; it is
+recorded here because it is what the MCP Apex failure turned out to be.
 
 ## Access Note
 
