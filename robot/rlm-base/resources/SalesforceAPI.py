@@ -26,7 +26,7 @@ class SalesforceAPI:
     ROBOT_LIBRARY_SCOPE = "TEST"
 
     # API version matching the project (Spring '26 / v66.0)
-    API_VERSION = "v66.0"
+    API_VERSION = "v68.0"
 
     # Default timeout (seconds) for all outbound REST requests.
     # Prevents CI runners from blocking indefinitely on network stalls.

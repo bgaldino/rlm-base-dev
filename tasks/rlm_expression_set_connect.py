@@ -101,7 +101,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             or getattr(
                 self.project_config,
                 "project__package__api_version",
-                "67.0",
+                "68.0",
             )
         )
 

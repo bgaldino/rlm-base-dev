@@ -71,7 +71,7 @@
         <nameSegment>c:OpenSObject</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>67.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Create RLM Quote for Service Contract Quoting</description>
     <environments>Default</environments>

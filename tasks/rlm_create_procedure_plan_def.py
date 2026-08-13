@@ -114,7 +114,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             or getattr(
                 self.project_config,
                 "project__package__api_version",
-                "67.0",
+                "68.0",
             )
         )
 
@@ -287,7 +287,7 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
     def _api_version(self) -> str:
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
 
     @property
@@ -376,7 +376,7 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
     def _api_version(self) -> str:
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
 
     @property

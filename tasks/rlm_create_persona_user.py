@@ -293,9 +293,9 @@ class CreatePersonaUser(BaseTask):
                 )
 
     def _api_version(self):
-        """Return the project's package API version (e.g. '67.0'), default 67.0."""
+        """Return the project's package API version (e.g. '68.0'), default 68.0."""
         version = getattr(self.project_config, "project__package__api_version", None)
-        return str(version) if version else "67.0"
+        return str(version) if version else "68.0"
 
     def _resolve_profile_id(self, profile_name):
         """Resolve a Profile Id by Name via the sf CLI. Raises if not found."""

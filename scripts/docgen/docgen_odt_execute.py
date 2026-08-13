@@ -33,7 +33,7 @@ import sys
 import tempfile
 
 
-def execute_odt(odt_name, record_id, org, api_version="v67.0", input_file=None):
+def execute_odt(odt_name, record_id, org, api_version="v68.0", input_file=None):
     """Execute an ODT (Extract or Transform) via REST API.
 
     For Extracts: pass record_id (sends {"Id": "0Q0XXXXXXXXXXXXAAA"}).
@@ -182,7 +182,7 @@ def main():
                         help="Show only record counts per array")
     parser.add_argument("--field", action="append", dest="fields",
                         help="Filter output to specific fields (repeatable)")
-    parser.add_argument("--api-version", default="v67.0",
+    parser.add_argument("--api-version", default="v68.0",
                         help="Salesforce API version (default: v67.0)")
     args = parser.parse_args()
 

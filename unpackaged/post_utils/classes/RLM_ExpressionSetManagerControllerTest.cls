@@ -273,7 +273,7 @@ private class RLM_ExpressionSetManagerControllerTest {
         for (Integer i = 0; i < 26; i++) {
             subrequests.add(new Map<String, Object>{
                 'method' => 'PATCH',
-                'url' => '/services/data/v67.0/sobjects/ExpressionSetVersion/a00000000000000AAA',
+                'url' => '/services/data/v68.0/sobjects/ExpressionSetVersion/a00000000000000AAA',
                 'referenceId' => 'patch_' + i,
                 'body' => new Map<String, Object>{ 'IsActive' => true }
             });
@@ -307,7 +307,7 @@ private class RLM_ExpressionSetManagerControllerTest {
             RLM_ExpressionSetManagerController.sendCompositeInChunks(
                 'https://example.my.salesforce.com',
                 'fake-session-id',
-                new List<Object>{ new Map<String, Object>{ 'method' => 'PATCH', 'url' => '/services/data/v67.0/sobjects/ExpressionSetVersion/a00000000000000AAA' } }
+                new List<Object>{ new Map<String, Object>{ 'method' => 'PATCH', 'url' => '/services/data/v68.0/sobjects/ExpressionSetVersion/a00000000000000AAA' } }
             );
             System.assert(false, 'HTTP failures should throw');
         } catch (CalloutException e) {

@@ -28,7 +28,7 @@ from tasks.rlm_agents_common import discover_agent_bundles, run_sf_json
 
 DEFAULT_BUNDLES_PATH = "unpackaged/post_agents/aiAuthoringBundles"
 # Fallback only used when project config can't be read (e.g. unit import).
-FALLBACK_API_VERSION = "67.0"
+FALLBACK_API_VERSION = "68.0"
 
 
 class PublishAgents(BaseSalesforceTask):

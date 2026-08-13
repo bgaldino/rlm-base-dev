@@ -131,7 +131,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         api_version = (
             self.options.get("api_version")
             or getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
         return access_token, instance_url, api_version
 

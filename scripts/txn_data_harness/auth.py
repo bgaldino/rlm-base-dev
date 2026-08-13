@@ -40,7 +40,7 @@ import requests
 
 log = logging.getLogger("txn_data_harness.auth")
 
-DEFAULT_API_VERSION = "67.0"  # v262 baseline; do not silently float to latest.
+DEFAULT_API_VERSION = "68.0"  # v264 baseline; do not silently float to latest.
 
 # Retry on transient transport failures only.
 _RETRYABLE_STATUS = {420, 429, 500, 502, 503, 504}

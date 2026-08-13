@@ -109,7 +109,7 @@ DEFAULT_ACCOUNTS = "Infinitech,Kingsbridge Digital"
 DEFAULT_SKU = "QB-DB"
 DEFAULT_START = "2026-06-01"
 DEFAULT_END = "2027-05-31"
-API = "v67.0"
+API = "v68.0"
 
 # CalculationStatus values that mean "done, stop polling". Anything else is
 # either still in flight or a failure we surface verbatim.

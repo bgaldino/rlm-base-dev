@@ -69,7 +69,7 @@ class PatchNetworkEmailForDeploy(BaseTask):
         instance_url = self.org_config.instance_url
         api_version = (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
         headers = {
             "Authorization": f"Bearer {self.org_config.access_token}",

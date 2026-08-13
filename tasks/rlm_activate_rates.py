@@ -36,7 +36,7 @@ class ActivateRateCardEntries(BaseTask):
     def _run_task(self):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        api_version = getattr(self.org_config, "api_version", None) or "67.0"
+        api_version = getattr(self.org_config, "api_version", None) or "68.0"
         api_version = str(api_version).lstrip("v")
 
         headers = {
