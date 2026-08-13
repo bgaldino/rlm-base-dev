@@ -24,7 +24,7 @@ git log --oneline -5
 git status --short | head -20
 ```
 
-Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main` or a release branch (`262`, `260`, …), check whether the user wants to switch — enablement work happens on a feature branch.
+Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main` or a release branch (`264`, `release/262`, `release/260`, …), check whether the user wants to switch — enablement work happens on a feature branch.
 
 If you see commits with messages starting `feat(enablement):` or `docs(enablement):`, you're in the right place.
 
@@ -39,7 +39,7 @@ Read these three files end-to-end before doing anything else:
 Optional (read when you encounter the relevant edge case):
 
 - **[`authoring-patterns.md`](authoring-patterns.md)** — 11 patterns for handling edge cases (upgrade guidance, known issues, sub-features, cross-area features, scenario threading, version-aware section metadata, license-scope split, etc.)
-- **[`docs/salesforce/{260,262}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories
+- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is a scaffold; see its header)
 
 ### 3. Check what's drafted vs pending
 

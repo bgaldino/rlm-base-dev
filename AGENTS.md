@@ -8,10 +8,24 @@
 ## Project Overview
 
 **Revenue Cloud Base Foundations** automates creation and configuration of
-Salesforce environments for Revenue Lifecycle Management (RLM). It targets
-Salesforce Release 262 (Summer '26, API v67.0), now on the `main` branch
-(promoted from the `262` upgrade branch). The previous GA target, Release 260
-(Spring '26), is preserved on the `release/260` branch as the prior GA reference.
+Salesforce environments for Revenue Lifecycle Management (RLM). **This is the
+`264` branch: it targets Salesforce Release 264 (Winter '27, API v68.0)** and is
+the active development line. `main` remains the Release 262 (Summer '26, API
+v67.0) GA target, and `release/262` is the frozen 262 GA reference (matching
+`release/260` for Spring '26).
+
+264 is pre-GA — feature freeze 2026-08-14, GA waves 2026-09-05 → 2026-10-10 —
+and no 264 release notes or v68.0 Metadata Coverage Report entry exist yet. Two
+consequences for agents working here:
+
+- **A live 264 org is the ground truth**, not documentation. The dev hub
+  `devhub-usa794` is on API 68.0, so every scratch org it creates is a 264 org
+  regardless of which branch you built from.
+- **`main` is not buildable on that dev hub.** Verify changes on `264`. Findings
+  about 264 behavior are tracked in
+  `.agents/artifacts/upgrades/264-upgrade-plan.md`; distinguish a *freshly built*
+  264 org from a 262 org *upgraded* to 264, because settings and schema can be
+  grandfathered through an upgrade and are not evidence about fresh builds.
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows

@@ -16,7 +16,7 @@ This directory holds SFDMU v5 data plans for the Manufacturing data shape, follo
 ## Current MFG plans
 
 The plans that exist on disk live under `mfg/en-US/`. Each has its own
-`export.json` (no per-plan README). All target API v67.0.
+`export.json` (no per-plan README). All target API v68.0.
 
 | Plan | Description | Key objects (operation, externalId) |
 |------|-------------|--------------------------------------|

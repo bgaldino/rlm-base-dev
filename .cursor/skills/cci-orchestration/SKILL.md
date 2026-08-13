@@ -176,7 +176,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "67.0"    # Summer '26 (Release 262)
+    api_version: "68.0"    # Winter '27 (Release 264)
   source_format: sfdx
 ```
 

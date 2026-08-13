@@ -16,13 +16,13 @@ Documented-first (DG = v262 dev-guide), then transcribed into `lifecycle.py` aft
 live verification against the target org.
 
 ### 1. Opportunity (optional head)
-- **Endpoint:** `POST /services/data/v67.0/sobjects/Opportunity`
+- **Endpoint:** `POST /services/data/v68.0/sobjects/Opportunity`
 - **Body:** `{ Name, AccountId, StageName, CloseDate }` (StageName from discovery).
 - **Response:** `{ id, success, errors }` (standard sObject create). VERIFIED shape (standard REST).
 - **Async:** none (synchronous).
 
 ### 2. Quote — Place Sales Transaction (PST) — ✅ VERIFIED LIVE
-- **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/connect/rev/sales-transaction/actions/place`
+- **Endpoint (PRIMARY, works):** `POST /services/data/v68.0/connect/rev/sales-transaction/actions/place`
 - **Body:** graph shape (the **documented** form, not the simplified Postman shape).
   Minimal working quote-create payload verified live:
   ```json
@@ -389,7 +389,7 @@ Quarterly / Semi-Annual fan-out, per-line override coverage) are
 tracked in [`followups.md`](followups.md) → *Billing & invoicing*.
 
 ### 3. Order — Create Order from Quote — ✅ VERIFIED LIVE
-- **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/actions/standard/createOrderFromQuote`
+- **Endpoint (PRIMARY, works):** `POST /services/data/v68.0/actions/standard/createOrderFromQuote`
 - **Body:** `{ "inputs": [ { "quoteRecordId": "<quoteId>" } ] }`
 - **Response:** an **array**; `[0].isSuccess`, `[0].outputValues.orderId` (`801…`),
   `[0].outputValues.orderNumber`, `[0].errors`. Synchronous.
@@ -401,7 +401,7 @@ tracked in [`followups.md`](followups.md) → *Billing & invoicing*.
   endpoint returns `NOT_FOUND` on this org** (v67.0) — it is NOT the activation route
   here. (Also confirmed `connect/revenue-management` namespace is not resolvable.)
 - **Working mechanism:** plain sObject update —
-  `PATCH /services/data/v67.0/sobjects/Order/<id>` body `{ "Status": "Activated" }`.
+  `PATCH /services/data/v68.0/sobjects/Order/<id>` body `{ "Status": "Activated" }`.
   `Order.Status` picklist is just `["Draft","Activated"]`. This matches how the
   robot E2E suite activates (UI click → poll `Status == Activated`).
 - **PRECONDITION (verified + RESOLVED):** activation fails `FAILED_ACTIVATION`
@@ -451,7 +451,7 @@ canonical in-org TJ writer) and the v262 `TransactionJournal` /
 **Live verification against a scratch org with the QB rating dataset loaded
 (`insert_qb_rating_data`) is required before merging behavioral changes here.**
 
-- **Endpoint:** `POST /services/data/v67.0/composite/sobjects`
+- **Endpoint:** `POST /services/data/v68.0/composite/sobjects`
 - **Body (verified shape — chunked at 200 records per call):**
   ```json
   {
@@ -622,15 +622,15 @@ SELECT Id, Product2Id FROM Asset WHERE Id IN (…)
 - Verified: activating the order produced a `BillingSchedule` (Status
   `ReadyForInvoicing`) automatically. The explicit create endpoint is a fallback
   only for products/orgs that don't auto-generate; not exercised in the happy path.
-- Fallback endpoint (unverified): `POST /services/data/v67.0/commerce/invoicing/billing-schedules/actions/create`
+- Fallback endpoint (unverified): `POST /services/data/v68.0/commerce/invoicing/billing-schedules/actions/create`
   body `{ billingTransactionIds: [ <orderId> ] }`.
 
 ### 6. Invoice generate → post — ✅ VERIFIED LIVE (full chain to Posted)
-- **Generate (PRIMARY, works):** `POST /services/data/v67.0/commerce/invoicing/invoices/collection/actions/generate`
+- **Generate (PRIMARY, works):** `POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/generate`
   - **Body (verified):** `{ "billingScheduleIds": ["<bsId>"], "action": "Draft", "invoiceDate": "<ISO>", "targetDate": "<ISO>", "correlationId": "<runId>" }`
   - **Response (verified):** `{ requestIdentifier, success, errors }` — **NO `statusURL`**
     (confirms the plan's "cannot assume a tracker URL" finding for *generate*).
-- **Post (PRIMARY, works):** `POST /services/data/v67.0/commerce/invoicing/invoices/collection/actions/post`
+- **Post (PRIMARY, works):** `POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/post`
   - **Body (verified):** `{ "invoiceIds": ["<invId>"], "correlationId": "<runId>" }`
   - **Response (verified):** `{ requestIdentifier, success, errors, statusURL }` —
     **post DOES return `statusURL`** → `/services/data/v67.0/sobjects/AsyncOperationTracker/<id>`.

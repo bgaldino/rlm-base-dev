@@ -606,8 +606,9 @@ the CLI's stored credentials — the same pattern as `scripts/erd/*`. Consequenc
 - Authenticate first with `sf org login web --alias <alias>` if a call fails.
 - `sf api request rest` does not resolve a bare `connect/...` path (it 404s with
   "URL No Longer Exists"); `_client.py` always sends the fully versioned
-  `/services/data/v67.0/…` path. Override the version with `--api-version`.
+  `/services/data/v68.0/…` path. Override the version with `--api-version`.
 
 The GET response shapes are parsed the same way as
-`tasks/rlm_context_service.py` and are pinned to **Release 262 / API v67.0** —
-re-verify against a live org if the platform response shape changes.
+`tasks/rlm_context_service.py` and were captured on **Release 262 / API v67.0**;
+they have not been re-verified on 264 — re-verify against a live org if the
+platform response shape changes.

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **10 groups**.
+**287 tasks** across **10 groups**.
 
 ---
 
@@ -701,7 +701,7 @@
 
 ## Documentation
 
-*16 task(s)*
+*29 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -720,6 +720,23 @@
 
 ---
 
+### `snapshot_agents_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Agentforce for Revenue Management area of Salesforce Help. See snapshot_agents_help_262 for the subagent inventory.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `agents`
+- `root_article_id`: `ind.rev_agent_overview.htm`
+- `article_id_prefix`: `ind.rev_agent`
+- `mode`: `all`
+
+---
+
 ### `snapshot_approvals_help_262`
 
 **Description:** Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles per the sidebar walk). Covers Advanced Approval Objects, approval workflow design, Smart Approvals, approval previews, Slack notifications, auto-approval rules. Note: the data-model domain is thin (1 object, ApprovalSubmission) but the Help area is rich. Root and prefix verified via sidebar walk.
@@ -730,6 +747,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `approvals`
+- `root_article_id`: `ind.approvals_advanced_approvals.htm`
+- `article_id_prefix`: `ind.approvals`
+- `mode`: `all`
+
+---
+
+### `snapshot_approvals_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Advanced Approvals area of Salesforce Help. See snapshot_approvals_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `approvals`
 - `root_article_id`: `ind.approvals_advanced_approvals.htm`
 - `article_id_prefix`: `ind.approvals`
@@ -771,6 +805,23 @@
 
 ---
 
+### `snapshot_billing_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Billing area of Salesforce Help. See snapshot_billing_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `billing`
+- `root_article_id`: `ind.billing.htm`
+- `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
 ### `snapshot_collections_help_262`
 
 **Description:** Snapshot the 262 (Summer '26) Collections and Recovery area of Salesforce Help. Covers Collection Plans, Collection Plan Reasons, treatment/dunning flows, Promise to Pay, write-offs, late fees, and the decision-matrix-driven Create Case automation. Root verified via the Collections area landing page.
@@ -781,6 +832,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `collections`
+- `root_article_id`: `ind.collections.htm`
+- `article_id_prefix`: `ind.collections`
+- `mode`: `all`
+
+---
+
+### `snapshot_collections_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Collections and Recovery area of Salesforce Help. See snapshot_collections_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `collections`
 - `root_article_id`: `ind.collections.htm`
 - `article_id_prefix`: `ind.collections`
@@ -805,6 +873,23 @@
 
 ---
 
+### `snapshot_configurator_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Product Configurator area of Salesforce Help. See snapshot_configurator_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `configurator`
+- `root_article_id`: `ind.product_configurator_introduction.htm`
+- `article_id_prefix`: `ind.product_configurator`
+- `mode`: `all`
+
+---
+
 ### `snapshot_dev_guide_262`
 
 **Description:** Snapshot the full 262 (Summer '26) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
@@ -820,6 +905,21 @@
 
 ---
 
+### `snapshot_dev_guide_264`
+
+**Description:** Snapshot the full 264 (Winter '27) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `mode`: `all`
+
+---
+
 ### `snapshot_dro_help_262`
 
 **Description:** Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified via RLM sidebar walk.
@@ -830,6 +930,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `dro`
+- `root_article_id`: `ind.dro_dynamic_revenue_orchestrator.htm`
+- `article_id_prefix`: `ind.dro`
+- `mode`: `all`
+
+---
+
+### `snapshot_dro_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) DRO (Dynamic Revenue Orchestration) / Fulfillment area of Salesforce Help. See snapshot_dro_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `dro`
 - `root_article_id`: `ind.dro_dynamic_revenue_orchestrator.htm`
 - `article_id_prefix`: `ind.dro`
@@ -854,6 +971,23 @@
 
 ---
 
+### `snapshot_industries_dev_guide_264`
+
+**Description:** Snapshot the RC-relevant sections of the 264 (Winter '27) Industries Common Resources Developer Guide (atlas deliverable industries_reference) into a separate corpus (dev-guide-industries) so it never clobbers the RLM dev-guide. Section list mirrors the 262 twin; edit to widen/narrow.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `deliverable`: `industries_reference`
+- `output_dir`: `docs/salesforce/264/dev-guide-industries`
+- `sections`: `business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer,...`
+- `mode`: `all`
+
+---
+
 ### `snapshot_pcm_help_262`
 
 **Description:** Snapshot the 262 (Summer '26) Product Catalog Management area of Salesforce Help. Covers Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent. Root verified via RLM sidebar walk.
@@ -864,6 +998,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `pcm`
+- `root_article_id`: `ind.product_catalog_introduction.htm`
+- `article_id_prefix`: `ind.product_catalog`
+- `mode`: `all`
+
+---
+
+### `snapshot_pcm_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Product Catalog Management area of Salesforce Help. See snapshot_pcm_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `pcm`
 - `root_article_id`: `ind.product_catalog_introduction.htm`
 - `article_id_prefix`: `ind.product_catalog`
@@ -888,6 +1039,23 @@
 
 ---
 
+### `snapshot_pricing_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Pricing area of Salesforce Help. Distinct from Rate Management. See snapshot_pricing_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `pricing`
+- `root_article_id`: `ind.pricing_salesforce_pricing.htm`
+- `article_id_prefix`: `ind.pricing`
+- `mode`: `all`
+
+---
+
 ### `snapshot_rating_help_262`
 
 **Description:** Snapshot the 262 Rate Management area of Salesforce Help. Required for Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction Journal → Usage Summary → Ratable Summary → Liable Summary pipeline). Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
@@ -898,6 +1066,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `rating`
+- `root_article_id`: `ind.rm_rate_management.htm`
+- `article_id_prefix`: `ind.rm`
+- `mode`: `all`
+
+---
+
+### `snapshot_rating_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Rate Management area of Salesforce Help. Prefix `ind.rm_*` (NOT `ind.rate_*`). See snapshot_rating_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `rating`
 - `root_article_id`: `ind.rm_rate_management.htm`
 - `article_id_prefix`: `ind.rm`
@@ -938,6 +1123,23 @@
 
 ---
 
+### `snapshot_transaction_mgmt_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Transaction Management area of Salesforce Help. ONE combined area with prefix `ind.qocal_*` covering Quote, Order, Contract, Asset, and lifecycle — not four separate areas. See snapshot_transaction_mgmt_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `transaction_mgmt`
+- `root_article_id`: `ind.qocal_sales_transactions_rev_cloud.htm`
+- `article_id_prefix`: `ind.qocal`
+- `mode`: `all`
+
+---
+
 ### `snapshot_usage_help_262`
 
 **Description:** Snapshot the 262 Usage Management area of Salesforce Help. Required for Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent, Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage Entitlement Account / Bucket / Entry). Root verified via RLM sidebar walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
@@ -948,6 +1150,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `usage`
+- `root_article_id`: `ind.um_usage_management.htm`
+- `article_id_prefix`: `ind.um`
+- `mode`: `all`
+
+---
+
+### `snapshot_usage_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Usage Management area of Salesforce Help. Prefix `ind.um_*` (NOT `ind.usage_*`). See snapshot_usage_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `usage`
 - `root_article_id`: `ind.um_usage_management.htm`
 - `article_id_prefix`: `ind.um`

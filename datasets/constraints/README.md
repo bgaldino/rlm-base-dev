@@ -123,7 +123,7 @@ cci task run export_cml --org <source_org> \
 | `developer_name` | Yes | DeveloperName of the Expression Set Definition |
 | `version` | No | Version number (default: 1) |
 | `output_dir` | Yes | Directory to write CSV exports and blobs |
-| `api_version` | No | Override Salesforce API version (e.g. 67.0) |
+| `api_version` | No | Override Salesforce API version (e.g. 68.0) |
 
 ### What Gets Exported
 
@@ -533,7 +533,7 @@ run**. To verify headlessly without the UI, POST the Product Configurator `confi
 action against a quote line that uses the model:
 
 ```
-POST /services/data/v67.0/connect/cpq/configurator/actions/configure
+POST /services/data/v68.0/connect/cpq/configurator/actions/configure
 {
   "transactionLineId": "<QuoteLineItem Id of a configurable bundle on the quote>",
   "transactionId": "<Quote Id>",

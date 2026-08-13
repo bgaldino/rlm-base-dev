@@ -3,7 +3,11 @@
 **How `prepare_rlm_org` Stands Up a Fully Configured Revenue Cloud Org**
 
 > Audience: Semi-technical stakeholders, enablement engineers, and new team members
-> Last Updated: March 2026 | Salesforce Release 262 (Summer '26) | API v67.0
+> Last Updated: August 2026 | Salesforce Release 264 (Winter '27) | API v68.0
+>
+> Release-specific notes below that name 262 explicitly (the CRM Analytics
+> enablement change, the `RateCardEntry` DML regression) record when a behavior
+> changed and are kept as written; they have not been re-verified on 264.
 
 ---
 

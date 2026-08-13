@@ -7,7 +7,7 @@
 > Posted Path* below).
 
 The ingestion path bypasses the PST spine entirely. One POST to
-`/services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest` produces
+`/services/data/v68.0/commerce/invoicing/invoices/collection/actions/ingest` produces
 an `Invoice` with `CreationMode = External` plus its `InvoiceLine` rows in a single
 Composite Graph call — no `Opportunity`/`Quote`/`Order`/`Activate`/`BillingSchedule`.
 The wire format is the **typed graph record shape** described in the dev guide at
@@ -17,7 +17,7 @@ NOT the generic Composite Graph subrequest shape (`{url, method, body}`).
 ## Verified payload shape (Draft, against `rlm-base__jun17_1`, 2026-06-25)
 
 ```jsonc
-POST /services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest
+POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/ingest
 {
   "invoices": [{
     "shouldCalculateTax": false,      // Current invariant: no InvoiceLineTax

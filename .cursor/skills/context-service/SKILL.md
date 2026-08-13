@@ -10,7 +10,7 @@ at runtime. A context definition declares **nodes** (an object hierarchy) and
 expression-set steps that consume it. This skill is consumable by any AI agent
 (Cursor, Claude Code, Copilot, Codex, Windsurf, Aider).
 
-> **Pinned to Release 262 / API v67.0.** Enums, limits, and API behavior are
+> **Pinned to Release 264 / API v68.0.** Enums, limits, and API behavior are
 > grounded in `tasks/rlm_context_service.py`, `tasks/rlm_extend_stdctx.py`, the
 > repo's context plans, `docs/references/context-service-utility.md`, Core UDD,
 > the Connect OAS, and Salesforce Help — re-verify edge behavior on the target

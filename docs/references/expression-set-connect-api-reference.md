@@ -1,6 +1,8 @@
 # Expression Set Programmatic Management — Reference
 
-> **Release 262 / API v67.0.** Setup/admin reference for programmatically
+> **Release 264 / API v68.0** (endpoint versions). **Behavior below was
+> live-verified on Release 262 / API v67.0 and has not been re-verified on 264.**
+> Setup/admin reference for programmatically
 > managing BRE Expression Sets / pricing procedures — **not** a runtime business
 > API. Companion to `tasks/rlm_expression_set_connect.py` (the Connect CRUD
 > tasks), `tasks/expression_set_schema.py` (the pre-flight validator), and the
@@ -540,16 +542,17 @@ JSON blob** into the element editor — there is no documented API path.
 
 ## Endpoints & auth
 
-- **Connect base:** `{instance}/services/data/v67.0/connect/business-rules/expression-set`
+- **Connect base:** `{instance}/services/data/v68.0/connect/business-rules/expression-set`
 - **Dependencies** (GET): `/connect/business-rules/expression-set/version/{9QM…}/dependencies`
   → referenced `DecisionTable`s. Keyed by **version Id** (`9QM`); the `9QL`
   variant returns `INVALID_ID_FIELD`.
-- **Tooling base:** `{instance}/services/data/v67.0/tooling/sobjects/ExpressionSetDefinitionVersion`
+- **Tooling base:** `{instance}/services/data/v68.0/tooling/sobjects/ExpressionSetDefinitionVersion`
 - **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
   or pull `instanceUrl`/`accessToken` from `sf org display --json`.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 
-Pinned to **262 / v67.0**. Re-verify on the target release at merge time —
+Endpoints target **264 / v68.0**; the observed behavior was verified on **262 /
+v67.0** and is not yet re-verified on 264. Re-verify on the target release at merge time —
 platform behavior may change.
 
 ---

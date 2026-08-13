@@ -1,19 +1,19 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "1.0.0",
-  "last_updated_utc": "2026-07-23T05:04:33Z",
+  "last_updated_utc": "2026-08-13T23:00:00Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
     "default_branch": "main",
-    "active_work_branch": "262",
+    "active_work_branch": "264",
     "source_format": "sfdx",
     "salesforce_release": {
-      "number": "262",
-      "name": "Summer '26",
-      "api_version": "67.0",
-      "prior_ga_release": "260",
-      "prior_ga_api_version": "66.0"
+      "number": "264",
+      "name": "Winter '27",
+      "api_version": "68.0",
+      "prior_ga_release": "262",
+      "prior_ga_api_version": "67.0"
     }
   },
   "key_directories": [

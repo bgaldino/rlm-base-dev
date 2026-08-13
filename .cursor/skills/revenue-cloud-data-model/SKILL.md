@@ -12,6 +12,13 @@ description: >-
 
 Revenue Cloud v67.0 (Summer '26 / Release 262) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
 
+> **Branch note (264).** This branch targets Release 264 / API v68.0, but the
+> schema figures above are the **262 / v67.0** capture in `docs/erds/erd-data.json`
+> and are deliberately left at their source release — they are provenance of the
+> org they were extracted from, not a version pin. Object/field counts and any
+> 264 schema deltas are unknown until the ERD is regenerated from a verified 264
+> org; see [`docs/erds/README.md`](../../../docs/erds/README.md) for that workflow.
+
 The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
 
 **Verified 2026-05-27 against:**

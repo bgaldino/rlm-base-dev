@@ -43,7 +43,7 @@ and rejects the entire place call. The harness pins this at the config layer:
 
 ### 2. Order — Place Sales Transaction (PST) — ✅ VERIFIED LIVE
 
-- **Endpoint:** `POST /services/data/v67.0/connect/rev/sales-transaction/actions/place`
+- **Endpoint:** `POST /services/data/v68.0/connect/rev/sales-transaction/actions/place`
   (same endpoint as the quote graph; the discriminator is the graph shape).
 - **Body:** Order header + `OrderAction(Type=Add)` + N OrderItem children,
   with each child's `OrderActionId` pointing at the action.
@@ -130,7 +130,7 @@ Lifecycle Management order until this row is written.
 `createOrderFromQuote` creates this row implicitly as part of its
 invocable-action commit; PST place against the Order graph does not.
 
-- **Endpoint:** `POST /services/data/v67.0/sobjects/AppUsageAssignment`
+- **Endpoint:** `POST /services/data/v68.0/sobjects/AppUsageAssignment`
 - **Body (verified):**
   ```json
   {
@@ -180,7 +180,7 @@ The PATCH body, response (204 No Content), and fields are identical.
 
 ### 3. Activate Order — ✅ VERIFIED LIVE (mechanism identical to quote path)
 
-- **Endpoint:** `PATCH /services/data/v67.0/sobjects/Order/<id>` body
+- **Endpoint:** `PATCH /services/data/v68.0/sobjects/Order/<id>` body
   `{ "Status": "Activated" }`. Returns 204 No Content on success.
 - **PRECONDITIONS** (both REQUIRED, both verified live):
   1. `AppUsageAssignment` row exists for the Order id (see § 2a).
@@ -230,7 +230,7 @@ quote kind.
 
 ## Cleanup — ✅ VERIFIED LIVE
 
-- **Draft Order:** `DELETE /services/data/v67.0/sobjects/Order/<id>` →
+- **Draft Order:** `DELETE /services/data/v68.0/sobjects/Order/<id>` →
   HTTP 204. Cascades to child OrderItems.
 - **Activated Order:** must be reset to Draft first. Activated direct
   attempt returns

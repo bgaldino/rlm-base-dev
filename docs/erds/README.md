@@ -4,6 +4,18 @@ This directory contains comprehensive entity relationship diagrams (ERDs) for th
 
 **Current baseline:** Release 262 (Summer '26, API v67.0) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
 
+> ⚠ **This branch targets 264 (Winter '27, API v68.0), but the ERD below is still
+> 262-derived and is deliberately left that way.** Every release/apiVersion value
+> in this document and in `erd-data.json` is *provenance* — it records which orgs
+> and which Core UDD revision the schema was extracted from. Relabeling it 264
+> without re-extracting would make the ERD claim to describe 264 schema while
+> serving 262 data. The refresh needs a fresh 264 org **and** a fresh 262
+> comparison org (the schema-validation skill forbids single-org patching, which
+> would baseline feature-gated noise as canonical), then
+> `extract_schema.py` → `diff_schemas.py` → `validate_erd_against_org.py --patch`,
+> then a whole-block metadata rewrite and `build_erds.py`. Tracked in
+> `.agents/artifacts/upgrades/264-upgrade-plan.md`.
+
 The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. Verified via dual-org cross-validation (260 baseline `ent-r1` and 262 target `rlm-base__ent-sb0`) plus 127 entities individually checked against Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
 
 Per-object 262 schema changes are summarized below. The 260 → 262 delta is **field-level additive** (45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded — e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`) with **value-level picklist deltas** of 243 added and 62 removed. The picklist removals are IANA TimeZone renames (e.g. `America/Catamarca` → `America/Argentina/Catamarca`, `Europe/Kiev` → `Europe/Kyiv`) and cleanup of unused industry-specific `UsageType` values (`InsuranceRuleAction`, `StageManagement`) on fulfillment objects; the picklist-removal audit tabulated the full breakdown. Each removed value was cross-referenced against every CSV under `datasets/sfdmu/{qb,q3,mfg}/**` — **zero maintained-plan rows reference any removed value**. Nine objects with deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md`, but **no SFDMU remediation is required**: additive fields can't break loads, and the removed picklist values aren't in use.

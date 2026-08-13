@@ -310,7 +310,7 @@ That task runs the load twice and fails if any object's record count increases o
 
 ## 260 Schema Validation Notes
 
-- **API Version**: `67.0` (Release 262)
+- **API Version**: `68.0` (Release 264)
 - **Validated (2026-04-02)** against rlmtrialtest org (Release 260); 262 re-validation pending
 - Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
 - ProductCategory self-reference (Network Adapter → PCIe) validated

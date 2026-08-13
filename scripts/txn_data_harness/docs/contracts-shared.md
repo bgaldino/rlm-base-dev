@@ -3,7 +3,7 @@
 ## Environment verified
 
 - **Org:** Revenue Cloud R262 scratch org with the QB demo dataset loaded.
-- **API version:** `67.0` is present (org max == `67.0`); the tool defaults to `67.0`.
+- **API version:** `67.0` is present (org max == `67.0`); the tool defaults to `68.0`.
 - **Auth (verified):**
   - Token → `sf org auth show-access-token --target-org <alias> --json` returns
     **only** `{ result: { accessToken } }` (no instanceUrl).

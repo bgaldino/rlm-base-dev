@@ -1,11 +1,13 @@
 # Revenue Cloud Base Foundations
 
-**Salesforce Release:** 262 (Summer '26)
-**API Version:** 67.0
+**Salesforce Release:** 264 (Winter '27) — *this branch*
+**API Version:** 68.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the `262` upgrade branch. Release 260 (Spring '26) is the prior GA reference, preserved on the `release/260` branch.
+The `264` branch is the active development line, targeting Salesforce Release 264 (Winter '27, API v68.0). `main` remains the Release 262 (Summer '26, API v67.0) GA target, and `release/262` is the frozen 262 GA reference.
+
+> **264 is pre-GA.** Feature freeze is 2026-08-14; GA waves run 2026-09-05 → 2026-10-10. No 264 release notes or v68.0 Metadata Coverage Report entry exist yet, so a live 264 org is the authority on 264 behavior. Because the dev hub is on API 68.0, every scratch org it creates is a 264 org regardless of branch — which is why `main` is no longer buildable against it.
 
 ## Table of Contents
 
@@ -1557,10 +1559,14 @@ When contributing to this project:
 
 ## Branch Information
 
-- **`main`**: Salesforce Release 262 (Summer '26, API v67.0) — current GA target (promoted from `262`)
-- **`262`**: Retained Release 262 upgrade branch — now equivalent to `main`
+- **`264`**: Salesforce Release 264 (Winter '27, API v68.0) — **active development line**, cut from `main` at `49a494de`
+- **`main`**: Salesforce Release 262 (Summer '26, API v67.0) — current GA target
+- **`release/262`**: Frozen Release 262 GA reference, snapshotted from `main` at `49a494de`
 - **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
+- **`262`**: The original 262 upgrade branch, retained for history. It is *behind* `main` — use `release/262` for the 262 reference, not this branch.
 - Other branches exist for different release scenarios and preview features
+
+New work targets `264`. `main` receives the promotion merge once 264 is certified, mirroring how `262` was merged into `main` via PR #208.
 
 ## Additional Resources
 
@@ -1571,7 +1577,7 @@ When contributing to this project:
 - [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (prior GA reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)
 
-**Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference.
+**Note:** This branch targets Release 264 (Winter '27), for which Salesforce has not yet published release notes or a developer guide. Until it does, the Release 262 (Summer '26) documentation above is the closest published reference, and a live 264 org is the authority where the two disagree.
 
 ## License
 

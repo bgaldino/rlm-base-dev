@@ -1,7 +1,7 @@
 # Decision Tables — Lifecycle & Refresh
 
-> Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 262 /
-> API v67.0.** Read this when you need the deploy paths + source locations, the
+> Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 264 /
+> API v68.0.** Read this when you need the deploy paths + source locations, the
 > active-edit restriction, activate/deactivate, refresh inputs and limits,
 > recipe-table mappings +
 > `validate_lists`, or a brief runtime-execution note. The exhaustive reference
@@ -79,7 +79,7 @@ The `refreshDecisionTable` **standard invocable action** syncs source rows into
 the BRE engine cache. It is how a data change (or a redeployed definition) becomes
 live to the engine.
 
-- **Endpoint:** `POST /services/data/v67.0/actions/standard/refreshDecisionTable`
+- **Endpoint:** `POST /services/data/v68.0/actions/standard/refreshDecisionTable`
 - **Action-describe inputs** (`GET …/actions/standard/refreshDecisionTable`):
 
   | Input | Type | Required |

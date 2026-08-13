@@ -31,7 +31,7 @@ The catalog has **two complementary artifact types**, both authored in this repo
 1. **Markdown is the source.** Distribution artifacts (PDF, Word) render from `.md` source files. Master files live in `docs/enablement/master/`; per-release extracts in `docs/enablement/{version}/`.
 2. **The QB Scenario Reference is the foundation.** Every master exercise anchors walkthroughs to the canonical Infinitech (US, Technology) + Global Media (Canada, Media) customer accounts and the QB catalog (`docs/enablement/master/qb-scenario-reference.md`).
 3. **Past releases (248, 252, 254, 256, 258) are read-only historical artifacts.** Never edit. They serve as carry-forward references only.
-4. **Generate 260 and forward.** 262 is the current development cycle. 260 is the prior GA reference.
+4. **Generate 260 and forward.** 264 is the current development cycle. 262 is the prior GA reference.
 5. **Master file naming:** `{NN}-{area-kebab}.md` (e.g., `01-product-catalog-management.md`, `02-salesforce-pricing.md`). The numeric prefix preserves the workshop sequence. Per-release naming: `{version}-{area-kebab}-hands-on.md`.
 6. **Customer accounts come from `scratch_data`.** Infinitech is the primary customer (full BillingAccount setup). Global Media is the secondary (Canada-based, multi-account demos). Robot Resellers (in `qb-prm`) is the partner channel. Never invent customer names.
 7. **Reference QuantumBit data.** Look up products/SKUs/bundles/CML models in `datasets/sfdmu/qb/` and `datasets/constraints/qb/` when authoring step-by-step instructions. The QB Scenario Reference summarizes what's available.
@@ -155,9 +155,9 @@ The auto-gen reads frontmatter to populate the cover page, headers, footers, and
 
 ```yaml
 ---
-release_version: 262            # int — RCA package version (current cycle; 260 = Spring '26 = prior GA)
-release_name: "Summer '26"      # str — seasonal name
-api_version: 67.0               # float — Salesforce API version
+release_version: 264            # int — RCA package version (current cycle; 262 = Summer '26 = prior GA)
+release_name: "Winter '27"      # str — seasonal name
+api_version: 68.0               # float — Salesforce API version
 area: "Salesforce Pricing"      # str — must match journey map label
 document_version: 0.3           # str — semver-ish, increment within a release cycle
 status: draft                   # outline | draft | review | final
@@ -196,8 +196,9 @@ The auto-gen uses the H2 + H3 structure literally. Section headers must match th
 
 | Release | Status | Feature Index |
 |---|---|---|
-| 260 (Spring '26) | Prior GA reference | [`docs/salesforce/260/feature-index.md`](../../../docs/salesforce/260/feature-index.md) |
-| 262 (Summer '26) | Current — in development | [`docs/salesforce/262/feature-index.md`](../../../docs/salesforce/262/feature-index.md) |
+| 260 (Spring '26) | Earlier GA reference | [`docs/salesforce/260/feature-index.md`](../../../docs/salesforce/260/feature-index.md) |
+| 262 (Summer '26) | Prior GA reference | [`docs/salesforce/262/feature-index.md`](../../../docs/salesforce/262/feature-index.md) |
+| 264 (Winter '27) | Current — in development | [`docs/salesforce/264/feature-index.md`](../../../docs/salesforce/264/feature-index.md) |
 
 The feature index for each release is the **authoring input**. It contains a per-area table of new features with: name, tier (GA/Beta/Pilot), one-paragraph description, source page references, demo URL placeholders. Authoring an exercise means working through that area's row in the feature index and turning each row into a Feature N section in the area's `.md` file.
 

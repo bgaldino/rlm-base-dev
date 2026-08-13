@@ -627,7 +627,7 @@ Extract ODTs. Uses standard OAuth — no Lightning session required.
 
 **Endpoint:**
 ```
-POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
+POST /services/data/v68.0/omnistudio/dataraptor/<ODTName>
 ```
 
 **Body:**
@@ -639,7 +639,7 @@ POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
 ```bash
 sf api request rest --method POST \
   --body '{"Id":"0Q0XXXXXXXXXXXXAAA"}' \
-  /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalExtract \
+  /services/data/v68.0/omnistudio/dataraptor/RLMQuoteProposalExtract \
   --target-org dev-scratch
 ```
 
@@ -697,7 +697,7 @@ python scripts/docgen/docgen_odt_execute.py MyExtract \
 # Step 2: Pass Extract output to Transform
 sf api request rest --method POST \
   --body @/tmp/extract_output.json \
-  /services/data/v67.0/omnistudio/dataraptor/MyTransform \
+  /services/data/v68.0/omnistudio/dataraptor/MyTransform \
   --target-org dev-scratch
 ```
 
@@ -931,7 +931,7 @@ python scripts/docgen/docgen_odt_execute.py MyTransform \
   --input /tmp/extract.json --org dev-scratch --json
 ```
 
-**Endpoint:** Same as Extract: `POST /services/data/v67.0/omnistudio/dataraptor/<Name>`
+**Endpoint:** Same as Extract: `POST /services/data/v68.0/omnistudio/dataraptor/<Name>`
 **Body:** The full Extract output JSON (array or object)
 **Response:** The template-ready JSON with all tokens resolved
 

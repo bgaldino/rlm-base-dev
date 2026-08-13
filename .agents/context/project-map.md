@@ -4,11 +4,12 @@
 
 - **Repository:** `rlm-base-dev`
 - **CCI project:** `rlm-base`
-- **Salesforce target:** Release 262 / Summer '26
-- **API version:** `67.0`
+- **Salesforce target:** Release 264 / Winter '27
+- **API version:** `68.0`
 - **Source format:** SFDX
-- **Default branch:** `main`
-- **Active release branch in manifest:** `262`
+- **Default branch:** `main` (Release 262 / Summer '26 / API `67.0` GA target)
+- **Active release branch in manifest:** `264`
+- **Frozen prior-GA reference branch:** `release/262`
 
 ## Agent Memory Files
 
@@ -21,7 +22,7 @@
 | Path | Ownership / Purpose | Agent Notes |
 | --- | --- | --- |
 | `cumulusci.yml` | CCI project, task, flow, org, and feature-flag configuration | After edits, run `python scripts/ai/generate_cci_reference.py` and commit regenerated references. |
-| `config/` | Scratch org definition configuration | Review org shape and feature changes against Release 262 expectations. |
+| `config/` | Scratch org definition configuration | Review org shape and feature changes against Release 264 expectations. |
 | `force-app/` | Core SFDX metadata | Keep profile and object safety constraints in mind. |
 | `unpackaged/pre/` | Pre-deploy metadata | Deploys before core metadata/data. |
 | `unpackaged/post_*/` | Feature-specific post-deploy metadata | Verify edition and feature guards when adding bundles. |
@@ -34,7 +35,7 @@
 | `scripts/apex/` | Apex activation/deletion scripts | Keep scripts bulk-safe and avoid unsafe single-record loops. |
 | `scripts/ai/` | Agent support utilities | Includes CCI reference generation and ERD/manifest helpers. |
 | `scripts/cml/` | CML utilities | Export/import/validation helpers for constraint model work. |
-| `scripts/erd/` | Schema and ERD tooling | Use for Release 260/262 schema comparisons and ERD generation. |
+| `scripts/erd/` | Schema and ERD tooling | Use for cross-release schema comparisons (260/262/264) and ERD generation. |
 | `scripts/soql/` | Reusable SOQL queries | Prefer checked-in query files for repeatable analysis. |
 | `tasks/` | Custom Python CCI tasks | Use `org_config.username` for `sf` CLI; reserve tokens for REST. |
 | `tests/` | Shell-based integration tests | Run relevant test scripts for changed behavior. |

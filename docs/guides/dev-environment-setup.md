@@ -326,7 +326,7 @@ Symptom — a freshly created scratch org immediately fails, with a URL that
 ends in a redacted placeholder, e.g.:
 
 ```
-Error: Expired session for https://...my.salesforce.com/services/data/v67.0/
+Error: Expired session for https://...my.salesforce.com/services/data/v68.0/
 sobjects/Organization/[REDACTED] Use 'sf org auth show-access-token' to view.
 [{'message': 'INVALID_AUTH_HEADER', 'errorCode': 'INVALID_AUTH_HEADER'}]
 ```
@@ -350,9 +350,11 @@ and in `.github/workflows/prepare-rlm-org.yml` (CI). If you hit it, you're
 likely in a shell where `.envrc` isn't active — re-run `direnv allow` or export
 it manually.
 
-> **Temporary.** Salesforce plans to remove `SF_TEMP_SHOW_SECRETS` in
-> Summer '26. The durable fix is a CumulusCI release that fetches the token via
-> `sf org auth show-access-token --json`; drop the env var once CCI does that.
+> **Temporary.** Salesforce announced it would remove `SF_TEMP_SHOW_SECRETS` in
+> Summer '26 (262). That window has passed and the shim still works, so treat the
+> removal date as unknown rather than scheduled. The durable fix is a CumulusCI
+> release that fetches the token via `sf org auth show-access-token --json`; drop
+> the env var once CCI does that.
 
 ---
 

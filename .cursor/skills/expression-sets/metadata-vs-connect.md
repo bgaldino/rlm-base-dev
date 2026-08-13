@@ -7,7 +7,7 @@ verb-specific field handling, and GET serializer gotchas. For building/applying
 declarative overlays and capturing a step's three dependency scopes, read the
 companion sub-file `authoring-and-overlays.md`.
 
-Pinned to Release 262 / API v67.0.
+Pinned to Release 264 / API v68.0.
 
 ---
 

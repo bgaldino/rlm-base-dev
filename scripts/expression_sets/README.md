@@ -9,7 +9,7 @@ qualification procedures and constraint rules. It covers the whole lifecycle:
 Auth is delegated to the **`sf` CLI** (`sf api request rest --target-org …`), so
 **no access token is ever handled or passed**. `--target-org` is always the
 **SF CLI alias** (e.g. `rlm-base__beta`), **never** the CCI alias.
-Pinned to Release 262 / API v67.0.
+Pinned to Release 264 / API v68.0.
 
 Full guidance lives in the **expression-sets skill**:
 `.cursor/skills/expression-sets/SKILL.md` (+ `authoring-and-overlays.md`,

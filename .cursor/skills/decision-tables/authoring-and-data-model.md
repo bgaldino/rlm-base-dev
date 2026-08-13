@@ -1,7 +1,7 @@
 # Decision Tables — Authoring & Data Model
 
-> Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 262 /
-> API v67.0.** Read this when you need the setup-object model, the metadata XML
+> Sub-file of `.cursor/skills/decision-tables/SKILL.md`. **Pinned to Release 264 /
+> API v68.0.** Read this when you need the setup-object model, the metadata XML
 > shape, the enum catalog, the supported authoring paths, or the
 > definition-vs-data model in depth. The exhaustive
 > object/ID/enum/error reference is
@@ -75,9 +75,10 @@ loader waits for `uploadStatus` (`UploadInProgress` → `Completed` /
 `CompletedWithErrors` / `Failed`) and succeeds only on `Completed`. Use
 `dump_decision_table_data.py` when row-level inspection is needed.
 
-> ⚠ **Do not use `deleteAllRows:true` on Release 262 / API v67.0.** It can finish
-> with `uploadStatus=Failed` while leaving existing rows intact. The toolkit is
-> append-only; replace CSV data with a fresh table and a new upload.
+> ⚠ **Do not use `deleteAllRows:true`.** It can finish with `uploadStatus=Failed`
+> while leaving existing rows intact. Observed on Release 262 / API v67.0 and
+> **not re-tested on 264** — assume it still holds until proven otherwise. The
+> toolkit is append-only; replace CSV data with a fresh table and a new upload.
 
 **Per-column CSV encoding.** Generic BRE CSV tables accept all seven Metadata
 `dataType` values. That does **not** widen Salesforce Pricing's supported
@@ -267,7 +268,8 @@ uses a different definition vocabulary. Connect remains necessary for CSV
 
 ## Enum catalog
 
-This is the Release 262 Metadata/Tooling authoring catalog. Unknown descriptive
+This catalog was captured on Release 262 and is not yet re-verified on 264.
+Unknown descriptive
 values warn for forward compatibility; invalid structural values such as column
 `usage` fail validation.
 

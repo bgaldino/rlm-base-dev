@@ -7,7 +7,7 @@ the **runtime** context *instance*: hydrating one from live records, querying /
 inspecting the hydrated attribute values, updating them, reading / writing tags,
 and persisting them back to the mapped SObjects.
 
-> **Pinned to Release 262 / API v67.0.** Endpoint paths and the create /
+> **Pinned to Release 264 / API v68.0.** Endpoint paths and the create /
 > query-record / persist / query-tags-leaner request shapes are confirmed against
 > the public **Runtime Context Instance Management** and **Persistence Context
 > Management** REST references and cross-checked against live-org behavior. The
@@ -211,7 +211,7 @@ The runtime REST surface is fully implemented at v67.0. Two facts govern what
 works from stateless CLI calls:
 
 > **⚠ ALWAYS use the fully versioned path with `sf api request rest`.** Call
-> `sf api request rest "/services/data/v67.0/connect/contexts/attributes" …`, **not**
+> `sf api request rest "/services/data/v68.0/connect/contexts/attributes" …`, **not**
 > the bare `connect/contexts/attributes`. A bare (un-versioned) path is NOT
 > auto-prefixed for these resources — it misroutes to an HTML **"URL No Longer
 > Exists"** page (an edge 404, and a **501 for `PATCH`**). That 501 is the *edge
@@ -263,7 +263,7 @@ not by chaining outbound `/connect/contexts/*` calls.
 
 Context Service also ships **standard invocable actions** (Flow-/REST-invocable,
 [doc](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/context_service_invocable_actions_parent.htm)).
-Action names on the org (`GET /services/data/v67.0/actions/standard`, filtered):
+Action names on the org (`GET /services/data/v68.0/actions/standard`, filtered):
 **`buildContext`**, **`updateContextAttributes`**, **`persistContextData`**,
 **`queryContextTags`**, **`deleteContextCache`**, plus `addContextRecords` /
 `deleteContextRecords` / `getAgentContext`. Input schemas (via
@@ -631,7 +631,7 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    and real `tagValue`s confirm the definition + mapping hydrate; `recordIds:[]`
    means the payload's `businessObjectType` doesn't match the mapping's SObject.
 
-Record the actual v67.0 request/response shapes and adjust the two verify-live
+Record the actual v68.0 request/response shapes and adjust the two verify-live
 PATCH builders (`build_update_attributes_body`, `build_write_tags_body`) and the
 `taggedData` handling in `_runtime.py` if they differ.
 

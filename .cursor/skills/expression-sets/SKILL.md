@@ -17,7 +17,7 @@ table**'s output via a `GetOutputsFromDecisionTable` step (with a `DecisionTable
 parameter) — to inspect, author, or manage those tables see
 `.cursor/skills/decision-tables/SKILL.md`.
 
-> **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
+> **Pinned to Release 264 / API v68.0.** Re-verify enums and behavior on the
 > target release at merge time. This `SKILL.md` is the task-level entry point;
 > deep detail lives in three companion files (read on demand):
 > - **`authoring-and-overlays.md`** — building/applying overlays, capturing a

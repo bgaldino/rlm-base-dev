@@ -11,7 +11,7 @@ Any CumulusCI command that touches an org fails with an expired-session / invali
 
 ```
 $ cci org info pr182
-Error: Expired session for https://...scratch.my.salesforce.com/services/data/v67.0/...
+Error: Expired session for https://...scratch.my.salesforce.com/services/data/v68.0/...
 Response content: [{'message': 'INVALID_AUTH_HEADER', 'errorCode': 'INVALID_AUTH_HEADER'}]
 ```
 

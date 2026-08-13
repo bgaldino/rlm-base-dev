@@ -256,7 +256,7 @@ Use this for:
 
 **Testable at each stage:**
 - Stage 2: `python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
-- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
+- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v68.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
 - Full pipeline: `python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
 
 ---

@@ -7,7 +7,7 @@ release, or debugging a lifecycle gotcha.
 > **Provenance / pin.** Sourced from `tasks/rlm_context_service.py`,
 > `tasks/rlm_extend_stdctx.py`, `docs/references/context-service-utility.md`,
 > the `datasets/context_plans/` examples, Core UDD, the Connect OAS, and
-> Salesforce Help. **Pinned to Release 262 / API v67.0.** Behaviors below are
+> Salesforce Help. **Pinned to Release 264 / API v68.0.** Behaviors below are
 > live-confirmed on 262 / v67.0 unless marked *(verify live)* (inferred from
 > code/docs, not yet confirmed against a live org).
 
@@ -265,7 +265,7 @@ version-crossing operation is Upgrade/Sync (below).
 
 ## Upgrade / Sync (across a release)
 
-- `PATCH /services/data/v67.0/connect/context-definitions/upgrades` with
+- `PATCH /services/data/v68.0/connect/context-definitions/upgrades` with
   `upgradeMode` ∈ **`Sync`** (merge platform changes, preserve custom artifacts),
   **`Preview`** (report only), **`Override`** (**destructive** — deletes custom
   artifacts, resets to the standard base). One definition at a time.

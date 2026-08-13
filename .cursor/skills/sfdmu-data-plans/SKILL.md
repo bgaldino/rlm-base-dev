@@ -35,7 +35,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 
 ```json
 {
-  "apiVersion": "67.0",
+  "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {

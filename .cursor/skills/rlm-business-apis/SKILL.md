@@ -1,7 +1,7 @@
 ---
 name: rlm-business-apis
 description: >-
-  Revenue Cloud Business API reference for RLM v67.0 (Summer '26 / Release 262). Use when working with
+  Revenue Cloud Business API reference for RLM v68.0 (Winter '27 / Release 264). Use when working with
   Revenue Cloud REST APIs, building integrations, writing Apex callouts, or
   answering questions about RLM API endpoints. Covers PCM, Product Discovery,
   Configurator, Pricing, Rate Management, Transaction Management, Usage
@@ -10,11 +10,11 @@ description: >-
 
 # Revenue Cloud Business APIs
 
-API v67.0 (Summer '26 / Release 262). All endpoints use `/services/data/v67.0/connect/` prefix on this branch. The Postman collection and per-domain reference docs under `postman/docs/` are version-pinned to v66 (Release 260) and have not been re-extracted for v67 yet — endpoint shapes are stable across the bump but treat the docs as reference, not source of truth.
+API v68.0 (Winter '27 / Release 264). All endpoints use `/services/data/v68.0/connect/` prefix on this branch. The Postman collection and per-domain reference docs under `postman/docs/` are version-pinned to v66 (Release 260) and have not been re-extracted for v68 yet — endpoint shapes are stable across the bump but treat the docs as reference, not source of truth.
 
 ## Quick Rules
 
-1. All endpoints: `/services/data/v67.0/connect/<domain>/` (the `postman/docs/` references show v66.0 paths — substitute v67.0 when calling against a 262 org).
+1. All endpoints: `/services/data/v68.0/connect/<domain>/` (the `postman/docs/` references show v66.0 paths — substitute v68.0 when calling against a 264 org).
 2. Auth: Bearer token from `org_config.access_token`.
 3. Context Service: must activate context definition before use.
 4. Pricing API computes prices — never write PBE records directly via API.
@@ -22,7 +22,7 @@ API v67.0 (Summer '26 / Release 262). All endpoints use `/services/data/v67.0/co
 
 ## API Domain Index
 
-> `Base Path` values below are relative to `/services/data/v67.0` — i.e. `/connect/pcm/` is actually `/services/data/v67.0/connect/pcm/`. The shorthand is used for table compactness; full prefix per Quick Rule #1 above.
+> `Base Path` values below are relative to `/services/data/v68.0` — i.e. `/connect/pcm/` is actually `/services/data/v68.0/connect/pcm/`. The shorthand is used for table compactness; full prefix per Quick Rule #1 above.
 
 | Domain | Base Path | Key Operations | Reference Doc |
 |--------|-----------|---------------|---------------|
@@ -75,7 +75,7 @@ Context definitions store session state and configuration across API calls. Used
 
 ## Master Reference
 
-For the complete cross-domain API reference extracted from the Release 260 (v66.0) developer guide — still the most complete cross-domain reference until a 262 (v67.0) extraction lands:
+For the complete cross-domain API reference extracted from the Release 260 (v66.0) developer guide — still the most complete cross-domain reference until a 264 (v68.0) extraction lands:
 [rlm-v260-business-apis-reference.md](../../postman/docs/rlm-v260-business-apis-reference.md)
 
 ## Interactive Viewer

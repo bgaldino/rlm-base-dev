@@ -7,7 +7,7 @@ the guardrail limits, or the MDAPI type schema.
 > **Provenance / pin.** Sourced from `tasks/rlm_context_service.py`,
 > `tasks/rlm_extend_stdctx.py`, the plans in `datasets/context_plans/`,
 > `docs/references/context-service-utility.md`, Core UDD, the Connect OAS, and
-> Salesforce Help. **Pinned to Release 262 / API v67.0** — re-verify enums and
+> Salesforce Help. **Pinned to Release 264 / API v68.0** — re-verify enums and
 > response shapes against a live org if the platform changes.
 >
 > **Mutation-endpoint accept-shapes** (fields each PATCH/POST endpoint accepts
@@ -246,11 +246,11 @@ just nodes + mappings + tags.
 
 ## Connect API vs SObject REST
 
-All Connect paths are relative to `/services/data/v67.0/` — `sf api request rest`
+All Connect paths are relative to `/services/data/v68.0/` — `sf api request rest`
 requires the **fully versioned path** (a bare `connect/...` 404s with
 "URL No Longer Exists"; `_client.py` prepends it automatically).
 
-| Resource / operation | API | Path (relative to `/services/data/v67.0/`) |
+| Resource / operation | API | Path (relative to `/services/data/v68.0/`) |
 |----------------------|-----|---------------------------------------------|
 | List definitions | Connect (GET) | `connect/context-definitions?includeInactive=true&includeUpgrade=true` |
 | Read one definition | Connect (GET) | `connect/context-definitions/<id>` |

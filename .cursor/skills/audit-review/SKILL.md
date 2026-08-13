@@ -1,9 +1,10 @@
 # Audit Review — PR Review-Response & Completeness-Sweep Playbook
 
 > How to process automated PR reviews (Codex, Copilot) and run the deep
-> pre-merge audit, through the lens that matters for this repo: **`262` →
-> `main` is mirrored to an internal Salesforce repo and passes through
-> Salesforce audit agents.** The goal is to minimize audit passes — so every
+> pre-merge audit, through the lens that matters for this repo: **the release
+> branch → `main` promotion (now `264` → `main`) is mirrored to an internal
+> Salesforce repo and passes through Salesforce audit agents.** The goal is to
+> minimize audit passes — so every
 > finding is handled as a *class*, not a one-line patch, and verified before it
 > is trusted.
 >
@@ -49,11 +50,11 @@
 | Situation | Use this skill? |
 |-----------|-----------------|
 | A Codex/Copilot review posted on a PR | Yes — triage, verify, sweep, fix, reply |
-| The deep pre-merge audit of a branch before `262 → main` | Yes — drive it by finding-class |
+| The deep pre-merge audit of a branch before `264 → main` | Yes — drive it by finding-class |
 | A single trivial nit with no class | Fix inline; reply; skip the full ceremony |
 | Authoring the actual CRUD/FLS fixes | Pair with `apex-security-hardening/SKILL.md` |
 
-## Release Audit (`262` → `main` → Salesforce Labs)
+## Release Audit (release branch → `main` → Salesforce Labs; now `264` → `main`)
 
 When a branch is being prepared to merge to `main`, it is **mirrored to an internal
 Salesforce repo and run through Salesforce audit agents** before release to devs,

@@ -52,8 +52,8 @@ mechanically per Salesforce release rather than hand-edited.
 - **DO NOT** reference `Solutions Workspace` URLs that don't exist for the
   target release. The DOT/TFID identifiers are release-specific.
 - **DO NOT** copy talk-track narrative verbatim from the prior release without
-  reviewing whether the feature behavior changed (e.g., "preview 262, Summer '26"
-  becomes "GA in 262" once 262 is GA).
+  reviewing whether the feature behavior changed (e.g., "preview 264, Winter '27"
+  becomes "GA in 264" once 264 is GA).
 - **DO NOT** publish to a real Slack canvas without a human review pass — the
   artifact is consumer-facing and partner-facing.
 

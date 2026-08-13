@@ -8,7 +8,7 @@ removing a step safely. For the two authoring *paths* (Connect vs Metadata API),
 the mutation lifecycle, verb-specific field rules, and GET serializer gotchas,
 read the companion sub-file `metadata-vs-connect.md`.
 
-Pinned to Release 262 / API v67.0.
+Pinned to Release 264 / API v68.0.
 
 ---
 

@@ -113,7 +113,7 @@ python -m scripts.txn_data_harness.generate --org <cci-alias> ...      # fails i
 | `--concurrency` | 4 | Parallel scenario workers (thread pool). |
 | `--poll-timeout` | 180 | Async poll timeout (seconds) per billing step. |
 | `--max-retries` | 2 | Retries for **transient** scenario failures (resumes from last checkpoint); `0` disables. |
-| `--api-version` | `67.0` | API version; `latest` queries the org for newest. |
+| `--api-version` | `68.0` | API version; `latest` queries the org for newest. |
 | `--transport` | `requests` | `requests` (native) or `cli` (`sf api request rest` proxy). |
 | `--no-probe` / `--keep-probes` | — | **Reserved, currently no-ops** (the discovery PST probe is not implemented — see Limitations). |
 | `--dry-run` | off | Resolve + print the plan; no writes. |
