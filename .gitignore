@@ -186,3 +186,9 @@ force-app/main/default/aiEvaluationDefinitions/
 
 # Per-workstation overrides that .envrc loads as dotenv (machine-specific paths).
 .env.local
+
+# MCP connector configs written by scripts/mcp/write_connector_config.py. Per
+# workstation and per org, they embed a resolved instance URL and consumer key —
+# and a consumer secret when running in client_credentials mode. Never commit one.
+.mcp.json
+**/.mcp.json

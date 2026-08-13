@@ -67,6 +67,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Run build harness profiles/resume/report | Build Harness | [build-harness/SKILL.md](build-harness/SKILL.md) |
 | Set up, audit, update or verify the local dev toolchain (incl. managed workstations) | Toolchain | [toolchain/SKILL.md](toolchain/SKILL.md) |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | [pde-org-build/SKILL.md](pde-org-build/SKILL.md) |
+| Stand up / inspect / debug the MCP surface on an org (hosted + custom servers, ECA, proxy) | MCP Integration | [mcp-integration/SKILL.md](mcp-integration/SKILL.md) |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | [repo-integration/ux-assembly-retrieve.md](repo-integration/ux-assembly-retrieve.md) |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | [schema-validation/SKILL.md](schema-validation/SKILL.md) |
 | Write Robot Framework tests | Robot Testing | [robot-testing/SKILL.md](robot-testing/SKILL.md) |
