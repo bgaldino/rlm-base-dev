@@ -13,17 +13,23 @@
     <enableFullEscalationHydration>true</enableFullEscalationHydration>
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
-    <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
-    <enableScaleAttributes>true</enableScaleAttributes>
+    <!-- Three fields are deliberately absent — enableScaleAttributes,
+         enableGroupRampTrialSegmentPref, and persistChunkSizeOverride. 264 dropped them
+         from the RevenueManagementSettings schema, and a 264 org rejects the whole file
+         with "Element {…}<field> invalid at this location in type
+         DeclarativeMetadataForSettings", taking every other setting here down with it.
+         Keep them out of the scratch-def settings blocks too
+         (config/project-scratch-def.json, orgs/*.json, orgs/internal/*.json), where their
+         presence makes org creation report status 68 / ProblemDeployingSettings while
+         still exiting 0. -->
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
     <hidePriceRefreshNtfcn>false</hidePriceRefreshNtfcn>
-    <persistChunkSizeOverride>true</persistChunkSizeOverride>
     <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
     <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>
