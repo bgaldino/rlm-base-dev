@@ -9,9 +9,9 @@ feature inventory yet, because the source material does not exist:
 - No 264 release notes have been published, and there is no Metadata Coverage
   Report entry for **API v68.0**.
 
-Until those land, the ground truth for 264 behavior is a **live 264 org** (the
-dev hub `devhub-usa794` is on API 68.0, so every scratch org it creates is a 264
-org), not documentation. Findings gathered that way belong in
+Until those land, the ground truth for 264 behavior is a **live 264 org** (the dev
+hub is on API 68.0, so every scratch org it creates is a 264 org), not
+documentation. Findings gathered that way belong in
 `.agents/artifacts/upgrades/264-upgrade-plan.md` until they can be cited to a
 published source.
 
