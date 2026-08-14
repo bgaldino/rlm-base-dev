@@ -625,6 +625,15 @@ class Analysis:
             f"{m.rule} has no corresponding skill or stand-alone note"
             for m in self.rule_mappings if m.status == "missing"
         )
+        # "unknown" means the rules table could not be read at all, so every
+        # mapping is unverified rather than absent. Counting only "missing"
+        # would render red rows while reporting overall PASS -- the same silent
+        # failure this analyzer was repaired for. One error names the structural
+        # cause instead of repeating it per rule.
+        out.extend(sorted({
+            f"rule coverage unverifiable: {m.detail}"
+            for m in self.rule_mappings if m.status == "unknown"
+        }))
         return out
 
     @property
