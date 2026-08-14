@@ -68,7 +68,7 @@ tasks/                 # Custom Python CCI task classes
 tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
                        #   no org needed), plus two shell integration scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
+orgs/                  # Scratch org definition JSON files (orgs/README.md; TFID template shapes: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
