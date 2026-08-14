@@ -27,6 +27,34 @@ OBJECT_NAME = "CustomFulfillmentScopeCnfg"
 DEFAULT_OUTPUT_FILE = "datasets/tooling/CustomFulfillmentScopeCnfg.json"
 MIN_API_VERSION = "65.0"
 
+# Release 264 ships the standard SalesTransactionItemGroup context attribute typed
+# `lookup`, while this object's own validation demands String -- two platform-shipped
+# things disagreeing, so no repo-side data change can satisfy both. A 262 org (and any
+# org upgraded from one) has it typed `string` and is unaffected.
+#
+# The tolerance below is deliberately narrow. It is not "continue on error": a record is
+# skipped only when the org itself confirms the referenced tag resolves to a non-String
+# attribute. A misspelled or missing tag still fails, which is the distinction that makes
+# this a workaround for a platform defect rather than a mask over a repo defect. It also
+# self-retires -- once the attribute is typed String the create simply succeeds and this
+# code never runs.
+_CONTEXT_TAG_TYPE_ERROR_CODE = "INVALID_INPUT"
+_CONTEXT_TAG_TYPE_MARKERS = ("item context tag", "string")
+_CONTEXT_TAG_FIELD = "ItemContextTag"
+
+
+class ToolingWriteError(TaskOptionsError):
+    """A Tooling API write was rejected. Carries the response for classification.
+
+    Subclasses TaskOptionsError and keeps the same message text, so any caller that
+    does not catch it behaves exactly as before.
+    """
+
+    def __init__(self, message: str, status_code: int = 0, body: str = ""):
+        super().__init__(message)
+        self.status_code = status_code
+        self.body = body
+
 
 class ManageFulfillmentScopeCnfg(BaseTask):
     task_options = {
@@ -67,6 +95,15 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         },
         "dry_run": {
             "description": "If true, log intended changes without writing to the org.",
+            "required": False,
+        },
+        "on_invalid_context_tag": {
+            "description": (
+                "What to do when the org rejects a record because its "
+                f"{_CONTEXT_TAG_FIELD} resolves to a context attribute that is not "
+                "typed String: 'fail' (default) or 'skip'. 'skip' is verified against "
+                "the org before it applies -- a missing or misspelled tag still fails."
+            ),
             "required": False,
         },
     }
@@ -249,6 +286,14 @@ class ManageFulfillmentScopeCnfg(BaseTask):
 
         key_field = self.options.get("key_field") or "DeveloperName"
         dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
+        on_invalid_context_tag = (
+            str(self.options.get("on_invalid_context_tag") or "fail").lower().strip()
+        )
+        if on_invalid_context_tag not in {"fail", "skip"}:
+            raise TaskOptionsError(
+                "on_invalid_context_tag must be 'fail' or 'skip'. "
+                f"Got: {on_invalid_context_tag!r}"
+            )
 
         access_token, instance_url, api_version = self._get_api_context()
         describe = self._describe(access_token, instance_url, api_version)
@@ -280,6 +325,7 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         }
 
         created = updated = skipped = 0
+        blocked: List[tuple] = []
 
         # Validate all records and collect key values up-front
         key_values = []
@@ -349,7 +395,21 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                     self.logger.info(f"[dry-run] Would CREATE {key_field}={key_value}")
                     skipped += 1
                     continue
-                new_id = self._create_record(access_token, instance_url, api_version, cleaned)
+                try:
+                    new_id = self._create_record(
+                        access_token, instance_url, api_version, cleaned
+                    )
+                except ToolingWriteError as exc:
+                    if on_invalid_context_tag != "skip" or not self._is_platform_context_tag_defect(
+                        exc, record, access_token, instance_url, api_version
+                    ):
+                        raise
+                    self.logger.warning(
+                        f"SKIPPED {key_field}={key_value} — blocked by a platform "
+                        "context-attribute type mismatch, not by anything in this repo."
+                    )
+                    blocked.append((str(key_value), str(record.get(_CONTEXT_TAG_FIELD))))
+                    continue
                 self.logger.info(f"Created {key_field}={key_value} ({new_id})")
                 created += 1
 
@@ -358,7 +418,34 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         else:
             self.logger.info(
                 f"Upsert complete — created: {created}, updated: {updated}"
+                + (f", skipped: {len(blocked)}" if blocked else "")
             )
+
+        # Loud on purpose. The task exits 0 so the build can proceed, which means this
+        # banner is the only signal that the org is missing configuration -- a one-line
+        # count would read as success in a 40-minute build log.
+        if blocked:
+            self.logger.warning("")
+            self.logger.warning("=" * 72)
+            self.logger.warning(
+                f"{len(blocked)} {OBJECT_NAME} record(s) NOT created — platform defect"
+            )
+            self.logger.warning("=" * 72)
+            for key_value, tag in blocked:
+                self.logger.warning(f"  {key_value}  ({_CONTEXT_TAG_FIELD}: {tag})")
+            self.logger.warning("")
+            self.logger.warning(
+                f"Each references a context attribute this org does not type as String, "
+                f"which {OBJECT_NAME} requires. Both sides are platform-shipped, so no "
+                "change to this repo can satisfy them at once."
+            )
+            self.logger.warning(
+                "Fulfillment scoping on the affected tag(s) is unconfigured until the "
+                "attribute is typed String; tolerated here via "
+                "on_invalid_context_tag=skip. Remove that option once the platform "
+                "agrees with itself and this will create normally."
+            )
+            self.logger.warning("=" * 72)
 
     # ------------------------------------------------------------------ #
     # Tooling API write helpers                                             #
@@ -379,10 +466,125 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         )
         resp = requests.post(url, headers=self._headers(access_token), json=body)
         if not resp.ok:
-            raise TaskOptionsError(
-                f"Tooling create failed: {resp.status_code} — {resp.text}"
+            raise ToolingWriteError(
+                f"Tooling create failed: {resp.status_code} — {resp.text}",
+                status_code=resp.status_code,
+                body=resp.text,
             )
         return resp.json().get("id")
+
+    # ------------------------------------------------------------------ #
+    # Platform context-tag type defect (264)                                #
+    # ------------------------------------------------------------------ #
+
+    def _data_query(
+        self, access_token: str, instance_url: str, api_version: str, soql: str
+    ) -> List[Dict[str, Any]]:
+        """Query via the regular Data API.
+
+        Separate from `_query`, which targets /tooling/query because this task's own
+        object is Tooling-only. ContextTag and ContextAttribute are ordinary objects and
+        are not addressable there.
+        """
+        import requests
+
+        url = f"{instance_url}/services/data/v{api_version}/query"
+        resp = requests.get(
+            url, headers=self._headers(access_token), params={"q": soql}
+        )
+        if not resp.ok:
+            raise TaskOptionsError(
+                f"Data query failed: {resp.status_code} — {resp.text}"
+            )
+        return resp.json().get("records", [])
+
+    @staticmethod
+    def _looks_like_context_tag_type_error(exc: ToolingWriteError) -> bool:
+        """True if the response is the 'tag must be typed String' rejection."""
+        try:
+            errors = json.loads(exc.body)
+        except (ValueError, TypeError):
+            return False
+        if isinstance(errors, dict):
+            errors = [errors]
+        for err in errors if isinstance(errors, list) else []:
+            if not isinstance(err, dict):
+                continue
+            if err.get("errorCode") != _CONTEXT_TAG_TYPE_ERROR_CODE:
+                continue
+            message = str(err.get("message", "")).lower()
+            if all(marker in message for marker in _CONTEXT_TAG_TYPE_MARKERS):
+                return True
+        return False
+
+    def _context_tag_data_type(
+        self,
+        access_token: str,
+        instance_url: str,
+        api_version: str,
+        tag_title: str,
+    ) -> Optional[str]:
+        """Return the data type of the attribute behind a context tag, or None if the
+        tag does not exist on the org.
+
+        The tag's name lives in ContextTag.Title, not Name -- ContextTag has no Name
+        field at all.
+        """
+        escaped = str(tag_title).replace(chr(39), chr(92) + chr(39))
+        records = self._data_query(
+            access_token,
+            instance_url,
+            api_version,
+            "SELECT ContextAttribute.DataType FROM ContextTag "
+            f"WHERE Title = '{escaped}'",
+        )
+        for rec in records:
+            attribute = rec.get("ContextAttribute") or {}
+            data_type = attribute.get("DataType")
+            if data_type:
+                return str(data_type)
+        return None
+
+    def _is_platform_context_tag_defect(
+        self,
+        exc: ToolingWriteError,
+        record: Dict[str, Any],
+        access_token: str,
+        instance_url: str,
+        api_version: str,
+    ) -> bool:
+        """Confirm against the org that this rejection is the platform type mismatch.
+
+        Returns False -- so the caller re-raises -- when the tag is absent or is already
+        typed String, because then the rejection is about something else and skipping
+        would hide a real defect.
+        """
+        if not self._looks_like_context_tag_type_error(exc):
+            return False
+        tag = record.get(_CONTEXT_TAG_FIELD)
+        if not tag:
+            return False
+        data_type = self._context_tag_data_type(
+            access_token, instance_url, api_version, tag
+        )
+        if data_type is None:
+            self.logger.error(
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' does not resolve to a context tag on "
+                "this org. That is a data defect, not the known platform type "
+                "mismatch — not skipping."
+            )
+            return False
+        if data_type.lower() == "string":
+            self.logger.error(
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' resolves to a String-typed attribute, "
+                "so the rejection is about something else — not skipping."
+            )
+            return False
+        self.logger.warning(
+            f"  {_CONTEXT_TAG_FIELD} '{tag}' resolves to a '{data_type}'-typed context "
+            "attribute, but this object requires String. Confirmed against the org."
+        )
+        return True
 
     def _update_record(
         self,

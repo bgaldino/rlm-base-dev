@@ -3025,6 +3025,7 @@
 - `key_field`: `DeveloperName`
 - `api_version`: `None`
 - `dry_run`: `False`
+- `on_invalid_context_tag`: `fail`
 
 ---
 
