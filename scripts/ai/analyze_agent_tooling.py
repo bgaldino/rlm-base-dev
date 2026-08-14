@@ -485,6 +485,37 @@ def check_readme_explains_check_modes(root: Path) -> CheckResult:
     return CheckResult("README check modes", True, "README documents baseline vs full check modes")
 
 
+def _owning_skill_dir(sub: Path, skills_root: Path) -> Path | None:
+    """Nearest ancestor directory holding a ``SKILL.md``, or None if there is none."""
+    for candidate in sub.parents:
+        if (candidate / "SKILL.md").is_file():
+            return candidate
+        if candidate == skills_root:
+            break
+    return None
+
+
+def _names_subfile(parent_text: str, sub: Path, skill_dir: Path) -> bool:
+    """Does the parent actually register this sub-file?
+
+    A bare substring test is not enough on two counts, both reproducible here:
+    ``data-model.md`` occurs inside ``authoring-and-data-model.md``, so an
+    unregistered file passes on the strength of a longer sibling's name; and a
+    passing mention in prose is not a registry entry. So require the name to
+    appear as a code span or a link target, bounded so it cannot match the tail
+    of a longer filename.
+    """
+    for token in {str(sub.relative_to(skill_dir)), sub.name}:
+        esc = re.escape(token)
+        # In backticks: `sub-file.md` or `domains/sub-file.md`
+        if re.search(rf"`[^`\n]*(?<![\w.-]){esc}`", parent_text):
+            return True
+        # As a Markdown link target: [text](path/to/sub-file.md)
+        if re.search(rf"]\([^)\n]*(?<![\w.-]){esc}[^)\n]*\)", parent_text):
+            return True
+    return False
+
+
 def check_skill_subfile_registration(root: Path) -> CheckResult:
     """Each skill sub-file must be named by its own parent ``SKILL.md``.
 
@@ -498,24 +529,36 @@ def check_skill_subfile_registration(root: Path) -> CheckResult:
         return CheckResult("skill sub-file registration", False, f"missing {SKILLS_ROOT}")
 
     unregistered: list[str] = []
+    orphaned: list[str] = []
     checked = 0
-    for parent in sorted(skills_root.glob("*/SKILL.md")):
-        skill_dir = parent.parent
-        parent_text = read_text(parent)
-        for sub in sorted(p for p in skill_dir.rglob("*.md") if p.name != "SKILL.md"):
-            checked += 1
-            # Accept either the path relative to the skill dir or the bare
-            # filename, so both `domains/usage.md` and `usage.md` register.
-            if str(sub.relative_to(skill_dir)) not in parent_text and sub.name not in parent_text:
-                unregistered.append(rel(sub, root))
+    # Enumerate sub-files first, then resolve each one's parent. Iterating
+    # parents instead would visit only directories that already contain a
+    # SKILL.md, so a sub-file with no parent at all -- the least reachable case
+    # there is -- would never be looked at and the gate would pass.
+    for sub in sorted(p for p in skills_root.rglob("*.md") if p.name != "SKILL.md"):
+        if sub.parent == skills_root:
+            continue  # skills/README.md and friends are the root index, not sub-files
+        skill_dir = _owning_skill_dir(sub, skills_root)
+        if skill_dir is None:
+            orphaned.append(rel(sub, root))
+            continue
+        checked += 1
+        if not _names_subfile(read_text(skill_dir / "SKILL.md"), sub, skill_dir):
+            unregistered.append(rel(sub, root))
 
-    if unregistered:
-        return CheckResult(
-            "skill sub-file registration",
-            False,
-            f"{len(unregistered)} sub-file(s) not named by their parent SKILL.md, so they are "
-            f"unreachable from any entry point: " + ", ".join(unregistered),
-        )
+    if orphaned or unregistered:
+        parts = []
+        if orphaned:
+            parts.append(
+                f"{len(orphaned)} sub-file(s) have no ancestor SKILL.md at all: "
+                + ", ".join(orphaned)
+            )
+        if unregistered:
+            parts.append(
+                f"{len(unregistered)} sub-file(s) not named by their parent SKILL.md, so they are "
+                "unreachable from any entry point: " + ", ".join(unregistered)
+            )
+        return CheckResult("skill sub-file registration", False, "; ".join(parts))
     return CheckResult(
         "skill sub-file registration",
         True,
@@ -1313,6 +1356,19 @@ def render_coverage_markdown(root: Path) -> str:
 
 
 def cmd_coverage(root: Path, dry_run: bool, output: Path | None) -> int:
+    # An unreadable rules table means coverage is *unknown*, not empty.
+    # parse_rule_table returns {} in that case, which would render a matrix
+    # asserting every rule is unlisted -- a confidently wrong artifact, written
+    # to disk, exit 0. Refuse instead.
+    if file_specific_rules_region(read_text(root / SKILLS_README)) is None:
+        print(
+            f"ERROR: no 'File-Specific Rules' heading found in {SKILLS_README}. "
+            "Rule coverage cannot be determined, so no matrix was written — "
+            "generating one would report every rule as unlisted. Restore the "
+            "heading or update SKILLS_README/the heading matcher.",
+            file=sys.stderr,
+        )
+        return 1
     report = render_coverage_markdown(root)
     if dry_run:
         print(report, end="" if report.endswith("\n") else "\n")
