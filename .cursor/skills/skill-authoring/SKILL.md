@@ -306,7 +306,12 @@ After adding a rule:
 Run these checks before committing a new or materially changed skill:
 
 1. **Discovery from repository entry points**
-   - Confirm `AGENTS.md` lists the skill or sub-file.
+   - For a **top-level skill**: confirm `AGENTS.md` Skill Index lists it.
+   - For a **sub-file**: confirm the parent `SKILL.md` describes it. That is the
+     only registry — `AGENTS.md` deliberately has no second-level index, so a
+     sub-file its parent omits cannot be found from any entry point. This is
+     enforced: `python scripts/ai/analyze_agent_tooling.py check` fails on any
+     sub-file its parent does not name.
    - Confirm `.cursor/skills/README.md` lists top-level skills.
    - Confirm `.github/copilot-instructions.md` still points agents to
      `AGENTS.md` and `.cursor/skills/*/SKILL.md`.

@@ -91,9 +91,15 @@ Two check modes:
 - **Baseline static checks** (`check`) — stdlib-only, no third-party
   dependencies. Verifies required agent entry points, `scripts/ai/*.py`
   syntax, the stdlib-only import invariant, dependency-guidance messages,
-  manifest high-level keys, generated-reference markers, and that this README
+  manifest high-level keys, generated-reference markers, that every skill
+  sub-file is registered by its parent `SKILL.md`, and that this README
   documents the check modes. Exits non-zero on any failure, so it is safe to
   run as a CI/scheduled gate.
+
+  The sub-file registration check guards a structural invariant: the parent
+  `SKILL.md` is the *only* registry for sub-files, since `AGENTS.md` carries no
+  second-level index. A sub-file its parent does not name is unreachable from
+  every documented entry point, so adding one without linking it fails the gate.
 - **Full generated-reference checks** (`check --full-generated-reference-checks`)
   — additionally dry-runs `generate_cci_reference.py`, which requires
   PyYAML/CumulusCI. Skipped with clear guidance when PyYAML is absent.

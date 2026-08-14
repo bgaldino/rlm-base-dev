@@ -485,6 +485,44 @@ def check_readme_explains_check_modes(root: Path) -> CheckResult:
     return CheckResult("README check modes", True, "README documents baseline vs full check modes")
 
 
+def check_skill_subfile_registration(root: Path) -> CheckResult:
+    """Each skill sub-file must be named by its own parent ``SKILL.md``.
+
+    The parent is the only registry — ``AGENTS.md`` deliberately carries no
+    second-level index — so a sub-file its parent omits is unreachable from
+    every documented entry point. This check exists because that used to be
+    caught incidentally by the AGENTS.md sub-file table.
+    """
+    skills_root = root / SKILLS_ROOT
+    if not skills_root.is_dir():
+        return CheckResult("skill sub-file registration", False, f"missing {SKILLS_ROOT}")
+
+    unregistered: list[str] = []
+    checked = 0
+    for parent in sorted(skills_root.glob("*/SKILL.md")):
+        skill_dir = parent.parent
+        parent_text = read_text(parent)
+        for sub in sorted(p for p in skill_dir.rglob("*.md") if p.name != "SKILL.md"):
+            checked += 1
+            # Accept either the path relative to the skill dir or the bare
+            # filename, so both `domains/usage.md` and `usage.md` register.
+            if str(sub.relative_to(skill_dir)) not in parent_text and sub.name not in parent_text:
+                unregistered.append(rel(sub, root))
+
+    if unregistered:
+        return CheckResult(
+            "skill sub-file registration",
+            False,
+            f"{len(unregistered)} sub-file(s) not named by their parent SKILL.md, so they are "
+            f"unreachable from any entry point: " + ", ".join(unregistered),
+        )
+    return CheckResult(
+        "skill sub-file registration",
+        True,
+        f"all {checked} skill sub-files are registered by their parent SKILL.md",
+    )
+
+
 def run_baseline_checks(root: Path) -> list[CheckResult]:
     return [
         check_required_files(root),
@@ -494,6 +532,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_manifest_high_level_keys(root),
         check_generated_reference_presence(root),
         check_readme_explains_check_modes(root),
+        check_skill_subfile_registration(root),
     ]
 
 
@@ -644,12 +683,15 @@ def is_separator_row(cells: list[str]) -> bool:
     return all(set(c) <= set("-: ") and c for c in cells) if cells else False
 
 
-def file_specific_rules_region(markdown: str) -> str:
+def file_specific_rules_region(markdown: str) -> str | None:
     """Return the markdown under a 'File-Specific Rules' heading up to the next
     heading, so rule-table parsing is anchored to that section and is not
     polluted by any other pipe table that happens to mention a `.mdc` token.
 
-    Falls back to the whole document if the heading is not found.
+    Returns ``None`` when the heading is absent. Callers must treat that as "I
+    could not look", never as "the table is empty" — an earlier version fell
+    back to the whole document, which silently reported all 12 rules unmapped
+    once the table moved out of ``AGENTS.md``.
     """
     lines = markdown.splitlines()
     start = None
@@ -658,7 +700,7 @@ def file_specific_rules_region(markdown: str) -> str:
             start = i + 1
             break
     if start is None:
-        return markdown
+        return None
     end = len(lines)
     for j in range(start, len(lines)):
         if re.match(r"^#{1,6}\s", lines[j]):
@@ -667,9 +709,25 @@ def file_specific_rules_region(markdown: str) -> str:
     return "\n".join(lines[start:end])
 
 
-def extract_rule_mappings(agents_text: str, rules: Iterable[str]) -> list[RuleMapping]:
+def extract_rule_mappings(rules_table_markdown: str | None, rules: Iterable[str]) -> list[RuleMapping]:
+    """Map each ``.cursor/rules/*.mdc`` to its equivalent skill.
+
+    The canonical table lives in ``.cursor/skills/README.md``; ``AGENTS.md``
+    only points at it. Pass ``None`` to signal the section could not be found,
+    which is reported distinctly from a rule genuinely lacking a row.
+    """
+    if rules_table_markdown is None:
+        return [
+            RuleMapping(
+                Path(r).name,
+                "unknown",
+                f"Could not locate a 'File-Specific Rules' heading in {SKILLS_README}",
+            )
+            for r in sorted(rules, key=lambda p: Path(p).name)
+        ]
+
     by_rule: dict[str, tuple[str, str]] = {}
-    for line in file_specific_rules_region(agents_text).splitlines():
+    for line in rules_table_markdown.splitlines():
         if not line.lstrip().startswith("|") or ".mdc" not in line:
             continue
         cells = split_table_row(line)
@@ -686,7 +744,9 @@ def extract_rule_mappings(agents_text: str, rules: Iterable[str]) -> list[RuleMa
     for rule_path in rules:
         name = Path(rule_path).name
         if name not in by_rule:
-            results.append(RuleMapping(name, "missing", "No row in AGENTS.md File-Specific Rules table"))
+            results.append(
+                RuleMapping(name, "missing", f"No row in the {SKILLS_README} File-Specific Rules table")
+            )
             continue
         kind, target = by_rule[name]
         results.append(RuleMapping(name, kind, target))
@@ -710,7 +770,9 @@ def analyze(root: Path) -> Analysis:
     analysis.missing_agents_skill_references = [
         r for r in analysis.agents_skill_references if not path_reference_exists(root, r)
     ]
-    analysis.rule_mappings = extract_rule_mappings(agents_text, analysis.rules)
+    analysis.rule_mappings = extract_rule_mappings(
+        file_specific_rules_region(read_text(root / SKILLS_README)), analysis.rules
+    )
 
     for rel_path in GENERATED_CCI_REFERENCE_FILES:
         exists = (root / rel_path).is_file()
@@ -773,8 +835,8 @@ def render_report_markdown(a: Analysis) -> str:
 
     lines += [
         "", "## Cursor Rule Coverage", "",
-        "Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific "
-        "Rules table for an equivalent skill or an explicit stand-alone note. See "
+        "Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` "
+        "File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See "
         "`.agents/context/rule-skill-coverage.md` for the full coverage matrix and "
         "recommendations.", "",
     ]
@@ -894,7 +956,6 @@ class RuleInfo:
     equivalent_skill: str
     standalone: bool
     has_do_not: bool
-    appears_in_agents: bool
     listed_in_skill_readme: bool
     owner: str
 
@@ -1053,7 +1114,10 @@ def parse_rule_table(markdown: str) -> dict[str, dict[str, Any]]:
     recorded as stand-alone rather than as that skill.
     """
     rows: dict[str, dict[str, Any]] = {}
-    for line in file_specific_rules_region(markdown).splitlines():
+    region = file_specific_rules_region(markdown)
+    if region is None:
+        return rows
+    for line in region.splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = split_table_row(line)
@@ -1116,7 +1180,8 @@ def glob_covers(rules: list[RuleInfo], candidate: str) -> bool:
 
 
 def collect_rules(root: Path) -> list[RuleInfo]:
-    agents_rules = parse_rule_table(read_text(root / AGENTS_PATH))
+    # `.cursor/skills/README.md` is the sole owner of the File-Specific Rules
+    # table; AGENTS.md only points at it and is not parsed for rule rows.
     readme_rules = parse_rule_table(read_text(root / SKILLS_README))
     rules_dir = root / RULES_ROOT
 
@@ -1125,17 +1190,14 @@ def collect_rules(root: Path) -> list[RuleInfo]:
         text = read_text(rule_path)
         name = rule_path.name
         readme_row = readme_rules.get(name, {})
-        agents_row = agents_rules.get(name, {})
-        skill = readme_row.get("skill") or agents_row.get("skill") or ""
-        standalone = bool(readme_row.get("standalone") or agents_row.get("standalone"))
+        skill = readme_row.get("skill") or ""
         rules.append(RuleInfo(
             path=rel(rule_path, root),
             name=name,
             globs=parse_globs(extract_frontmatter(text)),
             equivalent_skill=skill,
-            standalone=standalone,
+            standalone=bool(readme_row.get("standalone")),
             has_do_not=has_do_not_section(text),
-            appears_in_agents=name in agents_rules,
             listed_in_skill_readme=name in readme_rules,
             owner=infer_owner(name, skill),
         ))
@@ -1174,8 +1236,8 @@ def render_coverage_markdown(root: Path) -> str:
         "",
         "## Rule Matrix", "",
         "| Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section "
-        "| Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |",
-        "|---|---|---|---|---|---|---|",
+        "| Listed in skill README | Recommended owner/domain |",
+        "|---|---|---|---|---|---|",
     ]
     for r in rules:
         if r.standalone:
@@ -1186,7 +1248,7 @@ def render_coverage_markdown(root: Path) -> str:
             equiv = "—"
         lines.append("| " + " | ".join([
             f"`{r.path}`", _format_globs(r.globs), equiv,
-            _yes_no(r.has_do_not), _yes_no(r.appears_in_agents),
+            _yes_no(r.has_do_not),
             _yes_no(r.listed_in_skill_readme), _md_escape(r.owner),
         ]) + " |")
 
@@ -1231,10 +1293,9 @@ def render_coverage_markdown(root: Path) -> str:
 
     lines += [
         "", "## Notes", "",
-        "- `Appears in AGENTS.md` is true when the rule filename is present in the root "
-        "`AGENTS.md` file-specific rule table.",
-        "- `Listed in skill README` is true when the rule filename is present in "
-        "`.cursor/skills/README.md`.",
+        "- `Listed in skill README` is true when the rule filename is present in the "
+        "File-Specific Rules table in `.cursor/skills/README.md`, which is the sole "
+        "owner of that table. `AGENTS.md` only points at it and is not parsed here.",
         "- High-risk path coverage is satisfied by either a matching `.cursor/rules/*.mdc` "
         "glob or an explicit analyzer/validator script listed in this report.",
         "",
