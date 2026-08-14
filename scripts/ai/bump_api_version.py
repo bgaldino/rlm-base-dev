@@ -118,7 +118,18 @@ EXCLUDED_LINES: dict[tuple[str, int], str] = {
 # Any line matching one of these keeps its version, wherever it appears: the
 # version is part of a statement about the past, or a floor, not a pin.
 PROVENANCE_LINE_RE = re.compile(
-    r"verified (?:on|live|against)|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
+    # Same grammar doc-consistency/SKILL.md publishes for the markdown sweep --
+    # live-<past participle> and verified <preposition> -- because the two were
+    # written independently and drifted: the sweep learned `live-verified`,
+    # `live-proven`, `verified by/via/payload` while this guard still knew only
+    # `verified on|live|against`. Nothing was being mis-rewritten yet (checked: zero
+    # lines today carry one of the missing forms *and* a pattern any rule matches),
+    # but the asymmetry was a live trap -- add a service path to a line reading
+    # "live-verified v67.0" and the bump would have rewritten the claim. Kept in step
+    # deliberately; validate_rules() asserts each form is spared.
+    r"live-(?:verified|tested|proven|confirmed)"
+    r"|verified (?:live|on|in|against|by|via|payload)"
+    r"|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
     re.IGNORECASE,
 )
 
@@ -167,7 +178,36 @@ def validate_rules(rules: list[Rule], target: str) -> list[str]:
                     f"{rule.name}: matched its probe at v{ver} but rewrote it to "
                     f"{rewritten!r} instead of {rule.probe.format(ver=target)!r}"
                 )
+    problems.extend(validate_provenance_grammar())
     return problems
+
+
+# The provenance grammar, spelled out so a regression names the form it lost rather
+# than just failing a regex comparison. Kept in step with the sweep expression in
+# doc-consistency/SKILL.md.
+PROVENANCE_FORMS = (
+    "live-verified", "live-tested", "live-proven", "live-confirmed",
+    "verified live", "verified on", "verified in", "verified against",
+    "verified by", "verified via", "verified payload",
+    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION",
+)
+
+
+def validate_provenance_grammar() -> list[str]:
+    """Assert PROVENANCE_LINE_RE still spares every documented provenance form.
+
+    The guard and the markdown sweep encode the same idea in two places and had
+    already drifted once -- the sweep knew `live-proven` and `verified by`, this did
+    not -- so a form silently dropping out is a real failure mode. A rewrite of a
+    line that says "live-verified v67.0" turns evidence into a false claim, which is
+    worse than missing a bump.
+    """
+    return [
+        f"PROVENANCE_LINE_RE no longer spares {form!r} — a line carrying that "
+        "provenance marker would be rewritten, turning a capture into a false claim"
+        for form in PROVENANCE_FORMS
+        if not PROVENANCE_LINE_RE.search(f"# {form} v67.0 — some note")
+    ]
 
 
 def next_version(target: str) -> str:
@@ -448,7 +488,15 @@ def main() -> int:
         description="Bump the Salesforce API version pinned across the repo.",
     )
     parser.add_argument(
-        "--to", default="68.0", help="Target API version, e.g. 68.0 (default: 68.0)"
+        # %(default)s, and "NN.0" rather than a sample version, so this line holds no
+        # second copy of the version. The `python` rule matches the bare quoted
+        # default below but cannot reach a version inside the longer help string, so
+        # spelling it twice meant `--to <next> --apply` moved the default while
+        # --help kept reporting the old one -- the identical drift this script fixes
+        # in docgen and the Robot library.
+        "--to",
+        default="68.0",
+        help="Target API version as NN.0 (default: %(default)s)",
     )
     parser.add_argument(
         "--apply", action="store_true", help="Write changes (default is a dry run)"
@@ -468,7 +516,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if not re.fullmatch(r"\d+\.\d+", args.to):
-        print(f"error: --to must look like 68.0, got {args.to!r}", file=sys.stderr)
+        print(f"error: --to must look like NN.0, got {args.to!r}", file=sys.stderr)
         return 2
 
     rules = build_rules()
