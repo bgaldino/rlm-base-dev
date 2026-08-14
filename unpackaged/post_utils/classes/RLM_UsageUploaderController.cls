@@ -598,11 +598,22 @@ public with sharing class RLM_UsageUploaderController {
         // UsageOveragePolicy by way of the product's policy row for that resource.
         //
         // ProductUsageResourcePolicy hangs off a ProductUsageResource, which is a
-        // product-AND-resource pair, so the resource alone is NOT a unique key: the bundled
-        // QB datasets already have several products sharing one resource. Keying on the
-        // resource collapses those rows and leaves whichever SOQL returned last, which can
-        // report a different product's overage setting for this entitlement. The map is
+        // product-AND-resource pair, so the resource alone is NOT a unique key. Keying on
+        // the resource collapses those rows and leaves whichever SOQL returned last, which
+        // reports a different product's overage setting for this entitlement. The map is
         // therefore keyed on product + resource.
+        //
+        // This keying is defensive, not a live bug fix. Measured on a built 264 org: 6 of
+        // the 7 usage resources ARE shared across products (Quantum Tokens by six), but
+        // only an Anchor product's PURP may carry a UsageOveragePolicy -- the platform
+        // rejects it on a Pack ("Change the product usage model type from Pack to another
+        // valid option") and on a Commit -- and no two Anchor products share a resource in
+        // the bundled data. So the resource-keyed version could not actually have returned
+        // a wrong value here.
+        //
+        // It becomes reachable the moment two Anchor products share one usage resource,
+        // which nothing prevents. Keyed correctly now because the collapse is silent when
+        // it does happen: a plausible Yes/No, no error, on a screen an end user trusts.
         //
         // The product half is the entitlement's own ProductId. That field is
         // platform-maintained (createable=false, updateable=false) because

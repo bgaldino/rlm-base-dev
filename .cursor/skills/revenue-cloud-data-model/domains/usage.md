@@ -27,6 +27,23 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > `check_commitment_purp_has_no_periods` in `tests/test_qb_multicurrency_data.py`
 > guards this.
 
+> ⛔ **Only an Anchor product's PURP may carry a `UsageOveragePolicy`.** Attaching one to
+> a **Pack** product's PURP fails with *"We can't save the pack usage model type record.
+> Change the product usage model type from Pack to another valid option and try again."*,
+> and a **Commit** product's PURP is rejected as well (per the commitment restriction
+> above). So overage chargeability is an anchor-level setting in practice, whatever the
+> field-level schema allows. Live-verified on a fresh 264 org 2026-08-14 by attempting
+> both inserts.
+>
+> Consequence worth knowing: a `ProductUsageResourcePolicy` is scoped to a
+> product-**and**-resource pair, so resolving overage for an entitlement requires both
+> halves as the key. Resources are widely shared across products — 6 of 7 in the bundled
+> QB data, `Quantum Tokens` by six products — but because only Anchors may hold the
+> policy, a wrong-product reading needs **two Anchor products sharing one resource**,
+> which the bundled data does not currently contain. Nothing prevents it, and the failure
+> would be silent, so code reading this path should key on product + resource anyway
+> (see `RLM_UsageUploaderController.overageKey`).
+
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
 > `Schema.UsageAggregationPolicy` does not compile.
