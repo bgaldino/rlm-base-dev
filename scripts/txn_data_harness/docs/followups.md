@@ -41,6 +41,32 @@ placeholders or explicitly labeled QB example data.
 
 ## Open
 
+### Release 264 re-verification
+
+- `[verify]` **Every contract in this directory was captured at API v67.0; the
+  request examples now read v68.0.** The `264` branch retargeted the endpoint
+  paths to `v68.0` (Release 264). Nothing in these docs has been re-exercised on
+  a 264 org, and the capture org (`rlm-base__jun17_1`, R262) had a **maximum API
+  version of 67.0** — so the v68.0 requests shown were not merely untried there,
+  they were impossible to issue. The banners in
+  `contracts-sales-txn-quote.md`, `contracts-sales-txn-order.md`, and
+  `contracts-invoice-ingestion.md` say so explicitly and point here.
+  - What is *not* in doubt: the request bodies, response shapes, async barriers,
+    and sequencing rules. Those are what `VERIFIED LIVE` attests to, and the
+    retarget did not touch them.
+  - What is unverified: that each path resolves and behaves identically at
+    `v68.0`, and that no request or response field changed shape in 264.
+  - `[probe]` Run `lifecycle.py` end-to-end for `sales_txn_quote`,
+    `sales_txn_order`, and the ingestion path on a **fresh** 264 scratch org (not
+    a 262 org upgraded to 264 — an upgrade grandfathers settings and schema, so it
+    is not evidence about fresh builds). Reaching a Posted invoice on each path
+    discharges this entry; diff any changed response shape back into the contract.
+  - Captured **responses** keep the `v67.0` paths the server actually returned
+    (e.g. the post `statusURL` in `contracts-sales-txn-quote.md` and
+    `contracts-invoice-ingestion.md`). Those are evidence, not instructions —
+    leave them alone. If 264 returns a `v68.0` `statusURL`, that is a finding to
+    record here, not a value to pre-emptively edit.
+
 ### Standalone-billing Posted ingestion
 
 Posted ingestion is live-verified end-to-end against both non-taxable
