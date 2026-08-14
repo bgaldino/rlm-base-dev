@@ -5,6 +5,12 @@ Parent skill: `document-generation/SKILL.md`
 Verified on Release 262, API v67.0. All patterns below are live-tested
 against scratch orgs, not inferred from documentation.
 
+The endpoint paths read `v68.0` (the Release 264 target), but the tests behind them
+ran at `v67.0` — the capture org's maximum, so a v68.0 call could not have been
+issued there at all. "Live-tested" attests to the **behavior** — formula semantics,
+filter mechanics, hierarchy rules, payload shapes — not to the version in the path.
+Not yet re-verified on 264.
+
 ---
 
 ## Formula Engine

@@ -49,6 +49,107 @@ The core lookup: **when X changes, verify Y**.
 | A **product/SKU added** to any dataset | *Every* plan CSV that carries that SKU, and each of their READMEs — see below |
 | `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
 | `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
+| **API version bump** for a new release | Every doc carrying a `vNN.0` **except the frozen corpora** (below) — and see *An API bump must not rewrite a verified capture*: a verified capture is provenance, not a version to retarget |
+
+### Excluded from the sweep ≠ never updated
+
+"Every doc" above excludes material the mechanical sweep must not touch — but that
+covers **two different reasons**, and conflating them is a live trap in both directions.
+`EXCLUDED_PREFIXES` in `scripts/ai/bump_api_version.py` refuses both by path prefix;
+only the first group is genuinely frozen.
+
+**Frozen — never bump, in the sweep or by hand.** Their whole value is recording a
+*past* release; relabelling a 262 snapshot as v68.0 destroys the baseline the next
+release is diffed against.
+
+| Frozen | Why |
+|---|---|
+| `docs/salesforce/**` | per-release Help/dev-guide snapshot corpora |
+| `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
+| `postman/` | version-branded end to end; regenerate, do not `sed` |
+
+**Retarget by hand — excluded because a blanket rewrite would corrupt them, not
+because they are historical.**
+
+| Hand-retargeted | Why it is excluded, and why it still must change |
+|---|---|
+| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file (`prior_ga_api_version`, "`main` (Release 262 … API `67.0` GA target)") — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
+
+`.agents/artifacts/**` is a private nested repo, gitignored and therefore unreachable
+by either pass; nothing there needs retargeting.
+
+Read the authoritative list from `EXCLUDED_PREFIXES` rather than trusting these tables
+to stay current; it also carries per-PR exclusions (deliberate dual-baseline overlays,
+prototype-specific low pins) that come and go, and each entry states which of the two
+kinds it is. `docs/enablement/{version}/` gains an entry each release, at the moment
+that release ships — the *current* target release is still swept.
+
+One caution on verifying any of this: `git grep -E` does **not** honour `\b`, so a
+word-boundary pattern silently matches nothing. A sweep that returns zero hits on
+`.agents/context/` is a broken pattern, not a clean tree — `project-map.md` alone
+carries several version references.
+
+### An API bump must not rewrite a verified capture
+
+`bump_api_version.py` handles code; the docs are a **manual** pass, and that pass is
+where provenance gets overwritten. A section headed `✅ VERIFIED LIVE` or
+"verified against `<org>`, `<date>`" records what was actually *exercised*, and the
+capture org's **maximum API version caps what could have been called at all** — so
+retargeting the path inside it does not merely overstate the evidence, it asserts a
+request that was impossible to make.
+
+Retarget prose that answers "which endpoint do I call now"; leave captures alone. If
+the body and sequencing are still the contract you want to publish at the new
+release, keep the new path and **say so in the banner** — state the release and API
+the capture was taken at, and that `VERIFIED LIVE` attests to the body, response
+shape, and sequencing rather than the version in the path.
+`scripts/txn_data_harness/docs/contracts-*.md` carry the worked wording.
+
+**Sweep with the full marker set, or you will miss files.** The 264 pass found three
+instances and declared the class swept; a reviewer then found a fourth, because the
+first sweep matched only `VERIFIED LIVE` / `Verified payload` / `verified against`.
+These forms all exist in this repo and all carry the same weight:
+
+```bash
+git ls-files '*.md' | xargs grep -lniE \
+  'live-(verified|tested|proven|confirmed)|verified (live|on|in|against|by|via|payload)|✅ *verified'
+```
+
+Read that as a **grammar, not a closed list**: `live-<past participle>` and
+`verified <preposition>`. It is written that way because the enumeration needed three
+revisions — the first pass missed `live-tested`, the second missed `verified payload`,
+the third missed `live-proven`, `verified by`, and `verified via`, each found by a
+reviewer rather than by the sweep. If you meet a new phrasing that fits the grammar,
+add it here; do not assume the alternatives above are exhaustive. Resist the urge to
+collapse it to a bare `verif` stem — that matches 219 files against 60, almost all of
+them ordinary instructions to "verify" something, which is a worse signal-to-noise
+ratio than the mechanical check rejected below.
+
+**Two provenance styles, and only one of them can be silently invalidated.** Most
+files name the version *inline on each claim* — "live-verified v67.0",
+"verified live on v67.0" — which is self-disambiguating: the version travels with
+the assertion, so the manual sweep cannot separate them, and a reader can see at a
+glance which release the claim belongs to. Prefer this style when writing a new
+claim. **Nothing automated protects it in markdown** — `bump_api_version.py` encodes
+the same idea in `PROVENANCE_LINE_RE`, and applies it to every file it rewrites
+(`sfdx-project.json`, `cumulusci.yml`, `-meta.xml`, `export.json`, `.py`,
+`.cls`/`.apex`) — but `.md` is not among them and never is, which is exactly why this
+pass is manual. That guard now matches the **same grammar** as the sweep above, and
+`validate_rules()` fails the build if a form drops out of it; the two were written
+independently and had already drifted, so treat them as one thing kept in two places
+and update both together. The vulnerable style is a **document-scoped** header —
+"Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
+version governs paths hundreds of lines away that state no version of their own.
+That is the shape that broke, in both places it occurred.
+
+So when triaging a sweep hit, the question is not "does this file mix versions" but
+**"is there a version-bearing claim whose scope covers a path that does not state
+its own version?"** Of six candidates in the 264 sweep, five were fine — prescriptive
+`sf api request` examples, endpoint tables under a "paths are relative to
+`/services/data/vNN.0/`" base-path line, and inline-versioned claims. Only the
+document-scoped header genuinely needed the caveat. A mechanical file-level
+co-occurrence check was considered and rejected for that reason: at a 5-in-6
+false-positive rate it would train people to ignore it.
 
 ### Adding one product touches many plans
 

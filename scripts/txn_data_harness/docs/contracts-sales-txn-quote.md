@@ -3,6 +3,15 @@
 > ✅ VERIFIED LIVE against a Revenue Cloud R262 scratch org with the QB demo
 > dataset (API v67.0). `lifecycle.py` is a direct transcription of the endpoint
 > bodies, response shapes, async barriers, and sequencing rules captured here.
+>
+> **Request examples below read `v68.0` (the Release 264 target) but every capture
+> was taken at `v67.0`** — the verification org's maximum, so a v68.0 call was not
+> merely untried there, it was impossible. Treat `VERIFIED LIVE` as attesting to
+> the body, response shape, and sequencing, *not* to the version in the path.
+> Captured **responses** deliberately keep the `v67.0` paths the server actually
+> returned (e.g. the post `statusURL` below) — those are evidence, not instructions.
+> Re-verification on a fresh 264 org is tracked in
+> [`followups.md`](followups.md#release-264-re-verification).
 
 The quote-path lifecycle drives `opportunity_created → quote_placed → order_draft
 → order_activated → usage_upload → invoice_draft → invoice_posted`. Shared
