@@ -657,6 +657,20 @@ def rule_table_readable(root: Path) -> tuple[bool, str]:
             f"{len(broken)} row(s) point at a skill file that does not exist: "
             + ", ".join(broken)
         )
+    # A row present but saying nothing is the quietest failure of the three: the
+    # name matches, so the set comparison is happy, and the skill path is empty, so
+    # the existence test skips it. `check` passed and the matrix rendered the rule
+    # as listed with no mapping. A row must resolve to a skill or explicitly claim
+    # stand-alone; "blank" is not a third option.
+    empty = sorted(
+        name for name, row in rows.items()
+        if not row.get("skill") and not row.get("standalone")
+    )
+    if empty:
+        problems.append(
+            f"{len(empty)} row(s) name neither a skill file nor an explicit "
+            f"stand-alone note: {', '.join(empty)}"
+        )
     if problems:
         return False, " ".join(problems)
     return True, f"{len(rows)} rule row(s) matched against {len(mdc)} .mdc file(s), all skill targets resolve"
