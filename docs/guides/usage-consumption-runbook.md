@@ -16,6 +16,20 @@ to click into.
 So the sequence below is not a suggestion. Two of its steps cannot be undone for a
 given billing period.
 
+## What changed in 264
+
+If you last ran this on 262, three things moved. Each was checked on a freshly built
+264 org rather than taken from release notes.
+
+| Change | What it means here |
+|--------|--------------------|
+| `TransactionUsageEntitlement` lost `ChargeForOverage`, `DrawdownOrder`, `RatingFrequencyPolicyId` and `UsageAggregationPolicyId` | Overage chargeability is no longer readable on the entitlement, which now carries no overage field or policy lookup at all. It comes from `UsageOveragePolicy.OverageChargeable`, reachable only through the product's `ProductUsageResourcePolicy` for that resource |
+| Only an **Anchor** product may carry an overage policy | See the Pack note in step 1 — it changes where you look when an overage charge is missing |
+| `CommitmentQuantity` / `CommitmentSpend` still strand at `PENDING` | Not fixed in 264. Sell a `Commit` product instead — last row of [When something looks wrong](#when-something-looks-wrong) |
+
+`ProductUsageGrant.DrawdownOrder` was **not** removed, so the drawdown order in step 4
+still reads where it always did.
+
 ## Prerequisites
 
 | Requirement | Check |
@@ -55,16 +69,14 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "Infinitech" \
 Without `--link-commitment`, the commitment sits there looking correct while
 consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 
-> **The commitment rate table refreshes itself — but only on orgs built after that was
-> wired up.** Selling a commitment creates its `AssetRateAdjustment` rows, and activating
-> the order fires `CreateAssetOrderEvent`, which
+> **The commitment rate table refreshes itself.** Selling a commitment creates its
+> `AssetRateAdjustment` rows, and activating the order fires `CreateAssetOrderEvent`, which
 > `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` handles by refreshing
-> the rate decision tables. `Commitment_based_Rate_Adjustment` was **missing from that
-> chain** — every other rate table on the same source objects was in it, which is what made
-> the gap easy to miss. It has been added, and a live check shows it refreshing 6 seconds
+> the rate decision tables — `Commitment_based_Rate_Adjustment` among them since
+> **2026-07-26**, on both the 262 and 264 lines. A live check shows it refreshing 6 seconds
 > after the asset rows are created.
 >
-> **On an org built before that fix**, nothing re-syncs it and a commitment sold after the
+> **On an org built before that date**, nothing re-syncs it and a commitment sold after the
 > build is invisible to the commitment-rate lookup — consumption rates at the undiscounted
 > anchor rate with no error anywhere. Refresh by hand there:
 >
@@ -96,6 +108,13 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 python scripts/build_quote_to_asset.py --org <alias> --accounts "Infinitech" \
     --sku QB-TOKENS-PACK --anchor-sku QB-DB-TOKEN
 ```
+
+> **Overage belongs to the anchor, never to the Pack.** Only an Anchor product's
+> `ProductUsageResourcePolicy` may carry a `UsageOveragePolicy` — the platform refuses one
+> on a Pack (*"Change the product usage model type from Pack to another valid option"*) and
+> on a Commit. On a built org all six overage-carrying policy rows sit on the two anchors,
+> `QB-DB` and `QB-DB-TOKEN`. So when an overage charge is missing on a bundle, check the
+> anchor's policy; there was never one on the Pack to find.
 
 ---
 
@@ -176,6 +195,21 @@ The grant is an included *allowance*, not a discount — usage it absorbs is nev
 discounted at all. That asymmetry is intentional and is the most common source of
 "the math looks wrong" reports.
 
+To confirm overage is even chargeable, read the governing policy — since 264 the
+entitlement no longer carries the answer:
+
+```bash
+sf data query --target-org <alias> \
+  -q "SELECT ProductUsageResource.Product.StockKeepingUnit,
+             ProductUsageResource.UsageResource.Name,
+             UsageOveragePolicy.OverageChargeable
+      FROM ProductUsageResourcePolicy
+      WHERE UsageOveragePolicyId != null"
+```
+
+A resource is shared across products — `Quantum Tokens` by six of them — so read the
+product column too. The policy is per product *and* resource, not per resource.
+
 ---
 
 ## Step 5 — Reset
@@ -243,12 +277,12 @@ teardown is expected on a large graph and is real progress, not a failure.
 | Rated usage is **zero**, no error | Ordering. Usage recorded after orchestrating that period, or booked into the current (still open) period |
 | Zero on a brand-new account | The first orchestration pass closed all past periods empty |
 | Journals stuck at `Pending` | Uploaded to the commitment asset instead of the anchor |
-| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor — **or** a stale `Commitment_based_Rate_Adjustment`: check its `LastSyncDate` is later than the newest `AssetRateAdjustment.SystemModstamp` for that commitment (**not** `LastModifiedDate` — an internal process advances only the former, so a `LastModifiedDate` comparison can read fresh while the table is stale) (only bites on orgs built before it joined the `CreateAssetOrderEvent` refresh chain) |
+| Commitment discount not applied | Missing `UsageCmtAssetRelatedObj` link between commitment and anchor — **or** a stale `Commitment_based_Rate_Adjustment`: check its `LastSyncDate` is later than the newest `AssetRateAdjustment.SystemModstamp` for that commitment (**not** `LastModifiedDate` — an internal process advances only the former, so a `LastModifiedDate` comparison can read fresh while the table is stale) (only bites on orgs built before 2026-07-26, when it joined the `CreateAssetOrderEvent` refresh chain) |
 | Discount applied where you expected full price (or vice versa) past the commitment | `Lowest Commitment Rate` vs `Bounded Object Rate` on the commitment policy — design-time only, not visible in runtime data |
 | `OverageQuantity` non-zero, commitment not exhausted | Expected. It means "beyond the included allowance", not "beyond the commitment" |
 | Activation fails `FAILED_ACTIVATION` | Account has no shipping address or bill-to contact |
 | Prices right in USD, wrong in another currency | A pricing lookup step missing `CurrencyIsoCode` |
-| `CommitmentQuantity` / `CommitmentSpend` entitlement stuck `PENDING` | Known platform issue in 262. `Commit` works |
+| `CommitmentQuantity` / `CommitmentSpend` entitlement stuck `PENDING` | Platform issue, **still present in 264**. On a fresh 264 org both model types hold every entitlement at `PENDING` and produce zero buckets, while an `Anchor` sold on the same org reaches `PROCESSED` — so the asset looks fine and simply never rates. Sell a `Commit` product (`QB-CMT-TKN-*`) instead |
 
 Deeper diagnosis: [Troubleshooting skill](../../.cursor/skills/troubleshooting/SKILL.md)
 → *Usage & Consumption Errors*.
