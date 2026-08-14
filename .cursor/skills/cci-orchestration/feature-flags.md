@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **40 YAML anchors** under `project.custom`.
+**41 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,9 +16,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
-| `billing_portal` | `False` | 3 flow step(s) |
-| `billing_portal_deploy` | `True` | 1 flow step(s) |
+| `billing` | `True` | 21 flow step(s) |
+| `billing_portal` | `True` | 5 flow step(s) |
+| `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
@@ -26,7 +26,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `clm_data` | `False` | 1 flow step(s) |
 | `collections` | `True` | 4 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
-| `constraints` | `True` | 12 flow step(s) |
+| `constraints` | `True` | 4 flow step(s) |
 | `constraints_data` | `True` | 8 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
@@ -36,7 +36,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `large_stx` | `False` | 4 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 10 flow step(s) |
+| `personas` | `True` | 11 flow step(s) |
 | `prm` | `True` | 23 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 14 flow step(s) |
@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 16 flow step(s) |
+| `quantumbit` | `True` | 18 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
@@ -99,27 +99,30 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 5 → `activate_flow`
 - `prepare_billing` step 6 → `activate_default_payment_term`
 - `prepare_billing` step 7 → `activate_billing_records`
-- `prepare_billing` step 8 → `enable_timeline`
 - `prepare_billing` step 9 → `deploy_billing_id_settings`
 - `prepare_billing` step 10 → `deploy_billing_template_settings`
-- `prepare_billing` step 11 → `deploy_post_billing_ui`
-- `prepare_billing` step 12 → `assign_permission_sets`
 - `prepare_billing` step 13 → `apply_context_billing_order`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
-### `billing_portal` (default: `False`)
+### `billing_portal` (default: `True`)
 
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 
 ### `billing_portal_deploy` (default: `True`)
 
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
 
 ### `billing_ui` (default: `True`)
 
@@ -166,14 +169,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 2 → `deploy_post_constraints`
 - `prepare_constraints` step 3 → `assign_permission_sets`
 - `prepare_constraints` step 4 → `apply_context_constraint_engine_node_status`
-- `prepare_constraints` step 5 → `enable_constraints_settings`
-- `prepare_constraints` step 6 → `validate_cml`
-- `prepare_constraints` step 7 → `import_cml`
-- `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `import_cml`
-- `prepare_constraints` step 11 → `manage_expression_sets`
-- `prepare_constraints` step 12 → `manage_expression_sets`
 
 ### `constraints_data` (default: `True`)
 
@@ -258,7 +253,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 7 → `assign_permission_sets`
 - `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
-- `prepare_personas` step 10 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 10 → `assign_permission_sets`
+- `prepare_personas` step 11 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -388,6 +384,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 7 → `assign_permission_sets`
 - `prepare_quantumbit` step 8 → `assign_permission_sets`
 - `prepare_quantumbit` step 9 → `assign_permission_sets`
+- `prepare_quantumbit` step 10 → `deploy_post_setup_guide`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -396,6 +393,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 - `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
+- `prepare_personas` step 10 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -782,6 +780,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_QuantumBit`
+
+### `ps_quantumbit_demo_setup`
+
+*1 items:*
+
+- `RLM_QuantumBitDemoSetup`
 
 ### `ps_rebuild_search_index`
 

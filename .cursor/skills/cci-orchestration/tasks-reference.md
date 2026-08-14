@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **10 groups**.
+**274 tasks** across **10 groups**.
 
 ---
 
@@ -1034,7 +1034,7 @@
 
 ### `patch_network_email_for_deploy`
 
-**Description:** Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so deploy_post_prm succeeds. Repo stores a non-PII placeholder; run revert_network_email_after_deploy after deploy.
+**Description:** Replace the configured placeholder emailSenderAddress in a Network metadata file with the target Network's actual current EmailSenderAddress (immutable after creation) so community metadata can deploy. Run revert_network_email_after_deploy after the deploy.
 
 **Class:** `tasks.rlm_community.PatchNetworkEmailForDeploy`
 
@@ -1042,7 +1042,7 @@
 
 ### `revert_network_email_after_deploy`
 
-**Description:** Restore the placeholder emailSenderAddress in rlm.network-meta.xml after deploy_post_prm so the repo never persists the target org's email.
+**Description:** Restore the configured placeholder emailSenderAddress in a Network metadata file after a community metadata deploy so the repo never persists the target org's email.
 
 **Class:** `tasks.rlm_community.RevertNetworkEmailAfterDeploy`
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*165 task(s)*
 
 ### `activate_agents`
 
@@ -1996,6 +1996,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm_pricing/permissionsets`
+
+---
+
+### `deploy_post_setup_guide`
+
+**Description:** Deploy the QuantumBit Demo Setup guide (Visualforce page).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_setup_guide`
 
 ---
 

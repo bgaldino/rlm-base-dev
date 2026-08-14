@@ -220,18 +220,26 @@ Extract rating and rates data from an org into CSV files
 12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
 13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+14. **flow** `prepare_billing_portal`
 
 ---
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+Create Self-Service Billing Portal community and optionally deploy site content. When billing and billing_portal are true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
 
 **Steps:**
 
-1. **task** `create_billing_portal`  `when: project_config.project__custom__billing_portal`
-2. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
-3. **task** `publish_community`  `when: project_config.project__custom__billing_portal`
+1. **task** `create_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
+2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_name`: `Billing Portal`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+3. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+4. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+5. **task** `publish_community`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
    - `name`: `Billing Portal`
 
 ---
@@ -448,7 +456,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
    - `api_names`: `['RLM_DecisionTableManager']`
    - `user_alias`: `salesrep`
-10. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_QuantumBitDemoSetup']`
+   - `user_alias`: `salesrep`
+11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -559,6 +570,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_RebuildSearchIndex']`
 9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
+10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 
 ---
 

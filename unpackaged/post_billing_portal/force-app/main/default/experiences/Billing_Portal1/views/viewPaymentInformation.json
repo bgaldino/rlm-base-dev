@@ -1,0 +1,31 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "25b8f071-8a4e-44c2-9ee2-4e1df093019a",
+  "label" : "View Payment Information",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "accountId" : "{!accountId}",
+        "amount" : "{!amount}",
+        "cardPaymentMode" : "{!cardPaymentMethod}",
+        "invoiceDocumentNumber" : "{!invoiceNumber}",
+        "invoiceId" : "{!invoiceId}",
+        "paymentMethod" : "{!paymentMethod}",
+        "paymentProcessing" : "{!paymentProcessing}"
+      },
+      "componentName" : "runtime_revenue_foundation:selfServiceConfModal",
+      "id" : "289cb8ee-ac11-4f73-a8a5-f15043995f63",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "57b01042-477b-4999-b196-4032a6da751c",
+    "regionName" : "content",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "rlm-pymnt-confirmation"
+}

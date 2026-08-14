@@ -94,8 +94,8 @@ project:
     # ── Core Revenue Cloud Features ────────────────────────────────────────────
     billing: true             # Billing
     billing_ui: true          # Billing UI LWC components (post_billing_ui)
-    billing_portal: false     # Self-Service Billing Portal community
-    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
+    billing_portal: true      # Self-Service Billing Portal community
+    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing + billing_portal)
     payments: true            # Payments
     approvals: true           # Approvals
     tax: true                 # Tax engine
@@ -352,6 +352,17 @@ project:
       # access, the RLM_SessionId page and ApiEnabled — no object permissions,
       # because the class runs no SOQL and no DML.
       - RLM_RebuildSearchIndex
+
+    ps_quantumbit_demo_setup: &ps_quantumbit_demo_setup
+      # QuantumBit Demo Setup guide (post_setup_guide, deployed via
+      # deploy_post_setup_guide in the quantumbit flow). Surfaced on
+      # RLM_Home_Page_Default; without a page grant a permission-set-only user sees
+      # an insufficient-privileges component where the guide should render — the
+      # same gap the three sets above close for their Home-page components. Least
+      # privilege: the page is STATIC markup (no Apex controller, no SOQL/DML, no
+      # session loopback), so it grants ONLY page access — no class access and,
+      # unlike ps_expression_set_manager / ps_rebuild_search_index, no ApiEnabled.
+      - RLM_QuantumBitDemoSetup
 
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
@@ -1384,6 +1395,13 @@ tasks:
     options:
       path: unpackaged/post_utils
 
+  deploy_post_setup_guide:
+    group: Revenue Lifecycle Management
+    description: Deploy the QuantumBit Demo Setup guide (Visualforce page).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_setup_guide
+
   deploy_post_large_stx:
     group: Revenue Lifecycle Management
     description: Deploy Large Sales Transaction metadata
@@ -1831,17 +1849,18 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
-      Network's actual current EmailSenderAddress (immutable after creation) so
-      deploy_post_prm succeeds. Repo stores a non-PII placeholder; run
-      revert_network_email_after_deploy after deploy.
+      Replace the configured placeholder emailSenderAddress in a Network metadata
+      file with the target Network's actual current EmailSenderAddress (immutable
+      after creation) so community metadata can deploy. Run
+      revert_network_email_after_deploy after the deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
 
   revert_network_email_after_deploy:
     group: Partner Relationship Management
     description: >
-      Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
-      deploy_post_prm so the repo never persists the target org's email.
+      Restore the configured placeholder emailSenderAddress in a Network metadata
+      file after a community metadata deploy so the repo never persists the target
+      org's email.
     class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   create_partner_central:
@@ -3963,6 +3982,14 @@ flows:
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
+      10:
+        # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
+        # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # of prepare_rlm_org) — so the page must exist first. This whole flow runs
+        # at step 7, well before UX assembly.
+        task: deploy_post_setup_guide
+        when: project_config.project__custom__quantumbit
 
   prepare_tso:
     group: Revenue Lifecycle Management
@@ -4140,6 +4167,8 @@ flows:
       13:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
+      14:
+        flow: prepare_billing_portal
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -4239,17 +4268,32 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Create Self-Service Billing Portal community and optionally deploy site content.
-      When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+      When billing and billing_portal are true, creates and publishes the community. When
+      billing_portal_deploy is also true, patches the network email placeholder, deploys
+      unpackaged/post_billing_portal, and reverts the placeholder before publishing.
     steps:
       1:
         task: create_billing_portal
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
       2:
-        task: deploy_post_billing_portal
-        when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        task: patch_network_email_for_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_name: "Billing Portal"
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
       3:
+        task: deploy_post_billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+      4:
+        task: revert_network_email_after_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
+      5:
         task: publish_community
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
         options:
           name: "Billing Portal"
 
@@ -4818,6 +4862,27 @@ flows:
           api_names: *ps_decision_table_manager
           user_alias: salesrep
       10:
+        # The QuantumBit Demo Setup guide sits on the shared RLM_Home_Page_Default,
+        # and there is no persona-specific Home page — so the salesrep persona SEES
+        # it. Deploy-time access reaches only the RUNNING (admin) user; only a
+        # user_alias assignment reaches the persona, which otherwise looks at a
+        # default-open component that errors with insufficient privileges.
+        #
+        # Granted rather than hidden, following the Decision Table Manager precedent
+        # (step 9): a visible component that errors is worse than the grant. This
+        # grant is narrower still — page access to a STATIC page (no Apex, no class
+        # access, no ApiEnabled), so it hands the persona no system privilege.
+        #
+        # Gated on quantumbit (NOT tso): the permission set ships in
+        # post_setup_guide, deployed only by deploy_post_setup_guide in
+        # prepare_quantumbit. Assigning it on a personas build without quantumbit
+        # would fail on a PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_quantumbit_demo_setup
+          user_alias: salesrep
+      11:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults
