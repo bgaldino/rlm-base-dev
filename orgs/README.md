@@ -26,7 +26,7 @@ release the dev hub is on**, not a fixed version:
 ```
 
 `ScratchOrgInfo.Release` is a picklist whose only values are **`Current`**,
-**`Preview`**, and **`Previous`** (verified by describe against `devhub-usa794`
+**`Preview`**, and **`Previous`** (verified by describe against the 264 dev hub
 at v68.0). **There is no way to pin a numeric release** — `"release": "260"` is
 not expressible, so "make this file explicitly target 260" is not an available
 option.
@@ -37,7 +37,7 @@ moves:
 | Dev hub release | `release: previous` yields |
 |-----------------|---------------------------|
 | 262 | 260 |
-| **264 (current — `devhub-usa794`)** | **262** |
+| **264 (current)** | **262** |
 
 So the file name means "one release behind the hub", which is still accurate — the
 assumption that it meant *260 specifically* is what went stale. If you need a
