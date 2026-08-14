@@ -61,6 +61,15 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "description": "The process type (e.g. RevenueCloud)",
             "required": True,
         },
+        "subType": {
+            "description": (
+                "The plan subtype (Release 264+; only value today is RevenueCloud). "
+                "Required by 264 -- creation fails with 'Specify a valid subtype to "
+                "create a procedure plan definition record.' without it. Omit on 262 "
+                "and earlier, where ProcedurePlanDefinition has no SubType field."
+            ),
+            "required": False,
+        },
         "versionActive": {
             "description": "Whether the procedure plan definition version should be active",
             "required": True,
@@ -206,7 +215,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
         if effective_to:
             version_item["effectiveTo"] = effective_to
 
-        return {
+        request = {
             "description": self.options.get("description"),
             "developerName": self.options.get("developerName"),
             "name": self.options.get("name"),
@@ -214,6 +223,16 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "primaryObject": self.options.get("primaryObject"),
             "procedurePlanDefinitionVersions": [version_item],
         }
+
+        # Sent only when configured, like effectiveTo above. Release 264 added SubType
+        # and requires it at create; a true 262 org has no such field, so hardcoding it
+        # here would break this task on `main` and `release/262`. The release that needs
+        # it supplies it from cumulusci.yml.
+        sub_type = self.options.get("subType")
+        if sub_type:
+            request["subType"] = sub_type
+
+        return request
 
     # -- Main task logic -----------------------------------------------
 

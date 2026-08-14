@@ -582,7 +582,22 @@ project:
     procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_name: &procedure_plan_definition_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
-    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
+    # "Default" is deliberate and is NOT a Revenue Cloud plan being mislabelled --
+    # Release 264 moved that identity out of ProcessType and into the new SubType
+    # below. 264 rejects the 262 shape (ProcessType RevenueCloud, no SubType) outright:
+    #   Process Type RevenueCloud with Subtype RevenueCloud isn't supported for Revenue
+    #   Cloud. Set Process Type to Default and Subtype to Revenue Cloud, or set Process
+    #   Type to Revenue Cloud with no Subtype.
+    # Only the first of those two alternatives actually works on a fresh 264 org; the
+    # second is what this repo already sent, and it fails with "Specify a valid subtype
+    # to create a procedure plan definition record." The platform stores the pair as
+    # ProcessTypeSubTypeKey = Default_RevenueCloud.
+    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "Default"
+    # SubType is new in 264 (absent from ProcedurePlanDefinition on 262) and its only
+    # value is RevenueCloud. Describe reports it nillable, so requiredness is enforced
+    # by Connect API validation rather than by the field -- do not trust describe here.
+    # The task omits the key entirely when unset, so it still runs against 262.
+    procedure_plan_definition_sub_type: &procedure_plan_definition_sub_type "RevenueCloud"
     procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
     context_definition_label: &context_definition_label "RLM_SalesTransactionContext"
     procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
@@ -3137,6 +3152,7 @@ tasks:
       name: *procedure_plan_definition_name
       primaryObject: *procedure_plan_definition_primary_object
       processType: *procedure_plan_definition_process_type
+      subType: *procedure_plan_definition_sub_type
       versionActive: *procedure_plan_definition_version_active
       context_definition_label: *context_definition_label
       versionReadContextMapping: *procedure_plan_definition_version_read_context_mapping

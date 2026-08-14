@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
+**41 feature flags**, **86 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -535,7 +535,8 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_primary_object` | `Quote` |
-| `procedure_plan_definition_process_type` | `RevenueCloud` |
+| `procedure_plan_definition_process_type` | `Default` |
+| `procedure_plan_definition_sub_type` | `RevenueCloud` |
 | `procedure_plan_definition_version_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_version_effective_from` | `2026-01-01T00:00:00.000Z` |
 | `procedure_plan_definition_version_effective_to` | `None` |
