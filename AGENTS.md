@@ -9,23 +9,16 @@
 
 **Revenue Cloud Base Foundations** automates creation and configuration of
 Salesforce environments for Revenue Lifecycle Management (RLM). **This is the
-`264` branch: it targets Salesforce Release 264 (Winter '27, API v68.0)** and is
-the active development line. `main` remains the Release 262 (Summer '26, API
-v67.0) GA target, and `release/262` is the frozen 262 GA reference (matching
-`release/260` for Spring '26).
+`264` branch — Release 264 (Winter '27, API v68.0)** — the active development
+line. `main` is the 262 (Summer '26, v67.0) GA target; `release/262` and
+`release/260` are frozen references.
 
-264 is pre-GA — feature freeze 2026-08-14, GA waves 2026-09-05 → 2026-10-10 —
-and no 264 release notes or v68.0 Metadata Coverage Report entry exist yet. Two
-consequences for agents working here:
-
-- **A live 264 org is the ground truth**, not documentation. The dev hub
-  `devhub-usa794` is on API 68.0, so every scratch org it creates is a 264 org
-  regardless of which branch you built from.
-- **`main` is not buildable on that dev hub.** Verify changes on `264`. Findings
-  about 264 behavior are tracked in
-  `.agents/artifacts/upgrades/264-upgrade-plan.md`; distinguish a *freshly built*
-  264 org from a 262 org *upgraded* to 264, because settings and schema can be
-  grandfathered through an upgrade and are not evidence about fresh builds.
+264 is pre-GA — no release notes or v68.0 Metadata Coverage Report yet — so **a
+live 264 org is ground truth, not documentation**. The dev hub is on API 68.0, so
+every scratch org it creates is a 264 org whatever branch you built from, and
+`main` is **not buildable on it**. Distinguish a *fresh* 264 org from a 262 org
+*upgraded* to 264: an upgrade grandfathers settings and schema, so it is not
+evidence about fresh builds.
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
@@ -68,7 +61,7 @@ tasks/                 # Custom Python CCI task classes
 tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
                        #   no org needed), plus two shell integration scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definition JSON files (orgs/README.md; TFID template shapes: orgs/tfid/README.md)
+orgs/                  # Scratch org definitions (orgs/README.md; TFID: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
