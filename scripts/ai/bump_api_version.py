@@ -220,10 +220,15 @@ def build_rules() -> list[Rule]:
             # The "python" rule above requires the version to be the *entire*
             # quoted literal, so a version embedded in a longer string is
             # structurally unmatchable there. That left ~10 live v67.0 endpoints
-            # in scripts/docgen/ behind on the 264 bump. Range starts at 60.0
-            # because these are live endpoints, not floors, and the
-            # PROVENANCE_LINE_RE guard still spares verified-on notes.
-            pattern=re.compile(r"(?P<pre>/services/data/v)(?P<ver>6[0-7]\.0)(?P<post>/)"),
+            # in scripts/docgen/ behind on the 264 bump.
+            #
+            # Any two-digit version matches, deliberately including the current
+            # target: a range capped at the target (6[0-7] here) would go stale
+            # the moment 68.0 became current, silently reintroducing this very
+            # gap at the next cutover. Matching the target is a harmless no-op —
+            # the runner reports "already at target". These are live endpoints,
+            # never floors, and PROVENANCE_LINE_RE still spares verified-on notes.
+            pattern=re.compile(r"(?P<pre>/services/data/v)(?P<ver>[0-9]{2}\.0)(?P<post>/)"),
             replace=_version_only,
         ),
         Rule(
