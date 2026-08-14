@@ -149,6 +149,7 @@
       "enableFullEscalationHydration": true,
       "enableGroupRampMultiSchedulePref": true,
       "enableGroupRampPref": true,
+      "enableGroupRampTrialSegmentPref": true,
       "enableRampDeal": true,
       "enableRevInstPricingDefaultPref": true,
       "enableRevUnifiedSetup": true,
