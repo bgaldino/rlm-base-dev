@@ -293,7 +293,13 @@ class CreatePersonaUser(BaseTask):
                 )
 
     def _api_version(self):
-        """Return the project's package API version (e.g. '68.0'), default 68.0."""
+        """Return the project's package API version, falling back to the literal below.
+
+        The fallback is named once, in code. Spelling it in this docstring too made the
+        line half-reachable by the release bump -- it rewrites a quoted literal but not
+        an unquoted one in prose -- so a bump would change the behavior and leave the
+        docstring contradicting it.
+        """
         version = getattr(self.project_config, "project__package__api_version", None)
         return str(version) if version else "68.0"
 
