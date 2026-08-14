@@ -89,7 +89,7 @@ foundations:
       provenance: live-verified on scratch org 2026-07
       caveats:
         - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
-        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING in 262 (platform issue); Commit works"
+        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING (platform issue); re-verified on fresh 264 2026-08-14, still unfixed. Commit works on both releases"
 
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
