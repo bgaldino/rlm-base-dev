@@ -18,14 +18,16 @@ given billing period.
 
 ## What changed in 264
 
-If you last ran this on 262, three things moved. Each was checked on a freshly built
-264 org rather than taken from release notes.
+If you last ran this on 262, four things moved. Each was checked on a freshly built 264
+org rather than taken from release notes, and the whole sequence below was then run end
+to end on that org — the step 4 validator passes on 264.
 
 | Change | What it means here |
 |--------|--------------------|
+| The rating batch jobs are now `_v4` | `Create_Liable_Summary_v4` and `Create_Usage_Summary_v4`. The `_v3` names are **absent**, not aliased, so a step 3 wait keyed to them matches nothing and looks instantly finished |
 | `TransactionUsageEntitlement` lost `ChargeForOverage`, `DrawdownOrder`, `RatingFrequencyPolicyId` and `UsageAggregationPolicyId` | Overage chargeability is no longer readable on the entitlement, which now carries no overage field or policy lookup at all. It comes from `UsageOveragePolicy.OverageChargeable`, reachable only through the product's `ProductUsageResourcePolicy` for that resource |
 | Only an **Anchor** product may carry an overage policy | See the Pack note in step 1 — it changes where you look when an overage charge is missing |
-| `CommitmentQuantity` / `CommitmentSpend` still strand at `PENDING` | Not fixed in 264. Sell a `Commit` product instead — last row of [When something looks wrong](#when-something-looks-wrong) |
+| `CommitmentQuantity` / `CommitmentSpend` still strand at `PENDING` | Not fixed in 264. Sell a `Commit` product instead, which does reach `PROCESSED` on 264 — last row of [When something looks wrong](#when-something-looks-wrong) |
 
 `ProductUsageGrant.DrawdownOrder` was **not** removed, so the drawdown order in step 4
 still reads where it always did.
@@ -73,8 +75,8 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 > `AssetRateAdjustment` rows, and activating the order fires `CreateAssetOrderEvent`, which
 > `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` handles by refreshing
 > the rate decision tables — `Commitment_based_Rate_Adjustment` among them since
-> **2026-07-26**, on both the 262 and 264 lines. A live check shows it refreshing 6 seconds
-> after the asset rows are created.
+> **2026-07-26**, on both the 262 and 264 lines. A live check shows it refreshing within
+> seconds of the asset rows being created — 3 on a 264 run.
 >
 > **On an org built before that date**, nothing re-syncs it and a commitment sold after the
 > build is invisible to the commitment-rate lookup — consumption rates at the undiscounted
@@ -152,9 +154,13 @@ A single pass is not enough.
 > ⚠ **"All journals processed" is not "rating finished."** This command returns when
 > the pending journal count reaches zero — that means the journals were *aggregated*,
 > not *rated*. Rating continues afterwards in Data Processing Engine batch jobs
-> (`Create_Liable_Summary_v3`, `Create Ratable Summary For …`). Validate too soon and
-> you will see summaries at `New`/`InProgress` and think the run failed. Wait for those
-> jobs before step 4 — **Setup → Data Processing Engine → job runs**, or:
+> (`Create_Liable_Summary_v4`, `Create_Usage_Summary_v4`, `Create Ratable Summary For …`).
+> **Those jobs are `_v4` on 264 — the `_v3` names are not merely renamed but absent**, so a
+> wait keyed to the old name matches nothing and reads as "rating finished" immediately.
+> Validate too soon and you will see summaries at `New`/`InProgress` and think the run
+> failed. On a single-account run `Create_Liable_Summary_v4` stayed `InProgress` for about
+> five minutes after this command had already returned. Wait for those jobs before step 4 —
+> **Setup → Data Processing Engine → job runs**, or:
 >
 > ```bash
 > sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
