@@ -329,6 +329,21 @@ def build_rules() -> list[Rule]:
             replace=_version_only,
         ),
         Rule(
+            # Scope note, deliberate: this rule handles versions embedded in a
+            # *path*, and there is no companion rule for versions embedded in
+            # ordinary prose (comments, help strings, docstrings). That is not an
+            # oversight. Sampling every `vNN.0` in tasks/, scripts/ and robot/ that
+            # no rule reaches found 74 occurrences, and all but two were release
+            # provenance a bump must NOT touch -- "Pinned to Release 262 / v67.0",
+            # "live-verified v67.0", "gone in v67.0", "introduced in API v65.0",
+            # "required since API v58.0". A prose rule broad enough to catch the two
+            # live ones would rewrite the other 72 into lies, and PROVENANCE_LINE_RE
+            # does not save them (it matches "verified on/as of/observed on", not
+            # "pinned to" or "introduced in"). The two real cases were duplicated
+            # declarations, so they were fixed by removing the duplication instead:
+            # argparse now renders the default with %(default)s, and the Robot
+            # library's comment no longer restates the constant beneath it. A version
+            # that appears once cannot drift from itself.
             name="python-service-path",
             probe='url = "/services/data/v{ver}/sobjects/Account"',
             description="Hardcoded /services/data/vNN.0/ paths embedded in Python strings",

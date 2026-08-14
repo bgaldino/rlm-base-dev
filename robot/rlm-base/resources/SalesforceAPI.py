@@ -25,7 +25,10 @@ class SalesforceAPI:
 
     ROBOT_LIBRARY_SCOPE = "TEST"
 
-    # API version matching the project (Winter '27 / v68.0)
+    # Kept in step with the project's API version; the constant below is the single
+    # source of truth. Naming the version in this comment too put it out of the bump
+    # script's reach (a version inside prose is not a quoted literal), so the comment
+    # went stale against the line it describes.
     API_VERSION = "v68.0"
 
     # Default timeout (seconds) for all outbound REST requests.
