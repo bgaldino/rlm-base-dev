@@ -200,7 +200,14 @@ python scripts/docgen/docgen_odt_validate.py RLMQuoteProposalExtract --org dev-s
 
 # Diff two ODTs item-by-item — the fastest way to find what a clone lost
 python scripts/docgen/docgen_odt_compare.py RLMQuoteProposalExtract RLMInvoiceExtract --org dev-scratch
+
+# Create an ODT from a JSON spec (--example extract|transform emits a starter spec)
+python scripts/docgen/docgen_odt_create.py spec.json --org dev-scratch
 ```
+
+`docgen_odt_create.py`'s spec format, cloning patterns, and shell-escaping
+pitfalls are in `data-mapper-authoring.md`; `odt-authoring/SKILL.md` covers
+authoring the mapper itself.
 
 Reach for `docgen_odt_validate.py` when an Extract returns empty or partial
 output and you want to rule out the mapper before blaming the data, and for

@@ -604,9 +604,13 @@ def check_docs_state_the_real_count(_d, registered=0):
     """
     import re
     problems = []
+    # Both targets live in the owning skill. AGENTS.md carried the second
+    # assertion until the context-budget cut moved this suite's command block
+    # into the skill; the sentence went with it, leaving this leg permanently
+    # unsatisfiable, so the guard could no longer catch the drift it exists for.
     for rel, pattern in (
             (".cursor/skills/usage-consumption/verification.md", r"(\d+) checks, no org needed"),
-            ("AGENTS.md", r"the (\d+) offline invariants")):
+            (".cursor/skills/usage-consumption/SKILL.md", r"the (\d+) offline invariants")):
         name = os.path.basename(rel)
         try:
             with open(os.path.join(REPO_ROOT, rel), encoding="utf-8") as fh:
@@ -619,7 +623,7 @@ def check_docs_state_the_real_count(_d, registered=0):
         elif int(m.group(1)) != registered:
             problems.append(f"{name}: says {m.group(1)}, actual {registered}")
     check("docs_state_the_real_count", not problems, "; ".join(problems) if problems
-          else f"verification.md and AGENTS.md both say {registered}")
+          else f"verification.md and SKILL.md both say {registered}")
 
 
 # ----------------------------------------------------------------------
