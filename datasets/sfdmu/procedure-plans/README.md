@@ -79,13 +79,25 @@ Key behaviors:
 | `developerName` | `RLM_Quote_Pricing_Procedure_Plan` | PPD DeveloperName |
 | `name` | `RC Quote Pricing Procedure Plan` | PPD label |
 | `primaryObject` | `Quote` | Target object |
-| `processType` | `RevenueCloud` | Process type |
+| `processType` | `Default` | Process type — see the 264 note below |
+| `subType` | `RevenueCloud` | Revenue Cloud identity (new in 264) |
 | `versionActive` | `false` | PPDV created inactive |
 | `context_definition_label` | `RLM_SalesTransactionContext` | Context definition to resolve |
 | `versionReadContextMapping` | `QuoteEntitiesMapping` | Read context mapping |
 | `versionSaveContextMapping` | `QuoteEntitiesMapping` | Save context mapping |
 | `versionEffectiveFrom` | `2026-01-01T00:00:00.000Z` | Version effective-from date |
 | `versionRank` | `1` | Version rank |
+
+> **Release 264 — `processType` / `subType` pairing.** Through 262 a Revenue Cloud
+> procedure plan was identified by `ProcessType: RevenueCloud` with no subtype. 264 moved
+> that identity into the new `SubType` field and rejects the 262 shape outright with
+> *"Specify a valid subtype"*. The accepted pair is **`processType: Default` +
+> `subType: RevenueCloud`**.
+>
+> Note the platform's own remediation text contradicts itself here — it offers
+> *"Process Type to Revenue Cloud with no Subtype"* as an alternative, but that is the
+> 262 shape and it still fails. Do not restore `processType: RevenueCloud` on the strength
+> of that message.
 
 ## Activation Task
 
