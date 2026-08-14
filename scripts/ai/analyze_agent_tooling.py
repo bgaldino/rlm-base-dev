@@ -495,24 +495,57 @@ def _owning_skill_dir(sub: Path, skills_root: Path) -> Path | None:
     return None
 
 
-def _names_subfile(parent_text: str, sub: Path, skill_dir: Path) -> bool:
+def _referenced_md_tokens(parent_text: str) -> set[str]:
+    """``.md`` path tokens a parent registers, from code spans and link targets.
+
+    Only these two forms count: a passing mention in prose is not a registry
+    entry. Code spans are split on whitespace so a command like
+    ``python tools/x.py note.md`` yields its individual tokens.
+    """
+    out: set[str] = set()
+    for m in re.finditer(r"`([^`\n]+)`", parent_text):
+        out.update(m.group(1).split())
+    for m in re.finditer(r"]\(([^)\s\n]+)", parent_text):
+        out.add(m.group(1))
+    return {
+        t for t in (raw.split("#", 1)[0].strip("<>()[],;:\"'") for raw in out)
+        if t.endswith(".md") or (t.endswith("*.md") or "*" in t and ".md" in t)
+    }
+
+
+def _names_subfile(parent_text: str, sub: Path, skill_dir: Path, root: Path) -> bool:
     """Does the parent actually register this sub-file?
 
-    A bare substring test is not enough on two counts, both reproducible here:
-    ``data-model.md`` occurs inside ``authoring-and-data-model.md``, so an
-    unregistered file passes on the strength of a longer sibling's name; and a
-    passing mention in prose is not a registry entry. So require the name to
-    appear as a code span or a link target, bounded so it cannot match the tail
-    of a longer filename.
+    Substring matching is wrong in both directions, and all three cases are
+    reproducible in this repo:
+
+    - ``data-model.md`` occurs inside ``authoring-and-data-model.md``, so an
+      unregistered file passes on a longer sibling's name;
+    - a bounded name still matches *another* skill's identically-named sub-file,
+      because a path separator satisfies any word boundary — so a reference to
+      ``.cursor/skills/other/note.md`` would register your own ``note.md``;
+    - and a mention in prose is not registration.
+
+    So resolve each referenced token to a real path and compare it to this
+    sub-file. Three bases are tried because all three are in live use: relative
+    to the skill directory (``domains/usage.md``), relative to the skills root
+    (``troubleshooting/large-deal-preprocess-reference.md``), and repo-relative
+    (``.cursor/skills/...``). Globs (``domains/*.md``) are matched against the
+    relative path, since that is how whole sub-directories get registered.
     """
-    for token in {str(sub.relative_to(skill_dir)), sub.name}:
-        esc = re.escape(token)
-        # In backticks: `sub-file.md` or `domains/sub-file.md`
-        if re.search(rf"`[^`\n]*(?<![\w.-]){esc}`", parent_text):
-            return True
-        # As a Markdown link target: [text](path/to/sub-file.md)
-        if re.search(rf"]\([^)\n]*(?<![\w.-]){esc}[^)\n]*\)", parent_text):
-            return True
+    skills_root = root / SKILLS_ROOT
+    rels = (str(sub.relative_to(skill_dir)), str(sub.relative_to(skills_root)), str(sub.relative_to(root)))
+    for tok in _referenced_md_tokens(parent_text):
+        if "*" in tok:
+            if any(fnmatch.fnmatch(r, tok) for r in rels):
+                return True
+            continue
+        for base in (skill_dir, skills_root, root):
+            try:
+                if (base / tok).resolve() == sub.resolve():
+                    return True
+            except (OSError, ValueError):
+                continue
     return False
 
 
@@ -543,7 +576,7 @@ def check_skill_subfile_registration(root: Path) -> CheckResult:
             orphaned.append(rel(sub, root))
             continue
         checked += 1
-        if not _names_subfile(read_text(skill_dir / "SKILL.md"), sub, skill_dir):
+        if not _names_subfile(read_text(skill_dir / "SKILL.md"), sub, skill_dir, root):
             unregistered.append(rel(sub, root))
 
     if orphaned or unregistered:
@@ -555,8 +588,10 @@ def check_skill_subfile_registration(root: Path) -> CheckResult:
             )
         if unregistered:
             parts.append(
-                f"{len(unregistered)} sub-file(s) not named by their parent SKILL.md, so they are "
-                "unreachable from any entry point: " + ", ".join(unregistered)
+                f"{len(unregistered)} sub-file(s) not registered by their parent SKILL.md, so they "
+                "are unreachable from any entry point (register as a code span or Markdown link, "
+                "e.g. `sub-file.md` — a bare mention in prose does not count): "
+                + ", ".join(unregistered)
             )
         return CheckResult("skill sub-file registration", False, "; ".join(parts))
     return CheckResult(
@@ -564,6 +599,45 @@ def check_skill_subfile_registration(root: Path) -> CheckResult:
         True,
         f"all {checked} skill sub-files are registered by their parent SKILL.md",
     )
+
+
+def rule_table_readable(root: Path) -> tuple[bool, str]:
+    """Can the File-Specific Rules table actually be *read*, not merely located?
+
+    Returns (ok, detail). Callers use this instead of testing for the heading,
+    because the two failures are different: a missing heading is loud, whereas
+    "heading kept as a pointer, table moved elsewhere" parses to zero rows and
+    silently renders every rule as unlisted. The row count is also compared
+    against the ``.mdc`` inventory so a partially-relocated table is caught.
+    """
+    text = read_text(root / SKILLS_README)
+    if file_specific_rules_region(text) is None:
+        return False, f"No 'File-Specific Rules' heading found in {SKILLS_README}."
+    rows = parse_rule_table(text)
+    mdc = sorted_relative_files(root, RULES_ROOT, "*.mdc")
+    if not rows:
+        return False, (
+            f"The 'File-Specific Rules' heading in {SKILLS_README} exists but no "
+            f"table rows parsed under it, while {len(mdc)} .mdc rule file(s) exist "
+            "— the table has probably moved and left the heading behind."
+        )
+    if len(rows) < len(mdc):
+        return False, (
+            f"{SKILLS_README} lists {len(rows)} rule row(s) but {len(mdc)} .mdc "
+            "rule file(s) exist, so coverage would under-report."
+        )
+    return True, f"{len(rows)} rule row(s) parsed for {len(mdc)} .mdc file(s)"
+
+
+def check_rule_table_readable(root: Path) -> CheckResult:
+    """Fail at PR time, not only in the scheduled report.
+
+    The ``check`` gate is the only leg that runs on a pull request, so a
+    rule-table break was previously invisible until the scheduled drift job --
+    which then committed the wrong artifact rather than failing.
+    """
+    ok, detail = rule_table_readable(root)
+    return CheckResult("rule table readable", ok, detail)
 
 
 def run_baseline_checks(root: Path) -> list[CheckResult]:
@@ -576,6 +650,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_generated_reference_presence(root),
         check_readme_explains_check_modes(root),
         check_skill_subfile_registration(root),
+        check_rule_table_readable(root),
     ]
 
 
@@ -674,7 +749,7 @@ class Analysis:
         # failure this analyzer was repaired for. One error names the structural
         # cause instead of repeating it per rule.
         out.extend(sorted({
-            f"rule coverage unverifiable: {m.detail}"
+            f"rule coverage unverifiable: {m.target}"
             for m in self.rule_mappings if m.status == "unknown"
         }))
         return out
@@ -1356,16 +1431,18 @@ def render_coverage_markdown(root: Path) -> str:
 
 
 def cmd_coverage(root: Path, dry_run: bool, output: Path | None) -> int:
-    # An unreadable rules table means coverage is *unknown*, not empty.
-    # parse_rule_table returns {} in that case, which would render a matrix
-    # asserting every rule is unlisted -- a confidently wrong artifact, written
-    # to disk, exit 0. Refuse instead.
-    if file_specific_rules_region(read_text(root / SKILLS_README)) is None:
+    # An unreadable rules table means coverage is *unknown*, not empty: a matrix
+    # asserting every rule is unlisted is a confidently wrong artifact, written
+    # to disk, exit 0. Guard on the *outcome* (did rows parse?) rather than on
+    # the heading, because the failure this repo actually produces is "leave a
+    # pointer heading, move the table" -- which is exactly what AGENTS.md does
+    # today. A heading-only guard passes that case and writes the wrong matrix.
+    ok, detail = rule_table_readable(root)
+    if not ok:
         print(
-            f"ERROR: no 'File-Specific Rules' heading found in {SKILLS_README}. "
-            "Rule coverage cannot be determined, so no matrix was written — "
-            "generating one would report every rule as unlisted. Restore the "
-            "heading or update SKILLS_README/the heading matcher.",
+            f"ERROR: {detail} No coverage matrix was written — generating one "
+            "would report every rule as unlisted. Restore the table in "
+            f"{SKILLS_README}, or update SKILLS_README/the heading matcher.",
             file=sys.stderr,
         )
         return 1
@@ -1425,12 +1502,18 @@ def main(argv: list[str] | None = None) -> int:
     if command == "coverage":
         return cmd_coverage(root, getattr(args, "dry_run", False), getattr(args, "output", None))
     if command == "all":
-        gate = cmd_check(root, False)
+        # Every leg's exit code counts. `all` used to return only the check
+        # gate, so `report` could print "Status: FAIL (12 errors)" and the
+        # process still exited 0 -- which is how the AGENTS.md relocation broke
+        # rule coverage and rode through CI green, since the workflow runs
+        # exactly this subcommand. A detector that cannot fail the build is a
+        # comment. `report` only propagates its errors when do_check is set.
+        legs = [cmd_check(root, False)]
         print()
-        cmd_report(root, False, False)
+        legs.append(cmd_report(root, True, False))
         print()
-        cmd_coverage(root, False, None)
-        return gate
+        legs.append(cmd_coverage(root, False, None))
+        return max(legs)
     parser.error(f"unknown command: {command}")
     return 2
 
