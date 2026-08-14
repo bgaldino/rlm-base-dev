@@ -21,11 +21,19 @@ Two things it deliberately does NOT touch:
     `docs/erds/erd-data.json`, whose metadata block describes which orgs the ERD
     was extracted from; it changes only when the ERD is regenerated.
 
+Match the *whole* two-digit version range in every rule, including the current
+target. A range capped at the target (`6[0-7]` when 68.0 is current) stops
+matching the moment the repo reaches that target, and then reports "already at
+target, nothing to do" — indistinguishable from a clean repo. That has now cost
+this script two rules: `python` was blind to 37 in-scope literals and `apex` to
+8. Matching the target is a harmless no-op.
+
 Usage:
   python scripts/ai/bump_api_version.py                  # dry run (default)
   python scripts/ai/bump_api_version.py --apply
   python scripts/ai/bump_api_version.py --to 69.0 --apply
   python scripts/ai/bump_api_version.py --verbose         # list every change
+  python scripts/ai/bump_api_version.py --check           # exit 1 if anything is off-target
 """
 from __future__ import annotations
 
@@ -113,6 +121,37 @@ PROVENANCE_LINE_RE = re.compile(
     r"verified (?:on|live|against)|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
     re.IGNORECASE,
 )
+
+
+def validate_excluded_lines() -> list[str]:
+    """Check every EXCLUDED_LINES entry still points at a version-bearing line.
+
+    These entries are keyed on a 1-based line number, and nothing kept them
+    honest: insert a line above one and the exclusion silently starts shielding
+    an unrelated line while the rule rewrites the provenance it was meant to
+    protect. Worse, ``process`` counts the skip either way, so the run report
+    still says the original line was spared. Cheap to detect — if the recorded
+    line no longer contains a version at all, the key has drifted.
+    """
+    problems: list[str] = []
+    for (rel_path, lineno), reason in sorted(EXCLUDED_LINES.items()):
+        abs_path = os.path.join(REPO_ROOT, rel_path)
+        if not os.path.isfile(abs_path):
+            problems.append(f"{rel_path}:{lineno} — file no longer exists ({reason})")
+            continue
+        with open(abs_path, encoding="utf-8", errors="ignore") as fh:
+            lines = fh.read().splitlines()
+        if lineno < 1 or lineno > len(lines):
+            problems.append(
+                f"{rel_path}:{lineno} — out of range, file has {len(lines)} line(s) ({reason})"
+            )
+            continue
+        if not re.search(r"v?\d{2}\.0", lines[lineno - 1]):
+            problems.append(
+                f"{rel_path}:{lineno} — no API version on this line, so the key has "
+                f"drifted ({reason}); line reads: {lines[lineno - 1].strip()[:70]!r}"
+            )
+    return problems
 
 
 def excluded_reason(rel_path: str) -> str | None:
@@ -204,12 +243,22 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="python",
-            description="Python defaults/fallbacks (66.0, 67.0; floors untouched)",
+            description="Python defaults/fallbacks (any vNN.0 literal; floors untouched)",
             roots=("tasks", "scripts", "robot"),
             suffixes=(".py",),
-            # Only 66.0/67.0 so MIN_API_VERSION = "65.0" is out of range by
-            # construction. Keeps the quote style and any 'v' prefix.
-            pattern=re.compile(r"""(?P<q>['"])(?P<v>v?)(?P<ver>6[67]\.0)(?P=q)"""),
+            # Any two-digit version, for the reason spelled out on
+            # python-service-path below: this rule used to be capped at 6[67],
+            # which went stale the moment the repo reached 68.0. It matched
+            # nothing while 37 quoted 68.0 literals sat in scope, and reported
+            # "already at target, nothing to do" -- affirmatively false, and the
+            # next cutover would have silently skipped every one of them.
+            #
+            # The old cap was also justified as keeping MIN_API_VERSION out of
+            # range, which is redundant: PROVENANCE_LINE_RE already contains
+            # MIN_API_VERSION, and the only real floor
+            # (tasks/rlm_manage_fulfillment_scope_cnfg.py) is on a line it
+            # matches. Keeps the quote style and any 'v' prefix.
+            pattern=re.compile(r"""(?P<q>['"])(?P<v>v?)(?P<ver>[0-9]{2}\.0)(?P=q)"""),
             replace=_version_only,
         ),
         Rule(
@@ -235,7 +284,12 @@ def build_rules() -> list[Rule]:
             name="apex",
             description="Hardcoded REST paths and constants in .cls/.apex",
             suffixes=(".cls", ".apex"),
-            pattern=re.compile(r"(?P<pre>v)(?P<ver>6[0-7]\.0)"),
+            # Two-digit range for the same reason as the two rules above: capped
+            # at 6[0-7], this stopped seeing anything at 68.0 or later. In tracked
+            # scope its only remaining matches are a provenance line and the one
+            # EXCLUDED_LINES entry, both deliberately skipped -- so it was already
+            # inert on live code.
+            pattern=re.compile(r"(?P<pre>v)(?P<ver>[0-9]{2}\.0)"),
             replace=_version_only,
         ),
     ]
@@ -319,6 +373,10 @@ def main() -> int:
         "--verbose", "-v", action="store_true", help="Print every individual change"
     )
     parser.add_argument(
+        "--check", action="store_true",
+        help="Exit 1 if anything in scope is still off-target (implies a dry run)",
+    )
+    parser.add_argument(
         "--only", action="append", metavar="RULE",
         help="Limit to named rule(s); repeatable. Names: "
              + ", ".join(r.name for r in build_rules()),
@@ -338,7 +396,26 @@ def main() -> int:
             return 2
         rules = [r for r in rules if r.name in wanted]
 
+    stale = validate_excluded_lines()
+    if stale:
+        print(
+            "error: EXCLUDED_LINES is keyed on line numbers that have moved, so it is "
+            "now protecting the wrong lines (and the run report would still claim the "
+            "old ones were skipped):",
+            file=sys.stderr,
+        )
+        for entry in stale:
+            print(f"  {entry}", file=sys.stderr)
+        print(
+            "Re-point the line numbers, or better, reword the target lines so "
+            "PROVENANCE_LINE_RE protects them by content instead of position.",
+            file=sys.stderr,
+        )
+        return 2
+
     mode = "APPLY" if args.apply else "DRY RUN"
+    if args.check:
+        args.apply = False
     print(f"Bumping API version to {args.to}  [{mode}]\n")
 
     total_files = 0
@@ -366,6 +443,20 @@ def main() -> int:
 
     if not args.apply and total_hits:
         print("\nDry run only. Re-run with --apply to write these changes.")
+
+    if args.check:
+        # Exit non-zero when anything in scope is still off-target. Without this
+        # the tool could only ever report, so a rule that quietly stopped
+        # matching -- the exact defect this script has now shipped twice -- looked
+        # identical to a clean repo: "already at target, nothing to do".
+        if total_hits:
+            print(
+                f"\ncheck: FAIL — {total_hits} occurrence(s) in {total_files} file(s) "
+                f"are not at {args.to}.",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"\ncheck: PASS — everything in scope is at {args.to}.")
 
     return 0
 
