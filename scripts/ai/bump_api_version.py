@@ -146,9 +146,9 @@ PROVENANCE_LINE_RE = re.compile(
     # Two shapes: live-<past participle> and verified <preposition>. The authoritative
     # list is PROVENANCE_FORMS below, which validate_rules() asserts is still spared --
     # so this guard is self-checking and does not depend on any other file being read.
-    # The markdown sweep in doc-consistency/SKILL.md necessarily recognizes the same
-    # provenance, since it exists to catch what this cannot (no rule here touches
-    # `.md`); if you widen one, widen the other.
+    # Markdown is out of reach here (no rule touches `.md`), so provenance in docs is a
+    # manual concern; if a markdown sweep for it is documented, keep its grammar aligned
+    # with PROVENANCE_FORMS.
     #
     # It started narrower -- `verified on|live|against` only -- and missed
     # `live-verified`, `live-proven`, `verified by/via/payload`. Nothing was being
@@ -212,9 +212,8 @@ def validate_rules(rules: list[Rule], target: str) -> list[str]:
 
 
 # The provenance grammar, spelled out so a regression names the form it lost rather
-# than just failing a regex comparison. This tuple is authoritative for the code path.
-# The markdown sweep documented in doc-consistency/SKILL.md covers the same provenance
-# by hand (no rule here touches `.md`); widening either one should widen both.
+# than just failing a regex comparison. Authoritative for the code path; a documented
+# markdown pass covering the same provenance should be kept aligned with it.
 PROVENANCE_FORMS = (
     "live-verified", "live-tested", "live-proven", "live-confirmed",
     "verified live", "verified on", "verified in", "verified against",
@@ -563,7 +562,11 @@ def main() -> int:
     # 68.1 would let --apply write a version no rule can match on the *next* bump,
     # manufacturing the silent blindness validate_rules() exists to catch. Salesforce
     # API versions have no non-zero minor, so nothing legitimate is rejected here.
-    if not re.fullmatch(r"\d{2}\.0", args.to):
+    # [0-9], not \d: \d also matches Unicode decimal digits, so --to ６８.0 (full-width)
+    # would pass and then be written into files as a version no rule can match, since
+    # every rule's pattern is ASCII [0-9]{2}\.0. Same digit class on both sides or the
+    # validation does not actually constrain what the rules will see.
+    if not re.fullmatch(r"[0-9]{2}\.0", args.to):
         print(f"error: --to must look like NN.0, got {args.to!r}", file=sys.stderr)
         return 2
 
