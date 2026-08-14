@@ -13,8 +13,10 @@ This directory contains comprehensive entity relationship diagrams (ERDs) for th
 > comparison org (the schema-validation skill forbids single-org patching, which
 > would baseline feature-gated noise as canonical), then
 > `extract_schema.py` → `diff_schemas.py` → `validate_erd_against_org.py --patch`,
-> then a whole-block metadata rewrite and `build_erds.py`. Tracked in
-> `.agents/artifacts/upgrades/264-upgrade-plan.md`.
+> then a whole-block metadata rewrite and `build_erds.py`. Those preconditions are
+> the public record of what the refresh requires — until both orgs exist and that
+> pipeline has run, the `release`/`apiVersion` fields in `erd-data.json` stay at
+> their extracted values by design, and a bump that relabels them is a defect.
 
 The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. Verified via dual-org cross-validation (260 baseline `ent-r1` and 262 target `rlm-base__ent-sb0`) plus 127 entities individually checked against Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
 

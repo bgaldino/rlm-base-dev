@@ -67,6 +67,35 @@ the capture was taken at, and that `VERIFIED LIVE` attests to the body, response
 shape, and sequencing rather than the version in the path.
 `scripts/txn_data_harness/docs/contracts-*.md` carry the worked wording.
 
+**Sweep with the full marker set, or you will miss files.** The 264 pass found three
+instances and declared the class swept; a reviewer then found a fourth, because the
+first sweep matched only `VERIFIED LIVE` / `Verified payload` / `verified against`.
+These forms all exist in this repo and all carry the same weight:
+
+```bash
+git ls-files '*.md' | xargs grep -lniE \
+  'verified live|live-verified|live-tested|verified on|verified against|✅ *verified'
+```
+
+**Two provenance styles, and only one of them can be silently invalidated.** Most
+files name the version *inline on each claim* — "live-verified v67.0",
+"verified live on v67.0" — which is self-disambiguating: the version travels with
+the assertion, so a bump cannot separate them, and `bump_api_version.py`'s
+line-scoped `PROVENANCE_LINE_RE` already protects that line. Prefer this style when
+writing a new claim. The vulnerable style is a **document-scoped** header —
+"Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
+version governs paths hundreds of lines away that state no version of their own.
+That is the shape that broke, in both places it occurred.
+
+So when triaging a sweep hit, the question is not "does this file mix versions" but
+**"is there a version-bearing claim whose scope covers a path that does not state
+its own version?"** Of six candidates in the 264 sweep, five were fine — prescriptive
+`sf api request` examples, endpoint tables under a "paths are relative to
+`/services/data/vNN.0/`" base-path line, and inline-versioned claims. Only the
+document-scoped header genuinely needed the caveat. A mechanical file-level
+co-occurrence check was considered and rejected for that reason: at a 5-in-6
+false-positive rate it would train people to ignore it.
+
 ### Adding one product touches many plans
 
 A single new SKU fans out across every plan that carries it — catalog, pricing,
