@@ -28,7 +28,7 @@ python scripts/ai/check_plan_readme_consistency.py       # README ↔ export.jso
 
 ## Offline invariants — the fast gate
 
-18 checks, no org needed, runs in under a second. Run it before every commit that
+17 checks, no org needed, runs in under a second. Run it before every commit that
 touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 
 | Invariant | Guards against |
@@ -48,9 +48,13 @@ touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 | `rates_derived_from_base` | A non-base rate that does not match its derived value |
 | `overrides_derived_from_base` | A non-base **Override tier value** that does not match its derived value — these are money and are converted, but were unchecked by the two rules above |
 | `period_ordering_descending` | `billing >= rating > accumulation` violated |
-| `accumulation_refs_aligned` | `UsageResource` and PURP naming *different* accumulation policies — runtime uses the `UsageResource` value, so a disagreeing PURP is silently ignored while reading as though it applied. `period_ordering_descending` cannot see this: it checks each reference independently, and `dailypeak`/`dailytotal` are both `Daily` |
 | `counts_match_readme` | Plan README file-tree counts drifting from the CSVs |
 | `docs_state_the_real_count` | This page and `AGENTS.md` advertising a number of invariants that is no longer true — it counts itself, so adding a check means updating both |
+
+Retired at 264: `accumulation_refs_aligned` compared the accumulation policy named on
+`UsageResource` against the one named on ProductUsageResourcePolicy. Release 264 removed
+`UsageResource.UsageResourceBillingPolicyId`, so PURP is now the only place that policy is
+named — there is no second reference to disagree with it. Do not re-add it.
 
 ### Adding an invariant
 

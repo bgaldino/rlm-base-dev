@@ -392,24 +392,23 @@ billing. The three periods come from three different places:
 |--------|--------|----------|
 | Billing | `UsageEntitlementAccount.BillingPeriodUnit/Term` (runtime) | Monthly |
 | Rating | `RatingFrequencyPolicy.RatingPeriod` | Monthly |
-| Accumulation | `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
+| Accumulation | `ProductUsageResourcePolicy.UsageAggregationPolicy` → `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
 
 Accumulation must be **strictly shorter** than rating, which is why the
-`dailytotal` / `dailypeak` policies exist and why every QB usage resource points
-at one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
-for a future model that bills quarterly or annually — pointing a monthly-billed
-resource at them reintroduces the failure.
+`dailytotal` / `dailypeak` policies exist and why every QB usage resource is bound
+to one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
+for a future model that bills quarterly or annually — binding a monthly-billed
+resource to them reintroduces the failure.
 
-**Two references, one authority.** The accumulation policy is named in *both*
-`UsageResource.UsageResourceBillingPolicy.Code` and
-`ProductUsageResourcePolicy.UsageAggregationPolicy.Code`. Runtime snapshots the
-**`UsageResource`** value onto the `TransactionUsageEntitlement`, so fixing only
-the PURP reference leaves the resource default broken while looking correct.
-Keep both aligned. `tests/test_qb_multicurrency_data.py::accumulation_refs_aligned`
-enforces it. Note that `period_ordering_descending` does **not**: it checks each
-reference against billing ≥ rating > accumulation *independently*, and `dailypeak`
-and `dailytotal` are both Daily, so a mismatched pair satisfies it — which is how
-storage sat at resource=`dailypeak` / purp=`dailytotal` while the suite read green.
+**One reference as of 264.** Release 264 removed
+`UsageResource.UsageResourceBillingPolicyId`, so the accumulation policy is named
+in exactly one place: `ProductUsageResourcePolicy.UsageAggregationPolicy.Code`.
+Through 262 it was named on both `UsageResource` and the PURP row and the two had
+to agree — runtime read the `UsageResource` value, so a disagreeing PURP was
+silently ignored while reading as though it applied. With the resource-level field
+gone that alignment invariant no longer has two sides, so
+`tests/test_qb_multicurrency_data.py::accumulation_refs_aligned` is retired and
+`period_ordering_descending` checks the single remaining reference.
 
 `TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
 existing entitlements cannot be repointed — a design-time change reaches runtime

@@ -10,7 +10,7 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `UsageResource` | Defines a usage resource (API calls, storage, data, etc.) | Code (unique), UsageDefinitionProductId (→ Product2), TokenResourceId (self-ref), UnitOfMeasureClassId, UsageResourceBillingPolicyId |
+| `UsageResource` | Defines a usage resource (API calls, storage, data, etc.) | Code (unique), UsageDefinitionProductId (→ Product2), TokenResourceId (self-ref), UnitOfMeasureClassId — `UsageResourceBillingPolicyId` was **removed in 264**; bind the accumulation policy via `ProductUsageResourcePolicy.UsageAggregationPolicyId` instead |
 | `ProductUsageResource` (PUR) | Binds a Product to a UsageResource | ProductId, UsageResourceId, TokenResourceId |
 | `ProductUsageResourcePolicy` (PURP) | Policy config for a PUR | ProductUsageResourceId, RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId — but see the commitment restriction below |
 | `ProductUsageGrant` (PUG) | Entitlement grant for a product/resource | ProductUsageResourceId, UsageResourceId, RenewalPolicyId, RolloverPolicyId, UnitOfMeasureClassId, UnitOfMeasureId |
@@ -84,7 +84,9 @@ UnitOfMeasureClass ← UsageResource (UnitOfMeasureClassId)
 UsageResource ← UsageResource (TokenResourceId, self-ref)
 UsageResource ← TransactionJournal (UsageResourceId)
 UsageResource ← UsageSummary (UsageResourceId)
-UsageResourceBillingPolicy ← UsageResource (UsageResourceBillingPolicyId)
+UsageResourceBillingPolicy ← ProductUsageResourcePolicy (UsageAggregationPolicyId)
+    (through 262 also: UsageResourceBillingPolicy ← UsageResource
+     (UsageResourceBillingPolicyId) — that field was removed in 264)
 UnitOfMeasure ← UnitOfMeasureClass (BaseUnitOfMeasureId, DefaultUnitOfMeasureId)
 ```
 

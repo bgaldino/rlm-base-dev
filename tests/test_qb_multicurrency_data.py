@@ -523,14 +523,12 @@ def check_period_ordering_descending(d):
     Summaries batch fails every UsageEntitlementAccount and no usage is ever
     summarised or rated. Accumulation must be strictly shorter than rating.
 
-    Runtime reads the accumulation policy from UsageResource, NOT from the
-    ProductUsageResourcePolicy row, so both paths are checked -- fixing only the
-    PURP reference leaves the resource default broken while looking correct.
+    Release 264 removed ``UsageResource.UsageResourceBillingPolicyId``, so
+    ProductUsageResourcePolicy is the only place an accumulation policy is named
+    and the only path runtime can read it from.
     """
     accum_period = {r["Code"]: r["UsageAccumulationPeriod"] for r in d["urbp"]}
     rating_period = {r["Name"]: r["RatingPeriod"] for r in d["rfp"]}
-    resource_policy = {r["Code"]: (r.get("UsageResourceBillingPolicy.Code") or "").strip()
-                       for r in d["resource"]}
 
     billing_rank = PERIOD_RANK[BILLING_PERIOD]
     problems = []
@@ -543,62 +541,24 @@ def check_period_ordering_descending(d):
         sku = row["ProductUsageResource.Product.StockKeepingUnit"]
         res = row["ProductUsageResource.UsageResource.Code"]
 
-        # Both accumulation sources must satisfy the rule.
-        for label, code in (("purp", agg), ("resource", resource_policy.get(res, ""))):
-            if not code:
-                continue
-            period = accum_period.get(code)
-            if period is None:
-                problems.append(f"{sku}/{res} [{label}]: unknown policy {code!r}")
-                continue
-            if not rating:
-                problems.append(f"{sku}/{res} [{label}]: accumulation {period} but no rating period")
-                continue
-            r_rank, a_rank = PERIOD_RANK.get(rating, 0), PERIOD_RANK.get(period, 0)
-            if not (billing_rank >= r_rank > a_rank):
-                problems.append(
-                    f"{sku}/{res} [{label}]: billing={BILLING_PERIOD} rating={rating} "
-                    f"accumulation={period} ({code}) — not descending")
+        if not agg:
+            continue
+        period = accum_period.get(agg)
+        if period is None:
+            problems.append(f"{sku}/{res}: unknown policy {agg!r}")
+            continue
+        if not rating:
+            problems.append(f"{sku}/{res}: accumulation {period} but no rating period")
+            continue
+        r_rank, a_rank = PERIOD_RANK.get(rating, 0), PERIOD_RANK.get(period, 0)
+        if not (billing_rank >= r_rank > a_rank):
+            problems.append(
+                f"{sku}/{res}: billing={BILLING_PERIOD} rating={rating} "
+                f"accumulation={period} ({agg}) — not descending")
 
     check("period_ordering_descending", not problems,
           f"{len(problems)} violation(s): " + "; ".join(problems[:3]) if problems
           else "billing >= rating > accumulation for every policy row")
-
-
-def check_accumulation_refs_aligned(d):
-    """The accumulation policy is named TWICE and both names must agree.
-
-    UsageResource.UsageResourceBillingPolicy.Code and
-    ProductUsageResourcePolicy.UsageAggregationPolicy.Code point at the same
-    UsageResourceBillingPolicy record (the PURP lookup's relationship name just
-    differs from its target object). Runtime snapshots the UsageResource value
-    onto TransactionUsageEntitlement, so a PURP that disagrees is silently
-    ignored while reading as though it were in effect.
-
-    period_ordering_descending does NOT cover this: it checks each reference
-    against billing >= rating > accumulation independently, and dailypeak and
-    dailytotal are both Daily, so a mismatched pair satisfies it. Storage sat at
-    resource=dailypeak / purp=dailytotal and passed.
-    """
-    resource_policy = {r["Code"]: (r.get("UsageResourceBillingPolicy.Code") or "").strip()
-                       for r in d["resource"]}
-    problems = []
-    for row in d["purp"]:
-        agg = (row.get("UsageAggregationPolicy.Code") or "").strip()
-        if not agg:
-            continue  # commitment-only row: carries no accumulation reference
-        res = row["ProductUsageResource.UsageResource.Code"]
-        expected = resource_policy.get(res, "")
-        # `if expected and ...` would suppress the case where the PURP names a policy and
-        # the resource names none -- a real disagreement, and the one runtime resolves in
-        # favour of the (absent) resource value. Absent counts as a mismatch.
-        if expected != agg:
-            problems.append(
-                f"{row['ProductUsageResource.Product.StockKeepingUnit']}/{res}: "
-                f"resource={expected or '(none)'} but purp={agg}")
-    check("accumulation_refs_aligned", not problems,
-          f"{len(problems)} mismatch(es): " + "; ".join(problems[:3]) if problems
-          else "UsageResource and PURP name the same accumulation policy")
 
 
 def check_counts_match_readme(d):
@@ -680,7 +640,6 @@ def main():
                check_rates_derived_from_base,
                check_overrides_derived_from_base,
                check_period_ordering_descending,
-               check_accumulation_refs_aligned,
                check_counts_match_readme,
                # Counts itself: the docs advertise the total including this check.
                lambda d: check_docs_state_the_real_count(d, registered=len(checks)))
