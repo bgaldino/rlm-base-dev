@@ -83,7 +83,14 @@ EXCLUDED_PREFIXES: dict[str, str] = {
     # release. They are excluded rather than swept because each deliberately records
     # the *prior* GA alongside the current target (`prior_ga_api_version`, "main
     # (Release 262 ... API 67.0 GA target)"), which a blanket rewrite would destroy.
-    # Retarget these in the manual docs pass; see doc-consistency/SKILL.md.
+    # So they need a hand edit each release, and the instruction is spelled out here
+    # rather than deferred: in `project-map.md` update "Salesforce target" and
+    # "API version" and leave the "Default branch"/"Frozen prior-GA" lines alone; in
+    # `project-memory.json` update `repository.salesforce_release.number` and
+    # `.api_version` (plus `repository.active_work_branch`) and leave that object's
+    # `prior_ga_release`/`prior_ga_api_version` alone. The release's own docs pass
+    # (doc-consistency/SKILL.md) is where this belongs long-term, but a pointer is
+    # not a procedure -- an operator reading this comment can act on it as it stands.
     ".agents/": "mixed current/prior release refs — retarget by hand, do not sweep",
     "docs/salesforce/": "frozen per-release Help/dev-guide snapshot corpora",
     "docs/enablement/260/": "frozen per-release enablement extract",
@@ -115,12 +122,21 @@ EXCLUDED_FILES: dict[str, str] = {
 }
 
 # Exact (path, 1-based line) pairs holding provenance rather than a live pin.
-EXCLUDED_LINES: dict[tuple[str, int], str] = {
+#
+# Each value is (reason, marker): the marker is a distinctive substring of the line
+# itself, and it is what makes the entry self-identifying. A line number alone cannot
+# tell "still the right line" from "a different version-bearing line slid into this
+# position" -- and the second case is the dangerous one, because the exclusion would
+# shield a live pin from the bump while `process` still reports the original line as
+# skipped. Requiring the marker to be present makes that substitution fail loudly.
+EXCLUDED_LINES: dict[tuple[str, int], tuple[str, str]] = {
     ("scripts/context_service/examples/contextServiceLifecycle.apex", 28): (
-        "records dataPath semantics as verified on 262/v67.0"
+        "records dataPath semantics as verified on 262/v67.0",
+        "dataPath semantics",
     ),
     ("unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls", 238): (
-        "records bindingobjectformula behavior as observed at 262/v67.0"
+        "records bindingobjectformula behavior as observed at 262/v67.0",
+        "bindingobjectformula",
     ),
 }
 
@@ -233,17 +249,23 @@ def next_version(target: str) -> str:
 
 
 def validate_excluded_lines() -> list[str]:
-    """Check every EXCLUDED_LINES entry still points at a version-bearing line.
+    """Check every EXCLUDED_LINES entry still points at the line it was written for.
 
     These entries are keyed on a 1-based line number, and nothing kept them
     honest: insert a line above one and the exclusion silently starts shielding
     an unrelated line while the rule rewrites the provenance it was meant to
     protect. Worse, ``process`` counts the skip either way, so the run report
-    still says the original line was spared. Cheap to detect — if the recorded
-    line no longer contains a version at all, the key has drifted.
+    still says the original line was spared.
+
+    Checking only "is there a version here" is too weak to catch the case that
+    matters. Both drift modes move *some* version-bearing line into the slot as
+    often as not, so that test passes while the entry now shields a live pin —
+    the precise failure it exists to prevent. Each entry therefore carries a
+    ``marker`` naming its own content, and identity is asserted on the marker;
+    the version check remains as a cheap sanity test on top.
     """
     problems: list[str] = []
-    for (rel_path, lineno), reason in sorted(EXCLUDED_LINES.items()):
+    for (rel_path, lineno), (reason, marker) in sorted(EXCLUDED_LINES.items()):
         abs_path = os.path.join(REPO_ROOT, rel_path)
         if not os.path.isfile(abs_path):
             problems.append(f"{rel_path}:{lineno} — file no longer exists ({reason})")
@@ -255,10 +277,18 @@ def validate_excluded_lines() -> list[str]:
                 f"{rel_path}:{lineno} — out of range, file has {len(lines)} line(s) ({reason})"
             )
             continue
-        if not re.search(r"v?\d{2}\.0", lines[lineno - 1]):
+        line = lines[lineno - 1]
+        if marker not in line:
             problems.append(
-                f"{rel_path}:{lineno} — no API version on this line, so the key has "
-                f"drifted ({reason}); line reads: {lines[lineno - 1].strip()[:70]!r}"
+                f"{rel_path}:{lineno} — expected {marker!r} on this line, so the key "
+                f"has drifted and the exclusion is now shielding a different line "
+                f"({reason}); line reads: {line.strip()[:70]!r}"
+            )
+            continue
+        if not re.search(r"v?\d{2}\.0", line):
+            problems.append(
+                f"{rel_path}:{lineno} — no API version on this line, so the entry no "
+                f"longer protects anything ({reason}); line reads: {line.strip()[:70]!r}"
             )
     return problems
 
@@ -466,7 +496,7 @@ def process(rule: Rule, target: str, apply: bool, verbose: bool) -> tuple[int, i
         file_hits = 0
         for lineno, line in enumerate(original.splitlines(keepends=True), start=1):
             if (rel, lineno) in EXCLUDED_LINES:
-                skipped[EXCLUDED_LINES[(rel, lineno)]] += 1
+                skipped[EXCLUDED_LINES[(rel, lineno)][0]] += 1
                 out_lines.append(line)
                 continue
             if PROVENANCE_LINE_RE.search(line):
