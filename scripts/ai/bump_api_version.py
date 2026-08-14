@@ -75,7 +75,16 @@ def tracked_files() -> frozenset[str]:
 # Path prefixes never rewritten, with the reason each one is off-limits.
 EXCLUDED_PREFIXES: dict[str, str] = {
     ".git/": "vcs internals",
-    ".agents/": "private agent artifacts, not shipped config",
+    # NOT frozen -- excluded because it must be retargeted *by hand*.
+    # `.agents/artifacts/` is a private nested repo (gitignored, so never reachable
+    # here anyway), but the tracked `.agents/context/` files are live agent
+    # orientation: project-map.md and project-memory.json record the active release
+    # and API version, and an agent that reads a stale one is left on the previous
+    # release. They are excluded rather than swept because each deliberately records
+    # the *prior* GA alongside the current target (`prior_ga_api_version`, "main
+    # (Release 262 ... API 67.0 GA target)"), which a blanket rewrite would destroy.
+    # Retarget these in the manual docs pass; see doc-consistency/SKILL.md.
+    ".agents/": "mixed current/prior release refs — retarget by hand, do not sweep",
     "docs/salesforce/": "frozen per-release Help/dev-guide snapshot corpora",
     "docs/enablement/260/": "frozen per-release enablement extract",
     "docs/enablement/262/": "frozen per-release enablement extract",
