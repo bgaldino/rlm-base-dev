@@ -74,15 +74,19 @@ These forms all exist in this repo and all carry the same weight:
 
 ```bash
 git ls-files '*.md' | xargs grep -lniE \
-  'verified live|live-verified|live-tested|verified on|verified against|✅ *verified'
+  'verified live|live-verified|live-tested|verified on|verified against|verified payload|✅ *verified'
 ```
 
 **Two provenance styles, and only one of them can be silently invalidated.** Most
 files name the version *inline on each claim* — "live-verified v67.0",
 "verified live on v67.0" — which is self-disambiguating: the version travels with
-the assertion, so a bump cannot separate them, and `bump_api_version.py`'s
-line-scoped `PROVENANCE_LINE_RE` already protects that line. Prefer this style when
-writing a new claim. The vulnerable style is a **document-scoped** header —
+the assertion, so the manual sweep cannot separate them, and a reader can see at a
+glance which release the claim belongs to. Prefer this style when writing a new
+claim. **Nothing automated protects it** — `bump_api_version.py` encodes the same
+idea in `PROVENANCE_LINE_RE`, but that rule only runs over `-meta.xml`,
+`export.json`, `.py`, and `.cls`/`.apex`; markdown is never scanned, which is
+exactly why this pass is manual. The vulnerable style is a **document-scoped**
+header —
 "Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
 version governs paths hundreds of lines away that state no version of their own.
 That is the shape that broke, in both places it occurred.
