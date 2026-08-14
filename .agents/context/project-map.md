@@ -53,7 +53,7 @@
 5. Do not pass `access_token` to `sf` CLI commands; use usernames or aliases with `--target-org`.
 6. Do not add `EmailTemplatePage` flexipages to `templates/flexipages/`.
 7. Do not commit real emails in `rlm.network-meta.xml`; keep placeholders.
-8. Do not commit or push directly to `main`.
+8. Do not commit or push directly to `main` **or to the active release branch** (`264`; likewise `release/*`) — feature branch plus PR, for docs and agent-instruction files as well as code. Never force-push any of them without explicit approval; PRs are routinely stacked on the active release branch.
 
 ## Generated References
 

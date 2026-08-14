@@ -313,6 +313,11 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
   definition interfaces, the dry-run contract, and the runtime helper scripts.
 - `docs/references/context-service-utility.md` — `manage_context_definition`
   option reference.
+- `docs/references/context-service-patch-shapes.md` — live-verified accept-shapes
+  for the Connect and SObject REST mutation endpoints: the GET-vs-PATCH shape
+  gap, per-endpoint required and response-only fields, hydration nesting, the
+  active-version behavior matrix, and an error → resolution table. Read before
+  authoring any mutation payload.
 - `.cursor/skills/expression-sets/SKILL.md` — expression sets that consume a
   context via tags.
 - `.cursor/skills/pricing-wiring/SKILL.md` — where context definitions fit in the

@@ -485,6 +485,208 @@ def check_readme_explains_check_modes(root: Path) -> CheckResult:
     return CheckResult("README check modes", True, "README documents baseline vs full check modes")
 
 
+def _owning_skill_dir(sub: Path, skills_root: Path) -> Path | None:
+    """Nearest ancestor directory holding a ``SKILL.md``, or None if there is none."""
+    for candidate in sub.parents:
+        if (candidate / "SKILL.md").is_file():
+            return candidate
+        if candidate == skills_root:
+            break
+    return None
+
+
+def _referenced_md_tokens(parent_text: str) -> set[str]:
+    """``.md`` path tokens a parent registers, from code spans and link targets.
+
+    Only these two forms count: a passing mention in prose is not a registry
+    entry. Code spans are split on whitespace so a command like
+    ``python tools/x.py note.md`` yields its individual tokens.
+    """
+    out: set[str] = set()
+    for m in re.finditer(r"`([^`\n]+)`", parent_text):
+        out.update(m.group(1).split())
+    for m in re.finditer(r"]\(([^)\s\n]+)", parent_text):
+        out.add(m.group(1))
+    return {
+        t for t in (raw.split("#", 1)[0].strip("<>()[],;:\"'") for raw in out)
+        if t.endswith(".md") or (t.endswith("*.md") or "*" in t and ".md" in t)
+    }
+
+
+def _names_subfile(parent_text: str, sub: Path, skill_dir: Path, root: Path) -> bool:
+    """Does the parent actually register this sub-file?
+
+    Substring matching is wrong in both directions, and all three cases are
+    reproducible in this repo:
+
+    - ``data-model.md`` occurs inside ``authoring-and-data-model.md``, so an
+      unregistered file passes on a longer sibling's name;
+    - a bounded name still matches *another* skill's identically-named sub-file,
+      because a path separator satisfies any word boundary — so a reference to
+      ``.cursor/skills/other/note.md`` would register your own ``note.md``;
+    - and a mention in prose is not registration.
+
+    So resolve each referenced token to a real path and compare it to this
+    sub-file. Three bases are tried because all three are in live use: relative
+    to the skill directory (``domains/usage.md``), relative to the skills root
+    (``troubleshooting/large-deal-preprocess-reference.md``), and repo-relative
+    (``.cursor/skills/...``). Globs (``domains/*.md``) are matched against the
+    relative path, since that is how whole sub-directories get registered.
+    """
+    skills_root = root / SKILLS_ROOT
+    rels = (str(sub.relative_to(skill_dir)), str(sub.relative_to(skills_root)), str(sub.relative_to(root)))
+    for tok in _referenced_md_tokens(parent_text):
+        if "*" in tok:
+            if any(fnmatch.fnmatch(r, tok) for r in rels):
+                return True
+            continue
+        for base in (skill_dir, skills_root, root):
+            try:
+                if (base / tok).resolve() == sub.resolve():
+                    return True
+            except (OSError, ValueError):
+                continue
+    return False
+
+
+def check_skill_subfile_registration(root: Path) -> CheckResult:
+    """Each skill sub-file must be named by its own parent ``SKILL.md``.
+
+    The parent is the only registry — ``AGENTS.md`` deliberately carries no
+    second-level index — so a sub-file its parent omits is unreachable from
+    every documented entry point. This check exists because that used to be
+    caught incidentally by the AGENTS.md sub-file table.
+    """
+    skills_root = root / SKILLS_ROOT
+    if not skills_root.is_dir():
+        return CheckResult("skill sub-file registration", False, f"missing {SKILLS_ROOT}")
+
+    unregistered: list[str] = []
+    orphaned: list[str] = []
+    checked = 0
+    # Enumerate sub-files first, then resolve each one's parent. Iterating
+    # parents instead would visit only directories that already contain a
+    # SKILL.md, so a sub-file with no parent at all -- the least reachable case
+    # there is -- would never be looked at and the gate would pass.
+    for sub in sorted(p for p in skills_root.rglob("*.md") if p.name != "SKILL.md"):
+        if sub.parent == skills_root:
+            continue  # skills/README.md and friends are the root index, not sub-files
+        skill_dir = _owning_skill_dir(sub, skills_root)
+        if skill_dir is None:
+            orphaned.append(rel(sub, root))
+            continue
+        checked += 1
+        if not _names_subfile(read_text(skill_dir / "SKILL.md"), sub, skill_dir, root):
+            unregistered.append(rel(sub, root))
+
+    if orphaned or unregistered:
+        parts = []
+        if orphaned:
+            parts.append(
+                f"{len(orphaned)} sub-file(s) have no ancestor SKILL.md at all: "
+                + ", ".join(orphaned)
+            )
+        if unregistered:
+            parts.append(
+                f"{len(unregistered)} sub-file(s) not registered by their parent SKILL.md, so they "
+                "are unreachable from any entry point (register as a code span or Markdown link, "
+                "e.g. `sub-file.md` — a bare mention in prose does not count): "
+                + ", ".join(unregistered)
+            )
+        return CheckResult("skill sub-file registration", False, "; ".join(parts))
+    return CheckResult(
+        "skill sub-file registration",
+        True,
+        f"all {checked} skill sub-files are registered by their parent SKILL.md",
+    )
+
+
+def rule_table_readable(root: Path) -> tuple[bool, str]:
+    """Can the File-Specific Rules table actually be *read*, not merely located?
+
+    Returns (ok, detail). Callers use this instead of testing for the heading,
+    because the two failures are different: a missing heading is loud, whereas
+    "heading kept as a pointer, table moved elsewhere" parses to zero rows and
+    silently renders every rule as unlisted.
+
+    Rows are compared to the ``.mdc`` inventory **by name, not by count**. A count
+    was the original check and it is a proxy: rename a rule, or add one while a row
+    for a deleted rule lingers, and ``len(rows) == len(mdc)`` holds while the new
+    rule has no mapping at all. Skill targets are also resolved on disk, because
+    ``normalize_equivalent_skill`` synthesizes ``.cursor/skills/<ref>`` from any
+    backticked ``.md`` token without checking it exists -- so a typo like
+    ``SKIL.md`` otherwise reads as a satisfied mapping.
+    """
+    text = read_text(root / SKILLS_README)
+    if file_specific_rules_region(text) is None:
+        return False, f"No 'File-Specific Rules' heading found in {SKILLS_README}."
+    rows = parse_rule_table(text)
+    mdc = sorted_relative_files(root, RULES_ROOT, "*.mdc")
+    names = {Path(p).name for p in mdc}
+    if not rows:
+        return False, (
+            f"The 'File-Specific Rules' heading in {SKILLS_README} exists but no "
+            f"table rows parsed under it, while {len(mdc)} .mdc rule file(s) exist "
+            "— the table has probably moved and left the heading behind."
+        )
+    problems: list[str] = []
+    unlisted = sorted(names - rows.keys())
+    if unlisted:
+        problems.append(
+            f"{len(unlisted)} .mdc rule file(s) have no row in {SKILLS_README}, so "
+            f"coverage would under-report: {', '.join(unlisted)}"
+        )
+    stale = sorted(rows.keys() - names)
+    if stale:
+        problems.append(
+            f"{len(stale)} row(s) in {SKILLS_README} name a .mdc file that does not "
+            f"exist: {', '.join(stale)}"
+        )
+    # parse_rule_table keeps the cell's own path for display, which is normally
+    # relative to .cursor/skills/ ("cci-orchestration/SKILL.md") but may be written
+    # repo-root-relative. Accept either, the same way normalize_equivalent_skill does.
+    def resolves(ref: str) -> bool:
+        return (root / SKILLS_ROOT / ref).exists() or (root / ref).exists()
+
+    broken = sorted({
+        row["skill"] for row in rows.values()
+        if row.get("skill") and not resolves(row["skill"])
+    })
+    if broken:
+        problems.append(
+            f"{len(broken)} row(s) point at a skill file that does not exist: "
+            + ", ".join(broken)
+        )
+    # A row present but saying nothing is the quietest failure of the three: the
+    # name matches, so the set comparison is happy, and the skill path is empty, so
+    # the existence test skips it. `check` passed and the matrix rendered the rule
+    # as listed with no mapping. A row must resolve to a skill or explicitly claim
+    # stand-alone; "blank" is not a third option.
+    empty = sorted(
+        name for name, row in rows.items()
+        if not row.get("skill") and not row.get("standalone")
+    )
+    if empty:
+        problems.append(
+            f"{len(empty)} row(s) name neither a skill file nor an explicit "
+            f"stand-alone note: {', '.join(empty)}"
+        )
+    if problems:
+        return False, " ".join(problems)
+    return True, f"{len(rows)} rule row(s) matched against {len(mdc)} .mdc file(s), all skill targets resolve"
+
+
+def check_rule_table_readable(root: Path) -> CheckResult:
+    """Fail at PR time, not only in the scheduled report.
+
+    The ``check`` gate is the only leg that runs on a pull request, so a
+    rule-table break was previously invisible until the scheduled drift job --
+    which then committed the wrong artifact rather than failing.
+    """
+    ok, detail = rule_table_readable(root)
+    return CheckResult("rule table readable", ok, detail)
+
+
 def run_baseline_checks(root: Path) -> list[CheckResult]:
     return [
         check_required_files(root),
@@ -494,6 +696,8 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_manifest_high_level_keys(root),
         check_generated_reference_presence(root),
         check_readme_explains_check_modes(root),
+        check_skill_subfile_registration(root),
+        check_rule_table_readable(root),
     ]
 
 
@@ -586,6 +790,21 @@ class Analysis:
             f"{m.rule} has no corresponding skill or stand-alone note"
             for m in self.rule_mappings if m.status == "missing"
         )
+        # "unknown" means the rules table could not be read at all, so every
+        # mapping is unverified rather than absent. Counting only "missing"
+        # would render red rows while reporting overall PASS -- the same silent
+        # failure this analyzer was repaired for. One error names the structural
+        # cause instead of repeating it per rule.
+        out.extend(sorted({
+            f"rule coverage unverifiable: {m.target}"
+            for m in self.rule_mappings if m.status == "unknown"
+        }))
+        # A row naming a skill file that isn't there is worse than a blank cell:
+        # it reads as covered. Only path existence distinguishes them.
+        out.extend(
+            f"{m.rule} maps to a skill file that does not exist: {m.target}"
+            for m in self.rule_mappings if m.status == "broken"
+        )
         return out
 
     @property
@@ -644,12 +863,15 @@ def is_separator_row(cells: list[str]) -> bool:
     return all(set(c) <= set("-: ") and c for c in cells) if cells else False
 
 
-def file_specific_rules_region(markdown: str) -> str:
+def file_specific_rules_region(markdown: str) -> str | None:
     """Return the markdown under a 'File-Specific Rules' heading up to the next
     heading, so rule-table parsing is anchored to that section and is not
     polluted by any other pipe table that happens to mention a `.mdc` token.
 
-    Falls back to the whole document if the heading is not found.
+    Returns ``None`` when the heading is absent. Callers must treat that as "I
+    could not look", never as "the table is empty" — an earlier version fell
+    back to the whole document, which silently reported all 12 rules unmapped
+    once the table moved out of ``AGENTS.md``.
     """
     lines = markdown.splitlines()
     start = None
@@ -658,7 +880,7 @@ def file_specific_rules_region(markdown: str) -> str:
             start = i + 1
             break
     if start is None:
-        return markdown
+        return None
     end = len(lines)
     for j in range(start, len(lines)):
         if re.match(r"^#{1,6}\s", lines[j]):
@@ -667,9 +889,29 @@ def file_specific_rules_region(markdown: str) -> str:
     return "\n".join(lines[start:end])
 
 
-def extract_rule_mappings(agents_text: str, rules: Iterable[str]) -> list[RuleMapping]:
+def extract_rule_mappings(
+    rules_table_markdown: str | None,
+    rules: Iterable[str],
+    root: Path | None = None,
+) -> list[RuleMapping]:
+    """Map each ``.cursor/rules/*.mdc`` to its equivalent skill.
+
+    The canonical table lives in ``.cursor/skills/README.md``; ``AGENTS.md``
+    only points at it. Pass ``None`` to signal the section could not be found,
+    which is reported distinctly from a rule genuinely lacking a row.
+    """
+    if rules_table_markdown is None:
+        return [
+            RuleMapping(
+                Path(r).name,
+                "unknown",
+                f"Could not locate a 'File-Specific Rules' heading in {SKILLS_README}",
+            )
+            for r in sorted(rules, key=lambda p: Path(p).name)
+        ]
+
     by_rule: dict[str, tuple[str, str]] = {}
-    for line in file_specific_rules_region(agents_text).splitlines():
+    for line in rules_table_markdown.splitlines():
         if not line.lstrip().startswith("|") or ".mdc" not in line:
             continue
         cells = split_table_row(line)
@@ -686,9 +928,17 @@ def extract_rule_mappings(agents_text: str, rules: Iterable[str]) -> list[RuleMa
     for rule_path in rules:
         name = Path(rule_path).name
         if name not in by_rule:
-            results.append(RuleMapping(name, "missing", "No row in AGENTS.md File-Specific Rules table"))
+            results.append(
+                RuleMapping(name, "missing", f"No row in the {SKILLS_README} File-Specific Rules table")
+            )
             continue
         kind, target = by_rule[name]
+        # A synthesized skill path is not evidence the file is there.
+        # normalize_equivalent_skill turns any backticked `.md` token into
+        # `.cursor/skills/<ref>`, so `SKIL.md` and a since-renamed skill both read
+        # as satisfied mappings. Resolve it when we have a root to resolve against.
+        if kind == "skill" and root is not None and not (root / target).exists():
+            kind = "broken"
         results.append(RuleMapping(name, kind, target))
     return sorted(results, key=lambda m: m.rule)
 
@@ -710,7 +960,9 @@ def analyze(root: Path) -> Analysis:
     analysis.missing_agents_skill_references = [
         r for r in analysis.agents_skill_references if not path_reference_exists(root, r)
     ]
-    analysis.rule_mappings = extract_rule_mappings(agents_text, analysis.rules)
+    analysis.rule_mappings = extract_rule_mappings(
+        file_specific_rules_region(read_text(root / SKILLS_README)), analysis.rules, root
+    )
 
     for rel_path in GENERATED_CCI_REFERENCE_FILES:
         exists = (root / rel_path).is_file()
@@ -773,8 +1025,8 @@ def render_report_markdown(a: Analysis) -> str:
 
     lines += [
         "", "## Cursor Rule Coverage", "",
-        "Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific "
-        "Rules table for an equivalent skill or an explicit stand-alone note. See "
+        "Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` "
+        "File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See "
         "`.agents/context/rule-skill-coverage.md` for the full coverage matrix and "
         "recommendations.", "",
     ]
@@ -894,7 +1146,6 @@ class RuleInfo:
     equivalent_skill: str
     standalone: bool
     has_do_not: bool
-    appears_in_agents: bool
     listed_in_skill_readme: bool
     owner: str
 
@@ -1053,7 +1304,10 @@ def parse_rule_table(markdown: str) -> dict[str, dict[str, Any]]:
     recorded as stand-alone rather than as that skill.
     """
     rows: dict[str, dict[str, Any]] = {}
-    for line in file_specific_rules_region(markdown).splitlines():
+    region = file_specific_rules_region(markdown)
+    if region is None:
+        return rows
+    for line in region.splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = split_table_row(line)
@@ -1116,7 +1370,8 @@ def glob_covers(rules: list[RuleInfo], candidate: str) -> bool:
 
 
 def collect_rules(root: Path) -> list[RuleInfo]:
-    agents_rules = parse_rule_table(read_text(root / AGENTS_PATH))
+    # `.cursor/skills/README.md` is the sole owner of the File-Specific Rules
+    # table; AGENTS.md only points at it and is not parsed for rule rows.
     readme_rules = parse_rule_table(read_text(root / SKILLS_README))
     rules_dir = root / RULES_ROOT
 
@@ -1125,17 +1380,14 @@ def collect_rules(root: Path) -> list[RuleInfo]:
         text = read_text(rule_path)
         name = rule_path.name
         readme_row = readme_rules.get(name, {})
-        agents_row = agents_rules.get(name, {})
-        skill = readme_row.get("skill") or agents_row.get("skill") or ""
-        standalone = bool(readme_row.get("standalone") or agents_row.get("standalone"))
+        skill = readme_row.get("skill") or ""
         rules.append(RuleInfo(
             path=rel(rule_path, root),
             name=name,
             globs=parse_globs(extract_frontmatter(text)),
             equivalent_skill=skill,
-            standalone=standalone,
+            standalone=bool(readme_row.get("standalone")),
             has_do_not=has_do_not_section(text),
-            appears_in_agents=name in agents_rules,
             listed_in_skill_readme=name in readme_rules,
             owner=infer_owner(name, skill),
         ))
@@ -1174,8 +1426,8 @@ def render_coverage_markdown(root: Path) -> str:
         "",
         "## Rule Matrix", "",
         "| Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section "
-        "| Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |",
-        "|---|---|---|---|---|---|---|",
+        "| Listed in skill README | Recommended owner/domain |",
+        "|---|---|---|---|---|---|",
     ]
     for r in rules:
         if r.standalone:
@@ -1186,7 +1438,7 @@ def render_coverage_markdown(root: Path) -> str:
             equiv = "—"
         lines.append("| " + " | ".join([
             f"`{r.path}`", _format_globs(r.globs), equiv,
-            _yes_no(r.has_do_not), _yes_no(r.appears_in_agents),
+            _yes_no(r.has_do_not),
             _yes_no(r.listed_in_skill_readme), _md_escape(r.owner),
         ]) + " |")
 
@@ -1231,10 +1483,9 @@ def render_coverage_markdown(root: Path) -> str:
 
     lines += [
         "", "## Notes", "",
-        "- `Appears in AGENTS.md` is true when the rule filename is present in the root "
-        "`AGENTS.md` file-specific rule table.",
-        "- `Listed in skill README` is true when the rule filename is present in "
-        "`.cursor/skills/README.md`.",
+        "- `Listed in skill README` is true when the rule filename is present in the "
+        "File-Specific Rules table in `.cursor/skills/README.md`, which is the sole "
+        "owner of that table. `AGENTS.md` only points at it and is not parsed here.",
         "- High-risk path coverage is satisfied by either a matching `.cursor/rules/*.mdc` "
         "glob or an explicit analyzer/validator script listed in this report.",
         "",
@@ -1243,6 +1494,21 @@ def render_coverage_markdown(root: Path) -> str:
 
 
 def cmd_coverage(root: Path, dry_run: bool, output: Path | None) -> int:
+    # An unreadable rules table means coverage is *unknown*, not empty: a matrix
+    # asserting every rule is unlisted is a confidently wrong artifact, written
+    # to disk, exit 0. Guard on the *outcome* (did rows parse?) rather than on
+    # the heading, because the failure this repo actually produces is "leave a
+    # pointer heading, move the table" -- which is exactly what AGENTS.md does
+    # today. A heading-only guard passes that case and writes the wrong matrix.
+    ok, detail = rule_table_readable(root)
+    if not ok:
+        print(
+            f"ERROR: {detail} No coverage matrix was written — generating one "
+            "would report every rule as unlisted. Restore the table in "
+            f"{SKILLS_README}, or update SKILLS_README/the heading matcher.",
+            file=sys.stderr,
+        )
+        return 1
     report = render_coverage_markdown(root)
     if dry_run:
         print(report, end="" if report.endswith("\n") else "\n")
@@ -1299,12 +1565,18 @@ def main(argv: list[str] | None = None) -> int:
     if command == "coverage":
         return cmd_coverage(root, getattr(args, "dry_run", False), getattr(args, "output", None))
     if command == "all":
-        gate = cmd_check(root, False)
+        # Every leg's exit code counts. `all` used to return only the check
+        # gate, so `report` could print "Status: FAIL (12 errors)" and the
+        # process still exited 0 -- which is how the AGENTS.md relocation broke
+        # rule coverage and rode through CI green, since the workflow runs
+        # exactly this subcommand. A detector that cannot fail the build is a
+        # comment. `report` only propagates its errors when do_check is set.
+        legs = [cmd_check(root, False)]
         print()
-        cmd_report(root, False, False)
+        legs.append(cmd_report(root, True, False))
         print()
-        cmd_coverage(root, False, None)
-        return gate
+        legs.append(cmd_coverage(root, False, None))
+        return max(legs)
     parser.error(f"unknown command: {command}")
     return 2
 

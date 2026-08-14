@@ -91,9 +91,23 @@ Two check modes:
 - **Baseline static checks** (`check`) — stdlib-only, no third-party
   dependencies. Verifies required agent entry points, `scripts/ai/*.py`
   syntax, the stdlib-only import invariant, dependency-guidance messages,
-  manifest high-level keys, generated-reference markers, and that this README
-  documents the check modes. Exits non-zero on any failure, so it is safe to
-  run as a CI/scheduled gate.
+  manifest high-level keys, generated-reference markers, that every skill
+  sub-file is registered by its parent `SKILL.md`, that the File-Specific Rules
+  table is readable, and that this README documents the check modes. Exits
+  non-zero on any failure, so it is safe to run as a CI/scheduled gate.
+
+  The sub-file registration check guards a structural invariant: the parent
+  `SKILL.md` is the *only* registry for sub-files, since `AGENTS.md` carries no
+  second-level index. A sub-file its parent does not name is unreachable from
+  every documented entry point, so adding one without linking it fails the gate.
+  Register it as a code span or Markdown link; a mention in prose does not count.
+
+  The rule-table check exists because `check` is the only leg that runs on a
+  pull request. It asserts the *outcome* — rows actually parsed, and at least as
+  many as there are `.cursor/rules/*.mdc` files — rather than merely that the
+  heading is present. The failure this repo produces is "keep the heading as a
+  pointer, move the table", which parses to zero rows and would otherwise render
+  a coverage matrix claiming every rule is unlisted.
 - **Full generated-reference checks** (`check --full-generated-reference-checks`)
   — additionally dry-runs `generate_cci_reference.py`, which requires
   PyYAML/CumulusCI. Skipped with clear guidance when PyYAML is absent.

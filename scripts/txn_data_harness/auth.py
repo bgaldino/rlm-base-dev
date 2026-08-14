@@ -116,7 +116,7 @@ class SfRestClient:
     """Transport-agnostic Salesforce REST client.
 
     Construct via :meth:`from_alias`. All paths are absolute service paths
-    (e.g. ``/services/data/v67.0/sobjects/Order/<id>``); ``query`` builds the
+    (e.g. ``/services/data/v68.0/sobjects/Order/<id>``); ``query`` builds the
     query path for you.
     """
 

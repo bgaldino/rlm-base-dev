@@ -81,9 +81,12 @@ docs/                  # Documentation (lower-kebab-case filenames)
    — they cannot deploy via Metadata API
 7. **DO NOT** commit real emails in `rlm.network-meta.xml` — use the
    placeholder; patch/revert tasks handle deploy-time substitution
-8. **DO NOT** commit or push directly to `main` — all changes must go
-   through a feature branch and pull request. Never use `git push origin main`
-   or force-push main without explicit user approval.
+8. **DO NOT** commit or push directly to `main` **or to the active release
+   branch** (`264`; likewise `release/*`) — all changes go through a feature
+   branch and a pull request, which is how the 262 line was built. This applies
+   to docs and agent-instruction files, not just code. Never force-push any of
+   them without explicit user approval: PRs are routinely stacked on the active
+   release branch, so rewriting it invalidates every one of them.
 9. **DO NOT** present a behavioral Robot Framework change as verified —
    or merge one — on the strength of `robot --dryrun`. Dryrun validates only
    syntax and keyword resolution; it never launches a browser or runs the

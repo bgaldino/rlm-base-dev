@@ -2,7 +2,7 @@
 Execute an ODT (Extract or Transform) via the OmniStudio REST API.
 
 Uses the public OmniStudio REST endpoint:
-  POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
+  POST /services/data/v68.0/omnistudio/dataraptor/<ODTName>
 
 This endpoint accepts standard OAuth (no Lightning session required),
 making it suitable for CLI-based testing, CI validation, and agent
@@ -182,8 +182,13 @@ def main():
                         help="Show only record counts per array")
     parser.add_argument("--field", action="append", dest="fields",
                         help="Filter output to specific fields (repeatable)")
+    # argparse renders %(default)s itself, so the version lives in exactly one place
+    # on this line. Spelling it twice left the help text a release behind: a version
+    # inside a longer string is not a quoted literal, so the bump script's `python`
+    # rule structurally cannot reach it, and the help contradicted the default. No
+    # version named in this comment either, for the same reason.
     parser.add_argument("--api-version", default="v68.0",
-                        help="Salesforce API version (default: v67.0)")
+                        help="Salesforce API version (default: %(default)s)")
     args = parser.parse_args()
 
     data = execute_odt(args.odt_name, args.record_id, args.org, args.api_version,

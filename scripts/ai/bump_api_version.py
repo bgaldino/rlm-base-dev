@@ -21,11 +21,19 @@ Two things it deliberately does NOT touch:
     `docs/erds/erd-data.json`, whose metadata block describes which orgs the ERD
     was extracted from; it changes only when the ERD is regenerated.
 
+Match the *whole* two-digit version range in every rule, including the current
+target. A range capped at the target (`6[0-7]` when 68.0 is current) stops
+matching the moment the repo reaches that target, and then reports "already at
+target, nothing to do" — indistinguishable from a clean repo. That has now cost
+this script two rules: `python` was blind to 37 in-scope literals and `apex` to
+8. Matching the target is a harmless no-op.
+
 Usage:
   python scripts/ai/bump_api_version.py                  # dry run (default)
   python scripts/ai/bump_api_version.py --apply
   python scripts/ai/bump_api_version.py --to 69.0 --apply
   python scripts/ai/bump_api_version.py --verbose         # list every change
+  python scripts/ai/bump_api_version.py --check           # exit 1 if anything is off-target
 """
 from __future__ import annotations
 
@@ -67,7 +75,23 @@ def tracked_files() -> frozenset[str]:
 # Path prefixes never rewritten, with the reason each one is off-limits.
 EXCLUDED_PREFIXES: dict[str, str] = {
     ".git/": "vcs internals",
-    ".agents/": "private agent artifacts, not shipped config",
+    # NOT frozen -- excluded because it must be retargeted *by hand*.
+    # `.agents/artifacts/` is a private nested repo (gitignored, so never reachable
+    # here anyway), but the tracked `.agents/context/` files are live agent
+    # orientation: project-map.md and project-memory.json record the active release
+    # and API version, and an agent that reads a stale one is left on the previous
+    # release. They are excluded rather than swept because each deliberately records
+    # the *prior* GA alongside the current target (`prior_ga_api_version`, "main
+    # (Release 262 ... API 67.0 GA target)"), which a blanket rewrite would destroy.
+    # So they need a hand edit each release, and the instruction is spelled out here
+    # rather than deferred: in `project-map.md` update "Salesforce target" and
+    # "API version" and leave the "Default branch"/"Frozen prior-GA" lines alone; in
+    # `project-memory.json` update `repository.salesforce_release.number` and
+    # `.api_version` (plus `repository.active_work_branch`) and leave that object's
+    # `prior_ga_release`/`prior_ga_api_version` alone. The release's own docs pass
+    # (doc-consistency/SKILL.md) is where this belongs long-term, but a pointer is
+    # not a procedure -- an operator reading this comment can act on it as it stands.
+    ".agents/": "mixed current/prior release refs — retarget by hand, do not sweep",
     "docs/salesforce/": "frozen per-release Help/dev-guide snapshot corpora",
     "docs/enablement/260/": "frozen per-release enablement extract",
     "docs/enablement/262/": "frozen per-release enablement extract",
@@ -98,21 +122,174 @@ EXCLUDED_FILES: dict[str, str] = {
 }
 
 # Exact (path, 1-based line) pairs holding provenance rather than a live pin.
-EXCLUDED_LINES: dict[tuple[str, int], str] = {
+#
+# Each value is (reason, marker): the marker is a distinctive substring of the line
+# itself, and it is what makes the entry self-identifying. A line number alone cannot
+# tell "still the right line" from "a different version-bearing line slid into this
+# position" -- and the second case is the dangerous one, because the exclusion would
+# shield a live pin from the bump while `process` still reports the original line as
+# skipped. Requiring the marker to be present makes that substitution fail loudly.
+EXCLUDED_LINES: dict[tuple[str, int], tuple[str, str]] = {
     ("scripts/context_service/examples/contextServiceLifecycle.apex", 28): (
-        "records dataPath semantics as verified on 262/v67.0"
+        "records dataPath semantics as verified on 262/v67.0",
+        "dataPath semantics",
     ),
     ("unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls", 238): (
-        "records bindingobjectformula behavior as observed at 262/v67.0"
+        "records bindingobjectformula behavior as observed at 262/v67.0",
+        "bindingobjectformula",
     ),
 }
 
 # Any line matching one of these keeps its version, wherever it appears: the
 # version is part of a statement about the past, or a floor, not a pin.
 PROVENANCE_LINE_RE = re.compile(
-    r"verified (?:on|live|against)|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
+    # Two shapes: live-<past participle> and verified <preposition>. The authoritative
+    # list is PROVENANCE_FORMS below, which validate_rules() asserts is still spared --
+    # so this guard is self-checking and does not depend on any other file being read.
+    # Markdown is out of reach here (no rule touches `.md`), so provenance in docs is a
+    # manual concern; if a markdown sweep for it is documented, keep its grammar aligned
+    # with PROVENANCE_FORMS.
+    #
+    # It started narrower -- `verified on|live|against` only -- and missed
+    # `live-verified`, `live-proven`, `verified by/via/payload`. Nothing was being
+    # mis-rewritten (checked: zero lines carry a missing form *and* a pattern any rule
+    # matches), but it was a live trap: add a service path to a line reading
+    # "live-verified v67.0" and the bump rewrites the claim, turning recorded evidence
+    # into a false assertion -- strictly worse than missing a bump.
+    r"live-(?:verified|tested|proven|confirmed)"
+    r"|verified (?:live|on|in|against|by|via|payload)"
+    r"|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
     re.IGNORECASE,
 )
+
+
+# Probe bounds, kept as ints rather than "NN.0" strings on purpose: this file is
+# itself in the `python` rule's scope, and that rule matches any quoted two-digit
+# version literal, so written the obvious way it would rewrite its own probes to the
+# target and quietly disarm the self-test below.
+PROBE_FLOOR = 60
+PROBE_CEILING = 99
+
+
+def validate_rules(rules: list[Rule], target: str) -> list[str]:
+    """Assert every rule still matches input it is *defined* to match.
+
+    This is the independent leg ``--check`` needs. ``total_hits`` comes out of these
+    same patterns, so the two states "everything is at the target" and "this rule
+    went blind" are numerically identical -- both zero. That is not hypothetical:
+    the capped ranges (``6[67]``, ``6[0-7]``) stopped matching once the repo reached
+    68.0 and reported "already at target, nothing to do" while 37 and 8 in-scope
+    literals sat untouched.
+
+    Each rule is probed at a version *below* the target, at the target itself, and
+    at one *above* it, because the failure mode is specifically a range that no
+    longer reaches. A rule must also rewrite its probe to the target, which catches
+    a pattern that matches but whose replacement has lost a group.
+    """
+    problems: list[str] = []
+    for rule in rules:
+        if not rule.probe:
+            problems.append(f"{rule.name}: no probe defined, so --check cannot verify this rule")
+            continue
+        for ver in (f"{PROBE_FLOOR}.0", target, next_version(target)):
+            text = rule.probe.format(ver=ver)
+            m = rule.pattern.search(text)
+            if not m:
+                problems.append(
+                    f"{rule.name}: pattern no longer matches its own probe at v{ver} "
+                    f"({text!r}) — the rule has gone blind and would silently skip "
+                    "every occurrence of this class"
+                )
+                continue
+            rewritten = rule.pattern.sub(lambda mm: rule.replace(mm, target), text)
+            if rewritten != rule.probe.format(ver=target):
+                problems.append(
+                    f"{rule.name}: matched its probe at v{ver} but rewrote it to "
+                    f"{rewritten!r} instead of {rule.probe.format(ver=target)!r}"
+                )
+    problems.extend(validate_provenance_grammar())
+    return problems
+
+
+# The provenance grammar, spelled out so a regression names the form it lost rather
+# than just failing a regex comparison. Authoritative for the code path; a documented
+# markdown pass covering the same provenance should be kept aligned with it.
+PROVENANCE_FORMS = (
+    "live-verified", "live-tested", "live-proven", "live-confirmed",
+    "verified live", "verified on", "verified in", "verified against",
+    "verified by", "verified via", "verified payload",
+    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION",
+)
+
+
+def validate_provenance_grammar() -> list[str]:
+    """Assert PROVENANCE_LINE_RE still spares every documented provenance form.
+
+    The guard and the markdown sweep encode the same idea in two places and had
+    already drifted once -- the sweep knew `live-proven` and `verified by`, this did
+    not -- so a form silently dropping out is a real failure mode. A rewrite of a
+    line that says "live-verified v67.0" turns evidence into a false claim, which is
+    worse than missing a bump.
+    """
+    return [
+        f"PROVENANCE_LINE_RE no longer spares {form!r} — a line carrying that "
+        "provenance marker would be rewritten, turning a capture into a false claim"
+        for form in PROVENANCE_FORMS
+        if not PROVENANCE_LINE_RE.search(f"# {form} v67.0 — some note")
+    ]
+
+
+def next_version(target: str) -> str:
+    """The release after ``target`` — Salesforce API versions step by 1.0 per release."""
+    try:
+        return f"{int(float(target)) + 1}.0"
+    except ValueError:
+        return f"{PROBE_CEILING}.0"
+
+
+def validate_excluded_lines() -> list[str]:
+    """Check every EXCLUDED_LINES entry still points at the line it was written for.
+
+    These entries are keyed on a 1-based line number, and nothing kept them
+    honest: insert a line above one and the exclusion silently starts shielding
+    an unrelated line while the rule rewrites the provenance it was meant to
+    protect. Worse, ``process`` counts the skip either way, so the run report
+    still says the original line was spared.
+
+    Checking only "is there a version here" is too weak to catch the case that
+    matters. Both drift modes move *some* version-bearing line into the slot as
+    often as not, so that test passes while the entry now shields a live pin —
+    the precise failure it exists to prevent. Each entry therefore carries a
+    ``marker`` naming its own content, and identity is asserted on the marker;
+    the version check remains as a cheap sanity test on top.
+    """
+    problems: list[str] = []
+    for (rel_path, lineno), (reason, marker) in sorted(EXCLUDED_LINES.items()):
+        abs_path = os.path.join(REPO_ROOT, rel_path)
+        if not os.path.isfile(abs_path):
+            problems.append(f"{rel_path}:{lineno} — file no longer exists ({reason})")
+            continue
+        with open(abs_path, encoding="utf-8", errors="ignore") as fh:
+            lines = fh.read().splitlines()
+        if lineno < 1 or lineno > len(lines):
+            problems.append(
+                f"{rel_path}:{lineno} — out of range, file has {len(lines)} line(s) ({reason})"
+            )
+            continue
+        line = lines[lineno - 1]
+        if marker not in line:
+            problems.append(
+                f"{rel_path}:{lineno} — expected {marker!r} on this line, so the key "
+                f"has drifted and the exclusion is now shielding a different line "
+                f"({reason}); line reads: {line.strip()[:70]!r}"
+            )
+            continue
+        if not re.search(r"v?\d{2}\.0", line):
+            problems.append(
+                f"{rel_path}:{lineno} — no API version on this line, so the entry no "
+                f"longer protects anything ({reason}); line reads: {line.strip()[:70]!r}"
+            )
+    return problems
 
 
 def excluded_reason(rel_path: str) -> str | None:
@@ -145,6 +322,13 @@ class Rule:
     roots: tuple[str, ...] = ()
     # Optional per-file veto, given the file's full text.
     skip_file_if: Callable[[str], bool] | None = None
+    # A synthetic line this rule MUST match, with {ver} where the version goes.
+    # This is what makes --check mean anything: total_hits is produced by these
+    # same patterns, so a rule that has quietly stopped matching contributes 0 and
+    # is indistinguishable from a repo that is genuinely at the target. Probing
+    # each pattern against input the rule is defined to match is independent of
+    # repo contents, so blindness fails loudly instead of reporting PASS.
+    probe: str = ""
     changed: list[str] = field(default_factory=list, repr=False)
 
     def files(self) -> Iterable[str]:
@@ -173,6 +357,7 @@ def build_rules() -> list[Rule]:
     return [
         Rule(
             name="sfdx-project",
+            probe='"sourceApiVersion": "{ver}"',
             description="sfdx-project.json sourceApiVersion",
             paths=("sfdx-project.json",),
             pattern=re.compile(r'"sourceApiVersion"\s*:\s*"(?P<ver>\d+\.\d+)"'),
@@ -180,6 +365,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="cumulusci",
+            probe='    api_version: "{ver}"',
             description="cumulusci.yml project.package.api_version (quoted values only)",
             paths=("cumulusci.yml",),
             # Only quoted values. `api_version: null` has no quotes, so the four
@@ -189,6 +375,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="meta-xml",
+            probe='<apiVersion>{ver}</apiVersion>',
             description="<apiVersion> in *-meta.xml",
             suffixes=("-meta.xml",),
             pattern=re.compile(r"<apiVersion>(?P<ver>\d+\.\d+)</apiVersion>"),
@@ -196,6 +383,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="sfdmu",
+            probe='"apiVersion": "{ver}"',
             description='"apiVersion" in SFDMU export.json',
             roots=("datasets",),
             suffixes=("export.json",),
@@ -204,19 +392,71 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="python",
-            description="Python defaults/fallbacks (66.0, 67.0; floors untouched)",
+            probe='API_VERSION = "v{ver}"',
+            description="Python defaults/fallbacks (any vNN.0 literal; floors untouched)",
             roots=("tasks", "scripts", "robot"),
             suffixes=(".py",),
-            # Only 66.0/67.0 so MIN_API_VERSION = "65.0" is out of range by
-            # construction. Keeps the quote style and any 'v' prefix.
-            pattern=re.compile(r"""(?P<q>['"])(?P<v>v?)(?P<ver>6[67]\.0)(?P=q)"""),
+            # Any two-digit version, for the reason spelled out on
+            # python-service-path below: this rule used to be capped at 6[67],
+            # which went stale the moment the repo reached 68.0. It matched
+            # nothing while 37 quoted 68.0 literals sat in scope, and reported
+            # "already at target, nothing to do" -- affirmatively false, and the
+            # next cutover would have silently skipped every one of them.
+            #
+            # The old cap was also justified as keeping MIN_API_VERSION out of
+            # range, which is redundant: PROVENANCE_LINE_RE already contains
+            # MIN_API_VERSION, and the only real floor
+            # (tasks/rlm_manage_fulfillment_scope_cnfg.py) is on a line it
+            # matches. Keeps the quote style and any 'v' prefix.
+            pattern=re.compile(r"""(?P<q>['"])(?P<v>v?)(?P<ver>[0-9]{2}\.0)(?P=q)"""),
+            replace=_version_only,
+        ),
+        Rule(
+            # Scope note, deliberate: this rule handles versions embedded in a
+            # *path*, and there is no companion rule for versions embedded in
+            # ordinary prose (comments, help strings, docstrings). That is not an
+            # oversight. Sampling every `vNN.0` in tasks/, scripts/ and robot/ that
+            # no rule reaches found 74 occurrences, and all but two were release
+            # provenance a bump must NOT touch -- "Pinned to Release 262 / v67.0",
+            # "live-verified v67.0", "gone in v67.0", "introduced in API v65.0",
+            # "required since API v58.0". A prose rule broad enough to catch the two
+            # live ones would rewrite the other 72 into lies, and PROVENANCE_LINE_RE
+            # does not save them (it matches "verified on/as of/observed on", not
+            # "pinned to" or "introduced in"). The two real cases were duplicated
+            # declarations, so they were fixed by removing the duplication instead:
+            # argparse now renders the default with %(default)s, and the Robot
+            # library's comment no longer restates the constant beneath it. A version
+            # that appears once cannot drift from itself.
+            name="python-service-path",
+            probe='url = "/services/data/v{ver}/sobjects/Account"',
+            description="Hardcoded /services/data/vNN.0/ paths embedded in Python strings",
+            roots=("tasks", "scripts", "robot"),
+            suffixes=(".py",),
+            # The "python" rule above requires the version to be the *entire*
+            # quoted literal, so a version embedded in a longer string is
+            # structurally unmatchable there. That left ~10 live v67.0 endpoints
+            # in scripts/docgen/ behind on the 264 bump.
+            #
+            # Any two-digit version matches, deliberately including the current
+            # target: a range capped at the target (6[0-7] here) would go stale
+            # the moment 68.0 became current, silently reintroducing this very
+            # gap at the next cutover. Matching the target is a harmless no-op —
+            # the runner reports "already at target". These are live endpoints,
+            # never floors, and PROVENANCE_LINE_RE still spares verified-on notes.
+            pattern=re.compile(r"(?P<pre>/services/data/v)(?P<ver>[0-9]{2}\.0)(?P<post>/)"),
             replace=_version_only,
         ),
         Rule(
             name="apex",
+            probe="String path = '/services/data/v{ver}/query';",
             description="Hardcoded REST paths and constants in .cls/.apex",
             suffixes=(".cls", ".apex"),
-            pattern=re.compile(r"(?P<pre>v)(?P<ver>6[0-7]\.0)"),
+            # Two-digit range for the same reason as the two rules above: capped
+            # at 6[0-7], this stopped seeing anything at 68.0 or later. In tracked
+            # scope its only remaining matches are a provenance line and the one
+            # EXCLUDED_LINES entry, both deliberately skipped -- so it was already
+            # inert on live code.
+            pattern=re.compile(r"(?P<pre>v)(?P<ver>[0-9]{2}\.0)"),
             replace=_version_only,
         ),
     ]
@@ -255,7 +495,7 @@ def process(rule: Rule, target: str, apply: bool, verbose: bool) -> tuple[int, i
         file_hits = 0
         for lineno, line in enumerate(original.splitlines(keepends=True), start=1):
             if (rel, lineno) in EXCLUDED_LINES:
-                skipped[EXCLUDED_LINES[(rel, lineno)]] += 1
+                skipped[EXCLUDED_LINES[(rel, lineno)][0]] += 1
                 out_lines.append(line)
                 continue
             if PROVENANCE_LINE_RE.search(line):
@@ -291,7 +531,15 @@ def main() -> int:
         description="Bump the Salesforce API version pinned across the repo.",
     )
     parser.add_argument(
-        "--to", default="68.0", help="Target API version, e.g. 68.0 (default: 68.0)"
+        # %(default)s, and "NN.0" rather than a sample version, so this line holds no
+        # second copy of the version. The `python` rule matches the bare quoted
+        # default below but cannot reach a version inside the longer help string, so
+        # spelling it twice meant `--to <next> --apply` moved the default while
+        # --help kept reporting the old one -- the identical drift this script fixes
+        # in docgen and the Robot library.
+        "--to",
+        default="68.0",
+        help="Target API version as NN.0 (default: %(default)s)",
     )
     parser.add_argument(
         "--apply", action="store_true", help="Write changes (default is a dry run)"
@@ -300,14 +548,26 @@ def main() -> int:
         "--verbose", "-v", action="store_true", help="Print every individual change"
     )
     parser.add_argument(
+        "--check", action="store_true",
+        help="Exit 1 if anything in scope is still off-target (implies a dry run)",
+    )
+    parser.add_argument(
         "--only", action="append", metavar="RULE",
         help="Limit to named rule(s); repeatable. Names: "
              + ", ".join(r.name for r in build_rules()),
     )
     args = parser.parse_args()
 
-    if not re.fullmatch(r"\d+\.\d+", args.to):
-        print(f"error: --to must look like 68.0, got {args.to!r}", file=sys.stderr)
+    # NN.0 exactly, not \d+\.\d+ -- every rule's pattern is [0-9]{2}\.0, so accepting
+    # 68.1 would let --apply write a version no rule can match on the *next* bump,
+    # manufacturing the silent blindness validate_rules() exists to catch. Salesforce
+    # API versions have no non-zero minor, so nothing legitimate is rejected here.
+    # [0-9], not \d: \d also matches Unicode decimal digits, so --to ６８.0 (full-width)
+    # would pass and then be written into files as a version no rule can match, since
+    # every rule's pattern is ASCII [0-9]{2}\.0. Same digit class on both sides or the
+    # validation does not actually constrain what the rules will see.
+    if not re.fullmatch(r"[0-9]{2}\.0", args.to):
+        print(f"error: --to must look like NN.0, got {args.to!r}", file=sys.stderr)
         return 2
 
     rules = build_rules()
@@ -319,10 +579,39 @@ def main() -> int:
             return 2
         rules = [r for r in rules if r.name in wanted]
 
+    stale = validate_excluded_lines()
+    if stale:
+        print(
+            "error: EXCLUDED_LINES is keyed on line numbers that have moved, so it is "
+            "now protecting the wrong lines (and the run report would still claim the "
+            "old ones were skipped):",
+            file=sys.stderr,
+        )
+        for entry in stale:
+            print(f"  {entry}", file=sys.stderr)
+        print(
+            "Re-point the line numbers, or better, reword the target lines so "
+            "PROVENANCE_LINE_RE protects them by content instead of position.",
+            file=sys.stderr,
+        )
+        return 2
+
+    # Normalize the mode BEFORE the banner is built. --check forces a dry run, so
+    # computing the banner first printed "[APPLY]" for `--apply --check` while the
+    # run wrote nothing — telling a release operator the opposite of what happened.
+    if args.check:
+        args.apply = False
     mode = "APPLY" if args.apply else "DRY RUN"
+    if args.check:
+        mode = "CHECK (dry run)"
     print(f"Bumping API version to {args.to}  [{mode}]\n")
 
-    total_files = 0
+    # A set, not a running sum: the `python` and `python-service-path` rules both
+    # select the same files (docgen_odt_execute.py and txn_data_harness/auth.py each
+    # hold a standalone literal *and* a service path), so adding per-rule counts
+    # reports more off-target files than exist -- and it does so in the --check
+    # failure message, where an inflated number is the thing a reader acts on.
+    touched: set[str] = set()
     total_hits = 0
     all_skipped: Counter = Counter()
 
@@ -330,7 +619,7 @@ def main() -> int:
         print(f"  {rule.name}: {rule.description}")
         files_changed, hits, skipped = process(rule, args.to, args.apply, args.verbose)
         all_skipped.update(skipped)
-        total_files += files_changed
+        touched.update(rule.changed)
         total_hits += hits
         if hits:
             print(f"    {hits} replacement(s) in {files_changed} file(s)")
@@ -338,7 +627,7 @@ def main() -> int:
             print("    already at target, nothing to do")
         print()
 
-    print(f"Total: {total_hits} replacement(s) across {total_files} file(s)")
+    print(f"Total: {total_hits} replacement(s) across {len(touched)} file(s)")
 
     if all_skipped:
         print("\nDeliberately skipped:")
@@ -347,6 +636,35 @@ def main() -> int:
 
     if not args.apply and total_hits:
         print("\nDry run only. Re-run with --apply to write these changes.")
+
+    if args.check:
+        # Self-test the rules first. total_hits == 0 is ambiguous on its own -- it
+        # means either "clean" or "this pattern matches nothing any more" -- so a
+        # PASS is only meaningful once every rule has been shown to still match
+        # input it is defined to match. Ordered first so a blind rule is reported
+        # as a tooling failure rather than as a clean repo.
+        blind = validate_rules(rules, args.to)
+        if blind:
+            print(
+                "\ncheck: FAIL — rule self-test failed, so the counts above are not "
+                "trustworthy (a rule matching nothing looks exactly like a clean repo):",
+                file=sys.stderr,
+            )
+            for problem in blind:
+                print(f"  {problem}", file=sys.stderr)
+            return 2
+        # Exit non-zero when anything in scope is still off-target. Without this
+        # the tool could only ever report, so a rule that quietly stopped
+        # matching -- the exact defect this script has now shipped twice -- looked
+        # identical to a clean repo: "already at target, nothing to do".
+        if total_hits:
+            print(
+                f"\ncheck: FAIL — {total_hits} occurrence(s) in {len(touched)} file(s) "
+                f"are not at {args.to}.",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"\ncheck: PASS — everything in scope is at {args.to}.")
 
     return 0
 
