@@ -557,7 +557,6 @@ public with sharing class RLM_UsageUploaderController {
                    EntitlementQuantity,
                    TransactionQuantity,
                    NetQuantity,
-                   ChargeForOverage,
                    EffectiveStartDateTime,
                    EffectiveEndDateTime,
                    UsageModelType,
@@ -585,6 +584,31 @@ public with sharing class RLM_UsageUploaderController {
             SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds
         ]) {
             resourceNames.put(ur.Id, ur.Name);
+        }
+
+        // Overage chargeability is no longer readable from the entitlement. 264 removed
+        // TransactionUsageEntitlement.ChargeForOverage (along with DrawdownOrder,
+        // RatingFrequencyPolicyId and UsageAggregationPolicyId), leaving no overage field or
+        // policy lookup on the object at all, so the value has to come from the governing
+        // UsageOveragePolicy by way of the resource's policy row.
+        //
+        // Note this is a per-resource policy value, not a per-entitlement one: two
+        // entitlements sharing a usage resource now necessarily report the same answer,
+        // where 262 could hold a different value on each. The domain is unchanged --
+        // OverageChargeable is a Yes/No picklist, as ChargeForOverage was -- so the wrapper
+        // field and the LWC that renders it are untouched.
+        Map<Id, String> overageByResource = new Map<Id, String>();
+        for (ProductUsageResourcePolicy purp : [
+            SELECT ProductUsageResource.UsageResourceId,
+                   UsageOveragePolicy.OverageChargeable
+            FROM ProductUsageResourcePolicy
+            WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
+              AND UsageOveragePolicyId != null
+        ]) {
+            overageByResource.put(
+                purp.ProductUsageResource.UsageResourceId,
+                purp.UsageOveragePolicy.OverageChargeable
+            );
         }
 
         // Query the current-period entitlement buckets (child buckets with a parent)
@@ -616,7 +640,7 @@ public with sharing class RLM_UsageUploaderController {
             w.entitlementQuantity = tue.EntitlementQuantity;
             w.usageModelType = tue.UsageModelType;
             w.grantType = tue.GrantType;
-            w.chargeForOverage = tue.ChargeForOverage;
+            w.chargeForOverage = overageByResource.get(tue.UsageResourceId);
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
