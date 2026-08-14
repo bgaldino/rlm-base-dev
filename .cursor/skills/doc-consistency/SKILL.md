@@ -49,7 +49,27 @@ The core lookup: **when X changes, verify Y**.
 | A **product/SKU added** to any dataset | *Every* plan CSV that carries that SKU, and each of their READMEs — see below |
 | `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
 | `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
-| **API version bump** for a new release | Every doc carrying a `vNN.0` — but see below: a verified capture is provenance, not a version to retarget |
+| **API version bump** for a new release | Every doc carrying a `vNN.0` **except the frozen corpora** (below) — and see *An API bump must not rewrite a verified capture*: a verified capture is provenance, not a version to retarget |
+
+### Frozen corpora are never swept
+
+"Every doc" above excludes the material whose whole value is that it records a *past*
+release. `bump_api_version.py` refuses these by path prefix, and the manual docs pass
+must honour the same list — relabelling a 262 snapshot as v68.0 destroys the baseline
+the next release is diffed against:
+
+| Never bump | Why |
+|---|---|
+| `docs/salesforce/**` | frozen per-release Help/dev-guide snapshot corpora |
+| `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
+| `postman/` | version-branded end to end; regenerate, do not `sed` |
+| `.agents/**` | private agent artifacts, not shipped config |
+
+Read the authoritative list from `EXCLUDED_PREFIXES` in `scripts/ai/bump_api_version.py`
+rather than trusting this table to stay current; it also carries per-PR exclusions
+(deliberate dual-baseline overlays, prototype-specific low pins) that come and go.
+`docs/enablement/{version}/` gains an entry each release, at the moment that release
+ships — the *current* target release is still swept.
 
 ### An API bump must not rewrite a verified capture
 
@@ -96,7 +116,10 @@ claim. **Nothing automated protects it in markdown** — `bump_api_version.py` e
 the same idea in `PROVENANCE_LINE_RE`, and applies it to every file it rewrites
 (`sfdx-project.json`, `cumulusci.yml`, `-meta.xml`, `export.json`, `.py`,
 `.cls`/`.apex`) — but `.md` is not among them and never is, which is exactly why this
-pass is manual. The vulnerable style is a **document-scoped** header —
+pass is manual. That guard now matches the **same grammar** as the sweep above, and
+`validate_rules()` fails the build if a form drops out of it; the two were written
+independently and had already drifted, so treat them as one thing kept in two places
+and update both together. The vulnerable style is a **document-scoped** header —
 "Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
 version governs paths hundreds of lines away that state no version of their own.
 That is the shape that broke, in both places it occurred.
