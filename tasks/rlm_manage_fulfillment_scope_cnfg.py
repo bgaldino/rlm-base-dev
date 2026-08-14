@@ -42,6 +42,14 @@ _CONTEXT_TAG_TYPE_ERROR_CODE = "INVALID_INPUT"
 _CONTEXT_TAG_TYPE_MARKERS = ("item context tag", "string")
 _CONTEXT_TAG_FIELD = "ItemContextTag"
 
+# The tolerance is pinned to the one platform defect it was written for: 264 ships the
+# SalesTransactionItemGroup context tag against a lookup-typed attribute, while
+# CustomFulfillmentScopeCnfg still requires String. Both halves are asserted, so a
+# different tag, or this tag typed anything else, re-raises instead of being skipped.
+# Widening either half would let genuine repo data errors pass silently.
+_TOLERATED_CONTEXT_TAG = "salestransactionitemgroup"
+_TOLERATED_CONTEXT_TAG_DATA_TYPE = "lookup"
+
 
 class ToolingWriteError(TaskOptionsError):
     """A Tooling API write was rejected. Carries the response for classification.
@@ -500,22 +508,35 @@ class ManageFulfillmentScopeCnfg(BaseTask):
 
     @staticmethod
     def _looks_like_context_tag_type_error(exc: ToolingWriteError) -> bool:
-        """True if the response is the 'tag must be typed String' rejection."""
+        """True only if EVERY error in the response is the 'tag must be typed String'
+        rejection.
+
+        Deliberately all-not-any. The Tooling API returns an array, and a record can be
+        rejected for the known type mismatch *and* something unrelated in the same
+        response. Matching on any one entry would let the tolerance swallow the whole
+        record and silently discard the second, genuine failure. Requiring every entry to
+        match means a mixed response re-raises with both errors intact.
+
+        An empty or unparseable array is not a match: absence of evidence is not evidence
+        that this is the known defect.
+        """
         try:
             errors = json.loads(exc.body)
         except (ValueError, TypeError):
             return False
         if isinstance(errors, dict):
             errors = [errors]
-        for err in errors if isinstance(errors, list) else []:
+        if not isinstance(errors, list) or not errors:
+            return False
+        for err in errors:
             if not isinstance(err, dict):
-                continue
+                return False
             if err.get("errorCode") != _CONTEXT_TAG_TYPE_ERROR_CODE:
-                continue
+                return False
             message = str(err.get("message", "")).lower()
-            if all(marker in message for marker in _CONTEXT_TAG_TYPE_MARKERS):
-                return True
-        return False
+            if not all(marker in message for marker in _CONTEXT_TAG_TYPE_MARKERS):
+                return False
+        return True
 
     def _context_tag_data_type(
         self,
@@ -553,16 +574,24 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         instance_url: str,
         api_version: str,
     ) -> bool:
-        """Confirm against the org that this rejection is the platform type mismatch.
+        """Confirm against the org that this rejection is the one known platform defect.
 
-        Returns False -- so the caller re-raises -- when the tag is absent or is already
-        typed String, because then the rejection is about something else and skipping
-        would hide a real defect.
+        Every gate must pass: the response must be entirely the type-mismatch rejection,
+        the record's tag must be the specific tag the defect affects, and the org must
+        report that tag as the specific type the defect produces. Anything else returns
+        False so the caller re-raises, because a tolerance that fires on a rejection it
+        was not written for hides real defects instead of documenting one.
         """
         if not self._looks_like_context_tag_type_error(exc):
             return False
         tag = record.get(_CONTEXT_TAG_FIELD)
         if not tag:
+            return False
+        if str(tag).lower() != _TOLERATED_CONTEXT_TAG:
+            self.logger.error(
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' is not the tag the known 264 defect "
+                f"affects ('{_TOLERATED_CONTEXT_TAG}') — not skipping."
+            )
             return False
         data_type = self._context_tag_data_type(
             access_token, instance_url, api_version, tag
@@ -574,10 +603,11 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 "mismatch — not skipping."
             )
             return False
-        if data_type.lower() == "string":
+        if data_type.lower() != _TOLERATED_CONTEXT_TAG_DATA_TYPE:
             self.logger.error(
-                f"  {_CONTEXT_TAG_FIELD} '{tag}' resolves to a String-typed attribute, "
-                "so the rejection is about something else — not skipping."
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' resolves to a '{data_type}'-typed "
+                f"attribute, not the '{_TOLERATED_CONTEXT_TAG_DATA_TYPE}' type the known "
+                "defect produces, so the rejection is about something else — not skipping."
             )
             return False
         self.logger.warning(

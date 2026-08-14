@@ -75,8 +75,24 @@ NAME_INTEGRITY = json.dumps(
       "errorCode": "FIELD_INTEGRITY_EXCEPTION", "fields": ["DeveloperName"]}]
 )
 
+# The type-mismatch rejection accompanied by a SECOND, unrelated failure. The tolerance
+# must NOT fire here: skipping the record would discard the name-integrity error too.
+MIXED_ERRORS = json.dumps(
+    [{"message": "Enter a valid Item Context Tag with the data type set to String.",
+      "errorCode": "INVALID_INPUT", "fields": []},
+     {"message": "Name: The Custom Fulfillment Scope Config API Name can only contain "
+                 "underscores and alphanumeric characters.",
+      "errorCode": "FIELD_INTEGRITY_EXCEPTION", "fields": ["DeveloperName"]}]
+)
+# An empty array: no evidence this is the known defect, so it must not be tolerated.
+EMPTY_ERRORS = json.dumps([])
+
 GROUP_RECORD = {"DeveloperName": "Group_Identifier",
                 _CONTEXT_TAG_FIELD: "SalesTransactionItemGroup"}
+# Same rejection, a DIFFERENT tag. The defect is specific to SalesTransactionItemGroup,
+# so this must re-raise however the org types the attribute.
+OTHER_TAG_RECORD = {"DeveloperName": "Other_Identifier",
+                    _CONTEXT_TAG_FIELD: "SalesTransactionItem"}
 
 
 class _StubLogger:
@@ -163,6 +179,49 @@ def check_unrelated_rejection_is_not_tolerated(_):
           f"classification must short-circuit before the round-trip; got {task.queries}")
 
 
+def check_a_second_unrelated_error_defeats_the_tolerance(_):
+    """
+    The classifier is all-not-any. A response carrying the tolerated type mismatch AND an
+    unrelated failure must re-raise: skipping the record to excuse the first error would
+    silently discard the second, which is a genuine repo defect.
+    """
+    verdict, task = tolerate(MIXED_ERRORS, data_type="lookup")
+    check("rejects_mixed_error_response", verdict is False,
+          "a response with a second, unrelated error must re-raise, not be skipped")
+    check("mixed_response_does_not_query_the_org", task.queries == [],
+          f"classification must short-circuit before the round-trip; got {task.queries}")
+
+
+def check_empty_error_array_is_not_tolerated(_):
+    verdict, _ = tolerate(EMPTY_ERRORS, data_type="lookup")
+    check("rejects_empty_error_array", verdict is False,
+          "an empty array is not evidence of the known defect and must re-raise")
+
+
+def check_a_different_tag_is_not_tolerated(_):
+    """
+    The tolerance is pinned to SalesTransactionItemGroup. Another tag hitting the same
+    rejection is a repo data error -- it names an attribute that is legitimately not
+    String -- and must fail the build rather than be skipped.
+    """
+    verdict, task = tolerate(TYPE_MISMATCH, record=OTHER_TAG_RECORD, data_type="lookup")
+    check("rejects_a_different_tag", verdict is False,
+          "only SalesTransactionItemGroup is tolerated; another tag must re-raise")
+    check("different_tag_does_not_query_the_org", task.queries == [],
+          f"the tag gate must short-circuit before the round-trip; got {task.queries}")
+
+
+def check_a_different_resolvable_type_is_not_tolerated(_):
+    """
+    The org-side gate is pinned to `lookup`, the type the defect produces. The right tag
+    typed something else non-String is a different problem and must re-raise.
+    """
+    for other_type in ("Reference", "Number", "Boolean"):
+        verdict, _ = tolerate(TYPE_MISMATCH, data_type=other_type)
+        check(f"rejects_{other_type.lower()}_typed_tag", verdict is False,
+              f"only the 'lookup' type is tolerated; '{other_type}' must re-raise")
+
+
 # ---------------------------------------------------------------------------- #
 # The org-side gate -- unreachable from a live test, so only asserted here
 # ---------------------------------------------------------------------------- #
@@ -240,11 +299,17 @@ def check_query_targets_title_not_name(_):
 
 
 def check_quotes_in_a_tag_are_escaped(_):
-    """A tag value reaches SOQL as a literal, so an apostrophe must not break out."""
-    _, task = tolerate(
-        TYPE_MISMATCH,
-        record={"DeveloperName": "X", _CONTEXT_TAG_FIELD: "O'Brien"},
-        data_type="lookup",
+    """A tag value reaches SOQL as a literal, so an apostrophe must not break out.
+
+    Exercises _context_tag_data_type directly rather than through the tolerance. Now that
+    the tolerance is pinned to SalesTransactionItemGroup, no quoted tag can reach the
+    query by that route -- the tag gate short-circuits first. The escaping is kept and
+    tested here anyway: it guards the query builder itself, which is one refactor away
+    from being reachable with an arbitrary tag again.
+    """
+    task = _StubTask("lookup")
+    task._context_tag_data_type(
+        "tok", "https://example.my.salesforce.com", "68.0", "O'Brien"
     )
     soql = task.queries[0]
     check("tag_literal_is_escaped", r"O\'Brien" in soql,
@@ -340,6 +405,10 @@ def main():
         check_the_264_defect_is_tolerated,
         check_missing_tag_is_not_tolerated,
         check_unrelated_rejection_is_not_tolerated,
+        check_a_second_unrelated_error_defeats_the_tolerance,
+        check_empty_error_array_is_not_tolerated,
+        check_a_different_tag_is_not_tolerated,
+        check_a_different_resolvable_type_is_not_tolerated,
         check_org_gate_rejects_a_tag_that_does_not_resolve,
         check_org_gate_rejects_an_already_string_tag,
         check_case_is_not_load_bearing,
