@@ -51,25 +51,43 @@ The core lookup: **when X changes, verify Y**.
 | `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
 | **API version bump** for a new release | Every doc carrying a `vNN.0` **except the frozen corpora** (below) — and see *An API bump must not rewrite a verified capture*: a verified capture is provenance, not a version to retarget |
 
-### Frozen corpora are never swept
+### Excluded from the sweep ≠ never updated
 
-"Every doc" above excludes the material whose whole value is that it records a *past*
-release. `bump_api_version.py` refuses these by path prefix, and the manual docs pass
-must honour the same list — relabelling a 262 snapshot as v68.0 destroys the baseline
-the next release is diffed against:
+"Every doc" above excludes material the mechanical sweep must not touch — but that
+covers **two different reasons**, and conflating them is a live trap in both directions.
+`EXCLUDED_PREFIXES` in `scripts/ai/bump_api_version.py` refuses both by path prefix;
+only the first group is genuinely frozen.
 
-| Never bump | Why |
+**Frozen — never bump, in the sweep or by hand.** Their whole value is recording a
+*past* release; relabelling a 262 snapshot as v68.0 destroys the baseline the next
+release is diffed against.
+
+| Frozen | Why |
 |---|---|
-| `docs/salesforce/**` | frozen per-release Help/dev-guide snapshot corpora |
+| `docs/salesforce/**` | per-release Help/dev-guide snapshot corpora |
 | `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
 | `postman/` | version-branded end to end; regenerate, do not `sed` |
-| `.agents/**` | private agent artifacts, not shipped config |
 
-Read the authoritative list from `EXCLUDED_PREFIXES` in `scripts/ai/bump_api_version.py`
-rather than trusting this table to stay current; it also carries per-PR exclusions
-(deliberate dual-baseline overlays, prototype-specific low pins) that come and go.
-`docs/enablement/{version}/` gains an entry each release, at the moment that release
-ships — the *current* target release is still swept.
+**Retarget by hand — excluded because a blanket rewrite would corrupt them, not
+because they are historical.**
+
+| Hand-retargeted | Why it is excluded, and why it still must change |
+|---|---|
+| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file (`prior_ga_api_version`, "`main` (Release 262 … API `67.0` GA target)") — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
+
+`.agents/artifacts/**` is a private nested repo, gitignored and therefore unreachable
+by either pass; nothing there needs retargeting.
+
+Read the authoritative list from `EXCLUDED_PREFIXES` rather than trusting these tables
+to stay current; it also carries per-PR exclusions (deliberate dual-baseline overlays,
+prototype-specific low pins) that come and go, and each entry states which of the two
+kinds it is. `docs/enablement/{version}/` gains an entry each release, at the moment
+that release ships — the *current* target release is still swept.
+
+One caution on verifying any of this: `git grep -E` does **not** honour `\b`, so a
+word-boundary pattern silently matches nothing. A sweep that returns zero hits on
+`.agents/context/` is a broken pattern, not a clean tree — `project-map.md` alone
+carries several version references.
 
 ### An API bump must not rewrite a verified capture
 
