@@ -2,7 +2,7 @@
 Execute an ODT (Extract or Transform) via the OmniStudio REST API.
 
 Uses the public OmniStudio REST endpoint:
-  POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
+  POST /services/data/v68.0/omnistudio/dataraptor/<ODTName>
 
 This endpoint accepts standard OAuth (no Lightning session required),
 making it suitable for CLI-based testing, CI validation, and agent
@@ -183,7 +183,7 @@ def main():
     parser.add_argument("--field", action="append", dest="fields",
                         help="Filter output to specific fields (repeatable)")
     parser.add_argument("--api-version", default="v68.0",
-                        help="Salesforce API version (default: v67.0)")
+                        help="Salesforce API version (default: v68.0)")
     args = parser.parse_args()
 
     data = execute_odt(args.odt_name, args.record_id, args.org, args.api_version,

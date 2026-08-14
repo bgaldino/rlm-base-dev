@@ -213,6 +213,20 @@ def build_rules() -> list[Rule]:
             replace=_version_only,
         ),
         Rule(
+            name="python-service-path",
+            description="Hardcoded /services/data/vNN.0/ paths embedded in Python strings",
+            roots=("tasks", "scripts", "robot"),
+            suffixes=(".py",),
+            # The "python" rule above requires the version to be the *entire*
+            # quoted literal, so a version embedded in a longer string is
+            # structurally unmatchable there. That left ~10 live v67.0 endpoints
+            # in scripts/docgen/ behind on the 264 bump. Range starts at 60.0
+            # because these are live endpoints, not floors, and the
+            # PROVENANCE_LINE_RE guard still spares verified-on notes.
+            pattern=re.compile(r"(?P<pre>/services/data/v)(?P<ver>6[0-7]\.0)(?P<post>/)"),
+            replace=_version_only,
+        ),
+        Rule(
             name="apex",
             description="Hardcoded REST paths and constants in .cls/.apex",
             suffixes=(".cls", ".apex"),
