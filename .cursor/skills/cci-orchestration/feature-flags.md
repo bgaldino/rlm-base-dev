@@ -16,9 +16,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
-| `billing_portal` | `False` | 3 flow step(s) |
-| `billing_portal_deploy` | `True` | 1 flow step(s) |
+| `billing` | `True` | 21 flow step(s) |
+| `billing_portal` | `True` | 5 flow step(s) |
+| `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
@@ -26,7 +26,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `clm_data` | `False` | 1 flow step(s) |
 | `collections` | `True` | 4 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
-| `constraints` | `True` | 12 flow step(s) |
+| `constraints` | `True` | 4 flow step(s) |
 | `constraints_data` | `True` | 8 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
@@ -99,27 +99,30 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 5 → `activate_flow`
 - `prepare_billing` step 6 → `activate_default_payment_term`
 - `prepare_billing` step 7 → `activate_billing_records`
-- `prepare_billing` step 8 → `enable_timeline`
 - `prepare_billing` step 9 → `deploy_billing_id_settings`
 - `prepare_billing` step 10 → `deploy_billing_template_settings`
-- `prepare_billing` step 11 → `deploy_post_billing_ui`
-- `prepare_billing` step 12 → `assign_permission_sets`
 - `prepare_billing` step 13 → `apply_context_billing_order`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
-### `billing_portal` (default: `False`)
+### `billing_portal` (default: `True`)
 
 - `prepare_billing_portal` step 1 → `create_billing_portal`
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
-- `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
+- `prepare_billing_portal` step 5 → `publish_community`
 
 ### `billing_portal_deploy` (default: `True`)
 
-- `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
+- `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
+- `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
 
 ### `billing_ui` (default: `True`)
 
@@ -166,14 +169,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 2 → `deploy_post_constraints`
 - `prepare_constraints` step 3 → `assign_permission_sets`
 - `prepare_constraints` step 4 → `apply_context_constraint_engine_node_status`
-- `prepare_constraints` step 5 → `enable_constraints_settings`
-- `prepare_constraints` step 6 → `validate_cml`
-- `prepare_constraints` step 7 → `import_cml`
-- `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `import_cml`
-- `prepare_constraints` step 11 → `manage_expression_sets`
-- `prepare_constraints` step 12 → `manage_expression_sets`
 
 ### `constraints_data` (default: `True`)
 

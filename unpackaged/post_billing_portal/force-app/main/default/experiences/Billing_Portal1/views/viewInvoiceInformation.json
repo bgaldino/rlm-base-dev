@@ -1,0 +1,101 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "00997b29-bdf5-4cdc-8350-52d952040c00",
+  "label" : "View Invoice Information",
+  "regions" : [ {
+    "id" : "d427cc8d-4af6-480f-8c22-681dc8263a71",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "d72508df-a42c-4b96-9d30-0769cce23f5a",
+          "columns" : [ {
+            "UUID" : "62eee43b-096d-4476-ae9c-892ae993cf98",
+            "columnKey" : "col1",
+            "columnName" : "column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ {
+              "attributes" : {
+                "recordId" : "{!recordId}",
+                "sfdc:identifier" : "forceCommunity_recordHeadline"
+              },
+              "fqn" : "forceCommunity:recordHeadline"
+            }, {
+              "attributes" : {
+                "recordId" : "{!recordId}",
+                "sfdc:identifier" : "runtime_revenue_foundation_invoiceLineViewer"
+              },
+              "fqn" : "runtime_revenue_foundation:invoiceLineViewer"
+            } ]
+          } ]
+        },
+        "sectionHeight" : 32
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "d72508df-a42c-4b96-9d30-0769cce23f5a",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "recordId" : "{!recordId}"
+          },
+          "componentName" : "forceCommunity:recordHeadline",
+          "id" : "efc9855c-9f6c-47d9-a801-c6516bdfcc9f",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        }, {
+          "componentAttributes" : {
+            "enableSidepanel" : true,
+            "objectApiName" : "Invoice",
+            "recordId" : "{!recordId}"
+          },
+          "componentName" : "runtime_revenue_foundation:invoiceLineViewer",
+          "id" : "75c3afe4-3c1d-4fb9-962a-250421e454b6",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "62eee43b-096d-4476-ae9c-892ae993cf98",
+        "regionLabel" : "column 1",
+        "regionName" : "col1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "2fd50ad4-ec10-429c-9a8b-c93e6e6d48a9",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "66617613-1fde-450a-8c37-f5c357fe0828",
+    "regionName" : "footer",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "{!Record._Object}: {!Record._Title}"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "a9c99cee-aada-4104-aa4a-cf816c8226fe",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "087f0d4c-6090-466b-a921-c3ac18ef2b6a",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "detail-3tt"
+}

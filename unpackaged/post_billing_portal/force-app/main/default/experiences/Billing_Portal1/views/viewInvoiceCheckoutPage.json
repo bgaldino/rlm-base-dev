@@ -1,0 +1,110 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "7607c723-41ec-4b60-8cdf-153b5910baae",
+  "label" : "View Invoice Checkout Page",
+  "regions" : [ {
+    "id" : "d4017458-9f42-4951-af80-f1d5c9ebede9",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "0440ad92-cd35-4f66-9478-91fbd7dbae1f",
+          "columns" : [ {
+            "UUID" : "199f11cf-ef63-4af3-ab26-64f7e6042dbf",
+            "columnKey" : "col1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ {
+              "attributes" : {
+                "accountId" : "{!CurrentUser.effectiveAccountId}",
+                "amount" : "10",
+                "currency" : "USD",
+                "invoiceId" : "{!invoiceId}",
+                "merchantAccountId" : "",
+                "paymentMethodSetId" : "",
+                "sfdc:identifier" : "runtime_payments_paymentByExpress"
+              },
+              "fqn" : "runtime_payments:paymentByExpress"
+            }, {
+              "attributes" : {
+                "accountId" : "{!CurrentUser.effectiveAccountId}",
+                "amount" : "10",
+                "billingCountry" : "US",
+                "billingEmail" : "{!CurrentUser.email}",
+                "billingFirstName" : "{!CurrentUser.firstName}",
+                "billingLastName" : "{!CurrentUser.lastName}",
+                "currency" : "USD",
+                "invoiceId" : "{!invoiceId}",
+                "merchantAccountId" : "",
+                "sfdc:identifier" : "runtime_payments_paymentSheet"
+              },
+              "fqn" : "runtime_payments:paymentSheet"
+            } ]
+          } ]
+        },
+        "sectionHeight" : 32
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "0440ad92-cd35-4f66-9478-91fbd7dbae1f",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "accountId" : "{!CurrentUser.effectiveAccountId}",
+            "amount" : "10",
+            "currency" : "USD",
+            "invoiceId" : "{!invoiceId}",
+            "merchantAccountId" : "",
+            "paymentMethodSetId" : ""
+          },
+          "componentName" : "runtime_payments:paymentByExpress",
+          "id" : "a3e5156a-5934-4f7a-be44-88dd4d5ae733",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        }, {
+          "componentAttributes" : {
+            "accountId" : "{!CurrentUser.effectiveAccountId}",
+            "amount" : "10",
+            "billingEmail" : "{!CurrentUser.email}",
+            "billingFirstName" : "{!CurrentUser.firstName}",
+            "billingLastName" : "{!CurrentUser.lastName}",
+            "currency" : "USD",
+            "invoiceId" : "{!invoiceId}",
+            "merchantAccountId" : "",
+            "paymentMethodSetId" : ""
+          },
+          "componentName" : "runtime_payments:paymentSheet",
+          "id" : "03efef5d-1afb-4d1f-b99f-b275984f7c96",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "199f11cf-ef63-4af3-ab26-64f7e6042dbf",
+        "regionLabel" : "Column 1",
+        "regionName" : "col1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "7c56ac01-43d8-43b2-ba17-bc9a89a4b6ba",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "ba2cc722-f4a8-48b6-83e7-6fefebf1eff4",
+    "regionName" : "footer",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "invoice-checkout"
+}
