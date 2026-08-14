@@ -182,11 +182,11 @@ def main():
                         help="Show only record counts per array")
     parser.add_argument("--field", action="append", dest="fields",
                         help="Filter output to specific fields (repeatable)")
-    # argparse renders %(default)s itself, so the version lives in exactly one
-    # place on this line. Spelling it twice left the help text behind at the 264
-    # bump: the version there is inside a longer string, which the bump script's
-    # `python` rule structurally cannot match, so the default said v68.0 while the
-    # help said v67.0.
+    # argparse renders %(default)s itself, so the version lives in exactly one place
+    # on this line. Spelling it twice left the help text a release behind: a version
+    # inside a longer string is not a quoted literal, so the bump script's `python`
+    # rule structurally cannot reach it, and the help contradicted the default. No
+    # version named in this comment either, for the same reason.
     parser.add_argument("--api-version", default="v68.0",
                         help="Salesforce API version (default: %(default)s)")
     args = parser.parse_args()
