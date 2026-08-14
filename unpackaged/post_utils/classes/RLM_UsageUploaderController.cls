@@ -553,6 +553,7 @@ public with sharing class RLM_UsageUploaderController {
             SELECT Id,
                    Name,
                    AssetId,
+                   ProductId,
                    UsageResourceId,
                    EntitlementQuantity,
                    TransactionQuantity,
@@ -573,9 +574,13 @@ public with sharing class RLM_UsageUploaderController {
         // Collect IDs
         Set<Id> tueIds = new Set<Id>();
         Set<Id> usageResourceIds = new Set<Id>();
+        Set<Id> productIds = new Set<Id>();
         for (TransactionUsageEntitlement tue : tues) {
             tueIds.add(tue.Id);
             usageResourceIds.add(tue.UsageResourceId);
+            if (tue.ProductId != null) {
+                productIds.add(tue.ProductId);
+            }
         }
 
         // Query Usage Resource names
@@ -590,23 +595,45 @@ public with sharing class RLM_UsageUploaderController {
         // TransactionUsageEntitlement.ChargeForOverage (along with DrawdownOrder,
         // RatingFrequencyPolicyId and UsageAggregationPolicyId), leaving no overage field or
         // policy lookup on the object at all, so the value has to come from the governing
-        // UsageOveragePolicy by way of the resource's policy row.
+        // UsageOveragePolicy by way of the product's policy row for that resource.
         //
-        // Note this is a per-resource policy value, not a per-entitlement one: two
-        // entitlements sharing a usage resource now necessarily report the same answer,
-        // where 262 could hold a different value on each. The domain is unchanged --
-        // OverageChargeable is a Yes/No picklist, as ChargeForOverage was -- so the wrapper
-        // field and the LWC that renders it are untouched.
-        Map<Id, String> overageByResource = new Map<Id, String>();
+        // ProductUsageResourcePolicy hangs off a ProductUsageResource, which is a
+        // product-AND-resource pair, so the resource alone is NOT a unique key: the bundled
+        // QB datasets already have several products sharing one resource. Keying on the
+        // resource collapses those rows and leaves whichever SOQL returned last, which can
+        // report a different product's overage setting for this entitlement. The map is
+        // therefore keyed on product + resource.
+        //
+        // The product half is the entitlement's own ProductId. That field is
+        // platform-maintained (createable=false, updateable=false) because
+        // TransactionUsageEntitlement is transactional -- the record, and this field with it,
+        // is written by the order/assetization pipeline. It is deliberately NOT defaulted to
+        // the asset's Product2Id: for a bundle asset the asset's product need not be the
+        // product that governs a given entitlement's resource, so that substitution would
+        // reintroduce the same wrong-product reading this keying exists to remove.
+        //
+        // An entitlement with no product, or whose product has no policy row for the
+        // resource, yields no key and leaves chargeForOverage null. Absent is a truthful
+        // answer; a resource-wide guess is not.
+        //
+        // The domain is unchanged -- OverageChargeable is a Yes/No picklist, as
+        // ChargeForOverage was -- so the wrapper field and the LWC are untouched.
+        Map<String, String> overageByProductResource = new Map<String, String>();
         for (ProductUsageResourcePolicy purp : [
-            SELECT ProductUsageResource.UsageResourceId,
+            SELECT ProductUsageResource.ProductId,
+                   ProductUsageResource.UsageResourceId,
                    UsageOveragePolicy.OverageChargeable
             FROM ProductUsageResourcePolicy
             WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
+              AND ProductUsageResource.ProductId IN :productIds
               AND UsageOveragePolicyId != null
+            WITH USER_MODE
         ]) {
-            overageByResource.put(
-                purp.ProductUsageResource.UsageResourceId,
+            overageByProductResource.put(
+                overageKey(
+                    purp.ProductUsageResource.ProductId,
+                    purp.ProductUsageResource.UsageResourceId
+                ),
                 purp.UsageOveragePolicy.OverageChargeable
             );
         }
@@ -640,7 +667,9 @@ public with sharing class RLM_UsageUploaderController {
             w.entitlementQuantity = tue.EntitlementQuantity;
             w.usageModelType = tue.UsageModelType;
             w.grantType = tue.GrantType;
-            w.chargeForOverage = overageByResource.get(tue.UsageResourceId);
+            w.chargeForOverage = overageByProductResource.get(
+                overageKey(tue.ProductId, tue.UsageResourceId)
+            );
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
@@ -656,5 +685,21 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         return wrappers;
+    }
+
+    /**
+     * Composite key for the overage-policy map.
+     *
+     * ProductUsageResourcePolicy is scoped to a product-and-resource pair, so both halves
+     * are required to identify the governing policy. Returns null when either half is
+     * missing, so an unkeyable entitlement misses the map rather than colliding with a
+     * partially-matching row.
+     */
+    @TestVisible
+    private static String overageKey(Id productId, Id usageResourceId) {
+        if (productId == null || usageResourceId == null) {
+            return null;
+        }
+        return String.valueOf(productId) + '|' + String.valueOf(usageResourceId);
     }
 }

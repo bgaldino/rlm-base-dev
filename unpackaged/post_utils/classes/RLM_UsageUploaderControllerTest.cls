@@ -441,6 +441,62 @@ private class RLM_UsageUploaderControllerTest {
         System.assertEquals(0, grants.size(), 'Asset without entitlements should return empty list');
     }
 
+    /**
+     * The overage lookup is keyed on product + resource, not resource alone, because
+     * ProductUsageResourcePolicy belongs to a product-and-resource pair and several products
+     * in the bundled datasets share one resource. Keying on the resource alone collapsed
+     * those rows and could report another product's setting.
+     *
+     * These assertions cover the composite key itself: two products sharing one resource must
+     * produce two distinct keys, and an unresolvable half must produce no key rather than a
+     * partial match.
+     *
+     * A positive assertion on the returned chargeForOverage value is deliberately NOT
+     * attempted here. TransactionUsageEntitlement is transactional — the platform writes it
+     * (and its non-createable ProductId) during order activation and assetization — so
+     * hand-inserting one would assert against a record shape the pipeline never produces.
+     * That verification belongs to a functional run through the usage pipeline.
+     */
+    @IsTest
+    static void testOverageKey_ScopesByProductAndResource() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        Product2 otherProduct = new Product2(
+            Name = 'Second Usage Product',
+            IsActive = true,
+            UsageModelType = 'Anchor'
+        );
+        insert otherProduct;
+
+        // Same resource, two different products: the case that used to collide.
+        String keyForAssetProduct = RLM_UsageUploaderController.overageKey(ast.Product2Id, ur.Id);
+        String keyForOtherProduct = RLM_UsageUploaderController.overageKey(otherProduct.Id, ur.Id);
+
+        System.assertNotEquals(
+            keyForAssetProduct,
+            keyForOtherProduct,
+            'Two products sharing one usage resource must not collapse to the same key'
+        );
+
+        System.assertEquals(
+            keyForAssetProduct,
+            RLM_UsageUploaderController.overageKey(ast.Product2Id, ur.Id),
+            'Key must be stable for the same product and resource'
+        );
+
+        System.assertEquals(
+            null,
+            RLM_UsageUploaderController.overageKey(null, ur.Id),
+            'A missing product must yield no key rather than matching on resource alone'
+        );
+        System.assertEquals(
+            null,
+            RLM_UsageUploaderController.overageKey(ast.Product2Id, null),
+            'A missing resource must yield no key rather than matching on product alone'
+        );
+    }
+
     // ─── Wrapper Class Coverage ───────────────────────────────────────
 
     @IsTest
