@@ -189,6 +189,25 @@ Use this for:
 - Transform output verification before wiring to a template
 - End-to-end template smoke tests (DGP script triggers generation + polls)
 
+### Static inspection — validate and diff without executing
+
+Two helpers read an ODT's items straight from the org, so they work before you
+have a record to execute against:
+
+```bash
+# Lint one ODT's items: null fields, duplicate keys, malformed dot notation
+python scripts/docgen/docgen_odt_validate.py RLMQuoteProposalExtract --org dev-scratch
+
+# Diff two ODTs item-by-item — the fastest way to find what a clone lost
+python scripts/docgen/docgen_odt_compare.py RLMQuoteProposalExtract RLMInvoiceExtract --org dev-scratch
+```
+
+Reach for `docgen_odt_validate.py` when an Extract returns empty or partial
+output and you want to rule out the mapper before blaming the data, and for
+`docgen_odt_compare.py` when a cloned ODT misbehaves — cloning is the pattern
+this skill recommends (see `data-mapper-authoring.md`), and a silent item drop
+during a clone is its characteristic failure.
+
 ---
 
 ## Architecture Overview

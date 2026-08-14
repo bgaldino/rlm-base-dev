@@ -167,7 +167,7 @@
 
 ## Cursor Rule Coverage
 
-Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See `.agents/context/rule-skill-coverage.md` for the full coverage matrix and recommendations.
+Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See `.agents/context/rule-skill-coverage.md` for the full coverage matrix and recommendations.
 
 - ✅ `analysis-artifacts.mdc` — explicit stand-alone note
 - ✅ `apex-classes.mdc` — explicit stand-alone note

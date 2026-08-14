@@ -240,6 +240,7 @@ The project already establishes a two-workstation pattern (personal + Salesforce
 
 | File | Why |
 |---|---|
+| [`docs/enablement/_template/exercise-template.md`](../../../docs/enablement/_template/exercise-template.md) | The canonical template for a `{version}-{area}-hands-on.md` exercise file — cover page, header/footer, copyright and branding, with `release_name` swapped per release. Start every new exercise file from this rather than copying last release's. |
 | [`docs/enablement/master/qb-scenario-reference.md`](../../../docs/enablement/master/qb-scenario-reference.md) | Canonical reference for what's in QB orgs by default — bundles (QB-COMPLETE / QB-QRack-750), CML constraint models (4 imported, 2 active — QuantumBitBundle + Server2 — with Type/Port semantics), pricing-feature wiring (Bundle / Attribute / Volume), customer accounts (Infinitech / Global Media via `scratch_data`), partner channel (Robot Resellers via `qb-prm`), 4 Legal Entities, 9 selling models, 10 usage products, multi-currency setup. The workshop scenario lives here. |
 | [`authoring-patterns.md`](authoring-patterns.md) | Conventions for edge cases. |
 

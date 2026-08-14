@@ -99,7 +99,7 @@ Read this skill before making skill-lifecycle changes, including:
 | Task | Use this skill? | Notes |
 |------|-----------------|-------|
 | Create a new `.cursor/skills/<name>/SKILL.md` | Yes | Also update skill indexes and manifest. |
-| Add a sub-file under an existing skill | Yes | Link it from the parent skill and `AGENTS.md` Skill Sub-Files table when it is broadly useful. |
+| Add a sub-file under an existing skill | Yes | Link it from the parent `SKILL.md`, which is the only place sub-files are registered. Do **not** add it to `AGENTS.md`. |
 | Add or change `.cursor/rules/*.mdc` | Yes | Confirm the rule mirrors a skill or repository-wide source. |
 | Add one universal safety guard | Usually no | Put universal rules directly in `AGENTS.md`; update a skill only if the detailed workflow changes. |
 | Add examples/checklists for one task area | Yes | Prefer skill content over `AGENTS.md` detail. |
@@ -196,8 +196,9 @@ Sub-file rules:
    artifact that already belongs elsewhere.
 2. Link the sub-file from the parent `SKILL.md` with a clear "read this when..."
    condition.
-3. Add the sub-file to `AGENTS.md` Skill Sub-Files when it is broadly useful or
-   likely to be selected directly by non-Cursor agents.
+3. Describe it in the parent `SKILL.md`'s own sub-file list. That list is the
+   only registry — `AGENTS.md` carries no second-level index, so a sub-file that
+   is not described by its parent is effectively undiscoverable.
 4. Keep sub-files one level deep when possible. Avoid nested reference chains.
 5. If a sub-file is generated, mark it as generated and document the command
    that refreshes it.
@@ -223,12 +224,18 @@ rule.
 Update `AGENTS.md` for:
 
 - New top-level skill rows in **AI Agent Skill Index**.
-- New broadly useful sub-file rows in **Skill Sub-Files**.
-- New or changed Cursor rules in **File-Specific Rules**.
+- A new *directory* of helper scripts, as one row in **Script Reference** naming
+  the owning skill — never the individual commands.
 - New universal safety guards or project-wide conventions.
 
+Do **not** update `AGENTS.md` for a new sub-file (the parent `SKILL.md` owns
+that) or a new Cursor rule (`.cursor/skills/README.md` owns that).
+
 Keep `AGENTS.md` concise. It routes agents and defines global rules; it should
-not duplicate the full skill body.
+not duplicate the full skill body. It is held under a hard **40,000-char**
+context limit with a working target of **30,000** — a user-level `CLAUDE.md` is
+concatenated on top of it, so headroom is not slack. Check `wc -c AGENTS.md`
+before adding to it, and prefer putting detail in the owning skill.
 
 ### `.claude/skill-manifest.yml`
 
@@ -288,9 +295,9 @@ Then include:
 
 After adding a rule:
 
-1. Add it to `.cursor/skills/README.md` File-Specific Rules table.
-2. Add it to `AGENTS.md` File-Specific Rules table.
-3. Confirm it does not replace the skill; it should only route or remind.
+1. Add it to the `.cursor/skills/README.md` File-Specific Rules table, which is
+   the canonical list. `AGENTS.md` points at it and needs no edit.
+2. Confirm it does not replace the skill; it should only route or remind.
 
 ---
 
@@ -342,9 +349,9 @@ User request: "Add more detailed Robot shadow DOM patterns."
 Do:
 
 1. Add or update `.cursor/skills/robot-testing/setup-ui-shadow-dom.md`.
-2. Link it from `.cursor/skills/robot-testing/SKILL.md` with a read condition.
-3. Add or update the `AGENTS.md` Skill Sub-Files row.
-4. Do not create a separate top-level skill unless the workflow needs separate
+2. Link it from `.cursor/skills/robot-testing/SKILL.md` with a read condition,
+   and describe it in that skill's own sub-file list. Nothing goes in `AGENTS.md`.
+3. Do not create a separate top-level skill unless the workflow needs separate
    routing.
 
 ### Example 3 — Add a Cursor rule
@@ -372,7 +379,9 @@ python scripts/validate_sfdmu_v5_datasets.py
 Also review:
 
 - `git diff --stat` for unintended generated or runtime files.
-- `AGENTS.md` Skill Index, Skill Sub-Files, and File-Specific Rules tables.
+- `AGENTS.md` Skill Index and Script Reference tables, plus `wc -c AGENTS.md`
+  against the 30,000-char working target.
 - `.cursor/skills/README.md` Skill Router and File-Specific Rules tables.
+- The parent `SKILL.md`'s own sub-file list, for any sub-file you added.
 - `.github/copilot-instructions.md` quick-start and entry-point guidance.
 - `.claude/skill-manifest.yml` path validity for any new manifest entry.

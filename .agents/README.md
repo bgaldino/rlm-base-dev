@@ -103,6 +103,9 @@ Short adapter notes live in `.agents/adapters/`:
 Each adapter explains how that tool should map its native instruction mechanism
 to the repository's existing files and which files are authoritative.
 
+Cursor's file-pattern rules (`.cursor/rules/*.mdc`) and the equivalent skill for
+each are tabulated in `.cursor/skills/README.md`.
+
 ## Other `.agents/` files
 
 The `.agents/` tree also holds supporting context for agents (added alongside

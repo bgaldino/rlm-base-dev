@@ -65,13 +65,18 @@ For the full lifecycle checklist, read `skill-authoring/SKILL.md`.
 Rules in `.cursor/rules/` auto-inject when Cursor edits matching files.
 Non-Cursor agents can read these files directly or use the equivalent skill:
 
+This table is the canonical list — `AGENTS.md` points here rather than repeating it.
+
 | Rule | Triggers On | Equivalent Skill |
 |------|-------------|------------------|
+| `analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated analysis must go to `.agents/artifacts/`, never the public repo)* |
 | `sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
 | `sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
 | `cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |
 | `cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` |
 | `apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
+| `apex-classes.mdc` | `unpackaged/**/*.cls`, `force-app/**/*.cls` | *(stand-alone — sharing keywords, `Id.valueOf` validation, SOQL safety, test patterns; `repo-integration/SKILL.md` for placement)* |
+| `lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}`, `force-app/**/lwc/**/*.{html,js}` | *(stand-alone — template syntax, ARIA/accessibility, performance, error messages; `repo-integration/SKILL.md` for placement)* |
 | `ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 | `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
