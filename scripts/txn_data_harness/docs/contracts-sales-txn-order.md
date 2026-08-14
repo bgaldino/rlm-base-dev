@@ -9,6 +9,13 @@
 > downstream artifacts. With it, the activation path is identical to the
 > quote kind.
 >
+> **Endpoint paths below read `v68.0` (the Release 264 target) but every capture
+> was taken at `v67.0`** — the verification org's maximum, so a v68.0 call was not
+> merely untried there, it was impossible. Treat `VERIFIED LIVE` as attesting to
+> the body, response shape, and sequencing, *not* to the version in the path.
+> Re-verification on a fresh 264 org is tracked as #264-15/#264-24 in the private
+> upgrade plan.
+>
 > The order-path lifecycle drives `opportunity_created → order_draft →
 > order_activated → usage_upload → invoice_draft → invoice_posted`. Shared
 > foundations (environment, object describes, terminal-state detection,

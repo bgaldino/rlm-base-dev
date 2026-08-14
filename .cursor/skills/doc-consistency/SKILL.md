@@ -49,6 +49,23 @@ The core lookup: **when X changes, verify Y**.
 | A **product/SKU added** to any dataset | *Every* plan CSV that carries that SKU, and each of their READMEs — see below |
 | `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
 | `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
+| **API version bump** for a new release | Every doc carrying a `vNN.0` — but see below: a verified capture is provenance, not a version to retarget |
+
+### An API bump must not rewrite a verified capture
+
+`bump_api_version.py` handles code; the docs are a **manual** pass, and that pass is
+where provenance gets overwritten. A section headed `✅ VERIFIED LIVE` or
+"verified against `<org>`, `<date>`" records what was actually *exercised*, and the
+capture org's **maximum API version caps what could have been called at all** — so
+retargeting the path inside it does not merely overstate the evidence, it asserts a
+request that was impossible to make.
+
+Retarget prose that answers "which endpoint do I call now"; leave captures alone. If
+the body and sequencing are still the contract you want to publish at the new
+release, keep the new path and **say so in the banner** — state the release and API
+the capture was taken at, and that `VERIFIED LIVE` attests to the body, response
+shape, and sequencing rather than the version in the path.
+`scripts/txn_data_harness/docs/contracts-*.md` carry the worked wording.
 
 ### Adding one product touches many plans
 
