@@ -67,9 +67,9 @@ placeholders or explicitly labeled QB example data.
     Re-verifying the scenario matrix is a larger job and belongs in its own entry
     if 264 turns out to move any of it.
   - `[probe]` Run the harness end-to-end — `python -m scripts.txn_data_harness.cli
-    run ...` (`lifecycle.py` is a library module with no entry point of its own) — for
-    `sales_txn_quote`,
-    `sales_txn_order`, and the ingestion path on a **fresh** 264 scratch org (not
+    run ...`, since `lifecycle.py` is a library module with no entry point of its
+    own — for `sales_txn_quote`, `sales_txn_order`, and the ingestion path on a
+    **fresh** 264 scratch org (not
     a 262 org upgraded to 264 — an upgrade grandfathers settings and schema, so it
     is not evidence about fresh builds). Reaching a Posted invoice on each path
     discharges the version-compatibility question above — and only that; diff any
