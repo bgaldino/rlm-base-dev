@@ -123,6 +123,61 @@ PROVENANCE_LINE_RE = re.compile(
 )
 
 
+# Probe bounds, kept as ints rather than "NN.0" strings on purpose: this file is
+# itself in the `python` rule's scope, and that rule matches any quoted two-digit
+# version literal, so written the obvious way it would rewrite its own probes to the
+# target and quietly disarm the self-test below.
+PROBE_FLOOR = 60
+PROBE_CEILING = 99
+
+
+def validate_rules(rules: list[Rule], target: str) -> list[str]:
+    """Assert every rule still matches input it is *defined* to match.
+
+    This is the independent leg ``--check`` needs. ``total_hits`` comes out of these
+    same patterns, so the two states "everything is at the target" and "this rule
+    went blind" are numerically identical -- both zero. That is not hypothetical:
+    the capped ranges (``6[67]``, ``6[0-7]``) stopped matching once the repo reached
+    68.0 and reported "already at target, nothing to do" while 37 and 8 in-scope
+    literals sat untouched.
+
+    Each rule is probed at a version *below* the target, at the target itself, and
+    at one *above* it, because the failure mode is specifically a range that no
+    longer reaches. A rule must also rewrite its probe to the target, which catches
+    a pattern that matches but whose replacement has lost a group.
+    """
+    problems: list[str] = []
+    for rule in rules:
+        if not rule.probe:
+            problems.append(f"{rule.name}: no probe defined, so --check cannot verify this rule")
+            continue
+        for ver in (f"{PROBE_FLOOR}.0", target, next_version(target)):
+            text = rule.probe.format(ver=ver)
+            m = rule.pattern.search(text)
+            if not m:
+                problems.append(
+                    f"{rule.name}: pattern no longer matches its own probe at v{ver} "
+                    f"({text!r}) — the rule has gone blind and would silently skip "
+                    "every occurrence of this class"
+                )
+                continue
+            rewritten = rule.pattern.sub(lambda mm: rule.replace(mm, target), text)
+            if rewritten != rule.probe.format(ver=target):
+                problems.append(
+                    f"{rule.name}: matched its probe at v{ver} but rewrote it to "
+                    f"{rewritten!r} instead of {rule.probe.format(ver=target)!r}"
+                )
+    return problems
+
+
+def next_version(target: str) -> str:
+    """The release after ``target`` — Salesforce API versions step by 1.0 per release."""
+    try:
+        return f"{int(float(target)) + 1}.0"
+    except ValueError:
+        return f"{PROBE_CEILING}.0"
+
+
 def validate_excluded_lines() -> list[str]:
     """Check every EXCLUDED_LINES entry still points at a version-bearing line.
 
@@ -184,6 +239,13 @@ class Rule:
     roots: tuple[str, ...] = ()
     # Optional per-file veto, given the file's full text.
     skip_file_if: Callable[[str], bool] | None = None
+    # A synthetic line this rule MUST match, with {ver} where the version goes.
+    # This is what makes --check mean anything: total_hits is produced by these
+    # same patterns, so a rule that has quietly stopped matching contributes 0 and
+    # is indistinguishable from a repo that is genuinely at the target. Probing
+    # each pattern against input the rule is defined to match is independent of
+    # repo contents, so blindness fails loudly instead of reporting PASS.
+    probe: str = ""
     changed: list[str] = field(default_factory=list, repr=False)
 
     def files(self) -> Iterable[str]:
@@ -212,6 +274,7 @@ def build_rules() -> list[Rule]:
     return [
         Rule(
             name="sfdx-project",
+            probe='"sourceApiVersion": "{ver}"',
             description="sfdx-project.json sourceApiVersion",
             paths=("sfdx-project.json",),
             pattern=re.compile(r'"sourceApiVersion"\s*:\s*"(?P<ver>\d+\.\d+)"'),
@@ -219,6 +282,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="cumulusci",
+            probe='    api_version: "{ver}"',
             description="cumulusci.yml project.package.api_version (quoted values only)",
             paths=("cumulusci.yml",),
             # Only quoted values. `api_version: null` has no quotes, so the four
@@ -228,6 +292,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="meta-xml",
+            probe='<apiVersion>{ver}</apiVersion>',
             description="<apiVersion> in *-meta.xml",
             suffixes=("-meta.xml",),
             pattern=re.compile(r"<apiVersion>(?P<ver>\d+\.\d+)</apiVersion>"),
@@ -235,6 +300,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="sfdmu",
+            probe='"apiVersion": "{ver}"',
             description='"apiVersion" in SFDMU export.json',
             roots=("datasets",),
             suffixes=("export.json",),
@@ -243,6 +309,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="python",
+            probe='API_VERSION = "v{ver}"',
             description="Python defaults/fallbacks (any vNN.0 literal; floors untouched)",
             roots=("tasks", "scripts", "robot"),
             suffixes=(".py",),
@@ -263,6 +330,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="python-service-path",
+            probe='url = "/services/data/v{ver}/sobjects/Account"',
             description="Hardcoded /services/data/vNN.0/ paths embedded in Python strings",
             roots=("tasks", "scripts", "robot"),
             suffixes=(".py",),
@@ -282,6 +350,7 @@ def build_rules() -> list[Rule]:
         ),
         Rule(
             name="apex",
+            probe="String path = '/services/data/v{ver}/query';",
             description="Hardcoded REST paths and constants in .cls/.apex",
             suffixes=(".cls", ".apex"),
             # Two-digit range for the same reason as the two rules above: capped
@@ -413,9 +482,14 @@ def main() -> int:
         )
         return 2
 
-    mode = "APPLY" if args.apply else "DRY RUN"
+    # Normalize the mode BEFORE the banner is built. --check forces a dry run, so
+    # computing the banner first printed "[APPLY]" for `--apply --check` while the
+    # run wrote nothing — telling a release operator the opposite of what happened.
     if args.check:
         args.apply = False
+    mode = "APPLY" if args.apply else "DRY RUN"
+    if args.check:
+        mode = "CHECK (dry run)"
     print(f"Bumping API version to {args.to}  [{mode}]\n")
 
     total_files = 0
@@ -445,6 +519,21 @@ def main() -> int:
         print("\nDry run only. Re-run with --apply to write these changes.")
 
     if args.check:
+        # Self-test the rules first. total_hits == 0 is ambiguous on its own -- it
+        # means either "clean" or "this pattern matches nothing any more" -- so a
+        # PASS is only meaningful once every rule has been shown to still match
+        # input it is defined to match. Ordered first so a blind rule is reported
+        # as a tooling failure rather than as a clean repo.
+        blind = validate_rules(rules, args.to)
+        if blind:
+            print(
+                "\ncheck: FAIL — rule self-test failed, so the counts above are not "
+                "trustworthy (a rule matching nothing looks exactly like a clean repo):",
+                file=sys.stderr,
+            )
+            for problem in blind:
+                print(f"  {problem}", file=sys.stderr)
+            return 2
         # Exit non-zero when anything in scope is still off-target. Without this
         # the tool could only ever report, so a rule that quietly stopped
         # matching -- the exact defect this script has now shipped twice -- looked
