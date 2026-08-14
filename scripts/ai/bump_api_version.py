@@ -127,15 +127,19 @@ EXCLUDED_LINES: dict[tuple[str, int], str] = {
 # Any line matching one of these keeps its version, wherever it appears: the
 # version is part of a statement about the past, or a floor, not a pin.
 PROVENANCE_LINE_RE = re.compile(
-    # Same grammar doc-consistency/SKILL.md publishes for the markdown sweep --
-    # live-<past participle> and verified <preposition> -- because the two were
-    # written independently and drifted: the sweep learned `live-verified`,
-    # `live-proven`, `verified by/via/payload` while this guard still knew only
-    # `verified on|live|against`. Nothing was being mis-rewritten yet (checked: zero
-    # lines today carry one of the missing forms *and* a pattern any rule matches),
-    # but the asymmetry was a live trap -- add a service path to a line reading
-    # "live-verified v67.0" and the bump would have rewritten the claim. Kept in step
-    # deliberately; validate_rules() asserts each form is spared.
+    # Two shapes: live-<past participle> and verified <preposition>. The authoritative
+    # list is PROVENANCE_FORMS below, which validate_rules() asserts is still spared --
+    # so this guard is self-checking and does not depend on any other file being read.
+    # The markdown sweep in doc-consistency/SKILL.md necessarily recognizes the same
+    # provenance, since it exists to catch what this cannot (no rule here touches
+    # `.md`); if you widen one, widen the other.
+    #
+    # It started narrower -- `verified on|live|against` only -- and missed
+    # `live-verified`, `live-proven`, `verified by/via/payload`. Nothing was being
+    # mis-rewritten (checked: zero lines carry a missing form *and* a pattern any rule
+    # matches), but it was a live trap: add a service path to a line reading
+    # "live-verified v67.0" and the bump rewrites the claim, turning recorded evidence
+    # into a false assertion -- strictly worse than missing a bump.
     r"live-(?:verified|tested|proven|confirmed)"
     r"|verified (?:live|on|in|against|by|via|payload)"
     r"|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
@@ -192,8 +196,9 @@ def validate_rules(rules: list[Rule], target: str) -> list[str]:
 
 
 # The provenance grammar, spelled out so a regression names the form it lost rather
-# than just failing a regex comparison. Kept in step with the sweep expression in
-# doc-consistency/SKILL.md.
+# than just failing a regex comparison. This tuple is authoritative for the code path.
+# The markdown sweep documented in doc-consistency/SKILL.md covers the same provenance
+# by hand (no rule here touches `.md`); widening either one should widen both.
 PROVENANCE_FORMS = (
     "live-verified", "live-tested", "live-proven", "live-confirmed",
     "verified live", "verified on", "verified in", "verified against",
@@ -524,7 +529,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if not re.fullmatch(r"\d+\.\d+", args.to):
+    # NN.0 exactly, not \d+\.\d+ -- every rule's pattern is [0-9]{2}\.0, so accepting
+    # 68.1 would let --apply write a version no rule can match on the *next* bump,
+    # manufacturing the silent blindness validate_rules() exists to catch. Salesforce
+    # API versions have no non-zero minor, so nothing legitimate is rejected here.
+    if not re.fullmatch(r"\d{2}\.0", args.to):
         print(f"error: --to must look like NN.0, got {args.to!r}", file=sys.stderr)
         return 2
 
@@ -564,7 +573,12 @@ def main() -> int:
         mode = "CHECK (dry run)"
     print(f"Bumping API version to {args.to}  [{mode}]\n")
 
-    total_files = 0
+    # A set, not a running sum: the `python` and `python-service-path` rules both
+    # select the same files (docgen_odt_execute.py and txn_data_harness/auth.py each
+    # hold a standalone literal *and* a service path), so adding per-rule counts
+    # reports more off-target files than exist -- and it does so in the --check
+    # failure message, where an inflated number is the thing a reader acts on.
+    touched: set[str] = set()
     total_hits = 0
     all_skipped: Counter = Counter()
 
@@ -572,7 +586,7 @@ def main() -> int:
         print(f"  {rule.name}: {rule.description}")
         files_changed, hits, skipped = process(rule, args.to, args.apply, args.verbose)
         all_skipped.update(skipped)
-        total_files += files_changed
+        touched.update(rule.changed)
         total_hits += hits
         if hits:
             print(f"    {hits} replacement(s) in {files_changed} file(s)")
@@ -580,7 +594,7 @@ def main() -> int:
             print("    already at target, nothing to do")
         print()
 
-    print(f"Total: {total_hits} replacement(s) across {total_files} file(s)")
+    print(f"Total: {total_hits} replacement(s) across {len(touched)} file(s)")
 
     if all_skipped:
         print("\nDeliberately skipped:")
@@ -612,7 +626,7 @@ def main() -> int:
         # identical to a clean repo: "already at target, nothing to do".
         if total_hits:
             print(
-                f"\ncheck: FAIL — {total_hits} occurrence(s) in {total_files} file(s) "
+                f"\ncheck: FAIL — {total_hits} occurrence(s) in {len(touched)} file(s) "
                 f"are not at {args.to}.",
                 file=sys.stderr,
             )
