@@ -74,19 +74,29 @@ These forms all exist in this repo and all carry the same weight:
 
 ```bash
 git ls-files '*.md' | xargs grep -lniE \
-  'verified live|live-verified|live-tested|verified on|verified against|verified payload|✅ *verified'
+  'live-(verified|tested|proven|confirmed)|verified (live|on|in|against|by|via|payload)|✅ *verified'
 ```
+
+Read that as a **grammar, not a closed list**: `live-<past participle>` and
+`verified <preposition>`. It is written that way because the enumeration needed three
+revisions — the first pass missed `live-tested`, the second missed `verified payload`,
+the third missed `live-proven`, `verified by`, and `verified via`, each found by a
+reviewer rather than by the sweep. If you meet a new phrasing that fits the grammar,
+add it here; do not assume the alternatives above are exhaustive. Resist the urge to
+collapse it to a bare `verif` stem — that matches 219 files against 60, almost all of
+them ordinary instructions to "verify" something, which is a worse signal-to-noise
+ratio than the mechanical check rejected below.
 
 **Two provenance styles, and only one of them can be silently invalidated.** Most
 files name the version *inline on each claim* — "live-verified v67.0",
 "verified live on v67.0" — which is self-disambiguating: the version travels with
 the assertion, so the manual sweep cannot separate them, and a reader can see at a
 glance which release the claim belongs to. Prefer this style when writing a new
-claim. **Nothing automated protects it** — `bump_api_version.py` encodes the same
-idea in `PROVENANCE_LINE_RE`, but that rule only runs over `-meta.xml`,
-`export.json`, `.py`, and `.cls`/`.apex`; markdown is never scanned, which is
-exactly why this pass is manual. The vulnerable style is a **document-scoped**
-header —
+claim. **Nothing automated protects it in markdown** — `bump_api_version.py` encodes
+the same idea in `PROVENANCE_LINE_RE`, and applies it to every file it rewrites
+(`sfdx-project.json`, `cumulusci.yml`, `-meta.xml`, `export.json`, `.py`,
+`.cls`/`.apex`) — but `.md` is not among them and never is, which is exactly why this
+pass is manual. The vulnerable style is a **document-scoped** header —
 "Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
 version governs paths hundreds of lines away that state no version of their own.
 That is the shape that broke, in both places it occurred.
