@@ -166,8 +166,8 @@
     },
     {
       "id": "SAFE-GIT-001",
-      "summary": "Do not commit or push directly to main.",
-      "details": "All changes must go through a feature branch and pull request; never push or force-push main without explicit approval."
+      "summary": "Do not commit or push directly to main or to the active release branch (264; likewise release/*).",
+      "details": "All changes must go through a feature branch and pull request, including docs and agent-instruction files. Never push or force-push main or an active release branch without explicit approval: PRs are routinely stacked on the release branch, so rewriting it invalidates every one of them."
     }
   ],
   "generated_reference_freshness": {
