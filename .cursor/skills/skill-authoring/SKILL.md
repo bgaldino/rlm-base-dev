@@ -198,7 +198,12 @@ Sub-file rules:
    condition.
 3. Describe it in the parent `SKILL.md`'s own sub-file list. That list is the
    only registry — `AGENTS.md` carries no second-level index, so a sub-file that
-   is not described by its parent is effectively undiscoverable.
+   is not described by its parent is effectively undiscoverable. **Write the
+   filename as a code span (`` `sub-file.md` ``) or a Markdown link** — those are
+   the two forms `analyze_agent_tooling.py check` recognizes as registration, so
+   a name mentioned only in running prose fails the gate. A path relative to the
+   skill directory, to `.cursor/skills/`, or to the repo root all work, as does a
+   glob (`` `domains/*.md` ``) for a whole sub-directory.
 4. Keep sub-files one level deep when possible. Avoid nested reference chains.
 5. If a sub-file is generated, mark it as generated and document the command
    that refreshes it.
@@ -306,7 +311,12 @@ After adding a rule:
 Run these checks before committing a new or materially changed skill:
 
 1. **Discovery from repository entry points**
-   - Confirm `AGENTS.md` lists the skill or sub-file.
+   - For a **top-level skill**: confirm `AGENTS.md` Skill Index lists it.
+   - For a **sub-file**: confirm the parent `SKILL.md` describes it. That is the
+     only registry — `AGENTS.md` deliberately has no second-level index, so a
+     sub-file its parent omits cannot be found from any entry point. This is
+     enforced: `python scripts/ai/analyze_agent_tooling.py check` fails on any
+     sub-file its parent does not name.
    - Confirm `.cursor/skills/README.md` lists top-level skills.
    - Confirm `.github/copilot-instructions.md` still points agents to
      `AGENTS.md` and `.cursor/skills/*/SKILL.md`.
@@ -363,7 +373,8 @@ Do:
 
 1. Add or update a `.cursor/rules/*.mdc` rule for `.cursor/skills/**/*.md`.
 2. Keep the rule short and point to this skill plus doc-consistency.
-3. Update `AGENTS.md` and `.cursor/skills/README.md` rule tables.
+3. Update the File-Specific Rules table in `.cursor/skills/README.md` — its sole
+   owner. `AGENTS.md` only points at it and must not regrow a copy.
 4. Verify non-Cursor agents can get the same instructions from this skill.
 
 ## Validation Checks
