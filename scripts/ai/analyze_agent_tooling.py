@@ -607,26 +607,59 @@ def rule_table_readable(root: Path) -> tuple[bool, str]:
     Returns (ok, detail). Callers use this instead of testing for the heading,
     because the two failures are different: a missing heading is loud, whereas
     "heading kept as a pointer, table moved elsewhere" parses to zero rows and
-    silently renders every rule as unlisted. The row count is also compared
-    against the ``.mdc`` inventory so a partially-relocated table is caught.
+    silently renders every rule as unlisted.
+
+    Rows are compared to the ``.mdc`` inventory **by name, not by count**. A count
+    was the original check and it is a proxy: rename a rule, or add one while a row
+    for a deleted rule lingers, and ``len(rows) == len(mdc)`` holds while the new
+    rule has no mapping at all. Skill targets are also resolved on disk, because
+    ``normalize_equivalent_skill`` synthesizes ``.cursor/skills/<ref>`` from any
+    backticked ``.md`` token without checking it exists -- so a typo like
+    ``SKIL.md`` otherwise reads as a satisfied mapping.
     """
     text = read_text(root / SKILLS_README)
     if file_specific_rules_region(text) is None:
         return False, f"No 'File-Specific Rules' heading found in {SKILLS_README}."
     rows = parse_rule_table(text)
     mdc = sorted_relative_files(root, RULES_ROOT, "*.mdc")
+    names = {Path(p).name for p in mdc}
     if not rows:
         return False, (
             f"The 'File-Specific Rules' heading in {SKILLS_README} exists but no "
             f"table rows parsed under it, while {len(mdc)} .mdc rule file(s) exist "
             "— the table has probably moved and left the heading behind."
         )
-    if len(rows) < len(mdc):
-        return False, (
-            f"{SKILLS_README} lists {len(rows)} rule row(s) but {len(mdc)} .mdc "
-            "rule file(s) exist, so coverage would under-report."
+    problems: list[str] = []
+    unlisted = sorted(names - rows.keys())
+    if unlisted:
+        problems.append(
+            f"{len(unlisted)} .mdc rule file(s) have no row in {SKILLS_README}, so "
+            f"coverage would under-report: {', '.join(unlisted)}"
         )
-    return True, f"{len(rows)} rule row(s) parsed for {len(mdc)} .mdc file(s)"
+    stale = sorted(rows.keys() - names)
+    if stale:
+        problems.append(
+            f"{len(stale)} row(s) in {SKILLS_README} name a .mdc file that does not "
+            f"exist: {', '.join(stale)}"
+        )
+    # parse_rule_table keeps the cell's own path for display, which is normally
+    # relative to .cursor/skills/ ("cci-orchestration/SKILL.md") but may be written
+    # repo-root-relative. Accept either, the same way normalize_equivalent_skill does.
+    def resolves(ref: str) -> bool:
+        return (root / SKILLS_ROOT / ref).exists() or (root / ref).exists()
+
+    broken = sorted({
+        row["skill"] for row in rows.values()
+        if row.get("skill") and not resolves(row["skill"])
+    })
+    if broken:
+        problems.append(
+            f"{len(broken)} row(s) point at a skill file that does not exist: "
+            + ", ".join(broken)
+        )
+    if problems:
+        return False, " ".join(problems)
+    return True, f"{len(rows)} rule row(s) matched against {len(mdc)} .mdc file(s), all skill targets resolve"
 
 
 def check_rule_table_readable(root: Path) -> CheckResult:
@@ -752,6 +785,12 @@ class Analysis:
             f"rule coverage unverifiable: {m.target}"
             for m in self.rule_mappings if m.status == "unknown"
         }))
+        # A row naming a skill file that isn't there is worse than a blank cell:
+        # it reads as covered. Only path existence distinguishes them.
+        out.extend(
+            f"{m.rule} maps to a skill file that does not exist: {m.target}"
+            for m in self.rule_mappings if m.status == "broken"
+        )
         return out
 
     @property
@@ -836,7 +875,11 @@ def file_specific_rules_region(markdown: str) -> str | None:
     return "\n".join(lines[start:end])
 
 
-def extract_rule_mappings(rules_table_markdown: str | None, rules: Iterable[str]) -> list[RuleMapping]:
+def extract_rule_mappings(
+    rules_table_markdown: str | None,
+    rules: Iterable[str],
+    root: Path | None = None,
+) -> list[RuleMapping]:
     """Map each ``.cursor/rules/*.mdc`` to its equivalent skill.
 
     The canonical table lives in ``.cursor/skills/README.md``; ``AGENTS.md``
@@ -876,6 +919,12 @@ def extract_rule_mappings(rules_table_markdown: str | None, rules: Iterable[str]
             )
             continue
         kind, target = by_rule[name]
+        # A synthesized skill path is not evidence the file is there.
+        # normalize_equivalent_skill turns any backticked `.md` token into
+        # `.cursor/skills/<ref>`, so `SKIL.md` and a since-renamed skill both read
+        # as satisfied mappings. Resolve it when we have a root to resolve against.
+        if kind == "skill" and root is not None and not (root / target).exists():
+            kind = "broken"
         results.append(RuleMapping(name, kind, target))
     return sorted(results, key=lambda m: m.rule)
 
@@ -898,7 +947,7 @@ def analyze(root: Path) -> Analysis:
         r for r in analysis.agents_skill_references if not path_reference_exists(root, r)
     ]
     analysis.rule_mappings = extract_rule_mappings(
-        file_specific_rules_region(read_text(root / SKILLS_README)), analysis.rules
+        file_specific_rules_region(read_text(root / SKILLS_README)), analysis.rules, root
     )
 
     for rel_path in GENERATED_CCI_REFERENCE_FILES:
