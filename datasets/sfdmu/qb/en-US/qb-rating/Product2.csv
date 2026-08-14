@@ -1,6 +1,7 @@
 Name,ProductCode,StockKeepingUnit,UsageModelType
 QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH,QB-CMT-TKN-EACH,Commit
 QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT,QB-CMT-TKN-FLAT,Commit
+QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND,QB-CMT-TKN-BND,Commit
 QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER,QB-CMT-TKN-TIER,Commit
 Additional Data Throughput,QB-DAT-THPT,QB-DAT-THPT,Pack
 QuantumBit Database,QB-DB,QB-DB,Anchor

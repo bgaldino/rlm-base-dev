@@ -1,0 +1,16 @@
+feature: quantumbit
+feature_flag: quantumbit
+# Adds the QuantumBit Demo Setup guide to the top of the Home page sidebar
+# (above the assistant). The page ships in unpackaged/post_setup_guide and is
+# deployed by deploy_post_setup_guide in prepare_quantumbit, before UX assembly,
+# so it exists when this flexipage (which references it by pageName) deploys.
+patches:
+  - type: add_component
+    region: sidebar
+    component: flexipage:visualforcePage
+    identifier: flexipage_visualforcePage
+    before_identifier: home_assistant
+    properties:
+      height: "2040"
+      pageName: QuantumBitDemoSetup
+      showLabel: "true"

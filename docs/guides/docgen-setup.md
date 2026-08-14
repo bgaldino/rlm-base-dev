@@ -54,7 +54,7 @@ All steps are gated by `project_config.project__custom__docgen`.
 - **Token mapping:** `RLM_QuoteDocGenContext` / `QuoteDocGenMapping` (Context Service)
 - **Meta file:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_CS_1.dt-meta.xml`
 - **Binary:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_CS_1.dt`
-- **Token list:** same Quote/Line attributes as the OmniDataTransform version, populated via Context Service instead of DataRaptor
+- **Token list:** the same rendered Quote/Line attributes as the OmniDataTransform version, populated via Context Service instead of DataRaptor. `SellerCompanyName` is mapped for parity but is not consumed by the current branded binary.
 
 ### `RLM_InvoiceTemplate` — Billing
 
@@ -197,6 +197,7 @@ RLM_QuoteDocGenContext
 │   ├── SellerWebsite     STRING   INPUTOUTPUT
 │   └── SellerCountry     STRING   INPUTOUTPUT
 └── Line (child of Quote)
+    ├── ParentReference (auto-created relationship attribute)
     ├── ProductName   STRING   INPUTOUTPUT
     ├── Quantity      NUMBER   INPUTOUTPUT
     ├── ListPrice     CURRENCY INPUTOUTPUT
@@ -230,6 +231,7 @@ RLM_QuoteDocGenContext
 | Quote | SellerWebsite | Quote | RLM_Seller_Website__c |
 | Quote | SellerCountry | Quote | RLM_Seller_Country__c |
 | Line | ProductName | QuoteLineItem | RLM_ProductName__c |
+| Line | ParentReference | QuoteLineItem | QuoteId |
 | Line | Quantity | QuoteLineItem | Quantity |
 | Line | ListPrice | QuoteLineItem | ListPrice |
 | Line | Discount | QuoteLineItem | Discount |
@@ -237,6 +239,12 @@ RLM_QuoteDocGenContext
 | Line | NetTotalPrice | QuoteLineItem | TotalPrice |
 
 `AccountName` and `SalesRep` use formula fields (`RLM_Account_Name__c` = `QuoteAccount.Name`, `RLM_Sales_Rep_Name__c` = `Owner:User.FirstName + LastName`) rather than relationship traversal. The Context Service connect API does not support relationship traversal in `sObjectField`, so formula fields are the correct approach for cross-object lookups in this context.
+
+`ParentReference` is automatically added when `Line` is created under `Quote`. It must map to `QuoteLineItem.QuoteId`; without this parent lookup, Context Service cannot associate hydrated line records with their quote and the `{{#Line}}` section cannot repeat reliably.
+
+#### Generation Request Contract
+
+For a Context Service `DocumentGenerationProcess`, set `DocGenAdditionalInputType` to `ContextService` and set `DocGenAdditionalInput` to the root Quote ID as a plain string. Do **not** pass the Context Service runtime `{"inputData": ...}` payload in this field. That runtime shape belongs to the Context API, while DocGen resolves the definition and mapping from the selected template.
 
 #### Plan File Location
 
@@ -348,6 +356,11 @@ cci task run manage_context_definition \
   -o plan_file datasets/context_plans/DocGen/manifest.json \
   -o validate_only true \
   --org beta
+
+# Inspect a DGP payload without creating it
+python scripts/docgen/docgen_template_generate.py \
+  --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA \
+  --org rlm-base__beta --dry-run
 ```
 
 ---

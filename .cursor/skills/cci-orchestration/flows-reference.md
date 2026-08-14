@@ -220,18 +220,26 @@ Extract rating and rates data from an org into CSV files
 12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
 13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+14. **flow** `prepare_billing_portal`
 
 ---
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+Create Self-Service Billing Portal community and optionally deploy site content. When billing and billing_portal are true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
 
 **Steps:**
 
-1. **task** `create_billing_portal`  `when: project_config.project__custom__billing_portal`
-2. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
-3. **task** `publish_community`  `when: project_config.project__custom__billing_portal`
+1. **task** `create_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
+2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_name`: `Billing Portal`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+3. **task** `deploy_post_billing_portal`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+4. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy`
+   - `network_meta_xml_path`: `unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml`
+   - `placeholder_email`: `billing-portal-sender@example.com`
+5. **task** `publish_community`  `when: project_config.project__custom__billing and project_config.project__custom__billing_portal`
    - `name`: `Billing Portal`
 
 ---
@@ -282,7 +290,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
 11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1`
+   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1`
 12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
@@ -442,7 +450,16 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
-8. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UtilitiesPermset']`
+   - `user_alias`: `salesrep`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_DecisionTableManager']`
+   - `user_alias`: `salesrep`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_QuantumBitDemoSetup']`
+   - `user_alias`: `salesrep`
+11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -492,7 +509,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
    - `activate`: `True`
-10. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+10. **flow** `prepare_prm_pricing`
 
 ---
 
@@ -503,7 +520,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `deactivate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-2. **flow** `deploy_post_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **flow** `deploy_post_prm_pricing`
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
    - `api_names`: `['RLM_PRM_Pricing']`
 4. **task** `insert_quantumbit_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
@@ -543,8 +560,17 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 3. **task** `deploy_quantumbit`  `when: project_config.project__custom__quantumbit`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_QuantumBit']`
-5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_ExpressionSetManager']`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UtilitiesPermset']`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_DecisionTableManager']`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_RebuildSearchIndex']`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
+10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 
 ---
 
@@ -594,7 +620,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 11. **flow** `prepare_dro`
 12. **flow** `prepare_tax`
 13. **flow** `prepare_billing`
-14. **flow** `prepare_collections`  `when: project_config.project__custom__collections`
+14. **flow** `prepare_collections`
 15. **flow** `prepare_analytics`
 16. **flow** `prepare_clm`
 17. **flow** `prepare_rating`
@@ -607,10 +633,10 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 24. **flow** `prepare_guidedselling`
 25. **flow** `prepare_revenue_settings`
 26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+27. **flow** `prepare_large_stx`
+28. **flow** `prepare_personas`
+29. **flow** `prepare_ux`
+30. **flow** `prepare_inapp`
 31. **flow** `prepare_scratch`
 32. **flow** `refresh_all_decision_tables`
 33. **task** `rebuild_search_index`
@@ -646,7 +672,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
 3. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
-   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'OrchestrationProcessManagerPermissionSet', 'EventMonitoring...`
+   - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'RLM_ExpressionSetManager', 'RLM_DecisionTableManager', 'RLM...`
 
 ---
 
@@ -659,8 +685,9 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 3. **task** `refresh_dt_asset`  `when: project_config.project__custom__rating`
 4. **task** `refresh_dt_rating`  `when: project_config.project__custom__rating`
 5. **task** `refresh_dt_rating_discovery`  `when: project_config.project__custom__rating`
-6. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce`
-7. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `refresh_dt_default_pricing`
+7. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce or project_config.project__custom__tso`
+8. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 

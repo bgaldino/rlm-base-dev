@@ -94,8 +94,8 @@ project:
     # ── Core Revenue Cloud Features ────────────────────────────────────────────
     billing: true             # Billing
     billing_ui: true          # Billing UI LWC components (post_billing_ui)
-    billing_portal: false     # Self-Service Billing Portal community
-    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
+    billing_portal: true      # Self-Service Billing Portal community
+    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing + billing_portal)
     payments: true            # Payments
     approvals: true           # Approvals
     tax: true                 # Tax engine
@@ -254,6 +254,9 @@ project:
       # Territory Sales Operations permission sets
       - ERIBasic
       - RLM_UtilitiesPermset
+      - RLM_ExpressionSetManager
+      - RLM_DecisionTableManager
+      - RLM_RebuildSearchIndex
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -318,6 +321,59 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
+
+    ps_expression_set_manager: &ps_expression_set_manager
+      # Expression Set Manager component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Deliberately NOT
+      # RLM_UtilitiesPermset: that set grants RLM_AccountUtilities, whose
+      # invocable deletes account-related orders/assets/contracts/invoices —
+      # destructive access this component does not need.
+      - RLM_ExpressionSetManager
+
+    ps_decision_table_manager: &ps_decision_table_manager
+      # Decision Table Manager component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Deliberately NOT
+      # RLM_UtilitiesPermset, for the same reason as the Expression Set Manager:
+      # that set grants RLM_AccountUtilities' destructive invocable, which
+      # refreshing a decision table does not need. Grants class access only —
+      # the objects the controller reads are either not perm-set-grantable
+      # (DecisionTable, DecisionTableSourceCriteria, Organization) or already
+      # granted by the standard Revenue Cloud sets (CalculationMatrix).
+      - RLM_DecisionTableManager
+
+    ps_rebuild_search_index: &ps_rebuild_search_index
+      # Rebuild Search Index component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Third of the three
+      # sections on RLM_Home_Page_Default, and the last to get a grant — until
+      # this set existed the class was granted nowhere in the repo, so the
+      # section only worked for a profile that already carried it. Least
+      # privilege for the same reason as the two above: rebuilding an index does
+      # not need RLM_UtilitiesPermset's destructive invocable. Grants class
+      # access, the RLM_SessionId page and ApiEnabled — no object permissions,
+      # because the class runs no SOQL and no DML.
+      - RLM_RebuildSearchIndex
+
+    ps_quantumbit_demo_setup: &ps_quantumbit_demo_setup
+      # QuantumBit Demo Setup guide (post_setup_guide, deployed via
+      # deploy_post_setup_guide in the quantumbit flow). Surfaced on
+      # RLM_Home_Page_Default; without a page grant a permission-set-only user sees
+      # an insufficient-privileges component where the guide should render — the
+      # same gap the three sets above close for their Home-page components. Least
+      # privilege: the page is STATIC markup (no Apex controller, no SOQL/DML, no
+      # session loopback), so it grants ONLY page access — no class access and,
+      # unlike ps_expression_set_manager / ps_rebuild_search_index, no ApiEnabled.
+      - RLM_QuantumBitDemoSetup
+
+    ps_account_utilities: &ps_account_utilities
+      # Account Utilities reset (post_utils, deployed via deploy_post_utils in
+      # BOTH the quantumbit and tso flows). deploy_post_utils ships the whole
+      # surface — RLM_AccountUtilities, the Account.RLM_Reset_Account quick
+      # action and its flows — so a quantumbit build (tso=false) that never
+      # assigns this set leaves a visible reset button no non-admin can run.
+      # Assigned here for that path; the tso flow assigns it via
+      # rlm_tso_ps_api_names. Kept separate from ps_expression_set_manager so
+      # that component keeps its least-privilege grant.
+      - RLM_UtilitiesPermset
 
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
@@ -444,7 +500,9 @@ project:
       - RLM_CostBookEntries
 
     dt_commerce_decision_tables: &dt_commerce_decision_tables
-      # Commerce decision tables (refresh when project__custom__commerce is true)
+      # Commerce decision tables (refresh when project__custom__commerce OR
+      # project__custom__tso is true — a TSO template ships these tables whether or
+      # not the Commerce feature is configured)
       # UsageType in org: DefaultPricing
       - Price_Book_Entry_Commerce_V2
       - Price_Book_Entry_For_Unit_Price_Commerce_V1
@@ -1337,6 +1395,13 @@ tasks:
     options:
       path: unpackaged/post_utils
 
+  deploy_post_setup_guide:
+    group: Revenue Lifecycle Management
+    description: Deploy the QuantumBit Demo Setup guide (Visualforce page).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_setup_guide
+
   deploy_post_large_stx:
     group: Revenue Lifecycle Management
     description: Deploy Large Sales Transaction metadata
@@ -1784,17 +1849,18 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
-      Network's actual current EmailSenderAddress (immutable after creation) so
-      deploy_post_prm succeeds. Repo stores a non-PII placeholder; run
-      revert_network_email_after_deploy after deploy.
+      Replace the configured placeholder emailSenderAddress in a Network metadata
+      file with the target Network's actual current EmailSenderAddress (immutable
+      after creation) so community metadata can deploy. Run
+      revert_network_email_after_deploy after the deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
 
   revert_network_email_after_deploy:
     group: Partner Relationship Management
     description: >
-      Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
-      deploy_post_prm so the repo never persists the target org's email.
+      Restore the configured placeholder emailSenderAddress in a Network metadata
+      file after a community metadata deploy so the repo never persists the target
+      org's email.
     class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   create_partner_central:
@@ -2234,7 +2300,7 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Validate the local developer setup for rlm-base-dev. Checks Python,
-      CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js,
+      CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js,
       Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium,
       ChromeDriver, and urllib3. When
       auto_fix=true the SFDMU plugin is automatically installed or updated to
@@ -2242,7 +2308,7 @@ tasks:
     class_path: tasks.rlm_validate_setup.ValidateSetup
     options:
       auto_fix: true
-      required_sfdmu_version: "5.0.0"
+      required_sfdmu_version: "5.6.4"
       fail_on_error: true
 
   configure_revenue_settings:
@@ -2348,6 +2414,38 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/query_billing_state.apex
+
+  validate_multicurrency_rates:
+    group: Revenue Lifecycle Management
+    description: >
+      Validate the multicurrency usage-rating configuration, scoped to the
+      QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units
+      exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry
+      has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy,
+      every ProductUsageResource is rated, every currency-denominated entry covers
+      all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment,
+      and per-asset entitlement shape compared across assets of the same product)
+      which self-skip when no assets exist. Offline equivalent:
+      python tests/test_qb_multicurrency_data.py
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
+    options:
+      path: scripts/apex/validateMulticurrencyRates.apex
+
+  check_decision_table_freshness:
+    group: Revenue Lifecycle Management
+    description: >
+      Report every decision table's freshness verdict headlessly — the same
+      comparison the Decision Table Manager component shows, without a browser.
+      A table is Stale when any object it reads changed at or after its last full
+      sync — the tie counts as stale, because nothing establishes which came first
+      — including objects it only pulls columns from. "Not comparable" means the
+      check refused to guess (usually an unreproducible source criterion), which
+      is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale
+      table — off by default, because a build that loads data after its refresh
+      step will legitimately show stale tables. Requires post_utils deployed.
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
+    options:
+      path: scripts/apex/checkDecisionTableFreshness.apex
 
   validate_billing_structure:
     group: Revenue Lifecycle Management
@@ -2878,7 +2976,7 @@ tasks:
 
   refresh_dt_commerce:
     group: Revenue Lifecycle Management
-    description: Refresh Commerce Decision Tables (when commerce flag is true)
+    description: "Refresh Commerce Decision Tables. Run by refresh_all_decision_tables when the commerce OR tso flag is true — a TSO template ships these tables regardless of the commerce flag, so a TSO build must refresh them or it inherits the template org's rows."
     class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
     options:
       developerNames: *dt_commerce_decision_tables
@@ -3315,9 +3413,9 @@ tasks:
   # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
   # =====================================================================
   # All 11 RC functional areas captured 2026-05-11 / 2026-05-12
-  # (collections added 2026-06-21). 932 articles captured / 935
-  # discovered — 3 collections articles errored at capture and are
-  # pending recapture (see docs/salesforce/262/help/index.md). Roots
+  # (collections added 2026-06-21). 935 articles captured / 935
+  # discovered — 0 errored (the final 3 collections articles were
+  # recaptured 2026-08-04; see docs/salesforce/262/help/index.md). Roots
   # verified via the Revenue Lifecycle Management parent sidebar walk.
   #
   # Captured (article counts as of capture date):
@@ -3335,9 +3433,9 @@ tasks:
   #                                              area's prefix — see the
   #                                              revenue-cloud-docs skill)
   #   ✓ snapshot_approvals_help_262          —  34 articles
-  #   ✓ snapshot_collections_help_262        —  94 articles (3 errored,
-  #                                              pending recapture — see
-  #                                              docs/salesforce/262/help/index.md
+  #   ✓ snapshot_collections_help_262        —  97 articles (0 errored;
+  #                                              final 3 recaptured 2026-08-04 —
+  #                                              see docs/salesforce/262/help/index.md
   #                                              and the refresh command below)
   #
   # NOTE — the Help portal uses short-prefix conventions that differ from
@@ -3591,7 +3689,6 @@ flows:
         flow: prepare_billing
       14:
         flow: prepare_collections
-        when: project_config.project__custom__collections
       15:
         flow: prepare_analytics
       16:
@@ -3618,16 +3715,12 @@ flows:
         flow: prepare_pricing_discovery
       27:
         flow: prepare_large_stx
-        when: project_config.project__custom__large_stx
       28:
         flow: prepare_personas
-        when: project_config.project__custom__personas
       29:
         flow: prepare_ux
-        when: project_config.project__custom__ux
       30:
         flow: prepare_inapp
-        when: project_config.project__custom__inapp
       31:
         flow: prepare_scratch
       32:
@@ -3849,10 +3942,54 @@ flows:
         options:
           api_names: *ps_quantumbit
       5:
+        # deploy_post_utils (step 1) ships the Expression Set Manager component;
+        # assign its dedicated least-privilege permission set here so quantumbit
+        # builds (where tso=false) grant it. The tso flow assigns it via
+        # rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_expression_set_manager
+      6:
+        # Same reasoning for the other component deploy_post_utils ships: the
+        # Account Utilities reset. Without this the quick action deploys on a
+        # quantumbit build but no persona user can invoke it.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_account_utilities
+      7:
+        # And the third: the Decision Table Manager on the Home page. Without
+        # this its accordion section renders for a persona user and every action
+        # fails on Apex class access. The tso flow assigns it via
+        # rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_decision_table_manager
+      8:
+        # And the fourth: the Rebuild Search Index section, which shares the Home
+        # page accordion with the Decision Table Manager above. Same failure
+        # without it, and worse — until this grant existed the class was in no
+        # permission set at all, so nothing in any build ever granted it. The tso
+        # flow assigns it via rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_rebuild_search_index
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
+      10:
+        # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
+        # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # of prepare_rlm_org) — so the page must exist first. This whole flow runs
+        # at step 7, well before UX assembly.
+        task: deploy_post_setup_guide
+        when: project_config.project__custom__quantumbit
 
   prepare_tso:
     group: Revenue Lifecycle Management
@@ -4030,6 +4167,8 @@ flows:
       13:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
+      14:
+        flow: prepare_billing_portal
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -4069,7 +4208,6 @@ flows:
           activate: true
       10:
         flow: prepare_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
   deploy_post_prm_pricing:
     group: Revenue Lifecycle Management
@@ -4111,7 +4249,6 @@ flows:
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
         flow: deploy_post_prm_pricing
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
@@ -4131,17 +4268,32 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Create Self-Service Billing Portal community and optionally deploy site content.
-      When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+      When billing and billing_portal are true, creates and publishes the community. When
+      billing_portal_deploy is also true, patches the network email placeholder, deploys
+      unpackaged/post_billing_portal, and reverts the placeholder before publishing.
     steps:
       1:
         task: create_billing_portal
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
       2:
-        task: deploy_post_billing_portal
-        when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        task: patch_network_email_for_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_name: "Billing Portal"
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
       3:
+        task: deploy_post_billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+      4:
+        task: revert_network_email_after_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
+      5:
         task: publish_community
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
         options:
           name: "Billing Portal"
 
@@ -4262,9 +4414,24 @@ flows:
         task: refresh_dt_rating_discovery
         when: project_config.project__custom__rating
       6:
-        task: refresh_dt_commerce
-        when: project_config.project__custom__commerce
+        # ⚠ Unconditional, and previously ABSENT ENTIRELY. refresh_dt_default_pricing
+        # existed as a task but was referenced by no flow, so the nine tables in
+        # dt_default_pricing_decision_tables were only ever refreshed by whatever else
+        # happened to touch them — the Contract_Pricing_* trio via the contract
+        # activation flow, the rest incidentally. StandardTax had no other path at all
+        # and so was never refreshed in any build: measured 2026-07-27 on a fresh TSO,
+        # where it still carried a January sync stamp inherited from the template while
+        # tax is on by default.
+        task: refresh_dt_default_pricing
       7:
+        # Gated on commerce OR tso. A TSO template ships the Commerce decision tables
+        # whether or not the commerce feature is configured, so a tso build that skipped
+        # this inherited five tables holding another org's rows (same 2026-07-27
+        # measurement). Refreshing a table whose source is empty rebuilds it as empty,
+        # which is correct — holding stale foreign rows is not.
+        task: refresh_dt_commerce
+        when: project_config.project__custom__commerce or project_config.project__custom__tso
+      8:
         task: refresh_dt_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
@@ -4361,7 +4528,20 @@ flows:
           # so activating Bundle without this would leave Complete/PCM active alongside it.
           # No-op on a fresh build (Complete/PCM are imported inactive); the task safely
           # skips versions that are already inactive or absent.
-          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1"
+          #
+          # QuantumBitBundle_V1 is in this list DELIBERATELY, even though step 12
+          # reactivates it immediately. Steps 7-10 import while Bundle may already be
+          # ACTIVE, and uploading a ConstraintModel into an active version stores the blob
+          # WITHOUT redeploying the runtime model. Without this entry step 12's "activate"
+          # is a no-op on an already-active version, the flow reports success, and the org
+          # keeps running the OLD model — so the configurator rejects whatever the new
+          # model added. Deactivating here and reactivating in step 12 is the
+          # deactivate/reactivate cycle Salesforce documents as the way to pick up a
+          # rebuilt model. Server2_V1 is listed for the same reason: step 8 imports it
+          # and step 12 activates it, so on a rerun against an already-active Server2 it
+          # would hit the identical stale-runtime path. Every version step 12 activates
+          # must be deactivated here. See .cursor/skills/constraint-models/SKILL.md.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1"
       12:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -4602,6 +4782,107 @@ flows:
           api_names: *ps_large_stx
           user_alias: salesrep
       8:
+        # The Account Reset quick action is deployed by deploy_post_utils onto
+        # RLM_Account_Record_Page, and there is no persona-specific Account page — so the
+        # salesrep persona SEES the button. Without RLM_UtilitiesPermset it cannot invoke
+        # it: SetupEntityAccess on RLM_AccountUtilities comes only from the System
+        # Administrator profile or this permission set. The steps above assign to the
+        # RUNNING user; only a user_alias assignment reaches the persona.
+        #
+        # Granted deliberately, and the grant is broader than "the button now works".
+        # RLM_AccountUtilities is `without sharing` — declared explicitly now, where it
+        # once had no keyword at all — so when it is entered directly, as it is from
+        # this invocable, it runs in SYSTEM MODE. Granting this set therefore hands a non-admin persona a
+        # system-mode destructive entry point: the reset deletes an account's orders,
+        # assets, contracts, invoices and usage graph regardless of what that user can
+        # see. It is not bounded by their sharing.
+        #
+        # Accepted for a demo org, where resetting between demos is precisely the
+        # persona's job and a visible button that errors is worse than the grant.
+        # It would NOT be acceptable in an org holding real data. Hiding the action from
+        # the persona was the alternative and was rejected because the reset is a persona
+        # workflow, not an admin one.
+        #
+        # The sharing mode is now a DECIDED question, not an open one: `without sharing`
+        # is deliberate, because the reset must remove records the running user cannot
+        # see or the account is left half-reset. Do not "fix" it by switching to
+        # `with sharing`. This grant remains the widest non-admin privilege the build
+        # hands out, and the permission
+        # reference records it as such.
+        #
+        # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
+        # keeps its least-privilege grant (see ps_expression_set_manager).
+        #
+        # Gated on quantumbit OR tso because deploy_post_utils (and therefore the
+        # permission set) only exists on those builds; assigning it on a
+        # personas-only build would fail on a PermissionSet that was never deployed.
+        #
+        # The guard is on the FLAGS, not on whether the metadata actually landed, so
+        # running prepare_personas STANDALONE against an org where post_utils was never
+        # deployed — but quantumbit/tso are on — will fail here. That is the same
+        # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
+        # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
+        # at step 19, both of which deploy_post_utils, well before prepare_personas at
+        # step 28. If you run this flow on its own, deploy post_utils first.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_account_utilities
+          user_alias: salesrep
+      9:
+        # The Decision Table Manager sits on the shared Revenue Cloud Home page, and
+        # there is no persona-specific Home page — so the salesrep persona SEES it. The
+        # grant elsewhere in the build assigns to the RUNNING user only (same trap as
+        # step 8 documents), which left the persona looking at a default-open section
+        # that errors on Apex class access.
+        #
+        # Granted rather than hidden, following step 8's precedent: a visible component
+        # that errors is worse than the grant. The grant is also far narrower than that
+        # one — class access to a controller that reads decision-table metadata and
+        # queues the platform's own refresh action. It deletes nothing, and the refresh
+        # is the same operation the Setup page offers.
+        #
+        # Gated like step 8, and for the same reason: the permission set ships with
+        # post_utils, so assigning it on a personas-only build would fail on a
+        # PermissionSet that was never deployed.
+        #
+        # ⚠ The persona grant stops here, and does NOT extend to the other two
+        # sections of that same accordion — RLM_ExpressionSetManager and
+        # RLM_RebuildSearchIndex. Both are admin tools, and both carry ApiEnabled
+        # for the $Api.Session_ID loopback their controllers depend on: a broad
+        # system permission that enables ALL API access for the assignee. Handing
+        # that to a sales rep to tidy a default-open accordion section is a worse
+        # trade than the one this step makes, where the grant is class access to a
+        # controller that deletes nothing. The Decision Table Manager is the only
+        # one of the three narrow enough to justify the persona assignment; the
+        # persona sees the other two error, deliberately.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_decision_table_manager
+          user_alias: salesrep
+      10:
+        # The QuantumBit Demo Setup guide sits on the shared RLM_Home_Page_Default,
+        # and there is no persona-specific Home page — so the salesrep persona SEES
+        # it. Deploy-time access reaches only the RUNNING (admin) user; only a
+        # user_alias assignment reaches the persona, which otherwise looks at a
+        # default-open component that errors with insufficient privileges.
+        #
+        # Granted rather than hidden, following the Decision Table Manager precedent
+        # (step 9): a visible component that errors is worse than the grant. This
+        # grant is narrower still — page access to a STATIC page (no Apex, no class
+        # access, no ApiEnabled), so it hands the persona no system privilege.
+        #
+        # Gated on quantumbit (NOT tso): the permission set ships in
+        # post_setup_guide, deployed only by deploy_post_setup_guide in
+        # prepare_quantumbit. Assigning it on a personas build without quantumbit
+        # would fail on a PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_quantumbit_demo_setup
+          user_alias: salesrep
+      11:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

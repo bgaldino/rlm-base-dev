@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**271 tasks** across **10 groups**.
+**274 tasks** across **10 groups**.
 
 ---
 
@@ -1034,7 +1034,7 @@
 
 ### `patch_network_email_for_deploy`
 
-**Description:** Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so deploy_post_prm succeeds. Repo stores a non-PII placeholder; run revert_network_email_after_deploy after deploy.
+**Description:** Replace the configured placeholder emailSenderAddress in a Network metadata file with the target Network's actual current EmailSenderAddress (immutable after creation) so community metadata can deploy. Run revert_network_email_after_deploy after the deploy.
 
 **Class:** `tasks.rlm_community.PatchNetworkEmailForDeploy`
 
@@ -1042,7 +1042,7 @@
 
 ### `revert_network_email_after_deploy`
 
-**Description:** Restore the placeholder emailSenderAddress in rlm.network-meta.xml after deploy_post_prm so the repo never persists the target org's email.
+**Description:** Restore the configured placeholder emailSenderAddress in a Network metadata file after a community metadata deploy so the repo never persists the target org's email.
 
 **Class:** `tasks.rlm_community.RevertNetworkEmailAfterDeploy`
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*162 task(s)*
+*165 task(s)*
 
 ### `activate_agents`
 
@@ -1341,6 +1341,18 @@
 
 - `api_names`: `['RLM_Sales_Representative']`
 - `user_alias`: `salesrep`
+
+---
+
+### `check_decision_table_freshness`
+
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last full sync — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/checkDecisionTableFreshness.apex`
 
 ---
 
@@ -1984,6 +1996,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm_pricing/permissionsets`
+
+---
+
+### `deploy_post_setup_guide`
+
+**Description:** Deploy the QuantumBit Demo Setup guide (Visualforce page).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_setup_guide`
 
 ---
 
@@ -2911,7 +2935,7 @@
 
 ### `refresh_dt_commerce`
 
-**Description:** Refresh Commerce Decision Tables (when commerce flag is true)
+**Description:** Refresh Commerce Decision Tables. Run by refresh_all_decision_tables when the commerce OR tso flag is true — a TSO template ships these tables regardless of the commerce flag, so a TSO build must refresh them or it inherits the template org's rows.
 
 **Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
 
@@ -3139,16 +3163,28 @@
 
 ---
 
+### `validate_multicurrency_rates`
+
+**Description:** Validate the multicurrency usage-rating configuration, scoped to the QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy, every ProductUsageResource is rated, every currency-denominated entry covers all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment, and per-asset entitlement shape compared across assets of the same product) which self-skip when no assets exist. Offline equivalent: python tests/test_qb_multicurrency_data.py
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/validateMulticurrencyRates.apex`
+
+---
+
 ### `validate_setup`
 
-**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
+**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
 
 **Class:** `tasks.rlm_validate_setup.ValidateSetup`
 
 **Options:**
 
 - `auto_fix`: `True`
-- `required_sfdmu_version`: `5.0.0`
+- `required_sfdmu_version`: `5.6.4`
 - `fail_on_error`: `True`
 
 ---

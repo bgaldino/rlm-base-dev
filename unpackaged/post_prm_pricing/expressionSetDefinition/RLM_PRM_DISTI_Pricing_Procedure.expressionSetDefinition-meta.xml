@@ -5091,6 +5091,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>IsContractEnabled</name>
                     <output>false</output>
                     <type>Literal</type>

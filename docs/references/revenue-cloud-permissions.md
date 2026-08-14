@@ -76,7 +76,7 @@ Assigned at step 8 of `prepare_core` (3 active licenses).
 
 ### TSO PSLs (`rlm_tso_psl_api_names`) -- `tso: true`
 
-Assigned in `prepare_tso` step 1 (23 licenses). These are Trialforce Source Org-specific licenses for Sales Cloud Unlimited, Einstein features, and engagement tools.
+Assigned in `assign_feature_psls` step 4 (23 licenses; `when tso`). These are Trialforce Source Org-specific licenses for Sales Cloud Unlimited, Einstein features, and engagement tools.
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -243,7 +243,7 @@ Placeholder PSG with no permission sets. AI permission sets are assigned separat
 
 ### RLM_TSO -- Trialforce Source Org PSG -- `tso: true`
 
-Assigned in `prepare_tso` step 6 via `assign_permission_set_groups_tolerant`. Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
+Assigned in `prepare_core` step 13 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 12). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
 
 <details>
 <summary>Full list (50 permission sets)</summary>
@@ -257,10 +257,10 @@ These Salesforce-managed PSGs are assigned in two contexts:
 
 | PSG | Assigned When | Flow Step |
 |---|---|---|
-| `CopilotSalesforceUserPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 2 / `prepare_agents` step 1 |
-| `CopilotSalesforceAdminPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 2 / `prepare_agents` step 1 |
-| `UnifiedCatalogAdminPsl` | `tso: true` only | `prepare_tso` step 2 |
-| `UnifiedCatalogDesignerPsl` | `tso: true` only | `prepare_tso` step 2 |
+| `CopilotSalesforceUserPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 1 / `prepare_agents` step 1 |
+| `CopilotSalesforceAdminPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 1 / `prepare_agents` step 1 |
+| `UnifiedCatalogAdminPsl` | `tso: true` only | `prepare_tso` step 1 |
+| `UnifiedCatalogDesignerPsl` | `tso: true` only | `prepare_tso` step 1 |
 
 ---
 
@@ -270,12 +270,25 @@ Individual permission sets defined in project metadata (for example under `force
 
 ### Explicitly Assigned Permission Sets
 
-These are assigned to the running user via `assign_permission_sets` in their respective flows.
+These are assigned via `assign_permission_sets` in their respective flows — to the
+**running user** unless the step passes `user_alias`, in which case they land on that
+persona user instead. See the persona rows in the flow inventory below.
+
+> ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
+> running admin — and it runs in SYSTEM MODE.** It grants `RLM_AccountUtilities`, which
+> declares no sharing keyword, so when entered directly from its invocable the class runs
+> unrestricted by sharing. The persona can therefore delete an account's orders, assets,
+> contracts, invoices and usage graph **regardless of what that user can see**.
+>
+> This is the widest non-admin privilege the build grants. It is intentional for a demo
+> org — resetting between demos is the persona's job and the quick action sits on the
+> Account page it sees — but it would not be appropriate in an org holding real data.
+> Giving the class an explicit sharing declaration is tracked separately.
 
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
-| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 5 | SObject access for CALM Delete operations |
+| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
@@ -283,7 +296,10 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 11 | Agent access to `Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Billing_Employee_Assistance` |
-| `RLM_UtilitiesPermset` | `tso` | `prepare_tso` step 5 | `RLM_AccountUtilities` Apex class access |
+| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
+| `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
+| `RLM_DecisionTableManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 7 (running user) · **`prepare_personas` step 9 (salesrep persona — non-admin)** | `RLM_DecisionTableManagerController` Apex class access, and nothing else. Deliberately narrow: the controller reads decision-table metadata and queues the platform's own refresh action — it deletes nothing, and the refresh is the same operation Setup offers. Object permissions on `DecisionTable` and friends are NOT granted and are not needed; they are setup entities whose read is platform-governed. Assigned to the persona because the component sits on the shared Home page, so withholding it leaves a visible section that errors. |
+| `RLM_RebuildSearchIndex` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 8 (running user) — **not** assigned to the salesrep persona | `RLM_RebuildSearchIndex` Apex class access; `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — same `$Api.Session_ID` loopback dependency as `RLM_ExpressionSetManager`, same Named Credential escape hatch). **No object permissions**, because the class runs no SOQL and no DML — its whole surface is one Connect callout to `/connect/pcm/index/deploy`. That callout carries the running user's session, so the endpoint applies that user's own catalog permissions; this set deliberately does not re-grant them, and a user without them gets `isSuccess=false` plus the endpoint's status code surfaced in the component rather than a silent no-op. Withheld from the persona because `ApiEnabled` is a broad system permission and a full catalog index rebuild is an admin operation — the same call already made for `RLM_ExpressionSetManager`. Before this set existed the class was granted in **no** permission set anywhere in the repo. |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
@@ -296,12 +312,15 @@ Assigned at step 19 of `prepare_core`.
 
 ### TSO Permission Sets (`rlm_tso_ps_api_names`) -- `tso: true`
 
-Assigned in `prepare_tso` step 5.
+Assigned in `prepare_tso` step 4.
 
 | Permission Set | Purpose |
 |---|---|
 | `ERIBasic` | ERI platform |
-| `RLM_UtilitiesPermset` | Utility features (Apex class access) |
+| `RLM_UtilitiesPermset` | Account-reset utilities (`RLM_AccountUtilities` Apex class access) -- destructive; also clears the account's usage graph |
+| `RLM_ExpressionSetManager` | Expression Set Manager component (Apex class, object reads, `RLM_SessionId` page, `ApiEnabled`) |
+| `RLM_DecisionTableManager` | Decision Table Manager component (`RLM_DecisionTableManagerController` Apex class access only) |
+| `RLM_RebuildSearchIndex` | Rebuild Search Index component (Apex class, `RLM_SessionId` page, `ApiEnabled`; no object perms — the class runs no SOQL/DML) |
 | `OrchestrationProcessManagerPermissionSet` | Orchestration process manager |
 | `EventMonitoringPermSet` | Event monitoring |
 
@@ -360,10 +379,14 @@ The following table shows the sequence of all permission-related steps across th
 | 1.16.4 | `prepare_core` > `assign_feature_permission_sets` | Billing permission sets (10) | `billing` + `psg_debug` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
-| 7.5 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 7.5 | `prepare_quantumbit` | `RLM_ExpressionSetManager` | `quantumbit` |
+| 7.6 | `prepare_quantumbit` | `RLM_UtilitiesPermset` | `quantumbit` |
+| 7.7 | `prepare_quantumbit` | `RLM_DecisionTableManager` | `quantumbit` |
+| 7.8 | `prepare_quantumbit` | `RLM_RebuildSearchIndex` | `quantumbit` |
+| 7.9 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 18.4 | `prepare_tso` | TSO permission sets (4) | `tso` |
+| 18.4 | `prepare_tso` | TSO permission sets (7) | `tso` |
 | 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
 | 21.11 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
@@ -373,6 +396,8 @@ The following table shows the sequence of all permission-related steps across th
 | 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
+| 28.8 | `prepare_personas` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
+| 28.9 | `prepare_personas` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
 
 ---
 
@@ -404,8 +429,8 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | *(always)* | Core RLM (25), `EinsteinAnalyticsPlusPsl` | 11 core PSGs | -- |
 | `clm` | CLM (11) | -- | -- |
 | `einstein` | AI (3) | -- | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` |
-| `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |
-| `quantumbit` | -- | -- | `RLM_QuantumBit` |
+| `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `RLM_ExpressionSetManager`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |
+| `quantumbit` | -- | -- | `RLM_QuantumBit`, `RLM_ExpressionSetManager`, `RLM_UtilitiesPermset`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex` |
 | `quantumbit` + `calmdelete` | -- | -- | `RLM_CALM_SObject_Access` |
 | `quantumbit` + `approvals` | -- | -- | `RLM_Approvals` |
 | `docgen` | -- | -- | `RLM_DocGen` |
@@ -430,3 +455,4 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+7. **Persona assignments are not admin assignments** -- steps 28.6-28.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

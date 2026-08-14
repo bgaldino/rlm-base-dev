@@ -12,7 +12,10 @@ Expression Sets back more than pricing — Revenue Cloud uses **six**
 so this skill is generic to the Expression Set engine. For where Expression Set
 CRUD fits into the **pricing** layering model (recipes, recipe-table mappings,
 procedure plans, context definitions), read
-`.cursor/skills/pricing-wiring/SKILL.md`.
+`.cursor/skills/pricing-wiring/SKILL.md`. A procedure can **consume a decision
+table**'s output via a `GetOutputsFromDecisionTable` step (with a `DecisionTable`
+parameter) — to inspect, author, or manage those tables see
+`.cursor/skills/decision-tables/SKILL.md`.
 
 > **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
 > target release at merge time. This `SKILL.md` is the task-level entry point;
@@ -47,15 +50,33 @@ Release 262 dev-guide/Help snapshots:
 | **QualificationProcedure** | Product qualification/disqualification — eligibility gating in Product Discovery. | `ProductQualification` | `RLM_ProductDiscoveryQualificationProcedure` | Step graph (this skill) |
 | **Constraint** ⚠ | Product Configurator constraint rules — compatibility/recommendation logic (GA 262 "Product Discovery with Constraint Rules"). | `Constraint` | *(shipped as constraint models, not `expressionSetDefinition` step XML)* | **CML** — see note |
 
-> ⚠ **Constraint is CML-based, not a step graph.** Unlike the other five,
-> Constraint expression sets are authored in **CML** (Constraint Modeling
-> Language) via the Configurator Constraint Builder / CML editor, not as a flat
-> `steps[]` graph. The Connect-overlay tooling and `steps[]`/`parentStep` model
-> in this skill **do not apply** to Constraint sets. They surface in the same
-> `ExpressionSet`/`interfaceSourceType` enum, so they
-> are listed here for completeness; deep CML authoring guidance is **deferred to
-> future work** (see the CML docs under `docs/salesforce/262/dev-guide/` —
-> `cml_*` articles — and the Configurator Help suite).
+> ⚠ **Constraint is CML-based, not a step graph — use
+> [`.cursor/skills/constraint-models/SKILL.md`](../constraint-models/SKILL.md), not this
+> skill.** Constraint expression sets are authored in **CML** (Constraint Modeling
+> Language) and shipped as a plain-text `.ffxblob`, not as a flat `steps[]` graph. The
+> Connect-overlay tooling, the `steps[]`/`parentStep` model, and the script routing in
+> this skill **do not apply** to Constraint sets. They surface in the same
+> `ExpressionSet`/`interfaceSourceType` enum, so they are listed here for completeness.
+>
+> **Two rules in this skill are actively misleading for Constraint sets:**
+>
+> 1. **Quick Rule 7 / DO NOT (“PATCH on an active version is rejected”).** Constraint
+>    models fail the *opposite* way: `import_cml` against an **active** version
+>    **succeeds** and simply does not redeploy — no error, stale model still running.
+>    You get no signal from the import, and there is no separately readable
+>    "deployed" artifact either: `ExpressionSetDefinitionVersion.ConstraintModel` is the
+>    field `import_cml` writes, so reading it back only confirms the upload. Verify by
+>    exercising the configurator.
+> 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
+>    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
+>    Constraint models go through `manage_expression_sets` + `import_cml`. Note
+>    `manage_expression_sets` PATCHes `ExpressionSetVersion.IsActive`, the same record the
+>    Constraint Builder UI toggles — so it *is* the right tool; what differs is that
+>    `prepare_constraints` deactivates only AFTER importing. See the constraint-models
+>    skill.
+>
+> Source material: `docs/salesforce/262/dev-guide/` (`cml_*` articles) and the
+> Configurator Help suite.
 
 ### <a name="the-full-enum"></a>The full enum vs. Revenue Cloud
 
@@ -171,6 +192,7 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 | Capture a known-good element from one org and add it to another | `authoring-and-overlays.md` |
 | Classify a step's dependency scopes; remove a step safely | `authoring-and-overlays.md` |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
+| The **decision table** a `GetOutputsFromDecisionTable` step consumes (inspect / author / lifecycle) | `.cursor/skills/decision-tables/SKILL.md` |
 | Object/ID model, full schema enums, **every error + resolution**, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
 | An opaque Connect failure (a code/message you don't recognize) | Reference doc → **Known errors & conditions** section |
 | Writing the Python task class itself | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -392,6 +414,9 @@ Checklist:
 - **Pricing layering model (recipes, recipe-table mappings, procedure plans,
   context definitions) — where ES CRUD fits in pricing setup:**
   `.cursor/skills/pricing-wiring/SKILL.md`
+- **Decision tables a procedure consumes (`GetOutputsFromDecisionTable` step) —
+  inspect / author / lifecycle + the async-refresh data layer:**
+  `.cursor/skills/decision-tables/SKILL.md`
 - **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
   validator `tasks/expression_set_schema.py`; tests
   `tests/test_expression_set_schema.py`.

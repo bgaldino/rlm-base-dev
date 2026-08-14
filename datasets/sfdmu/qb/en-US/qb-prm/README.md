@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) Partner Relationship Management (PRM). Creates the channel program structure with partner accounts, program levels (tiers), and program memberships with partner-specific discount rates.
 
+> **SFDMU 5.6.4+ floor.** This plan is `Upsert` throughout — no `Insert` / `deleteOldData` workarounds. Its relationship-traversal externalIds match correctly on the 5.6.4+ floor, so there is nothing to migrate.
+
 ## CCI Integration
 
 ### Flow: `prepare_prm`

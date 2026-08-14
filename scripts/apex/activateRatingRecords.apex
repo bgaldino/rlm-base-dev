@@ -42,10 +42,11 @@
 //     correct value (from UsageResource.TokenResourceId) while the PUR is Draft,
 //     then use clear+activate. The non-null>null change prevents auto-population.
 //
-//   - CommitmentSpend + Usage PURs: QB-MTY-CMT now uses dedicated
-//     UR-CPUTIME-MTY and UR-DATASTORAGE-MTY UsageResources (Category=Usage,
-//     TokenResourceId=UR-USD). The pre-populate + clear+activate pattern in
-//     Steps 3 and 5 handles these the same as token-backed usage PURs.
+//   - CommitmentSpend + Usage PURs: QB-MTY-CMT reuses the ANCHOR's plain
+//     UR-CPUTIME / UR-DATASTORAGE (a commitment can only discount resources its
+//     anchor actually consumes). Those carry no token association, so they need
+//     no TokenResourceId handling at all -- same path as QB-QTY-CMT. The former
+//     dedicated UR-CPUTIME-MTY / UR-DATASTORAGE-MTY resources are retired.
 //
 // Idempotency:
 //   Step 2.5 queries ALL PURs (including Active) so the overlap-detection logic can

@@ -16,12 +16,17 @@ repo root.
 | Work with CCI tasks, flows, or CLI | CCI Orchestration | `cci-orchestration/SKILL.md` |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
+| Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | `constraint-models/SKILL.md` |
+| Read/extend/apply/deploy/upgrade Context Definitions; inspect/validate context plans | Context Service | `context-service/SKILL.md` |
+| Inspect/author/manage, refresh, diagnose, or verify decision tables | Decision Tables | `decision-tables/SKILL.md` |
+| Find, claim or close durable work items across workstations and agents | Todo Tracker | `todo-tracker/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
+| Build, rate, and verify metered consumption demos | Usage & Consumption | `usage-consumption/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
@@ -70,3 +75,4 @@ Non-Cursor agents can read these files directly or use the equivalent skill:
 | `ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 | `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| `context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` |

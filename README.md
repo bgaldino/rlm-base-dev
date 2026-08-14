@@ -273,14 +273,14 @@ cd rlm-base-dev
 
 > Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
 
-### Step 9 — Install SFDMU plugin (v5+)
+### Step 9 — Install SFDMU plugin (v5.6.4+)
 
-SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.0.0 or later is required.**
+SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.6.4 or later is required** (5.6.4 fixed upsert matching for relationship-traversal externalIds; older 5.x releases duplicate records on rerun).
 
 ```bash
 sf plugins install sfdmu
 
-# Verify (should show 5.x)
+# Verify (should show 5.6.4 or later)
 sf plugins list
 ```
 
@@ -372,10 +372,10 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
-   - **Version 5.0.0 or later required** (v4.x is no longer supported)
+   - **Version 5.6.4 or later required** (v4.x is no longer supported; pre-5.6.4 5.x breaks Upsert matching on relationship externalIds)
    - Required for data loading tasks
    - Installation: `sf plugins install sfdmu`
-   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - Verify: `sf plugins list` (should show sfdmu 5.6.4 or later)
    - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
@@ -432,7 +432,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    5. **Verify** — Run `cci task run validate_setup` (no org required) to check all dependencies including Chrome/Chromium and ChromeDriver.
 
-3. **Install SFDMU (v5+):**
+3. **Install SFDMU (v5.6.4+):**
    ```bash
    sf plugins install sfdmu
    ```
@@ -560,6 +560,8 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `calmdelete` | `true` | Use CALM Delete |
 | `tax` | `true` | Use Tax engine |
 | `billing` | `true` | Use Billing |
+| `billing_portal` | `true` | Create Self-Service Billing Portal community via `prepare_billing_portal` (requires `billing`) |
+| `billing_portal_deploy` | `true` | Deploy `unpackaged/post_billing_portal` site content (requires `billing` and `billing_portal`) |
 | `payments` | `true` | Use Payments |
 | `approvals` | `true` | Use Approvals |
 | `clm` | `true` | Use Contract Lifecycle Management |
@@ -684,8 +686,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### Decision Table Refresh Tasks
 
+See [Decision Tables](.cursor/skills/decision-tables/SKILL.md) for when a refresh is
+required, why a stale lookup shows up as wrong pricing, and what each freshness verdict
+means.
+
 | Task Name | Module | Description |
 |-----------|--------|-------------|
+| `check_decision_table_freshness` | `rlm_apex_file.py` | Report whether each decision table still reflects its source data, with a reason per table. No org changes. Add `-o param1 strict` to fail the build on any stale table |
 | `refresh_dt_rating` | `rlm_refresh_decision_table.py` | Refresh rating decision tables |
 | `refresh_dt_rating_discovery` | `rlm_refresh_decision_table.py` | Refresh rating discovery decision tables |
 | `refresh_dt_default_pricing` | `rlm_refresh_decision_table.py` | Refresh default pricing decision tables |
@@ -701,8 +708,8 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `exclude_active_decision_tables` | `rlm_exclude_active_decision_tables.py` | Move active decision tables to `.skip` dir before deploy |
 | `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
 | `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
-| `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with the Network's actual current `EmailSenderAddress` (immutable after creation) before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
-| `revert_network_email_after_deploy` | `rlm_community.py` | Restore placeholder `emailSenderAddress` in `rlm.network-meta.xml` after `deploy_post_prm` so the repo never persists the org email. |
+| `patch_network_email_for_deploy` | `rlm_community.py` | Replace the configured placeholder `emailSenderAddress` in a Network metadata file with the target Network's actual current value before deploying community metadata. |
+| `revert_network_email_after_deploy` | `rlm_community.py` | Restore the configured placeholder `emailSenderAddress` after a community metadata deploy so the repo never persists the target org's email. |
 
 ### Activation Tasks
 
@@ -940,13 +947,14 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
-| `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
+| `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle); invokes `prepare_billing_portal` | `billing`, `qb`, `q3`, `refresh`, `billing_portal`, `billing_portal_deploy` |
+| `prepare_billing_portal` | Create and publish the Self-Service Billing Portal community; optionally patch Network email, deploy `unpackaged/post_billing_portal` site content, and revert Network email before publishing | `billing`, `billing_portal`, `billing_portal_deploy` |
 | `prepare_prm` | Create community, patch Network email, deploy PRM metadata, revert Network email, publish community, assign RLM_PRM permission set, load PRM data; optionally invokes `prepare_prm_pricing` when `prm_pricing=true` | `prm`, `prm_exp_bundle`, `prm_pricing`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
 | `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
-| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `prm`, `prm_pricing` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `tso`, `prm`, `prm_pricing` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
@@ -975,7 +983,7 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
-> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> **Requires SFDMU v5.6.4+.** All data plans have been migrated for SFDMU v5 compatibility
 > and idempotency. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md)
 > for the full migration details and known limitations.
 
@@ -1096,13 +1104,17 @@ Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference.
 
 ### Constraint Model Data Plans
 
-Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and the ConstraintModel blobs — which are **plain-text CML**, uploaded verbatim, not compiled binaries.
 
-| Model | Directory | ESC Records | Documentation |
-|-------|-----------|-------------|---------------|
-| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Model | Directory | ESC Records | Active after `prepare_constraints`? |
+|-------|-----------|-------------|-------------------------------------|
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the active QuantumBit model |
+| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 57 | no — imported inactive, kept for A/B |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | no — imported inactive, kept for A/B |
+| Server2 | `datasets/constraints/qb/Server2/` | 81 | **yes** — hardware model, not part of the QuantumBit family |
+
+Exactly one QuantumBit model may be active at a time; `Server2` is a separate model and
+is active alongside it.
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1119,8 +1131,15 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
+| [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
+| [Usage & Consumption Runbook](docs/guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 verified live; 6 pending re-verification, 9 platform-blocked) with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
+| [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [Build Harness](docs/guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ### Analysis & Planning
 
@@ -1256,6 +1275,7 @@ rlm-base-dev/
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
+│   │   │   ├── QuantumBitBundle/
 │   │   │   ├── QuantumBitComplete/
 │   │   │   ├── Server2/
 │   │   │   └── QuantumBitPCM/
@@ -1271,14 +1291,25 @@ rlm-base-dev/
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   ├── expand_currency_pricing_data.py # Regenerate per-currency qb-pricing rows
+│   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
+│   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
+│   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── guides/                 # How-to setup and build process docs
+│   │   ├── build-harness.md
+│   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
 │   │   ├── post-billing-portal.md
-│   │   └── prepare-rlm-org-build-guide.md
+│   │   ├── prepare-rlm-org-build-guide.md
+│   │   ├── qb-consumption-demo-scenarios.md
+│   │   ├── txn-data-harness.md
+│   │   └── usage-consumption-runbook.md
 │   ├── references/             # Technical references and task/CLI examples
+│   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
 │   │   ├── decision-table-examples.md
 │   │   ├── sfdmu-composite-key-optimizations.md
@@ -1349,7 +1380,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
@@ -1475,10 +1506,10 @@ cci version
 ### SFDMU Not Found or Outdated
 
 ```bash
-# Install or update SFDMU (v5+ required)
+# Install or update SFDMU (v5.6.4+ required)
 sf plugins install sfdmu
 
-# Verify installation (should show 5.x)
+# Verify installation (should show 5.6.4 or later)
 sf plugins list
 ```
 

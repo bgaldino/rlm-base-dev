@@ -1,0 +1,9 @@
+ActiveVersion.$$AssessmentQuestion.UniqueIndex$VersionNumber,CurrencyIsoCode,DataType,Description,DeveloperName,Name,QuestionCategory,QuestionText,RelatedQuestion.UniqueIndex,ShouldExcludeFromMetadata,ShouldHideInDesigner,UniqueIndex
+;,USD,Multiselect,#N/A,Chemical_Regulatory_Requirements,Chemical Regulatory Requirements,Chemical,What are the performance/regulatory requirements,#N/A,false,false,Chemical_Regulatory_Requirements
+;,USD,Select,#N/A,Customer_Industry,Customer Industry,Chemical,Customer Industry,#N/A,false,false,Customer_Industry
+;,USD,Select,#N/A,Special_Application,Special Application,Power Management,Do you require a motor starting special application?,#N/A,false,false,Special_Application
+;,USD,Select,#N/A,Chemical_Application,Chemical Application,Chemical,What is the primary application?,#N/A,false,false,Chemical_Application
+;,USD,Select,#N/A,Generator_Application,Generator Application,Power Management,What is the intended generator application?,#N/A,false,false,Generator_Application
+;,USD,Select,#N/A,Emission_Certification,Emission Certification,Power Management,Do you have emissions certification requirements?,#N/A,false,false,Emission_Certification
+;,USD,Select,#N/A,Seismic_Certification,Seismic Certification,Power Management,What seismic certification do you require?,#N/A,false,false,Seismic_Certification
+;,USD,Select,#N/A,Standards_and_Compliance,Standards and Compliance,Power Management,Review Standards & Compliancy Requirements,#N/A,false,false,Standards_and_Compliance

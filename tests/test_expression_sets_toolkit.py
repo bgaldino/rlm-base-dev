@@ -326,6 +326,50 @@ def test_build_overlay():
     bad_val = validate_overlay({"addSteps": [], "labels": {"S": 123}})
     check("labels non-string value is an error", not bad_val.passed, bad_val.format_report())
 
+    # --- addVariables ↔ step-output collision ---------------------------------
+    # A step's OUTPUT variable is materialized implicitly from its section-output
+    # param; declaring that same name in addVariables double-registers it and the
+    # live apply fails INVALID_INPUT "a context variable with the name … already
+    # exists." The validator must catch this at authoring time.
+    collide = {
+        "addSteps": [{"name": "SumStep", "stepType": "BusinessKnowledgeModel",
+                      "customElement": {"parameters": [
+                          _param("section-0-output", "TotalCost__c", output=True)]}}],
+        "addVariables": [{"name": "TotalCost__c", "dataType": "Numeric",
+                          "type": "Constant"}],
+    }
+    res = validate_overlay(collide)
+    check("addVariables colliding with a step output is an error",
+          not res.passed, res.format_report())
+    check("collision error names the offending variable",
+          any("TotalCost__c" in e.message for e in res.errors),
+          res.format_report())
+    # Same overlay WITHOUT the redundant addVariables entry validates cleanly.
+    ok = {"addSteps": collide["addSteps"]}
+    check("step output alone (no addVariables) validates",
+          validate_overlay(ok).passed, validate_overlay(ok).format_report())
+    # A genuine input Constant that is NOT any step's output is still allowed.
+    input_const = {
+        "addSteps": collide["addSteps"],
+        "addVariables": [{"name": "Constant_Markup", "dataType": "Numeric",
+                          "type": "Constant"}],
+    }
+    check("input Constant not produced by a step is allowed",
+          validate_overlay(input_const).passed,
+          validate_overlay(input_const).format_report())
+    # A Formula step's output (formula-section-N-output) collides the same way.
+    fcollide = {
+        "addSteps": [{"name": "PctStep", "stepType": "BusinessKnowledgeModel",
+                      "customElement": {"parameters": [
+                          _param("formula-section-0-output", "MarginPct__c", output=True),
+                          {"type": "Formula", "name": "f", "value": "A / B"}]}}],
+        "addVariables": [{"name": "MarginPct__c", "dataType": "Numeric",
+                          "type": "Constant"}],
+    }
+    check("formula step output colliding with addVariables is an error",
+          not validate_overlay(fcollide).passed,
+          validate_overlay(fcollide).format_report())
+
 
 # --------------------------------------------------------------------------- #
 # _graph Mermaid rendering
