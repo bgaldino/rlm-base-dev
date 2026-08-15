@@ -58,6 +58,21 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > Draft PURs carrying PURP children that overlap the Active row until
 > `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
 > stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
+>
+> ⚠ **`Status = 'Active'` narrows to one *effective* row, not to one row.** A PUR carries
+> `EffectiveStartDate` / `EffectiveEndDate`, and `activateRatingRecords.apex` **deliberately
+> keeps** multiple Active rows per product+resource when their periods do not overlap (it
+> treats a non-overlapping row as starting a new period rather than as a duplicate). A policy
+> that legitimately changes over time therefore presents two Active rows with different
+> `OverageChargeable` values, the ambiguity guard reads them as a conflict, and the answer
+> comes back blank for every entitlement — including the one whose period is unambiguous.
+> **Not currently reachable with the bundled data** (measured on a fresh 264 org: 25 Active
+> PURs across 25 distinct product+resource pairs, so zero multi-row pairs and zero
+> disagreement), which is why it fails safe today rather than visibly. Resolving it properly
+> means matching the PUR's effective period against each `TransactionUsageEntitlement`'s
+> `EffectiveStartDateTime` / `EffectiveEndDateTime` — **not** restricting to the current date,
+> because `getGrantsForAsset` returns every entitlement for the asset and renders each row's
+> own period, so a current-only filter would blank historical and future rows by design.
 
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
@@ -84,7 +99,7 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `UsageEntitlementBucket` | Entitlement balance tracking | BucketBalanceUomId, ParentId |
 | `UsageEntitlementEntry` | Individual entries against buckets | ParentEntitlementBucketId, TransactionUsageEntitlementId, TransactionalBucketId |
 | `UsageEntitlementAccount` | Account-level entitlement tracking | — |
-| `TransactionUsageEntitlement` (TUE) | Entitlement context for transactions. **Transactional** — the platform writes it during order activation / assetization, and `ProductId` is `createable: false` | ProductId, UsageResourceId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **TUE carries no commitment or overage policy lookup** — see the note below |
+| `TransactionUsageEntitlement` (TUE) | Entitlement context for transactions. **Transactional** — the platform writes it during order activation / assetization, and `ProductId` is `createable: false` | AssetId, ProductId, UsageResourceId, OrderItemId, EntitlementUomId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, EffectiveStartDateTime / EffectiveEndDateTime, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **TUE carries no commitment or overage policy lookup** — see the note below |
 | `UsageBillingPeriodItem` | Usage billing period tracking | — |
 | `UsageRatableSummary` | Ratable usage summary | `TierQuantity`, `OverageQuantity` — see caveat below |
 | `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, UsageResourceId |
