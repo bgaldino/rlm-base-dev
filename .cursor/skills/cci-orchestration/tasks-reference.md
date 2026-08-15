@@ -1746,7 +1746,8 @@
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `name`: `RLM_Quote_Pricing_Procedure_Plan`
 - `primaryObject`: `Quote`
-- `processType`: `RevenueCloud`
+- `processType`: `Default`
+- `subType`: `RevenueCloud`
 - `versionActive`: `False`
 - `context_definition_label`: `RLM_SalesTransactionContext`
 - `versionReadContextMapping`: `QuoteEntitiesMapping`
