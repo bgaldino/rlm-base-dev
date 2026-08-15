@@ -10,7 +10,7 @@ PSLs are Salesforce-managed licenses that must be assigned to a user before the 
 
 ### Core RLM PSLs (`rlm_psl_api_names`) -- Always Assigned
 
-Assigned unconditionally at `prepare_core` step 4 — build step 1.4 (25 licenses).
+Assigned unconditionally at `prepare_core` step 4 → `assign_permission_set_licenses` — build step 1.4 (25 licenses).
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -42,13 +42,13 @@ Assigned unconditionally at `prepare_core` step 4 — build step 1.4 (25 license
 
 ### `EinsteinAnalyticsPlusPsl` -- `analytics: true`
 
-Assigned by `assign_feature_psls` step 3 — build step 1.9.3 — when `analytics` is on
+Assigned at `assign_feature_psls` step 3 → `assign_permission_set_licenses` — build step 1.9.3 — when `analytics` is on
 (separate from the AI list because it is required for RLM_RMI PSG functionality, and
 `analytics` defaults to true; it is genuinely skipped with `analytics: false`).
 
 ### CLM PSLs (`rlm_clm_psl_api_names`) -- `clm: true`
 
-Assigned by `assign_feature_psls` step 1 — build step 1.9.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
+Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` — build step 1.9.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -66,7 +66,7 @@ Assigned by `assign_feature_psls` step 1 — build step 1.9.1 (11 licenses). Sev
 
 ### Einstein / AI PSLs (`rlm_ai_psl_api_names`) -- `einstein: true`
 
-Assigned by `assign_feature_psls` step 2 — build step 1.9.2 (3 active licenses).
+Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` — build step 1.9.2 (3 active licenses).
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed during `deploy_pre` (`prepare_core` step 7 — build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 10, then assigned to the running user at step 11 (build steps 1.10 and 1.11; `tso` adds a second recalculate/assign pair at 1.12 and 1.13).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 10, then assigned to the running user at step 11 (build steps 1.10 and 1.11; `tso` adds a second recalculate/assign pair at 1.12 and 1.13).
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 

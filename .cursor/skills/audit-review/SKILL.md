@@ -195,10 +195,15 @@ not have merged yet and each signal is blind to one of those cases:
 - **`FOREIGN`** — `git cherry` patch-id equivalence: the content is already
   upstream, so the branch does not own it. This is the #264-56 signal, and it only
   fires **after** the other PRs merge.
-- **`STACKED`** — another open PR's head is an ancestor of this head, so this
-  branch is built on that PR. Those commits have merged nowhere, so the first
-  signal cannot see them. Needs `--pr`, since the PR list is what says which
-  branches are in flight.
+- **`STACKED`** — this head and another open PR's head join at a commit the base
+  does not have, so this branch carries unmerged work from that PR. Those commits
+  have merged nowhere, so the first signal cannot see them. Needs `--pr`, since the
+  PR list is what says which branches are in flight. Read the qualifier: **`in
+  full`** means this branch contains that PR outright, while **`(shared, direction
+  not determinable…)`** means only that the two share commits — a symmetric join
+  cannot say who took what from whom, so check the other PR's base branch before
+  assuming the work is inherited. A PR that *targets this branch* is a declared
+  child stack and is skipped outright.
 
 Do not merge the two in your head. A `FOREIGN` branch needs rebuilding now; a
 `STACKED` branch may be a deliberate stack, but its diff is still its parent's
@@ -245,7 +250,7 @@ exits 2 instead of comparing the ref it just failed to refresh, because the stal
 case reports *clean* and a swallowed error would restore that false negative at the
 worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (62 checks, no
+The check's own behavior is pinned by `tests/test_branch_scope.py` (74 checks, no
 network) — run it if you change the script, and add a shape to it rather than
 tightening the script by feel. Drive whole invocations, not helpers: an earlier
 version tested `STACKED`'s ancestor helper in isolation, and three mutations that

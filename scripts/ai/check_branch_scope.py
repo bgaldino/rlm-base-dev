@@ -19,21 +19,40 @@ yet and each signal is blind to one of those cases:
    this commit's content is in the base already, so the branch does not own it.
    This is the #264-56 signal, and it only works once the other PRs have merged.
 
-2. **Contains another open PR's branch** -- if another open PR's head is an
-   *ancestor* of this head, this branch is built on top of that PR, whose commits
-   have not merged anywhere yet and so are invisible to signal 1. Found the hard
-   way: while writing this check, the branch for its own companion fix was cut
-   from the check's branch, and signal 1 reported clean. Needs `--pr`, since it
-   is the PR list that says which branches are in flight.
+2. **Shares history with another open PR beyond the base** -- if this head and
+   another open PR's head join at a commit the base does not have, that shared
+   part is unmerged work belonging to some other PR, and so is invisible to
+   signal 1. Found the hard way: while writing this check, the branch for its own
+   companion fix was cut from the check's branch, and signal 1 reported clean.
+   Needs `--pr`, since it is the PR list that says which branches are in flight.
 
-   Two exclusions keep signal 2 honest, and both were false positives before they
-   were guards. A head **already contained in the base** is skipped: the release
-   integration PR (`264` -> `main`) has the base branch itself as its head, so
-   without that guard every branch merely *up to date* with base was reported, and
-   being behind base read cleaner than being current with it. A **fork's** head is
-   skipped too, because it is not in this checkout and the `<remote>/<branch>`
-   fallback would resolve a fork PR on a branch named `264` or `main` to *our*
-   branch of that name. Signal 1 still covers both branches.
+   Not simple ancestry, which was the first version: that only catches a parent
+   which has not *moved* since the branch was cut. Cut at the parent's B, let the
+   parent advance to C, and C is no longer an ancestor even though B is still
+   inherited and still unmerged -- and `git cherry` cannot see B either, since it
+   is not upstream, so both signals reported clean on the shape signal 2 exists for.
+
+   **A shared join is symmetric, so it cannot by itself say who inherited from
+   whom**, and four exclusions keep the signal from reporting the wrong branch.
+   Every one was a false positive before it was a guard:
+
+   - **Contained in the base.** The release integration PR (`264` -> `main`) has
+     the base branch itself as its head, so without this every branch merely *up
+     to date* with base was reported -- and being behind base read cleaner than
+     being current with it.
+   - **A fork's head.** Not in this checkout, and the `<remote>/<branch>` fallback
+     would resolve a fork PR on a branch named `264` or `main` to *our* branch of
+     that name.
+   - **A PR that targets this branch.** That is the declaration of a child stack:
+     they are building on us. GitHub records it in `baseRefName`, which is worth
+     using precisely because history cannot distinguish it -- a child cut from our
+     B while we advanced to C produces the identical graph to a parent we cut from
+     at B, and without this the *parent* was told to rebuild over its own work.
+   - **A descendant of this head.** The unmoved form of the same case.
+
+   Where none of those apply and the histories have merely diverged, direction is
+   genuinely not derivable, and both the output and the remedy say so rather than
+   asserting inheritance. Signal 1 still covers every skipped branch.
 
 **What a clean result does and does not prove.** `git cherry`'s `+` means "no
 patch-equivalent commit found upstream" -- which is not the same as "this branch
@@ -58,7 +77,7 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (62 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (74 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
@@ -199,7 +218,7 @@ def _check(args, ap):
         ap.error("--repo only applies to --pr")
 
     remote, pr_number = "origin", args.pr
-    others = []
+    others, pr = [], None
 
     if pr_number is not None:
         remote = _remote_for(args.repo)
@@ -216,8 +235,8 @@ def _check(args, ap):
                 f"this checkout. Fetch it first:\n"
                 f"  git fetch {remote} pull/{pr_number}/head:pr-{pr_number}\n"
                 f"then re-run with --base {base} --head pr-{pr_number}")
-        list_args = ["pr", "list", "--state", "open", "--limit", "200",
-                     "--json", "number,headRefName,headRefOid,title,isCrossRepository"]
+        list_args = ["pr", "list", "--state", "open", "--limit", "200", "--json",
+                     "number,baseRefName,headRefName,headRefOid,title,isCrossRepository"]
         if args.repo:
             list_args += ["--repo", args.repo]
         others = [p for p in _gh_json(list_args) if p["number"] != pr_number]
@@ -280,6 +299,15 @@ def _check(args, ap):
             # repo, and being *behind* base would read cleaner than being current
             # with it — a gate nobody would keep using.
             continue
+        if other.get("baseRefName") and pr and other["baseRefName"] == pr["headRefName"]:
+            # They target *this* branch, which is how a child stack is declared. Use
+            # the declaration, because the history cannot be read for direction: a
+            # child cut from our B while we advanced to C is graph-identical to a
+            # parent we cut from at B. Without this the parent PR fails its own gate
+            # the moment it takes a review fix after a child was cut from it — and
+            # `AGENTS.md` says PRs are routinely stacked here, so that is the common
+            # shape, not a corner. Signal 1 still covers their branch.
+            continue
         # Not "is the other head an ancestor of mine" -- that only catches a parent
         # which has not moved since the branch was cut. Cut at the parent's commit B,
         # let the parent advance to C, and C is no longer an ancestor even though B
@@ -287,12 +315,21 @@ def _check(args, ap):
         # because it is not upstream. Both signals would report clean.
         #
         # Ask instead where the two histories join. If they share anything the base
-        # does not, that shared part is inherited unmerged work -- which is the
-        # actual definition of stacked, and it subsumes the unmoved-parent case
-        # (there the join *is* the other head).
-        join = _run(["git", "merge-base", ref, head])
-        if not join or _is_ancestor(join, base):
+        # does not, that shared part is unmerged work belonging to another PR -- and
+        # it subsumes the unmoved-parent case (there the join *is* the other head).
+        #
+        # `--all`, because criss-crossed history has more than one merge base and
+        # plain `merge-base` returns an arbitrary one: if that one happens to be
+        # inside base and another does not, the finding disappears. check=False
+        # because unrelated histories exit 1 with no output, which is an answer
+        # ("nothing shared"), not a failure -- and treating it as one turned a
+        # single open PR with orphan history into a hard exit 2 for every branch.
+        bases = [b for b in _run(["git", "merge-base", "--all", ref, head],
+                                 check=False).split() if b]
+        outside = [b for b in bases if not _is_ancestor(b, base)]
+        if not outside:
             continue
+        join = outside[0]
         # merge-base is symmetric, and that cuts the wrong way for a *child*: if
         # another PR was cut from this one, the join is this branch's own head, and
         # reporting it would tell the parent to rebuild over work it authored. The
@@ -336,17 +373,30 @@ def _check(args, ap):
         # `git cherry` compares non-merge commits only, so this count is of those.
         print(f"{len(foreign)} of {total} non-merge commit(s) on {label} are already "
               "upstream, so this branch does not own them.")
-    if stacked:
-        print(f"This branch shares history with {len(stacked)} other open PR(s) beyond "
-              f"{base}. Those commits have not merged anywhere yet, so they are invisible "
-              "to the upstream check above — but they are still not this PR's to carry, "
-              "and reviewing this diff means reviewing theirs.")
-    print("Its diff will show files belonging to other changes, in whatever state they were "
-          "in when they were inherited — merging it can revert review fixes that already "
-          "landed.")
-    print(f"Rebuild it: branch fresh from {base} and cherry-pick only the commits listed as "
-          "`own` above. If the extra commits came from a parent PR that has since merged, a "
-          "plain rebase onto the updated base drops them.")
+    contains = [s for s in stacked if s[2]]
+    diverged = [s for s in stacked if not s[2]]
+    if contains:
+        print(f"This branch contains {len(contains)} other open PR(s) in full. Those commits "
+              f"have not merged anywhere yet, so they are invisible to the upstream check "
+              "above — but they are still not this PR's to carry, and reviewing this diff "
+              "means reviewing theirs.")
+    if diverged:
+        # Deliberately not phrased as a finding against this branch, and given no
+        # remedy. The join is symmetric and the child-stack declaration has already
+        # been excluded, so what is left cannot be attributed from history: telling a
+        # branch to rebuild over commits that may be its own is how a gate earns a
+        # reputation for crying wolf, which is worse than not having it.
+        print(f"This branch shares commits with {len(diverged)} other open PR(s) that "
+              f"{base} does not have, joining where each line above says. Direction is not "
+              "derivable from the history — if those commits are yours and the other PR was "
+              "cut from this one, there is nothing to fix here; check its base branch.")
+    if foreign or contains:
+        print("Its diff will show files belonging to other changes, in whatever state they "
+              "were in when they were inherited — merging it can revert review fixes that "
+              "already landed.")
+        print(f"Rebuild it: branch fresh from {base} and cherry-pick only the commits listed "
+              "as `own` above. If the extra commits came from a parent PR that has since "
+              "merged, a plain rebase onto the updated base drops them.")
     return 1
 
 

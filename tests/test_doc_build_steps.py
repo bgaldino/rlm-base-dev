@@ -278,6 +278,14 @@ def audit_named_steps(inside, root_at, inside_task, runtime, declared, base=None
                 key = (flow, int(num))
                 if key not in inside_task:
                     continue  # existence is the loop below's job to report
+                if task not in declared["tasks"] and task not in declared["flows"]:
+                    # The separators this pattern accepts (`-`, `:`, `via`) are also
+                    # ordinary prose, so a trailing backticked word is not necessarily
+                    # a task name -- "`prepare_core` step 4 -> `api_names`" and
+                    # "`prepare_billing` step 11 via `sf`" both match and neither is a
+                    # citation. Requiring the name to be something CumulusCI declares
+                    # is what separates a claim from a sentence.
+                    continue
                 seen += 1
                 if inside_task[key] != task:
                     problems.append((rel, lineno, f"`{flow}` step {num} -> `{task}`",
@@ -500,14 +508,37 @@ def self_test(runtime, steps, declared):
         # each holding a different task. Both halves are pinned, because a checker
         # that reported every such citation would be as useless as one that reported
         # none.
+        # Independent of the map under test, not derived from it: keying on the
+        # *outermost* owner instead of the innermost collapses this map from one entry
+        # per step to one per root step, and a fixture drawn from the map would still
+        # agree with itself. The count is the invariant that does not.
+        check("selftest_inside_task_covers_every_step",
+              len(inside_task) == len(steps),
+              f"{len(inside_task)} task(s) keyed for {len(steps)} resolved step(s) — "
+              f"the (flow, step) keying is collapsing entries")
+        anchor = ("assign_feature_psls", 3)
+        check("selftest_inside_task_keys_the_innermost_flow",
+              inside_task.get(anchor) == "assign_permission_set_licenses",
+              f"{anchor} -> {inside_task.get(anchor)!r}; build step 1.9.3 is "
+              f"prepare_core > assign_feature_psls > assign_permission_set_licenses")
+
         (flow, num), task = next(iter(inside_task.items()))
         problems, _c, _u = named(f"`{flow}` step {num} -> `{task}`\n")
         check("selftest_named_task_match_is_clean", not problems,
               f"a correct `{flow}` step {num} -> `{task}` citation was reported")
-        problems, _c, _u = named(f"`{flow}` step {num} -> `not_the_task_there`\n")
+        # A *declared* task that is not the one at that step. An invented name would
+        # be skipped as prose, which would make this fixture pass for the wrong reason.
+        wrong = next(t for t in sorted(declared["tasks"]) if t != task)
+        problems, _c, _u = named(f"`{flow}` step {num} -> `{wrong}`\n")
         check("selftest_named_task_mismatch_is_caught", len(problems) == 1,
-              f"citing `{flow}` step {num} as a task that is not there passed — the "
-              f"identity half of the named audit is not running")
+              f"citing `{flow}` step {num} as `{wrong}` passed — the identity half of "
+              f"the named audit is not running")
+        # And an undeclared trailing word is prose, not a mismatch. Without this the
+        # em-dash and "via `sf`" styles this repo's prose uses constantly would each
+        # become a failure the moment they followed a step number.
+        problems, _c, _u = named(f"`{flow}` step {num} — see `some_prose_word`\n")
+        check("selftest_prose_after_a_step_is_not_a_task_claim", not problems,
+              f"an undeclared name after `{flow}` step {num} was read as a citation")
 
         # An unreadable file must stop the audit, not shrink it.
         with open(os.path.join(tmp, "bad.md"), "wb") as fh:

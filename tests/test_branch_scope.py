@@ -39,6 +39,9 @@ SCRIPT = REPO / "scripts" / "ai" / "check_branch_scope.py"
 
 _passed = 0
 _failed: list[str] = []
+# What test_documented_count_is_current compared the docs against, so main() can
+# confirm nothing ran after it and left that comparison describing a smaller suite.
+_counted_at = None
 
 
 def check(name, condition, detail=""):
@@ -350,6 +353,112 @@ def test_stacked_on_unmerged(root):
     check("a PR stacked on US is not reported against us", rc == 0, f"rc={rc}\n{out}")
     check("and nothing is printed as stacked", "STACKED" not in out, out)
 
+    print("\n  ...including a child cut EARLIER, after this branch moved on")
+    # The shape the containment skip above cannot see, and the one that matters most
+    # in a repo that stacks routinely: a child is cut from `feature`, then `feature`
+    # takes a review fix. Our head is no longer inside theirs and theirs was never
+    # inside ours, so from the graph alone this is indistinguishable from the diverged
+    # *parent* two blocks up. What separates them is that a child targets us, which
+    # GitHub records — so the skip keys on `baseRefName`, not on history.
+    git(cwd, "checkout", "--quiet", "-b", "child-early", head)
+    commit(cwd, "child2.txt", "child2\n", "the child PR's commit")
+    early_child = git(cwd, "rev-parse", "child-early")
+    git(cwd, "checkout", "--quiet", "feature")
+    commit(cwd, "review-fix.txt", "fix\n", "a review fix on the parent")
+    moved_head = git(cwd, "rev-parse", "feature")
+    check("the fixture is genuinely diverged in both directions",
+          subprocess.run(["git", "merge-base", "--is-ancestor", moved_head, early_child],
+                         cwd=cwd, capture_output=True, env=GIT_ENV).returncode == 1
+          and subprocess.run(["git", "merge-base", "--is-ancestor", early_child,
+                              moved_head], cwd=cwd, capture_output=True,
+                             env=GIT_ENV).returncode == 1,
+          "fixture is wrong: one head still contains the other")
+    moved_mine = dict(mine, headRefOid=moved_head)
+    declared_child = {"number": 7, "baseRefName": "feature", "headRefName": "child-early",
+                      "headRefOid": early_child, "title": "a child of this PR",
+                      "isCrossRepository": False}
+    bindir = stub_gh(cwd, moved_mine, [declared_child])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a PR that targets this branch is not a finding against it", rc == 0,
+          f"rc={rc}\n{out}")
+    check("and it is not printed as stacked", "STACKED" not in out, out)
+
+    print("\n  ...and when direction really is unknowable, no remedy is asserted")
+    # Same graph, but the other PR targets base — so it is not a declared child and
+    # cannot be attributed. It is still reported, because it may be the #264-56
+    # shape; what it must not do is tell this branch to rebuild over its own work.
+    sibling = dict(declared_child, number=8, baseRefName="base",
+                   title="a sibling off a shared point")
+    bindir = stub_gh(cwd, moved_mine, [sibling])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("an unattributable shared history is still reported", rc == 1, f"rc={rc}\n{out}")
+    check("but it is not called this branch's to carry",
+          "not this PR's to carry" not in out, out)
+    check("and no rebuild is prescribed", "Rebuild it" not in out, out)
+    check("and it says direction is not derivable", "not derivable" in out, out)
+
+    print("\n  ...and an open PR with UNRELATED history is an answer, not an error")
+    # `git merge-base` on disjoint histories exits 1 with no output. Treating that as
+    # a failure (`check=True`) turns one such PR — a docs-only orphan branch, an
+    # imported subtree — into a hard exit 2 for every branch in the repo until it
+    # closes, which is a guard taking the whole gate down over "nothing shared".
+    git(cwd, "checkout", "--quiet", "--orphan", "orphan-pr")
+    git(cwd, "rm", "-rf", "--quiet", ".")
+    commit(cwd, "orphan.txt", "orphan\n", "an unrelated root")
+    orphan_oid = git(cwd, "rev-parse", "orphan-pr")
+    git(cwd, "checkout", "--quiet", "feature")
+    check("the fixture really has no common history",
+          subprocess.run(["git", "merge-base", orphan_oid, moved_head], cwd=cwd,
+                         capture_output=True, env=GIT_ENV).returncode == 1,
+          "fixture is wrong: the orphan shares history")
+    orphan = {"number": 9, "baseRefName": "base", "headRefName": "orphan-pr",
+              "headRefOid": orphan_oid, "title": "an unrelated root",
+              "isCrossRepository": False}
+    bindir = stub_gh(cwd, moved_mine, [orphan])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("an unrelated open PR does not take the gate down", rc == 0, f"rc={rc}\n{out}")
+
+    print("\n  ...and criss-crossed history is checked at EVERY merge base")
+    # Criss-crossed history has more than one merge base, and plain `merge-base`
+    # returns an arbitrary one: if it names a base that happens to be inside the PR
+    # base while another is not, the finding vanishes. Which one git names is not
+    # specified, so asserting on the verdict alone would be a coin flip -- the
+    # invocation is what can be pinned, and it is what the correctness rests on.
+    git(cwd, "checkout", "--quiet", "-b", "xa", head)
+    commit(cwd, "xa.txt", "xa\n", "x side")
+    xa1 = git(cwd, "rev-parse", "xa")
+    git(cwd, "checkout", "--quiet", "-b", "yb", head)
+    commit(cwd, "yb.txt", "yb\n", "y side")
+    yb1 = git(cwd, "rev-parse", "yb")
+    git(cwd, "merge", "--quiet", "--no-ff", "-m", "y takes x", xa1)
+    git(cwd, "checkout", "--quiet", "xa")
+    git(cwd, "merge", "--quiet", "--no-ff", "-m", "x takes y", yb1)
+    crossed_head, crossed_oid = git(cwd, "rev-parse", "xa"), git(cwd, "rev-parse", "yb")
+    git(cwd, "checkout", "--quiet", "feature")
+    all_bases = git(cwd, "merge-base", "--all", crossed_oid, crossed_head).split()
+    check("the fixture really has more than one merge base", len(all_bases) > 1,
+          f"got {len(all_bases)} merge base(s); the criss-cross did not form")
+
+    log = Path(cwd) / "git-calls.log"
+    recorder = Path(cwd) / "recorder"
+    recorder.mkdir(exist_ok=True)
+    real_git = shutil.which("git")
+    (recorder / "git").write_text(
+        f'#!/bin/sh\nprintf "%s\\n" "$*" >> {log}\nexec {real_git} "$@"\n')
+    (recorder / "git").chmod(0o755)
+    crossed = {"number": 10, "baseRefName": "base", "headRefName": "yb",
+               "headRefOid": crossed_oid, "title": "a criss-crossed branch",
+               "isCrossRepository": False}
+    bindir = stub_gh(cwd, dict(mine, headRefOid=crossed_head), [crossed])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=f"{recorder}:{bindir}")
+    calls = log.read_text().splitlines() if log.exists() else []
+    check("every merge base is asked for, not an arbitrary one",
+          any(c.startswith("merge-base --all ") for c in calls),
+          "no `merge-base --all` invocation; a single arbitrary base can hide a "
+          f"finding on criss-crossed history. calls: {calls}")
+    check("and the criss-crossed branch is still reported", rc == 1 and "STACKED" in out,
+          f"rc={rc}\n{out}")
+
     print("\n  ...and a fork PR is skipped rather than resolved to our own branch")
     # `origin/parent-pr` exists locally, so an unguarded fallback would compare
     # against *our* branch of that name and report a stack that does not exist.
@@ -511,23 +620,32 @@ def test_documented_count_is_current(root):
     correcting it. Counted from the *actual* run, so it cannot pass by agreeing with
     a second stale constant.
     """
+    global _counted_at
     print("\nThe count the docs cite is the count this suite reports")
     # One check, not one per file, so the target is a fixed number rather than one
     # that shifts as the checks verifying it run. It equals the suite's final total,
-    # which is what a reader comparing doc to output will see.
-    total = _passed + len(_failed) + 1
+    # which is what a reader comparing doc to output will see. `_counted_at` is how
+    # main() confirms that stayed true: a check added *after* this one would leave
+    # the docs stale while this comparison still passed, which is the same
+    # silently-stops-covering failure the whole suite is built to refuse.
+    total = _counted_at = _passed + len(_failed) + 1
     pattern = re.compile(r"tests/test_branch_scope\.py`?\s*\((\d+) checks")
     docs = ("scripts/ai/check_branch_scope.py", "scripts/ai/README.md",
             ".cursor/skills/audit-review/SKILL.md")
-    cited = {}
+    cited, silent = {}, []
     for rel in docs:
-        for m in pattern.findall((REPO / rel).read_text(encoding="utf-8")):
-            cited.setdefault(int(m), []).append(rel)
+        found = [int(m) for m in pattern.findall((REPO / rel).read_text(encoding="utf-8"))]
+        if not found:
+            silent.append(rel)
+        for n in found:
+            cited.setdefault(n, []).append(rel)
+    # A file whose wording drifts out of the regex must not be able to keep a stale
+    # number alive by simply going unread -- the other two would hold the check green.
     check("every doc citing this suite's size cites the current one",
-          set(cited) == {total},
-          "; ".join(f"{n} in {', '.join(where)}" for n, where in sorted(cited.items()))
-          + f" — suite reports {total}" if cited
-          else f"no doc cites a count; expected {total} in {', '.join(docs)}")
+          set(cited) == {total} and not silent,
+          (f"no count found in {', '.join(silent)}; " if silent else "")
+          + "; ".join(f"{n} in {', '.join(w)}" for n, w in sorted(cited.items()))
+          + f" — suite reports {total}")
 
 
 def main():
@@ -550,6 +668,11 @@ def main():
         test_documented_count_is_current(root)
     print("\n" + "=" * 100)
     total = _passed + len(_failed)
+    if _counted_at is not None and _counted_at != total:
+        print(f"{_passed}/{total} checks passed — but the documented-count check ran "
+              f"against {_counted_at}, so {total - _counted_at} check(s) execute after "
+              f"it and the docs it cleared are stale. Move it last in main().")
+        return 1
     if _failed:
         print(f"{_passed}/{total} checks passed — {len(_failed)} FAILED")
         for failure in _failed:

@@ -210,10 +210,21 @@ It audits both citation forms — the `| N.M |` table coordinate and the prose
 `` `flow` step N ``. Where prose also names the task (`` `prepare_agents` step 8 →
 `activate_agents` ``, or `via`/`:`/`—` in place of the arrow) the task is checked
 too, so the citation is pinned by identity rather than existence. **Where it does
-not, only existence is checked, and that gap is load-bearing**: four citations in
+not, only existence is checked, and that gap is load-bearing**: five citations in
 the permissions reference named steps of `prepare_core` that all exist and all held
-a different task, and the check passed over every one. Prefer the coordinate form;
-failing that, name the task. It also audits flows that are **not** part of `prepare_rlm_org`
+a different task, and the check passed over every one — so **write the task after
+the step number** (`` `flow` step N → `task` ``), which is what moves a citation
+from existence to identity. Putting the name *before* the number does not count;
+the five corrections were first written that way and stayed unchecked until they
+were reordered. The name must be one CumulusCI declares, so ordinary prose after a
+step number ("step 4 — see `api_names`", "step 11 via `sf`") is not read as a claim.
+
+Two forms remain existence-only by construction, and are worth knowing before
+trusting a green run: a step whose target is itself a **subflow**, and a citation
+naming a **standalone flow** (`run_qb_idempotency_tests`, `prepare_billing_portal`).
+Both resolve for existence but have no task at that coordinate to compare against.
+
+It also audits flows that are **not** part of `prepare_rlm_org`
 (`run_qb_idempotency_tests`, `prepare_billing_portal`) by resolving each on its own
 numbering, rather than dropping them for being unreachable from the root. A cited
 name CumulusCI does not know at all is **reported by name and location** instead of
