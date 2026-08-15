@@ -58,7 +58,11 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "required": True,
         },
         "processType": {
-            "description": "The process type (e.g. RevenueCloud)",
+            "description": (
+                "The process type. Use 'Default' on 264+ -- 'RevenueCloud' is the "
+                "subType value there, and passing it here fails validation. See the "
+                "processType/subType note in datasets/sfdmu/procedure-plans/README.md."
+            ),
             "required": True,
         },
         "subType": {

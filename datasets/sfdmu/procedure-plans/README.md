@@ -77,7 +77,7 @@ Key behaviors:
 | Option | Value | Description |
 |--------|-------|-------------|
 | `developerName` | `RLM_Quote_Pricing_Procedure_Plan` | PPD DeveloperName |
-| `name` | `RC Quote Pricing Procedure Plan` | PPD label |
+| `name` | `RLM_Quote_Pricing_Procedure_Plan` | PPD label |
 | `primaryObject` | `Quote` | Target object |
 | `processType` | `Default` | Process type — see the 264 note below |
 | `subType` | `RevenueCloud` | Revenue Cloud identity (new in 264) |
@@ -98,6 +98,13 @@ Key behaviors:
 > *"Process Type to Revenue Cloud with no Subtype"* as an alternative, but that is the
 > 262 shape and it still fails. Do not restore `processType: RevenueCloud` on the strength
 > of that message.
+>
+> `ProcedurePlanDefinition.csv` is a `Readonly` snapshot — SFDMU queries the target org and
+> never writes this object — so its `ProcessType` column is descriptive only and cannot
+> affect a load. It nonetheless carried the stale `RevenueCloud` extract, which read as a
+> contradiction of the pairing above; it now reads `Default`. `SubType` is deliberately
+> **not** added to the `Readonly` query: the field does not exist before 264, and adding it
+> would break this plan's extract against a 262 org on the way back to `main`.
 
 ## Activation Task
 
