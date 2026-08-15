@@ -3071,6 +3071,9 @@ tasks:
       key_field: DeveloperName
       api_version: null
       dry_run: false
+      # 'fail' is the safe default; the flows below override it to 'skip' for the 264
+      # SalesTransactionItemGroup type mismatch. See the note on prepare_dro step 1.
+      on_invalid_context_tag: fail
 
   configure_pricing_recipe_table_mappings:
     group: Revenue Lifecycle Management
@@ -4260,6 +4263,9 @@ flows:
         options:
           operation: upsert
           input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+          # Matches prepare_dro step 1 deliberately: same file, same object, so the
+          # manual path must not behave differently from the build path.
+          on_invalid_context_tag: skip
 
   prepare_dro:
     group: Revenue Lifecycle Management
@@ -4270,6 +4276,13 @@ flows:
         options:
           operation: upsert
           input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+          # Release 264 ships SalesTransactionItemGroup typed `lookup` while
+          # CustomFulfillmentScopeCnfg validation requires String, so Group_Identifier
+          # cannot be created on a fresh 264 org by any repo-side change. Without this
+          # the whole build stops here. The task verifies the attribute's type against
+          # the org before skipping, so a misspelled tag still fails, and it prints a
+          # banner naming every record it skipped. Remove once the types agree.
+          on_invalid_context_tag: skip
       2:
         task: insert_qb_dro_data
         when: project_config.project__custom__dro and project_config.project__custom__qb

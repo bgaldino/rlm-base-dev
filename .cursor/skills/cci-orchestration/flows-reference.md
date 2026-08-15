@@ -351,6 +351,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 1. **task** `manage_fulfillment_scope_cnfg`  `when: project_config.project__custom__dro`
    - `operation`: `upsert`
    - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+   - `on_invalid_context_tag`: `skip`
 2. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
 3. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb`
@@ -692,6 +693,7 @@ Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manu
 1. **task** `manage_fulfillment_scope_cnfg`
    - `operation`: `upsert`
    - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+   - `on_invalid_context_tag`: `skip`
 
 ---
 
