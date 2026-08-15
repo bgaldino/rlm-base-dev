@@ -146,6 +146,27 @@ resolving (see `AGENTS.md` and `.cursor/skills/audit-review/SKILL.md`).
 Claude command (`.claude/commands/pr-review.md`),
 `.cursor/skills/audit-review/SKILL.md`
 
+### `check_branch_scope.py`
+
+Fails a branch that carries commits whose content is **already upstream** — the
+signature of a branch cut from a *composed* integration branch, which inherits
+other in-flight fixes **in their pre-review state** and can therefore revert
+landed review fixes when it merges.
+
+```bash
+python scripts/ai/check_branch_scope.py --pr 370          # resolve base + head via gh
+python scripts/ai/check_branch_scope.py --base origin/264 # HEAD vs an explicit base
+```
+
+Exit 0 clean, 1 foreign commits found, 2 usage/git error. It wraps `git cherry`
+(patch-id equivalence: `-` = already upstream). Two weaker checks were tried and
+rejected — `merge-base --is-ancestor` cannot separate an inherited commit from a
+legitimate new one, and subject-matching breaks on a reworded subject. Verified
+against the `#264-56` history, where a branch carried 8 commits and owned 3.
+
+**Used by:** `AGENTS.md` §"Merges and unintended diffs",
+`.cursor/skills/audit-review/SKILL.md` §"Step −1"
+
 ---
 
 ## Dependencies

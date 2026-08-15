@@ -407,6 +407,20 @@ def check_baseline_imports(root: Path) -> CheckResult:
         imports = top_level_imports(path)
     except (SyntaxError, OSError, UnicodeDecodeError) as exc:
         return CheckResult("baseline imports", False, f"could not parse imports: {exc}")
+    # `sys.stdlib_module_names` is 3.10+. Without it the known-stdlib set collapses
+    # to the builtins, every stdlib import looks external, and the check fails
+    # naming `json, os, re, …` as non-stdlib — a finding that sends the reader
+    # chasing nothing. Say which interpreter is wrong instead. The repo's floor is
+    # 3.10 anyway (scripts/ai/README.md) and CI runs 3.13, so this only fires when
+    # someone reaches for an older `python3` by hand.
+    if not hasattr(sys, "stdlib_module_names"):
+        return CheckResult(
+            "baseline imports", False,
+            "cannot evaluate on Python "
+            f"{sys.version_info.major}.{sys.version_info.minor}: needs "
+            "sys.stdlib_module_names (3.10+). Re-run with a 3.10+ interpreter — "
+            "this says nothing about the imports themselves",
+        )
     external = sorted(imports - stdlib_module_names())
     if external:
         return CheckResult(

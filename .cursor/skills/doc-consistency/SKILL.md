@@ -190,7 +190,21 @@ python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should pass
 python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
+python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
 ```
+
+`test_doc_build_steps.py` covers a class of drift that reading cannot catch.
+Build-step numbers in docs are hand-maintained with no generator, so **inserting
+or removing a single step silently invalidates every citation downstream of it**.
+Eight rows in `docs/references/revenue-cloud-permissions.md` had gone off by one
+that way, and the `prepare_agents` permission-set row was additionally wrong on
+its *substep* because a step had been removed from that subflow. Two reviewers
+flagged the substep; nobody caught the parents; and the first fix attempt
+refuted a correct finding because it audited a stale checkout. The check reads
+the flows and asserts, for every `| N.M |` cell on a line naming a subflow, that
+`N` is that subflow's step in `prepare_rlm_org` and `M` exists inside it. Run it
+whenever a step is added to or removed from a flow — not only when a doc changes,
+since **the doc that goes stale is usually not in the same PR**.
 
 If the diff shows unintended changes, investigate before committing. To commit the regenerated files:
 

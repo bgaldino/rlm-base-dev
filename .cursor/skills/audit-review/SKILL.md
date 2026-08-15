@@ -171,7 +171,39 @@ branch do not silently overwrite newer versions that landed on `main` after the
 branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
 §"Merges and unintended diffs".
 
-### Step 0 — Detect branch-side reverts of inherited main content (do this FIRST)
+### Step −1 — Confirm the branch owns every commit on it (cheapest check; run before anything else)
+
+```bash
+python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/264 --head <branch>
+```
+
+A branch cut from a **composed integration branch** — one built by stacking
+several in-flight fixes to test them as a set — inherits those other fixes. Its
+diff then shows files it does not own, **in whatever pre-review state they were
+in when the composition was made**, so merging it walks back review fixes that
+already landed. Every later step in this audit is reasoning about that polluted
+diff, which is why this runs first.
+
+> Real incident (#264-56): `fix/264-agents-authoring-bundle` was rebuilt once to
+> strip five inherited commits, then **re-accumulated the same five** from a
+> later rebase onto the stale composition, and came within a day of merging with
+> them a second time. It carried 8 commits where the PR owned 3.
+
+The check wraps `git cherry`, which classifies by patch-id: `-` means the
+content is already upstream, so the branch does not own it. Two weaker checks
+were tried first and both fail — worth knowing so neither gets substituted:
+
+- **`git merge-base --is-ancestor` is not a detector.** Inherited commits are not
+  ancestors of the base — but neither is any legitimate new commit, so it cannot
+  tell them apart.
+- **Matching commit subjects against the base** happens to work on #264-56 but
+  breaks on any reworded subject, and misses an inherited commit whose twin has
+  not merged yet.
+
+Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
+from the base and cherry-pick only the commits reported as `own`.
+
+### Step 0 — Detect branch-side reverts of inherited main content (do this before trusting Step 1)
 
 **The Step 1 overlap method has a blind spot — run this step before trusting it.**
 When the branch has been **rebased onto (or merged with) main's tip**,
