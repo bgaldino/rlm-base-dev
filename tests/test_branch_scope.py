@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -325,6 +326,29 @@ def test_stacked_on_unmerged(root):
     check("and it is named", "STACKED  on open PR #2" in out, out)
     check("and it says where the shared history starts, not 'in full'",
           "from " in out and "in full" not in out, out)
+    # Direction is genuinely unknowable here, and the wording must not claim it.
+    check("and it does not assert who inherited from whom",
+          "direction not determinable" in out, out)
+
+    print("\n  ...and a CHILD PR cut from this branch is not this branch's problem")
+    # merge-base is symmetric, so the child topology reads identically to the parent
+    # one from the join alone: a PR cut from `feature` joins at `feature`'s own head,
+    # which is beyond base. Reporting it would tell this branch to rebuild over work
+    # it authored -- the false positive in the mirror direction of the one above.
+    git(cwd, "checkout", "--quiet", "-b", "child-pr", "feature")
+    commit(cwd, "child.txt", "child\n", "the child PR's commit")
+    child_oid = git(cwd, "rev-parse", "child-pr")
+    git(cwd, "checkout", "--quiet", "feature")
+    check("the fixture really is a child (our head is inside theirs)",
+          subprocess.run(["git", "merge-base", "--is-ancestor", head, child_oid],
+                         cwd=cwd, capture_output=True, env=GIT_ENV).returncode == 0,
+          "fixture is wrong: the child does not contain this branch")
+    child = {"number": 6, "headRefName": "child-pr", "headRefOid": child_oid,
+             "title": "a PR cut from this one", "isCrossRepository": False}
+    bindir = stub_gh(cwd, mine, [child])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a PR stacked on US is not reported against us", rc == 0, f"rc={rc}\n{out}")
+    check("and nothing is printed as stacked", "STACKED" not in out, out)
 
     print("\n  ...and a fork PR is skipped rather than resolved to our own branch")
     # `origin/parent-pr` exists locally, so an unguarded fallback would compare
@@ -477,6 +501,35 @@ def test_exit_code_contract(root):
           f"{proc.stdout}{proc.stderr}")
 
 
+def test_documented_count_is_current(root):
+    """Three docs cite this suite's check count, and all three had gone stale.
+
+    A hand-maintained number describing a file that keeps growing is the drift class
+    this whole PR is about, so citing one and not checking it was self-refuting: the
+    count was written at 35, the suite reached 50, then 57, and a reviewer had to
+    point at all three copies. It is cheaper to make the number true than to keep
+    correcting it. Counted from the *actual* run, so it cannot pass by agreeing with
+    a second stale constant.
+    """
+    print("\nThe count the docs cite is the count this suite reports")
+    # One check, not one per file, so the target is a fixed number rather than one
+    # that shifts as the checks verifying it run. It equals the suite's final total,
+    # which is what a reader comparing doc to output will see.
+    total = _passed + len(_failed) + 1
+    pattern = re.compile(r"tests/test_branch_scope\.py`?\s*\((\d+) checks")
+    docs = ("scripts/ai/check_branch_scope.py", "scripts/ai/README.md",
+            ".cursor/skills/audit-review/SKILL.md")
+    cited = {}
+    for rel in docs:
+        for m in pattern.findall((REPO / rel).read_text(encoding="utf-8")):
+            cited.setdefault(int(m), []).append(rel)
+    check("every doc citing this suite's size cites the current one",
+          set(cited) == {total},
+          "; ".join(f"{n} in {', '.join(where)}" for n, where in sorted(cited.items()))
+          + f" — suite reports {total}" if cited
+          else f"no doc cites a count; expected {total} in {', '.join(docs)}")
+
+
 def main():
     if not SCRIPT.exists():
         print(f"error: {SCRIPT} not found")
@@ -494,6 +547,7 @@ def main():
         test_stacked_on_unmerged(root)
         test_fetch_before_comparing(root)
         test_exit_code_contract(root)
+        test_documented_count_is_current(root)
     print("\n" + "=" * 100)
     total = _passed + len(_failed)
     if _failed:

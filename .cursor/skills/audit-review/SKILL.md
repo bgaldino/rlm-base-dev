@@ -245,7 +245,7 @@ exits 2 instead of comparing the ref it just failed to refresh, because the stal
 case reports *clean* and a swallowed error would restore that false negative at the
 worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (50 checks, no
+The check's own behavior is pinned by `tests/test_branch_scope.py` (62 checks, no
 network) — run it if you change the script, and add a shape to it rather than
 tightening the script by feel. Drive whole invocations, not helpers: an earlier
 version tested `STACKED`'s ancestor helper in isolation, and three mutations that

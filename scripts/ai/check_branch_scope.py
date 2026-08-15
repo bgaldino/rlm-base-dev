@@ -58,7 +58,7 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (50 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (62 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
@@ -291,8 +291,15 @@ def _check(args, ap):
         # actual definition of stacked, and it subsumes the unmoved-parent case
         # (there the join *is* the other head).
         join = _run(["git", "merge-base", ref, head])
-        if join and not _is_ancestor(join, base):
-            stacked.append((other, join))
+        if not join or _is_ancestor(join, base):
+            continue
+        # merge-base is symmetric, and that cuts the wrong way for a *child*: if
+        # another PR was cut from this one, the join is this branch's own head, and
+        # reporting it would tell the parent to rebuild over work it authored. The
+        # containment tests below are what recover direction from a symmetric join.
+        if _is_ancestor(head, ref):
+            continue  # the other PR is downstream of us; their problem, not ours
+        stacked.append((other, join, _is_ancestor(ref, head)))
 
     label = f"{head[:12] if len(head) == 40 else head} vs {base}"
     total = len(own) + len(foreign)
@@ -301,9 +308,12 @@ def _check(args, ap):
         print(f"  own      {sha[:8]}  {_subject(sha)}")
     for sha in foreign:
         print(f"  FOREIGN  {sha[:8]}  {_subject(sha)}")
-    for other, join in stacked:
-        shares = "in full" if join == _run(["git", "rev-parse", other["headRefOid"]]) \
-            else f"from {join[:8]} on"
+    for other, join, contained in stacked:
+        # "in full" is a containment fact; the diverged case is deliberately not
+        # phrased as inheritance, because a symmetric join cannot establish who took
+        # what from whom -- only that the two share commits the base does not have.
+        shares = "in full" if contained else f"from {join[:8]} on (shared, direction " \
+            "not determinable from history alone)"
         print(f"  STACKED  on open PR #{other['number']} ({other['headRefName']}) "
               f"{shares}: {other['title']}")
 

@@ -201,7 +201,7 @@ reinstate the exact false negative the fetch exists to prevent, and it would do 
 precisely when something is wrong (offline, dead credential). Skipping the fetch is
 still available, but only by asking for it with `--no-fetch`.
 
-Verified by `tests/test_branch_scope.py` (50 checks, throwaway repos, no network),
+Verified by `tests/test_branch_scope.py` (62 checks, throwaway repos, no network),
 which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
 that fixes it, a reworded inherited commit, a true-merged parent, a stale base
 (which reports clean — so the fetch is load-bearing), a failing fetch (exit 2), a
