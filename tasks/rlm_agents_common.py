@@ -65,12 +65,50 @@ def run_sf_json(cmd, *, timeout, label, cwd=None):
             pass
 
     if result.returncode != 0 or payload.get("status", 1) != 0:
-        message = (
-            payload.get("message")
-            or result.stderr.strip()
-            or result.stdout.strip()
-            or f"exit {result.returncode}"
-        )
-        raise CommandException(f"{label} failed: {message}")
+        raise CommandException(f"{label} failed: {_failure_detail(result, payload)}")
 
     return payload
+
+
+def _strip_cli_noise(text):
+    """Drop the CLI's own update-available notice from a captured stream.
+
+    The npm-installed CLI writes `›   Warning: @salesforce/cli update available
+    from X to Y.` to **stderr**, which is not part of any error. It cost a real
+    diagnosis: a `sf agent activate` failure in CI reported nothing but that
+    warning, because the fallback chain reached for stderr and found the notice
+    sitting where the cause should have been.
+    """
+    keep = []
+    for line in (text or "").splitlines():
+        bare = line.strip().lstrip("›").strip()
+        if not bare or "update available" in bare:
+            continue
+        keep.append(bare)
+    return " ".join(keep)
+
+
+def _failure_detail(result, payload):
+    """Build a failure description that cannot come out empty or misleading.
+
+    Every source is reported rather than the first non-empty one, because they
+    carry different halves of the story: the JSON envelope names the error
+    (`name`) and explains it (`message`), while an argument or plugin-resolution
+    failure never reaches JSON at all and only shows up on a raw stream. The
+    exit code is always included, so a silent non-zero still says something.
+    """
+    parts = []
+    for key in ("name", "message"):
+        value = str(payload.get(key) or "").strip()
+        if value and value not in parts:
+            parts.append(value)
+    for label, stream in (("stderr", result.stderr), ("stdout", result.stdout)):
+        # stdout is only worth quoting when it was not already parsed as the
+        # envelope above; a full JSON dump in an error line is noise.
+        if label == "stdout" and payload:
+            continue
+        cleaned = _strip_cli_noise(stream)
+        if cleaned:
+            parts.append(f"{label}: {cleaned}")
+    parts.append(f"exit {result.returncode}")
+    return " | ".join(parts)

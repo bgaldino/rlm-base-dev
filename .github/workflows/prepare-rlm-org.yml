@@ -51,6 +51,12 @@ jobs:
       # per-PR alias and default to the `dev` scratch config.
       ORG_ALIAS: ${{ inputs.org_alias || format('pr{0}-ci', github.event.pull_request.number) }}
       SCRATCH_CONFIG: ${{ inputs.scratch_config || 'dev' }}
+      # The npm-installed CLI writes "Warning: @salesforce/cli update available" to
+      # *stderr* on every invocation. That is not merely noise: a task that reports a
+      # failure from stderr can end up printing the notice where the cause should be,
+      # which is how the #264-59 `sf agent activate` failure arrived with no
+      # diagnosable message at all. Job-scoped so it also applies during the build.
+      SF_SKIP_NEW_VERSION_CHECK: "true"
     steps:
       - name: Remove trigger label (re-apply to re-run)
         if: github.event_name == 'pull_request'
@@ -88,7 +94,12 @@ jobs:
 
       - name: Install sf CLI and SFDMU plugin
         run: |
-          npm install -g @salesforce/cli@2.127.2
+          # 2.147.7 (was 2.127.2, pinned 2026-06). The 264 build reaches
+          # `prepare_agents` → `sf agent activate`, part of the authoring-bundle
+          # path this release moved to; 2.127.2 predates that work and failed there
+          # while 2.147.7 completes the same flow locally. Keep this within one or
+          # two minors of what developers run, since the agent commands are moving.
+          npm install -g @salesforce/cli@2.147.7
           yes | sf plugins install sfdmu@5.8.0
           sf --version
           sf plugins
