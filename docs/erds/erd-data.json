@@ -8,7 +8,7 @@
     "baselineApiVersion": "67.0",
     "source": "dual-org extraction from two fresh prepare_rlm_org 264 orgs (rlm-base__264merged + rlm-base__264fresh, ent shape, API 68.0), diffed against the 262 snapshot the previous refresh was built from",
     "lastRefreshedOn": "2026-08-15",
-    "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/262-vs-264-diff.md for the 262->264 delta. The two 264 orgs agreed field-for-field (254 objects / 3913 fields each), so nothing here rests on a single org. 264 retired 8 fields and moved the usage policy bindings onto ProductUsageResourcePolicy; 66 ERD fields remain absent from the org and are the feature-gated / cross-cloud set carried forward from the 262 pass, not 264 removals."
+    "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/262-vs-264-diff.md for the 262->264 delta. The two 264 orgs agreed field-for-field (254 objects / 3913 fields each), so nothing here rests on a single org. 264 retired 8 fields and moved the usage policy bindings onto ProductUsageResourcePolicy; 58 ERD fields remain absent from the org and are the feature-gated / cross-cloud set carried forward from the 262 pass, not 264 removals."
   },
   "stats": {
     "totalObjects": 263,
@@ -305,21 +305,21 @@
           "properties": "Create, Filter, Group, Nillable, Sort",
           "description": "The identifier of the primary record associated with the error log. Available in API version 63.0 and later.",
           "relationshipName": "PrimaryRecord",
-          "refersTo": "Asset, AsyncOperationTracker, BillingBatchScheduler, BillingSchedule, CreditMemo, ",
+          "refersTo": "Asset, AsyncOperationTracker, BillingBatchScheduler, BillingSchedule, CardPaymentMethod, CreditMemo, InvBatchDraftToPostedRun, Invoice, InvoiceBatchRun, InvoiceBatchRunRecovery, Order, OrderItem, OrderItemSummary, OrderSummary, Payment, PaymentBatchRun, PaymentGateway, Quote, Refund, RevenueAsyncOperation, RuleLibraryVersion",
           "type": "reference"
         },
         "RelatedRecord2Id": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of a record that can provide additional context about the error. For example, if PrimaryRecordId is the ID of an order, this field could be the ID of an invoice line. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord2",
-          "refersTo": "CreditMemoLine, CreditMemoLineInvoiceLine, CreditMemoLineTax, InvoiceLine, ",
+          "refersTo": "CartItem, CreditMemoLine, CreditMemoLineInvoiceLine, CreditMemoLineTax, DebitMemo, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule, InvoiceLine, InvoiceLineTax, Payment, PaymentLineInvoice, PaymentLineInvoiceLine, Refund, RefundLinePayment",
           "type": "reference"
         },
         "RelatedRecordId": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of a record that can provide additional context about the error. For example, if PrimaryRecordId is the ID of an order, this field could be the ID of an order item. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord",
-          "refersTo": "Asset, BillingBatchScheduler, BillingSchedule, BillingScheduleGroup, CreditMemo, ",
+          "refersTo": "Asset, BillingBatchScheduler, BillingSchedule, BillingScheduleGroup, CreditMemo, CreditMemoLine, InvBatchDraftToPostedRun, Invoice, InvoiceBatchRun, InvoiceLine, OrderItem, OrderItemSummary, Payment, PaymentSchedule, PaymentScheduleItem, QuoteLineItem, Refund",
           "type": "string"
         },
         "RequestIdentifier": {
@@ -474,7 +474,7 @@
           "description": "The quote line item associated with the usage product. This field is a relationship field.",
           "relationshipName": "QuoteLineItem",
           "relationshipType": "Master-detail",
-          "refersTo": "QuoteLineItem (the master object)",
+          "refersTo": "QuoteLineItem",
           "type": "reference"
         },
         "RatingFrequencyPolicyId": {
@@ -599,7 +599,7 @@
           "description": "Required. The ID of the Invoice to which the Invoice Doc is attached. This field is a relationship field.",
           "relationshipName": "Invoice",
           "relationshipType": "Master-detail",
-          "refersTo": "Invoice (the master object)",
+          "refersTo": "Invoice",
           "type": "picklist"
         },
         "Status": {
@@ -744,7 +744,7 @@
           "description": "The ID of the parent asset rate card entry record associated with the asset rate adjustment. This field is a relationship field.",
           "relationshipName": "AssetRateCardEntry",
           "relationshipType": "Master-detail",
-          "refersTo": "AssetRateCardEntry (the master object)",
+          "refersTo": "AssetRateCardEntry",
           "type": "double"
         },
         "LowerBound": {
@@ -908,7 +908,7 @@
           "description": "The ID of the debit memo associated with the address. This field is a relationship field.",
           "relationshipName": "DebitMemo",
           "relationshipType": "Master-detail",
-          "refersTo": "DebitMemo (the master object)",
+          "refersTo": "DebitMemo",
           "type": "dateTime"
         },
         "LastReferencedDate": {
@@ -1251,7 +1251,7 @@
           "description": "Required. The ID of the parent billing schedule record of the billing period item. This field is a relationship field.",
           "relationshipName": "BillingSchedule",
           "relationshipType": "Master-detail",
-          "refersTo": "BillingSchedule (the master object)",
+          "refersTo": "BillingSchedule",
           "type": "reference"
         },
         "InvoiceBatchRunId": {
@@ -1481,7 +1481,7 @@
           "description": "ID of the rate card entry associated with this rate adjustment by tier record. This field is a relationship field.",
           "relationshipName": "RateCardEntry",
           "relationshipType": "Master-detail",
-          "refersTo": "RateCardEntry (the master object)",
+          "refersTo": "RateCardEntry",
           "type": "picklist"
         },
         "RateCardEntryStatus": {
@@ -1684,7 +1684,7 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The asset associated with the commitment-based usage product. This field is a relationship field.",
           "relationshipName": "Asset",
-          "refersTo": "Asset (the master object)",
+          "refersTo": "Asset",
           "type": "dateTime"
         },
         "EffectiveEndDateTime": {
@@ -1728,7 +1728,7 @@
           "description": "ID of the contract. This field is a relationship field.",
           "relationshipName": "Contract",
           "relationshipType": "Master-detail",
-          "refersTo": "Contract (the master object)",
+          "refersTo": "Contract",
           "type": "picklist"
         },
         "CurrencyIsoCode": {
@@ -1833,7 +1833,7 @@
           "description": "The name of the primary fulfillment asset. This field is a relationship field.",
           "relationshipName": "MainFulfillmentAsset",
           "relationshipType": "Master-detail",
-          "refersTo": "FulfillmentAsset (the master object)",
+          "refersTo": "FulfillmentAsset",
           "type": "picklist"
         },
         "MainFulfillmentAssetRole": {
@@ -1918,7 +1918,7 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The legal entity accounting period related to the refund. This field is a relationship field.",
           "relationshipName": "LegalEntityAccountingPeriod",
-          "refersTo": "LegalEntityAccountingPeriod",
+          "refersTo": "LegalEntyAccountingPeriod",
           "type": "reference"
         },
         "LegalEntityId": {
@@ -2236,8 +2236,8 @@
         },
         "QuoteLineItemId": {
           "properties": "Create, Filter, Group, Sort",
-          "description": "The rate card entry containing catalog rates that's associated with the quote line rate card entry. This field is a relationship field.",
-          "relationshipName": "RateCardEntry",
+          "description": "The quote line item that the quote line rate card entry belongs to. This field is a relationship field.",
+          "relationshipName": "QuoteLineItem",
           "relationshipType": "Master-detail",
           "refersTo": "QuoteLineItem",
           "type": "reference"
@@ -2471,7 +2471,7 @@
           "type": "dateTime",
           "relationshipName": "InvoiceBatchRun",
           "relationshipType": "Master-detail",
-          "refersTo": "InvoiceBatchRun (the master object)"
+          "refersTo": "InvoiceBatchRun"
         },
         "InvoiceBatchRunId": {
           "type": "reference",
@@ -3421,7 +3421,7 @@
           "description": "The order item associated with the usage product. This field is a relationship field.",
           "relationshipName": "OrderItem",
           "relationshipType": "Master-detail",
-          "refersTo": "OrderItem (the master object)",
+          "refersTo": "OrderItem",
           "type": "reference"
         },
         "ProductUsageResourcePolicyId": {
@@ -3593,7 +3593,7 @@
           "description": "The general ledger account that\u2019s related to the general ledger accounting period summary. This field is a relationship field.",
           "relationshipName": "GeneralLedgerAccount",
           "relationshipType": "Master-detail",
-          "refersTo": "GeneralLedgerAccount (the master object)",
+          "refersTo": "GeneralLedgerAccount",
           "type": "dateTime"
         },
         "LastReferencedDate": {
@@ -3657,7 +3657,7 @@
           "description": "Required. A unique identifier of the invoice batch run that's related to this recovery run. This field is a relationship field.",
           "relationshipName": "InvoiceBatchRun",
           "relationshipType": "Master-detail",
-          "refersTo": "InvoiceBatchRun (the master object)",
+          "refersTo": "InvoiceBatchRun",
           "type": "string"
         },
         "InvoiceBatchRunRecoveryNumber": {
@@ -3792,7 +3792,7 @@
           "description": "The usage entitlement bucket that's associated with the entitlement entry. This field is a relationship field.",
           "relationshipName": "EntitlementBucket",
           "relationshipType": "Master-detail",
-          "refersTo": "UsageEntitlementBucket (the master object)",
+          "refersTo": "UsageEntitlementBucket",
           "type": "dateTime"
         },
         "LastReferencedDate": {
@@ -3971,7 +3971,7 @@
           "description": "The description of the debit memo line.",
           "relationshipName": "DebitMemo",
           "relationshipType": "Master-detail",
-          "refersTo": "DebitMemo (the master object)",
+          "refersTo": "DebitMemo",
           "type": "date"
         },
         "EndDate": {
@@ -5201,7 +5201,7 @@
           "description": "Required. The ID of the credit memo associated with the address group. This field is a relationship field.",
           "relationshipName": "CreditMemo",
           "relationshipType": "Master-detail",
-          "refersTo": "CreditMemo (the master object)",
+          "refersTo": "CreditMemo",
           "type": "dateTime"
         },
         "LastReferencedDate": {
@@ -5420,8 +5420,8 @@
         },
         "AssignedToId": {
           "properties": "Create, Filter, Group, Nillable, Sort",
-          "description": "The alternative step that's executed when a particular step in the fulfillment plan is amended or canceled. This field is a relationship field. This field is available in API version 62.0 and later.",
-          "relationshipName": "CompensatedStep",
+          "description": "The user or group the fulfillment step is assigned to. This field is a relationship field.",
+          "relationshipName": "AssignedTo",
           "relationshipType": "Lookup",
           "refersTo": "Group, User",
           "type": "int"
@@ -6489,7 +6489,7 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "Required. The ID of the related record that's submitted for approval. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord",
-          "refersTo": "Account, AdAvailabilityViewConfig, Address, AnalyticsUserAttrFuncTkn, ApprovalSubmission, ",
+          "refersTo": "Account, AccountBillingAccount, AccountingPeriod, AdAvailabilityViewConfig, Address, AgentWork, AiJobRun, AiJobRunItem, AnalyticsUserAttrFuncTkn, ApprovalSubmission, ApprovalSubmissionDetail, ApprovalWorkItem, ApprovalWorkItemCondition, ApprovalWorkItemCriteria, Assessment, AssessmentDefinition, AssessmentEnvelope, AssessmentEnvelopeItem, AssessmentQuestion, AssessmentQuestionAssignment, AssessmentQuestionResponse, AssessmentQuestionSet, AssessmentQuestionVersion, AssessmentSavedSession, AssessmentSignature, Asset, AssetAction, AssetActionSource, AssetActionSrcPriceAdjustment, AssetContractRelationship, AssetRateAdjustment, AssetRateCardEntry, AssetRelationship, AssetStatePeriod, AssociatedLocation, AsyncOperationTracker, AttrPicklistExcludedValue, AttributeAdjustmentCondition, AttributeBasedAdjRule, AttributeBasedAdjustment, AttributeCategory, AttributeCategoryAttribute, AttributeDefinition, AttributePicklist, AttributePicklistValue, AuditTrailFileExport, AuthFormRequestRecord, AuthorizationForm, AuthorizationFormConsent, AuthorizationFormDataUse, AuthorizationFormText, AutomationPipelineExec, AutomationPipelineExecPart, BatchJob, BatchJobPart, BatchJobPartFailedRecord, BillingAccount, BillingArrangement, BillingArrangementLine, BillingForecast, BillingMilestonePlan, BillingMilestonePlanItem, BillingPolicy, BillingSchedule, BillingScheduleGroup, BillingTreatment, BillingTreatmentItem, BindingObjUsageRsrcPlcy, BindingObjectCustomExt, BindingObjectRateAdjustment, BindingObjectRateCardEntry, BsgRelationship, BundleBasedAdjustment, BusinessBrand, BusinessMilestone, BusinessProfile, BuyerAccount, BuyerGroup, BuyerGroupMember, CalculatedInsightRangeBound, CalculationMatrixActionLog, Campaign, CartAction, CartDeliveryGroupMethodAdj, CartItem, CartItemDetail, CartItemPriceAdjustment, CartRelatedItem, CartTax, CartValidationOutput, Case, CaseComment, CaseParticipant, CaseProceeding, CaseProceedingParticipant, CaseProceedingResult, CaseServiceProcessExtension, ChannelProgram, ChannelProgramLevel, ChannelProgramMember, CollaborationGroup, CollectionPlan, CollectionPlanItem, CollectionPlanReason, CommSubscription, CommSubscriptionChannelType, CommSubscriptionConsent, CommSubscriptionTiming, CommerceConfigRelatedRecord, Contact, ContactPointAddress, ContactPointConsent, ContactPointEmail, ContactPointOttSvc, ContactPointPhone, ContactPointTypeConsent, ContactRequest, ContentDocument, ContentLink, ContentSource, ContentVersion, ContextDefinitionSync, Contract, ContractDocVerContentDoc, ContractDocVersionSection, ContractDocumentReview, ContractDocumentVersion, ContractItemPrice, ContractItemPriceAdjTier, ContractLineItem, ConvEntryRelatedRecordCopy, ConversationApiLog, ConversationApiLogObjSum, ConversationEntryCopy, CostBook, CostBookEntry, Coupon, CouponCodeRedemption, CreditMemo, CreditMemoInvApplication, CreditMemoLine, CreditMemoLineTax, Customer, DataUseLegalBasis, DataUsePurpose, DebitMemo, DebitMemoLine, DebitMemoLineTax, DelegatedAccount, DeliveryEstimationSetup, DevopsActivityLog, DevopsEnvironment, DevopsRequestInfo, DigitalSignature, Dispute, DisputeItem, DocChkItemValidatedTarget, DocClauseContentTokenTrkg, DocGenerationBatchProcess, DocGenerationQueryResult, DocTemplateSectionCondition, DocumentAuthoredContent, DocumentChecklistItem, DocumentClause, DocumentClauseContentToken, DocumentClauseSet, DocumentDecisionRequirement, DocumentEnvelope, DocumentGenerationProcess, DocumentRecipient, DocumentTemplate, DocumentTemplateContentDoc, DocumentTemplateSection, DocumentTemplateToken, DuplicateRecordItem, DuplicateRecordSet, EmailMessage, EmpUserProvisionProcessErr, EngagementAttendee, EngagementChannelType, EngagementInteraction, EngagementTopic, Entitlement, EntitlementContact, EntityMilestone, ExpressionFilter, ExpressionFilterCriteria, ExpressionSetConstraintObj, ExternalEventMapping, ExtlRecShrStagedRecord, FlowOrchestrationInstance, FlowOrchestrationVersion, FulfillmentFalloutRule, FulfillmentOrder, FulfillmentOrderItemAdjustment, FulfillmentOrderItemTax, FulfillmentOrderLineItem, FulfillmentStep, FulfillmentStepDefinition, FulfillmentStepDefinitionGroup, FulfillmentStepDependencyDef, FulfillmentStepJeopardyRule, FulfillmentTaskAssignmentRule, FulfillmentWorkspace, FulfillmentWorkspaceItem, GeneralLdgrAcctPrdSummary, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule, GeneralLedgerJrnlEntryRule, GeneratedDocument, GeneratedDocumentSection, GeoCountry, GeoState, GoalAssignment, GoalDefinition, Idea, Image, IndexRate, Individual, InfoAuthRequestForm, InfoAuthorizationRequest, IntegrationProviderDcsnRqmt, IntegrationProviderExecution, InvBatchDraftToPostedRun, InventoryItemReservation, InventoryReservation, Invoice, InvoiceBatchRun, InvoiceBatchRunCriteria, InvoiceBatchRunRecovery, InvoiceDocument, InvoiceLine, InvoiceLineRelationship, InvoiceLineTax, Knowledge__ka, Knowledge__kav, Lead, LegalEntyAccountingPeriod, LinkedArticle, Location, LocationGroup, LocationGroupAssignment, LocationShippingCarrierMethod, LocationTrustMeasure, Macro, MacroInstruction, MacroUsage, ManagedContentVariant, MerchAccPaymentMethodSet, MerchAccPaymentMethodType, MerchantAccount, MessagingSessionClient, MultipartyInfoAuthRequest, ObjectStateActionDefinition, ObjectStateDefinition, ObjectStateTransition, ObjectStateTransitionAction, ObjectStateValue, Obligation, OmniComponentErrorLog, OmniGlobalAutoNumber, OmniProcessAsmtQuestionVer, OperatingHours, OperatingHoursHoliday, Opportunity, OpportunityRelatedDeleteLog, Order, OrderAction, OrderAdjustmentGroup, OrderChgReasonCategMap, OrderDeliveryGroup, OrderDeliveryMethod, OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, OrderItemGroup, OrderItemRateAdjustment, OrderItemRateCardEntry, OrderItemRecipient, OrderItemRelationship, OrderItemTaxLineItem, OrderItemUsageRsrcGrant, OrderItemUsageRsrcPlcy, OrderSummary, OrderSummaryAdditionalInfo, OrderSummaryRoutingSchedule, OrgMetricScanSummary, Organization, OutboundEngagementTemplate, OutboundEngmtContentRsrc, PartnerFundAllocation, PartnerFundClaim, PartnerFundRequest, PartnerMarketingBudget, PartyConsent, PaymentAdviceInvoiceRecile, PaymentAdviceReconciliation, PaymentCreditLinePayment, PaymentCreditTransaction, PaymentLink, PaymentSchedule, PaymentScheduleItem, PendingServiceRouting, PersonLifeEvent, PickTicket, PickTicketAssignment, PickTicketProduct, PriceBookEntryDerivedPrice, PriceBookRateCard, PriceRevisionPolicy, PricingAdjBatchJob, PricingAdjBatchJobLog, PricingApiExecution, PricingProcessExecution, ProcessException, ProdtAttrMappedScope, ProdtAttrScope, Product2, ProductAttributeDefinition, ProductCatalog, ProductCategory, ProductCategoryDisqual, ProductCategoryMedia, ProductCategoryProduct, ProductCategoryQualification, ProductClassification, ProductClassificationAttr, ProductComponentGroup, ProductComponentGrpOverride, ProductConfigFlowAssignment, ProductConfigurationFlow, ProductConfigurationRule, ProductDecompEnrichmentRule, ProductDisqualification, ProductFulfillmentDecompRule, ProductFulfillmentScenario, ProductQualification, ProductRampSegment, ProductRelComponentOverride, ProductUsageGrant, ProductUsageResource, ProductUsageResourcePolicy, Promotion, PromotionLineItemRule, PromotionMarketSegment, PromotionPartyUsage, PromotionQualifier, PromotionSegment, PromotionSegmentBuyerGroup, PromotionSegmentSalesStore, PromotionTarget, PromotionTier, PromptAction, PromptError, QuickText, QuickTextUsage, QuotLineItmUsageRsrcPlcy, QuotLineItmUseRsrcGrant, Quote, QuoteClause, QuoteItemTaxItem, QuoteLineDetail, QuoteLineGroup, QuoteLineItem, QuoteLineItemRecipient, QuoteLineRateAdjustment, QuoteLineRateCardEntry, QuoteRecipientGroup, QuoteRecipientGroupMember, RateAdjustmentByAttribute, RateAdjustmentByTier, RateCard, RateCardEntry, RatingFrequencyPolicy, ReceivedDocument, ReceivedDocumentType, RecordActnSelItemExtrc, RecordAlert, RecordAlertActionableTarget, ReportHierarchyObjectField, ReturnOrder, ReturnOrderItemAdjustment, ReturnOrderItemTax, ReturnOrderLineItem, SalesChannel, SalesContractLine, SalesTransactionType, SavedPaymentMethod, SecurityHealthCheckAlertRecipient, SecurityHealthCheckResult, Seller, SeqPolicySelectionCondition, SequenceGapReconciliation, SequencePolicy, ServiceContract, ServiceResource, SetupDataSynchronization, SfdcPartnerSbscrOffer, SfdcPartnerSbscrOfferItem, Shipment, ShipmentItem, ShippingCarrier, ShippingCarrierMethod, ShippingConfigurationSet, ShippingRateArea, ShippingRateGroup, Site, SlackChannelRelatedRecord, SocialPersona, SocialPost, Solution, StandardShippingRate, StreamingChannel, SvcProcProdCatgProdExtrc, TableauHostMapping, TaxRate, TaxTreatmentItem, TenantConsumptionAlert, TimeSlot, Topic, TransactionJournal, TransactionUsageEntitlement, UnitOfMeasure, UnitOfMeasureClass, UnstructuredStorageSpace, UsageBillingPeriodItem, UsageCmtAssetRelatedObj, UsageCommitmentPolicy, UsageEntitlementAccount, UsageEntitlementBucket, UsageEntitlementEntry, UsageGrantRenewalPolicy, UsageGrantRolloverPolicy, UsageOveragePolicy, UsageRatableSumCmtAssetRt, UsageRatableSummary, UsageResource, UsageResourceBillingPolicy, UsageResourcePolicy, UsageSummary, User, UserEsignVendorIdentifier, UserLicense, UserLocalWebServerIdentity, UserLocationAssignment, UserPrioritizedRecord, UserProvisioningRequest, UserServicePresence, ValTfrm, ValTfrmGrp, VideoCall, VideoCallParticipant, VideoCallRecording, WebCart, WebCartActivityLog, WebCartAdjustmentBasis, WebCartAdjustmentGroup, WebCartCollaborator, WebCartCredit, WebStore, WebStoreBuyerGroup, WebStoreCatalog, WebStoreInventorySource, WebStoreNetwork, WorkOrder, WorkOrderLineItem, WorkPlan, WorkPlanTemplate, WorkPlanTemplateEntry, WorkStep, WorkStepTemplate",
           "type": "string"
         },
         "CurrencyIsoCode": {
@@ -6890,7 +6890,7 @@
           "description": "The quote line item associated with the usage product. This field is a relationship field.",
           "relationshipName": "QuoteLineItem",
           "relationshipType": "Master-detail",
-          "refersTo": "QuoteLineItem (the master object)",
+          "refersTo": "QuoteLineItem",
           "type": "reference"
         },
         "ProductUsageGrantId": {
@@ -8018,7 +8018,7 @@
           "description": "The binding object rate card entry associated with the binding object rate adjustment. This field is a relationship field.",
           "relationshipName": "BindingObjectRateCardEntry",
           "relationshipType": "Master-detail",
-          "refersTo": "BindingObjectRateCardEntry (the master object)",
+          "refersTo": "BindingObjectRateCardEntry",
           "type": "dateTime"
         },
         "LastReferencedDate": {
@@ -8240,7 +8240,7 @@
           "properties": "Filter, Group, Sort",
           "description": "The ID of the parent asset rate card entry record associated with the asset rate adjustment. This field is a relationship field.",
           "relationshipName": "AssetRateCardEntry",
-          "refersTo": "AssetRateCardEntry (the master object)",
+          "refersTo": "AssetRateCardEntry",
           "type": "double"
         },
         "LowerBound": {}
@@ -8482,7 +8482,7 @@
           "description": "Required. The ID of the parent payment term record. This field is a relationship field.",
           "relationshipName": "PaymentTerm",
           "relationshipType": "Master-detail",
-          "refersTo": "PaymentTerm (the master object)",
+          "refersTo": "PaymentTerm",
           "type": "picklist"
         },
         "PaymentTimeframe": {
@@ -8913,7 +8913,7 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "A unique identifier for the fulfillment order line item. This field is a relationship field.",
           "relationshipName": "FulfillmentOrderLineItem",
-          "refersTo": "FulfillmentOrderLineItem (the master object)",
+          "refersTo": "FulfillmentOrderLineItem",
           "type": "reference"
         }
       },
@@ -9293,7 +9293,7 @@
           "description": "Required. The ID of the parent charge or adjustment credit memo line record that a credit memo line tax is related to. This field is a relationship field.",
           "relationshipName": "CreditMemoLine",
           "relationshipType": "Master-detail",
-          "refersTo": "CreditMemoLine (the master object)",
+          "refersTo": "CreditMemoLine",
           "type": "string"
         },
         "CreditMemoLineTaxNumber": {
@@ -9653,7 +9653,7 @@
           "description": "The identifier of the fulfillment step definition. This field is a relationship field.",
           "relationshipName": "FulfillmentStepDefinition",
           "relationshipType": "Master-detail",
-          "refersTo": "FulfillmentStepDefinition (the master object)",
+          "refersTo": "FulfillmentStepDefinition",
           "type": "boolean"
         },
         "IsCompensateInReverse": {
@@ -9933,7 +9933,7 @@
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the invoice associated with the address group. This field is a relationship field.",
           "relationshipName": "Invoice",
-          "refersTo": "Invoice (the master object)",
+          "refersTo": "Invoice",
           "type": "reference"
         },
         "Street": {
@@ -10209,7 +10209,7 @@
           "description": "Required. The parent sequence policy associated with the sequence policy selection condition. Deleting a sequencing policy automatically removes all its associated criteria. This field is a relationship field.",
           "relationshipName": "SequencePolicy",
           "relationshipType": "Master-detail",
-          "refersTo": "SequencePolicy (the master object)",
+          "refersTo": "SequencePolicy",
           "type": "string"
         },
         "LastReferencedDate": {
@@ -10293,7 +10293,7 @@
           "description": "The billing milestone plan associated with the billing milestone plan item. This field is a relationship field.",
           "relationshipName": "BillingMilestonePlan",
           "relationshipType": "Master-detail",
-          "refersTo": "BillingMilestonePlan (the master object)",
+          "refersTo": "BillingMilestonePlan",
           "type": "reference"
         },
         "BillingScheduleGroupId": {
@@ -10560,7 +10560,7 @@
           "description": "Required. The ID of the primary invoice line record. In a bundle relationship, this invoice line is the parent. This field is a relationship field.",
           "relationshipName": "MainInvoiceLine",
           "relationshipType": "Master-detail",
-          "refersTo": "InvoiceLine (the master object)",
+          "refersTo": "InvoiceLine",
           "type": "picklist"
         },
         "MainInvoiceLineRole": {
@@ -10598,9 +10598,9 @@
         },
         "BillingAccountId": {
           "properties": "Create, Filter, Group, Sort",
-          "description": "Required. The ID of the billing arrangement record that's related to the billing arrangement line. This field is a relationship field.",
-          "relationshipName": "BillingArrangement",
-          "refersTo": "BillingArrangement (the master object)",
+          "description": "Required. The ID of the billing account record that's related to the billing arrangement line. This field is a relationship field.",
+          "relationshipName": "BillingAccount",
+          "refersTo": "BillingAccount",
           "type": "string",
           "relationshipType": "Master-detail"
         },
@@ -10842,8 +10842,8 @@
         },
         "UnitOfMeasureId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "description": "The sellable product associated with the usage resource that's used to retrieve tax policy, calculate rating during overages, and other invoicing actions. This field is a relationship field.",
-          "relationshipName": "UsageDefinitionProduct",
+          "description": "The unit of measure for the quantity granted by the product usage grant. This field is a relationship field.",
+          "relationshipName": "UnitOfMeasure",
           "refersTo": "UnitOfMeasure",
           "type": "picklist"
         },
@@ -10906,7 +10906,7 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "ID of the Cost Book record with which this record is associated. This field is a relationship field.",
           "relationshipName": "CostBook",
-          "refersTo": "CostBook (the master object)",
+          "refersTo": "CostBook",
           "type": "picklist"
         },
         "CurrencyIsoCode": {
@@ -11051,7 +11051,7 @@
           "description": "The asset state period that's associated with the asset attribute. This field is a relationship field.",
           "relationshipName": "AssetStatePeriod",
           "relationshipType": "Master-detail",
-          "refersTo": "AssetStatePeriod (the master object)",
+          "refersTo": "AssetStatePeriod",
           "type": "reference"
         },
         "AttributeDefinitionId": {
@@ -11260,7 +11260,7 @@
           "description": "Required. The ID of the invoice line record to which the credit memo line has been applied or unapplied. This field is a relationship field.",
           "relationshipName": "InvoiceLine",
           "relationshipType": "Master-detail",
-          "refersTo": "InvoiceLine (the master object)",
+          "refersTo": "InvoiceLine",
           "type": "reference"
         },
         "LegalEntityAccountingPeriodId": {
@@ -11396,7 +11396,7 @@
           "description": "The order item associated with the usage product. This field is a relationship field.",
           "relationshipName": "OrderItem",
           "relationshipType": "Master-detail",
-          "refersTo": "OrderItem (the master object)",
+          "refersTo": "OrderItem",
           "type": "reference"
         },
         "ProductUsageGrantId": {
@@ -11491,7 +11491,7 @@
           "description": "The ID of the associated fulfillment order line item. This field is a relationship field.",
           "relationshipName": "MainFulfillmentOrderItem",
           "relationshipType": "Master-detail",
-          "refersTo": "FulfillmentOrderLineItem (the master object)",
+          "refersTo": "FulfillmentOrderLineItem",
           "type": "string"
         },
         "Name": {
@@ -11860,7 +11860,7 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The template used for sending billing account emails. Available in API version 65.0 and later. This field is a relationship field.",
           "relationshipName": "EmailTemplate",
-          "refersTo": "Email template",
+          "refersTo": "EmailTemplate",
           "type": "reference"
         },
         "InvoiceDocumentTemplateId": {
@@ -12069,7 +12069,7 @@
           "description": "The ID of the asset action source related to the asset for which the price adjustment was applied. This field is a relationship field.",
           "relationshipName": "AssetActionSource",
           "relationshipType": "Master-detail",
-          "refersTo": "AssetActionSource (the master object)",
+          "refersTo": "AssetActionSource",
           "type": "reference"
         },
         "AssetId": {
@@ -12717,7 +12717,7 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The legal entity accounting period related to the refund. This field is a relationship field.",
           "relationshipName": "LegalEntityAccountingPeriod",
-          "refersTo": "LegalEntityAccountingPeriod",
+          "refersTo": "LegalEntyAccountingPeriod",
           "type": "reference"
         },
         "LegalEntityId": {
@@ -14202,7 +14202,7 @@
           "description": "The identifier of the decomposition rule. This field is a relationship field.",
           "relationshipName": "DecompositionRule",
           "relationshipType": "Parent-child",
-          "refersTo": "ProductFulfillmentDecompRule (the master object)",
+          "refersTo": "ProductFulfillmentDecompRule",
           "type": "string"
         },
         "DestinationApiName": {
@@ -14380,7 +14380,7 @@
           "description": "The ID of the related quote. This field is a relationship field.",
           "relationshipName": "Quote",
           "relationshipType": "Master-detail",
-          "refersTo": "Quote (the master object)",
+          "refersTo": "Quote",
           "type": "picklist"
         },
         "SegmentType": {
@@ -14713,7 +14713,7 @@
           "type": "string",
           "relationshipName": "PaymentSchedule",
           "relationshipType": "Master-detail",
-          "refersTo": "PaymentSchedule (the master object)"
+          "refersTo": "PaymentSchedule"
         },
         "PaymentScheduleItemNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -14931,7 +14931,7 @@
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ID of the record that the invoice line corresponds to. This field is a polymorphic relationship field.",
           "relationshipName": "GroupReferenceEntityItem",
-          "refersTo": "DebitMemoLine, OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, QuoteLineDetail, ",
+          "refersTo": "DebitMemoLine, OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, OrderItemSummary, QuoteLineDetail, QuoteLineItem",
           "type": "reference"
         },
         "HasMultipleItems": {
@@ -14944,7 +14944,7 @@
           "description": "Required. The end date of the billing for the service for invoice lines made from a time-based service.",
           "relationshipName": "Invoice",
           "relationshipType": "Master-detail",
-          "refersTo": "Invoice (the master object)",
+          "refersTo": "Invoice",
           "type": "date"
         },
         "InvoiceLineStartDate": {
@@ -15248,8 +15248,8 @@
         "InvoiceLineId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The invoice line ID associated with the dispute. This field is a relationship field.",
-          "relationshipName": "Invoice Line",
-          "refersTo": "Invoice Line",
+          "relationshipName": "InvoiceLine",
+          "refersTo": "InvoiceLine",
           "type": "reference"
         },
         "DisputeId": {
@@ -15308,7 +15308,7 @@
           "description": "The product usage resource associated with this policy. This field is a relationship field.",
           "relationshipName": "ProductUsageResource",
           "relationshipType": "Master-detail",
-          "refersTo": "ProductUsageResource (the master object)",
+          "refersTo": "ProductUsageResource",
           "type": "reference"
         },
         "RatingFrequencyPolicyId": {
@@ -15442,7 +15442,7 @@
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the primary billing schedule group. In a bundle relationship, this billing schedule group is the parent. This field is a relationship field.",
           "relationshipName": "MainBsg",
-          "refersTo": "BillingScheduleGroup (the master object)",
+          "refersTo": "BillingScheduleGroup",
           "type": "picklist"
         },
         "MainBsgRole": {
@@ -15718,8 +15718,8 @@
         },
         "OrderItemId": {
           "properties": "Create, Filter, Group, Sort",
-          "description": "The rate card entry containing catalog rates that's associated with the order item rate card entry. This field is a relationship field.",
-          "relationshipName": "RateCardEntry",
+          "description": "The order product that the order item rate card entry belongs to. This field is a relationship field.",
+          "relationshipName": "OrderItem",
           "relationshipType": "Master-detail",
           "refersTo": "OrderItem",
           "type": "reference"
@@ -16078,7 +16078,7 @@
           "description": "The product price range associated with this product price history log record. This field is a relationship field.",
           "relationshipName": "ProductPriceRange",
           "relationshipType": "Master-detail",
-          "refersTo": "ProductPriceRange (the master object)",
+          "refersTo": "ProductPriceRange",
           "type": "currency"
         },
         "TrackedPrice": {
@@ -16430,7 +16430,7 @@
           "description": "Required. The invoice to which the credit memo is applied. This field is a relationship field.",
           "relationshipName": "Invoice",
           "relationshipType": "Master-detail",
-          "refersTo": "Invoice (the master object)",
+          "refersTo": "Invoice",
           "type": "Properties"
         },
         "Type": {
@@ -16872,14 +16872,14 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "For internal use only. This field is a relationship field.",
           "relationshipName": "FulfillmentStepDefinitionGroup",
-          "refersTo": "FulfillmentStepDefinitionGroup (the detail object)",
+          "refersTo": "FulfillmentStepDefinitionGroup",
           "type": "reference"
         },
         "FulfillmentWorkspaceId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the parent fulfillment workspace that's related to this record. This field is a relationship field.",
           "relationshipName": "FulfillmentWorkspace",
-          "refersTo": "FulfillmentWorkspace (the master object)",
+          "refersTo": "FulfillmentWorkspace",
           "type": "string"
         },
         "Name": {
@@ -17037,7 +17037,7 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "Required. The parent sequence policy associated with the sequence policy selection condition. Deleting a sequencing policy automatically removes all its associated criteria. This field is a relationship field.",
           "relationshipName": "SequencePolicy",
-          "refersTo": "SequencePolicy (the master object)",
+          "refersTo": "SequencePolicy",
           "type": "string"
         },
         "SequencePolicySelectionConditionName": {
@@ -17103,7 +17103,7 @@
           "description": "Required. The billing schedule group that contains the billing schedule. Billing schedules are grouped when they have the same source order item. The source order item is the original order item that a customer bought. Afterwards, if the customer amends, cancels, or renews the order item, a new billing schedule is created with the BillingScheduleGroupId for the original order item. This field is a relationship field.",
           "relationshipName": "BillingScheduleGroup",
           "relationshipType": "Master-detail",
-          "refersTo": "BillingScheduleGroup (the master object)",
+          "refersTo": "BillingScheduleGroup",
           "type": "string"
         },
         "BillingScheduleNumber": {
@@ -22028,7 +22028,7 @@
         "ReferenceObjectId": {
           "description": "Reference to ReferenceObject",
           "type": "reference",
-          "refersTo": "ReferenceObject",
+          "refersTo": "OmniProcess",
           "relationshipType": "lookup"
         },
         "Name": {
@@ -26822,7 +26822,7 @@
       "source": "QuoteLineRateCardEntry",
       "target": "QuoteLineItem",
       "field": "QuoteLineItemId",
-      "type": "lookup"
+      "type": "master-detail"
     }
   ]
 }

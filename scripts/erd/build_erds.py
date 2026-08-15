@@ -19,6 +19,7 @@ Output: docs/erds/revenue-cloud-erd.html (patched in place)
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from collections import defaultdict
@@ -133,10 +134,50 @@ def erd_data_to_html_links(erd_data: dict, node_ids: set) -> list:
     return links
 
 
-def patch_html(html_path: str, nodes: list, links: list) -> bool:
-    """Replace the D= data block in the HTML file."""
+RELEASE_NAMES = {"260": "Spring '26", "262": "Summer '26", "264": "Winter '27"}
+
+
+def patch_version_strings(html: str, metadata: dict) -> tuple:
+    """Rewrite the release/API-version strings in the page chrome from metadata.
+
+    The data block and the header used to be updated by different means: this
+    script replaced `const D=`, and the `<title>` and version badge were edited by
+    hand. So the 264 refresh shipped 264 schema under a "v67.0 / Summer '26
+    (Release 262)" banner — the most visible artifact in the change was the one
+    misstating the release. Deriving them here means the header cannot drift from
+    the data it describes.
+    """
+    release = str(metadata.get("release") or "")
+    api = str(metadata.get("apiVersion") or "")
+    if not release or not api:
+        return html, 0
+
+    label = RELEASE_NAMES.get(release)
+    subtitle = f"{label} (Release {release})" if label else f"Release {release}"
+
+    patched = 0
+    for pattern, replacement in (
+        (r"<title>Revenue Cloud v[\d.]+ — Interactive ERD</title>",
+         f"<title>Revenue Cloud v{api} — Interactive ERD</title>"),
+        (r'<span class="ver-badge">v[\d.]+</span>',
+         f'<span class="ver-badge">v{api}</span>'),
+        (r"<small>[^<]*\(Release \d+\)\s*&mdash;",
+         f"<small>{subtitle} &mdash;"),
+    ):
+        html, n = re.subn(pattern, replacement, html)
+        patched += n
+
+    return html, patched
+
+
+def patch_html(html_path: str, nodes: list, links: list, metadata: dict = None) -> bool:
+    """Replace the D= data block in the HTML file, and the version strings with it."""
     with open(html_path, "r") as f:
         html = f.read()
+
+    if metadata:
+        html, patched = patch_version_strings(html, metadata)
+        print(f"  Version strings patched: {patched}")
 
     # Find D= block boundaries
     marker = "const D="
@@ -240,7 +281,7 @@ def main():
     print(f"  {len(nodes)} nodes, {len(links)} links")
 
     print(f"Patching {html_file}...")
-    if patch_html(str(html_file), nodes, links):
+    if patch_html(str(html_file), nodes, links, erd_data.get("metadata")):
         print(f"✓ Patched successfully")
         verify(str(html_file))
         return 0

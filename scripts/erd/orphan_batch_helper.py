@@ -244,7 +244,7 @@ def cmd_validate(args):
     """Run cleanup_orphan_erd_fields against both orgs to produce post-batch report."""
     report_out = REPO / "docs" / "erds" / f"orphan-candidates-after-batch{args.batch}.md"
     cmd = [
-        "python3", str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
+        sys.executable, str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
         "--orgs", "ent-r1,rlm-base__ent-sb0",
         "--dry-run",
         "--report", str(report_out),
@@ -262,9 +262,12 @@ def cmd_validate(args):
     # the batch workflow happily reported success. Capture the result, log
     # stderr on failure, and propagate the worse of the two return codes so
     # callers (and CI) actually see the breakage.
+    # sys.executable, not "python3": the sibling ERD scripts need 3.10+ (diff_schemas.py
+    # fails at import on 3.9), and on a workstation where `python3` is the pyenv shim it
+    # can easily be 3.9 even when this helper was launched under the CumulusCI venv.
     print("\nRegenerating HTML...")
     html_result = subprocess.run(
-        ["python3", str(REPO / "scripts" / "erd" / "build_erds.py")],
+        [sys.executable, str(REPO / "scripts" / "erd" / "build_erds.py")],
         capture_output=True, text=True,
     )
     if html_result.returncode != 0:

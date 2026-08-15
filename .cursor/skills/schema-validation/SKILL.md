@@ -93,9 +93,30 @@ python scripts/erd/build_erds.py
 #    missing relationships 0, and orphans reduced by exactly the release's removals.
 ```
 
-Then sweep the figures out of the docs that restate them — `docs/erds/README.md`,
-`.cursor/skills/revenue-cloud-data-model/SKILL.md`, and this file all carry object
-and field counts that go stale silently.
+Then sweep the figures out of the **four** docs that restate them —
+`docs/erds/README.md`, `.cursor/skills/revenue-cloud-data-model/SKILL.md`,
+`scripts/ai/README.md`, and this file. All four carry object and field counts with no
+generator behind them, so they go stale silently. The 262→264 refresh swept the first
+two and this one and **missed `scripts/ai/README.md`**, leaving `query_erd.py stats`
+printing 264 figures while its own README described 262 — so sweep by grepping the
+outgoing numbers, not by walking a list from memory.
+
+Two other things the same refresh had to fix by hand, worth checking rather than
+assuming:
+
+- **`validate_erd_against_org.py --patch` corrects `refersTo` but not
+  `relationshipName` or `description`.** Those three name the same target, so a
+  repaired field can end up asserting a correct `refersTo` beside a
+  `relationshipName` and a description belonging to the *old, wrong* target. That is
+  worse than a uniformly wrong field, because two of the three still read as
+  authoritative — and `relationshipName` is the SOQL parent-traversal token, so a
+  stale one is a hard `INVALID_FIELD`. Sweep all three against the org describe
+  together.
+- **`refersTo` must match an ERD node key exactly.** `query_erd.build_relationship_index`
+  tests `ref in erd["objects"]`, which is case-sensitive, so a target that is right in
+  API terms but spelled differently from the node key (`PricebookEntry` vs the node
+  `PriceBookEntry`) makes traversal stop silently rather than error. The same applies to
+  a target carrying a parenthetical like `Invoice (the master object)`.
 
 ### B. Verify a single field's ownership against Core source
 
