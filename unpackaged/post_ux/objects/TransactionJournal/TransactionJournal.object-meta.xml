@@ -17,6 +17,14 @@
 
   Do not re-add compactLayoutAssignment here without re-testing on a fresh 264
   org. It will fail the whole assemble_and_deploy_ux step.
+
+  Why keep a file whose CustomObject element is now empty: it is functionally
+  inert and deliberately so. Converting the assembled object directory with and
+  without this file produces byte-identical metadata output and an identical
+  package.xml, so the sibling compactLayout does not depend on it. The file is
+  retained only because this is the path someone would open before re-adding the
+  assignment, and it is the one place the warning above will actually be read.
+  Deleting it costs nothing at deploy time and loses the warning.
 -->
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
 </CustomObject>
