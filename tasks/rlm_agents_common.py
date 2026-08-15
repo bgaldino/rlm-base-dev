@@ -88,6 +88,9 @@ def _strip_cli_noise(text):
     return " ".join(keep)
 
 
+_MAX_STREAM_CHARS = 600
+
+
 def _failure_detail(result, payload):
     """Build a failure description that cannot come out empty or misleading.
 
@@ -102,13 +105,24 @@ def _failure_detail(result, payload):
         value = str(payload.get(key) or "").strip()
         if value and value not in parts:
             parts.append(value)
+    summarized = bool(parts)
     for label, stream in (("stderr", result.stderr), ("stdout", result.stdout)):
-        # stdout is only worth quoting when it was not already parsed as the
-        # envelope above; a full JSON dump in an error line is noise.
-        if label == "stdout" and payload:
+        # stdout is suppressed only when the envelope above actually produced a
+        # summary; a full JSON dump alongside a real message is noise. Keying this
+        # on `payload` being non-empty was a bug of exactly the kind this function
+        # exists to prevent: a JSON envelope carrying its cause somewhere other
+        # than `name`/`message` -- nested under `result`, say -- contributed
+        # nothing, suppressed stdout anyway, and after the update notice was
+        # stripped from stderr the whole report degraded to `exit 1`.
+        if label == "stdout" and summarized:
             continue
         cleaned = _strip_cli_noise(stream)
         if cleaned:
+            # Truncated because the alternative to a long line here is not a short
+            # line, it is no information: an envelope that parsed but hid its cause
+            # is reported through this path, and those can be large.
+            if len(cleaned) > _MAX_STREAM_CHARS:
+                cleaned = cleaned[:_MAX_STREAM_CHARS] + "… (truncated)"
             parts.append(f"{label}: {cleaned}")
     parts.append(f"exit {result.returncode}")
     return " | ".join(parts)

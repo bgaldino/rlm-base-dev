@@ -70,8 +70,15 @@ def _stub_run(result=None, raises=None):
     return calls
 
 
+# Captured once, at import, before any stub can be installed. `common.subprocess`
+# is the shared module object, so stubbing sets `subprocess.run` globally -- and
+# restoring from `subprocess.run` would therefore reinstall the stub, leaking it
+# into every later check and making in-process subprocess use order-dependent.
+_REAL_RUN = subprocess.run
+
+
 def _restore():
-    common.subprocess.run = subprocess.run
+    common.subprocess.run = _REAL_RUN
 
 
 def _failure_message(returncode=1, stdout="", stderr=""):
@@ -134,7 +141,54 @@ def check_an_envelope_with_no_message_still_explains_itself(_):
     """A `{"status":1}` envelope with no message must not produce an empty reason."""
     msg = _failure_message(returncode=1, stdout='{"status":1}')
     check("empty_envelope_still_has_a_reason", msg.strip().endswith("exit 1"), msg)
-    check("empty_envelope_reason_is_not_blank", "failed: exit 1" in msg, msg)
+    check("empty_envelope_reason_is_not_blank", msg.strip() != "exit 1", msg)
+    check("empty_envelope_shows_what_it_got", '{"status":1}' in msg, msg)
+
+
+def check_a_cause_hidden_below_name_and_message_is_still_reported(_):
+    """The regression this function exists to prevent, one level deeper.
+
+    `sf` can return a parsed envelope whose cause sits somewhere other than
+    `name`/`message` -- nested under `result`, typically. Suppressing stdout
+    because *a* payload parsed, rather than because the payload actually said
+    something, degraded the whole report to `exit 1` once the update notice was
+    stripped from stderr: the same silence, arrived at by a different route.
+    """
+    nested = ('{"status":1,"result":{"failures":[{"error":"AGENT_NOT_ACTIVATABLE",'
+              '"detail":"no active version"}]}}')
+    msg = _failure_message(returncode=1, stdout=nested, stderr=UPDATE_NOTICE)
+    check("hidden_cause_is_surfaced", "AGENT_NOT_ACTIVATABLE" in msg, msg)
+    check("hidden_cause_detail_is_surfaced", "no active version" in msg, msg)
+    check("hidden_cause_is_not_just_the_exit_code", msg.strip() != "exit 1", msg)
+    check("hidden_cause_does_not_reintroduce_the_notice", "update available" not in msg, msg)
+
+    # A real message must still suppress the dump, or every error grows a JSON tail.
+    plain = _failure_message(returncode=1, stdout='{"status":1,"message":"real cause"}')
+    check("a_real_message_does_not_also_dump_the_envelope", "status" not in plain, plain)
+
+    # Large payloads are truncated rather than made unreadable.
+    big = '{"status":1,"result":{"blob":"' + "x" * 2000 + '"}}'
+    msg = _failure_message(returncode=1, stdout=big)
+    check("an_oversized_payload_is_truncated",
+          len(msg) < 900 and "(truncated)" in msg, str(len(msg)))
+
+
+def check_the_stub_is_actually_restored(_):
+    """Guards the harness, not the code -- a leaked stub invalidates every check.
+
+    `common.subprocess` is the shared module object, so installing a stub sets
+    `subprocess.run` globally; restoring *from* `subprocess.run` reinstalled the
+    stub instead of the real function and leaked it into everything after.
+    """
+    _stub_run(_Result(0, "{}"))
+    check("stub_is_installed", common.subprocess.run is not _REAL_RUN, "stub did not take")
+    _restore()
+    check("stub_is_removed", common.subprocess.run is _REAL_RUN, "stub leaked past _restore")
+    check("module_level_run_is_the_real_one", subprocess.run is _REAL_RUN,
+          "the shared subprocess module is still stubbed")
+    # And it genuinely runs a process again.
+    done = subprocess.run([sys.executable, "-c", "print('ok')"], capture_output=True, text=True)
+    check("real_subprocess_works_after_restore", done.stdout.strip() == "ok", done.stdout)
 
 
 def check_success_returns_the_parsed_envelope(_):
@@ -188,6 +242,8 @@ def main():
     print("=" * 100)
     for fn in (
         check_the_update_notice_never_stands_in_for_a_cause,
+        check_a_cause_hidden_below_name_and_message_is_still_reported,
+        check_the_stub_is_actually_restored,
         check_a_real_stderr_message_is_kept_even_alongside_the_notice,
         check_envelope_name_and_message_are_both_reported,
         check_a_nonzero_status_with_exit_zero_still_fails,
