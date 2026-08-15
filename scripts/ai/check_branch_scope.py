@@ -35,6 +35,18 @@ yet and each signal is blind to one of those cases:
    fallback would resolve a fork PR on a branch named `264` or `main` to *our*
    branch of that name. Signal 1 still covers both branches.
 
+**What a clean result does and does not prove.** `git cherry`'s `+` means "no
+patch-equivalent commit found upstream" -- which is not the same as "this branch
+owns it", and the output says so rather than claiming otherwise. The residual gap
+is narrow but real: an inherited commit whose upstream counterpart was **amended
+or squash-combined** before merging has different content, so signal 1 finds no
+match, and its PR is closed, so signal 2 does not list it. Both signals are blind
+to that case. It did not arise in #264-56 (all five inherited commits were
+patch-identical to their merged versions, which is why `git cherry` marked exactly
+those five), and the case that *did* bite -- a stack on an unmerged PR -- is what
+signal 2 covers. Treat a clean result as "neither known contamination shape is
+present", not as proof of authorship; the diff review still has to happen.
+
 A note on what does *not* work, so neither gets substituted:
 `git merge-base --is-ancestor <commit> <base>` is not a detector. Inherited
 commits are not ancestors of the base -- but neither is any legitimate new
@@ -254,8 +266,15 @@ def _check(args, ap):
               f"{other['title']}")
 
     if not foreign and not stacked:
+        # Deliberately states what was *checked*, not that the branch is clean in
+        # some absolute sense. Neither signal can see an inherited commit whose
+        # upstream counterpart was amended or squash-combined before merging: its
+        # content differs, so there is no patch to match, and its PR is closed so
+        # it is not in the open list either. Saying "all N are the branch's own"
+        # promises more than patch-id can deliver.
         if total:
-            print(f"\nclean: {label} — all {total} non-merge commit(s) are the branch's own")
+            print(f"\nclean: {label} — none of the {total} non-merge commit(s) are "
+                  "upstream, and no open PR is contained")
         else:
             print(f"clean: {label} — no commits ahead of base")
         return 0

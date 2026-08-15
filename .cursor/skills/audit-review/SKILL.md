@@ -209,6 +209,15 @@ diff too, and it must not merge before the parent.
 > check's branch and the patch-id signal reported clean — the exact mistake the
 > check exists to stop, one commit removed.
 
+**A clean result is not proof of authorship**, and the check's output is worded to
+say so. `git cherry`'s `+` means only that no patch-equivalent commit was found
+upstream. Both signals are blind to one shape: an inherited commit whose upstream
+counterpart was **amended or squash-combined** before merging has different content
+(nothing for patch-id to match) and a closed PR (nothing for signal 2 to list).
+That shape did not arise in #264-56 — all five inherited commits were
+patch-identical to their merged versions — but a clean result means "neither known
+contamination shape is present", so Step 1 onward still does the diff review.
+
 Two weaker checks were tried and both fail — worth knowing so neither gets
 substituted:
 

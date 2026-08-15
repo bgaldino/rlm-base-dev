@@ -125,7 +125,7 @@ def test_clean_branch(root):
     commit(cwd, "b.txt", "b\n", "own commit two")
     rc, out = run_check(cwd, "--base", "base", "--head", "feature")
     check("clean branch exits 0", rc == 0, f"rc={rc}\n{out}")
-    check("clean branch counts its own commits", "all 2 non-merge commit(s)" in out, out)
+    check("clean branch counts its own commits", "none of the 2 non-merge commit(s)" in out, out)
     check("clean branch reports no foreign", "FOREIGN" not in out, out)
 
 
@@ -173,7 +173,7 @@ def test_264_56_shape(root):
     rc, out = run_check(cwd, "--base", "base", "--head", "feature")
     check("rebased branch exits 0", rc == 0, f"rc={rc}\n{out}")
     check("rebased branch has only its own three",
-          "all 3 non-merge commit(s)" in out, out)
+          "none of the 3 non-merge commit(s)" in out, out)
 
 
 def test_true_merge_is_not_a_finding(root):
@@ -192,7 +192,7 @@ def test_true_merge_is_not_a_finding(root):
     # false positive on every branch cut from a merged parent.
     check("true-merged parent leaves nothing to report", rc == 0, f"rc={rc}\n{out}")
     check("only the branch's own commit is counted",
-          "all 1 non-merge commit(s)" in out, out)
+          "none of the 1 non-merge commit(s)" in out, out)
 
 
 def test_reworded_subject(root):

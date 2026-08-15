@@ -177,6 +177,14 @@ signal is blind to one of those cases:
    **fork's** head, which is not in this checkout, where the `<remote>/<branch>`
    fallback would resolve a fork PR on a branch named `264` to *our* `264`.
 
+A clean result means "neither known contamination shape is present", not "this
+branch owns every commit" — `git cherry`'s `+` only says no patch-equivalent commit
+was found upstream. The residual gap: an inherited commit whose upstream
+counterpart was **amended or squash-combined** before merging has different
+content (so signal 1 finds no match) and a closed PR (so signal 2 does not list
+it). It did not arise in `#264-56` — all five inherited commits were
+patch-identical to their merged versions — but the diff review still has to happen.
+
 Two weaker checks were tried and rejected — `merge-base --is-ancestor` against the
 *base* cannot separate an inherited commit from a legitimate new one, and
 subject-matching breaks on a reworded subject. Exit 0 clean, 1 findings, 2
