@@ -574,13 +574,9 @@ public with sharing class RLM_UsageUploaderController {
         // Collect IDs
         Set<Id> tueIds = new Set<Id>();
         Set<Id> usageResourceIds = new Set<Id>();
-        Set<Id> productIds = new Set<Id>();
         for (TransactionUsageEntitlement tue : tues) {
             tueIds.add(tue.Id);
             usageResourceIds.add(tue.UsageResourceId);
-            if (tue.ProductId != null) {
-                productIds.add(tue.ProductId);
-            }
         }
 
         // Query Usage Resource names
@@ -591,63 +587,13 @@ public with sharing class RLM_UsageUploaderController {
             resourceNames.put(ur.Id, ur.Name);
         }
 
-        // Overage chargeability is no longer readable from the entitlement. 264 removed
+        // Overage chargeability is no longer readable from the entitlement: 264 removed
         // TransactionUsageEntitlement.ChargeForOverage (along with DrawdownOrder,
         // RatingFrequencyPolicyId and UsageAggregationPolicyId), leaving no overage field or
-        // policy lookup on the object at all, so the value has to come from the governing
-        // UsageOveragePolicy by way of the product's policy row for that resource.
-        //
-        // ProductUsageResourcePolicy hangs off a ProductUsageResource, which is a
-        // product-AND-resource pair, so the resource alone is NOT a unique key. Keying on
-        // the resource collapses those rows and leaves whichever SOQL returned last, which
-        // reports a different product's overage setting for this entitlement. The map is
-        // therefore keyed on product + resource.
-        //
-        // This keying is defensive, not a live bug fix. Measured on a built 264 org: 6 of
-        // the 7 usage resources ARE shared across products (Quantum Tokens by six), but
-        // only an Anchor product's PURP may carry a UsageOveragePolicy -- the platform
-        // rejects it on a Pack ("Change the product usage model type from Pack to another
-        // valid option") and on a Commit -- and no two Anchor products share a resource in
-        // the bundled data. So the resource-keyed version could not actually have returned
-        // a wrong value here.
-        //
-        // It becomes reachable the moment two Anchor products share one usage resource,
-        // which nothing prevents. Keyed correctly now because the collapse is silent when
-        // it does happen: a plausible Yes/No, no error, on a screen an end user trusts.
-        //
-        // The product half is the entitlement's own ProductId. That field is
-        // platform-maintained (createable=false, updateable=false) because
-        // TransactionUsageEntitlement is transactional -- the record, and this field with it,
-        // is written by the order/assetization pipeline. It is deliberately NOT defaulted to
-        // the asset's Product2Id: for a bundle asset the asset's product need not be the
-        // product that governs a given entitlement's resource, so that substitution would
-        // reintroduce the same wrong-product reading this keying exists to remove.
-        //
-        // An entitlement with no product, or whose product has no policy row for the
-        // resource, yields no key and leaves chargeForOverage null. Absent is a truthful
-        // answer; a resource-wide guess is not.
-        //
-        // The domain is unchanged -- OverageChargeable is a Yes/No picklist, as
-        // ChargeForOverage was -- so the wrapper field and the LWC are untouched.
-        Map<String, String> overageByProductResource = new Map<String, String>();
-        for (ProductUsageResourcePolicy purp : [
-            SELECT ProductUsageResource.ProductId,
-                   ProductUsageResource.UsageResourceId,
-                   UsageOveragePolicy.OverageChargeable
-            FROM ProductUsageResourcePolicy
-            WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
-              AND ProductUsageResource.ProductId IN :productIds
-              AND UsageOveragePolicyId != null
-            WITH USER_MODE
-        ]) {
-            overageByProductResource.put(
-                overageKey(
-                    purp.ProductUsageResource.ProductId,
-                    purp.ProductUsageResource.UsageResourceId
-                ),
-                purp.UsageOveragePolicy.OverageChargeable
-            );
-        }
+        // policy lookup on the object, so it must come from the governing UsageOveragePolicy
+        // by way of ProductUsageResourcePolicy. See OverageLookup for the resolution order
+        // and why the resource, not just the product-resource pair, has to be consulted.
+        OverageLookup overage = loadOverageLookup(usageResourceIds);
 
         // Query the current-period entitlement buckets (child buckets with a parent)
         // These contain the actual balance and consumption for the current period
@@ -678,9 +624,7 @@ public with sharing class RLM_UsageUploaderController {
             w.entitlementQuantity = tue.EntitlementQuantity;
             w.usageModelType = tue.UsageModelType;
             w.grantType = tue.GrantType;
-            w.chargeForOverage = overageByProductResource.get(
-                overageKey(tue.ProductId, tue.UsageResourceId)
-            );
+            w.chargeForOverage = overage.resolve(tue.ProductId, tue.UsageResourceId);
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
@@ -699,18 +643,108 @@ public with sharing class RLM_UsageUploaderController {
     }
 
     /**
-     * Composite key for the overage-policy map.
+     * Loads the overage policies governing a set of usage resources.
      *
-     * ProductUsageResourcePolicy is scoped to a product-and-resource pair, so both halves
-     * are required to identify the governing policy. Returns null when either half is
-     * missing, so an unkeyable entitlement misses the map rather than colliding with a
-     * partially-matching row.
+     * Deliberately NOT filtered to the entitlements' own products: the policy that governs a
+     * Pack or Commit entitlement belongs to the resource's Anchor product, which is usually
+     * not among them. See OverageLookup for the resolution order.
      */
     @TestVisible
-    private static String overageKey(Id productId, Id usageResourceId) {
-        if (productId == null || usageResourceId == null) {
-            return null;
+    private static OverageLookup loadOverageLookup(Set<Id> usageResourceIds) {
+        OverageLookup lookup = new OverageLookup();
+        if (usageResourceIds == null || usageResourceIds.isEmpty()) {
+            return lookup;
         }
-        return String.valueOf(productId) + '|' + String.valueOf(usageResourceId);
+        try {
+            for (ProductUsageResourcePolicy purp : [
+                SELECT ProductUsageResource.ProductId,
+                       ProductUsageResource.UsageResourceId,
+                       UsageOveragePolicy.OverageChargeable
+                FROM ProductUsageResourcePolicy
+                WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
+                  AND UsageOveragePolicyId != null
+                WITH USER_MODE
+            ]) {
+                lookup.add(
+                    purp.ProductUsageResource.ProductId,
+                    purp.ProductUsageResource.UsageResourceId,
+                    purp.UsageOveragePolicy.OverageChargeable
+                );
+            }
+        } catch (QueryException e) {
+            // USER_MODE throws when the caller lacks read on the policy chain, and nothing in
+            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy. Rates and
+            // grants are the point of this screen, so a missing grant on one optional column
+            // must not fail the whole wire: degrade to blank, exactly as an absent policy does.
+            return new OverageLookup();
+        }
+        return lookup;
+    }
+
+    /**
+     * Resolves an entitlement's overage chargeability from the product usage resource policies.
+     *
+     * Only an Anchor product's policy row may carry a UsageOveragePolicy — the platform rejects
+     * it on Pack and on Commit products — so overage is an anchor-level property of the
+     * *resource*, and a Pack or Commit entitlement has no policy row under its own product.
+     * Resolution order follows from that:
+     *
+     *   1. the entitlement's own product+resource row, when it has one (the Anchor case);
+     *   2. otherwise the resource's row, when exactly one overage value governs the resource;
+     *   3. otherwise null.
+     *
+     * Step 2 is what keeps a Pack or Commit grant showing the Yes/No the customer is actually
+     * subject to; without it every non-Anchor entitlement renders blank. Step 3 covers the two
+     * ways the answer is genuinely unknown — two Anchors disagreeing about one resource, or two
+     * selling-model rows disagreeing about one product+resource pair. Both are schema-legal, and
+     * a plausible-looking guess on a screen an end user trusts is worse than a blank.
+     */
+    @TestVisible
+    private class OverageLookup {
+        private Map<String, String> byProductResource = new Map<String, String>();
+        private Set<String> conflictingPairs = new Set<String>();
+        private Map<Id, String> byResource = new Map<Id, String>();
+        private Set<Id> conflictingResources = new Set<Id>();
+
+        @TestVisible
+        private void add(Id productId, Id usageResourceId, String overageChargeable) {
+            if (usageResourceId == null) {
+                return;
+            }
+
+            String pair = productId == null ? null : productId + '|' + usageResourceId;
+            if (pair != null && !conflictingPairs.contains(pair)) {
+                if (!byProductResource.containsKey(pair)) {
+                    byProductResource.put(pair, overageChargeable);
+                } else if (byProductResource.get(pair) != overageChargeable) {
+                    conflictingPairs.add(pair);
+                    byProductResource.remove(pair);
+                }
+            }
+
+            if (conflictingResources.contains(usageResourceId)) {
+                return;
+            }
+            if (!byResource.containsKey(usageResourceId)) {
+                byResource.put(usageResourceId, overageChargeable);
+            } else if (byResource.get(usageResourceId) != overageChargeable) {
+                conflictingResources.add(usageResourceId);
+                byResource.remove(usageResourceId);
+            }
+        }
+
+        @TestVisible
+        private String resolve(Id productId, Id usageResourceId) {
+            if (productId != null) {
+                String pair = productId + '|' + usageResourceId;
+                if (conflictingPairs.contains(pair)) {
+                    return null;
+                }
+                if (byProductResource.containsKey(pair)) {
+                    return byProductResource.get(pair);
+                }
+            }
+            return byResource.get(usageResourceId);
+        }
     }
 }

@@ -441,59 +441,244 @@ private class RLM_UsageUploaderControllerTest {
         System.assertEquals(0, grants.size(), 'Asset without entitlements should return empty list');
     }
 
+    // ─── Overage resolution ───────────────────────────────────────────
+    //
+    // 264 removed TransactionUsageEntitlement.ChargeForOverage, so overage is re-sourced from
+    // ProductUsageResourcePolicy. These tests drive OverageLookup directly, which is the seam
+    // that makes the resolution assertable: TransactionUsageEntitlement is transactional and
+    // its ProductId is not createable, so a test cannot insert an entitlement to drive
+    // getGrantsForAsset end to end — but it can assert the exact logic that reads one.
+
     /**
-     * The overage lookup is keyed on product + resource, not resource alone, because
-     * ProductUsageResourcePolicy belongs to a product-and-resource pair and several products
-     * in the bundled datasets share one resource. Keying on the resource alone collapsed
-     * those rows and could report another product's setting.
-     *
-     * These assertions cover the composite key itself: two products sharing one resource must
-     * produce two distinct keys, and an unresolvable half must produce no key rather than a
-     * partial match.
-     *
-     * A positive assertion on the returned chargeForOverage value is deliberately NOT
-     * attempted here. TransactionUsageEntitlement is transactional — the platform writes it
-     * (and its non-createable ProductId) during order activation and assetization — so
-     * hand-inserting one would assert against a record shape the pipeline never produces.
-     * That verification belongs to a functional run through the usage pipeline.
+     * An Anchor entitlement resolves from its own product+resource row.
      */
     @IsTest
-    static void testOverageKey_ScopesByProductAndResource() {
+    static void testOverageLookup_ResolvesOwnProductResourceRow() {
         Asset ast = getTestAsset();
         UsageResource ur = getTestUsageResource();
 
-        Product2 otherProduct = new Product2(
-            Name = 'Second Usage Product',
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+
+        System.assertEquals(
+            'Yes',
+            lookup.resolve(ast.Product2Id, ur.Id),
+            'An Anchor entitlement must resolve from its own product+resource policy row'
+        );
+    }
+
+    /**
+     * Regression lock for the Pack and Commit case.
+     *
+     * Only an Anchor product's policy row may carry a UsageOveragePolicy — the platform rejects
+     * it on Pack and Commit — so a Pack or Commit entitlement never has a row under its own
+     * product. It must fall back to the resource's Anchor-owned value. Resolving strictly on
+     * product+resource blanks these out: on the built 264 org, 8 of 14 entitlements are
+     * non-Anchor and 7 of them share a resource with an Anchor that does carry a policy.
+     */
+    @IsTest
+    static void testOverageLookup_FallsBackToResourceForNonAnchorProduct() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        Product2 packProduct = new Product2(
+            Name = 'Pack Sharing The Anchor Resource',
+            IsActive = true,
+            UsageModelType = 'Pack'
+        );
+        insert packProduct;
+
+        // Only the Anchor has a policy row, which is the only shape the platform allows.
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+
+        System.assertEquals(
+            'Yes',
+            lookup.resolve(packProduct.Id, ur.Id),
+            'A Pack entitlement must inherit the resource\'s Anchor-owned overage value, not blank'
+        );
+    }
+
+    /**
+     * Two Anchors disagreeing about one resource is genuinely ambiguous, so the fallback must
+     * withdraw rather than return whichever row SOQL happened to yield last.
+     */
+    @IsTest
+    static void testOverageLookup_WithholdsWhenTwoProductsDisagreeOnOneResource() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        Product2 secondAnchor = new Product2(
+            Name = 'Second Anchor On Same Resource',
             IsActive = true,
             UsageModelType = 'Anchor'
         );
-        insert otherProduct;
+        insert secondAnchor;
 
-        // Same resource, two different products: the case that used to collide.
-        String keyForAssetProduct = RLM_UsageUploaderController.overageKey(ast.Product2Id, ur.Id);
-        String keyForOtherProduct = RLM_UsageUploaderController.overageKey(otherProduct.Id, ur.Id);
-
-        System.assertNotEquals(
-            keyForAssetProduct,
-            keyForOtherProduct,
-            'Two products sharing one usage resource must not collapse to the same key'
+        Product2 unrelatedPack = new Product2(
+            Name = 'Pack With No Row Of Its Own',
+            IsActive = true,
+            UsageModelType = 'Pack'
         );
+        insert unrelatedPack;
 
-        System.assertEquals(
-            keyForAssetProduct,
-            RLM_UsageUploaderController.overageKey(ast.Product2Id, ur.Id),
-            'Key must be stable for the same product and resource'
-        );
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+        lookup.add(secondAnchor.Id, ur.Id, 'No');
 
         System.assertEquals(
             null,
-            RLM_UsageUploaderController.overageKey(null, ur.Id),
-            'A missing product must yield no key rather than matching on resource alone'
+            lookup.resolve(unrelatedPack.Id, ur.Id),
+            'A resource two Anchors disagree about must resolve to null, not to either value'
+        );
+
+        // Each Anchor still resolves its own row unambiguously.
+        System.assertEquals(
+            'Yes',
+            lookup.resolve(ast.Product2Id, ur.Id),
+            'An exact product+resource match must survive resource-level ambiguity'
+        );
+        System.assertEquals(
+            'No',
+            lookup.resolve(secondAnchor.Id, ur.Id),
+            'An exact product+resource match must survive resource-level ambiguity'
+        );
+    }
+
+    /**
+     * ProductUsageResourcePolicy also carries ProductSellingModelId, so two rows for one
+     * product+resource pair are schema-legal. Disagreeing rows must withhold rather than let
+     * SOQL order decide.
+     */
+    @IsTest
+    static void testOverageLookup_WithholdsWhenOnePairHasConflictingRows() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+        lookup.add(ast.Product2Id, ur.Id, 'No');
+
+        System.assertEquals(
+            null,
+            lookup.resolve(ast.Product2Id, ur.Id),
+            'Conflicting rows for one product+resource pair must resolve to null'
+        );
+    }
+
+    /**
+     * A resource with no overage policy at all resolves to null, and a null resource cannot
+     * match on the product alone.
+     */
+    @IsTest
+    static void testOverageLookup_ResolvesNullWhenNothingGoverns() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        RLM_UsageUploaderController.OverageLookup empty =
+            new RLM_UsageUploaderController.OverageLookup();
+
+        System.assertEquals(
+            null,
+            empty.resolve(ast.Product2Id, ur.Id),
+            'A resource with no overage policy must resolve to null'
         );
         System.assertEquals(
             null,
-            RLM_UsageUploaderController.overageKey(ast.Product2Id, null),
-            'A missing resource must yield no key rather than matching on product alone'
+            empty.resolve(ast.Product2Id, null),
+            'A missing resource must not match on the product alone'
+        );
+
+        // A row with no resource is unkeyable and must be ignored outright.
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, null, 'Yes');
+        System.assertEquals(
+            null,
+            lookup.resolve(ast.Product2Id, ur.Id),
+            'A policy row with no usage resource must not be resolvable'
+        );
+    }
+
+    /**
+     * Covers the query itself — the traversal, the UsageOveragePolicyId filter, and USER_MODE —
+     * against real ProductUsageResourcePolicy and UsageOveragePolicy records.
+     */
+    @IsTest
+    static void testLoadOverageLookup_ReadsPolicyFromTheOrg() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        ProductUsageResource pur = [
+            SELECT Id, ProductId, UsageResourceId FROM ProductUsageResource LIMIT 1
+        ];
+
+        UsageOveragePolicy overagePolicy = new UsageOveragePolicy(
+            Name = 'Test Overage Policy',
+            OverageChargeable = 'Yes'
+        );
+        insert overagePolicy;
+
+        // The platform requires a rating frequency alongside the overage policy whenever the
+        // product is Anchor — "Complete this field when the product associated with the product
+        // usage resource is of Anchor usage model type" — which is the same Anchor-centric rule
+        // that makes the resource-level fallback in OverageLookup necessary.
+        RatingFrequencyPolicy ratingPolicy = new RatingFrequencyPolicy(
+            Name = 'Test Rating Frequency Policy',
+            RatingPeriod = 'Monthly'
+        );
+        insert ratingPolicy;
+
+        // UsageAggregationPolicyId points at UsageResourceBillingPolicy, not at an object of
+        // the field's own name, and is required on an Anchor row for the same reason.
+        UsageResourceBillingPolicy aggregationPolicy = new UsageResourceBillingPolicy(
+            Name = 'Test Aggregation Policy',
+            Code = 'TEST_AGG',
+            Status = 'Draft'
+        );
+        insert aggregationPolicy;
+
+        insert new ProductUsageResourcePolicy(
+            ProductUsageResourceId = pur.Id,
+            UsageOveragePolicyId = overagePolicy.Id,
+            RatingFrequencyPolicyId = ratingPolicy.Id,
+            UsageAggregationPolicyId = aggregationPolicy.Id
+        );
+
+        Test.startTest();
+        RLM_UsageUploaderController.OverageLookup lookup =
+            RLM_UsageUploaderController.loadOverageLookup(new Set<Id>{ ur.Id });
+        Test.stopTest();
+
+        System.assertEquals(
+            'Yes',
+            lookup.resolve(pur.ProductId, ur.Id),
+            'The policy row inserted for this product and resource must be readable'
+        );
+    }
+
+    /**
+     * No resources means no query and an empty lookup, not a wasted SOQL call.
+     */
+    @IsTest
+    static void testLoadOverageLookup_SkipsQueryWhenNoResources() {
+        Integer before = Limits.getQueries();
+
+        RLM_UsageUploaderController.OverageLookup lookup =
+            RLM_UsageUploaderController.loadOverageLookup(new Set<Id>());
+
+        System.assertEquals(
+            before,
+            Limits.getQueries(),
+            'An empty resource set must not consume a SOQL query'
+        );
+        System.assertEquals(
+            null,
+            lookup.resolve(getTestAsset().Product2Id, getTestUsageResource().Id),
+            'An empty lookup must resolve to null'
         );
     }
 
