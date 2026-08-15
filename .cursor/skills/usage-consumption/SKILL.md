@@ -118,21 +118,30 @@ sf apex run --file scripts/apex/consumeUsageProfile.apex --target-org <alias>
 python scripts/qb_usage.py orchestrate --org <alias> [--passes N] [--interval SECS]
 ```
 
-Rating is asynchronous and multi-stage. The command loops until journals stop
-moving — which means **aggregated, not rated**. Rating continues afterwards in
-Data Processing Engine jobs (`Create_Liable_Summary_v4`, `Create_Usage_Summary_v4`,
-`Create Ratable Summary For …`), so "all journals processed" is not a completion
-signal for step 4. Wait for those before validating, or you will see
-`New`/`InProgress` summaries and read a healthy run as a failure:
+Rating is asynchronous and multi-stage, and zero pending journals means
+**aggregated, not rated** — rating finishes afterwards in Data Processing Engine
+jobs. **Branch on the exit code, not on the last line of output:**
+
+| Exit | Meaning |
+|------|---------|
+| `0` | Journals aggregated **and** rating jobs settled — safe to verify |
+| `1` | Not ready: journals still pending, or rating jobs still running |
+| `2` | Stalled with journals pending — usually stranded behind a period that closed before the usage was recorded |
+
+The command polls the rating jobs itself, so exit `0` already covers them; treat exit
+`1` as "check again", not as a failed run. Contract is stated at the top of
+`scripts/qb_usage.py`. A job that starts after the final poll is the one case the exit
+code cannot cover, so confirm before verifying:
 
 ```bash
 sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
 ```
 
-That query keys on **status, not job name** — deliberately. The `_v3` names these jobs
-carried through 262 are *absent* on 264, not merely renamed, so a wait keyed to a name
-matches nothing and reads as "rating finished" the moment it starts. See
-`docs/guides/usage-consumption-runbook.md` → *Step 3* for the measured timings.
+That query keys on **status, not job name** — deliberately, and so does the script. The
+`_v3` names these jobs carried through 262 are *absent* on 264, not merely renamed, so a
+hand-written wait keyed to a name matches nothing and reads as "rating finished" the
+moment it starts. See `docs/guides/usage-consumption-runbook.md` → *Step 3* for the
+measured timings.
 
 Watch for batch failures rather than assuming success —
 `troubleshooting/SKILL.md` → *Async rating/entitlement batch failed*.

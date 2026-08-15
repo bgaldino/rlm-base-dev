@@ -151,20 +151,39 @@ python scripts/qb_usage.py orchestrate --org <alias>
 Rating is asynchronous and multi-stage, so this loops until the journals stop moving.
 A single pass is not enough.
 
-> ⚠ **"All journals processed" is not "rating finished."** This command returns when
-> the pending journal count reaches zero — that means the journals were *aggregated*,
-> not *rated*. Rating continues afterwards in Data Processing Engine batch jobs
-> (`Create_Liable_Summary_v4`, `Create_Usage_Summary_v4`, `Create Ratable Summary For …`).
-> **Those jobs are `_v4` on 264 — the `_v3` names are not merely renamed but absent**, so a
-> wait keyed to the old name matches nothing and reads as "rating finished" immediately.
-> Validate too soon and you will see summaries at `New`/`InProgress` and think the run
-> failed. On a single-account run `Create_Liable_Summary_v4` stayed `InProgress` for about
-> five minutes after this command had already returned. Wait for those jobs before step 4 —
-> **Setup → Data Processing Engine → job runs**, or:
+> ⚠ **Read the exit code — "all journals processed" is not "rating finished."** Zero
+> pending journals means *aggregated*, not *rated*: rating continues afterwards in Data
+> Processing Engine batch jobs. The command already knows this and polls for them, so its
+> exit code is the completion signal, not its final line of output:
+>
+> | Exit | Meaning |
+> |------|---------|
+> | `0` | Journals aggregated **and** the rating jobs have settled — safe to go to step 4 |
+> | `1` | **Not ready.** Either journals are still pending, or aggregation finished while rating jobs are still running |
+> | `2` | Stalled with journals pending — usually stranded behind a period that closed before the usage was recorded (see the ⛔ below) |
+>
+> So do not wait "just in case" after an exit `0`, and do not treat an exit `1` as a
+> failed run — it means *come back and check*, which is why it is not `0`. The contract is
+> stated at the top of `scripts/qb_usage.py`.
+>
+> The jobs it waits on are `Create_Liable_Summary_v4`, `Create_Usage_Summary_v4`, and
+> `Create Ratable Summary For …`. **Those names are `_v4` on 264 — the `_v3` names are not
+> merely renamed but absent**, which matters if you write your own wait: keyed to the old
+> name it matches nothing and reads as "rating finished" immediately. The script itself is
+> immune because it polls on non-terminal *status* rather than on job name.
+>
+> One residual gap the exit code cannot close: a rating job that starts *after* the final
+> poll. On a single-account run `Create_Liable_Summary_v4` was still `InProgress` about five
+> minutes after the command returned. So exit `0` is a strong signal rather than a
+> guarantee, and it costs nothing to confirm before validating — **Setup → Data Processing
+> Engine → job runs**, or:
 >
 > ```bash
 > sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
 > ```
+>
+> Validating too early shows summaries at `New`/`InProgress` and reads a healthy run as a
+> failure.
 
 > ⛔ **Do not run this before step 2 for the period you care about.** The first
 > orchestration pass on an account closes every past period **empty**, and a closed
