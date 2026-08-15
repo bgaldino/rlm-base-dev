@@ -6,7 +6,7 @@ This document describes the Permission Set Licenses (PSLs), Permission Set Group
 
 ## Permission Set Licenses (PSLs)
 
-PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` (steps 2, 7, 8, 10) before any PSGs or permission sets.
+PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` — step 4, then `assign_feature_psls` (steps 1, 2, 3, 4), i.e. build steps 1.4 and 1.9.1–1.9.4 — before any PSGs or permission sets.
 
 ### Core RLM PSLs (`rlm_psl_api_names`) -- Always Assigned
 
@@ -303,7 +303,7 @@ persona user instead. See the persona rows in the flow inventory below.
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
-Assigned at step 19 of `prepare_core`.
+Assigned by `assign_feature_permission_sets` step 2 — build step 1.17.2 — when `einstein` is on.
 
 | Permission Set | Purpose |
 |---|---|

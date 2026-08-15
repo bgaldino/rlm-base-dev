@@ -30,6 +30,25 @@ Two directions are checked, because drift and omission are different failures:
    reference. Scoped to the file that makes that claim (found by its heading),
    not repo-wide.
 
+**Two notations, because the docs use two.** The coordinate form above is only
+40 citations repo-wide. The other form -- `` `prepare_agents` step 10 `` -- is
+~290, including a second table *in the same permissions file* whose step cell is
+not the first column, and the whole of the generated flag reference. Auditing
+only the first notation leaves that surface uncovered while reporting the file
+clean, so both are checked:
+
+    `prepare_quantumbit` step 4       flow + step, either order
+    step 28 of `prepare_rlm_org`      reversed
+
+For that form the assertion is necessarily weaker: the text names a step number
+but not the task, so only existence can be checked. That is a real limit, not a
+theoretical one -- "assigned early in `prepare_core` (steps 2, 7, 8, 10)" was
+wrong (the PSL assignments are 1.4 and 1.9.1-1.9.4) and every one of those four
+numbers *exists*, so this check could not prove it. It was found by reading, and
+fixed by rewriting the sentence into a form that names the flow whose steps they
+are. **Prefer the coordinate form in new writing**, and when prose must cite a
+step, name the innermost flow so at least the range is pinned.
+
 Ground truth is **CumulusCI's own flow resolution**, not a hand-parse of
 `cumulusci.yml`. That is what makes the coordinates trustworthy: CCI resolves
 subflow nesting, `flow: None` disabling, inherited steps, and fractional step
@@ -71,6 +90,23 @@ _ROW = re.compile(r"^\s*\|\s*(\d+)\.([1-9]\d*)(?:\.([1-9]\d*))?\s*\|(.*)$")
 _BACKTICKED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 _FENCE = re.compile(r"^\s*(?:```|~~~)")
 
+# The prose / second-table form. Three shapes that mean two different things, and
+# conflating them would invent failures:
+#
+#   `prepare_agents` step 10      -> step 10 *inside* prepare_agents
+#   step 2 of `prepare_ux`        -> same, reversed
+#   `prepare_large_stx` at step 27 -> prepare_large_stx *is* step 27 of the root
+#
+# The flow name must be backticked and adjacent, which is what keeps ordinary
+# "step 3" prose from being read as a citation.
+_INSIDE = re.compile(r"`([a-z][a-z0-9_]*)`\s+step\s+(\d+)(?![\d.])")
+# Plural: "`prepare_core` (steps 2, 7, 8, 10)". Worth matching rather than
+# rewriting away, because a list of four numbers is four chances to drift and it
+# is the shape a reader is least likely to re-derive by hand.
+_INSIDE_PLURAL = re.compile(r"`([a-z][a-z0-9_]*)`\s*\(steps?\s+([\d,\s]+?)\)")
+_INSIDE_OF = re.compile(r"\bstep\s+(\d+)(?![\d.])\s+of\s+`([a-z][a-z0-9_]*)`")
+_AT_ROOT = re.compile(r"`([a-z][a-z0-9_]*)`[^|`\n]{0,12}?\bat\s+step\s+(\d+)(?![\d.])")
+
 _SKIP_PARTS = {".git", "node_modules", ".venv", ".harness", ".agents", "__pycache__"}
 
 _passed = _total = 0
@@ -99,6 +135,70 @@ def resolve_flow():
         str(step.step_num).replace("/", "."): (step.path, step.task_name)
         for step in coordinator.steps
     }
+
+
+def index_flows(steps):
+    """Return (steps inside each flow, which flow sits at each root step number).
+
+    Derived from the resolved coordinates rather than re-read from YAML: a step at
+    `1.9.1` with path `prepare_core.assign_feature_psls.<task>` says root step 1 is
+    `prepare_core`, `prepare_core` has a step 9 which is `assign_feature_psls`, and
+    that has a step 1. Nested flows are flattened by the coordinator, so this is
+    the only place their own step numbering can be recovered.
+    """
+    inside, root_at = {}, {}
+    for coord, (path, _task) in steps.items():
+        cs, ps = coord.split("."), path.split(".")
+        owners = [ROOT_FLOW] + ps[:-1]
+        for depth, owner in enumerate(owners):
+            if depth < len(cs):
+                inside.setdefault(owner, set()).add(int(cs[depth]))
+        if len(ps) > 1:
+            root_at[int(cs[0])] = ps[0]
+    return inside, root_at
+
+
+def audit_named_steps(inside, root_at):
+    """Audit the `<flow> step N` citation form. Returns (problems, count)."""
+    problems, seen = [], 0
+    for path in _markdown_files():
+        try:
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        rel = os.path.relpath(path, REPO)
+        for lineno, line in enumerate(text.splitlines(), 1):
+            claims = [(f, int(n), "inside") for f, n in _INSIDE.findall(line)]
+            claims += [(f, int(n), "inside") for n, f in _INSIDE_OF.findall(line)]
+            claims += [(f, int(n), "root") for f, n in _AT_ROOT.findall(line)]
+            for flow, numbers in _INSIDE_PLURAL.findall(line):
+                claims += [(flow, int(n), "inside")
+                           for n in numbers.replace(" ", "").split(",") if n]
+            for flow, num, kind in claims:
+                # An unknown name is usually a task, a standalone flow that is not
+                # part of this root flow, or prose about something else entirely --
+                # not a defect, and guessing would flood the output.
+                if kind == "inside":
+                    if flow not in inside:
+                        continue
+                    seen += 1
+                    if num not in inside[flow]:
+                        have = sorted(inside[flow])
+                        problems.append((rel, lineno, f"`{flow}` step {num}",
+                                         f"{flow} has no step {num} "
+                                         f"(has {have[0]}..{have[-1]})"))
+                else:
+                    if flow not in inside and flow not in root_at.values():
+                        continue
+                    seen += 1
+                    actual = root_at.get(num)
+                    if actual != flow:
+                        where = f"step {num} is `{actual}`" if actual else \
+                                f"{ROOT_FLOW} has no step {num}"
+                        problems.append((rel, lineno, f"`{flow}` at step {num}",
+                                         f"{where}"))
+    return problems, seen
 
 
 def _markdown_files():
@@ -195,6 +295,8 @@ def main():
         return 1
 
     problems, audited, completeness = audit(steps)
+    inside, root_at = index_flows(steps)
+    named_problems, named = audit_named_steps(inside, root_at)
 
     check("flow_resolved", len(steps) > 0, "resolved flow is empty")
 
@@ -203,11 +305,19 @@ def main():
     check("found_citations_to_audit", audited > 0,
           "no citation rows matched anywhere — the scan itself is broken, and would "
           "report clean no matter how wrong the docs were")
+    check("found_named_step_citations", named > 0,
+          "no `<flow> step N` citations matched — that notation outnumbers the "
+          "coordinate form ~7:1, so a silent zero here hides most of the surface")
 
     check("every_citation_resolves_to_the_step_it_names", not problems,
           f"{len(problems)} bad citation(s) of {audited}")
     for rel, lineno, coord, problem in problems:
         print(f"         {rel}:{lineno}  {coord} — {problem}")
+
+    check("every_named_step_exists", not named_problems,
+          f"{len(named_problems)} bad citation(s) of {named}")
+    for rel, lineno, cite, problem in named_problems:
+        print(f"         {rel}:{lineno}  {cite} — {problem}")
 
     if completeness is None:
         check("completeness_table_found", False,
@@ -220,8 +330,8 @@ def main():
             print(f"         {rel}  missing {coord} — {steps[coord][0]}")
 
     print("=" * 116)
-    print(f"{_passed}/{_total} checks passed  ({audited} citations audited, "
-          f"{len(steps)} resolved steps)")
+    print(f"{_passed}/{_total} checks passed  ({audited} coordinate + {named} named "
+          f"citations audited, {len(steps)} resolved steps)")
     return 0 if _passed == _total else 1
 
 
