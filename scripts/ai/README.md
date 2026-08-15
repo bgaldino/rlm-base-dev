@@ -194,15 +194,24 @@ Note that a parent branch that *truly* merged (a merge commit, not squash or
 rebase) is correctly not a finding: its commits are literal ancestors of the base,
 so they are not in this branch's diff and there is nothing to strip.
 
-Verified by `tests/test_branch_scope.py` (46 checks, throwaway repos, no network),
+The pre-comparison fetch **fails closed**: if it cannot reach the remote, the check
+exits 2 rather than comparing the stale ref it just failed to refresh. That matters
+because the stale-base case reports *clean* — so a swallowed fetch error would
+reinstate the exact false negative the fetch exists to prevent, and it would do so
+precisely when something is wrong (offline, dead credential). Skipping the fetch is
+still available, but only by asking for it with `--no-fetch`.
+
+Verified by `tests/test_branch_scope.py` (50 checks, throwaway repos, no network),
 which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
 that fixes it, a reworded inherited commit, a true-merged parent, a stale base
-(which reports clean — so the pre-comparison fetch is load-bearing), and the
-exit-code contract. Signal 2 is driven end to end through `--pr` against a stubbed
-`gh`; testing only its ancestor helper let three mutations that delete the signal
-outright pass. Emptying the PR loop, inverting the ancestor test at either place,
-dropping `stacked` from the failure condition, and disabling the fetch,
-containment or fork guard each fail the suite.
+(which reports clean — so the fetch is load-bearing), a failing fetch (exit 2), a
+slash-bearing local branch such as `release/262` that must not be fetched as a
+remote, and the exit-code contract. Signal 2 is driven end to end through `--pr`
+against a stubbed `gh`; testing only its ancestor helper let three mutations that
+delete the signal outright pass. Emptying the PR loop, inverting the ancestor test
+at either place, dropping `stacked` from the failure condition, disabling the
+containment or fork guard, and either removing the fetch or letting it fail
+silently each fail the suite.
 
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"

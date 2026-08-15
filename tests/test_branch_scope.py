@@ -355,6 +355,23 @@ def test_fetch_before_comparing(root):
     check("fetching first finds the inherited commits", rc == 1, f"rc={rc}\n{out}")
     check("and counts all three", "3 of 4 non-merge commit(s)" in out, out)
 
+    # The guard must fail closed. Offline, or with a dead credential, a swallowed
+    # fetch leaves the comparison running against the same stale ref that the two
+    # cases above just showed reports clean — so a discarded exit status turns the
+    # guard into decoration at exactly the moment it is needed.
+    git(work, "remote", "set-url", "origin", str(Path(root) / "gone"))
+    rc, out = run_check(work, "--base", "origin/base", "--head", "feature", no_fetch=False)
+    check("a failing fetch exits 2, not a clean 0", rc == 2, f"rc={rc}\n{out}")
+    check("and says the base may be stale", "may be stale" in out, out)
+    check("and points at --no-fetch as the deliberate opt-out", "--no-fetch" in out, out)
+
+    # A base whose first segment is not a remote must not be treated as one: the
+    # fetch would fail for a reason that says nothing about staleness.
+    git(work, "checkout", "--quiet", "-b", "release/262")
+    rc, out = run_check(work, "--base", "release/262", "--head", "feature", no_fetch=False)
+    check("a slashed local branch is not mistaken for a remote", rc in (0, 1),
+          f"rc={rc} — a local branch with a slash was fetched as a remote\n{out}")
+
 
 def test_exit_code_contract(root):
     print("\nExit codes: 2 is for tool/usage errors, never 1")

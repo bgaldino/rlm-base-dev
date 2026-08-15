@@ -240,7 +240,12 @@ every branch that is up to date with base, which would reward being stale. And a
 Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
 from the base and cherry-pick only the commits reported as `own`.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (46 checks, no
+It fetches the base before comparing, and **fails closed** — an unreachable remote
+exits 2 instead of comparing the ref it just failed to refresh, because the stale
+case reports *clean* and a swallowed error would restore that false negative at the
+worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
+
+The check's own behavior is pinned by `tests/test_branch_scope.py` (50 checks, no
 network) — run it if you change the script, and add a shape to it rather than
 tightening the script by feel. Drive whole invocations, not helpers: an earlier
 version tested `STACKED`'s ancestor helper in isolation, and three mutations that

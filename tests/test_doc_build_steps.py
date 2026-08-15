@@ -78,6 +78,7 @@ Run:  <cci-venv-python> tests/test_doc_build_steps.py
 import os
 import re
 import sys
+import tempfile
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -177,7 +178,7 @@ def resolve_flow():
             ".git directory, and in a git worktree .git is a file."
         )
     coordinator = runtime.get_flow(ROOT_FLOW)
-    return {
+    return runtime, {
         str(step.step_num).replace("/", "."): (
             step.path,
             step.task_name,
@@ -185,6 +186,20 @@ def resolve_flow():
         )
         for step in coordinator.steps
     }
+
+
+def standalone_steps(runtime, name):
+    """Return the top-level step numbers of a flow that is not in the root tree.
+
+    Docs cite the step numbers of flows run on their own — `run_qb_idempotency_tests`,
+    `prepare_billing_portal` — and those citations drift for the same reason the root
+    flow's do. Resolving each one on demand is what keeps them audited instead of
+    dropped for the crime of not being reachable from `prepare_rlm_org`.
+    """
+    try:
+        return {int(str(s.step_num).split("/")[0]) for s in runtime.get_flow(name).steps}
+    except Exception:  # noqa: BLE001 — an unresolvable flow is reported, not audited
+        return None
 
 
 def index_flows(steps):
@@ -208,16 +223,31 @@ def index_flows(steps):
     return inside, root_at
 
 
-def audit_named_steps(inside, root_at):
-    """Audit the `<flow> step N` citation form. Returns (problems, count)."""
-    problems, seen = [], 0
-    for path in _markdown_files():
+def audit_named_steps(inside, root_at, runtime, declared, base=None):
+    """Audit the `<flow> step N` citation form.
+
+    Returns (problems, count, unknown) where `unknown` maps each cited name that is
+    neither in the root flow's tree nor resolvable as a flow to where it was cited.
+
+    A name outside the root tree used to be dropped in silence, which meant renaming
+    a root subflow made all of its citations *disappear* rather than fail, while the
+    hundreds that remained kept the "did we audit anything" invariant green. Two
+    things close that: a standalone flow is now resolved and audited on its own
+    numbering, and anything still unresolvable is reported by name and location.
+    """
+    problems, seen, unknown = [], 0, {}
+    standalone = {}
+    for path in _markdown_files(base):
         try:
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
-        except (OSError, UnicodeDecodeError):
-            continue
-        rel = os.path.relpath(path, REPO)
+        except (OSError, UnicodeDecodeError) as exc:
+            # Never skip a file quietly. An unreadable doc could hold the stale
+            # citation this check exists to find, and the remaining files would
+            # keep the count non-zero, so the audit would report success over a
+            # gap it knew about.
+            raise RuntimeError(f"cannot read {os.path.relpath(path, base or REPO)}: {exc}") from exc
+        rel = os.path.relpath(path, base or REPO)
         for lineno, line in enumerate(text.splitlines(), 1):
             claims = [(f, int(n), "inside") for f, n in _INSIDE.findall(line)]
             claims += [(f, int(n), "inside") for n, f in _INSIDE_OF.findall(line)]
@@ -226,20 +256,30 @@ def audit_named_steps(inside, root_at):
                 claims += [(flow, int(n), "inside")
                            for n in numbers.replace(" ", "").split(",") if n]
             for flow, num, kind in claims:
-                # An unknown name is usually a task, a standalone flow that is not
-                # part of this root flow, or prose about something else entirely --
-                # not a defect, and guessing would flood the output.
                 if kind == "inside":
-                    if flow not in inside:
+                    have_steps = inside.get(flow)
+                    if have_steps is None:
+                        # Not in the root tree. If it is a flow in its own right,
+                        # audit it against its own numbering; a task legitimately
+                        # has no steps, so it is neither audited nor reported.
+                        if flow not in standalone:
+                            standalone[flow] = (standalone_steps(runtime, flow)
+                                                if flow in declared["flows"] else None)
+                        have_steps = standalone[flow]
+                    if have_steps is None:
+                        if flow not in declared["tasks"]:
+                            unknown.setdefault(flow, []).append(f"{rel}:{lineno}")
                         continue
                     seen += 1
-                    if num not in inside[flow]:
-                        have = sorted(inside[flow])
+                    if num not in have_steps:
+                        have = sorted(have_steps)
                         problems.append((rel, lineno, f"`{flow}` step {num}",
                                          f"{flow} has no step {num} "
                                          f"(has {have[0]}..{have[-1]})"))
                 else:
                     if flow not in inside and flow not in root_at.values():
+                        if flow not in declared["flows"] and flow not in declared["tasks"]:
+                            unknown.setdefault(flow, []).append(f"{rel}:{lineno}")
                         continue
                     seen += 1
                     actual = root_at.get(num)
@@ -248,11 +288,11 @@ def audit_named_steps(inside, root_at):
                                 f"{ROOT_FLOW} has no step {num}"
                         problems.append((rel, lineno, f"`{flow}` at step {num}",
                                          f"{where}"))
-    return problems, seen
+    return problems, seen, unknown
 
 
-def _markdown_files():
-    for root, dirs, files in os.walk(REPO):
+def _markdown_files(base=None):
+    for root, dirs, files in os.walk(base or REPO):
         dirs[:] = [d for d in dirs if d not in _SKIP_PARTS]
         for name in sorted(files):
             if name.endswith(".md"):
@@ -319,19 +359,20 @@ def _completeness_table(text):
         yield offset, cells[0]
 
 
-def audit(steps):
+def audit(steps, base=None):
     """Return (problems, audited, completeness) for every citation in the repo."""
     subflows = {path.split(".")[0] for path, _t, _c in steps.values()}
     problems, audited = [], 0
     cited_by_file, matched_rows = {}, {}
 
-    for path in _markdown_files():
+    for path in _markdown_files(base):
         try:
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
-        except (OSError, UnicodeDecodeError):
-            continue
-        rel = os.path.relpath(path, REPO)
+        except (OSError, UnicodeDecodeError) as exc:
+            raise RuntimeError(
+                f"cannot read {os.path.relpath(path, base or REPO)}: {exc}") from exc
+        rel = os.path.relpath(path, base or REPO)
         for lineno, coord, chain in _rows(text):
             # Only rows naming a subflow of the root flow are ours to audit; this
             # is what keeps unrelated tables with their own `N.M` numbering out.
@@ -351,15 +392,16 @@ def audit(steps):
 
     granting = {c for c, (_p, _t, cls) in steps.items() if cls in GRANTING_CLASSES}
     completeness = None
-    for path in _markdown_files():
+    for path in _markdown_files(base):
         try:
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
-        except (OSError, UnicodeDecodeError):
-            continue
+        except (OSError, UnicodeDecodeError) as exc:
+            raise RuntimeError(
+                f"cannot read {os.path.relpath(path, base or REPO)}: {exc}") from exc
         if COMPLETENESS_HEADING not in text:
             continue
-        rel = os.path.relpath(path, REPO)
+        rel = os.path.relpath(path, base or REPO)
         table = list(_completeness_table(text))
         # Scoped to this table, not the whole file: a grant cited anywhere else in
         # the file would otherwise satisfy direction 2 while the table omits it.
@@ -374,19 +416,100 @@ def audit(steps):
     return problems, audited, completeness
 
 
+def self_test(runtime, steps, declared):
+    """Check the checker, over fixture docs rather than the repo's own.
+
+    Without this, three of the behaviors below could be deleted outright and the
+    audit would still report `7/7` — because removing them removes *coverage*, and
+    the only invariants were "did we audit anything at all". That is the same defect
+    class this check was written to find in the docs, so it is worth pinning here
+    rather than trusting the code to stay right. Each case drives a whole audit
+    call, not a helper, since a passing helper next to an unreached call site is
+    exactly how the last round's mutations survived.
+    """
+    inside, root_at = index_flows(steps)
+    standalone = next((f for f in ("run_qb_idempotency_tests", "prepare_billing_portal")
+                       if f in declared["flows"]), None)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        def write(name, body):
+            path = os.path.join(tmp, name)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(body)
+            return path
+
+        def named(body):
+            write("doc.md", body)
+            return audit_named_steps(inside, root_at, runtime, declared, base=tmp)
+
+        # A flow outside the root tree is still audited on its own numbering. Both
+        # halves matter: the good citation must be counted, the bad one caught.
+        if standalone:
+            steps_of = standalone_steps(runtime, standalone)
+            # The citations below derive their step numbers from this same set, so
+            # a resolver that fabricated one would agree with itself and pass. This
+            # invariant is the independent half: real top-level flow numbering is
+            # 1..n contiguous, and n is small (the root flow itself has ~37), so a
+            # set that is merely *permissive* fails here even though every citation
+            # it is asked about looks valid.
+            check("selftest_standalone_steps_are_a_real_flow",
+                  steps_of == set(range(1, max(steps_of) + 1)) and max(steps_of) < 100,
+                  f"{standalone} resolved to {len(steps_of)} step(s) up to "
+                  f"{max(steps_of)} — not a flow's numbering")
+            good, bad = min(steps_of), max(steps_of) + 50
+            problems, count, _ = named(f"`{standalone}` step {good} is fine.\n"
+                                       f"`{standalone}` step {bad} is not.\n")
+            check("selftest_standalone_flow_is_audited", count == 2,
+                  f"expected both citations audited, got {count} — a flow outside "
+                  f"{ROOT_FLOW} is being dropped instead of resolved")
+            check("selftest_standalone_bad_step_is_caught", len(problems) == 1,
+                  f"expected 1 problem for {standalone} step {bad}, got {len(problems)}")
+
+        # An unreadable file must stop the audit, not shrink it.
+        with open(os.path.join(tmp, "bad.md"), "wb") as fh:
+            fh.write(b"# \xff\xfe not utf-8\n")
+        try:
+            audit_named_steps(inside, root_at, runtime, declared, base=tmp)
+            failed_loudly = False
+        except RuntimeError:
+            failed_loudly = True
+        check("selftest_unreadable_file_is_fatal", failed_loudly,
+              "an undecodable .md was skipped silently — the audit would report "
+              "clean over a file it never read")
+        os.remove(os.path.join(tmp, "bad.md"))
+
+        # A name CumulusCI does not know is reported, not swallowed.
+        _p, _c, unknown = named("`flow_that_does_not_exist` step 3 is cited here.\n")
+        check("selftest_unknown_name_is_reported",
+              "flow_that_does_not_exist" in unknown,
+              "a citation to an unknown flow left no trace — a renamed subflow "
+              "would take its citations out of the audit in silence")
+
+        # And a task is neither audited nor reported: it has no steps to check, and
+        # reporting every task citation would bury the signal above.
+        task = next(iter(declared["tasks"]))
+        _p, _c, unknown = named(f"`{task}` step 1 does something.\n")
+        check("selftest_task_citation_is_not_noise", task not in unknown,
+              f"citing the task `{task}` was reported as unknown")
+
+
 def main():
     print(f"Doc build-step citations vs the resolved {ROOT_FLOW} flow")
     print("=" * 116)
     try:
-        steps = resolve_flow()
+        runtime, steps = resolve_flow()
     except Exception as exc:  # noqa: BLE001 — any failure here invalidates the audit
         detail = str(exc) or "no message"
         print(f"  [FAIL] flow resolution: {type(exc).__name__}: {detail}")
         return 1
 
+    declared = {"flows": set(runtime.project_config.flows or {}),
+                "tasks": set(runtime.project_config.tasks or {})}
+    self_test(runtime, steps, declared)
+
     problems, audited, completeness = audit(steps)
     inside, root_at = index_flows(steps)
-    named_problems, named = audit_named_steps(inside, root_at)
+    named_problems, named, unknown = audit_named_steps(inside, root_at, runtime, declared)
 
     check("flow_resolved", len(steps) > 0, "resolved flow is empty")
 
@@ -424,6 +547,20 @@ def main():
         for lineno, first in skipped:
             print(f"         {rel}:{lineno}  first cell {first!r} did not parse as a "
                   "citation (bolded coordinate? missing flow name?)")
+
+    if unknown:
+        # Reported, not failed. A name CumulusCI does not know is usually a doc on
+        # this branch describing a flow that lives on another one — `prepare_mfg_data`
+        # and `prepare_manufacturing` are documented here and defined in the mfg
+        # series — so failing would force deleting accurate docs or keeping an
+        # allowlist that rots. Printing them by name is what matters: a *renamed*
+        # root subflow shows up in this list instead of taking its citations out of
+        # the audit in silence, which was the actual hole.
+        print(f"  [note] {sum(len(v) for v in unknown.values())} citation(s) name "
+              f"{len(unknown)} thing(s) CumulusCI does not know — not audited:")
+        for name, where in sorted(unknown.items()):
+            print(f"         `{name}` — {', '.join(where[:3])}"
+                  f"{f' (+{len(where) - 3} more)' if len(where) > 3 else ''}")
 
     print("=" * 116)
     print(f"{_passed}/{_total} checks passed  ({audited} coordinate + {named} named "

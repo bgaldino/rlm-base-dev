@@ -58,18 +58,21 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (46 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (50 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
 reworded inherited commit, a genuinely-merged parent (correctly *not* a finding),
 a stale base (which reports clean, so the pre-comparison fetch is load-bearing),
-and the exit-code contract. Signal 2 is driven end to end through `--pr` with a
+a *failing* fetch (which must exit 2 rather than compare the stale ref it just
+failed to refresh -- a guard that fails open is decoration), and the exit-code
+contract. Signal 2 is driven end to end through `--pr` with a
 stubbed `gh`, which is what pins the exclusions above; an earlier version tested
 only `_is_ancestor` in isolation, and deleting the signal outright left the suite
 green. Each of these mutations now fails it: emptying the `others` loop,
 inverting the ancestor test at the call site or inside it, dropping `stacked`
-from the failure condition, and disabling the fetch, containment or fork guard.
+from the failure condition, disabling the containment or fork guard, and either
+removing the fetch or letting it fail silently.
 
 Examples:
     python scripts/ai/check_branch_scope.py --pr 370       # both signals
@@ -218,8 +221,27 @@ def _check(args, ap):
     # is being looked for: an inherited commit that has since merged still looks
     # new against a stale copy, so the check would report clean. #264-55's first
     # fix attempt refuted a correct review finding for this reason.
+    #
+    # Fail closed. This fetch is the guard, so swallowing its exit status would
+    # reinstate the very false negative it exists to prevent: offline, or with a
+    # dead credential, the comparison would silently run against whatever the
+    # remote-tracking ref last happened to hold and could report clean. A failure
+    # here is a tool error (exit 2), never a verdict about the branch. Skipping is
+    # available, but only by asking for it with --no-fetch.
     if not args.no_fetch and "/" in base:
-        _run(["git", "fetch", "--quiet", base.split("/", 1)[0]], check=False)
+        candidate = base.split("/", 1)[0]
+        # A slash does not prove a remote: `--base release/262` is a local branch
+        # whose first segment is not a remote, and fetching 'release' would fail
+        # for a reason that says nothing about staleness.
+        if candidate in _run(["git", "remote"]).split():
+            try:
+                _run(["git", "fetch", "--quiet", candidate])
+            except ToolError as exc:
+                raise ToolError(
+                    f"could not fetch {candidate!r}, so {base} may be stale and this "
+                    f"check cannot be trusted:\n{exc}\n"
+                    f"Fix the remote, or pass --no-fetch to compare against the local "
+                    f"copy knowingly.") from exc
 
     for ref in (base, head):
         if not _resolves(ref):

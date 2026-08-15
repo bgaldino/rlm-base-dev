@@ -206,6 +206,19 @@ the flows and asserts, for every `| N.M |` cell on a line naming a subflow, that
 whenever a step is added to or removed from a flow — not only when a doc changes,
 since **the doc that goes stale is usually not in the same PR**.
 
+It audits both citation forms — the `| N.M |` table coordinate and the prose
+`` `flow` step N `` — and it audits flows that are **not** part of `prepare_rlm_org`
+(`run_qb_idempotency_tests`, `prepare_billing_portal`) by resolving each on its own
+numbering, rather than dropping them for being unreachable from the root. A cited
+name CumulusCI does not know at all is **reported by name and location** instead of
+skipped, so renaming a flow surfaces its citations rather than quietly removing them
+from the audit; it is a note, not a failure, because a doc here may legitimately
+describe a flow defined on another branch (`prepare_manufacturing` is the current
+example). An unreadable file is fatal. The check also self-tests over fixture docs:
+without that, deleting the standalone-flow resolution or restoring the silent read
+skip removed *coverage* while still reporting a full pass — the same defect class it
+was written to find in the docs.
+
 Run it from the repo root, with the CumulusCI venv's python. It resolves the flow
 through CumulusCI rather than parsing `cumulusci.yml`, so it inherits CumulusCI's
 own repo detection, which looks for a `.git` **directory** — and in a git worktree
