@@ -171,7 +171,92 @@ branch do not silently overwrite newer versions that landed on `main` after the
 branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
 §"Merges and unintended diffs".
 
-### Step 0 — Detect branch-side reverts of inherited main content (do this FIRST)
+### Step −1 — Confirm the branch owns every commit on it (cheapest check; run before anything else)
+
+```bash
+python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/264 --head <branch>
+```
+
+A branch cut from a **composed integration branch** — one built by stacking
+several in-flight fixes to test them as a set — inherits those other fixes. Its
+diff then shows files it does not own, **in whatever pre-review state they were
+in when the composition was made**, so merging it walks back review fixes that
+already landed. Every later step in this audit is reasoning about that polluted
+diff, which is why this runs first.
+
+> Real incident (#264-56): `fix/264-agents-authoring-bundle` was rebuilt once to
+> strip five inherited commits, then **re-accumulated the same five** from a
+> later rebase onto the stale composition, and came within a day of merging with
+> them a second time. It carried 8 commits where the PR owned 3.
+
+The check reports two independent findings, because the inherited work may or may
+not have merged yet and each signal is blind to one of those cases:
+
+- **`FOREIGN`** — `git cherry` patch-id equivalence: the content is already
+  upstream, so the branch does not own it. This is the #264-56 signal, and it only
+  fires **after** the other PRs merge.
+- **`STACKED`** — this head and another open PR's head join at a commit the base
+  does not have, so this branch carries unmerged work from that PR. Those commits
+  have merged nowhere, so the first signal cannot see them. Needs `--pr`, since the
+  PR list is what says which branches are in flight. Read the qualifier: **`in
+  full`** means this branch contains that PR outright, while **`(shared, direction
+  not determinable…)`** means only that the two share commits — a symmetric join
+  cannot say who took what from whom, so check the other PR's base branch before
+  assuming the work is inherited. A PR that *targets this branch* is a declared
+  child stack and is skipped outright.
+
+Do not merge the two in your head. A `FOREIGN` branch needs rebuilding now; a
+`STACKED` branch may be a deliberate stack, but its diff is still its parent's
+diff too, and it must not merge before the parent.
+
+> Both were learned the same way. The `STACKED` case is here because while
+> building this check, the branch for its own companion fix was cut from the
+> check's branch and the patch-id signal reported clean — the exact mistake the
+> check exists to stop, one commit removed.
+
+**A clean result is not proof of authorship**, and the check's output is worded to
+say so. `git cherry`'s `+` means only that no patch-equivalent commit was found
+upstream. Both signals are blind to one shape: an inherited commit whose upstream
+counterpart was **amended or squash-combined** before merging has different content
+(nothing for patch-id to match) and a closed PR (nothing for signal 2 to list).
+That shape did not arise in #264-56 — all five inherited commits were
+patch-identical to their merged versions — but a clean result means "neither known
+contamination shape is present", so Step 1 onward still does the diff review.
+
+Two weaker checks were tried and both fail — worth knowing so neither gets
+substituted:
+
+- **`git merge-base --is-ancestor` against the base is not a detector.** Inherited
+  commits are not ancestors of the base — but neither is any legitimate new
+  commit, so it cannot tell them apart. (Ancestry *is* the right tool for the
+  `STACKED` signal, where the thing being tested is another PR's head, not the
+  base.)
+- **Matching commit subjects against the base** happens to work on #264-56 but
+  breaks on any reworded subject.
+
+Three things that are **not** findings. A parent branch that truly merged (a merge
+commit, not squash or rebase): its commits are literal ancestors of the base, so
+they are not in this branch's diff and there is nothing to strip. An open PR whose
+head is **already contained in the base** — the release integration PR (`264` →
+`main`) has the base branch itself as its head, and treating that as a stack flags
+every branch that is up to date with base, which would reward being stale. And a
+**fork's** PR, whose head is not in this checkout.
+
+Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
+from the base and cherry-pick only the commits reported as `own`.
+
+It fetches the base before comparing, and **fails closed** — an unreachable remote
+exits 2 instead of comparing the ref it just failed to refresh, because the stale
+case reports *clean* and a swallowed error would restore that false negative at the
+worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
+
+The check's own behavior is pinned by `tests/test_branch_scope.py` (74 checks, no
+network) — run it if you change the script, and add a shape to it rather than
+tightening the script by feel. Drive whole invocations, not helpers: an earlier
+version tested `STACKED`'s ancestor helper in isolation, and three mutations that
+deleted the signal entirely left the suite green.
+
+### Step 0 — Detect branch-side reverts of inherited main content (do this before trusting Step 1)
 
 **The Step 1 overlap method has a blind spot — run this step before trusting it.**
 When the branch has been **rebased onto (or merged with) main's tip**,

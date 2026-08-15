@@ -208,7 +208,7 @@ Step 13 of `prepare_billing` patches the `RLM_BillingContext` context definition
 **Notes:**
 - `SavedPaymentMethod__std` is intentionally excluded — the platform already has an inherited mapping for this attribute; adding a custom one fails with `INVALID_INPUT: An Inherited mapping for ContextAttribute: SavedPaymentMethod already exists.`
 - Task verification logs `hasHydrationDetail: false` for both `__std` attributes — this is a **known false negative**. The Connect API GET does not expose hydration records for `__std` attributes in `contextAttrHydrationDetailList`; the records exist and are confirmed via Tooling API.
-- Step 12 is gated by `billing AND billing_ui` because `RLM_Billing_Arrangement__c` and `RLM_Billing_Profile__c` are Order fields deployed by `post_billing_ui` (step 10).
+- This patch is `prepare_billing` step 13 → `apply_context_billing_order` — build step **13.13** — and it is the step gated by `billing AND billing_ui`. It needs both because `RLM_Billing_Arrangement__c` and `RLM_Billing_Profile__c` are Order fields deployed two steps earlier at `prepare_billing` step 11 → `deploy_post_billing_ui` (build step 13.11), which `billing_ui` alone gates. (`prepare_billing` step 12 → `assign_permission_sets`, also `billing_ui` only.)
 
 ## Dependencies
 

@@ -146,6 +146,89 @@ resolving (see `AGENTS.md` and `.cursor/skills/audit-review/SKILL.md`).
 Claude command (`.claude/commands/pr-review.md`),
 `.cursor/skills/audit-review/SKILL.md`
 
+### `check_branch_scope.py`
+
+Fails a branch that carries commits it does not own — the signature of a branch
+cut from a *composed* integration branch, which inherits other in-flight fixes
+**in their pre-review state** and can therefore revert landed review fixes when
+it merges.
+
+```bash
+python scripts/ai/check_branch_scope.py --pr 370          # both signals below
+python scripts/ai/check_branch_scope.py --base origin/264 # HEAD vs an explicit base
+```
+
+Two signals, because the inherited work may or may not have merged yet and each
+signal is blind to one of those cases:
+
+1. **Already upstream** — `git cherry`, patch-id equivalence (`-` = the content is
+   in the base already). This is the `#264-56` signal, and it only fires once the
+   other PRs have merged.
+2. **Shares history with another open PR beyond the base** — if this head and
+   another open PR's head join at a commit the base does not have, that shared part
+   has merged nowhere yet, so signal 1 cannot see it. Needs `--pr`. Found the hard
+   way: the branch for this check's own companion fix was cut from this check's
+   branch, and signal 1 said clean.
+
+   Not plain ancestry, which was the first version: that only catches a parent that
+   has not *moved* since the branch was cut, and a parent which advances afterwards
+   is invisible to both signals at once.
+
+   A shared join is **symmetric**, so it cannot say by itself who inherited from
+   whom. Four exclusions keep the signal off the wrong branch, and every one was a
+   false positive first:
+
+   | skipped | why |
+   |---------|-----|
+   | head already in the base | the release integration PR (`264` → `main`) has the base branch *as* its head, which otherwise flags every branch up to date with base — making a stale branch read cleaner than a current one |
+   | a fork's head | not in this checkout; the `<remote>/<branch>` fallback would resolve a fork PR on a branch named `264` to *our* `264` |
+   | a PR that targets **this** branch | that is a declared child stack. History cannot tell it from a parent: a child cut from our `B` while we advance to `C` is the same graph. Without it, a parent PR failed its own gate as soon as it took a review fix |
+   | a descendant of this head | the unmoved form of the same case |
+
+   What is left — diverged, not a declared child — is reported but **not attributed**:
+   the output says direction is not derivable and prescribes no rebuild, because
+   telling a branch to rebuild over commits that may be its own is how a gate gets
+   bypassed.
+
+A clean result means "neither known contamination shape is present", not "this
+branch owns every commit" — `git cherry`'s `+` only says no patch-equivalent commit
+was found upstream. The residual gap: an inherited commit whose upstream
+counterpart was **amended or squash-combined** before merging has different
+content (so signal 1 finds no match) and a closed PR (so signal 2 does not list
+it). It did not arise in `#264-56` — all five inherited commits were
+patch-identical to their merged versions — but the diff review still has to happen.
+
+Two weaker checks were tried and rejected — `merge-base --is-ancestor` against the
+*base* cannot separate an inherited commit from a legitimate new one, and
+subject-matching breaks on a reworded subject. Exit 0 clean, 1 findings, 2
+usage/tool error (so a missing `git`/`gh` never reads as a dirty branch).
+
+Note that a parent branch that *truly* merged (a merge commit, not squash or
+rebase) is correctly not a finding: its commits are literal ancestors of the base,
+so they are not in this branch's diff and there is nothing to strip.
+
+The pre-comparison fetch **fails closed**: if it cannot reach the remote, the check
+exits 2 rather than comparing the stale ref it just failed to refresh. That matters
+because the stale-base case reports *clean* — so a swallowed fetch error would
+reinstate the exact false negative the fetch exists to prevent, and it would do so
+precisely when something is wrong (offline, dead credential). Skipping the fetch is
+still available, but only by asking for it with `--no-fetch`.
+
+Verified by `tests/test_branch_scope.py` (74 checks, throwaway repos, no network),
+which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
+that fixes it, a reworded inherited commit, a true-merged parent, a stale base
+(which reports clean — so the fetch is load-bearing), a failing fetch (exit 2), a
+slash-bearing local branch such as `release/262` that must not be fetched as a
+remote, and the exit-code contract. Signal 2 is driven end to end through `--pr`
+against a stubbed `gh`; testing only its ancestor helper let three mutations that
+delete the signal outright pass. Emptying the PR loop, inverting the ancestor test
+at either place, dropping `stacked` from the failure condition, disabling the
+containment or fork guard, and either removing the fetch or letting it fail
+silently each fail the suite.
+
+**Used by:** `AGENTS.md` §"Merges and unintended diffs",
+`.cursor/skills/audit-review/SKILL.md` §"Step −1"
+
 ---
 
 ## Dependencies

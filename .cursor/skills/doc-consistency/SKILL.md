@@ -190,7 +190,60 @@ python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should pass
 python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
+python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
 ```
+
+`test_doc_build_steps.py` covers a class of drift that reading cannot catch.
+Build-step numbers in docs are hand-maintained with no generator, so **inserting
+or removing a single step silently invalidates every citation downstream of it**.
+Eight rows in `docs/references/revenue-cloud-permissions.md` had gone off by one
+that way, and the `prepare_agents` permission-set row was additionally wrong on
+its *substep* because a step had been removed from that subflow. Two reviewers
+flagged the substep; nobody caught the parents; and the first fix attempt
+refuted a correct finding because it audited a stale checkout. The check reads
+the flows and asserts, for every `| N.M |` cell on a line naming a subflow, that
+`N` is that subflow's step in `prepare_rlm_org` and `M` exists inside it. Run it
+whenever a step is added to or removed from a flow — not only when a doc changes,
+since **the doc that goes stale is usually not in the same PR**.
+
+It audits both citation forms — the `| N.M |` table coordinate and the prose
+`` `flow` step N ``. Where prose also names the task (`` `prepare_agents` step 8 →
+`activate_agents` ``, or `via`/`:`/`—` in place of the arrow) the task is checked
+too, so the citation is pinned by identity rather than existence. **Where it does
+not, only existence is checked, and that gap is load-bearing**: five citations in
+the permissions reference named steps of `prepare_core` that all exist and all held
+a different task, and the check passed over every one — so **write the task after
+the step number** (`` `flow` step N → `task` ``), which is what moves a citation
+from existence to identity. Putting the name *before* the number does not count;
+the five corrections were first written that way and stayed unchecked until they
+were reordered. The name must be one CumulusCI declares, so ordinary prose after a
+step number ("step 4 — see `api_names`", "step 11 via `sf`") is not read as a claim.
+
+Two forms remain existence-only by construction, and are worth knowing before
+trusting a green run: a step whose target is itself a **subflow**, and a citation
+naming a **standalone flow** (`run_qb_idempotency_tests`, `prepare_billing_portal`).
+Both resolve for existence but have no task at that coordinate to compare against.
+
+It also audits flows that are **not** part of `prepare_rlm_org`
+(`run_qb_idempotency_tests`, `prepare_billing_portal`) by resolving each on its own
+numbering, rather than dropping them for being unreachable from the root. A cited
+name CumulusCI does not know at all is **reported by name and location** instead of
+skipped, so renaming a flow surfaces its citations rather than quietly removing them
+from the audit; it is a note, not a failure, because a doc here may legitimately
+describe a flow defined on another branch (`prepare_manufacturing` is the current
+example). An unreadable file is fatal. The check also self-tests over fixture docs:
+without that, deleting the standalone-flow resolution or restoring the silent read
+skip removed *coverage* while still reporting a full pass — the same defect class it
+was written to find in the docs.
+
+Run it from the repo root, with the CumulusCI venv's python. It resolves the flow
+through CumulusCI rather than parsing `cumulusci.yml`, so it inherits CumulusCI's
+own repo detection, which looks for a `.git` **directory** — and in a git worktree
+`.git` is a file. So **the check cannot run inside a worktree**, which is worth
+knowing because rebuilding a branch in a worktree is this repo's remedy for a
+branch that has picked up foreign commits. It fails loudly either way and names
+which of the two it hit (CumulusCI absent, versus CumulusCI present but no project
+resolved) — it never reports a clean audit it did not perform.
 
 If the diff shows unintended changes, investigate before committing. To commit the regenerated files:
 
