@@ -1,19 +1,19 @@
 {
   "metadata": {
-    "release": "262",
-    "releaseLabel": "Summer '26",
-    "apiVersion": "67.0",
-    "baselineRelease": "260",
-    "baselineReleaseLabel": "Spring '26",
-    "baselineApiVersion": "66.0",
-    "source": "dual-org extraction (ent-r1 260 + rlm-base__ent-sb0 262) + Core UDD cross-validation",
-    "lastRefreshedOn": "2026-05-27",
-    "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/ for the 260->262 delta."
+    "release": "264",
+    "releaseLabel": "Winter '27",
+    "apiVersion": "68.0",
+    "baselineRelease": "262",
+    "baselineReleaseLabel": "Summer '26",
+    "baselineApiVersion": "67.0",
+    "source": "dual-org extraction from two fresh prepare_rlm_org 264 orgs (rlm-base__264merged + rlm-base__264fresh, ent shape, API 68.0), diffed against the 262 snapshot the previous refresh was built from",
+    "lastRefreshedOn": "2026-08-15",
+    "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/262-vs-264-diff.md for the 262->264 delta. The two 264 orgs agreed field-for-field (254 objects / 3913 fields each), so nothing here rests on a single org. 264 retired 8 fields and moved the usage policy bindings onto ProductUsageResourcePolicy; 66 ERD fields remain absent from the org and are the feature-gated / cross-cloud set carried forward from the 262 pass, not 264 removals."
   },
   "stats": {
     "totalObjects": 263,
     "totalRelationships": 674,
-    "totalFields": 4190,
+    "totalFields": 4252,
     "domains": [
       "Advanced Approvals",
       "Approvals",
@@ -44,7 +44,8 @@
         "InvoiceId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The invoice ID associated with the dispute. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Invoice"
         },
         "ResolutionActionStatus": {
           "description": "The status of the resolution action. Valid values are: \u2022 In Progress \u2022 Closed",
@@ -206,6 +207,16 @@
         "TaxPrvdAccountIdentifier": {
           "description": "Tax Provider Account Identifier",
           "type": "string"
+        },
+        "DecisionTableId": {
+          "description": "Decision Table ID",
+          "type": "reference",
+          "refersTo": "DecisionTable",
+          "relationshipType": "lookup"
+        },
+        "CustomMetadataTypeApiName": {
+          "description": "Custom Metadata Type API Name",
+          "type": "string"
         }
       },
       "pages": [
@@ -294,21 +305,21 @@
           "properties": "Create, Filter, Group, Nillable, Sort",
           "description": "The identifier of the primary record associated with the error log. Available in API version 63.0 and later.",
           "relationshipName": "PrimaryRecord",
-          "refersTo": "Asset, AsyncOperationTracker, BillingBatchScheduler, BillingSchedule, CreditMemo,",
+          "refersTo": "Asset, AsyncOperationTracker, BillingBatchScheduler, BillingSchedule, CreditMemo, ",
           "type": "reference"
         },
         "RelatedRecord2Id": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of a record that can provide additional context about the error. For example, if PrimaryRecordId is the ID of an order, this field could be the ID of an invoice line. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord2",
-          "refersTo": "CreditMemoLine, CreditMemoLineInvoiceLine, CreditMemoLineTax, InvoiceLine,",
+          "refersTo": "CreditMemoLine, CreditMemoLineInvoiceLine, CreditMemoLineTax, InvoiceLine, ",
           "type": "reference"
         },
         "RelatedRecordId": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of a record that can provide additional context about the error. For example, if PrimaryRecordId is the ID of an order, this field could be the ID of an order item. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord",
-          "refersTo": "Asset, BillingBatchScheduler, BillingSchedule, BillingScheduleGroup, CreditMemo,",
+          "refersTo": "Asset, BillingBatchScheduler, BillingSchedule, BillingScheduleGroup, CreditMemo, ",
           "type": "string"
         },
         "RequestIdentifier": {
@@ -384,7 +395,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "ID of the rating request record associated with the batch job. This field is a relationship field.",
           "relationshipName": "RatingRequest",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "RatingRequest"
         }
       },
       "domainShort": "Rates",
@@ -539,7 +551,8 @@
         },
         "GeneralLedgerAcctAsgntRuleId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "GeneralLedgerAcctAsgntRule"
         },
         "TransactionAmountField": {
           "description": "",
@@ -685,7 +698,8 @@
         "TaxEngineId": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of the tax engine used in the tax calculation process. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "TaxEngine"
         },
         "TaxEngineInteractionLogNumber": {
           "description": "Tax Engine Interaction Log Number",
@@ -755,7 +769,8 @@
         "BillingAddressId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The billing address of the parent invoice line. Edit access is enabled for this field. You must not modify this field when the invoice line is related to a posted invoice. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "InvoiceAddressGroup"
         },
         "ConvertedNegAmount": {
           "properties": "Filter, Nillable, Sort, Update",
@@ -864,6 +879,14 @@
         "TaxExemptAmount": {
           "description": "Tax Exempt Amount",
           "type": "currency"
+        },
+        "NetPaymentsApplied": {
+          "description": "Net Payments Applied",
+          "type": "currency"
+        },
+        "NetCreditsApplied": {
+          "description": "Net Credits Applied",
+          "type": "currency"
         }
       },
       "domainShort": "Billing",
@@ -954,7 +977,8 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The usage summary that's associated with the transaction journal. Available in API version 64.0 and later. This field is a relationship field.",
           "relationshipName": "UsageSummary",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageSummary"
         },
         "UsageType": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort",
@@ -1214,7 +1238,8 @@
           "refersTo": "BillingScheduleGroup"
         },
         "BillingScheduleGroupId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "BillingScheduleGroup"
         },
         "Status": {
           "description": "Required. Specifies whether billing schedules created from this billing treatment item are based on a flat amount or a percentage of the order item's total amount. Valid values are: \u2022 FlatAmount \u2022 Percentage \u2022 Remainder BillingPeriodItem Represents a payment period for an invoice. The billing period item is used to pass billing information to an invoice line. This object is available in API version 62.0 and later. Important:  Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.",
@@ -1581,7 +1606,8 @@
         },
         "EmailTemplateId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "EmailTemplate"
         },
         "LegalEntityCountry": {
           "description": "",
@@ -1898,7 +1924,8 @@
         "LegalEntityId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The legal entity related to the refund.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "LegalEntity"
         },
         "CorporateCurrencyCnvAmount": {
           "properties": "Filter, Nillable, Sort, Update",
@@ -2105,6 +2132,16 @@
         "Balance": {
           "description": "Balance",
           "type": "currency"
+        },
+        "ReferenceRecordId": {
+          "description": "Reference Record ID",
+          "type": "reference",
+          "refersTo": "CreditMemo",
+          "relationshipType": "lookup"
+        },
+        "ReasonCode": {
+          "description": "Reason Code",
+          "type": "picklist"
         }
       },
       "is_standard": true,
@@ -2147,12 +2184,14 @@
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "The user who owns an order delivery method record.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "ProductId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "Optional. This product represents a delivery charge order product for a delivery using this delivery method. For example, you could create a product that represents an overnight express charge and assign it to an overnight express delivery method.",
-          "type": "string"
+          "type": "string",
+          "refersTo": "Product2"
         },
         "ReferenceNumber": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2200,11 +2239,12 @@
           "description": "The rate card entry containing catalog rates that's associated with the quote line rate card entry. This field is a relationship field.",
           "relationshipName": "RateCardEntry",
           "relationshipType": "Master-detail",
-          "refersTo": "RateCardEntry",
+          "refersTo": "QuoteLineItem",
           "type": "reference"
         },
         "RateCardEntryId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "RateCardEntry"
         },
         "RateCardId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -2222,7 +2262,8 @@
         },
         "UsageResourceId": {
           "properties": "Filter, Group, Nillable, Sort",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageResource"
         }
       },
       "domainShort": "Transactions",
@@ -2263,6 +2304,10 @@
         "Status": {
           "description": "Status",
           "type": "picklist"
+        },
+        "InitialInvoiceBalance": {
+          "description": "Initial Invoice Balance",
+          "type": "currency"
         }
       },
       "is_standard": true,
@@ -2288,7 +2333,8 @@
           "type": "reference"
         },
         "OwnerId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         }
       },
       "domainShort": "Rates",
@@ -2428,7 +2474,8 @@
           "refersTo": "InvoiceBatchRun (the master object)"
         },
         "InvoiceBatchRunId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "InvoiceBatchRun"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -2700,7 +2747,8 @@
           "type": "reference"
         },
         "ProductDecompEnrichmentRuleId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductDecompEnrichmentRule"
         },
         "Name": {
           "description": "Name",
@@ -2872,7 +2920,7 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The version number of the billing arrangement record that\u2019s used to generate the invoice. Available in API version 66.0 and later. This field is an autogenerated field.",
           "relationshipName": "BillingAccount",
-          "refersTo": "BillingAccount",
+          "refersTo": "Account",
           "type": "string"
         },
         "BillingArrangementId": {
@@ -3231,13 +3279,15 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the product classification attribute or the product attribute definition of the picklist data type. This field is a polymorphic relationship field.",
           "relationshipName": "Attribute",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductAttributeDefinition, ProductClassificationAttr"
         },
         "AttributePicklistValueId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the attribute picklist value that\u2019s excluded in the product classification attribute or product attribute definition. This field is a relationship field.",
           "relationshipName": "AttributePicklistValue",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributePicklistValue"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -3276,7 +3326,8 @@
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The attribute definition in the catalog. This field is a relationship field.",
           "relationshipName": "AttributeDefinition",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributeDefinition"
         },
         "FulfillmentAssetId": {
           "description": "Fulfillment Asset ID",
@@ -3396,7 +3447,8 @@
         },
         "UsageCommitmentPolicyId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageCommitmentPolicy"
         },
         "UsageResourceId": {
           "description": "Usage Resource ID",
@@ -3651,7 +3703,7 @@
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the batch criteria record. This field is a polymorphic relationship field.",
           "relationshipName": "BatchCriteria",
-          "refersTo": "InvoiceBatchRunCriteria",
+          "refersTo": "GeneralLedgerAcctAsgntRule, InvoiceBatchRunCriteria, PaymentBatchRunCriteria",
           "type": "string"
         },
         "BillingBatchFilterCriteriaNumber": {
@@ -3801,7 +3853,8 @@
         "UomId": {
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The unit of measure that's associated with the usage entitlement. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UnitOfMeasure"
         },
         "UsageSummaryId": {
           "description": "Usage Summary ID",
@@ -4128,7 +4181,8 @@
         },
         "ParentOrderItemGroupId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "OrderItemGroup"
         },
         "SegmentType": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -4199,6 +4253,10 @@
         "UnitPriceUplift": {
           "description": "Unit Price Uplift",
           "type": "percent"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
         }
       },
       "domainShort": "Transactions",
@@ -4231,7 +4289,8 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of the billing address related to this credit memo line. This field is a relationship field.",
           "relationshipName": "BillingAddress",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "CreditMemoAddressGroup"
         },
         "CreditMemoId": {
           "description": "Credit Memo ID",
@@ -4426,7 +4485,8 @@
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The ID of the attribute definition for this order item attribute. This field is a relationship field.",
           "relationshipName": "AttributeDefinition",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributeDefinition"
         },
         "AttributePicklistValueId": {
           "description": "Attribute Picklist Value ID",
@@ -4827,6 +4887,10 @@
         "ShouldRunDpeOnCore": {
           "description": "Run DPE on Core",
           "type": "boolean"
+        },
+        "ShouldGenerateInvoiceDocuments": {
+          "description": "Generate Invoice Documents",
+          "type": "boolean"
         }
       },
       "domainShort": "Billing",
@@ -4943,7 +5007,8 @@
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "ID of the owner of the attribute based adjustment rule. This field is a polymorphic relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "UsageType": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -5023,7 +5088,8 @@
           "type": "reference"
         },
         "OrderItemRateCardEntryId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "OrderItemRateCardEntry"
         },
         "UpperBound": {
           "description": "Upper Bound",
@@ -5357,11 +5423,12 @@
           "description": "The alternative step that's executed when a particular step in the fulfillment plan is amended or canceled. This field is a relationship field. This field is available in API version 62.0 and later.",
           "relationshipName": "CompensatedStep",
           "relationshipType": "Lookup",
-          "refersTo": "FulfillmentStep",
+          "refersTo": "Group, User",
           "type": "int"
         },
         "CompensatedStepId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "FulfillmentStep"
         },
         "DelayOf": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -5575,6 +5642,10 @@
         },
         "CustomConfigParameter": {
           "description": "Custom Configuration Parameter",
+          "type": "string"
+        },
+        "ScopeIdentifierText": {
+          "description": "Scope Identifier",
           "type": "string"
         }
       },
@@ -5837,7 +5908,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the ProductSellingModel record associated with this ProductSellingModelOption record. This field is a relationship field.",
           "relationshipName": "ProductSellingModel",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductSellingModel"
         },
         "OwnerId": {
           "type": "reference",
@@ -5884,7 +5956,8 @@
           "type": "reference"
         },
         "BillingAccountId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Account"
         },
         "BillingAddress": {
           "properties": "Filter, Nillable",
@@ -6040,7 +6113,8 @@
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ID of the Salesforce record for which the billing schedule group was created. Available in API version 64.0 and later. This field is a polymorphic relationship field.",
           "relationshipName": "ReferenceRecord",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Asset"
         },
         "SavedPaymentMethodId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
@@ -6238,7 +6312,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "Represents the immediate parent in the product bundle that the price is configured for. This field is a relationship field.",
           "relationshipName": "ParentProduct",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "ScheduleType": {
           "description": "",
@@ -6300,7 +6375,8 @@
       "domain": "Transaction Management",
       "fields": {
         "AssetId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Asset"
         },
         "Name": {
           "description": "An auto-generated number assigned to the asset rate card entry. Read-only.",
@@ -6413,7 +6489,7 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "Required. The ID of the related record that's submitted for approval. This field is a polymorphic relationship field.",
           "relationshipName": "RelatedRecord",
-          "refersTo": "Account, AdAvailabilityViewConfig, Address, AnalyticsUserAttrFuncTkn, ApprovalSubmission,",
+          "refersTo": "Account, AdAvailabilityViewConfig, Address, AnalyticsUserAttrFuncTkn, ApprovalSubmission, ",
           "type": "string"
         },
         "CurrencyIsoCode": {
@@ -6628,7 +6704,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The attribute based adjustment rule associated with this attribute based adjustment record. This field is a relationship field.",
           "relationshipName": "AttributeBasedAdjRule",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributeBasedAdjRule"
         },
         "AttributeCount": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6669,7 +6746,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The price adjustment schedule associated with the attribute based adjustment record. This field is a relationship field.",
           "relationshipName": "PriceAdjustmentSchedule",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "PriceAdjustmentSchedule"
         },
         "PricingTerm": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6684,13 +6762,15 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the product associated with the product attribute set. This field is a relationship field.",
           "relationshipName": "Product",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "ProductSellingModelId": {
           "properties": "Create, Filter, Group, Nillable, Sort",
           "description": "The ID of the ProductSellingModel record associated with this attribute based adjustment record. This field is a relationship field.",
           "relationshipName": "ProductSellingModel",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductSellingModel"
         },
         "SellingModelType": {
           "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
@@ -6845,7 +6925,8 @@
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The usage resource associated with the usage product that's added as the quote line item. This field is a relationship field.",
           "relationshipName": "UsageResource",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageResource"
         },
         "ValidityPeriodTerm": {
           "description": "Validity Period Term",
@@ -7026,6 +7107,32 @@
           "type": "reference",
           "refersTo": "BatchJob",
           "relationshipType": "lookup"
+        },
+        "DocGenerationBatchProcessId": {
+          "description": "Document Generation Batch Process ID",
+          "type": "reference",
+          "refersTo": "DocGenerationBatchProcess",
+          "relationshipType": "lookup"
+        },
+        "TotalForecastLines": {
+          "description": "Total Forecast Lines",
+          "type": "int"
+        },
+        "TotalForecastedAmount": {
+          "description": "Total Forecasted Amount",
+          "type": "currency"
+        },
+        "ForecastRunDate": {
+          "description": "Forecast Run Date",
+          "type": "date"
+        },
+        "ForecastTargetDate": {
+          "description": "Forecast Target Date",
+          "type": "date"
+        },
+        "JobType": {
+          "description": "Job Type",
+          "type": "picklist"
         }
       },
       "pages": [
@@ -7093,11 +7200,13 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The user or queue associated with the fulfillment step definition. This field is a polymorphic relationship field.",
           "relationshipName": "AssignedTo",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "CancelledGroupId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "boolean"
+          "type": "boolean",
+          "refersTo": "FulfillmentStepDefinitionGroup"
         },
         "UsageType": {
           "description": "The details about the business that uses Fulfillment Orchestration. Some examples of UsageBy include Financial Services Cloud and CPQ. Valid values are: \u2022 Fulfillment \u2022 InsuranceRuleAction \u2022 IntegrationOrchestrator \u2022 OrderFulfillment \u2022 StageManagement",
@@ -7165,7 +7274,7 @@
         "ResumeOnRuleId": {
           "description": "Reference to FulfillmentFalloutRule",
           "type": "reference",
-          "refersTo": "FulfillmentFalloutRule",
+          "refersTo": "ExpressionSet, Ruleset",
           "relationshipType": "lookup"
         },
         "StepDefinitionGroupId": {
@@ -7209,6 +7318,10 @@
         "CustomConfigParameter": {
           "description": "Custom Configuration Parameter",
           "type": "string"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
         }
       },
       "domainShort": "DRO",
@@ -7339,7 +7452,8 @@
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "The owner of the attribute category attribute. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "Description": {
           "type": "textarea",
@@ -7564,13 +7678,6 @@
           "refersTo": "Group, User",
           "type": "reference"
         },
-        "ProductId": {
-          "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "description": "ID of the product for which the rating policy is defined. This field is a relationship field. This field is deprecated and will be retired in a future version.",
-          "relationshipName": "Product",
-          "refersTo": "Product2",
-          "type": "int"
-        },
         "RatingDelayDuration": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "Duration of delay\u2014in hours\u2014post the billing period after which the rating is to be triggered.",
@@ -7583,12 +7690,6 @@
         "RatingPeriod": {
           "description": "",
           "type": "picklist"
-        },
-        "UsageResourceId": {
-          "description": "Reference to UsageResource",
-          "type": "reference",
-          "refersTo": "UsageResource",
-          "relationshipType": "lookup"
         }
       },
       "pages": [
@@ -7831,7 +7932,8 @@
         "DependentStepId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "The name of a fulfillment step that depends on this step. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "FulfillmentStep"
         },
         "DependsOnStepId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -7965,7 +8067,8 @@
           "description": "The Product Configuration Flow associated with the Product Classification or Product. This field is a relationship field.",
           "relationshipName": "ProductConfigurationFlow",
           "relationshipType": "Lookup",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductConfigurationFlow"
         },
         "ProductId": {
           "description": "Product ID",
@@ -8191,7 +8294,8 @@
         "PricingAdjBatchJobId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "The pricing adjustment batch job associated with the pricing adjustment batch job log. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "PricingAdjBatchJob"
         },
         "TargetRecord": {
           "description": "Target Record",
@@ -8595,7 +8699,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "The contract item price ID associated with the contract item price adjustment tier. This field is a relationship field.",
           "relationshipName": "ContractItemPrice",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ContractItemPrice"
         },
         "Name": {
           "description": "Name",
@@ -8646,7 +8751,8 @@
         },
         "AssetId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Asset"
         },
         "GrantBindingTargetId": {
           "description": "Grant Binding Target ID",
@@ -8669,7 +8775,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PricebookEntry",
+          "refersTo": "PriceBookEntry",
           "relationshipType": "lookup"
         },
         "ProductId": {
@@ -8700,18 +8806,6 @@
           "description": "Usage Grant Rollover Policy ID",
           "type": "reference",
           "refersTo": "UsageGrantRolloverPolicy",
-          "relationshipType": "lookup"
-        },
-        "UsageAggregationPolicyId": {
-          "description": "Usage Aggregation Policy ID",
-          "type": "reference",
-          "refersTo": "UsageResourceBillingPolicy",
-          "relationshipType": "lookup"
-        },
-        "RatingFrequencyPolicyId": {
-          "description": "Rating Frequency Policy ID",
-          "type": "reference",
-          "refersTo": "RatingFrequencyPolicy",
           "relationshipType": "lookup"
         },
         "TokenResourceId": {
@@ -8756,17 +8850,9 @@
           "description": "Validity Period Unit",
           "type": "picklist"
         },
-        "ChargeForOverage": {
-          "description": "Charge For Overage",
-          "type": "picklist"
-        },
         "NetQuantity": {
           "description": "Net Quantity",
           "type": "double"
-        },
-        "DrawdownOrder": {
-          "description": "Drawdown Order",
-          "type": "picklist"
         },
         "ExternalOrderItem": {
           "description": "External Order Item",
@@ -9069,6 +9155,24 @@
           "type": "reference",
           "refersTo": "SequencePolicy",
           "relationshipType": "lookup"
+        },
+        "SavedPaymentMethodId": {
+          "description": "Saved Payment Method ID",
+          "type": "reference",
+          "refersTo": "SavedPaymentMethod",
+          "relationshipType": "lookup"
+        },
+        "NetRefundsApplied": {
+          "description": "Net Refunds Applied",
+          "type": "currency"
+        },
+        "IsCreditMemoLocked": {
+          "description": "Is Credit Memo Locked",
+          "type": "boolean"
+        },
+        "CreditMemoLockedDateTime": {
+          "description": "Credit Memo Locked Date Time",
+          "type": "datetime"
         }
       },
       "pages": [
@@ -9084,7 +9188,8 @@
         "AssetId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "The ID of the asset this warranty term applies to.",
-          "type": "string"
+          "type": "string",
+          "refersTo": "Asset"
         },
         "ConnectedAppId": {
           "description": "Connected App ID",
@@ -9295,7 +9400,8 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of the tax treatment record that's related to a credit memo line tax. This field is a relationship field.",
           "relationshipName": "TaxTreatment",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "TaxTreatment"
         },
         "Description": {
           "description": "Description",
@@ -9316,7 +9422,8 @@
           "properties": "Filter, Group, Sort",
           "description": "ID of the ContractItemPrice record. This field is a relationship field.",
           "relationshipName": "ContractItemPrice",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ContractItemPrice"
         },
         "DataType": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
@@ -9409,7 +9516,8 @@
         "PaymentGatewayId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The unique identifier of the payment gateway for which the payment retry rule must be applied.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "PaymentGateway"
         },
         "PaymentRetryRuleSetId": {
           "description": "Payment Retry Rule Set ID",
@@ -9556,6 +9664,10 @@
         "PropagateStateToDependentStep": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "The state that\u2019s propagated to the dependent fulfillment step when the source fulfillment step is amended or canceled in the fulfillment plan. Valid values are: \u2022 Amended \u2022 Both \u2022 Canceled \u2022 None This field is available in API version 63.0 and later."
+        },
+        "CustomScope": {
+          "description": "Custom Scope",
+          "type": "string"
         }
       },
       "pages": [
@@ -9678,7 +9790,7 @@
         },
         "Pricebook2Id": {
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "description": "Required. ID of the Pricebook2 record with which this record is associated."
         },
         "Product2Id": {
@@ -9793,7 +9905,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PricebookEntry",
+          "refersTo": "PriceBookEntry",
           "relationshipType": "lookup"
         }
       },
@@ -10060,6 +10172,26 @@
         "TargetDateOffset": {
           "description": "Target Date Offset",
           "type": "int"
+        },
+        "ShouldRecalculateAllForecastLn": {
+          "description": "Recalculate All Forecast Lines",
+          "type": "boolean"
+        },
+        "ShouldCatchUpBillRun": {
+          "description": "Should Catch Up Bill Run",
+          "type": "boolean"
+        },
+        "BillingCycleCount": {
+          "description": "Billing Period Count",
+          "type": "int"
+        },
+        "TargetDateDayOfMonth": {
+          "description": "Target Date Day Of Month",
+          "type": "int"
+        },
+        "TargetDateMonthOffset": {
+          "description": "Target Date Month Offset",
+          "type": "int"
         }
       },
       "pages": [
@@ -10278,7 +10410,8 @@
         },
         "SourceLineItemId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "DisputeItem, FulfillmentOrderLineItem, OrderItem"
         },
         "StepId": {
           "description": "Fulfillment Step ID",
@@ -10442,7 +10575,8 @@
         "ProductRelationshipTypeId": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of the product relationship type record between the main and associated invoice lines.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductRelationshipType"
         }
       },
       "pages": [
@@ -10471,7 +10605,8 @@
           "relationshipType": "Master-detail"
         },
         "BillingArrangementId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "BillingArrangement"
         },
         "BillingArrangementLineName": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -10547,7 +10682,8 @@
           "properties": "Create, Filter, Group, Sort",
           "description": "Required. The invoice line to which a payment line has been applied or unapplied. This field is a relationship field.",
           "relationshipName": "InvoiceLine",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "InvoiceLine"
         },
         "PaymentId": {
           "description": "Payment ID",
@@ -10604,6 +10740,16 @@
         "PaymentBalance": {
           "description": "Payment Balance",
           "type": "currency"
+        },
+        "InvoiceLineTaxId": {
+          "description": "Invoice Line Tax ID",
+          "type": "reference",
+          "refersTo": "InvoiceLineTax",
+          "relationshipType": "lookup"
+        },
+        "SettlementType": {
+          "description": "Settlement Type",
+          "type": "picklist"
         }
       },
       "domainShort": "Billing",
@@ -10641,11 +10787,6 @@
           "properties": "Filter, Nillable, Sort",
           "description": "The timestamp for when the current user last viewed a record related to this record.",
           "type": "picklist"
-        },
-        "OverageChargeable": {
-          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
-          "description": "Specifies whether to charge for overages. Valid values are: \u2022 No \u2022 Yes This field is deprecated and will be retired in a future version.",
-          "type": "reference"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -10703,7 +10844,7 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The sellable product associated with the usage resource that's used to retrieve tax policy, calculate rating during overages, and other invoicing actions. This field is a relationship field.",
           "relationshipName": "UsageDefinitionProduct",
-          "refersTo": "Product2",
+          "refersTo": "UnitOfMeasure",
           "type": "picklist"
         },
         "UsageModelType": {
@@ -10779,7 +10920,8 @@
         },
         "ProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "EffectiveTo": {
           "description": "",
@@ -10812,7 +10954,8 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The identifier of the account. This field is a relationship field.",
           "relationshipName": "Account",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Account"
         },
         "ProductId": {
           "description": "Product ID",
@@ -10928,7 +11071,8 @@
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The value specified in the picklist type field that corresponds to the attribute in the AttributePicklistValue object. This field is a relationship field.",
           "relationshipName": "AttributePicklistValue",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributePicklistValue"
         },
         "AttributeValue": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -10973,7 +11117,8 @@
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "ID of the user who created the record.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "Description": {
           "type": "string",
@@ -11156,6 +11301,16 @@
         "Description": {
           "description": "Description",
           "type": "textarea"
+        },
+        "InvoiceLineTaxId": {
+          "description": "Invoice Line Tax ID",
+          "type": "reference",
+          "refersTo": "InvoiceLineTax",
+          "relationshipType": "lookup"
+        },
+        "SettlementType": {
+          "description": "Settlement Type",
+          "type": "picklist"
         }
       },
       "pages": [
@@ -11201,7 +11356,8 @@
           "refersTo": "Group, User"
         },
         "OwnerId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         },
         "SourcePrimitiveType": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -11274,7 +11430,8 @@
         "UsageResourceId": {
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The usage resource associated with the usage product that's added in the order item.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageResource"
         },
         "ValidityPeriodTerm": {
           "description": "Validity Period Term",
@@ -11417,7 +11574,8 @@
         },
         "ProductId": {
           "properties": "Create, Filter, Group, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "StringValue": {
           "description": "",
@@ -11676,7 +11834,8 @@
         "BillToContactId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The contact associated with the billing account. Available in API version 64.0 and later. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Contact"
         },
         "BillingResumptionDate": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -11950,6 +12109,10 @@
           "properties": "Filter, Nillable, Sort",
           "description": "The timestamp when the current user last viewed this record or list view. If this value is null, the user accessed this record or list view (LastReferencedDate) but didn\u2019t view it.",
           "type": "string"
+        },
+        "AppliedAdjustmentAmount": {
+          "description": "Applied Adjustment Amount",
+          "type": "currency"
         }
       },
       "domainShort": "Transactions",
@@ -12057,7 +12220,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "relationshipType": "lookup"
         },
         "OriginalOrderId": {
@@ -12327,6 +12490,10 @@
         "LastReferencedDate": {
           "description": "Last Referenced Date",
           "type": "datetime"
+        },
+        "IsLargeDeal": {
+          "description": "Large Deal",
+          "type": "boolean"
         }
       },
       "is_standard": true,
@@ -12337,7 +12504,8 @@
       "domain": "Billing",
       "fields": {
         "BillingPolicyId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "BillingPolicy"
         },
         "CanChangeBillingFrequency": {
           "properties": "Create, Filter, Nillable, Sort, Update",
@@ -12435,12 +12603,12 @@
         },
         "PricebookEntryId": {
           "type": "reference",
-          "refersTo": "PricebookEntry",
+          "refersTo": "PriceBookEntry",
           "description": "Price book entry associated with the source product."
         },
         "PricebookId": {
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "description": "Price book associated with the source product."
         },
         "PricingSource": {
@@ -12532,6 +12700,10 @@
         "AnchorObject": {
           "description": "Anchor Object",
           "type": "picklist"
+        },
+        "IsRequestDetailEditable": {
+          "description": "Request Detail Editable",
+          "type": "boolean"
         }
       },
       "domainShort": "Configurator",
@@ -12551,7 +12723,8 @@
         "LegalEntityId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The legal entity related to the refund.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "LegalEntity"
         },
         "PaymentId": {
           "description": "Payment ID",
@@ -12663,7 +12836,8 @@
       "domain": "Billing",
       "fields": {
         "BillingTreatmentId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "BillingTreatment"
         },
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -13013,7 +13187,8 @@
         "LocationId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The asset\u2019s location. Typically, this location is the place where the asset is stored, such as a warehouse or van. If you have access to the location entity, it doesn\u2019t necessarily mean you can access the location id field. To access the location, you must have userHasLocation user access.",
-          "type": "double"
+          "type": "double",
+          "refersTo": "Location"
         },
         "Longitude": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -13269,7 +13444,8 @@
           "refersTo": "FulfillmentOrderLineItem, OrderItem"
         },
         "SourceLineItemId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "FulfillmentOrderLineItem, OrderItem, OrderItemSummary"
         },
         "SourceType": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -13334,7 +13510,7 @@
         },
         "Pricebook2Id": {
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "description": "The price book associated with this price adjustment schedule record."
         },
         "ScheduleType": {
@@ -13354,6 +13530,10 @@
         "LastReferencedDate": {
           "description": "Last Referenced Date",
           "type": "datetime"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
         }
       },
       "domainShort": "Pricing",
@@ -13389,7 +13569,8 @@
         },
         "PartnerAccountId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Account"
         },
         "TotalPriceOverride": {
           "description": "The value that the TotalPrice field must be set to by applying overall discounts. Transaction Management calculates the overall discount amount by finding the difference between the value in the calculated TotalPrice field and the value in this field. It then uses the logic specified in the AdjustmentDistributionLogic field to distribute the discount amount among all the quote line items that have prices associated with them. Available in API version 65.0 and later.",
@@ -13449,7 +13630,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "relationshipType": "lookup"
         },
         "ContactId": {
@@ -13749,6 +13930,10 @@
         "LineGroupCount": {
           "description": "Line Groups",
           "type": "int"
+        },
+        "IsLargeDeal": {
+          "description": "Large Deal",
+          "type": "boolean"
         }
       },
       "is_standard": true,
@@ -13832,7 +14017,8 @@
         "BillingTreatmentId": {
           "properties": "Create, Filter, Group, Sort",
           "description": "Required. The billing treatment associated with the billing milestone plan.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "BillingTreatment"
         },
         "ExternalReference": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -13987,6 +14173,10 @@
           "type": "reference",
           "refersTo": "CostBook",
           "relationshipType": "lookup"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
         }
       },
       "domainShort": "Pricing",
@@ -14077,7 +14267,8 @@
         "SourceAttributeDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "For internal use only. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "AttributeDefinition"
         },
         "SourceType": {
           "description": "Source Type",
@@ -14136,7 +14327,8 @@
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "ID of the user who created the record. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Group, User"
         }
       },
       "domainShort": "Pricing",
@@ -14251,6 +14443,10 @@
         "UnitPriceUplift": {
           "description": "Unit Price Uplift",
           "type": "percent"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
         }
       },
       "pages": [
@@ -14735,7 +14931,7 @@
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ID of the record that the invoice line corresponds to. This field is a polymorphic relationship field.",
           "relationshipName": "GroupReferenceEntityItem",
-          "refersTo": "DebitMemoLine, OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, QuoteLineDetail,",
+          "refersTo": "DebitMemoLine, OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, QuoteLineDetail, ",
           "type": "reference"
         },
         "HasMultipleItems": {
@@ -15126,7 +15322,8 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The usage aggregation policy associated with the usage resource. This field is a relationship field.",
           "relationshipName": "UsageAggregationPolicy",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageResourceBillingPolicy"
         },
         "UsageCommitmentPolicyId": {
           "description": "Reference to UsageCommitmentPolicy",
@@ -15174,7 +15371,8 @@
         "PaymentSchedulePolicyId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The ID of the related payment schedule policy. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "PaymentSchedulePolicy"
         },
         "Status": {
           "description": "Payment Schedule Treatment Status",
@@ -15378,7 +15576,8 @@
           "properties": "Filter, Group, Sort",
           "description": "The ID of the related lifecycle-managed asset. Label is Asset. This field is a relationship field.",
           "relationshipName": "Asset",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Asset"
         },
         "CanRollBack": {
           "properties": "Defaulted on create, Filter, Group, Sort",
@@ -15488,6 +15687,12 @@
         "AssetStatePeriodHistory": {
           "description": "Asset State Period History",
           "type": "textarea"
+        },
+        "RolledBackAssetActionId": {
+          "description": "Asset Action ID",
+          "type": "reference",
+          "refersTo": "AssetAction",
+          "relationshipType": "lookup"
         }
       },
       "domainShort": "Transactions",
@@ -15516,11 +15721,12 @@
           "description": "The rate card entry containing catalog rates that's associated with the order item rate card entry. This field is a relationship field.",
           "relationshipName": "RateCardEntry",
           "relationshipType": "Master-detail",
-          "refersTo": "RateCardEntry",
+          "refersTo": "OrderItem",
           "type": "reference"
         },
         "RateCardEntryId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "RateCardEntry"
         },
         "RateCardId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -15538,7 +15744,8 @@
         },
         "UsageResourceId": {
           "properties": "Filter, Group, Nillable, Sort",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UsageResource"
         }
       },
       "pages": [
@@ -15633,7 +15840,8 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The default unit of measure for the given resource. The default value can be overridden with an alternate default unit of measure for a given resource. This field is a relationship field.",
           "relationshipName": "DefaultUnitOfMeasure",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UnitOfMeasure"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -15683,13 +15891,6 @@
           "refersTo": "Product2",
           "type": "reference"
         },
-        "UsageResourceBillingPolicyId": {
-          "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "description": "The usage resource billing policy that defines how the usage resource can be aggregated before it's sent for rating. This field is a relationship field. This field is deprecated and will be retired in a future version.",
-          "relationshipName": "UsageResourceBillingPolicy",
-          "refersTo": "UsageResourceBillingPolicy",
-          "type": "reference"
-        },
         "Description": {
           "description": "",
           "type": "textarea"
@@ -15708,7 +15909,8 @@
         "AccountId": {
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The account that\u2019s related to the debit memo record.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Account"
         },
         "CorpCrcyCnvTotChargeAmt": {
           "properties": "Filter, Nillable, Sort, Update",
@@ -15832,6 +16034,12 @@
         "FuncCrcyCnvTotAmt": {
           "description": "Functional Currency Converted Total Amount",
           "type": "double"
+        },
+        "InvoiceBatchRunId": {
+          "description": "Invoice Batch Run ID",
+          "type": "reference",
+          "refersTo": "InvoiceBatchRun",
+          "relationshipType": "lookup"
         }
       },
       "domainShort": "Billing",
@@ -15932,7 +16140,8 @@
         "LegalEntityAccountingPeriodId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The legal entity accounting period related to the payment. This field is a relationship field.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "LegalEntyAccountingPeriod"
         },
         "PaymentGroupId": {
           "description": "Payment Group ID",
@@ -16260,7 +16469,8 @@
       "domain": "Usage Management",
       "fields": {
         "AccountId": {
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Account"
         },
         "UsageResourceId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -16502,6 +16712,20 @@
         "UnitPrice": {
           "description": "Unit Price",
           "type": "currency"
+        },
+        "PricingContractId": {
+          "description": "Contract ID",
+          "type": "reference",
+          "refersTo": "Contract",
+          "relationshipType": "lookup"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
+        },
+        "ApplUnitPriceUpliftPct": {
+          "description": "Applied Unit Price Uplift Percent",
+          "type": "percent"
         }
       },
       "pages": [
@@ -17037,7 +17261,8 @@
         },
         "UnitOfMeasureId": {
           "properties": "Filter, Group, Nillable, Sort",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "UnitOfMeasure"
         },
         "UsageResourceId": {
           "description": "Usage Resource ID",
@@ -17104,6 +17329,42 @@
         "SubCategory": {
           "description": "Subcategory",
           "type": "picklist"
+        },
+        "ForecastBatchRunId": {
+          "description": "Invoice Batch Run ID",
+          "type": "reference",
+          "refersTo": "InvoiceBatchRun",
+          "relationshipType": "lookup"
+        },
+        "BillingTreatmentId": {
+          "description": "Billing Treatment ID",
+          "type": "reference",
+          "refersTo": "BillingTreatment",
+          "relationshipType": "lookup"
+        },
+        "ForecastStatus": {
+          "description": "Forecast Status",
+          "type": "picklist"
+        },
+        "LastForecastRunTargetDate": {
+          "description": "Last Forecast Run Target Date",
+          "type": "date"
+        },
+        "RampIdentifier": {
+          "description": "Ramp Identifier",
+          "type": "string"
+        },
+        "SegmentType": {
+          "description": "Segment Type",
+          "type": "picklist"
+        },
+        "SegmentName": {
+          "description": "Segment Name",
+          "type": "string"
+        },
+        "SegmentIdentifier": {
+          "description": "Segment Identifier",
+          "type": "string"
         }
       },
       "pages": [
@@ -17346,7 +17607,8 @@
         "PricebookEntryId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
           "description": "PricebookEntry is used as a lookup for price information in order to pre-populate OrderItem's ListPrice and UnitPrice.",
-          "type": "double"
+          "type": "double",
+          "refersTo": "PriceBookEntry"
         },
         "PricingTermCount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
@@ -17361,12 +17623,14 @@
         "ProductSellingModelId": {
           "properties": "Creatable, Filter, Group, Nillable, Sort, Updateable",
           "description": "Specifies the product selling model type. Foreignkey to ProductSellingModel entity.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductSellingModel"
         },
         "ProrationPolicyId": {
           "properties": "Creatable, Filter, Group, Nillable, Sort, Updateable",
           "description": "The ID of the ProrationPolicy used for pricing.",
-          "type": "double"
+          "type": "double",
+          "refersTo": "ProrationPolicy"
         },
         "Quantity": {
           "properties": "Creatable, Filter, Nillable, Sort, Updateable",
@@ -17399,7 +17663,8 @@
         "TaxTreatmentId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
           "description": "Lookup to Tax Treatment entity. It's used to calculate tax.",
-          "type": "currency"
+          "type": "currency",
+          "refersTo": "TaxTreatment"
         },
         "TotalLineAmount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
@@ -17417,6 +17682,10 @@
         "TotalPrice": {
           "description": "Total Price",
           "type": "currency"
+        },
+        "BillingTerm": {
+          "description": "Billing Term",
+          "type": "int"
         }
       },
       "pages": [
@@ -17572,6 +17841,10 @@
         "UsedFor": {
           "description": "Used for",
           "type": "picklist"
+        },
+        "UniversalProductCode": {
+          "description": "Universal Product Code",
+          "type": "string"
         }
       },
       "is_standard": true,
@@ -17966,6 +18239,10 @@
           "type": "reference",
           "refersTo": "Product2",
           "relationshipType": "lookup"
+        },
+        "CategorySequence": {
+          "description": "Category Sequence",
+          "type": "int"
         }
       },
       "domainShort": "PCM",
@@ -18243,6 +18520,10 @@
         },
         "AssociatedProductRoleCat": {
           "description": "",
+          "type": "string"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
           "type": "string"
         }
       },
@@ -18641,6 +18922,22 @@
         "EndDateTime": {
           "description": "End Date Time",
           "type": "datetime"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
+        },
+        "ApplUnitPriceUpliftPct": {
+          "description": "Applied Unit Price Uplift Percent",
+          "type": "percent"
+        },
+        "PricingSource": {
+          "description": "Pricing Source",
+          "type": "picklist"
+        },
+        "BillingTerm": {
+          "description": "Billing Term",
+          "type": "int"
         }
       },
       "relationships": [],
@@ -19056,6 +19353,22 @@
         "TotalMarginAmount": {
           "description": "Total Margin Amount",
           "type": "currency"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
+        },
+        "ApplUnitPriceUpliftPct": {
+          "description": "Applied Unit Price Uplift Percent",
+          "type": "percent"
+        },
+        "PricingSource": {
+          "description": "Pricing Source",
+          "type": "picklist"
+        },
+        "BillingTerm": {
+          "description": "Billing Term",
+          "type": "int"
         }
       },
       "relationships": [],
@@ -19094,7 +19407,8 @@
         },
         "OwnerId": {
           "description": "ID of the User who owns the account.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "User"
         },
         "ParentId": {
           "description": "ID of the parent Account.",
@@ -19542,7 +19856,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "Pricebook2",
+          "refersTo": "PriceBook2",
           "relationshipType": "lookup"
         },
         "CompanySignedId": {
@@ -19722,6 +20036,10 @@
         "LastReferencedDate": {
           "description": "Last Referenced Date",
           "type": "datetime"
+        },
+        "RampUpliftType": {
+          "description": "Ramp Uplift Type",
+          "type": "picklist"
         }
       },
       "relationships": [],
@@ -19969,6 +20287,10 @@
         "StartFulfillmentDate": {
           "description": "Start Fulfillment Date",
           "type": "datetime"
+        },
+        "RoutingReference": {
+          "description": "Routing Reference",
+          "type": "string"
         }
       },
       "relationships": [],
@@ -20151,6 +20473,16 @@
         "FulfillmentAssetEndQuantity": {
           "description": "Fulfillment Asset End Quantity",
           "type": "double"
+        },
+        "InvoiceId": {
+          "description": "Invoice ID",
+          "type": "reference",
+          "refersTo": "Invoice",
+          "relationshipType": "lookup"
+        },
+        "SubAction": {
+          "description": "Sub Action",
+          "type": "string"
         }
       },
       "relationships": [],
@@ -20161,7 +20493,8 @@
       "fields": {
         "ServiceContractId": {
           "description": "ID of the parent ServiceContract.",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ServiceContract"
         },
         "Product2Id": {
           "description": "ID of the Product.",
@@ -20196,7 +20529,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PricebookEntry",
+          "refersTo": "PriceBookEntry",
           "relationshipType": "lookup"
         },
         "ParentContractLineItemId": {
@@ -20305,7 +20638,8 @@
       "fields": {
         "CategoryId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductCategory"
         },
         "EffectiveFromDate": {
           "description": "",
@@ -20344,7 +20678,8 @@
       "fields": {
         "CategoryId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "ProductCategory"
         },
         "EffectiveFromDate": {
           "description": "",
@@ -20391,11 +20726,13 @@
         },
         "ParentProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "ProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "Reason": {
           "description": "",
@@ -20403,7 +20740,8 @@
         },
         "RootProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "Name": {
           "description": "Name",
@@ -20438,15 +20776,18 @@
         },
         "ParentProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "ProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "RootProductId": {
           "description": "",
-          "type": "reference"
+          "type": "reference",
+          "refersTo": "Product2"
         },
         "Name": {
           "description": "Name",
@@ -20609,6 +20950,10 @@
         "LastReferencedDate": {
           "description": "Last Referenced Date",
           "type": "datetime"
+        },
+        "CategorySequence": {
+          "description": "Category Sequence",
+          "type": "int"
         }
       },
       "relationships": [],
@@ -21062,6 +21407,14 @@
         },
         "IntegrationProcedureOutput": {
           "description": "Integration Procedure Output",
+          "type": "textarea"
+        },
+        "AiGeneratedDescription": {
+          "description": "AI Generated Description",
+          "type": "textarea"
+        },
+        "EmbeddingPayload": {
+          "description": "Embedding Payload",
           "type": "textarea"
         }
       },
@@ -22759,12 +23112,6 @@
     },
     {
       "source": "QuoteLineRateCardEntry",
-      "target": "RateCardEntry",
-      "field": "QuoteLineItemId",
-      "type": "lookup"
-    },
-    {
-      "source": "QuoteLineRateCardEntry",
       "target": "RateCard",
       "field": "RateCardId",
       "type": "lookup"
@@ -22809,12 +23156,6 @@
       "source": "DebitMemoLineTax",
       "target": "DebitMemoAddress",
       "field": "BillingAddressId",
-      "type": "lookup"
-    },
-    {
-      "source": "Invoice",
-      "target": "BillingAccount",
-      "field": "BillingAccountId",
       "type": "lookup"
     },
     {
@@ -22899,12 +23240,6 @@
       "source": "GeneralLdgrAcctPrdSummary",
       "target": "LegalEntyAccountingPeriod",
       "field": "LegalEntityAccountingPeriodId",
-      "type": "lookup"
-    },
-    {
-      "source": "BillingBatchFilterCriteria",
-      "target": "InvoiceBatchRunCriteria",
-      "field": "BatchCriteriaId",
       "type": "lookup"
     },
     {
@@ -23097,12 +23432,6 @@
       "source": "TaxPolicy",
       "target": "TaxTreatment",
       "field": "DefaultTaxTreatmentId",
-      "type": "lookup"
-    },
-    {
-      "source": "FulfillmentStep",
-      "target": "FulfillmentStep",
-      "field": "AssignedToId",
       "type": "lookup"
     },
     {
@@ -23307,12 +23636,6 @@
       "source": "LegalEntyAccountingPeriod",
       "target": "LegalEntity",
       "field": "LegalEntityId",
-      "type": "lookup"
-    },
-    {
-      "source": "RatingFrequencyPolicy",
-      "target": "Product2",
-      "field": "ProductId",
       "type": "lookup"
     },
     {
@@ -23625,12 +23948,6 @@
       "source": "ProductUsageGrant",
       "target": "UnitOfMeasureClass",
       "field": "UnitOfMeasureClassId",
-      "type": "lookup"
-    },
-    {
-      "source": "ProductUsageGrant",
-      "target": "Product2",
-      "field": "UnitOfMeasureId",
       "type": "lookup"
     },
     {
@@ -23995,12 +24312,6 @@
     },
     {
       "source": "OrderItemRateCardEntry",
-      "target": "RateCardEntry",
-      "field": "OrderItemId",
-      "type": "lookup"
-    },
-    {
-      "source": "OrderItemRateCardEntry",
       "target": "RateCard",
       "field": "RateCardId",
       "type": "lookup"
@@ -24033,12 +24344,6 @@
       "source": "UsageResource",
       "target": "Product2",
       "field": "UsageDefinitionProductId",
-      "type": "lookup"
-    },
-    {
-      "source": "UsageResource",
-      "target": "UsageResourceBillingPolicy",
-      "field": "UsageResourceBillingPolicyId",
       "type": "lookup"
     },
     {
@@ -24402,12 +24707,6 @@
       "type": "master-detail"
     },
     {
-      "source": "QuoteLineRateCardEntry",
-      "target": "QuoteLineItem",
-      "field": "QuoteLineItemId",
-      "type": "master-detail"
-    },
-    {
       "source": "QuotLineItmUsageRsrcPlcy",
       "target": "QuoteLineItem",
       "field": "QuoteLineItemId",
@@ -24436,12 +24735,6 @@
       "target": "OrderItem",
       "field": "OrderItemId",
       "type": "master-detail"
-    },
-    {
-      "source": "OrderItemRateCardEntry",
-      "target": "OrderItem",
-      "field": "OrderItemId",
-      "type": "lookup"
     },
     {
       "source": "OrderItemUsageRsrcPlcy",
@@ -24549,12 +24842,6 @@
       "source": "ProductSellingModelOption",
       "target": "ProductSellingModel",
       "field": "ProductSellingModelId",
-      "type": "lookup"
-    },
-    {
-      "source": "BillingBatchFilterCriteria",
-      "target": "BillingBatchFilterCriteria",
-      "field": "BatchCriteriaId",
       "type": "lookup"
     },
     {
@@ -24729,12 +25016,6 @@
       "source": "FulfillmentStepDefinition",
       "target": "IntegrationProviderDef",
       "field": "IntegrationDefinitionNameId",
-      "type": "lookup"
-    },
-    {
-      "source": "FulfillmentStepDefinition",
-      "target": "FulfillmentFalloutRule",
-      "field": "ResumeOnRuleId",
       "type": "lookup"
     },
     {
@@ -25111,12 +25392,6 @@
     },
     {
       "source": "ProductUsageResourcePolicy",
-      "target": "UsageResource",
-      "field": "UsageAggregationPolicyId",
-      "type": "lookup"
-    },
-    {
-      "source": "ProductUsageResourcePolicy",
       "target": "UsageCommitmentPolicy",
       "field": "UsageCommitmentPolicyId",
       "type": "lookup"
@@ -25147,20 +25422,8 @@
     },
     {
       "source": "ProductUsageGrant",
-      "target": "UnitOfMeasure",
-      "field": "UnitOfMeasureId",
-      "type": "lookup"
-    },
-    {
-      "source": "ProductUsageGrant",
       "target": "Product2",
       "field": "UsageDefinitionProductId",
-      "type": "lookup"
-    },
-    {
-      "source": "RatingFrequencyPolicy",
-      "target": "UsageResource",
-      "field": "UsageResourceId",
       "type": "lookup"
     },
     {
@@ -25653,18 +25916,6 @@
       "source": "TransactionUsageEntitlement",
       "target": "UsageGrantRolloverPolicy",
       "field": "UsageGrantRolloverPolicyId",
-      "type": "lookup"
-    },
-    {
-      "source": "TransactionUsageEntitlement",
-      "target": "UsageResourceBillingPolicy",
-      "field": "UsageAggregationPolicyId",
-      "type": "lookup"
-    },
-    {
-      "source": "TransactionUsageEntitlement",
-      "target": "RatingFrequencyPolicy",
-      "field": "RatingFrequencyPolicyId",
       "type": "lookup"
     },
     {
@@ -26469,6 +26720,108 @@
       "source": "CreditMemoInvApplication",
       "target": "LegalEntyAccountingPeriod",
       "field": "LegalEntityAccountingPeriodId",
+      "type": "lookup"
+    },
+    {
+      "source": "Refund",
+      "target": "CreditMemo",
+      "field": "ReferenceRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentLineInvoiceLine",
+      "target": "InvoiceLineTax",
+      "field": "InvoiceLineTaxId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoLineInvoiceLine",
+      "target": "InvoiceLineTax",
+      "field": "InvoiceLineTaxId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetAction",
+      "target": "AssetAction",
+      "field": "RolledBackAssetActionId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetStatePeriod",
+      "target": "Contract",
+      "field": "PricingContractId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemo",
+      "target": "InvoiceBatchRun",
+      "field": "InvoiceBatchRunId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "InvoiceBatchRun",
+      "field": "ForecastBatchRunId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "BillingTreatment",
+      "field": "BillingTreatmentId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentOrderLineItem",
+      "target": "Invoice",
+      "field": "InvoiceId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingBatchFilterCriteria",
+      "target": "GeneralLedgerAcctAsgntRule",
+      "field": "BatchCriteriaId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingBatchFilterCriteria",
+      "target": "InvoiceBatchRunCriteria",
+      "field": "BatchCriteriaId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStepDefinition",
+      "target": "ExpressionSet",
+      "field": "ResumeOnRuleId",
+      "type": "lookup"
+    },
+    {
+      "source": "Invoice",
+      "target": "Account",
+      "field": "BillingAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRateCardEntry",
+      "target": "OrderItem",
+      "field": "OrderItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductUsageGrant",
+      "target": "UnitOfMeasure",
+      "field": "UnitOfMeasureId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductUsageResourcePolicy",
+      "target": "UsageResourceBillingPolicy",
+      "field": "UsageAggregationPolicyId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineRateCardEntry",
+      "target": "QuoteLineItem",
+      "field": "QuoteLineItemId",
       "type": "lookup"
     }
   ]

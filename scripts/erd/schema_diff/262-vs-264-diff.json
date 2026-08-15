@@ -1,0 +1,2800 @@
+{
+  "baseline": {
+    "extracted_at": "2026-05-27T01:53:35Z",
+    "object_count": 254,
+    "org_alias": "rlm-base__ent-sb0",
+    "source": "sf sobject describe",
+    "total_fields": 3851
+  },
+  "target": {
+    "extracted_at": "2026-08-15T21:24:25Z",
+    "object_count": 254,
+    "org_alias": "rlm-base__264merged",
+    "source": "sf sobject describe",
+    "total_fields": 3913
+  },
+  "summary": {
+    "objects_added": 0,
+    "objects_removed": 0,
+    "objects_changed": 62,
+    "objects_unchanged": 192,
+    "total_fields_added": 70,
+    "total_fields_removed": 8,
+    "total_type_changes": 0,
+    "total_relationship_changes": 1,
+    "total_picklist_value_additions": 270,
+    "total_picklist_value_removals": 18
+  },
+  "objects_added": [],
+  "objects_removed": [],
+  "object_diffs": {
+    "ApprovalSubmission": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": [
+        {
+          "field": "RelatedRecordId",
+          "from_refersTo": [
+            "Account",
+            "AccountBillingAccount",
+            "AccountingPeriod",
+            "AdAvailabilityViewConfig",
+            "Address",
+            "AgentWork",
+            "AiJobRun",
+            "AiJobRunItem",
+            "AnalyticsUserAttrFuncTkn",
+            "ApprovalSubmission",
+            "ApprovalSubmissionDetail",
+            "ApprovalWorkItem",
+            "ApprovalWorkItemCondition",
+            "ApprovalWorkItemCriteria",
+            "Assessment",
+            "AssessmentDefinition",
+            "AssessmentEnvelope",
+            "AssessmentEnvelopeItem",
+            "AssessmentQuestion",
+            "AssessmentQuestionAssignment",
+            "AssessmentQuestionResponse",
+            "AssessmentQuestionSet",
+            "AssessmentQuestionVersion",
+            "AssessmentSavedSession",
+            "AssessmentSignature",
+            "Asset",
+            "AssetAction",
+            "AssetActionSource",
+            "AssetActionSrcPriceAdjustment",
+            "AssetContractRelationship",
+            "AssetRateAdjustment",
+            "AssetRateCardEntry",
+            "AssetRelationship",
+            "AssetStatePeriod",
+            "AssociatedLocation",
+            "AsyncOperationTracker",
+            "AttrPicklistExcludedValue",
+            "AttributeAdjustmentCondition",
+            "AttributeBasedAdjRule",
+            "AttributeBasedAdjustment",
+            "AttributeCategory",
+            "AttributeCategoryAttribute",
+            "AttributeDefinition",
+            "AttributePicklist",
+            "AttributePicklistValue",
+            "AuditTrailFileExport",
+            "AuthorizationForm",
+            "AuthorizationFormConsent",
+            "AuthorizationFormDataUse",
+            "AuthorizationFormText",
+            "BatchJob",
+            "BatchJobPart",
+            "BatchJobPartFailedRecord",
+            "BillingAccount",
+            "BillingArrangement",
+            "BillingArrangementLine",
+            "BillingMilestonePlan",
+            "BillingMilestonePlanItem",
+            "BillingPolicy",
+            "BillingSchedule",
+            "BillingScheduleGroup",
+            "BillingTreatment",
+            "BillingTreatmentItem",
+            "BindingObjUsageRsrcPlcy",
+            "BindingObjectCustomExt",
+            "BindingObjectRateAdjustment",
+            "BindingObjectRateCardEntry",
+            "BsgRelationship",
+            "BundleBasedAdjustment",
+            "BusinessBrand",
+            "BusinessProfile",
+            "BuyerAccount",
+            "BuyerGroup",
+            "BuyerGroupMember",
+            "CalculatedInsightRangeBound",
+            "CalculationMatrixActionLog",
+            "Campaign",
+            "CartAction",
+            "CartDeliveryGroupMethodAdj",
+            "CartItem",
+            "CartItemDetail",
+            "CartItemPriceAdjustment",
+            "CartRelatedItem",
+            "CartTax",
+            "CartValidationOutput",
+            "Case",
+            "CaseComment",
+            "CaseProceeding",
+            "CaseProceedingParticipant",
+            "CaseProceedingResult",
+            "CaseServiceProcessExtension",
+            "ChannelProgram",
+            "ChannelProgramLevel",
+            "ChannelProgramMember",
+            "CollaborationGroup",
+            "CollectionPlan",
+            "CollectionPlanItem",
+            "CollectionPlanReason",
+            "CommSubscription",
+            "CommSubscriptionChannelType",
+            "CommSubscriptionConsent",
+            "CommSubscriptionTiming",
+            "CommerceConfigRelatedRecord",
+            "Contact",
+            "ContactPointAddress",
+            "ContactPointConsent",
+            "ContactPointEmail",
+            "ContactPointPhone",
+            "ContactPointTypeConsent",
+            "ContactRequest",
+            "ContentDocument",
+            "ContentLink",
+            "ContentSource",
+            "ContentVersion",
+            "ContextDefinitionSync",
+            "Contract",
+            "ContractDocVerContentDoc",
+            "ContractDocVersionSection",
+            "ContractDocumentReview",
+            "ContractDocumentVersion",
+            "ContractItemPrice",
+            "ContractItemPriceAdjTier",
+            "ContractLineItem",
+            "ConvEntryRelatedRecordCopy",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationEntryCopy",
+            "CostBook",
+            "CostBookEntry",
+            "Coupon",
+            "CouponCodeRedemption",
+            "CreditMemo",
+            "CreditMemoInvApplication",
+            "CreditMemoLine",
+            "CreditMemoLineTax",
+            "Customer",
+            "DataUseLegalBasis",
+            "DataUsePurpose",
+            "DebitMemo",
+            "DebitMemoLine",
+            "DebitMemoLineTax",
+            "DelegatedAccount",
+            "DeliveryEstimationSetup",
+            "DevopsActivityLog",
+            "DevopsEnvironment",
+            "DevopsRequestInfo",
+            "DigitalSignature",
+            "Dispute",
+            "DisputeItem",
+            "DocGenerationBatchProcess",
+            "DocGenerationQueryResult",
+            "DocTemplateSectionCondition",
+            "DocumentAuthoredContent",
+            "DocumentClause",
+            "DocumentClauseSet",
+            "DocumentEnvelope",
+            "DocumentGenerationProcess",
+            "DocumentRecipient",
+            "DocumentTemplate",
+            "DocumentTemplateContentDoc",
+            "DocumentTemplateSection",
+            "DocumentTemplateToken",
+            "DuplicateRecordItem",
+            "DuplicateRecordSet",
+            "EmailMessage",
+            "EmpUserProvisionProcessErr",
+            "EngagementAttendee",
+            "EngagementChannelType",
+            "EngagementInteraction",
+            "EngagementTopic",
+            "Entitlement",
+            "EntitlementContact",
+            "EntityMilestone",
+            "ExpressionFilter",
+            "ExpressionFilterCriteria",
+            "ExpressionSetConstraintObj",
+            "ExternalEventMapping",
+            "ExtlRecShrStagedRecord",
+            "FlowOrchestrationInstance",
+            "FlowOrchestrationVersion",
+            "FulfillmentFalloutRule",
+            "FulfillmentOrder",
+            "FulfillmentOrderItemAdjustment",
+            "FulfillmentOrderItemTax",
+            "FulfillmentOrderLineItem",
+            "FulfillmentStep",
+            "FulfillmentStepDefinition",
+            "FulfillmentStepDefinitionGroup",
+            "FulfillmentStepDependencyDef",
+            "FulfillmentStepJeopardyRule",
+            "FulfillmentTaskAssignmentRule",
+            "FulfillmentWorkspace",
+            "FulfillmentWorkspaceItem",
+            "GeneralLdgrAcctPrdSummary",
+            "GeneralLedgerAccount",
+            "GeneralLedgerAcctAsgntRule",
+            "GeneralLedgerJrnlEntryRule",
+            "GeneratedDocument",
+            "GeneratedDocumentSection",
+            "GeoCountry",
+            "GeoState",
+            "GoalAssignment",
+            "GoalDefinition",
+            "Idea",
+            "Image",
+            "IndexRate",
+            "Individual",
+            "IntegrationProviderDcsnRqmt",
+            "IntegrationProviderExecution",
+            "InvBatchDraftToPostedRun",
+            "InventoryItemReservation",
+            "InventoryReservation",
+            "Invoice",
+            "InvoiceBatchRun",
+            "InvoiceBatchRunCriteria",
+            "InvoiceBatchRunRecovery",
+            "InvoiceDocument",
+            "InvoiceLine",
+            "InvoiceLineRelationship",
+            "InvoiceLineTax",
+            "Knowledge__ka",
+            "Knowledge__kav",
+            "Lead",
+            "LegalEntyAccountingPeriod",
+            "LinkedArticle",
+            "Location",
+            "LocationGroup",
+            "LocationGroupAssignment",
+            "LocationShippingCarrierMethod",
+            "LocationTrustMeasure",
+            "Macro",
+            "MacroInstruction",
+            "MacroUsage",
+            "ManagedContentVariant",
+            "MerchAccPaymentMethodSet",
+            "MerchAccPaymentMethodType",
+            "MerchantAccount",
+            "ObjectStateActionDefinition",
+            "ObjectStateDefinition",
+            "ObjectStateTransition",
+            "ObjectStateTransitionAction",
+            "ObjectStateValue",
+            "Obligation",
+            "OmniComponentErrorLog",
+            "OmniGlobalAutoNumber",
+            "OmniProcessAsmtQuestionVer",
+            "Opportunity",
+            "OpportunityRelatedDeleteLog",
+            "Order",
+            "OrderAction",
+            "OrderAdjustmentGroup",
+            "OrderChgReasonCategMap",
+            "OrderDeliveryGroup",
+            "OrderDeliveryMethod",
+            "OrderItem",
+            "OrderItemAdjustmentLineItem",
+            "OrderItemDetail",
+            "OrderItemGroup",
+            "OrderItemRateAdjustment",
+            "OrderItemRateCardEntry",
+            "OrderItemRecipient",
+            "OrderItemRelationship",
+            "OrderItemTaxLineItem",
+            "OrderItemUsageRsrcGrant",
+            "OrderItemUsageRsrcPlcy",
+            "OrderSummary",
+            "OrderSummaryAdditionalInfo",
+            "OrderSummaryRoutingSchedule",
+            "OrgMetricScanSummary",
+            "Organization",
+            "PartnerFundAllocation",
+            "PartnerFundClaim",
+            "PartnerFundRequest",
+            "PartnerMarketingBudget",
+            "PartyConsent",
+            "PaymentCreditLinePayment",
+            "PaymentCreditTransaction",
+            "PaymentLink",
+            "PaymentSchedule",
+            "PaymentScheduleItem",
+            "PendingServiceRouting",
+            "PickTicket",
+            "PickTicketAssignment",
+            "PickTicketProduct",
+            "PriceBookEntryDerivedPrice",
+            "PriceBookRateCard",
+            "PriceRevisionPolicy",
+            "PricingAdjBatchJob",
+            "PricingAdjBatchJobLog",
+            "PricingApiExecution",
+            "PricingProcessExecution",
+            "ProcessException",
+            "ProdtAttrMappedScope",
+            "ProdtAttrScope",
+            "Product2",
+            "ProductAttributeDefinition",
+            "ProductCatalog",
+            "ProductCategory",
+            "ProductCategoryDisqual",
+            "ProductCategoryMedia",
+            "ProductCategoryProduct",
+            "ProductCategoryQualification",
+            "ProductClassification",
+            "ProductClassificationAttr",
+            "ProductComponentGroup",
+            "ProductComponentGrpOverride",
+            "ProductConfigFlowAssignment",
+            "ProductConfigurationFlow",
+            "ProductConfigurationRule",
+            "ProductDecompEnrichmentRule",
+            "ProductDisqualification",
+            "ProductFulfillmentDecompRule",
+            "ProductFulfillmentScenario",
+            "ProductQualification",
+            "ProductRampSegment",
+            "ProductRelComponentOverride",
+            "ProductUsageGrant",
+            "ProductUsageResource",
+            "ProductUsageResourcePolicy",
+            "Promotion",
+            "PromotionLineItemRule",
+            "PromotionMarketSegment",
+            "PromotionQualifier",
+            "PromotionSegment",
+            "PromotionSegmentBuyerGroup",
+            "PromotionSegmentSalesStore",
+            "PromotionTarget",
+            "PromotionTier",
+            "PromptAction",
+            "PromptError",
+            "QuickText",
+            "QuickTextUsage",
+            "QuotLineItmUsageRsrcPlcy",
+            "QuotLineItmUseRsrcGrant",
+            "Quote",
+            "QuoteItemTaxItem",
+            "QuoteLineDetail",
+            "QuoteLineGroup",
+            "QuoteLineItem",
+            "QuoteLineItemRecipient",
+            "QuoteLineRateAdjustment",
+            "QuoteLineRateCardEntry",
+            "QuoteRecipientGroup",
+            "QuoteRecipientGroupMember",
+            "RateAdjustmentByAttribute",
+            "RateAdjustmentByTier",
+            "RateCard",
+            "RateCardEntry",
+            "RatingFrequencyPolicy",
+            "RecordActnSelItemExtrc",
+            "RecordAlert",
+            "RecordAlertActionableTarget",
+            "ReportHierarchyObjectField",
+            "ReturnOrder",
+            "ReturnOrderItemAdjustment",
+            "ReturnOrderItemTax",
+            "ReturnOrderLineItem",
+            "SalesChannel",
+            "SalesContractLine",
+            "SalesTransactionType",
+            "SavedPaymentMethod",
+            "SecurityHealthCheckAlertRecipient",
+            "SecurityHealthCheckResult",
+            "Seller",
+            "SeqPolicySelectionCondition",
+            "SequenceGapReconciliation",
+            "SequencePolicy",
+            "ServiceContract",
+            "ServiceResource",
+            "SetupDataSynchronization",
+            "SfdcPartnerSbscrOffer",
+            "SfdcPartnerSbscrOfferItem",
+            "Shipment",
+            "ShipmentItem",
+            "ShippingCarrier",
+            "ShippingCarrierMethod",
+            "ShippingConfigurationSet",
+            "ShippingRateArea",
+            "ShippingRateGroup",
+            "Site",
+            "SlackChannelRelatedRecord",
+            "SocialPersona",
+            "SocialPost",
+            "Solution",
+            "StandardShippingRate",
+            "StreamingChannel",
+            "SvcProcProdCatgProdExtrc",
+            "TableauHostMapping",
+            "TaxRate",
+            "TaxTreatmentItem",
+            "TenantConsumptionAlert",
+            "Topic",
+            "TransactionJournal",
+            "TransactionUsageEntitlement",
+            "UnitOfMeasure",
+            "UnitOfMeasureClass",
+            "UnstructuredStorageSpace",
+            "UsageBillingPeriodItem",
+            "UsageCmtAssetRelatedObj",
+            "UsageCommitmentPolicy",
+            "UsageEntitlementAccount",
+            "UsageEntitlementBucket",
+            "UsageEntitlementEntry",
+            "UsageGrantRenewalPolicy",
+            "UsageGrantRolloverPolicy",
+            "UsageOveragePolicy",
+            "UsageRatableSumCmtAssetRt",
+            "UsageRatableSummary",
+            "UsageResource",
+            "UsageResourceBillingPolicy",
+            "UsageResourcePolicy",
+            "UsageSummary",
+            "User",
+            "UserEsignVendorIdentifier",
+            "UserLicense",
+            "UserLocalWebServerIdentity",
+            "UserLocationAssignment",
+            "UserPrioritizedRecord",
+            "UserProvisioningRequest",
+            "UserServicePresence",
+            "ValTfrm",
+            "ValTfrmGrp",
+            "VideoCall",
+            "VideoCallParticipant",
+            "VideoCallRecording",
+            "WebCart",
+            "WebCartAdjustmentBasis",
+            "WebCartAdjustmentGroup",
+            "WebCartCredit",
+            "WebStore",
+            "WebStoreBuyerGroup",
+            "WebStoreCatalog",
+            "WebStoreInventorySource",
+            "WebStoreNetwork",
+            "WorkOrder",
+            "WorkOrderLineItem"
+          ],
+          "to_refersTo": [
+            "Account",
+            "AccountBillingAccount",
+            "AccountingPeriod",
+            "AdAvailabilityViewConfig",
+            "Address",
+            "AgentWork",
+            "AiJobRun",
+            "AiJobRunItem",
+            "AnalyticsUserAttrFuncTkn",
+            "ApprovalSubmission",
+            "ApprovalSubmissionDetail",
+            "ApprovalWorkItem",
+            "ApprovalWorkItemCondition",
+            "ApprovalWorkItemCriteria",
+            "Assessment",
+            "AssessmentDefinition",
+            "AssessmentEnvelope",
+            "AssessmentEnvelopeItem",
+            "AssessmentQuestion",
+            "AssessmentQuestionAssignment",
+            "AssessmentQuestionResponse",
+            "AssessmentQuestionSet",
+            "AssessmentQuestionVersion",
+            "AssessmentSavedSession",
+            "AssessmentSignature",
+            "Asset",
+            "AssetAction",
+            "AssetActionSource",
+            "AssetActionSrcPriceAdjustment",
+            "AssetContractRelationship",
+            "AssetRateAdjustment",
+            "AssetRateCardEntry",
+            "AssetRelationship",
+            "AssetStatePeriod",
+            "AssociatedLocation",
+            "AsyncOperationTracker",
+            "AttrPicklistExcludedValue",
+            "AttributeAdjustmentCondition",
+            "AttributeBasedAdjRule",
+            "AttributeBasedAdjustment",
+            "AttributeCategory",
+            "AttributeCategoryAttribute",
+            "AttributeDefinition",
+            "AttributePicklist",
+            "AttributePicklistValue",
+            "AuditTrailFileExport",
+            "AuthFormRequestRecord",
+            "AuthorizationForm",
+            "AuthorizationFormConsent",
+            "AuthorizationFormDataUse",
+            "AuthorizationFormText",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "BatchJob",
+            "BatchJobPart",
+            "BatchJobPartFailedRecord",
+            "BillingAccount",
+            "BillingArrangement",
+            "BillingArrangementLine",
+            "BillingForecast",
+            "BillingMilestonePlan",
+            "BillingMilestonePlanItem",
+            "BillingPolicy",
+            "BillingSchedule",
+            "BillingScheduleGroup",
+            "BillingTreatment",
+            "BillingTreatmentItem",
+            "BindingObjUsageRsrcPlcy",
+            "BindingObjectCustomExt",
+            "BindingObjectRateAdjustment",
+            "BindingObjectRateCardEntry",
+            "BsgRelationship",
+            "BundleBasedAdjustment",
+            "BusinessBrand",
+            "BusinessMilestone",
+            "BusinessProfile",
+            "BuyerAccount",
+            "BuyerGroup",
+            "BuyerGroupMember",
+            "CalculatedInsightRangeBound",
+            "CalculationMatrixActionLog",
+            "Campaign",
+            "CartAction",
+            "CartDeliveryGroupMethodAdj",
+            "CartItem",
+            "CartItemDetail",
+            "CartItemPriceAdjustment",
+            "CartRelatedItem",
+            "CartTax",
+            "CartValidationOutput",
+            "Case",
+            "CaseComment",
+            "CaseParticipant",
+            "CaseProceeding",
+            "CaseProceedingParticipant",
+            "CaseProceedingResult",
+            "CaseServiceProcessExtension",
+            "ChannelProgram",
+            "ChannelProgramLevel",
+            "ChannelProgramMember",
+            "CollaborationGroup",
+            "CollectionPlan",
+            "CollectionPlanItem",
+            "CollectionPlanReason",
+            "CommSubscription",
+            "CommSubscriptionChannelType",
+            "CommSubscriptionConsent",
+            "CommSubscriptionTiming",
+            "CommerceConfigRelatedRecord",
+            "Contact",
+            "ContactPointAddress",
+            "ContactPointConsent",
+            "ContactPointEmail",
+            "ContactPointOttSvc",
+            "ContactPointPhone",
+            "ContactPointTypeConsent",
+            "ContactRequest",
+            "ContentDocument",
+            "ContentLink",
+            "ContentSource",
+            "ContentVersion",
+            "ContextDefinitionSync",
+            "Contract",
+            "ContractDocVerContentDoc",
+            "ContractDocVersionSection",
+            "ContractDocumentReview",
+            "ContractDocumentVersion",
+            "ContractItemPrice",
+            "ContractItemPriceAdjTier",
+            "ContractLineItem",
+            "ConvEntryRelatedRecordCopy",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationEntryCopy",
+            "CostBook",
+            "CostBookEntry",
+            "Coupon",
+            "CouponCodeRedemption",
+            "CreditMemo",
+            "CreditMemoInvApplication",
+            "CreditMemoLine",
+            "CreditMemoLineTax",
+            "Customer",
+            "DataUseLegalBasis",
+            "DataUsePurpose",
+            "DebitMemo",
+            "DebitMemoLine",
+            "DebitMemoLineTax",
+            "DelegatedAccount",
+            "DeliveryEstimationSetup",
+            "DevopsActivityLog",
+            "DevopsEnvironment",
+            "DevopsRequestInfo",
+            "DigitalSignature",
+            "Dispute",
+            "DisputeItem",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
+            "DocGenerationBatchProcess",
+            "DocGenerationQueryResult",
+            "DocTemplateSectionCondition",
+            "DocumentAuthoredContent",
+            "DocumentChecklistItem",
+            "DocumentClause",
+            "DocumentClauseContentToken",
+            "DocumentClauseSet",
+            "DocumentDecisionRequirement",
+            "DocumentEnvelope",
+            "DocumentGenerationProcess",
+            "DocumentRecipient",
+            "DocumentTemplate",
+            "DocumentTemplateContentDoc",
+            "DocumentTemplateSection",
+            "DocumentTemplateToken",
+            "DuplicateRecordItem",
+            "DuplicateRecordSet",
+            "EmailMessage",
+            "EmpUserProvisionProcessErr",
+            "EngagementAttendee",
+            "EngagementChannelType",
+            "EngagementInteraction",
+            "EngagementTopic",
+            "Entitlement",
+            "EntitlementContact",
+            "EntityMilestone",
+            "ExpressionFilter",
+            "ExpressionFilterCriteria",
+            "ExpressionSetConstraintObj",
+            "ExternalEventMapping",
+            "ExtlRecShrStagedRecord",
+            "FlowOrchestrationInstance",
+            "FlowOrchestrationVersion",
+            "FulfillmentFalloutRule",
+            "FulfillmentOrder",
+            "FulfillmentOrderItemAdjustment",
+            "FulfillmentOrderItemTax",
+            "FulfillmentOrderLineItem",
+            "FulfillmentStep",
+            "FulfillmentStepDefinition",
+            "FulfillmentStepDefinitionGroup",
+            "FulfillmentStepDependencyDef",
+            "FulfillmentStepJeopardyRule",
+            "FulfillmentTaskAssignmentRule",
+            "FulfillmentWorkspace",
+            "FulfillmentWorkspaceItem",
+            "GeneralLdgrAcctPrdSummary",
+            "GeneralLedgerAccount",
+            "GeneralLedgerAcctAsgntRule",
+            "GeneralLedgerJrnlEntryRule",
+            "GeneratedDocument",
+            "GeneratedDocumentSection",
+            "GeoCountry",
+            "GeoState",
+            "GoalAssignment",
+            "GoalDefinition",
+            "Idea",
+            "Image",
+            "IndexRate",
+            "Individual",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "IntegrationProviderDcsnRqmt",
+            "IntegrationProviderExecution",
+            "InvBatchDraftToPostedRun",
+            "InventoryItemReservation",
+            "InventoryReservation",
+            "Invoice",
+            "InvoiceBatchRun",
+            "InvoiceBatchRunCriteria",
+            "InvoiceBatchRunRecovery",
+            "InvoiceDocument",
+            "InvoiceLine",
+            "InvoiceLineRelationship",
+            "InvoiceLineTax",
+            "Knowledge__ka",
+            "Knowledge__kav",
+            "Lead",
+            "LegalEntyAccountingPeriod",
+            "LinkedArticle",
+            "Location",
+            "LocationGroup",
+            "LocationGroupAssignment",
+            "LocationShippingCarrierMethod",
+            "LocationTrustMeasure",
+            "Macro",
+            "MacroInstruction",
+            "MacroUsage",
+            "ManagedContentVariant",
+            "MerchAccPaymentMethodSet",
+            "MerchAccPaymentMethodType",
+            "MerchantAccount",
+            "MessagingSessionClient",
+            "MultipartyInfoAuthRequest",
+            "ObjectStateActionDefinition",
+            "ObjectStateDefinition",
+            "ObjectStateTransition",
+            "ObjectStateTransitionAction",
+            "ObjectStateValue",
+            "Obligation",
+            "OmniComponentErrorLog",
+            "OmniGlobalAutoNumber",
+            "OmniProcessAsmtQuestionVer",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "Opportunity",
+            "OpportunityRelatedDeleteLog",
+            "Order",
+            "OrderAction",
+            "OrderAdjustmentGroup",
+            "OrderChgReasonCategMap",
+            "OrderDeliveryGroup",
+            "OrderDeliveryMethod",
+            "OrderItem",
+            "OrderItemAdjustmentLineItem",
+            "OrderItemDetail",
+            "OrderItemGroup",
+            "OrderItemRateAdjustment",
+            "OrderItemRateCardEntry",
+            "OrderItemRecipient",
+            "OrderItemRelationship",
+            "OrderItemTaxLineItem",
+            "OrderItemUsageRsrcGrant",
+            "OrderItemUsageRsrcPlcy",
+            "OrderSummary",
+            "OrderSummaryAdditionalInfo",
+            "OrderSummaryRoutingSchedule",
+            "OrgMetricScanSummary",
+            "Organization",
+            "OutboundEngagementTemplate",
+            "OutboundEngmtContentRsrc",
+            "PartnerFundAllocation",
+            "PartnerFundClaim",
+            "PartnerFundRequest",
+            "PartnerMarketingBudget",
+            "PartyConsent",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
+            "PaymentCreditLinePayment",
+            "PaymentCreditTransaction",
+            "PaymentLink",
+            "PaymentSchedule",
+            "PaymentScheduleItem",
+            "PendingServiceRouting",
+            "PersonLifeEvent",
+            "PickTicket",
+            "PickTicketAssignment",
+            "PickTicketProduct",
+            "PriceBookEntryDerivedPrice",
+            "PriceBookRateCard",
+            "PriceRevisionPolicy",
+            "PricingAdjBatchJob",
+            "PricingAdjBatchJobLog",
+            "PricingApiExecution",
+            "PricingProcessExecution",
+            "ProcessException",
+            "ProdtAttrMappedScope",
+            "ProdtAttrScope",
+            "Product2",
+            "ProductAttributeDefinition",
+            "ProductCatalog",
+            "ProductCategory",
+            "ProductCategoryDisqual",
+            "ProductCategoryMedia",
+            "ProductCategoryProduct",
+            "ProductCategoryQualification",
+            "ProductClassification",
+            "ProductClassificationAttr",
+            "ProductComponentGroup",
+            "ProductComponentGrpOverride",
+            "ProductConfigFlowAssignment",
+            "ProductConfigurationFlow",
+            "ProductConfigurationRule",
+            "ProductDecompEnrichmentRule",
+            "ProductDisqualification",
+            "ProductFulfillmentDecompRule",
+            "ProductFulfillmentScenario",
+            "ProductQualification",
+            "ProductRampSegment",
+            "ProductRelComponentOverride",
+            "ProductUsageGrant",
+            "ProductUsageResource",
+            "ProductUsageResourcePolicy",
+            "Promotion",
+            "PromotionLineItemRule",
+            "PromotionMarketSegment",
+            "PromotionPartyUsage",
+            "PromotionQualifier",
+            "PromotionSegment",
+            "PromotionSegmentBuyerGroup",
+            "PromotionSegmentSalesStore",
+            "PromotionTarget",
+            "PromotionTier",
+            "PromptAction",
+            "PromptError",
+            "QuickText",
+            "QuickTextUsage",
+            "QuotLineItmUsageRsrcPlcy",
+            "QuotLineItmUseRsrcGrant",
+            "Quote",
+            "QuoteClause",
+            "QuoteItemTaxItem",
+            "QuoteLineDetail",
+            "QuoteLineGroup",
+            "QuoteLineItem",
+            "QuoteLineItemRecipient",
+            "QuoteLineRateAdjustment",
+            "QuoteLineRateCardEntry",
+            "QuoteRecipientGroup",
+            "QuoteRecipientGroupMember",
+            "RateAdjustmentByAttribute",
+            "RateAdjustmentByTier",
+            "RateCard",
+            "RateCardEntry",
+            "RatingFrequencyPolicy",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordActnSelItemExtrc",
+            "RecordAlert",
+            "RecordAlertActionableTarget",
+            "ReportHierarchyObjectField",
+            "ReturnOrder",
+            "ReturnOrderItemAdjustment",
+            "ReturnOrderItemTax",
+            "ReturnOrderLineItem",
+            "SalesChannel",
+            "SalesContractLine",
+            "SalesTransactionType",
+            "SavedPaymentMethod",
+            "SecurityHealthCheckAlertRecipient",
+            "SecurityHealthCheckResult",
+            "Seller",
+            "SeqPolicySelectionCondition",
+            "SequenceGapReconciliation",
+            "SequencePolicy",
+            "ServiceContract",
+            "ServiceResource",
+            "SetupDataSynchronization",
+            "SfdcPartnerSbscrOffer",
+            "SfdcPartnerSbscrOfferItem",
+            "Shipment",
+            "ShipmentItem",
+            "ShippingCarrier",
+            "ShippingCarrierMethod",
+            "ShippingConfigurationSet",
+            "ShippingRateArea",
+            "ShippingRateGroup",
+            "Site",
+            "SlackChannelRelatedRecord",
+            "SocialPersona",
+            "SocialPost",
+            "Solution",
+            "StandardShippingRate",
+            "StreamingChannel",
+            "SvcProcProdCatgProdExtrc",
+            "TableauHostMapping",
+            "TaxRate",
+            "TaxTreatmentItem",
+            "TenantConsumptionAlert",
+            "TimeSlot",
+            "Topic",
+            "TransactionJournal",
+            "TransactionUsageEntitlement",
+            "UnitOfMeasure",
+            "UnitOfMeasureClass",
+            "UnstructuredStorageSpace",
+            "UsageBillingPeriodItem",
+            "UsageCmtAssetRelatedObj",
+            "UsageCommitmentPolicy",
+            "UsageEntitlementAccount",
+            "UsageEntitlementBucket",
+            "UsageEntitlementEntry",
+            "UsageGrantRenewalPolicy",
+            "UsageGrantRolloverPolicy",
+            "UsageOveragePolicy",
+            "UsageRatableSumCmtAssetRt",
+            "UsageRatableSummary",
+            "UsageResource",
+            "UsageResourceBillingPolicy",
+            "UsageResourcePolicy",
+            "UsageSummary",
+            "User",
+            "UserEsignVendorIdentifier",
+            "UserLicense",
+            "UserLocalWebServerIdentity",
+            "UserLocationAssignment",
+            "UserPrioritizedRecord",
+            "UserProvisioningRequest",
+            "UserServicePresence",
+            "ValTfrm",
+            "ValTfrmGrp",
+            "VideoCall",
+            "VideoCallParticipant",
+            "VideoCallRecording",
+            "WebCart",
+            "WebCartActivityLog",
+            "WebCartAdjustmentBasis",
+            "WebCartAdjustmentGroup",
+            "WebCartCollaborator",
+            "WebCartCredit",
+            "WebStore",
+            "WebStoreBuyerGroup",
+            "WebStoreCatalog",
+            "WebStoreInventorySource",
+            "WebStoreNetwork",
+            "WorkOrder",
+            "WorkOrderLineItem",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
+          ],
+          "from_relationship_name": "RelatedRecord",
+          "to_relationship_name": "RelatedRecord"
+        }
+      ]
+    },
+    "Asset": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RenewalTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "AssetAction": {
+      "added": [
+        "RolledBackAssetActionId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "AssetActionSource": {
+      "added": [
+        "BillingTerm"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "AssetActionSrcPriceAdjustment": {
+      "added": [
+        "AppliedAdjustmentAmount"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "AssetStatePeriod": {
+      "added": [
+        "ApplUnitPriceUpliftPct",
+        "PricingContractId",
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "BillingFrequency",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "AttributeBasedAdjustment": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BillingBatchScheduler": {
+      "added": [
+        "ShouldGenerateInvoiceDocuments"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "JobType",
+          "added": [
+            "Catchup",
+            "Forecast"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BillingPeriodItem": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "Status",
+          "added": [
+            "Catch Up Processed"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BillingSchedule": {
+      "added": [
+        "BillingTreatmentId",
+        "ForecastBatchRunId",
+        "ForecastStatus",
+        "LastForecastRunTargetDate",
+        "RampIdentifier",
+        "SegmentIdentifier",
+        "SegmentName",
+        "SegmentType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "BillingTermUnit",
+          "added": [
+            "Week"
+          ],
+          "removed": []
+        },
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Status",
+          "added": [
+            "Draft"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BillingScheduleGroup": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "BillingTermUnit",
+          "added": [
+            "Week"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BundleBasedAdjustment": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "CollectionPlanItem": {
+      "added": [
+        "InitialInvoiceBalance"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "Contract": {
+      "added": [
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RenewalTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "CreditMemo": {
+      "added": [
+        "CreditMemoLockedDateTime",
+        "IsCreditMemoLocked",
+        "NetRefundsApplied",
+        "SavedPaymentMethodId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "CreditMemoLineInvoiceLine": {
+      "added": [
+        "InvoiceLineTaxId",
+        "SettlementType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "DebitMemo": {
+      "added": [
+        "InvoiceBatchRunId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "EmailTemplate": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RelatedEntityType",
+          "added": [
+            "AuthFormRequestRecord",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPplnDefChangeLog",
+            "BillingForecast",
+            "BusinessMilestone",
+            "CaseParticipant",
+            "ContactPointOttSvc",
+            "CpdpHandlerStatus",
+            "CreditMemoLineRefund",
+            "CreditMemoRefund",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
+            "DocumentChecklistItem",
+            "DocumentClauseContentToken",
+            "DocumentDecisionRequirement",
+            "ExtlClntAppAppleAttestKey",
+            "ForecastingAdjustment",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingFact",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "MessagingSessionClient",
+            "MultipartyInfoAuthRequest",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "OutboundEngagementTemplate",
+            "OutboundEngmtContentRsrc",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
+            "PersonLifeEvent",
+            "PromotionPartyUsage",
+            "QuoteClause",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordParticipant",
+            "TimeSlot",
+            "WebCartActivityLog",
+            "WebCartCollaborator",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
+          ],
+          "removed": [
+            "SoftwareProduct"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ExpressionSet": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "InterfaceSourceType",
+          "added": [
+            "PolicyEngine",
+            "PricingCalculationSchema",
+            "PricingKeyType",
+            "PricingSearchStrategy",
+            "PricingSpecification"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "IntelligentDecision"
+          ],
+          "removed": []
+        },
+        {
+          "field": "UsageSubtype",
+          "added": [],
+          "removed": [
+            "Insurance"
+          ]
+        },
+        {
+          "field": "UsageType",
+          "added": [
+            "CatalogQualification",
+            "CommandCenterAlerts",
+            "CommandCenterMetric",
+            "CommandCenterRootCause"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FlowOrchestration": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "OrchestrationType",
+          "added": [
+            "AgxOverview",
+            "AutoApprovalEvalAutolnch",
+            "Cadence"
+          ],
+          "removed": []
+        },
+        {
+          "field": "TriggerType",
+          "added": [
+            "Cadence"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentOrder": {
+      "added": [
+        "RoutingReference"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "FulfillmentOrderLineItem": {
+      "added": [
+        "InvoiceId",
+        "SubAction"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "FulfillmentPlan": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStep": {
+      "added": [
+        "ScopeIdentifierText"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDefinition": {
+      "added": [
+        "Description"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDefinitionGroup": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDependencyDef": {
+      "added": [
+        "CustomScope"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "FulfillmentTaskAssignmentRule": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "GeneralLedgerAcctAsgntRule": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "TransactionType",
+          "added": [
+            "CreditMemoLineRefund",
+            "CreditMemoRefund"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "InvoiceBatchRun": {
+      "added": [
+        "DocGenerationBatchProcessId",
+        "ForecastRunDate",
+        "ForecastTargetDate",
+        "JobType",
+        "TotalForecastLines",
+        "TotalForecastedAmount"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "StatusSubtype",
+          "added": [
+            "Catch-Up Billing Schedules Completed",
+            "Catch-Up Billing Schedules In Progress",
+            "Catch-Up Billing Schedules Started",
+            "Catch-Up Billing Schedules Summarization In Progress",
+            "Forecast Generation Completed",
+            "Forecast Generation In Progress",
+            "Forecast Generation Started"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "InvoiceBatchRunCriteria": {
+      "added": [
+        "BillingCycleCount",
+        "ShouldCatchUpBillRun",
+        "ShouldRecalculateAllForecastLn",
+        "TargetDateDayOfMonth",
+        "TargetDateMonthOffset"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "InvoiceLineTax": {
+      "added": [
+        "NetCreditsApplied",
+        "NetPaymentsApplied"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "NamedCredential": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PrincipalType",
+          "added": [
+            "NamedCustomPrincipal"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ObjectStateDefinition": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ReferenceObject",
+          "added": [
+            "AIWorksheetTemplate",
+            "AIWorksheetTemplateColumn",
+            "ActionableEventOrchDef",
+            "ActionableEventTypeDef",
+            "AgentExchangeInstallRequest",
+            "AiAppIntlUserSignalPref",
+            "AiSurfaceInputDef",
+            "AnalyticsAppTmplActivation",
+            "AnalyticsInteropMigrDef",
+            "AuthFormRequestRecord",
+            "AutomationPipelineDef",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPipelinePrmptTmpl",
+            "AutomationPplnDefChangeLog",
+            "AutomationPplnExecStsChgEvent",
+            "BatchCalcJobActivity",
+            "BatchCalcJobStep",
+            "BatchCalcJobStepDependency",
+            "BatchCalcJobStepProcNode",
+            "BillingForecast",
+            "BusinessInsightType",
+            "BusinessMilestone",
+            "CaseParticipant",
+            "ContactPointOttSvc",
+            "ContextExtendedElement",
+            "CpdpHandlerStatus",
+            "CreditMemoLineRefund",
+            "CreditMemoRefund",
+            "DashboardCompUpdateFilter",
+            "DataContentQltyScanAgntTyp",
+            "DataContentQltyScanDef",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
+            "DataContentQltyScanSrcDef",
+            "DeployNotification",
+            "DevopsTestProvider",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
+            "DocumentCategory",
+            "DocumentCategoryDocumentType",
+            "DocumentChecklistItem",
+            "DocumentClauseContentToken",
+            "DocumentDecisionRequirement",
+            "DocumentType",
+            "DominoAppActivityEvent",
+            "DynamicGroupCriteria",
+            "DynamicGroupCriterion",
+            "EmailRelayDomainKey",
+            "ExperienceTypeChangedEvent",
+            "ExtlClntAppAndroidAttestConfig",
+            "ExtlClntAppAppleAttestConfig",
+            "ExtlClntAppAppleAttestKey",
+            "ExtlClntAppAttestPolicy",
+            "ExtlClntAppAttestSettings",
+            "FedTokenExchangeProviderRegistration",
+            "FlowBatchProperties",
+            "FlowOrchestrationWorkItemEvent",
+            "FlowResumeRefreshEvent",
+            "ForecastingAdjustment",
+            "ForecastingCategoryMapping",
+            "ForecastingColumnDefinition",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingDisplayedFamily",
+            "ForecastingFact",
+            "ForecastingFilter",
+            "ForecastingFilterCondition",
+            "ForecastingGroup",
+            "ForecastingGroupItem",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
+            "ForecastingShare",
+            "ForecastingSourceDefinition",
+            "ForecastingType",
+            "ForecastingTypeSource",
+            "ForecastingTypeToCategory",
+            "ForecastingUserPreference",
+            "GenAiPromptTemplateVersionFile",
+            "GroupActionOverride",
+            "Icon",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "InsEmailRoutingAddress",
+            "IntegEnvApplnConnection",
+            "IntegrationEnvApplication",
+            "IntegrationEnvConfig",
+            "IntegrationEnvConnection",
+            "IntegrationEnvResource",
+            "IntegrationEnvSysDependency",
+            "InteractionDataLookup",
+            "InteractionEnd",
+            "InteractionExpEngmtSignal",
+            "InteractionLiteTrigger",
+            "MarketingSiteDefinition",
+            "McpServerResourceDefinition",
+            "MessagingSessionClient",
+            "MultiAgntTskStsUpdtEvnt",
+            "MultipartyInfoAuthRequest",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "OutboundEngagementTemplate",
+            "OutboundEngagementTmplView",
+            "OutboundEngmtContentRsrc",
+            "ParticipantRole",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
+            "PersonLifeEvent",
+            "PkgAuthOrgSbscrbTrustRela",
+            "PkgVrfyAuthOrgTrustRela",
+            "PromotionPartyUsage",
+            "PromotionRuleTemplate",
+            "QuoteClause",
+            "QuoteToOpportunitySyncEvent",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordParticipant",
+            "SfdcOrgCommRecipient",
+            "SlackAppTemplate",
+            "SlackChannelRefreshEvent",
+            "SrvcMgmtCollabAppFldDef",
+            "SrvcMgmtCollabAppObjDef",
+            "StaticDynamicValMapping",
+            "TimeSlot",
+            "UIBundleApplication",
+            "UIBundleDeployment",
+            "UiWidget",
+            "UiWidgetExternalReference",
+            "WebCartActivityLog",
+            "WebCartCollaborator",
+            "WebCartFailedEvent",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepStatus",
+            "WorkStepTemplate"
+          ],
+          "removed": [
+            "AiTagDefinition",
+            "ExtLearningUsrContentRtng",
+            "ExtlClntAppSamplePlcyCnfg",
+            "ExtlClntAppSampleSettings",
+            "LearningAward",
+            "LearningContent",
+            "LearningContentItem",
+            "LearningContentItemProgress",
+            "LearningContentProgress",
+            "LearningEarnedAward",
+            "LearningRank",
+            "LearningUserSummary",
+            "RecoveryCopyJob",
+            "RecoveryFlashback",
+            "SoftwareProduct"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OmniProcess": {
+      "added": [
+        "AiGeneratedDescription",
+        "EmbeddingPayload"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DiscoveryFrameworkUsageType",
+          "added": [
+            "GsUsageType"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "LicensingAndPermitting"
+          ],
+          "removed": [
+            "Licensing & Permitting"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OmniProcessElement": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DiscoveryFrameworkUsageType",
+          "added": [
+            "GsUsageType"
+          ],
+          "removed": []
+        },
+        {
+          "field": "ParentElementType",
+          "added": [
+            "Section"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "Section"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "Order": {
+      "added": [
+        "IsLargeDeal"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "CalculationStatus",
+          "added": [
+            "ARCInProgress",
+            "ARCStepFailed",
+            "CloneFailed",
+            "CloneInProgress",
+            "QueuedForARC",
+            "QueuedForClone"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OrderItem": {
+      "added": [
+        "ApplUnitPriceUpliftPct",
+        "BillingTerm",
+        "PricingSource",
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "BillingFrequency2",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OrderItemGroup": {
+      "added": [
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "PaymentLineInvoiceLine": {
+      "added": [
+        "InvoiceLineTaxId",
+        "SettlementType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "PriceAdjustmentSchedule": {
+      "added": [
+        "GlobalKey"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "PriceAdjustmentTier": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "PriceBook2": {
+      "added": [
+        "GlobalKey"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "Product2": {
+      "added": [
+        "UniversalProductCode"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductAttributeDefinition": {
+      "added": [
+        "CategorySequence"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductClassificationAttr": {
+      "added": [
+        "CategorySequence"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductConfigurationFlow": {
+      "added": [
+        "IsRequestDetailEditable"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductFulfillmentScenario": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ProductRelationshipType": {
+      "added": [
+        "GlobalKey"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductSellingModel": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ProductUsageGrant": {
+      "added": [],
+      "removed": [
+        "OverageChargeable"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "Quote": {
+      "added": [
+        "IsLargeDeal"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "CalculationStatus",
+          "added": [
+            "ARCInProgress",
+            "ARCStepFailed",
+            "CloneFailed",
+            "CloneInProgress",
+            "QueuedForARC",
+            "QueuedForClone"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "QuoteLineGroup": {
+      "added": [
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "QuoteLineItem": {
+      "added": [
+        "ApplUnitPriceUpliftPct",
+        "BillingTerm",
+        "PricingSource",
+        "RampUpliftType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "BillingFrequency",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        },
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        },
+        {
+          "field": "SubscriptionTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "RatingFrequencyPolicy": {
+      "added": [],
+      "removed": [
+        "ProductId",
+        "UsageResourceId"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "Refund": {
+      "added": [
+        "ReasonCode",
+        "ReferenceRecordId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "RevenueTransactionErrorLog": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "Category",
+          "added": [
+            "CatchupProcessedFailed",
+            "ComputeRecipientPrices",
+            "EUSubmitOrderEnrollment",
+            "ExternalPricingBulk",
+            "ForecastBatchRun",
+            "PstARCStepFailure",
+            "QuoteToOpportunitySync"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "TaxEngine": {
+      "added": [
+        "CustomMetadataTypeApiName",
+        "DecisionTableId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "TaxEngineInteractionLog": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RequestContentType",
+          "added": [
+            "application/yaml",
+            "font/ttf",
+            "font/woff",
+            "font/woff2"
+          ],
+          "removed": []
+        },
+        {
+          "field": "ResponseContentType",
+          "added": [
+            "application/yaml",
+            "font/ttf",
+            "font/woff",
+            "font/woff2"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "TransactionJournal": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "TransactionType",
+          "added": [
+            "CreditMemoLineRefund",
+            "CreditMemoRefund"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "TransactionUsageEntitlement": {
+      "added": [],
+      "removed": [
+        "ChargeForOverage",
+        "DrawdownOrder",
+        "RatingFrequencyPolicyId",
+        "UsageAggregationPolicyId"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "UsageResource": {
+      "added": [],
+      "removed": [
+        "UsageResourceBillingPolicyId"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    }
+  },
+  "impacts": {
+    "AttributeBasedAdjustment": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pricing",
+        "q3/en-US/q3-pricing",
+        "qb/en-US/qb-pricing",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "BundleBasedAdjustment": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pricing",
+        "q3/en-US/q3-pricing",
+        "qb/en-US/qb-pricing",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "EmailTemplate": {
+      "change": "modified",
+      "plans": [
+        "qb/en-US/qb-approvals"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RelatedEntityType",
+          "added": [
+            "AuthFormRequestRecord",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPplnDefChangeLog",
+            "BillingForecast",
+            "BusinessMilestone",
+            "CaseParticipant",
+            "ContactPointOttSvc",
+            "CpdpHandlerStatus",
+            "CreditMemoLineRefund",
+            "CreditMemoRefund",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
+            "DocumentChecklistItem",
+            "DocumentClauseContentToken",
+            "DocumentDecisionRequirement",
+            "ExtlClntAppAppleAttestKey",
+            "ForecastingAdjustment",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingFact",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "MessagingSessionClient",
+            "MultipartyInfoAuthRequest",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "OutboundEngagementTemplate",
+            "OutboundEngmtContentRsrc",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
+            "PersonLifeEvent",
+            "PromotionPartyUsage",
+            "QuoteClause",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordParticipant",
+            "TimeSlot",
+            "WebCartActivityLog",
+            "WebCartCollaborator",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
+          ],
+          "removed": [
+            "SoftwareProduct"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDefinition": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-dro",
+        "q3/en-US/q3-dro",
+        "qb/en-US/qb-dro"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "Description"
+      ],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDefinitionGroup": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-dro",
+        "q3/en-US/q3-dro",
+        "qb/en-US/qb-dro"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "FulfillmentStepDependencyDef": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-dro",
+        "q3/en-US/q3-dro",
+        "qb/en-US/qb-dro"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "CustomScope"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "FulfillmentTaskAssignmentRule": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-dro",
+        "q3/en-US/q3-dro",
+        "qb/en-US/qb-dro"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "GeneralLedgerAcctAsgntRule": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-billing",
+        "q3/en-US/q3-billing",
+        "qb/en-US/qb-accounting",
+        "qb/en-US/qb-billing"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "TransactionType",
+          "added": [
+            "CreditMemoLineRefund",
+            "CreditMemoRefund"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ObjectStateDefinition": {
+      "change": "modified",
+      "plans": [
+        "qb/en-US/qb-clm"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ReferenceObject",
+          "added": [
+            "AIWorksheetTemplate",
+            "AIWorksheetTemplateColumn",
+            "ActionableEventOrchDef",
+            "ActionableEventTypeDef",
+            "AgentExchangeInstallRequest",
+            "AiAppIntlUserSignalPref",
+            "AiSurfaceInputDef",
+            "AnalyticsAppTmplActivation",
+            "AnalyticsInteropMigrDef",
+            "AuthFormRequestRecord",
+            "AutomationPipelineDef",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPipelinePrmptTmpl",
+            "AutomationPplnDefChangeLog",
+            "AutomationPplnExecStsChgEvent",
+            "BatchCalcJobActivity",
+            "BatchCalcJobStep",
+            "BatchCalcJobStepDependency",
+            "BatchCalcJobStepProcNode",
+            "BillingForecast",
+            "BusinessInsightType",
+            "BusinessMilestone",
+            "CaseParticipant",
+            "ContactPointOttSvc",
+            "ContextExtendedElement",
+            "CpdpHandlerStatus",
+            "CreditMemoLineRefund",
+            "CreditMemoRefund",
+            "DashboardCompUpdateFilter",
+            "DataContentQltyScanAgntTyp",
+            "DataContentQltyScanDef",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
+            "DataContentQltyScanSrcDef",
+            "DeployNotification",
+            "DevopsTestProvider",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
+            "DocumentCategory",
+            "DocumentCategoryDocumentType",
+            "DocumentChecklistItem",
+            "DocumentClauseContentToken",
+            "DocumentDecisionRequirement",
+            "DocumentType",
+            "DominoAppActivityEvent",
+            "DynamicGroupCriteria",
+            "DynamicGroupCriterion",
+            "EmailRelayDomainKey",
+            "ExperienceTypeChangedEvent",
+            "ExtlClntAppAndroidAttestConfig",
+            "ExtlClntAppAppleAttestConfig",
+            "ExtlClntAppAppleAttestKey",
+            "ExtlClntAppAttestPolicy",
+            "ExtlClntAppAttestSettings",
+            "FedTokenExchangeProviderRegistration",
+            "FlowBatchProperties",
+            "FlowOrchestrationWorkItemEvent",
+            "FlowResumeRefreshEvent",
+            "ForecastingAdjustment",
+            "ForecastingCategoryMapping",
+            "ForecastingColumnDefinition",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingDisplayedFamily",
+            "ForecastingFact",
+            "ForecastingFilter",
+            "ForecastingFilterCondition",
+            "ForecastingGroup",
+            "ForecastingGroupItem",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
+            "ForecastingShare",
+            "ForecastingSourceDefinition",
+            "ForecastingType",
+            "ForecastingTypeSource",
+            "ForecastingTypeToCategory",
+            "ForecastingUserPreference",
+            "GenAiPromptTemplateVersionFile",
+            "GroupActionOverride",
+            "Icon",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "InsEmailRoutingAddress",
+            "IntegEnvApplnConnection",
+            "IntegrationEnvApplication",
+            "IntegrationEnvConfig",
+            "IntegrationEnvConnection",
+            "IntegrationEnvResource",
+            "IntegrationEnvSysDependency",
+            "InteractionDataLookup",
+            "InteractionEnd",
+            "InteractionExpEngmtSignal",
+            "InteractionLiteTrigger",
+            "MarketingSiteDefinition",
+            "McpServerResourceDefinition",
+            "MessagingSessionClient",
+            "MultiAgntTskStsUpdtEvnt",
+            "MultipartyInfoAuthRequest",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "OutboundEngagementTemplate",
+            "OutboundEngagementTmplView",
+            "OutboundEngmtContentRsrc",
+            "ParticipantRole",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
+            "PersonLifeEvent",
+            "PkgAuthOrgSbscrbTrustRela",
+            "PkgVrfyAuthOrgTrustRela",
+            "PromotionPartyUsage",
+            "PromotionRuleTemplate",
+            "QuoteClause",
+            "QuoteToOpportunitySyncEvent",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordParticipant",
+            "SfdcOrgCommRecipient",
+            "SlackAppTemplate",
+            "SlackChannelRefreshEvent",
+            "SrvcMgmtCollabAppFldDef",
+            "SrvcMgmtCollabAppObjDef",
+            "StaticDynamicValMapping",
+            "TimeSlot",
+            "UIBundleApplication",
+            "UIBundleDeployment",
+            "UiWidget",
+            "UiWidgetExternalReference",
+            "WebCartActivityLog",
+            "WebCartCollaborator",
+            "WebCartFailedEvent",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepStatus",
+            "WorkStepTemplate"
+          ],
+          "removed": [
+            "AiTagDefinition",
+            "ExtLearningUsrContentRtng",
+            "ExtlClntAppSamplePlcyCnfg",
+            "ExtlClntAppSampleSettings",
+            "LearningAward",
+            "LearningContent",
+            "LearningContentItem",
+            "LearningContentItemProgress",
+            "LearningContentProgress",
+            "LearningEarnedAward",
+            "LearningRank",
+            "LearningUserSummary",
+            "RecoveryCopyJob",
+            "RecoveryFlashback",
+            "SoftwareProduct"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OmniProcess": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-guidedselling"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "AiGeneratedDescription",
+        "EmbeddingPayload"
+      ],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DiscoveryFrameworkUsageType",
+          "added": [
+            "GsUsageType"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "LicensingAndPermitting"
+          ],
+          "removed": [
+            "Licensing & Permitting"
+          ]
+        }
+      ],
+      "relationship_changed": []
+    },
+    "OmniProcessElement": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-guidedselling"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DiscoveryFrameworkUsageType",
+          "added": [
+            "GsUsageType"
+          ],
+          "removed": []
+        },
+        {
+          "field": "ParentElementType",
+          "added": [
+            "Section"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "Section"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "PriceAdjustmentSchedule": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pricing",
+        "q3/en-US/q3-pricing",
+        "qb/en-US/qb-pricing",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "GlobalKey"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "PriceAdjustmentTier": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pricing",
+        "q3/en-US/q3-pricing",
+        "qb/en-US/qb-pricing",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "Product2": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-aaf",
+        "mfg/en-US/mfg-billing",
+        "mfg/en-US/mfg-dro",
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pcm",
+        "mfg/en-US/mfg-pricing",
+        "mfg/en-US/mfg-tax",
+        "q3/en-US/q3-billing",
+        "q3/en-US/q3-dro",
+        "q3/en-US/q3-pcm",
+        "q3/en-US/q3-pricing",
+        "q3/en-US/q3-rates",
+        "q3/en-US/q3-rating",
+        "q3/en-US/q3-tax",
+        "qb/en-US/qb-billing",
+        "qb/en-US/qb-dro",
+        "qb/en-US/qb-guidedselling-products",
+        "qb/en-US/qb-pcm",
+        "qb/en-US/qb-pricing",
+        "qb/en-US/qb-product-images",
+        "qb/en-US/qb-rates",
+        "qb/en-US/qb-rating",
+        "qb/en-US/qb-tax",
+        "qb/ja/qb-pcm",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "UniversalProductCode"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductAttributeDefinition": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pcm",
+        "q3/en-US/q3-pcm",
+        "qb/en-US/qb-pcm",
+        "qb/ja/qb-pcm"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "CategorySequence"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductClassificationAttr": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pcm",
+        "q3/en-US/q3-pcm",
+        "qb/en-US/qb-pcm",
+        "qb/ja/qb-pcm"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "CategorySequence"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductConfigurationFlow": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-configflow"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "IsRequestDetailEditable"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductFulfillmentScenario": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-dro",
+        "q3/en-US/q3-dro",
+        "qb/en-US/qb-dro"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [
+            "Billing"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ProductRelationshipType": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pcm",
+        "q3/en-US/q3-pcm",
+        "qb/en-US/qb-pcm",
+        "qb/ja/qb-pcm"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "GlobalKey"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "ProductSellingModel": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-multicurrency",
+        "mfg/en-US/mfg-pcm",
+        "mfg/en-US/mfg-pricing",
+        "q3/en-US/q3-pcm",
+        "q3/en-US/q3-pricing",
+        "qb/en-US/qb-pcm",
+        "qb/en-US/qb-pricing",
+        "qb/ja/qb-pcm",
+        "qb/ja/qb-pricing"
+      ],
+      "fields_removed": [],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "PricingTermUnit",
+          "added": [
+            "Weekly"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
+    },
+    "ProductUsageGrant": {
+      "change": "modified",
+      "plans": [
+        "q3/en-US/q3-rating",
+        "qb/en-US/qb-rating"
+      ],
+      "fields_removed": [
+        "OverageChargeable"
+      ],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "RatingFrequencyPolicy": {
+      "change": "modified",
+      "plans": [
+        "q3/en-US/q3-rating",
+        "qb/en-US/qb-rating"
+      ],
+      "fields_removed": [
+        "ProductId",
+        "UsageResourceId"
+      ],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "TaxEngine": {
+      "change": "modified",
+      "plans": [
+        "mfg/en-US/mfg-tax",
+        "q3/en-US/q3-tax",
+        "qb/en-US/qb-tax"
+      ],
+      "fields_removed": [],
+      "fields_added": [
+        "CustomMetadataTypeApiName",
+        "DecisionTableId"
+      ],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    },
+    "UsageResource": {
+      "change": "modified",
+      "plans": [
+        "q3/en-US/q3-rating",
+        "qb/en-US/qb-rating"
+      ],
+      "fields_removed": [
+        "UsageResourceBillingPolicyId"
+      ],
+      "fields_added": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": []
+    }
+  }
+}

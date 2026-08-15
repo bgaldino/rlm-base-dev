@@ -32,7 +32,8 @@ ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # accumulates iterative researcher findings during a cleanup campaign). The
 # default path is configurable via --ownership-json so this script works on
 # fresh clones and in CI without requiring the .agents/ artifacts to exist.
-DEFAULT_OWNERSHIP_JSON = REPO / ".agents" / "artifacts" / "orphan-field-ownership.json"
+ARTIFACTS = REPO / ".agents" / "artifacts" / "orphan-fields"
+DEFAULT_OWNERSHIP_JSON = ARTIFACTS / "orphan-field-ownership.json"
 
 
 def _load_ownership(path: Path) -> Tuple[dict, bool]:
@@ -134,9 +135,9 @@ def cmd_prepare(args):
         "objects": next_batch,
     }
     # Default output dir lives under .agents/ (intentionally untracked); create
-    # parents so this works on fresh clones where .agents/artifacts/ doesn't
-    # exist yet. Override via --output-dir for CI or alternate staging.
-    out_dir = Path(args.output_dir) if args.output_dir else REPO / ".agents" / "artifacts"
+    # parents so this works on fresh clones where the directory doesn't exist
+    # yet. Override via --output-dir for CI or alternate staging.
+    out_dir = Path(args.output_dir) if args.output_dir else ARTIFACTS
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
@@ -289,10 +290,10 @@ def main():
                              f"(default: {DEFAULT_OWNERSHIP_JSON.relative_to(REPO)}; "
                              f"missing-file is non-fatal for prepare).")
     p_prep.add_argument("--output-dir",
-                        help="Directory to write the batch input JSON into "
-                             "(default: .agents/artifacts/; the directory is "
-                             "auto-created so fresh clones work without "
-                             "manually mkdir-ing .agents/artifacts/).")
+                        help=f"Directory to write the batch input JSON into "
+                             f"(default: {ARTIFACTS.relative_to(REPO)}/; the "
+                             f"directory is auto-created so fresh clones work "
+                             f"without mkdir-ing it first).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")

@@ -2,25 +2,29 @@
 
 This directory contains comprehensive entity relationship diagrams (ERDs) for the Revenue Cloud Base Foundations project, generated from `erd-data.json`.
 
-**Current baseline:** Release 262 (Summer '26, API v67.0) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
+**Current baseline:** Release 264 (Winter '27, API v68.0) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
 
-> ⚠ **This branch targets 264 (Winter '27, API v68.0), but the ERD below is still
-> 262-derived and is deliberately left that way.** Every release/apiVersion value
-> in this document and in `erd-data.json` is *provenance* — it records which orgs
-> and which Core UDD revision the schema was extracted from. Relabeling it 264
-> without re-extracting would make the ERD claim to describe 264 schema while
-> serving 262 data. The refresh needs a fresh 264 org **and** a fresh 262
-> comparison org (the schema-validation skill forbids single-org patching, which
-> would baseline feature-gated noise as canonical), then
-> `extract_schema.py` → `diff_schemas.py` → `validate_erd_against_org.py --patch`,
-> then a whole-block metadata rewrite and `build_erds.py`. Those preconditions are
-> the public record of what the refresh requires — until both orgs exist and that
-> pipeline has run, the `release`/`apiVersion` fields in `erd-data.json` stay at
-> their extracted values by design, and a bump that relabels them is a defect.
+The release/apiVersion values here and in `erd-data.json` are *provenance*: they
+record which orgs the schema was extracted from, not a version the file is pinned
+to. Bumping them without re-extracting would make the ERD claim to describe a
+release while serving another one's data.
 
-The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. Verified via dual-org cross-validation (260 baseline `ent-r1` and 262 target `rlm-base__ent-sb0`) plus 127 entities individually checked against Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
+The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch` is carried forward from the 262 pass and was not re-run; 264 has no published Core UDD branch or Metadata Coverage Report yet, which is why a live org is ground truth for this release.
 
-Per-object 262 schema changes are summarized below. The 260 → 262 delta is **field-level additive** (45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded — e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`) with **value-level picklist deltas** of 243 added and 62 removed. The picklist removals are IANA TimeZone renames (e.g. `America/Catamarca` → `America/Argentina/Catamarca`, `Europe/Kiev` → `Europe/Kyiv`) and cleanup of unused industry-specific `UsageType` values (`InsuranceRuleAction`, `StageManagement`) on fulfillment objects; the picklist-removal audit tabulated the full breakdown. Each removed value was cross-referenced against every CSV under `datasets/sfdmu/{qb,q3,mfg}/**` — **zero maintained-plan rows reference any removed value**. Nine objects with deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md`, but **no SFDMU remediation is required**: additive fields can't break loads, and the removed picklist values aren't in use.
+**262 → 264:** 70 fields added, 8 removed, 0 type changes, 1 polymorphic
+reference-target change, 270 picklist values added and 18 removed, over 62 changed
+objects. All 8 removals are usage-domain, and together they are a single
+architectural move rather than attrition: 264 relocated the usage policy bindings
+onto `ProductUsageResourcePolicy`, which is now the only object carrying them. Full
+delta, including the SFDMU `--impact` cross-reference, at
+`scripts/erd/schema_diff/262-vs-264-diff.md`.
+
+<details>
+<summary>260 → 262 (previous baseline, kept for history)</summary>
+
+Per-object 262 schema changes. The 260 → 262 delta is **field-level additive** (45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded — e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`) with **value-level picklist deltas** of 243 added and 62 removed. The picklist removals are IANA TimeZone renames (e.g. `America/Catamarca` → `America/Argentina/Catamarca`, `Europe/Kiev` → `Europe/Kyiv`) and cleanup of unused industry-specific `UsageType` values (`InsuranceRuleAction`, `StageManagement`) on fulfillment objects; the picklist-removal audit tabulated the full breakdown. Each removed value was cross-referenced against every CSV under `datasets/sfdmu/{qb,q3,mfg}/**` — **zero maintained-plan rows reference any removed value**. Nine objects with deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md`, but **no SFDMU remediation is required**: additive fields can't break loads, and the removed picklist values aren't in use.
+
+</details>
 
 To refresh the ERD against a new release or different org configuration, see `.cursor/skills/schema-validation/SKILL.md`.
 
@@ -66,7 +70,7 @@ Detailed ERDs for each domain, suitable for documentation and analysis:
 ### Interactive HTML Viewer
 
 - **revenue-cloud-erd.html** — Force-directed graph with full field detail
-  - 263 objects, 4,190 fields, 674 relationships across 9 domains
+  - 263 objects, 4,252 fields, 674 relationships across 9 domains
   - **Features:**
     - Click any object node to see all fields (type, description, refersTo links)
     - Fields grouped into Relationship Fields, Data Fields, and Related Objects sections
@@ -77,10 +81,10 @@ Detailed ERDs for each domain, suitable for documentation and analysis:
     - Hover tooltips with domain, field count, and click prompt
     - Node size proportional to field count (sqrt scale)
     - Domain color coding with legend
-  - Data sourced from dual-org cross-validation (260 baseline + 262 target) and Core UDD source verification
+  - Data sourced from dual-org cross-validation across two 264 orgs, diffed against the committed 262 snapshot
   - Self-contained (D3.js v7 CDN only external dependency)
 
-- **erd-data.json** — Complete machine-readable schema (263 objects, 4,190 fields, 674 relationships)
+- **erd-data.json** — Complete machine-readable schema (263 objects, 4,252 fields, 674 relationships)
   - Custom fields excluded by design (project-deployed `RLM_*__c` and managed-package fields)
   - Fields include type, description, and refersTo metadata
   - Regenerate via `scripts/erd/validate_erd_against_org.py --org <alias> --patch` after schema changes
@@ -128,10 +132,10 @@ Mermaid files can be viewed in several ways:
 ## Statistics
 
 - **Total Objects:** 263
-- **Total Fields:** 4,190 (canonical platform fields only; custom fields excluded)
+- **Total Fields:** 4,252 (canonical platform fields only; custom fields excluded)
 - **Total Relationships:** 674 (unique cross-object lookups)
 - **Total Domains:** 9 (PCM, Pricing, Rates, Configurator, Transactions, Approvals, DRO, Usage, Billing)
-- **Last verified:** 2026-05-27 (260 + 262 cross-validation, 127 entities checked against Core UDD source)
+- **Last verified:** 2026-08-15 (two 264 orgs cross-validated; 127-entity Core UDD check carried forward from the 262 pass)
 
 ## Diagram Layout Strategy
 
@@ -177,6 +181,6 @@ Detailed workflow at `.cursor/skills/schema-validation/SKILL.md`.
 
 ---
 
-**Last refresh:** 2026-05-27 (Release 262 / Summer '26 / API v67.0)
-**Verified against:** `ent-r1` (260), `rlm-base__ent-sb0` (262), Core UDD `core-262-public@p4/262-patch`
+**Last refresh:** 2026-08-15 (Release 264 / Winter '27 / API v68.0)
+**Verified against:** `rlm-base__264merged` and `rlm-base__264fresh` (both 264, `ent` shape, agreed field-for-field); baseline `scripts/erd/schema_diff/262-schema.json`; Core UDD `core-262-public@p4/262-patch` carried forward from the 262 pass
 **Custom fields:** Excluded by design (canonical platform schema only)
