@@ -553,11 +553,11 @@ public with sharing class RLM_UsageUploaderController {
             SELECT Id,
                    Name,
                    AssetId,
+                   ProductId,
                    UsageResourceId,
                    EntitlementQuantity,
                    TransactionQuantity,
                    NetQuantity,
-                   ChargeForOverage,
                    EffectiveStartDateTime,
                    EffectiveEndDateTime,
                    UsageModelType,
@@ -586,6 +586,14 @@ public with sharing class RLM_UsageUploaderController {
         ]) {
             resourceNames.put(ur.Id, ur.Name);
         }
+
+        // Overage chargeability is no longer readable from the entitlement: 264 removed
+        // TransactionUsageEntitlement.ChargeForOverage (along with DrawdownOrder,
+        // RatingFrequencyPolicyId and UsageAggregationPolicyId), leaving no overage field or
+        // policy lookup on the object, so it must come from the governing UsageOveragePolicy
+        // by way of ProductUsageResourcePolicy. See OverageLookup for the resolution order
+        // and why the resource, not just the product-resource pair, has to be consulted.
+        OverageLookup overage = loadOverageLookup(usageResourceIds);
 
         // Query the current-period entitlement buckets (child buckets with a parent)
         // These contain the actual balance and consumption for the current period
@@ -616,7 +624,7 @@ public with sharing class RLM_UsageUploaderController {
             w.entitlementQuantity = tue.EntitlementQuantity;
             w.usageModelType = tue.UsageModelType;
             w.grantType = tue.GrantType;
-            w.chargeForOverage = tue.ChargeForOverage;
+            w.chargeForOverage = overage.resolve(tue.ProductId, tue.UsageResourceId);
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
@@ -632,5 +640,119 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         return wrappers;
+    }
+
+    /**
+     * Loads the overage policies governing a set of usage resources.
+     *
+     * Deliberately NOT filtered to the entitlements' own products: the policy that governs a
+     * Pack or Commit entitlement belongs to the resource's Anchor product, which is usually
+     * not among them. See OverageLookup for the resolution order.
+     *
+     * The parent association IS filtered to Active, matching the resource lookup above. A
+     * reloaded dataset leaves Draft PURs carrying PURP children that overlap the Active row
+     * until activateRatingRecords step 2.5a clears them, and an obsolete policy read from one
+     * would not merely be stale — a disagreeing value trips the ambiguity guard and blanks the
+     * Active answer. ProductUsageResourcePolicy has no status of its own, so the parent is the
+     * only gate available.
+     */
+    @TestVisible
+    private static OverageLookup loadOverageLookup(Set<Id> usageResourceIds) {
+        OverageLookup lookup = new OverageLookup();
+        if (usageResourceIds == null || usageResourceIds.isEmpty()) {
+            return lookup;
+        }
+        try {
+            for (ProductUsageResourcePolicy purp : [
+                SELECT ProductUsageResource.ProductId,
+                       ProductUsageResource.UsageResourceId,
+                       UsageOveragePolicy.OverageChargeable
+                FROM ProductUsageResourcePolicy
+                WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
+                  AND ProductUsageResource.Status = 'Active'
+                  AND UsageOveragePolicyId != null
+                WITH USER_MODE
+            ]) {
+                lookup.add(
+                    purp.ProductUsageResource.ProductId,
+                    purp.ProductUsageResource.UsageResourceId,
+                    purp.UsageOveragePolicy.OverageChargeable
+                );
+            }
+        } catch (QueryException e) {
+            // USER_MODE throws when the caller lacks read on the policy chain, and nothing in
+            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy. Rates and
+            // grants are the point of this screen, so a missing grant on one optional column
+            // must not fail the whole wire: degrade to blank, exactly as an absent policy does.
+            return new OverageLookup();
+        }
+        return lookup;
+    }
+
+    /**
+     * Resolves an entitlement's overage chargeability from the product usage resource policies.
+     *
+     * Only an Anchor product's policy row may carry a UsageOveragePolicy — the platform rejects
+     * it on Pack and on Commit products — so overage is an anchor-level property of the
+     * *resource*, and a Pack or Commit entitlement has no policy row under its own product.
+     * Resolution order follows from that:
+     *
+     *   1. the entitlement's own product+resource row, when it has one (the Anchor case);
+     *   2. otherwise the resource's row, when exactly one overage value governs the resource;
+     *   3. otherwise null.
+     *
+     * Step 2 is what keeps a Pack or Commit grant showing the Yes/No the customer is actually
+     * subject to; without it every non-Anchor entitlement renders blank. Step 3 covers the two
+     * ways the answer is genuinely unknown — two Anchors disagreeing about one resource, or two
+     * selling-model rows disagreeing about one product+resource pair. Both are schema-legal, and
+     * a plausible-looking guess on a screen an end user trusts is worse than a blank.
+     */
+    @TestVisible
+    private class OverageLookup {
+        private Map<String, String> byProductResource = new Map<String, String>();
+        private Set<String> conflictingPairs = new Set<String>();
+        private Map<Id, String> byResource = new Map<Id, String>();
+        private Set<Id> conflictingResources = new Set<Id>();
+
+        @TestVisible
+        private void add(Id productId, Id usageResourceId, String overageChargeable) {
+            if (usageResourceId == null) {
+                return;
+            }
+
+            String pair = productId == null ? null : productId + '|' + usageResourceId;
+            if (pair != null && !conflictingPairs.contains(pair)) {
+                if (!byProductResource.containsKey(pair)) {
+                    byProductResource.put(pair, overageChargeable);
+                } else if (byProductResource.get(pair) != overageChargeable) {
+                    conflictingPairs.add(pair);
+                    byProductResource.remove(pair);
+                }
+            }
+
+            if (conflictingResources.contains(usageResourceId)) {
+                return;
+            }
+            if (!byResource.containsKey(usageResourceId)) {
+                byResource.put(usageResourceId, overageChargeable);
+            } else if (byResource.get(usageResourceId) != overageChargeable) {
+                conflictingResources.add(usageResourceId);
+                byResource.remove(usageResourceId);
+            }
+        }
+
+        @TestVisible
+        private String resolve(Id productId, Id usageResourceId) {
+            if (productId != null) {
+                String pair = productId + '|' + usageResourceId;
+                if (conflictingPairs.contains(pair)) {
+                    return null;
+                }
+                if (byProductResource.containsKey(pair)) {
+                    return byProductResource.get(pair);
+                }
+            }
+            return byResource.get(usageResourceId);
+        }
     }
 }
