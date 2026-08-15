@@ -14,7 +14,7 @@ Supported operations:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -110,7 +110,9 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 "What to do when the org rejects a record because its "
                 f"{_CONTEXT_TAG_FIELD} resolves to a context attribute that is not "
                 "typed String: 'fail' (default) or 'skip'. 'skip' is verified against "
-                "the org before it applies -- a missing or misspelled tag still fails."
+                "the org before it applies -- a missing or misspelled tag still fails. "
+                "Note this is invisible under dry_run: no create is attempted, so a "
+                "fresh 264 org logs 'Would CREATE' and looks healthy."
             ),
             "required": False,
         },
@@ -395,6 +397,13 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                     )
                     skipped += 1
                     continue
+                # The update path is deliberately intolerant: no try/except, and
+                # _update_record raises TaskOptionsError rather than ToolingWriteError.
+                # Today it is unreachable for the affected tag -- the create never
+                # succeeds, so no record exists to update -- and an existing record
+                # proves the org already accepted the tag. If the platform ever starts
+                # re-validating ItemContextTag on PATCH, this is where it will surface
+                # as a hard failure with no banner.
                 self._update_record(access_token, instance_url, api_version, record_id, patch_body)
                 self.logger.info(f"Updated {key_field}={key_value} ({record_id})")
                 updated += 1
@@ -408,9 +417,26 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                         access_token, instance_url, api_version, cleaned
                     )
                 except ToolingWriteError as exc:
-                    if on_invalid_context_tag != "skip" or not self._is_platform_context_tag_defect(
-                        exc, record, access_token, instance_url, api_version
-                    ):
+                    if on_invalid_context_tag != "skip":
+                        raise
+                    try:
+                        tolerated = self._is_platform_context_tag_defect(
+                            exc, record, access_token, instance_url, api_version
+                        )
+                    except Exception as verify_exc:
+                        # Verification queries the org, so it can fail on its own terms.
+                        # If it does, the operator must still see the create rejection --
+                        # otherwise the headline error becomes a ContextTag query problem
+                        # and sends them to investigate Context Service instead of the
+                        # record that actually failed. Being unable to verify must never
+                        # change which error gets reported.
+                        self.logger.warning(
+                            f"  Could not verify whether {key_field}={key_value} hit the "
+                            f"known platform defect ({verify_exc}). Reporting the "
+                            "original create failure."
+                        )
+                        raise exc from verify_exc
+                    if not tolerated:
                         raise
                     self.logger.warning(
                         f"SKIPPED {key_field}={key_value} — blocked by a platform "
@@ -452,6 +478,15 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 "attribute is typed String; tolerated here via "
                 "on_invalid_context_tag=skip. Remove that option once the platform "
                 "agrees with itself and this will create normally."
+            )
+            self.logger.warning(
+                "Downstream data still references the missing scope and will load "
+                "without error, because CustomFulfillmentScope and "
+                "CustomDecompositionScope are plain string fields rather than lookups: "
+                "in datasets/sfdmu/qb/en-US/qb-dro, 8 Product2 rows "
+                "(CustomDecompositionScope) and 1 FulfillmentStepDefinition row "
+                "(CustomFulfillmentScope) name Group_Identifier. Those 9 records will "
+                "look configured and behave as though they are not."
             )
             self.logger.warning("=" * 72)
 
@@ -544,14 +579,33 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         instance_url: str,
         api_version: str,
         tag_title: str,
-    ) -> Optional[str]:
-        """Return the data type of the attribute behind a context tag, or None if the
-        tag does not exist on the org.
+    ) -> Tuple[str, Optional[str]]:
+        """Resolve the data type of the attribute behind a context tag.
+
+        Returns a (status, value) pair rather than an Optional[str] because the four
+        outcomes need different handling and collapsing them to None conflated two of
+        them:
+
+          ("ok", "<type>")        exactly one distinct type across all matching tags
+          ("missing", None)       no ContextTag has this Title
+          ("unreadable", None)    tag rows came back, but no DataType did -- what FLS on
+                                  ContextAttribute.DataType looks like, which is a
+                                  permissions problem and not a repo data defect
+          ("ambiguous", "a, b")   matching tags disagree about the type
 
         The tag's name lives in ContextTag.Title, not Name -- ContextTag has no Name
         field at all.
+
+        Ambiguity is a real possibility, not a hypothetical: tag titles are unique per
+        context definition, not per org, and this repo itself ships a
+        SalesTransactionItemGroup tag inside RLM_SalesTransactionContext. A first-hit
+        read of an unordered, unscoped query would therefore let row order decide
+        whether the tolerance fires. Reporting the disagreement instead turns a silent
+        coin-flip into something an operator can act on.
         """
-        escaped = str(tag_title).replace(chr(39), chr(92) + chr(39))
+        # Escape backslash first, then quote: reversing the order would double-escape
+        # the backslashes this very call introduces and terminate the literal early.
+        escaped = str(tag_title).replace("\\", "\\\\").replace("'", "\\'")
         records = self._data_query(
             access_token,
             instance_url,
@@ -559,12 +613,19 @@ class ManageFulfillmentScopeCnfg(BaseTask):
             "SELECT ContextAttribute.DataType FROM ContextTag "
             f"WHERE Title = '{escaped}'",
         )
+        if not records:
+            return ("missing", None)
+        found = []
         for rec in records:
             attribute = rec.get("ContextAttribute") or {}
             data_type = attribute.get("DataType")
-            if data_type:
-                return str(data_type)
-        return None
+            if data_type and str(data_type) not in found:
+                found.append(str(data_type))
+        if not found:
+            return ("unreadable", None)
+        if len(found) > 1:
+            return ("ambiguous", ", ".join(sorted(found)))
+        return ("ok", found[0])
 
     def _is_platform_context_tag_defect(
         self,
@@ -593,14 +654,30 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 f"affects ('{_TOLERATED_CONTEXT_TAG}') — not skipping."
             )
             return False
-        data_type = self._context_tag_data_type(
+        status, data_type = self._context_tag_data_type(
             access_token, instance_url, api_version, tag
         )
-        if data_type is None:
+        if status == "missing":
             self.logger.error(
                 f"  {_CONTEXT_TAG_FIELD} '{tag}' does not resolve to a context tag on "
                 "this org. That is a data defect, not the known platform type "
                 "mismatch — not skipping."
+            )
+            return False
+        if status == "unreadable":
+            self.logger.error(
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' resolved to a context tag, but its "
+                "attribute type was not readable. That usually means field-level "
+                "security on ContextAttribute.DataType rather than a missing tag, so "
+                "this cannot be confirmed as the known defect — not skipping."
+            )
+            return False
+        if status == "ambiguous":
+            self.logger.error(
+                f"  {_CONTEXT_TAG_FIELD} '{tag}' matches context tags that disagree "
+                f"about the attribute type ({data_type}). Tag titles are unique per "
+                "context definition, not per org, so this cannot be resolved without "
+                "knowing which definition applies — not skipping."
             )
             return False
         if data_type.lower() != _TOLERATED_CONTEXT_TAG_DATA_TYPE:
