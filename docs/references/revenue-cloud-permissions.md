@@ -385,14 +385,14 @@ The following table shows the sequence of all permission-related steps across th
 | 7.8 | `prepare_quantumbit` | `RLM_RebuildSearchIndex` | `quantumbit` |
 | 7.9 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
-| 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 18.4 | `prepare_tso` | TSO permission sets (7) | `tso` |
-| 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
-| 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
-| 21.11 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
-| 22.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
-| 23.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
-| 23.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
+| 19.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
+| 19.4 | `prepare_tso` | TSO permission sets (7) | `tso` |
+| 21.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
+| 22.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
+| 22.10 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 23.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
+| 24.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
+| 24.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
 | 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |

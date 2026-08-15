@@ -3,6 +3,25 @@
 This bundle deploys three Agentforce **Employee Agents** plus their settings and permission sets. All three are authored as Builder Script (`.agent`) bundles. No managed package is required. (The Quoting Assistant is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
 
 > **Release 264 retired the legacy agent format.** Revenue Quote Management previously shipped as a decomposed Bot + BotVersion + GenAiPlannerBundle tree under `legacy/`, deployed by a `deploy_legacy_agents` step. Both `BotVersion` and `GenAiPlannerBundle` are **absent from the v68.0 metadata describe**, and the deploy fails outright (`BotDefinition/BotVersion metadata type is not supported for API version 68.0 and above for non-BOT BotType`). The agent was converted back to an authoring bundle and the legacy tree and its deploy step were removed. Do not re-introduce either type.
+>
+> **One capability did not survive the conversion, and it is a real loss rather than a
+> formatting difference.** The `.agent` restored here is byte-identical to the authoring
+> bundle that predated the legacy tree, so the revert is faithful — but the legacy planner
+> had since grown a procedure the authoring bundle never had: given a `UsageResourceId`,
+> query `ProductUsageGrant` for `UsageModelType = 'Pack'` sorted by `Quantity` descending,
+> limit 1, to find the Pack product carrying the largest grant, plus the surrounding
+> instructions for adding that product to a quote. Nothing in the `.agent` does this.
+>
+> That leaves a dead end in the conversation graph: `ConsumptionManagement` still tells the
+> model to "hand off to Quote Management … when the user asks to act on the insight," while
+> `QuoteManagement` is instructed not to handle usage or overage questions and has no way to
+> turn a usage resource into a product. A user who asks about an overage and then says "add
+> that to a quote" reaches a subagent that cannot complete the request.
+>
+> This is not a reason to keep the legacy tree — 264 cannot deploy it at all. Porting the
+> procedure into `QuoteManagement`'s instructions is the fix, and because it changes agent
+> behavior it needs a live conversational check rather than a source review. Tracked as
+> **#264-54** in `.agents/artifacts/upgrades/264-upgrade-plan.md`.
 
 ## What's in the bundle
 
