@@ -92,11 +92,13 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 >
 > ```bash
 > # 1. newest AssetRateAdjustment for the commitment you just sold.
-> #    LastModifiedDate, not CreatedDate — an EDITED rate invalidates the table too.
+> #    SystemModstamp, not CreatedDate — an EDITED rate invalidates the table too — and not
+> #    LastModifiedDate either: internal processing advances only SystemModstamp, so a
+> #    LastModifiedDate comparison can read fresh while the table is actually stale.
 > sf data query --target-org <sf_alias_or_username> \
->   -q "SELECT LastModifiedDate FROM AssetRateAdjustment
+>   -q "SELECT SystemModstamp FROM AssetRateAdjustment
 >       WHERE AssetRateCardEntry.Asset.Product2.StockKeepingUnit = '<COMMIT_SKU>'
->       ORDER BY LastModifiedDate DESC LIMIT 1"
+>       ORDER BY SystemModstamp DESC LIMIT 1"
 >
 > # 2. the table — LastSyncDate must be LATER than the value above
 > sf data query --use-tooling-api --target-org <sf_alias_or_username> \
