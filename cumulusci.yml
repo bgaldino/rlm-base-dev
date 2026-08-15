@@ -1025,14 +1025,6 @@ tasks:
     options:
       path: unpackaged/post_agents/aiAuthoringBundles
 
-  deploy_legacy_agents:
-    description: Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/legacy
-
-
   deploy_agent_permission_sets:
     description: Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1047,12 +1039,12 @@ tasks:
 
   deactivate_agents:
     group: Revenue Lifecycle Management
-    description: Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+    description: Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
     class_path: tasks.rlm_deactivate_agents.DeactivateAgents
 
   activate_agents:
     group: Revenue Lifecycle Management
-    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
     class_path: tasks.rlm_activate_agents.ActivateAgents
 
   test_agents:
@@ -4598,21 +4590,18 @@ flows:
         task: deactivate_agents
         when: project_config.project__custom__agents
       6:
-        task: deploy_legacy_agents
-        when: project_config.project__custom__agents
-      7:
         task: deploy_agents
         when: project_config.project__custom__agents
-      8:
+      7:
         task: publish_agents
         when: project_config.project__custom__agents
-      9:
+      8:
         task: activate_agents
         when: project_config.project__custom__agents
-      10:
+      9:
         task: deploy_agent_permission_sets
         when: project_config.project__custom__agents
-      11:
+      10:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
