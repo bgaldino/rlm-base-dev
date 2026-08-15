@@ -29,12 +29,21 @@ The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields
 reference-target change, 270 picklist values added and 18 removed, across 62 changed
 objects. All 8 removals are in the usage domain and are one coherent change rather
 than attrition — 264 moved the usage policy bindings off the definition and runtime
-objects and onto `ProductUsageResourcePolicy`, which is now the only place that
-carries them:
+objects and onto `ProductUsageResourcePolicy`, the **product-and-resource-specific**
+binding site.
+
+⚠ **PURP is the new binding site, not the only one.** `UsageResourcePolicy` still
+carries the same four lookups (`RatingFrequencyPolicyId`,
+`UsageAggregationPolicyId`, `UsageCommitmentPolicyId`, `UsageOveragePolicyId`) in a
+264 org, bound at **resource** level rather than product-and-resource. Verified on
+`rlm-base__264merged` and `rlm-base__264fresh`. When you need the policy that applies
+to a specific product's use of a resource, read PURP; `UsageResourcePolicy` is the
+resource-wide default.
 
 | Removed in 264 | Where the binding lives now |
 |---|---|
-| `TransactionUsageEntitlement.ChargeForOverage`, `.DrawdownOrder`, `.RatingFrequencyPolicyId`, `.UsageAggregationPolicyId` | `ProductUsageResourcePolicy` → `UsageOveragePolicy` / `RatingFrequencyPolicy` / `UsageResourceBillingPolicy` |
+| `TransactionUsageEntitlement.ChargeForOverage`, `.RatingFrequencyPolicyId`, `.UsageAggregationPolicyId` | `ProductUsageResourcePolicy` → `UsageOveragePolicy` / `RatingFrequencyPolicy` / `UsageResourceBillingPolicy` |
+| `TransactionUsageEntitlement.DrawdownOrder` | **Not on PURP** — PURP has no drawdown field. In 264 `DrawdownOrder` lives on `ProductUsageGrant` (design time) and on the per-transaction policy objects `QuotLineItmUsageRsrcPlcy`, `OrderItemUsageRsrcPlcy` and `BindingObjUsageRsrcPlcy` (runtime). The maintained rating plans already carry `ProductUsageGrant.DrawdownOrder`. |
 | `UsageResource.UsageResourceBillingPolicyId` | `ProductUsageResourcePolicy.UsageAggregationPolicyId` |
 | `RatingFrequencyPolicy.ProductId`, `.UsageResourceId` | `ProductUsageResourcePolicy.RatingFrequencyPolicyId` (the policy no longer knows its own product/resource) |
 | `ProductUsageGrant.OverageChargeable` | `UsageOveragePolicy.OverageChargeable` via `ProductUsageResourcePolicy` |
@@ -188,8 +197,9 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
 - `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields; both collapsed at 264 because the refresh patched in every field the org had. Trust the generated report over any count quoted in prose.
-- `scripts/erd/schema_diff/{260,262}-schema.json` — fresh-org schema snapshots for 260 and 262
-- `scripts/erd/schema_diff/260-vs-262-diff.md` — verified release delta
+- `scripts/erd/schema_diff/{260,262,264}-schema.json` — fresh-org schema snapshots per release. **264 is the current one**, and `264-schema-crossval.json` beside it is the second-org cross-validation that makes the 264 capture dual-sourced. Field metadata in these files is a **dict keyed by field name**, not a list — an accessor written for a list returns `None` for every field and any check built on it silently passes
+- `scripts/erd/schema_diff/262-vs-264-diff.md` — current verified release delta (262 → 264), including the SFDMU plan `--impact` cross-reference
+- `scripts/erd/schema_diff/260-vs-262-diff.md` — previous release delta, kept for history
 
 Internal-only (not committed; intentionally git-ignored):
 - `.agents/artifacts/orphan-fields/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).

@@ -209,9 +209,11 @@ release's documented orphan set untouched. Delta:
 
 Three data-quality classes were also repaired against the org, all pre-existing:
 8 relationship rows whose target contradicted the org (including
-`ProductUsageResourcePolicy.UsageAggregationPolicyId`, which 264 makes the *only*
-binding site for the accumulation policy and which pointed at `UsageResource`
-instead of `UsageResourceBillingPolicy`); 94 reference fields with a null `refersTo`;
+`ProductUsageResourcePolicy.UsageAggregationPolicyId`, which pointed at
+`UsageResource` instead of `UsageResourceBillingPolicy` — the same accumulation
+policy that `UsageResourcePolicy.UsageAggregationPolicyId` also binds, at resource
+rather than product-and-resource level, so neither is the sole binding site);
+94 reference fields with a null `refersTo`;
 and 10 `refersTo` values whose casing matched no ERD node, which silently broke
 traversal (`PricebookEntry` vs the ERD's `PriceBookEntry`).
 

@@ -15,9 +15,11 @@ The ERD reflects **canonical Revenue Cloud platform schema only** — custom fie
 reference-target change, 270 picklist values added and 18 removed, over 62 changed
 objects. All 8 removals are usage-domain, and together they are a single
 architectural move rather than attrition: 264 relocated the usage policy bindings
-onto `ProductUsageResourcePolicy`, which is now the only object carrying them. Full
-delta, including the SFDMU `--impact` cross-reference, at
-`scripts/erd/schema_diff/262-vs-264-diff.md`.
+off the definition and runtime objects and onto `ProductUsageResourcePolicy`, the
+**product-and-resource-specific** binding site. `UsageResourcePolicy` still carries
+the same four policy lookups at **resource** level in a 264 org, so PURP is the new
+binding site, not the only one. Full delta, including the SFDMU `--impact`
+cross-reference, at `scripts/erd/schema_diff/262-vs-264-diff.md`.
 
 <details>
 <summary>260 → 262 (previous baseline, kept for history)</summary>
@@ -167,13 +169,13 @@ Mermaid files can be viewed in several ways:
 
 ## Maintenance
 
-The current ERD was built by combining the original v260 Developer Guide PDF extraction with org-introspection cross-validation against fresh `prepare_rlm_org`-built scratch orgs (260 + 262), then individually verifying 127 entities against canonical Core UDD source. Mermaid domain files are relationship-focused summaries.
+The current ERD was built by combining the original v260 Developer Guide PDF extraction with org-introspection cross-validation against fresh `prepare_rlm_org`-built scratch orgs (260, 262, then **264**), then individually verifying 127 entities against canonical Core UDD source. Mermaid domain files are relationship-focused summaries — they are **hand-maintained, not generated**, so treat `erd-data.json` as canonical when the two disagree.
 
 To refresh after a schema change or new release:
 
 1. Build a fresh scratch org from the target release branch
 2. Run `python scripts/erd/validate_erd_against_org.py --org <alias> --patch` to add new fields and relationships
-3. Run `python scripts/erd/cleanup_orphan_erd_fields.py --orgs <260>,<262> --dry-run` to identify candidates for cleanup
+3. Run `python scripts/erd/cleanup_orphan_erd_fields.py --orgs <alias>,<alias2> --dry-run` to identify candidates for cleanup. Pass **two orgs of the target release** so no orphan verdict rests on a single org — the 264 pass used `rlm-base__264merged,rlm-base__264fresh`. Note that `--patch` in step 2 repairs `refersTo` but **not** the `relationshipName` or `description` beside it, so re-check those against the org describe; see `.cursor/skills/schema-validation/SKILL.md`
 4. Run `python scripts/erd/build_erds.py` to regenerate the HTML viewer
 5. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias> --report docs/erds/validation-report.md` and confirm only the **expected feature-gated gaps** remain (diff against the committed `validation-report.md`; the current expected baseline is 9 feature-gated objects unfindable in a default RLM scratch profile — `AssetDowntimePeriod`, `AssetOwnerSharingRule`, `AssetShare`, `AssetTag`, `AssetWarranty`, `PricingProcedureResolution`, `ProductPriceHistoryLog`, `ProductPriceRange`, `ProductSellingModelDataTranslation` — plus **0** objects with field gaps and **58** ERD-side fields that don't surface in a stock org, which are the feature-gated / cross-cloud set carried forward from the 262 pass). A clean refresh produces **zero NEW gaps** vs the committed baseline, not zero gaps absolute.
 
