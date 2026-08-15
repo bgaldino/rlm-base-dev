@@ -27,6 +27,38 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > `check_commitment_purp_has_no_periods` in `tests/test_qb_multicurrency_data.py`
 > guards this.
 
+> ⛔ **Only an Anchor product's PURP may carry a `UsageOveragePolicy`.** Attaching one to
+> a **Pack** product's PURP fails with *"We can't save the pack usage model type record.
+> Change the product usage model type from Pack to another valid option and try again."*,
+> and a **Commit** product's PURP is rejected as well (per the commitment restriction
+> above). So overage chargeability is an anchor-level setting in practice, whatever the
+> field-level schema allows. Live-verified on a fresh 264 org 2026-08-14 by attempting
+> both inserts.
+>
+> Consequence worth knowing, and the reason this is subtle: `ProductUsageResourcePolicy`
+> is scoped to a product-**and**-resource pair, yet only Anchors may hold the overage
+> policy — so a Pack or Commit entitlement's *own* product has no overage row to find.
+> **Keying strictly on the pair therefore resolves nothing for exactly the products the
+> Anchor rule excludes**, which is not a safe default but a silent blanking: measured on a
+> fresh 264 org, 6 of 14 entitlements resolved under pair-only keying versus 13 of 14 once
+> a resource-level fallback was allowed.
+>
+> The safe resolution is **product-preferred, then unambiguous resource, then nothing**:
+> take the exact product+resource row when it exists; otherwise accept the resource-level
+> policy *only* if every row for that resource agrees; otherwise resolve to `null`. The
+> ambiguity guard is what makes the fallback safe — resources are shared widely (6 of 7 in
+> the bundled QB data; `Quantum Tokens` by six products), so a wrong-product reading needs
+> **two Anchor products sharing one resource** with disagreeing policies. The bundled data
+> does not currently contain that, nothing prevents it, and the misread would be silent,
+> so the guard withholds instead of returning whichever row was read last. Implemented as
+> `RLM_UsageUploaderController.OverageLookup`.
+>
+> Filter the association to `ProductUsageResource.Status = 'Active'`. `ProductUsageResourcePolicy`
+> has **no status of its own**, so the parent is the only gate — and a reloaded dataset leaves
+> Draft PURs carrying PURP children that overlap the Active row until
+> `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
+> stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
+
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
 > `Schema.UsageAggregationPolicy` does not compile.
