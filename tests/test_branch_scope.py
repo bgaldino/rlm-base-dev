@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -278,6 +279,7 @@ def test_stacked_on_unmerged(root):
     rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
     check("stacking on an open PR exits 1", rc == 1, f"rc={rc}\n{out}")
     check("names the PR it is stacked on", "STACKED  on open PR #2" in out, out)
+    check("says it contains that PR in full", "in full" in out, out)
     check("explains why signal 1 missed it", "invisible to the upstream check" in out, out)
     # Both commits are listed as `own`, and correctly so: nothing has merged, so
     # patch-id has nothing to match the parent's commit against. That is the whole
@@ -300,6 +302,29 @@ def test_stacked_on_unmerged(root):
     rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
     check("a PR whose head is the base branch is not a finding", rc == 0, f"rc={rc}\n{out}")
     check("and it is not printed as stacked", "STACKED" not in out, out)
+
+    print("\n  ...and a parent that has MOVED since the branch was cut is still caught")
+    # The topology an ancestor test cannot see. Cut at the parent's B, let the
+    # parent advance to C: C is not an ancestor of this branch, and B is not
+    # upstream, so asking "is their head inside mine" and asking patch-id both
+    # answer no -- while B is still inherited, still unmerged, and still theirs.
+    git(cwd, "checkout", "--quiet", "parent-pr")
+    commit(cwd, "parent2.txt", "parent2\n", "the parent PR moves on")
+    moved_oid = git(cwd, "rev-parse", "parent-pr")
+    git(cwd, "update-ref", "refs/remotes/origin/parent-pr", "parent-pr")
+    git(cwd, "checkout", "--quiet", "feature")
+    check("the moved parent head is genuinely not an ancestor any more",
+          subprocess.run(["git", "merge-base", "--is-ancestor", moved_oid, head],
+                         cwd=cwd, capture_output=True, env=GIT_ENV).returncode == 1,
+          "fixture is wrong: the parent did not actually diverge")
+
+    moved = dict(parent_pr, headRefOid=moved_oid, title="the parent PR, moved on")
+    bindir = stub_gh(cwd, mine, [moved])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a diverged parent is still reported", rc == 1, f"rc={rc}\n{out}")
+    check("and it is named", "STACKED  on open PR #2" in out, out)
+    check("and it says where the shared history starts, not 'in full'",
+          "from " in out and "in full" not in out, out)
 
     print("\n  ...and a fork PR is skipped rather than resolved to our own branch")
     # `origin/parent-pr` exists locally, so an unguarded fallback would compare
@@ -421,6 +446,35 @@ def test_exit_code_contract(root):
                           cwd=cwd, capture_output=True, text=True, env=env)
     check("missing git exits 2, not 1", proc.returncode == 2,
           f"rc={proc.returncode}\n{proc.stdout}{proc.stderr}")
+
+    # `merge-base --is-ancestor` answers with 0/1; anything else is git failing.
+    # Reading a failure as "not an ancestor" would let a broken invocation
+    # *suppress* a STACKED finding and return a clean 0 — an error deciding a
+    # verdict, which is the one thing the exit-code contract forbids. Driven by
+    # putting a `git` on PATH that exits 128 for exactly that subcommand.
+    fake = Path(root) / "brokengit"
+    fake.mkdir()
+    (fake / "git").write_text(
+        '#!/bin/sh\n'
+        'if [ "$1" = "merge-base" ] && [ "$2" = "--is-ancestor" ]; then\n'
+        '  echo "fatal: Not a valid object name" >&2; exit 128\n'
+        'fi\n'
+        f'exec {shutil.which("git")} "$@"\n')
+    (fake / "git").chmod(0o755)
+    head_oid = git(cwd, "rev-parse", "base")
+    git(cwd, "update-ref", "refs/remotes/origin/base", "base")
+    mine = {"baseRefName": "base", "headRefName": "base", "headRefOid": head_oid,
+            "headRepositoryOwner": {"login": "me"}, "isCrossRepository": False}
+    bindir = stub_gh(cwd, mine, [{"number": 9, "headRefName": "base",
+                                  "headRefOid": head_oid, "title": "other",
+                                  "isCrossRepository": False}])
+    env = dict(os.environ, PATH=f"{fake}:{bindir}:{os.environ['PATH']}")
+    proc = subprocess.run([sys.executable, str(SCRIPT), "--no-fetch", "--pr", "1"],
+                          cwd=cwd, capture_output=True, text=True, env=env)
+    check("a failing ancestry check exits 2, not a clean 0", proc.returncode == 2,
+          f"rc={proc.returncode}\n{proc.stdout}{proc.stderr}")
+    check("and says which invocation failed", "is-ancestor" in proc.stderr,
+          f"{proc.stdout}{proc.stderr}")
 
 
 def main():

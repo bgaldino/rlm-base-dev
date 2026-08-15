@@ -51,14 +51,18 @@ clean, so both are checked:
     `prepare_quantumbit` step 4       flow + step, either order
     step 28 of `prepare_rlm_org`      reversed
 
-For that form the assertion is necessarily weaker: the text names a step number
-but not the task, so only existence can be checked. That is a real limit, not a
-theoretical one -- "assigned early in `prepare_core` (steps 2, 7, 8, 10)" was
-wrong (the PSL assignments are 1.4 and 1.9.1-1.9.4) and every one of those four
-numbers *exists*, so this check could not prove it. It was found by reading, and
-fixed by rewriting the sentence into a form that names the flow whose steps they
-are. **Prefer the coordinate form in new writing**, and when prose must cite a
-step, name the innermost flow so at least the range is pinned.
+When such a citation also names the task, that is checked by identity too:
+
+    `prepare_agents` step 8 -> `activate_agents`     task must be at that step
+    `prepare_core` step 13 via `assign_…_tolerant`   same, other separator
+
+Where it does not, only existence can be checked, and that is a real limit rather
+than a theoretical one: "assigned early in `prepare_core` (steps 2, 7, 8, 10)"
+was wrong (the PSL assignments are 1.4 and 1.9.1-1.9.4), yet all four numbers
+*exist*, so the check passed over it. Three more citations in the same file were
+wrong the same way. All four were found by reading and fixed by naming the flow
+the steps belong to. **Prefer the coordinate form in new writing**; failing that,
+name the task as well, which is what moves a citation from existence to identity.
 
 One shape is deliberately out of scope: a bare root-level step in a table cell
 (`| 5 | deploy_full |`). `N` alone is indistinguishable from thousands of ordinary
@@ -131,6 +135,14 @@ _INSIDE = re.compile(r"`([a-z][a-z0-9_]*)`\s+step\s+(\d+)(?![\d.])")
 # is the shape a reader is least likely to re-derive by hand.
 _INSIDE_PLURAL = re.compile(r"`([a-z][a-z0-9_]*)`\s*\(steps?\s+([\d,\s]+?)\)")
 _INSIDE_OF = re.compile(r"\bstep\s+(\d+)(?![\d.])\s+of\s+`([a-z][a-z0-9_]*)`")
+# When the citation names the task as well -- "`prepare_agents` step 1 -> `assign…`",
+# "`prepare_core` step 13 via `assign…`" -- the step number is checkable by identity
+# rather than mere existence. Worth doing: four stale citations in the permissions
+# reference survived the existence-only check precisely because the steps they named
+# (2, 7, 8, 10 of `prepare_core`) all exist, just with other tasks in them.
+_INSIDE_TASK = re.compile(
+    r"`([a-z][a-z0-9_]*)`\s+step\s+(\d+)(?![\d.])\s*(?:→|->|—|–|--|:|via)\s*"
+    r"`([a-z][a-z0-9_]*)`")
 _AT_ROOT = re.compile(r"`([a-z][a-z0-9_]*)`[^|`\n]{0,12}?\bat\s+step\s+(\d+)(?![\d.])")
 
 _SKIP_PARTS = {".git", "node_modules", ".venv", ".harness", ".agents", "__pycache__"}
@@ -211,7 +223,7 @@ def index_flows(steps):
     that has a step 1. Nested flows are flattened by the coordinator, so this is
     the only place their own step numbering can be recovered.
     """
-    inside, root_at = {}, {}
+    inside, root_at, inside_task = {}, {}, {}
     for coord, (path, _task, _cls) in steps.items():
         cs, ps = coord.split("."), path.split(".")
         owners = [ROOT_FLOW] + ps[:-1]
@@ -220,10 +232,15 @@ def index_flows(steps):
                 inside.setdefault(owner, set()).add(int(cs[depth]))
         if len(ps) > 1:
             root_at[int(cs[0])] = ps[0]
-    return inside, root_at
+        # Which task sits at each (innermost flow, step). The innermost owner is
+        # the flow the leaf task actually belongs to, and its step index is the
+        # coordinate segment at that depth.
+        if len(owners) <= len(cs):
+            inside_task[(owners[-1], int(cs[len(owners) - 1]))] = ps[-1]
+    return inside, root_at, inside_task
 
 
-def audit_named_steps(inside, root_at, runtime, declared, base=None):
+def audit_named_steps(inside, root_at, inside_task, runtime, declared, base=None):
     """Audit the `<flow> step N` citation form.
 
     Returns (problems, count, unknown) where `unknown` maps each cited name that is
@@ -255,6 +272,17 @@ def audit_named_steps(inside, root_at, runtime, declared, base=None):
             for flow, numbers in _INSIDE_PLURAL.findall(line):
                 claims += [(flow, int(n), "inside")
                            for n in numbers.replace(" ", "").split(",") if n]
+            # Identity, where the citation gave us enough to check it. Additive to
+            # the existence claim above, which still fires on the same text.
+            for flow, num, task in _INSIDE_TASK.findall(line):
+                key = (flow, int(num))
+                if key not in inside_task:
+                    continue  # existence is the loop below's job to report
+                seen += 1
+                if inside_task[key] != task:
+                    problems.append((rel, lineno, f"`{flow}` step {num} -> `{task}`",
+                                     f"{flow} step {num} is "
+                                     f"`{inside_task[key]}`, not `{task}`"))
             for flow, num, kind in claims:
                 if kind == "inside":
                     have_steps = inside.get(flow)
@@ -427,7 +455,7 @@ def self_test(runtime, steps, declared):
     call, not a helper, since a passing helper next to an unreached call site is
     exactly how the last round's mutations survived.
     """
-    inside, root_at = index_flows(steps)
+    inside, root_at, inside_task = index_flows(steps)
     standalone = next((f for f in ("run_qb_idempotency_tests", "prepare_billing_portal")
                        if f in declared["flows"]), None)
 
@@ -440,7 +468,8 @@ def self_test(runtime, steps, declared):
 
         def named(body):
             write("doc.md", body)
-            return audit_named_steps(inside, root_at, runtime, declared, base=tmp)
+            return audit_named_steps(inside, root_at, inside_task, runtime,
+                                     declared, base=tmp)
 
         # A flow outside the root tree is still audited on its own numbering. Both
         # halves matter: the good citation must be counted, the bad one caught.
@@ -465,11 +494,27 @@ def self_test(runtime, steps, declared):
             check("selftest_standalone_bad_step_is_caught", len(problems) == 1,
                   f"expected 1 problem for {standalone} step {bad}, got {len(problems)}")
 
+        # When a citation names the task too, a step that merely *exists* is not
+        # enough. This is the hole four stale citations in the permissions reference
+        # sat in: they named steps 2/7/8/10 of `prepare_core`, all of which exist,
+        # each holding a different task. Both halves are pinned, because a checker
+        # that reported every such citation would be as useless as one that reported
+        # none.
+        (flow, num), task = next(iter(inside_task.items()))
+        problems, _c, _u = named(f"`{flow}` step {num} -> `{task}`\n")
+        check("selftest_named_task_match_is_clean", not problems,
+              f"a correct `{flow}` step {num} -> `{task}` citation was reported")
+        problems, _c, _u = named(f"`{flow}` step {num} -> `not_the_task_there`\n")
+        check("selftest_named_task_mismatch_is_caught", len(problems) == 1,
+              f"citing `{flow}` step {num} as a task that is not there passed — the "
+              f"identity half of the named audit is not running")
+
         # An unreadable file must stop the audit, not shrink it.
         with open(os.path.join(tmp, "bad.md"), "wb") as fh:
             fh.write(b"# \xff\xfe not utf-8\n")
         try:
-            audit_named_steps(inside, root_at, runtime, declared, base=tmp)
+            audit_named_steps(inside, root_at, inside_task, runtime, declared,
+                              base=tmp)
             failed_loudly = False
         except RuntimeError:
             failed_loudly = True
@@ -508,8 +553,9 @@ def main():
     self_test(runtime, steps, declared)
 
     problems, audited, completeness = audit(steps)
-    inside, root_at = index_flows(steps)
-    named_problems, named, unknown = audit_named_steps(inside, root_at, runtime, declared)
+    inside, root_at, inside_task = index_flows(steps)
+    named_problems, named, unknown = audit_named_steps(
+        inside, root_at, inside_task, runtime, declared)
 
     check("flow_resolved", len(steps) > 0, "resolved flow is empty")
 

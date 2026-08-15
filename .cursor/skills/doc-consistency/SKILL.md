@@ -207,7 +207,13 @@ whenever a step is added to or removed from a flow — not only when a doc chang
 since **the doc that goes stale is usually not in the same PR**.
 
 It audits both citation forms — the `| N.M |` table coordinate and the prose
-`` `flow` step N `` — and it audits flows that are **not** part of `prepare_rlm_org`
+`` `flow` step N ``. Where prose also names the task (`` `prepare_agents` step 8 →
+`activate_agents` ``, or `via`/`:`/`—` in place of the arrow) the task is checked
+too, so the citation is pinned by identity rather than existence. **Where it does
+not, only existence is checked, and that gap is load-bearing**: four citations in
+the permissions reference named steps of `prepare_core` that all exist and all held
+a different task, and the check passed over every one. Prefer the coordinate form;
+failing that, name the task. It also audits flows that are **not** part of `prepare_rlm_org`
 (`run_qb_idempotency_tests`, `prepare_billing_portal`) by resolving each on its own
 numbering, rather than dropping them for being unreachable from the root. A cited
 name CumulusCI does not know at all is **reported by name and location** instead of

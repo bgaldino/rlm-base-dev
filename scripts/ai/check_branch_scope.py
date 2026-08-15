@@ -113,8 +113,11 @@ def _subject(sha):
 def _is_ancestor(ancestor, descendant):
     """True if `ancestor` is reachable from `descendant`.
 
-    Exit status is the answer here (0 yes, 1 no), so this cannot go through _run's
-    check=True path, and a non-zero status must not be read as a tool failure.
+    Exit status is the answer here, so this cannot go through _run's check=True
+    path. But only 0 and 1 are answers -- anything else (128 for an unknown
+    object, say) is git failing, and reading that as "not an ancestor" would let a
+    broken invocation *suppress* a STACKED finding and return a clean 0. That
+    inverts the tool's contract: errors are exit 2, never a verdict.
     """
     try:
         proc = subprocess.run(
@@ -122,6 +125,10 @@ def _is_ancestor(ancestor, descendant):
             capture_output=True, text=True)
     except OSError as exc:
         raise ToolError(f"could not run 'git': {exc}") from exc
+    if proc.returncode not in (0, 1):
+        raise ToolError(
+            f"git merge-base --is-ancestor {ancestor} {descendant} exited "
+            f"{proc.returncode}\n{proc.stderr.strip()}")
     return proc.returncode == 0
 
 
@@ -273,8 +280,19 @@ def _check(args, ap):
             # repo, and being *behind* base would read cleaner than being current
             # with it — a gate nobody would keep using.
             continue
-        if _is_ancestor(ref, head):
-            stacked.append(other)
+        # Not "is the other head an ancestor of mine" -- that only catches a parent
+        # which has not moved since the branch was cut. Cut at the parent's commit B,
+        # let the parent advance to C, and C is no longer an ancestor even though B
+        # is still inherited and still unmerged; `git cherry` cannot see B either,
+        # because it is not upstream. Both signals would report clean.
+        #
+        # Ask instead where the two histories join. If they share anything the base
+        # does not, that shared part is inherited unmerged work -- which is the
+        # actual definition of stacked, and it subsumes the unmoved-parent case
+        # (there the join *is* the other head).
+        join = _run(["git", "merge-base", ref, head])
+        if join and not _is_ancestor(join, base):
+            stacked.append((other, join))
 
     label = f"{head[:12] if len(head) == 40 else head} vs {base}"
     total = len(own) + len(foreign)
@@ -283,9 +301,11 @@ def _check(args, ap):
         print(f"  own      {sha[:8]}  {_subject(sha)}")
     for sha in foreign:
         print(f"  FOREIGN  {sha[:8]}  {_subject(sha)}")
-    for other in stacked:
-        print(f"  STACKED  on open PR #{other['number']} ({other['headRefName']}): "
-              f"{other['title']}")
+    for other, join in stacked:
+        shares = "in full" if join == _run(["git", "rev-parse", other["headRefOid"]]) \
+            else f"from {join[:8]} on"
+        print(f"  STACKED  on open PR #{other['number']} ({other['headRefName']}) "
+              f"{shares}: {other['title']}")
 
     if not foreign and not stacked:
         # Deliberately states what was *checked*, not that the branch is clean in
@@ -296,7 +316,7 @@ def _check(args, ap):
         # promises more than patch-id can deliver.
         if total:
             print(f"\nclean: {label} — none of the {total} non-merge commit(s) are "
-                  "upstream, and no open PR is contained")
+                  "upstream, and no open PR shares history beyond base")
         else:
             print(f"clean: {label} — no commits ahead of base")
         return 0
@@ -307,10 +327,10 @@ def _check(args, ap):
         print(f"{len(foreign)} of {total} non-merge commit(s) on {label} are already "
               "upstream, so this branch does not own them.")
     if stacked:
-        print(f"This branch contains {len(stacked)} other open PR(s) in full. Those commits "
-              "have not merged anywhere yet, so they are invisible to the upstream check "
-              "above — but they are still not this PR's to carry, and reviewing this diff "
-              "means reviewing theirs.")
+        print(f"This branch shares history with {len(stacked)} other open PR(s) beyond "
+              f"{base}. Those commits have not merged anywhere yet, so they are invisible "
+              "to the upstream check above — but they are still not this PR's to carry, "
+              "and reviewing this diff means reviewing theirs.")
     print("Its diff will show files belonging to other changes, in whatever state they were "
           "in when they were inherited — merging it can revert review fixes that already "
           "landed.")
