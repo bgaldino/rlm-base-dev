@@ -370,7 +370,7 @@ The following table shows the sequence of all permission-related steps across th
 | 1.7 | `prepare_core` > `deploy_pre` | Deploy PSG metadata (`deploy_pre`) | Always |
 | 1.9.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
 | 1.9.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
-| 1.9.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | Always |
+| 1.9.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | `analytics` |
 | 1.9.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
 | 1.10 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
 | 1.11 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
@@ -400,10 +400,11 @@ The following table shows the sequence of all permission-related steps across th
 | 24.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 24.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
 | 27.2 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
+| 28.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
 | 28.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
-| 28.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \ | `tso`) |
-| 28.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \ | `tso`) |
+| 28.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
+| 28.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 28.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
 | 30.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
 

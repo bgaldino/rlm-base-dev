@@ -220,16 +220,22 @@ substituted:
 - **Matching commit subjects against the base** happens to work on #264-56 but
   breaks on any reworded subject.
 
-One thing that is **not** a finding: a parent branch that truly merged (a merge
-commit, not squash or rebase). Its commits are literal ancestors of the base, so
-they are not in this branch's diff and there is nothing to strip.
+Three things that are **not** findings. A parent branch that truly merged (a merge
+commit, not squash or rebase): its commits are literal ancestors of the base, so
+they are not in this branch's diff and there is nothing to strip. An open PR whose
+head is **already contained in the base** — the release integration PR (`264` →
+`main`) has the base branch itself as its head, and treating that as a stack flags
+every branch that is up to date with base, which would reward being stale. And a
+**fork's** PR, whose head is not in this checkout.
 
 Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
 from the base and cherry-pick only the commits reported as `own`.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (35 checks, no
+The check's own behavior is pinned by `tests/test_branch_scope.py` (46 checks, no
 network) — run it if you change the script, and add a shape to it rather than
-tightening the script by feel.
+tightening the script by feel. Drive whole invocations, not helpers: an earlier
+version tested `STACKED`'s ancestor helper in isolation, and three mutations that
+deleted the signal entirely left the suite green.
 
 ### Step 0 — Detect branch-side reverts of inherited main content (do this before trusting Step 1)
 

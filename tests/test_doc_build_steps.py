@@ -24,11 +24,22 @@ Two directions are checked, because drift and omission are different failures:
    renumbering, a wrong substep, and a row pointing at a different task.
 2. **Every permission-assigning step in the flow is cited.** Catches the
    opposite failure: `prepare_payments`, `prepare_billing`, `prepare_prm_pricing`,
-   `prepare_inapp` and one `prepare_personas` assignment were **missing entirely**
-   from a table whose own preamble claims to list them all, so five permission
+   `prepare_inapp` and two `prepare_personas` assignments were **missing entirely**
+   from a table whose own preamble claims to list them all, so six permission
    sets were being granted by the build with no entry in the permissions
-   reference. Scoped to the file that makes that claim (found by its heading),
-   not repo-wide.
+   reference. Scoped to that table (located by its heading), not to the file and
+   not repo-wide -- a grant cited in some other table in the same file does not
+   satisfy the claim this one makes.
+
+   Grants are identified by the task's **class**, not its name. Name-keying on
+   `assign_permission_set*` missed `assign_personas_sales_rep_psg` (28.5), which
+   grants a PSG through the same class as the documented 1.11 and 1.13 -- exactly
+   the omission this direction exists to catch -- and it would also miss any task
+   that gets renamed without changing what it grants.
+
+3. **Every row of that table was actually audited.** A row that stops matching
+   -- a bolded coordinate, a dropped flow name -- otherwise just leaves the audit
+   and the run still reports clean. Both shapes were demonstrated passing.
 
 **Two notations, because the docs use two.** The coordinate form above is only
 40 citations repo-wide. The other form -- `` `prepare_agents` step 10 `` -- is
@@ -49,6 +60,12 @@ fixed by rewriting the sentence into a form that names the flow whose steps they
 are. **Prefer the coordinate form in new writing**, and when prose must cite a
 step, name the innermost flow so at least the range is pinned.
 
+One shape is deliberately out of scope: a bare root-level step in a table cell
+(`| 5 | deploy_full |`). `N` alone is indistinguishable from thousands of ordinary
+numeric cells, so requiring `N.M` is what keeps this check from drowning in false
+positives. Root steps cited *in prose* are covered -- `step 5 of
+`prepare_rlm_org`` matches -- and none of the uncovered ones grant permissions.
+
 Ground truth is **CumulusCI's own flow resolution**, not a hand-parse of
 `cumulusci.yml`. That is what makes the coordinates trustworthy: CCI resolves
 subflow nesting, `flow: None` disabling, inherited steps, and fractional step
@@ -62,8 +79,6 @@ import os
 import re
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 ROOT_FLOW = "prepare_rlm_org"
@@ -73,10 +88,20 @@ ROOT_FLOW = "prepare_rlm_org"
 # silently disable direction 2.
 COMPLETENESS_HEADING = "## Assignment Order in `prepare_rlm_org`"
 
-# Steps that grant something. `recalculate_permission_set_groups` and `deploy_pre`
-# are cited by the table for context but are not grants, so they are allowed
-# without being required.
-GRANTING_PREFIX = "assign_permission_set"
+# Steps that grant something, keyed by the task's implementing class rather than
+# its name. Name-keying missed a real grant: `assign_personas_sales_rep_psg` (step
+# 28.5) assigns the `RLM_Sales_Representative` PSG through the same
+# `AssignPermissionSetGroupsTolerant` class as the documented 1.11 and 1.13, but
+# does not start with `assign_permission_set`, so it was absent from a table
+# claiming to list them all and the check said nothing. A task can also be renamed
+# without changing what it grants, which is exactly the drift this exists to catch.
+# Recalculations are excluded deliberately: they refresh a PSG rather than grant it.
+GRANTING_CLASSES = {
+    "AssignPermissionSets",
+    "AssignPermissionSetLicenses",
+    "AssignPermissionSetGroups",
+    "AssignPermissionSetGroupsTolerant",
+}
 
 # `| N.M |` or `| N.M.Z |` as the FIRST cell of a table row. Anchored at the row
 # start so pipe-containing prose and mid-row numbers are not read as citations.
@@ -123,7 +148,7 @@ def check(label, cond, detail=""):
 
 
 def resolve_flow():
-    """Return {dotted step number: path} for the fully resolved root flow.
+    """Return {dotted step number: (path, task name, class name)} for the root flow.
 
     Raises so a broken toolchain is never mistaken for a clean audit.
     """
@@ -132,7 +157,11 @@ def resolve_flow():
     runtime = CliRuntime(load_keychain=False)
     coordinator = runtime.get_flow(ROOT_FLOW)
     return {
-        str(step.step_num).replace("/", "."): (step.path, step.task_name)
+        str(step.step_num).replace("/", "."): (
+            step.path,
+            step.task_name,
+            ((step.task_config or {}).get("class_path") or "").rsplit(".", 1)[-1],
+        )
         for step in coordinator.steps
     }
 
@@ -147,7 +176,7 @@ def index_flows(steps):
     the only place their own step numbering can be recovered.
     """
     inside, root_at = {}, {}
-    for coord, (path, _task) in steps.items():
+    for coord, (path, _task, _cls) in steps.items():
         cs, ps = coord.split("."), path.split(".")
         owners = [ROOT_FLOW] + ps[:-1]
         for depth, owner in enumerate(owners):
@@ -238,11 +267,42 @@ def _rows(text):
         yield lineno, coord, _BACKTICKED.findall(cell)
 
 
+def _completeness_table(text):
+    """Yield linenos of the data rows in the table under COMPLETENESS_HEADING.
+
+    Needed because a row that stops matching `_ROW` -- bolded coordinate, dropped
+    flow name -- just disappears from the audit and the run still reports clean.
+    Two such edits were demonstrated to pass. Knowing which rows the table *has*
+    turns "silently skipped" into "reported".
+    """
+    lines = text.splitlines()
+    try:
+        start = next(i for i, ln in enumerate(lines) if COMPLETENESS_HEADING in ln)
+    except StopIteration:
+        return
+    in_table = False
+    for offset, line in enumerate(lines[start + 1:], start + 2):
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            if in_table:
+                break  # table ended; a later table is a different claim
+            if stripped.startswith("#"):
+                break  # next heading before any table: the section has no table
+            continue
+        in_table = True
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if not cells or set(cells[0]) <= set("-: "):
+            continue  # separator row
+        if cells[0].lower().startswith("step"):
+            continue  # header row
+        yield offset, cells[0]
+
+
 def audit(steps):
     """Return (problems, audited, completeness) for every citation in the repo."""
-    subflows = {path.split(".")[0] for path, _ in steps.values()}
+    subflows = {path.split(".")[0] for path, _t, _c in steps.values()}
     problems, audited = [], 0
-    cited_by_file = {}
+    cited_by_file, matched_rows = {}, {}
 
     for path in _markdown_files():
         try:
@@ -258,16 +318,17 @@ def audit(steps):
                 continue
             audited += 1
             cited_by_file.setdefault(rel, set()).add(coord)
+            matched_rows.setdefault(rel, set()).add(lineno)
             declared = ".".join(chain)
             if coord not in steps:
                 problems.append((rel, lineno, coord, f"no step {coord} in {ROOT_FLOW}"))
                 continue
-            actual, _task = steps[coord]
+            actual, _task, _cls = steps[coord]
             if declared != actual:
                 problems.append((rel, lineno, coord,
                                  f"resolves to `{actual}`, row names `{declared}`"))
 
-    granting = {c for c, (_p, task) in steps.items() if task.startswith(GRANTING_PREFIX)}
+    granting = {c for c, (_p, _t, cls) in steps.items() if cls in GRANTING_CLASSES}
     completeness = None
     for path in _markdown_files():
         try:
@@ -275,11 +336,20 @@ def audit(steps):
                 text = fh.read()
         except (OSError, UnicodeDecodeError):
             continue
-        if COMPLETENESS_HEADING in text:
-            rel = os.path.relpath(path, REPO)
-            completeness = (rel, sorted(granting - cited_by_file.get(rel, set()),
-                                        key=lambda c: [int(p) for p in c.split(".")]))
-            break
+        if COMPLETENESS_HEADING not in text:
+            continue
+        rel = os.path.relpath(path, REPO)
+        table = list(_completeness_table(text))
+        # Scoped to this table, not the whole file: a grant cited anywhere else in
+        # the file would otherwise satisfy direction 2 while the table omits it.
+        in_table = {c for lineno, c in table if lineno in matched_rows.get(rel, set())}
+        skipped = [(lineno, first) for lineno, first in table
+                   if lineno not in matched_rows.get(rel, set())]
+        completeness = (rel,
+                        sorted(granting - in_table,
+                               key=lambda c: [int(p) for p in c.split(".")]),
+                        len(table), skipped)
+        break
     return problems, audited, completeness
 
 
@@ -323,11 +393,17 @@ def main():
         check("completeness_table_found", False,
               f"no file contains {COMPLETENESS_HEADING!r} — direction 2 is not running")
     else:
-        rel, missing = completeness
+        rel, missing, row_count, skipped = completeness
         check("every_granting_step_is_documented", not missing,
               f"{len(missing)} granting step(s) missing from {rel}")
         for coord in missing:
             print(f"         {rel}  missing {coord} — {steps[coord][0]}")
+        check("every_table_row_was_audited", not skipped,
+              f"{len(skipped)} of {row_count} rows in {rel} matched no citation — "
+              "they left the audit silently")
+        for lineno, first in skipped:
+            print(f"         {rel}:{lineno}  first cell {first!r} did not parse as a "
+                  "citation (bolded coordinate? missing flow name?)")
 
     print("=" * 116)
     print(f"{_passed}/{_total} checks passed  ({audited} coordinate + {named} named "

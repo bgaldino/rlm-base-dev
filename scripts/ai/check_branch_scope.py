@@ -26,6 +26,15 @@ yet and each signal is blind to one of those cases:
    from the check's branch, and signal 1 reported clean. Needs `--pr`, since it
    is the PR list that says which branches are in flight.
 
+   Two exclusions keep signal 2 honest, and both were false positives before they
+   were guards. A head **already contained in the base** is skipped: the release
+   integration PR (`264` -> `main`) has the base branch itself as its head, so
+   without that guard every branch merely *up to date* with base was reported, and
+   being behind base read cleaner than being current with it. A **fork's** head is
+   skipped too, because it is not in this checkout and the `<remote>/<branch>`
+   fallback would resolve a fork PR on a branch named `264` or `main` to *our*
+   branch of that name. Signal 1 still covers both branches.
+
 A note on what does *not* work, so neither gets substituted:
 `git merge-base --is-ancestor <commit> <base>` is not a detector. Inherited
 commits are not ancestors of the base -- but neither is any legitimate new
@@ -37,13 +46,18 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (35 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (46 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
 reworded inherited commit, a genuinely-merged parent (correctly *not* a finding),
-and the exit-code contract. 12 mutations of this file, including inverting the
-`git cherry` marker and the ancestor test, are each caught by that suite.
+a stale base (which reports clean, so the pre-comparison fetch is load-bearing),
+and the exit-code contract. Signal 2 is driven end to end through `--pr` with a
+stubbed `gh`, which is what pins the exclusions above; an earlier version tested
+only `_is_ancestor` in isolation, and deleting the signal outright left the suite
+green. Each of these mutations now fails it: emptying the `others` loop,
+inverting the ancestor test at the call site or inside it, dropping `stacked`
+from the failure condition, and disabling the fetch, containment or fork guard.
 
 Examples:
     python scripts/ai/check_branch_scope.py --pr 370       # both signals
@@ -114,9 +128,18 @@ def _remote_for(repo):
     if not repo:
         return "origin"
     owner, _, name = repo.partition("/")
+    if not owner or not name:
+        raise ToolError(f"--repo must be owner/name, got {repo!r}")
     for remote in _run(["git", "remote"]).splitlines():
         url = _run(["git", "remote", "get-url", remote.strip()], check=False)
-        if owner and name and owner in url and name.removesuffix(".git") in url:
+        if not url:
+            continue
+        # Match `owner/name` as a unit at the end of the URL, not as two
+        # independent substrings: `--repo bgaldino/rlm-base` would otherwise match
+        # the `rlm-base-dev` remote and compare against a different repository.
+        # Both URL shapes end the same way — `.../owner/name` and `:owner/name`.
+        tail = url.strip().removesuffix(".git").replace(":", "/")
+        if tail.endswith(f"/{owner}/{name}"):
             return remote.strip()
     raise ToolError(
         f"no git remote matches --repo {repo}; add one or pass --base/--head explicitly")
@@ -172,7 +195,7 @@ def _check(args, ap):
                 f"  git fetch {remote} pull/{pr_number}/head:pr-{pr_number}\n"
                 f"then re-run with --base {base} --head pr-{pr_number}")
         list_args = ["pr", "list", "--state", "open", "--limit", "200",
-                     "--json", "number,headRefName,headRefOid,title"]
+                     "--json", "number,headRefName,headRefOid,title,isCrossRepository"]
         if args.repo:
             list_args += ["--repo", args.repo]
         others = [p for p in _gh_json(list_args) if p["number"] != pr_number]
@@ -197,10 +220,25 @@ def _check(args, ap):
 
     stacked = []
     for other in others:
+        if other.get("isCrossRepository"):
+            # A fork's head is not in this checkout, and `<remote>/<headRefName>`
+            # would silently resolve to *our* branch of that name — so a fork PR on
+            # a branch called `264` or `main` would be compared against the wrong
+            # commits entirely. Signal 1 still covers this branch.
+            continue
         ref = other["headRefOid"] if _resolves(other["headRefOid"]) \
             else f"{remote}/{other['headRefName']}"
         if not _resolves(ref):
-            continue  # not fetched (e.g. a fork's branch) — signal 1 still applies
+            continue  # not fetched — signal 1 still applies
+        if _is_ancestor(ref, base):
+            # Already contained in the base, so containing it says nothing about
+            # this branch. Load-bearing for one case in particular: the release
+            # integration PR (`264` -> `main`) has the *base branch itself* as its
+            # head, which is an ancestor of every branch that is up to date with
+            # base. Without this, opening that PR fails every other branch in the
+            # repo, and being *behind* base would read cleaner than being current
+            # with it — a gate nobody would keep using.
+            continue
         if _is_ancestor(ref, head):
             stacked.append(other)
 

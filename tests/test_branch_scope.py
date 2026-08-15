@@ -25,6 +25,7 @@ Usage: python tests/test_branch_scope.py
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -48,8 +49,20 @@ def check(name, condition, detail=""):
         print(f"  [FAIL] {name}  {detail}")
 
 
+# Hermetic git. Without this the suite inherits the developer's global config and
+# aborts on settings that have nothing to do with the code under test -- signed
+# commits (`commit.gpgsign` with no usable key here), a global `core.hooksPath`
+# whose pre-commit fails, or an exported GIT_DIR from running inside a hook. Each
+# one produced a bare traceback indistinguishable from "the script regressed".
+GIT_ENV = {k: v for k, v in os.environ.items()
+           if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
+GIT_ENV.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
+               GIT_CONFIG_NOSYSTEM="1")
+
+
 def git(cwd, *args, check_rc=True):
-    proc = subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True, text=True)
+    proc = subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True,
+                          text=True, env=GIT_ENV)
     if check_rc and proc.returncode != 0:
         raise AssertionError(f"git {' '.join(args)} failed in {cwd}:\n{proc.stderr}")
     return proc.stdout.strip()
@@ -69,15 +82,39 @@ def new_repo(root, name):
     git(cwd, "init", "--quiet", "-b", "base")
     git(cwd, "config", "user.email", "t@example.com")
     git(cwd, "config", "user.name", "test")
+    # Belt and braces alongside GIT_ENV: a repo-local override also protects the
+    # case where the env is passed through by something else.
+    git(cwd, "config", "commit.gpgsign", "false")
+    git(cwd, "config", "core.hooksPath", os.devnull)
     commit(cwd, "seed.txt", "seed\n", "seed")
     return cwd
 
 
-def run_check(cwd, *args):
-    proc = subprocess.run(
-        [sys.executable, str(SCRIPT), "--no-fetch"] + list(args),
-        cwd=cwd, capture_output=True, text=True)
+def run_check(cwd, *args, extra_path=None, no_fetch=True):
+    argv = [sys.executable, str(SCRIPT)] + (["--no-fetch"] if no_fetch else []) + list(args)
+    env = dict(GIT_ENV)
+    if extra_path:
+        env["PATH"] = f"{extra_path}:{env['PATH']}"
+    proc = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, env=env)
     return proc.returncode, proc.stdout + proc.stderr
+
+
+def stub_gh(cwd, view, listing):
+    """Put a fake `gh` on PATH so the --pr path can be driven with no network.
+
+    Returns the directory to prepend to PATH. The stub answers exactly the two
+    calls the script makes -- `pr view` and `pr list` -- which is what lets the
+    STACKED signal be tested end to end instead of only through _is_ancestor.
+    """
+    bindir = Path(cwd) / "_stubbin"
+    bindir.mkdir(exist_ok=True)
+    gh = bindir / "gh"
+    gh.write_text(
+        "#!/bin/sh\n"
+        f"if [ \"$2\" = view ]; then cat <<'J1'\n{json.dumps(view)}\nJ1\n"
+        f"else cat <<'J2'\n{json.dumps(listing)}\nJ2\nfi\n")
+    gh.chmod(0o755)
+    return str(bindir)
 
 
 def test_clean_branch(root):
@@ -208,32 +245,115 @@ def test_empty_branch(root):
 
 
 def test_stacked_on_unmerged(root):
+    """Drive the whole --pr path with a stubbed gh.
+
+    An earlier version of this test called `_is_ancestor` directly, which left the
+    signal itself untested: deleting the `others` loop, inverting the call site, or
+    dropping `stacked` from the failure condition all kept the suite green.
+    """
     print("\nStacked on an UNMERGED branch — the case patch-id cannot see")
     cwd = new_repo(root, "stacked")
     git(cwd, "checkout", "--quiet", "-b", "parent-pr")
-    parent = commit(cwd, "parent.txt", "parent\n", "the parent PR's commit")
+    commit(cwd, "parent.txt", "parent\n", "the parent PR's commit")
     git(cwd, "checkout", "--quiet", "-b", "feature")
     commit(cwd, "mine.txt", "mine\n", "my change")
+    git(cwd, "remote", "add", "origin", str(cwd))
+    git(cwd, "update-ref", "refs/remotes/origin/base", "base")
+    git(cwd, "update-ref", "refs/remotes/origin/parent-pr", "parent-pr")
+    head = git(cwd, "rev-parse", "feature")
+    parent_oid = git(cwd, "rev-parse", "parent-pr")
 
     # Signal 1 alone cannot see this: nothing has merged, so no patch is upstream.
     rc, out = run_check(cwd, "--base", "base", "--head", "feature")
     check("patch-id alone reports clean (documented blind spot)", rc == 0, f"rc={rc}\n{out}")
 
-    # Signal 2 is what catches it: the parent's head is an ancestor of ours.
-    sys.path.insert(0, str(SCRIPT.parent))
-    os.chdir(cwd)
-    import importlib
-    mod = importlib.import_module("check_branch_scope")
-    importlib.reload(mod)
-    check("ancestor test sees the parent branch",
-          mod._is_ancestor(parent, "feature"), "parent should be an ancestor of feature")
-    check("ancestor test is directional, not symmetric",
-          not mod._is_ancestor("feature", parent), "feature must not be an ancestor of parent")
-    unrelated = git(cwd, "rev-parse", "base")
-    check("base is an ancestor of both (so ancestry alone is not the finding)",
-          mod._is_ancestor(unrelated, "feature"),
-          "base must be an ancestor — the finding comes from the open-PR list, not ancestry")
-    os.chdir(REPO)
+    mine = {"baseRefName": "base", "headRefName": "feature", "headRefOid": head,
+            "headRepositoryOwner": {"login": "me"}, "isCrossRepository": False}
+    parent_pr = {"number": 2, "headRefName": "parent-pr", "headRefOid": parent_oid,
+                 "title": "the parent PR", "isCrossRepository": False}
+
+    bindir = stub_gh(cwd, mine, [{"number": 1, "headRefName": "feature",
+                                  "headRefOid": head, "title": "mine",
+                                  "isCrossRepository": False}, parent_pr])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("stacking on an open PR exits 1", rc == 1, f"rc={rc}\n{out}")
+    check("names the PR it is stacked on", "STACKED  on open PR #2" in out, out)
+    check("explains why signal 1 missed it", "invisible to the upstream check" in out, out)
+    # Both commits are listed as `own`, and correctly so: nothing has merged, so
+    # patch-id has nothing to match the parent's commit against. That is the whole
+    # reason the second signal exists -- the per-commit listing cannot express this
+    # finding, only the PR-level one can.
+    check("the parent's commit still reads as `own` under signal 1",
+          out.count("own      ") == 2, out)
+    check("the PR under test is not reported against itself",
+          "PR #1" not in out, out)
+
+    print("\n  ...and a branch merely UP TO DATE with base is not stacked")
+    # The release-integration PR (`264` -> `main`) has the base branch itself as
+    # its head. That head is an ancestor of every branch current with base, so
+    # without the containment guard this fails every branch in the repo.
+    integration = {"number": 3, "headRefName": "base",
+                   "headRefOid": git(cwd, "rev-parse", "base"),
+                   "title": "base -> main release integration",
+                   "isCrossRepository": False}
+    bindir = stub_gh(cwd, mine, [integration])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a PR whose head is the base branch is not a finding", rc == 0, f"rc={rc}\n{out}")
+    check("and it is not printed as stacked", "STACKED" not in out, out)
+
+    print("\n  ...and a fork PR is skipped rather than resolved to our own branch")
+    # `origin/parent-pr` exists locally, so an unguarded fallback would compare
+    # against *our* branch of that name and report a stack that does not exist.
+    fork = dict(parent_pr, number=4, headRefOid="0" * 40, isCrossRepository=True,
+                title="a fork's PR on a colliding branch name")
+    bindir = stub_gh(cwd, mine, [fork])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a fork PR does not produce a phantom stack", rc == 0, f"rc={rc}\n{out}")
+
+    print("\n  ...and an unrelated open PR is not a finding")
+    git(cwd, "checkout", "--quiet", "-b", "unrelated", "base")
+    commit(cwd, "other.txt", "other\n", "unrelated work")
+    unrelated = {"number": 5, "headRefName": "unrelated",
+                 "headRefOid": git(cwd, "rev-parse", "unrelated"),
+                 "title": "unrelated", "isCrossRepository": False}
+    git(cwd, "checkout", "--quiet", "feature")
+    bindir = stub_gh(cwd, mine, [unrelated])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("an unrelated open PR is not reported", rc == 0, f"rc={rc}\n{out}")
+
+
+def test_fetch_before_comparing(root):
+    """A stale base hides the finding, so the check must fetch first.
+
+    This is the failure the guard exists for: the inherited commits *have* merged
+    upstream, but the local remote-tracking copy predates that, so patch-id finds
+    nothing to match and the branch reads clean. Comparing the two modes in one
+    test is what makes the guard's absence visible.
+    """
+    print("\nFetch before comparing — a stale base reports clean")
+    upstream = new_repo(root, "upstream-origin")
+    git(upstream, "checkout", "--quiet", "-b", "composed")
+    inherited = [commit(upstream, f"o{i}.txt", f"o{i}\n", f"other {i}") for i in (1, 2, 3)]
+    git(upstream, "checkout", "--quiet", "base")
+
+    work = Path(root) / "clone"
+    subprocess.run(["git", "clone", "--quiet", str(upstream), str(work)],
+                   capture_output=True, env=GIT_ENV, check=True)
+    git(work, "config", "user.email", "t@example.com")
+    git(work, "config", "user.name", "test")
+    git(work, "config", "commit.gpgsign", "false")
+    git(work, "checkout", "--quiet", "-b", "feature", "origin/composed")
+    commit(work, "mine.txt", "mine\n", "my change")
+
+    # The five fixes land upstream as new SHAs, after base has moved on.
+    commit(upstream, "moved.txt", "moved\n", "base moves on")
+    git(upstream, "cherry-pick", *inherited)
+
+    rc, out = run_check(work, "--base", "origin/base", "--head", "feature")
+    check("stale base reports clean — this is the trap", rc == 0, f"rc={rc}\n{out}")
+    rc, out = run_check(work, "--base", "origin/base", "--head", "feature", no_fetch=False)
+    check("fetching first finds the inherited commits", rc == 1, f"rc={rc}\n{out}")
+    check("and counts all three", "3 of 4 non-merge commit(s)" in out, out)
 
 
 def test_exit_code_contract(root):
@@ -255,6 +375,17 @@ def test_exit_code_contract(root):
           f"rc={proc.returncode}\n{proc.stderr}")
     proc = subprocess.run([sys.executable, str(SCRIPT), "--repo", "a/b"],
                           cwd=cwd, capture_output=True, text=True)
+    # A prefix of a real remote's name must not resolve to it. `rlm-base` is a
+    # prefix of `rlm-base-dev`, so substring matching would answer confidently
+    # about the wrong repository.
+    git(cwd, "remote", "add", "origin", "https://github.com/owner/rlm-base-dev.git")
+    rc, out = run_check(cwd, "--pr", "1", "--repo", "owner/rlm-base")
+    check("a prefix of a remote's repo name does not match it",
+          rc == 2 and "no git remote matches" in out, f"rc={rc}\n{out}")
+    rc, out = run_check(cwd, "--pr", "1", "--repo", "not-an-owner-slash-name")
+    check("--repo without a slash is a usage error",
+          rc == 2 and "must be owner/name" in out, f"rc={rc}\n{out}")
+
     check("--repo without --pr is rejected as a usage error",
           proc.returncode == 2 and "--repo only applies to --pr" in proc.stderr,
           f"rc={proc.returncode}\n{proc.stderr}")
@@ -290,6 +421,7 @@ def main():
         test_cherry_picked_content(root)
         test_empty_branch(root)
         test_stacked_on_unmerged(root)
+        test_fetch_before_comparing(root)
         test_exit_code_contract(root)
     print("\n" + "=" * 100)
     total = _passed + len(_failed)

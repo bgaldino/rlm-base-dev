@@ -170,6 +170,13 @@ signal is blind to one of those cases:
    way: the branch for this check's own companion fix was cut from this check's
    branch, and signal 1 said clean.
 
+   Signal 2 skips two kinds of head, each of which was a false positive first. A
+   head **already in the base** — the release integration PR (`264` → `main`) has
+   the base branch *as* its head — otherwise flags every branch that is up to date
+   with base, making a stale branch read cleaner than a current one. And a
+   **fork's** head, which is not in this checkout, where the `<remote>/<branch>`
+   fallback would resolve a fork PR on a branch named `264` to *our* `264`.
+
 Two weaker checks were tried and rejected — `merge-base --is-ancestor` against the
 *base* cannot separate an inherited commit from a legitimate new one, and
 subject-matching breaks on a reworded subject. Exit 0 clean, 1 findings, 2
@@ -179,10 +186,15 @@ Note that a parent branch that *truly* merged (a merge commit, not squash or
 rebase) is correctly not a finding: its commits are literal ancestors of the base,
 so they are not in this branch's diff and there is nothing to strip.
 
-Verified by `tests/test_branch_scope.py` (35 checks, throwaway repos, no network),
+Verified by `tests/test_branch_scope.py` (46 checks, throwaway repos, no network),
 which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
-that fixes it, a reworded inherited commit, a true-merged parent, and the
-exit-code contract. 12 mutations of the script are each caught by it.
+that fixes it, a reworded inherited commit, a true-merged parent, a stale base
+(which reports clean — so the pre-comparison fetch is load-bearing), and the
+exit-code contract. Signal 2 is driven end to end through `--pr` against a stubbed
+`gh`; testing only its ancestor helper let three mutations that delete the signal
+outright pass. Emptying the PR loop, inverting the ancestor test at either place,
+dropping `stacked` from the failure condition, and disabling the fetch,
+containment or fork guard each fail the suite.
 
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"
