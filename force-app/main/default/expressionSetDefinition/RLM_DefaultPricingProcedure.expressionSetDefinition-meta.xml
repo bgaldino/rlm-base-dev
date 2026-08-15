@@ -180,7 +180,7 @@
             <label>Apply Header Price Override</label>
             <name>ApplyHeaderPriceOverride</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>32</sequenceNumber>
+            <sequenceNumber>33</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -191,7 +191,7 @@
             <label>Apply Percentage Based Header Discount</label>
             <name>ApplyPercentageBasedHeaderDiscount</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>31</sequenceNumber>
+            <sequenceNumber>32</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -202,7 +202,7 @@
             <label>Apply amount-based and percentage-based discounts</label>
             <name>Applyamountbasedandpercentagebaseddiscounts</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>18</sequenceNumber>
+            <sequenceNumber>19</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -213,7 +213,7 @@
             <label>Apply bundle-based adjustments</label>
             <name>Applybundlebasedadjustments</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>14</sequenceNumber>
+            <sequenceNumber>15</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -224,7 +224,7 @@
             <label>Apply manual discounts to lines without derived pricing</label>
             <name>Applymanualdiscountstolineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>17</sequenceNumber>
+            <sequenceNumber>18</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -235,7 +235,7 @@
             <label>Apply non-prorated pricing for lines without term-defined or evergreen pricing</label>
             <name>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>24</sequenceNumber>
+            <sequenceNumber>25</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -246,7 +246,7 @@
             <label>Apply non-prorated pricing to term-defined and evergreen lines</label>
             <name>Applynonproratedpricingtotermdefinedandevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>26</sequenceNumber>
+            <sequenceNumber>27</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -257,7 +257,7 @@
             <label>Apply price revision for lines with subscription and without derived pricing</label>
             <name>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>19</sequenceNumber>
+            <sequenceNumber>20</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -268,7 +268,7 @@
             <label>Apply prorated pricing to evergreen lines</label>
             <name>Applyproratedpricingtoevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>23</sequenceNumber>
+            <sequenceNumber>24</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -279,7 +279,7 @@
             <label>Apply prorated pricing to term-defined lines</label>
             <name>Applyproratedpricingtotermdefinedlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>22</sequenceNumber>
+            <sequenceNumber>23</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -290,7 +290,7 @@
             <label>Apply uplifts to ramped subscriptions items during amendment</label>
             <name>Applyupliftstorampedsubscriptionsitemsduringamendment</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>20</sequenceNumber>
+            <sequenceNumber>21</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -301,7 +301,7 @@
             <label>Apply volume-based discounts to lines with contract and without derived pricing</label>
             <name>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>15</sequenceNumber>
+            <sequenceNumber>16</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -312,7 +312,7 @@
             <label>Apply volume-based discounts to lines without contract or last-trxn pricing</label>
             <name>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>16</sequenceNumber>
+            <sequenceNumber>17</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1054,7 +1054,7 @@
             <label>Assign TotalLineAmount to ItemSubtotal and ItemNetTotalPrice to ItemTotalPrice</label>
             <name>AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>29</sequenceNumber>
+            <sequenceNumber>30</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1137,7 +1137,7 @@
             <label>Assign pricing term count to evergreen lines with non-prorated pricing</label>
             <name>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>25</sequenceNumber>
+            <sequenceNumber>26</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1249,7 +1249,7 @@
             <label>Assign total line amount for lines with inclusive price</label>
             <name>Assigntotallineamountforlineswithinclusiveprice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>27</sequenceNumber>
+            <sequenceNumber>28</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1260,7 +1260,7 @@
             <label>Calculate cost and margin for priced lines</label>
             <name>Calculatecostandmarginforpricedlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>28</sequenceNumber>
+            <sequenceNumber>29</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1896,7 +1896,7 @@
             <label>Calculate item group subtotal by adding item net total prices of all the lines</label>
             <name>Calculateitemgroupsubtotalbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>36</sequenceNumber>
+            <sequenceNumber>37</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -2051,7 +2051,7 @@
             <label>Calculate item net total price for lines without derived pricing</label>
             <name>Calculateitemnettotalpriceforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>11</sequenceNumber>
+            <sequenceNumber>12</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3546,7 +3546,7 @@
             <label>Calculate subtotal by adding total line amounts of all the lines</label>
             <name>Calculatesubtotalbyaddingtotallineamountsofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>35</sequenceNumber>
+            <sequenceNumber>36</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3701,7 +3701,7 @@
             <label>Calculate total amount by adding item net total prices of all the lines</label>
             <name>Calculatetotalamountbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>34</sequenceNumber>
+            <sequenceNumber>35</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3835,7 +3835,7 @@
             <label>Discount Distribution Service</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>33</sequenceNumber>
+            <sequenceNumber>34</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4137,7 +4137,7 @@
             <label>Filter lines with last-transaction pricing and assign net total price</label>
             <name>Filterlineswithlasttransactionpricingandassignnettotalprice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>21</sequenceNumber>
+            <sequenceNumber>22</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4866,7 +4866,7 @@
             <label>List Apply Amount Based Header Discount</label>
             <name>ListApplyAmountBasedHeaderDiscount</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>30</sequenceNumber>
+            <sequenceNumber>31</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5443,7 +5443,7 @@
             <label>Set attribute-based pricing for lines without contract pricing</label>
             <name>Setattributebasedpricingforlineswithoutcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>13</sequenceNumber>
+            <sequenceNumber>14</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5454,7 +5454,7 @@
             <label>Set attribute-based pricing for lines without derived pricing</label>
             <name>Setattributebasedpricingforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>12</sequenceNumber>
+            <sequenceNumber>13</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5465,7 +5465,7 @@
             <label>Set input unit price for lines with contract pricing</label>
             <name>Setinputunitpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>9</sequenceNumber>
+            <sequenceNumber>10</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5476,7 +5476,7 @@
             <label>Set input unit price for lines without derived pricing or last-trxn pricing</label>
             <name>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>10</sequenceNumber>
+            <sequenceNumber>11</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5487,7 +5487,7 @@
             <label>Set list price for lines with contract pricing</label>
             <name>Setlistpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>8</sequenceNumber>
+            <sequenceNumber>9</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5495,10 +5495,99 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
+            <label>List Container</label>
+            <name>ListContainer</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>6</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
+                <conditionLogic>1 AND 2</conditionLogic>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>ItemPricingSource</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>2</sequenceNumber>
+                    <sourceFieldName>ItemPricingSource</sourceFieldName>
+                    <value>&apos;LastTransaction&apos;</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+            </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Set Net Unit Price for Last Transaction Pricing</label>
+            <name>SetNetUnitPriceforLastTransactionPricing</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
+        </steps>
+        <steps>
+            <actionType>AssignmentElement</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>InputUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>1</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;NetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>NetUnitPrice</value>
+                </parameters>
+            </customElement>
+            <description>Assignment</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Assignment</label>
+            <name>Assignment</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Set pricing date for lines with contract pricing</label>
             <name>Setpricingdateforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>6</sequenceNumber>
+            <sequenceNumber>7</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5509,7 +5598,7 @@
             <label>Set the net unit price for lines with derived pricing</label>
             <name>Setthenetunitpriceforlineswithderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>7</sequenceNumber>
+            <sequenceNumber>8</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
