@@ -1,4 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Release 264 rejects compactLayoutAssignment on TransactionJournal. The deploy
+  fails with CustomObject TransactionJournal → "invalid parameter value" for ANY
+  value, including the platform default SYSTEM, so this is not a name-resolution
+  problem: the field is simply not accepted on this object.
+
+  Verified on a fresh 264 org by isolating the component. post_ux deploys clean
+  with this element removed, and fails with it present even when
+  RLM_Transaction_Journal_Compact_Layout already exists in the org, so it is not
+  a same-transaction ordering problem either. Asset, Contract and Quote keep
+  their assignments; they deploy fine, so this is TransactionJournal-specific.
+
+  The compact layout itself still deploys and is retained; it is simply not the
+  assigned default for the highlights panel. Account's billing compact layout is
+  already shipped unassigned, so this matches existing behavior in this bundle.
+
+  Do not re-add compactLayoutAssignment here without re-testing on a fresh 264
+  org. It will fail the whole assemble_and_deploy_ux step.
+
+  Why keep a file whose CustomObject element is now empty: it is functionally
+  inert and deliberately so. Converting the assembled object directory with and
+  without this file produces byte-identical metadata output and an identical
+  package.xml, so the sibling compactLayout does not depend on it. The file is
+  retained only because this is the path someone would open before re-adding the
+  assignment, and it is the one place the warning above will actually be read.
+  Deleting it costs nothing at deploy time and loses the warning.
+-->
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <compactLayoutAssignment>RLM_Transaction_Journal_Compact_Layout</compactLayoutAssignment>
 </CustomObject>
