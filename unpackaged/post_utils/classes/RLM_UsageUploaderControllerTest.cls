@@ -661,6 +661,92 @@ private class RLM_UsageUploaderControllerTest {
     }
 
     /**
+     * The fail-soft USER_MODE path. Nothing in this repo grants read on
+     * ProductUsageResourcePolicy or UsageOveragePolicy, so a low-permission caller's query
+     * throws and the catch degrades to a blank overage column rather than taking the whole
+     * grants wire down with it.
+     *
+     * Asserting only "the lookup came back empty" would not test the catch at all — an org
+     * that happened to grant the chain would pass identically, and so would a build with the
+     * catch deleted if the query never threw. So the query is first shown to throw for this
+     * user, which makes the assertion below evidence about the catch specifically. Remove the
+     * catch, or narrow it to the wrong exception type, and this test fails.
+     */
+    @IsTest
+    static void testLoadOverageLookup_DegradesToBlankWhenCallerCannotReadPolicies() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        Set<Id> resourceIds = new Set<Id>{ ur.Id };
+        User lowPermission = buildMinimalAccessUser();
+
+        Boolean rawQueryWasDenied = false;
+        RLM_UsageUploaderController.OverageLookup lookup = null;
+
+        System.runAs(lowPermission) {
+            try {
+                // Negative control: the same traversal the method runs, unguarded.
+                List<ProductUsageResourcePolicy> denied = [
+                    SELECT Id
+                    FROM ProductUsageResourcePolicy
+                    WHERE ProductUsageResource.UsageResourceId IN :resourceIds
+                    WITH USER_MODE
+                ];
+                System.debug('policy rows visible to a minimal user: ' + denied.size());
+            } catch (QueryException e) {
+                rawQueryWasDenied = true;
+            }
+
+            lookup = RLM_UsageUploaderController.loadOverageLookup(resourceIds);
+        }
+
+        System.assertEquals(
+            true,
+            rawQueryWasDenied,
+            'Premise of this test: a minimal-access user must be denied the policy chain. ' +
+            'If this org grants it, the assertions below prove nothing about the catch'
+        );
+        System.assertNotEquals(
+            null,
+            lookup,
+            'A denied caller must still receive a lookup'
+        );
+        System.assertEquals(
+            null,
+            lookup.resolve(ast.Product2Id, ur.Id),
+            'A denied caller must get a blank overage column, not a QueryException'
+        );
+    }
+
+    /**
+     * The least-privileged standard profile the org offers, for exercising USER_MODE denial.
+     * 'Minimum Access - Salesforce' sorts before 'Standard User', so it wins where it exists
+     * and orgs without it still get a user that lacks the Revenue Cloud policy objects.
+     */
+    private static User buildMinimalAccessUser() {
+        Profile leastPrivileged = [
+            SELECT Id
+            FROM Profile
+            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
+            ORDER BY Name ASC
+            LIMIT 1
+        ];
+
+        User u = new User(
+            ProfileId = leastPrivileged.Id,
+            LastName = 'Overage',
+            Email = 'rlm.overage.minimal@example.com',
+            Username = 'rlm.overage.minimal.' + Datetime.now().getTime() + '@example.com',
+            Alias = 'rlmovg',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
+    /**
      * No resources means no query and an empty lookup, not a wasted SOQL call.
      */
     @IsTest

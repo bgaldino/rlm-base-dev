@@ -35,14 +35,23 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > field-level schema allows. Live-verified on a fresh 264 org 2026-08-14 by attempting
 > both inserts.
 >
-> Consequence worth knowing: a `ProductUsageResourcePolicy` is scoped to a
-> product-**and**-resource pair, so resolving overage for an entitlement requires both
-> halves as the key. Resources are widely shared across products — 6 of 7 in the bundled
-> QB data, `Quantum Tokens` by six products — but because only Anchors may hold the
-> policy, a wrong-product reading needs **two Anchor products sharing one resource**,
-> which the bundled data does not currently contain. Nothing prevents it, and the failure
-> would be silent, so code reading this path should key on product + resource anyway
-> (see `RLM_UsageUploaderController.overageKey`).
+> Consequence worth knowing, and the reason this is subtle: `ProductUsageResourcePolicy`
+> is scoped to a product-**and**-resource pair, yet only Anchors may hold the overage
+> policy — so a Pack or Commit entitlement's *own* product has no overage row to find.
+> **Keying strictly on the pair therefore resolves nothing for exactly the products the
+> Anchor rule excludes**, which is not a safe default but a silent blanking: measured on a
+> fresh 264 org, 6 of 14 entitlements resolved under pair-only keying versus 13 of 14 once
+> a resource-level fallback was allowed.
+>
+> The safe resolution is **product-preferred, then unambiguous resource, then nothing**:
+> take the exact product+resource row when it exists; otherwise accept the resource-level
+> policy *only* if every row for that resource agrees; otherwise resolve to `null`. The
+> ambiguity guard is what makes the fallback safe — resources are shared widely (6 of 7 in
+> the bundled QB data; `Quantum Tokens` by six products), so a wrong-product reading needs
+> **two Anchor products sharing one resource** with disagreeing policies. The bundled data
+> does not currently contain that, nothing prevents it, and the misread would be silent,
+> so the guard withholds instead of returning whichever row was read last. Implemented as
+> `RLM_UsageUploaderController.OverageLookup`.
 
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
