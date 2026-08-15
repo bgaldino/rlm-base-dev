@@ -362,42 +362,50 @@ Defined as a YAML anchor but not assigned in any standard flow. Available for or
 
 The following table shows the sequence of all permission-related steps across the full `prepare_rlm_org` flow. Step numbers use `X.Y(.Z)` notation: X is the `prepare_rlm_org` step, Y is the step within that sub-flow, and Z is the step within a further-nested sub-flow (e.g. `assign_feature_psls` / `assign_feature_permission_sets` inside `prepare_core`, or `prepare_approvals` inside `prepare_quantumbit`).
 
+**These numbers are checked, not maintained by hand.** `tests/test_doc_build_steps.py` resolves the flow through CumulusCI and asserts both directions: every step number here points at the task named beside it, and every permission-granting step in the flow appears here. That is why the Flow/Task column spells out the whole path down to the task — it is what makes a row verifiable, and the check fails if a row and the flow disagree. Run it after inserting or removing any flow step, because one insertion renumbers every step after it.
+
 | Step | Flow/Task | What is Assigned | Condition |
 |---|---|---|---|
-| 1.3 | `prepare_core` | Core RLM PSLs (25) | Always |
-| 1.6 | `prepare_core` | Deploy PSG metadata (`deploy_pre`) | Always |
-| 1.8.1 | `prepare_core` > `assign_feature_psls` | CLM PSLs (11) | `clm` |
-| 1.8.2 | `prepare_core` > `assign_feature_psls` | Einstein AI PSLs (3) | `einstein` |
-| 1.8.3 | `prepare_core` > `assign_feature_psls` | `EinsteinAnalyticsPlusPsl` | Always |
-| 1.8.4 | `prepare_core` > `assign_feature_psls` | TSO PSLs (23) | `tso` |
-| 1.9 | `prepare_core` | Recalculate 11 core PSGs | Always |
-| 1.10 | `prepare_core` | Assign 11 core PSGs | Always |
-| 1.12 | `prepare_core` | `RLM_TSO` PSG | `tso` |
-| 1.16.1 | `prepare_core` > `assign_feature_permission_sets` | PCM permission sets (4) | `tso` + `psg_debug` |
-| 1.16.2 | `prepare_core` > `assign_feature_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
-| 1.16.3 | `prepare_core` > `assign_feature_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
-| 1.16.4 | `prepare_core` > `assign_feature_permission_sets` | Billing permission sets (10) | `billing` + `psg_debug` |
-| 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
-| 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
-| 7.5 | `prepare_quantumbit` | `RLM_ExpressionSetManager` | `quantumbit` |
-| 7.6 | `prepare_quantumbit` | `RLM_UtilitiesPermset` | `quantumbit` |
-| 7.7 | `prepare_quantumbit` | `RLM_DecisionTableManager` | `quantumbit` |
-| 7.8 | `prepare_quantumbit` | `RLM_RebuildSearchIndex` | `quantumbit` |
-| 7.9 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
-| 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
-| 19.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 19.4 | `prepare_tso` | TSO permission sets (7) | `tso` |
-| 21.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
-| 22.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
-| 22.10 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
-| 23.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
-| 24.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
-| 24.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
-| 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
-| 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
-| 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
-| 28.8 | `prepare_personas` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
-| 28.9 | `prepare_personas` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
+| 1.4 | `prepare_core` > `assign_permission_set_licenses` | Core RLM PSLs (25) | Always |
+| 1.7 | `prepare_core` > `deploy_pre` | Deploy PSG metadata (`deploy_pre`) | Always |
+| 1.9.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
+| 1.9.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
+| 1.9.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | Always |
+| 1.9.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
+| 1.10 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
+| 1.11 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
+| 1.12 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
+| 1.13 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
+| 1.17.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | PCM permission sets (4) | `tso` + `psg_debug` |
+| 1.17.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
+| 1.17.3 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
+| 1.17.4 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | Billing permission sets (10) | `billing` + `psg_debug` |
+| 4.8 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
+| 7.2.3 | `prepare_quantumbit` > `prepare_approvals` > `assign_permission_sets` | `RLM_Approvals` | `quantumbit` + `approvals` |
+| 7.4 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_QuantumBit` | `quantumbit` |
+| 7.5 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_ExpressionSetManager` | `quantumbit` |
+| 7.6 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_UtilitiesPermset` | `quantumbit` |
+| 7.7 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_DecisionTableManager` | `quantumbit` |
+| 7.8 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_RebuildSearchIndex` | `quantumbit` |
+| 7.9 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 10.10 | `prepare_docgen` > `assign_permission_sets` | `RLM_DocGen` | `docgen` |
+| 13.12 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
+| 19.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
+| 19.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (7) | `tso` |
+| 21.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
+| 21.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
+| 22.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
+| 22.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 23.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
+| 24.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
+| 24.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
+| 27.2 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
+| 28.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
+| 28.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
+| 28.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \ | `tso`) |
+| 28.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \ | `tso`) |
+| 28.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
+| 30.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
 
 ---
 

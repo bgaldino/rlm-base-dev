@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail a branch that carries commits which are already upstream.
+"""Fail a branch that carries commits it does not own.
 
 A PR branch cut from a *composed* integration branch -- one built by stacking
 several in-flight fixes together to test them as a set -- silently inherits
@@ -9,34 +9,46 @@ was made. Merging it walks back review fixes that already landed.
 
 #264-56 is the concrete case: `fix/264-agents-authoring-bundle` was rebuilt once
 to strip five inherited commits, then re-accumulated the same five from a later
-rebase onto the stale composition, and was three days from merging a second time
-with them. It carried 8 commits where the PR owned 3.
+rebase onto the stale composition, and was a day from merging a second time with
+them. It carried 8 commits where the PR owned 3.
 
-The detector is `git cherry`, whose whole job is patch-id equivalence:
+Two independent signals, because the inherited work may or may not have merged
+yet and each signal is blind to one of those cases:
 
-    -  this commit's content is already upstream  -> the branch does not own it
-    +  this commit is genuinely new               -> fine
+1. **Already upstream** -- `git cherry`, i.e. patch-id equivalence: `-` means
+   this commit's content is in the base already, so the branch does not own it.
+   This is the #264-56 signal, and it only works once the other PRs have merged.
 
-That distinction is exactly right here and is why this is a wrapper rather than
-a hand-rolled diff. Two weaker checks were tried first and both fail:
+2. **Contains another open PR's branch** -- if another open PR's head is an
+   *ancestor* of this head, this branch is built on top of that PR, whose commits
+   have not merged anywhere yet and so are invisible to signal 1. Found the hard
+   way: while writing this check, the branch for its own companion fix was cut
+   from the check's branch, and signal 1 reported clean. Needs `--pr`, since it
+   is the PR list that says which branches are in flight.
 
-* `git merge-base --is-ancestor` is **not** a detector. Foreign commits are not
-  ancestors of the base -- but neither is any legitimate new commit, so it
-  cannot separate them. (The 264 plan named this one before it was tested.)
-* Matching commit *subjects* against the base works on this case but breaks the
-  moment a subject is reworded, and misses a foreign commit whose twin has not
-  merged yet.
+A note on what does *not* work, so neither gets substituted:
+`git merge-base --is-ancestor <commit> <base>` is not a detector. Inherited
+commits are not ancestors of the base -- but neither is any legitimate new
+commit, so it cannot separate them. (The 264 plan named this one before it was
+tested against the history.) Matching commit *subjects* against the base works
+on #264-56 but breaks on any reworded subject.
 
-Verified against the real #264-56 history: with the base as it stood the moment
-that PR was about to merge, this flags exactly the five inherited commits and
-passes the three it owns; against the rebuilt branch, it passes all three.
+Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
+missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
+branch dirty because a tool is absent.
 
-Exit status: 0 clean, 1 foreign commits found, 2 usage/git error.
+Verified by `tests/test_branch_scope.py` (35 checks) against throwaway repos, not
+against this checkout's branches -- the #264-56 branches have since been rebuilt
+and merged, so a test reading real history would rot. It reproduces the #264-56
+shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
+reworded inherited commit, a genuinely-merged parent (correctly *not* a finding),
+and the exit-code contract. 12 mutations of this file, including inverting the
+`git cherry` marker and the ancestor test, are each caught by that suite.
 
 Examples:
-    python scripts/ai/check_branch_scope.py                    # HEAD vs origin/264
-    python scripts/ai/check_branch_scope.py --base origin/main
-    python scripts/ai/check_branch_scope.py --pr 370           # resolve both via gh
+    python scripts/ai/check_branch_scope.py --pr 370       # both signals
+    python scripts/ai/check_branch_scope.py                # HEAD vs origin/264
+    python scripts/ai/check_branch_scope.py --base origin/main --head my-branch
 """
 from __future__ import annotations
 
@@ -48,11 +60,20 @@ import sys
 DEFAULT_BASE = "origin/264"
 
 
+class ToolError(Exception):
+    """A git/gh invocation failed -- distinct from a finding about the branch."""
+
+
 def _run(args, check=True):
-    proc = subprocess.run(args, capture_output=True, text=True)
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True)
+    except OSError as exc:
+        # A missing `git`/`gh` must not exit 1: that is the code reserved for
+        # "this branch carries foreign commits", and a gate keyed on exit status
+        # would report the branch dirty because a tool is absent.
+        raise ToolError(f"could not run {args[0]!r}: {exc}") from exc
     if check and proc.returncode != 0:
-        sys.stderr.write(f"error: {' '.join(args)}\n{proc.stderr.strip()}\n")
-        sys.exit(2)
+        raise ToolError(f"{' '.join(args)}\n{proc.stderr.strip()}")
     return proc.stdout.strip()
 
 
@@ -60,69 +81,163 @@ def _subject(sha):
     return _run(["git", "log", "-1", "--format=%s", sha])
 
 
-def _pr_refs(pr, repo):
-    """Resolve (base, head) for a PR via gh, as local-resolvable refs."""
-    cmd = ["gh", "pr", "view", str(pr), "--json", "baseRefName,headRefName,headRefOid"]
-    if repo:
-        cmd += ["--repo", repo]
-    data = json.loads(_run(cmd))
-    # The base is compared as it exists on the remote, not as a stale local copy:
-    # a local `264` that is behind will hide inherited commits that have since
-    # merged, which is the very thing being looked for.
-    return f"origin/{data['baseRefName']}", data["headRefOid"]
+def _is_ancestor(ancestor, descendant):
+    """True if `ancestor` is reachable from `descendant`.
+
+    Exit status is the answer here (0 yes, 1 no), so this cannot go through _run's
+    check=True path, and a non-zero status must not be read as a tool failure.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+            capture_output=True, text=True)
+    except OSError as exc:
+        raise ToolError(f"could not run 'git': {exc}") from exc
+    return proc.returncode == 0
+
+
+def _resolves(ref):
+    try:
+        _run(["git", "rev-parse", "--verify", f"{ref}^{{commit}}"])
+        return True
+    except ToolError:
+        return False
+
+
+def _remote_for(repo):
+    """Return the remote whose URL names `repo` (owner/name), else 'origin'.
+
+    This checkout has more than one remote (a fork and the internal mirror), so
+    assuming `origin` when `--repo` points elsewhere would compare against a
+    different repository and produce a confident wrong answer.
+    """
+    if not repo:
+        return "origin"
+    owner, _, name = repo.partition("/")
+    for remote in _run(["git", "remote"]).splitlines():
+        url = _run(["git", "remote", "get-url", remote.strip()], check=False)
+        if owner and name and owner in url and name.removesuffix(".git") in url:
+            return remote.strip()
+    raise ToolError(
+        f"no git remote matches --repo {repo}; add one or pass --base/--head explicitly")
+
+
+def _gh_json(args):
+    return json.loads(_run(["gh"] + args))
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description="Fail a branch carrying commits whose content is already upstream.")
+        description="Fail a branch carrying commits it does not own.")
     ap.add_argument("--base", help=f"upstream ref to compare against (default {DEFAULT_BASE})")
     ap.add_argument("--head", help="branch/commit to check (default HEAD)")
-    ap.add_argument("--pr", type=int, help="resolve base and head from this PR via gh")
+    ap.add_argument("--pr", type=int, help="resolve base and head from this PR via gh, "
+                                          "and also check for stacking on other open PRs")
     ap.add_argument("--repo", help="owner/name for --pr (default: current checkout)")
-    ap.add_argument("--fetch", action="store_true",
-                    help="git fetch the base's remote first, so the comparison is current")
+    ap.add_argument("--no-fetch", action="store_true",
+                    help="skip the fetch; only safe if the base was just updated")
     args = ap.parse_args(argv)
 
-    if args.pr and (args.base or args.head):
-        ap.error("--pr resolves base and head; do not pass them too")
+    try:
+        return _check(args, ap)
+    except ToolError as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
 
-    if args.pr:
-        base, head = _pr_refs(args.pr, args.repo)
+
+def _check(args, ap):
+    # `is not None`: --pr 0 is falsy, and silently taking the manual path for it
+    # would skip both the mutual-exclusion error and PR resolution.
+    if args.pr is not None and (args.base or args.head):
+        ap.error("--pr resolves base and head; do not pass them too")
+    if args.repo and args.pr is None:
+        ap.error("--repo only applies to --pr")
+
+    remote, pr_number = "origin", args.pr
+    others = []
+
+    if pr_number is not None:
+        remote = _remote_for(args.repo)
+        gh_args = ["pr", "view", str(pr_number), "--json",
+                   "baseRefName,headRefName,headRefOid,headRepositoryOwner,isCrossRepository"]
+        if args.repo:
+            gh_args += ["--repo", args.repo]
+        pr = _gh_json(gh_args)
+        base, head = f"{remote}/{pr['baseRefName']}", pr["headRefOid"]
+        if pr.get("isCrossRepository"):
+            raise ToolError(
+                f"PR #{pr_number} comes from a fork "
+                f"({pr.get('headRepositoryOwner', {}).get('login', '?')}); its head is not in "
+                f"this checkout. Fetch it first:\n"
+                f"  git fetch {remote} pull/{pr_number}/head:pr-{pr_number}\n"
+                f"then re-run with --base {base} --head pr-{pr_number}")
+        list_args = ["pr", "list", "--state", "open", "--limit", "200",
+                     "--json", "number,headRefName,headRefOid,title"]
+        if args.repo:
+            list_args += ["--repo", args.repo]
+        others = [p for p in _gh_json(list_args) if p["number"] != pr_number]
     else:
         base, head = args.base or DEFAULT_BASE, args.head or "HEAD"
 
-    if args.fetch and "/" in base:
-        _run(["git", "fetch", base.split("/", 1)[0]])
+    # Fetch before comparing. A base that is behind the remote hides exactly what
+    # is being looked for: an inherited commit that has since merged still looks
+    # new against a stale copy, so the check would report clean. #264-55's first
+    # fix attempt refuted a correct review finding for this reason.
+    if not args.no_fetch and "/" in base:
+        _run(["git", "fetch", "--quiet", base.split("/", 1)[0]], check=False)
 
     for ref in (base, head):
-        _run(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"])
+        if not _resolves(ref):
+            raise ToolError(f"{ref} does not resolve in this checkout")
 
     own, foreign = [], []
     for line in _run(["git", "cherry", base, head]).splitlines():
         mark, _, sha = line.partition(" ")
         (foreign if mark == "-" else own).append(sha.strip())
 
-    label = f"{head} vs {base}"
-    if not own and not foreign:
-        print(f"clean: {label} — no commits ahead of base")
-        return 0
+    stacked = []
+    for other in others:
+        ref = other["headRefOid"] if _resolves(other["headRefOid"]) \
+            else f"{remote}/{other['headRefName']}"
+        if not _resolves(ref):
+            continue  # not fetched (e.g. a fork's branch) — signal 1 still applies
+        if _is_ancestor(ref, head):
+            stacked.append(other)
+
+    label = f"{head[:12] if len(head) == 40 else head} vs {base}"
+    total = len(own) + len(foreign)
 
     for sha in own:
         print(f"  own      {sha[:8]}  {_subject(sha)}")
     for sha in foreign:
         print(f"  FOREIGN  {sha[:8]}  {_subject(sha)}")
+    for other in stacked:
+        print(f"  STACKED  on open PR #{other['number']} ({other['headRefName']}): "
+              f"{other['title']}")
 
-    if not foreign:
-        print(f"\nclean: {label} — all {len(own)} commit(s) are the branch's own")
+    if not foreign and not stacked:
+        if total:
+            print(f"\nclean: {label} — all {total} non-merge commit(s) are the branch's own")
+        else:
+            print(f"clean: {label} — no commits ahead of base")
         return 0
 
-    print(f"\n{len(foreign)} of {len(own) + len(foreign)} commit(s) on {label} are "
-          "already upstream, so this branch does not own them.")
-    print("Its diff will show files belonging to other changes, in whatever state "
-          "they were in when they were inherited — merging it can revert review "
-          "fixes that already landed.")
-    print(f"Rebuild it: branch fresh from {base} and cherry-pick only the commits "
-          "listed as `own` above.")
+    print()
+    if foreign:
+        # `git cherry` compares non-merge commits only, so this count is of those.
+        print(f"{len(foreign)} of {total} non-merge commit(s) on {label} are already "
+              "upstream, so this branch does not own them.")
+    if stacked:
+        print(f"This branch contains {len(stacked)} other open PR(s) in full. Those commits "
+              "have not merged anywhere yet, so they are invisible to the upstream check "
+              "above — but they are still not this PR's to carry, and reviewing this diff "
+              "means reviewing theirs.")
+    print("Its diff will show files belonging to other changes, in whatever state they were "
+          "in when they were inherited — merging it can revert review fixes that already "
+          "landed.")
+    print(f"Rebuild it: branch fresh from {base} and cherry-pick only the commits listed as "
+          "`own` above. If the extra commits came from a parent PR that has since merged, a "
+          "plain rebase onto the updated base drops them.")
     return 1
 
 

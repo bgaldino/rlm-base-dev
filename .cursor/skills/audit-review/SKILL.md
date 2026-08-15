@@ -189,19 +189,47 @@ diff, which is why this runs first.
 > later rebase onto the stale composition, and came within a day of merging with
 > them a second time. It carried 8 commits where the PR owned 3.
 
-The check wraps `git cherry`, which classifies by patch-id: `-` means the
-content is already upstream, so the branch does not own it. Two weaker checks
-were tried first and both fail — worth knowing so neither gets substituted:
+The check reports two independent findings, because the inherited work may or may
+not have merged yet and each signal is blind to one of those cases:
 
-- **`git merge-base --is-ancestor` is not a detector.** Inherited commits are not
-  ancestors of the base — but neither is any legitimate new commit, so it cannot
-  tell them apart.
+- **`FOREIGN`** — `git cherry` patch-id equivalence: the content is already
+  upstream, so the branch does not own it. This is the #264-56 signal, and it only
+  fires **after** the other PRs merge.
+- **`STACKED`** — another open PR's head is an ancestor of this head, so this
+  branch is built on that PR. Those commits have merged nowhere, so the first
+  signal cannot see them. Needs `--pr`, since the PR list is what says which
+  branches are in flight.
+
+Do not merge the two in your head. A `FOREIGN` branch needs rebuilding now; a
+`STACKED` branch may be a deliberate stack, but its diff is still its parent's
+diff too, and it must not merge before the parent.
+
+> Both were learned the same way. The `STACKED` case is here because while
+> building this check, the branch for its own companion fix was cut from the
+> check's branch and the patch-id signal reported clean — the exact mistake the
+> check exists to stop, one commit removed.
+
+Two weaker checks were tried and both fail — worth knowing so neither gets
+substituted:
+
+- **`git merge-base --is-ancestor` against the base is not a detector.** Inherited
+  commits are not ancestors of the base — but neither is any legitimate new
+  commit, so it cannot tell them apart. (Ancestry *is* the right tool for the
+  `STACKED` signal, where the thing being tested is another PR's head, not the
+  base.)
 - **Matching commit subjects against the base** happens to work on #264-56 but
-  breaks on any reworded subject, and misses an inherited commit whose twin has
-  not merged yet.
+  breaks on any reworded subject.
+
+One thing that is **not** a finding: a parent branch that truly merged (a merge
+commit, not squash or rebase). Its commits are literal ancestors of the base, so
+they are not in this branch's diff and there is nothing to strip.
 
 Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
 from the base and cherry-pick only the commits reported as `own`.
+
+The check's own behavior is pinned by `tests/test_branch_scope.py` (35 checks, no
+network) — run it if you change the script, and add a shape to it rather than
+tightening the script by feel.
 
 ### Step 0 — Detect branch-side reverts of inherited main content (do this before trusting Step 1)
 

@@ -148,21 +148,41 @@ Claude command (`.claude/commands/pr-review.md`),
 
 ### `check_branch_scope.py`
 
-Fails a branch that carries commits whose content is **already upstream** — the
-signature of a branch cut from a *composed* integration branch, which inherits
-other in-flight fixes **in their pre-review state** and can therefore revert
-landed review fixes when it merges.
+Fails a branch that carries commits it does not own — the signature of a branch
+cut from a *composed* integration branch, which inherits other in-flight fixes
+**in their pre-review state** and can therefore revert landed review fixes when
+it merges.
 
 ```bash
-python scripts/ai/check_branch_scope.py --pr 370          # resolve base + head via gh
+python scripts/ai/check_branch_scope.py --pr 370          # both signals below
 python scripts/ai/check_branch_scope.py --base origin/264 # HEAD vs an explicit base
 ```
 
-Exit 0 clean, 1 foreign commits found, 2 usage/git error. It wraps `git cherry`
-(patch-id equivalence: `-` = already upstream). Two weaker checks were tried and
-rejected — `merge-base --is-ancestor` cannot separate an inherited commit from a
-legitimate new one, and subject-matching breaks on a reworded subject. Verified
-against the `#264-56` history, where a branch carried 8 commits and owned 3.
+Two signals, because the inherited work may or may not have merged yet and each
+signal is blind to one of those cases:
+
+1. **Already upstream** — `git cherry`, patch-id equivalence (`-` = the content is
+   in the base already). This is the `#264-56` signal, and it only fires once the
+   other PRs have merged.
+2. **Contains another open PR's branch** — if another open PR's head is an
+   ancestor of this head, this branch is stacked on it, and those commits have
+   merged nowhere yet, so signal 1 cannot see them. Needs `--pr`. Found the hard
+   way: the branch for this check's own companion fix was cut from this check's
+   branch, and signal 1 said clean.
+
+Two weaker checks were tried and rejected — `merge-base --is-ancestor` against the
+*base* cannot separate an inherited commit from a legitimate new one, and
+subject-matching breaks on a reworded subject. Exit 0 clean, 1 findings, 2
+usage/tool error (so a missing `git`/`gh` never reads as a dirty branch).
+
+Note that a parent branch that *truly* merged (a merge commit, not squash or
+rebase) is correctly not a finding: its commits are literal ancestors of the base,
+so they are not in this branch's diff and there is nothing to strip.
+
+Verified by `tests/test_branch_scope.py` (35 checks, throwaway repos, no network),
+which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
+that fixes it, a reworded inherited commit, a true-merged parent, and the
+exit-code contract. 12 mutations of the script are each caught by it.
 
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"
