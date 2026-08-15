@@ -28,6 +28,7 @@ first gate. Live testing therefore cannot prove the org-side gate works at all; 
 these checks can, which is the whole reason they exist.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -669,10 +670,15 @@ def check_upsert_honours_the_option(_):
               "DISCARD" in _joined and "PERSISTS" in _joined,
               "the banner must not re-collapse the two objects into one claim; "
               f"got: {_joined[-400:]}")
+        # Match the bare field with a negative lookbehind, not the plain substring:
+        # "DecompositionScope null" also occurs inside "CustomDecompositionScope null",
+        # so the naive check passed even with the collateral claim deleted -- vacuous in
+        # exactly the way the missing-tag check was before it was rewritten.
         check("banner_names_the_collateral_field",
-              "DecompositionScope null" in _joined,
+              re.search(r"(?<!Custom)DecompositionScope null", _joined) is not None,
               "Product2 loses DecompositionScope too, not just the custom name -- that is "
-              "the part that makes the 8 rows unconfigured rather than dangling")
+              "the part that makes the 8 rows unconfigured rather than dangling. The claim "
+              f"must name the bare field. Got: {_joined[-400:]}")
 
         # The counts in the banner are a claim about data in this repo, so check them
         # against the data rather than trusting the string. Without this the numbers
