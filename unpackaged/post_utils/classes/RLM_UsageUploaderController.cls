@@ -648,6 +648,13 @@ public with sharing class RLM_UsageUploaderController {
      * Deliberately NOT filtered to the entitlements' own products: the policy that governs a
      * Pack or Commit entitlement belongs to the resource's Anchor product, which is usually
      * not among them. See OverageLookup for the resolution order.
+     *
+     * The parent association IS filtered to Active, matching the resource lookup above. A
+     * reloaded dataset leaves Draft PURs carrying PURP children that overlap the Active row
+     * until activateRatingRecords step 2.5a clears them, and an obsolete policy read from one
+     * would not merely be stale — a disagreeing value trips the ambiguity guard and blanks the
+     * Active answer. ProductUsageResourcePolicy has no status of its own, so the parent is the
+     * only gate available.
      */
     @TestVisible
     private static OverageLookup loadOverageLookup(Set<Id> usageResourceIds) {
@@ -662,6 +669,7 @@ public with sharing class RLM_UsageUploaderController {
                        UsageOveragePolicy.OverageChargeable
                 FROM ProductUsageResourcePolicy
                 WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
+                  AND ProductUsageResource.Status = 'Active'
                   AND UsageOveragePolicyId != null
                 WITH USER_MODE
             ]) {

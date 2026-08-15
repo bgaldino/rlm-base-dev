@@ -661,6 +661,95 @@ private class RLM_UsageUploaderControllerTest {
     }
 
     /**
+     * A Draft duplicate association must not be read. This reproduces the state a reloaded
+     * dataset leaves behind: SFDMU cannot delete Active records, so a rerun inserts a fresh
+     * Draft ProductUsageResource with its own policy children overlapping the Active row, and
+     * activateRatingRecords step 2.5a exists to clear exactly that.
+     *
+     * The consequence is worse than a stale read. A Draft row disagreeing with the Active one
+     * on the same product and resource trips OverageLookup's ambiguity guard, so an unfiltered
+     * query does not merely risk the wrong answer — it blanks the correct one. Mutation-tested:
+     * removing `ProductUsageResource.Status = 'Active'` fails this test with
+     * `Expected: Yes, Actual: null`, i.e. the guard withholding rather than 'No' winning.
+     */
+    @IsTest
+    static void testLoadOverageLookup_IgnoresPolicyOnADraftDuplicateAssociation() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        ProductUsageResource activePur = [
+            SELECT Id, ProductId, UsageResourceId
+            FROM ProductUsageResource
+            WHERE UsageResourceId = :ur.Id AND Status = 'Active'
+            LIMIT 1
+        ];
+
+        insert new ProductUsageResourcePolicy(
+            ProductUsageResourceId = activePur.Id,
+            UsageOveragePolicyId = buildOveragePolicy('Active Policy', 'Yes'),
+            RatingFrequencyPolicyId = buildRatingFrequencyPolicy('Active Rating'),
+            UsageAggregationPolicyId = buildAggregationPolicy('Active Agg', 'TEST_AGG_ACTIVE')
+        );
+
+        // The duplicate the reload leaves behind: same product and resource, left in Draft,
+        // carrying a policy that disagrees with the Active one.
+        ProductUsageResource draftDuplicate = new ProductUsageResource(
+            ProductId = activePur.ProductId,
+            UsageResourceId = activePur.UsageResourceId,
+            Status = 'Draft',
+            EffectiveStartDate = Datetime.now().addDays(-30),
+            IsOptional = false
+        );
+        insert draftDuplicate;
+
+        insert new ProductUsageResourcePolicy(
+            ProductUsageResourceId = draftDuplicate.Id,
+            UsageOveragePolicyId = buildOveragePolicy('Stale Draft Policy', 'No'),
+            RatingFrequencyPolicyId = buildRatingFrequencyPolicy('Draft Rating'),
+            UsageAggregationPolicyId = buildAggregationPolicy('Draft Agg', 'TEST_AGG_DRAFT')
+        );
+
+        Test.startTest();
+        RLM_UsageUploaderController.OverageLookup lookup =
+            RLM_UsageUploaderController.loadOverageLookup(new Set<Id>{ ur.Id });
+        Test.stopTest();
+
+        System.assertEquals(
+            'Yes',
+            lookup.resolve(activePur.ProductId, ur.Id),
+            'The Active association governs; a Draft duplicate must neither supply the value ' +
+            'nor blank it by disagreeing'
+        );
+    }
+
+    private static Id buildOveragePolicy(String name, String chargeable) {
+        UsageOveragePolicy p = new UsageOveragePolicy(
+            Name = name,
+            OverageChargeable = chargeable
+        );
+        insert p;
+        return p.Id;
+    }
+
+    private static Id buildRatingFrequencyPolicy(String name) {
+        RatingFrequencyPolicy p = new RatingFrequencyPolicy(
+            Name = name,
+            RatingPeriod = 'Monthly'
+        );
+        insert p;
+        return p.Id;
+    }
+
+    private static Id buildAggregationPolicy(String name, String code) {
+        UsageResourceBillingPolicy p = new UsageResourceBillingPolicy(
+            Name = name,
+            Code = code,
+            Status = 'Draft'
+        );
+        insert p;
+        return p.Id;
+    }
+
+    /**
      * The fail-soft USER_MODE path. Nothing in this repo grants read on
      * ProductUsageResourcePolicy or UsageOveragePolicy, so a low-permission caller's query
      * throws and the catch degrades to a blank overage column rather than taking the whole

@@ -52,6 +52,12 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > does not currently contain that, nothing prevents it, and the misread would be silent,
 > so the guard withholds instead of returning whichever row was read last. Implemented as
 > `RLM_UsageUploaderController.OverageLookup`.
+>
+> Filter the association to `ProductUsageResource.Status = 'Active'`. `ProductUsageResourcePolicy`
+> has **no status of its own**, so the parent is the only gate — and a reloaded dataset leaves
+> Draft PURs carrying PURP children that overlap the Active row until
+> `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
+> stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
 
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
