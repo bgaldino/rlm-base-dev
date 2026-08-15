@@ -206,6 +206,15 @@ the flows and asserts, for every `| N.M |` cell on a line naming a subflow, that
 whenever a step is added to or removed from a flow — not only when a doc changes,
 since **the doc that goes stale is usually not in the same PR**.
 
+Run it from the repo root, with the CumulusCI venv's python. It resolves the flow
+through CumulusCI rather than parsing `cumulusci.yml`, so it inherits CumulusCI's
+own repo detection, which looks for a `.git` **directory** — and in a git worktree
+`.git` is a file. So **the check cannot run inside a worktree**, which is worth
+knowing because rebuilding a branch in a worktree is this repo's remedy for a
+branch that has picked up foreign commits. It fails loudly either way and names
+which of the two it hit (CumulusCI absent, versus CumulusCI present but no project
+resolved) — it never reports a clean audit it did not perform.
+
 If the diff shows unintended changes, investigate before committing. To commit the regenerated files:
 
 ```bash

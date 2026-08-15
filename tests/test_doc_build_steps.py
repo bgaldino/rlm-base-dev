@@ -151,10 +151,31 @@ def resolve_flow():
     """Return {dotted step number: (path, task name, class name)} for the root flow.
 
     Raises so a broken toolchain is never mistaken for a clean audit.
+
+    `CliRuntime` leaves `project_config` at None rather than raising when it cannot
+    resolve a project, and `get_flow` then raises a bare `ProjectConfigNotFound`
+    carrying no message. Checked here so the two ways to have no project — CCI is
+    absent, versus CCI is present but found no project — do not report as each
+    other. The second one is reachable in normal use: CCI locates the repo by
+    looking for a `.git` *directory*, and in a git worktree `.git` is a file, so
+    the check cannot run from a worktree at all. That matters because rebuilding a
+    branch in a worktree is this repo's own remedy for #264-56.
     """
-    from cumulusci.cli.runtime import CliRuntime  # lazy: import time stays light
+    try:
+        from cumulusci.cli.runtime import CliRuntime  # lazy: import time stays light
+    except ImportError as exc:
+        raise RuntimeError(
+            f"CumulusCI is not importable here ({exc}) — run this with the CCI venv "
+            "python, not a bare python3"
+        ) from exc
 
     runtime = CliRuntime(load_keychain=False)
+    if runtime.project_config is None:
+        raise RuntimeError(
+            "CumulusCI imported but resolved no project, so no flow can be read. "
+            "Run from the repo root — CumulusCI finds the repo by looking for a "
+            ".git directory, and in a git worktree .git is a file."
+        )
     coordinator = runtime.get_flow(ROOT_FLOW)
     return {
         str(step.step_num).replace("/", "."): (
@@ -359,9 +380,8 @@ def main():
     try:
         steps = resolve_flow()
     except Exception as exc:  # noqa: BLE001 — any failure here invalidates the audit
-        print(f"  [FAIL] flow resolution: {type(exc).__name__}: {exc}")
-        print("         needs CumulusCI on the interpreter running this test — "
-              "run it with the CCI venv python, not a bare python3")
+        detail = str(exc) or "no message"
+        print(f"  [FAIL] flow resolution: {type(exc).__name__}: {detail}")
         return 1
 
     problems, audited, completeness = audit(steps)
