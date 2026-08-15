@@ -120,14 +120,19 @@ python scripts/qb_usage.py orchestrate --org <alias> [--passes N] [--interval SE
 
 Rating is asynchronous and multi-stage. The command loops until journals stop
 moving — which means **aggregated, not rated**. Rating continues afterwards in
-Data Processing Engine jobs (`Create_Liable_Summary_v3`, `Create Ratable Summary
-For …`), so "all journals processed" is not a completion signal for step 4.
-Wait for those before validating, or you will see `New`/`InProgress` summaries
-and read a healthy run as a failure:
+Data Processing Engine jobs (`Create_Liable_Summary_v4`, `Create_Usage_Summary_v4`,
+`Create Ratable Summary For …`), so "all journals processed" is not a completion
+signal for step 4. Wait for those before validating, or you will see
+`New`/`InProgress` summaries and read a healthy run as a failure:
 
 ```bash
 sf data query -q "SELECT BatchJobDefinitionName, Status FROM BatchJob WHERE CreatedDate = TODAY AND Status != 'Completed'" --target-org <alias>
 ```
+
+That query keys on **status, not job name** — deliberately. The `_v3` names these jobs
+carried through 262 are *absent* on 264, not merely renamed, so a wait keyed to a name
+matches nothing and reads as "rating finished" the moment it starts. See
+`docs/guides/usage-consumption-runbook.md` → *Step 3* for the measured timings.
 
 Watch for batch failures rather than assuming success —
 `troubleshooting/SKILL.md` → *Async rating/entitlement batch failed*.

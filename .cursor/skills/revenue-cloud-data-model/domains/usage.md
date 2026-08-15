@@ -71,9 +71,11 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > `ProductUsageResourcePolicy` and `UsageResourcePolicy` each carry all four
 > (`RatingFrequencyPolicyId`, `UsageAggregationPolicyId`, `UsageCommitmentPolicyId`,
 > `UsageOveragePolicyId`), which is why 264 re-sources overage chargeability from
-> `UsageOveragePolicy.OverageChargeable` **via `ProductUsageResourcePolicy`**. Because that
-> join is scoped to a *product-and-resource* pair, a lookup keyed on resource alone can return
-> another product's policy — see the Anchor-only overage rule below.
+> `UsageOveragePolicy.OverageChargeable` **via `ProductUsageResourcePolicy`**. That join is
+> scoped to a *product-and-resource* pair, so code resolving an entitlement's overage should
+> match the exact pair first and treat a resource-only match as authoritative **only when it
+> is unambiguous** — resources are shared across products, so a resource with two disagreeing
+> policy rows must resolve to nothing rather than to whichever row was read last.
 
 > ⚠ **`UsageRatableSummary.OverageQuantity` mirrors `TierQuantity` on ordinary rows.**
 > It means "charged beyond the *included allowance*", **not** "beyond the

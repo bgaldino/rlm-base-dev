@@ -410,9 +410,17 @@ gone that alignment invariant no longer has two sides, so
 `tests/test_qb_multicurrency_data.py::accumulation_refs_aligned` is retired and
 `period_ordering_descending` checks the single remaining reference.
 
-`TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
-existing entitlements cannot be repointed — a design-time change reaches runtime
-only via the policy record itself or a newly created asset.
+Existing entitlements cannot be repointed either way, so a design-time change
+reaches runtime only via the policy record itself or a newly created asset. What
+changed in 264 is *why*: through 262 `TransactionUsageEntitlement` carried
+`UsageAggregationPolicyId` and it was simply **not writeable**; on 264 the field is
+**gone from the object** — one of the four 264 removed from TUE, alongside
+`ChargeForOverage`, `DrawdownOrder`, and `RatingFrequencyPolicyId`. So on 264 there is
+no entitlement-level copy to repoint or to disagree with the PURP row, which is the
+same "one reference" conclusion reached from the other direction. Do not write SOQL or
+data plans against that field on 264 — see
+`.cursor/skills/revenue-cloud-data-model/domains/usage.md` for the verified TUE field
+list.
 
 ## File Structure
 
