@@ -480,13 +480,22 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 "agrees with itself and this will create normally."
             )
             self.logger.warning(
-                "Downstream data still references the missing scope and will load "
-                "without error, because CustomFulfillmentScope and "
-                "CustomDecompositionScope are plain string fields rather than lookups: "
-                "in datasets/sfdmu/qb/en-US/qb-dro, 8 Product2 rows "
-                "(CustomDecompositionScope) and 1 FulfillmentStepDefinition row "
-                "(CustomFulfillmentScope) name Group_Identifier. Those 9 records will "
-                "look configured and behave as though they are not."
+                "Downstream data in datasets/sfdmu/qb/en-US/qb-dro names Group_Identifier "
+                "on 9 records, and the two objects react differently — both without an "
+                "error, so the load reports success either way. Measured on a fresh 264 "
+                "org after a full prepare_rlm_org:"
+            )
+            self.logger.warning(
+                "  - 8 Product2 rows (CustomDecompositionScope): the platform DISCARDS "
+                "the value. All 8 land with CustomDecompositionScope null AND "
+                "DecompositionScope null, even though the CSV sets DecompositionScope="
+                "'Custom' and that is a valid picklist value on its own. So those "
+                "products lose their decomposition configuration entirely rather than "
+                "keeping a dangling name, and SFDMU still counts them as updated."
+            )
+            self.logger.warning(
+                "  - 1 FulfillmentStepDefinition row (CustomFulfillmentScope): the value "
+                "PERSISTS as written, dangling. That field takes any string."
             )
             self.logger.warning("=" * 72)
 

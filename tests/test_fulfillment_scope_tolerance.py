@@ -658,6 +658,21 @@ def check_upsert_honours_the_option(_):
         check("banner_names_the_downstream_records",
               any("qb-dro" in m for m in warnings),
               "the banner must say that downstream data references the missing scope")
+        # The first version of this banner said all 9 records "look configured and behave
+        # as though they are not." A live run disproved half of it: Product2 silently
+        # discards the value (and DecompositionScope with it), so those 8 look
+        # *un*configured, while the FulfillmentStepDefinition row does persist a dangling
+        # string. The two objects must stay distinguishable, because the remediation
+        # differs -- 8 rows need their decomposition re-set, 1 needs its reference cleared.
+        _joined = " ".join(warnings)
+        check("banner_distinguishes_discard_from_persist",
+              "DISCARD" in _joined and "PERSISTS" in _joined,
+              "the banner must not re-collapse the two objects into one claim; "
+              f"got: {_joined[-400:]}")
+        check("banner_names_the_collateral_field",
+              "DecompositionScope null" in _joined,
+              "Product2 loses DecompositionScope too, not just the custom name -- that is "
+              "the part that makes the 8 rows unconfigured rather than dangling")
 
         # The counts in the banner are a claim about data in this repo, so check them
         # against the data rather than trusting the string. Without this the numbers
