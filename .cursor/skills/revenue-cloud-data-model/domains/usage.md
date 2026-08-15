@@ -99,11 +99,30 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `UsageEntitlementBucket` | Entitlement balance tracking | BucketBalanceUomId, ParentId |
 | `UsageEntitlementEntry` | Individual entries against buckets | ParentEntitlementBucketId, TransactionUsageEntitlementId, TransactionalBucketId |
 | `UsageEntitlementAccount` | Account-level entitlement tracking | — |
-| `TransactionUsageEntitlement` | Entitlement context for transactions | AssetId, ProductId, UsageResourceId, OrderItemId, EntitlementUomId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, EffectiveStartDateTime / EffectiveEndDateTime, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **No commitment or overage policy lookup** — see the overage note above |
+| `TransactionUsageEntitlement` (TUE) | Entitlement context for transactions. **Transactional** — the platform writes it during order activation / assetization, and `ProductId` is `createable: false` | AssetId, ProductId, UsageResourceId, OrderItemId, EntitlementUomId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, EffectiveStartDateTime / EffectiveEndDateTime, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **TUE carries no commitment or overage policy lookup** — see the note below |
 | `UsageBillingPeriodItem` | Usage billing period tracking | — |
 | `UsageRatableSummary` | Ratable usage summary | `TierQuantity`, `OverageQuantity` — see caveat below |
 | `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, UsageResourceId |
 | `UsageRatableSumCmtAssetRt` | Ratable summary commitment | UsageResourceId |
+
+> ⚠ **`TransactionUsageEntitlement` has never carried `UsageCommitmentPolicyId` or
+> `UsageOveragePolicyId` — on 262 *or* 264.** This table listed both until 2026-08-14; that was
+> an authoring error, **not** a 264 removal, so do not "restore" them and do not describe them
+> as removed in 264. Verified by describing TUE on a true 262 org and a fresh 264 org: **40
+> fields → 36, exactly four removed** (`ChargeForOverage`, `DrawdownOrder`,
+> `RatingFrequencyPolicyId`, `UsageAggregationPolicyId`), none added, and both policy lookups
+> absent on **both** releases. The only policy lookups TUE has ever had are
+> `UsageGrantRefreshPolicyId` and `UsageGrantRolloverPolicyId`.
+>
+> Commitment and overage bind at the **policy** objects instead —
+> `ProductUsageResourcePolicy` and `UsageResourcePolicy` each carry all four
+> (`RatingFrequencyPolicyId`, `UsageAggregationPolicyId`, `UsageCommitmentPolicyId`,
+> `UsageOveragePolicyId`), which is why 264 re-sources overage chargeability from
+> `UsageOveragePolicy.OverageChargeable` **via `ProductUsageResourcePolicy`**. That join is
+> scoped to a *product-and-resource* pair, so code resolving an entitlement's overage should
+> match the exact pair first and treat a resource-only match as authoritative **only when it
+> is unambiguous** — resources are shared across products, so a resource with two disagreeing
+> policy rows must resolve to nothing rather than to whichever row was read last.
 
 > ⚠ **`UsageRatableSummary.OverageQuantity` mirrors `TierQuantity` on ordinary rows.**
 > It means "charged beyond the *included allowance*", **not** "beyond the

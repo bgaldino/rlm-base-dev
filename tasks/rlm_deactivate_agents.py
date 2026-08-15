@@ -1,46 +1,60 @@
-"""CCI task that deactivates legacy Agentforce agents via ``sf agent deactivate``.
+"""CCI task that deactivates Agentforce agents via ``sf agent deactivate``.
 
-Required for idempotent re-runs of ``prepare_agents``: legacy agents
-deploy Bot + BotVersion metadata directly, and the platform rejects
-updates to an active BotVersion. Deactivating first allows
-``deploy_legacy_agents`` to update the metadata, after which
-``publish_agents`` + ``activate_agents`` will re-publish and re-activate.
+Supports idempotent re-runs of ``prepare_agents``: the platform rejects
+updates to an *active* agent version, so deactivating first lets
+``publish_agents`` + ``activate_agents`` re-publish and re-activate.
 
-New Agent Script agents (aiAuthoringBundles) are NOT affected — their
-deploy pushes authoring bundle source, not the runtime BotVersion.
+Agents are discovered from ``aiAuthoringBundles`` — the same source as
+``publish_agents`` and ``activate_agents``, so all three act on one set.
+This task previously read the ``legacy/bots`` tree, which held the only
+Bot + BotVersion agent in the repo; Release 264 retired both
+``BotVersion`` and ``GenAiPlannerBundle`` as metadata types (absent from
+the v68.0 describe), so that tree and its deploy step are gone and every
+agent is now an authoring bundle.
 
-Deactivation is best-effort — if an agent is already inactive the CLI
-returns a non-zero exit but we treat that as a no-op rather than a
-failure.
+Deactivation is best-effort — if an agent is already inactive, or not yet
+deployed, the CLI returns a non-zero exit and we treat that as a no-op
+rather than a failure.
 """
+from pathlib import Path
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
 except ImportError:
     BaseSalesforceTask = object
 
-from tasks.rlm_agents_common import discover_legacy_agents, run_sf_json
+from tasks.rlm_agents_common import discover_agent_bundles, run_sf_json
+
+DEFAULT_BUNDLES_PATH = "unpackaged/post_agents/aiAuthoringBundles"
 
 
 class DeactivateAgents(BaseSalesforceTask):
-    """Run ``sf agent deactivate`` for each legacy RLM agent, tolerating
-    already-inactive agents.
+    """Run ``sf agent deactivate`` for each RLM agent, tolerating agents that
+    are already inactive or not yet deployed.
     """
 
     CLI_TIMEOUT_SECONDS = 300
 
-    task_options = {}
+    task_options = {
+        "bundles_path": {
+            "description": "Path (relative to repo root) containing aiAuthoringBundles directories.",
+            "required": False,
+        },
+    }
 
     def _run_task(self):
-        agents = discover_legacy_agents()
+        bundles_root = Path(self.options.get("bundles_path") or DEFAULT_BUNDLES_PATH)
+        agents = discover_agent_bundles(bundles_root)
 
         if not agents:
-            self.logger.info("No legacy agents discovered; nothing to deactivate.")
+            self.logger.info(
+                f"No agents discovered under {bundles_root}; nothing to deactivate."
+            )
             return
 
         target = self.org_config.username
         self.logger.info(
-            f"Deactivating {len(agents)} legacy agent(s) on {target}: " + ", ".join(agents)
+            f"Deactivating {len(agents)} agent(s) on {target}: " + ", ".join(agents)
         )
 
         for api_name in agents:

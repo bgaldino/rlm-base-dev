@@ -441,7 +441,10 @@ sf data query -q "SELECT Id, Name, UsageModelType, EntitlementProcessingStatus F
 ```
 
 ⚠ Entitlements for `CommitmentQuantity` / `CommitmentSpend` products are **known to
-stay `PENDING`** in 262 — a platform issue, not a data defect. `Commit` works.
+stay `PENDING`** — a platform issue, not a data defect. **Re-verified on a fresh 264 org
+(2026-08-14): still unfixed in 264.** `QB-QTY-CMT` and `QB-MTY-CMT` stay `PENDING` while
+`Anchor` and `Commit` assets reach `PROCESSED`. Use a `Commit` model type
+(e.g. `QB-CMT-TKN-FLAT`) instead — it processes correctly on both releases.
 
 ---
 

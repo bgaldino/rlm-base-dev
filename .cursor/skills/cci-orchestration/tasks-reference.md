@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**287 tasks** across **10 groups**.
+**286 tasks** across **10 groups**.
 
 ---
 
@@ -1269,11 +1269,11 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*164 task(s)*
 
 ### `activate_agents`
 
-**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
 
 **Class:** `tasks.rlm_activate_agents.ActivateAgents`
 
@@ -1746,7 +1746,8 @@
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `name`: `RLM_Quote_Pricing_Procedure_Plan`
 - `primaryObject`: `Quote`
-- `processType`: `RevenueCloud`
+- `processType`: `Default`
+- `subType`: `RevenueCloud`
 - `versionActive`: `False`
 - `context_definition_label`: `RLM_SalesTransactionContext`
 - `versionReadContextMapping`: `QuoteEntitiesMapping`
@@ -1792,7 +1793,7 @@
 
 ### `deactivate_agents`
 
-**Description:** Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+**Description:** Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
 
 **Class:** `tasks.rlm_deactivate_agents.DeactivateAgents`
 
@@ -2022,18 +2023,6 @@
 
 - `path`: `force-app/main/default`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
-
----
-
-### `deploy_legacy_agents`
-
-**Description:** Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/legacy`
 
 ---
 
@@ -3025,6 +3014,7 @@
 - `key_field`: `DeveloperName`
 - `api_version`: `None`
 - `dry_run`: `False`
+- `on_invalid_context_tag`: `fail`
 
 ---
 

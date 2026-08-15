@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
+**41 feature flags**, **86 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -13,7 +13,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `True` | 11 flow step(s) |
+| `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
@@ -66,12 +66,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_agents` step 3 → `deploy_agent_classes`
 - `prepare_agents` step 4 → `deploy_agent_flows`
 - `prepare_agents` step 5 → `deactivate_agents`
-- `prepare_agents` step 6 → `deploy_legacy_agents`
-- `prepare_agents` step 7 → `deploy_agents`
-- `prepare_agents` step 8 → `publish_agents`
-- `prepare_agents` step 9 → `activate_agents`
-- `prepare_agents` step 10 → `deploy_agent_permission_sets`
-- `prepare_agents` step 11 → `assign_permission_sets`
+- `prepare_agents` step 6 → `deploy_agents`
+- `prepare_agents` step 7 → `publish_agents`
+- `prepare_agents` step 8 → `activate_agents`
+- `prepare_agents` step 9 → `deploy_agent_permission_sets`
+- `prepare_agents` step 10 → `assign_permission_sets`
 
 ### `analytics` (default: `True`)
 
@@ -535,7 +534,8 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_primary_object` | `Quote` |
-| `procedure_plan_definition_process_type` | `RevenueCloud` |
+| `procedure_plan_definition_process_type` | `Default` |
+| `procedure_plan_definition_sub_type` | `RevenueCloud` |
 | `procedure_plan_definition_version_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_version_effective_from` | `2026-01-01T00:00:00.000Z` |
 | `procedure_plan_definition_version_effective_to` | `None` |
