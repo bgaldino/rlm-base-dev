@@ -3,25 +3,32 @@
 Every "N objects / N,NNN fields / NNN relationships" figure in the ERD docs is
 hand-copied out of `erd-data.json`, and nothing regenerates them. The headline
 triple is swept when the ERD is refreshed — it went 4,190 -> 4,252 fields at 264
-and all five citations were updated — but the **per-domain** counts underneath it
+and all seven citations were updated — but the **per-domain** counts underneath it
 never were, and the sweep does not look at them.
 
 What that cost, measured on the 264 ERD (263 objects):
 
     Domain Overview table in revenue-cloud-data-model/SKILL.md
-      7 of its 9 rows disagreed with the data; the Objects column summed to
+      8 of its 9 rows disagreed with the data; the Objects column summed to
       185 against an actual 263, so the table understated the model by 78
       objects while sitting directly under a correct "263 objects" headline.
 
     domains/*.md headlines
-      6 of the 8 that carry a count disagreed. Only `configurator.md` (4) and
-      `usage.md` (23) were right.
+      7 of the 9 disagreed. Only `configurator.md` (4) and `usage.md` (23)
+      were right.
+
+15 numbers, not the 13 first counted: the lower tally came from reading Usage
+Mgmt's 22 as correct, which it is only if you exclude the `(Core Object)`
+variants — the reading this file rejects three paragraphs down. A count is wrong
+under the definition you publish, not under the one that flatters it.
 
 The drift is **not** uniformly stale-low, which is why "add the new objects"
 would not have found it: `rates.md` and the table both claim 15 Rate Management
-objects where the data has 11, an over-claim that predates the 264 refresh.
-These numbers had simply stopped describing anything measurable — 6 of 9 matched
-neither the ERD nor the file's own object table. The Approvals row is the clearest
+objects where the data has 11, an over-claim that predates the 264 refresh — as
+in fact every one of these errors does. The per-domain counts in `erd-data.json`
+are byte-identical at `release/262`; only `totalFields` moved. So the refresh did
+not stale these numbers. They had never been right, and had simply stopped
+describing anything measurable. The Approvals row is the clearest
 case: it claims 1 object and names `ApprovalSubmission`, while the domain holds 3
 and `ApprovalSubmission` is the one tagged with a *different* label
 (`Advanced Approvals`).
@@ -34,24 +41,43 @@ implicitly.** A domain's object count is every object in `erd-data.json` whose
 domain resolves to that domain, *including* the `(Core Object)` variants. That is
 the only reading under which the per-domain counts sum to the 263 the headline
 claims — excluding core objects yields 239, which matches no published figure.
-`Advanced Approvals` folds into `Approvals`, mirroring `DOMAIN_MAP` in
-`scripts/erd/build_erds.py`, which maps that label to the short name "Approvals";
-the same folding is what makes the documented **9** domains out of 14 raw labels.
+`Advanced Approvals` folds into `Approvals`, mirroring `get_short_domain` in
+`scripts/erd/build_erds.py`, which maps that label to the short name "Approvals".
+Note the plain label `Approvals` is *not* a `DOMAIN_MAP` key at all — it reaches
+the same short name through that function's fallback, which is the subject of
+pack 148. Two operations get from 14 raw labels to the documented **9**: stripping
+the 4 `(Core Object)` suffixes (14 -> 10), then this fold (10 -> 9).
 
-Five directions are checked, because these fail independently:
+Six directions are checked, because these fail independently:
 
 1. **`erd-data.json` agrees with itself** — its `stats` block vs the objects,
    fields and relationships actually present. Everything else trusts `stats`
    only after this passes, so a stale generator cannot certify the docs.
-2. **Every headline triple matches the totals.** The distinctive
-   "N objects, N fields, N relationships" phrasing, wherever it appears.
-3. **Every Domain Overview row matches its domain.** Catches the 7 wrong rows.
-4. **Every `domains/*.md` headline matches its domain.** Catches the 6 wrong ones.
-5. **The taxonomy is closed and complete** — every domain label in the data folds
-   into one of the 9 documented domains, all 9 appear in the table, and the rows
-   sum to the total. This is the direction that catches the *next* refresh rather
+2. **Every headline triple matches the totals**, and **every site still states
+   one.** The distinctive "N objects, N fields, N relationships" phrasing. The
+   second half is the load-bearing half: the first version of this layer asked
+   only whether *any* site matched, so a file that reworded its citation — or was
+   renamed — left the audit while the run reported clean. Verified: wrong numbers
+   in a reworded `scripts/ai/README.md` passed 33/33.
+3. **The Statistics block matches the totals.** `docs/erds/README.md` restates all
+   three figures plus the domain count as a bullet list, which the triple pattern
+   cannot match — so that file was audited at its three prose citations while four
+   bullets in it went unchecked.
+4. **Every Domain Overview row matches its domain.** Catches the 8 wrong rows.
+5. **Every `domains/*.md` headline matches its domain.** Catches the 7 wrong ones.
+6. **The taxonomy is closed and complete** — every domain label in the data folds
+   into one of the documented domains, all of them appear in the table, the rows
+   sum to the total, and every "across N domains" claim matches how many the data
+   actually folds to. This is the direction that catches the *next* refresh rather
    than this one: a new domain label, or a domain silently dropped from the table,
-   is invisible to checks 3 and 4 because they only audit rows that exist.
+   is invisible to checks 4 and 5 because they only audit rows that exist.
+
+Two things the pattern deliberately cannot do. It cannot tell the ERD triple from
+the org-describe pair, so a doc phrasing that as "254 objects, 3,913 fields, 0
+relationships" would fail here — loudly, printing both sides, so the diagnosis is
+immediate. And a citation wrapped across more than WINDOW lines escapes the
+pattern; that is now a failure of its site's `_states_the_triple` check rather
+than a silent skip.
 """
 
 import json
@@ -60,6 +86,19 @@ import re
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Lines a wrapped citation may span. Widening this only moves the boundary, so it is
+# the per-site assertion below — not this number — that makes an escaped citation
+# loud: a citation that wraps past WINDOW fails its file's `_states_the_triple`
+# check, and if the file has others, the pinned total check count catches the loss.
+WINDOW = 3
+
+# The count this file reports when the docs and the data agree. Pinned so that a
+# citation, row, headline or whole file leaving the audit shows up as a smaller
+# number instead of as "all checks passed" — the failure mode the per-site guards
+# above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
+EXPECTED_CHECKS = 50
+
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
     REPO_ROOT, ".cursor", "skills", "revenue-cloud-data-model", "SKILL.md"
@@ -146,8 +185,13 @@ def load():
 
 
 def num(text):
-    """`4,252` -> 4252."""
-    return int(text.replace(",", ""))
+    """`4,252` -> 4252, and a comma-only cell -> None rather than a traceback.
+
+    `[\\d,]+` matches `,`, which `int("")` turns into an uncaught ValueError — a
+    crash where the point of this file is to report a `[FAIL]`.
+    """
+    digits = text.replace(",", "")
+    return int(digits) if digits.isdigit() else None
 
 
 def rel(path):
@@ -165,7 +209,9 @@ def domain_overview_rows():
             in_table = True
             continue
         if in_table:
-            if line.startswith("## "):
+            # Any heading ends the section, not just `## `. A `###` subsection would
+            # otherwise let rows of a *different* table into this one's audit.
+            if line.startswith("#"):
                 break
             m = re.match(r"\|\s*\*\*([^*|]+)\*\*\s*\|\s*([\d,]+)\+?\s*\|", line)
             if m:
@@ -202,30 +248,73 @@ def main():
         r"([\d,]+)\s+objects,\s+([\d,]+)\s+(?:platform\s+)?fields,\s+"
         r"([\d,]+)\s+(?:\w+\s+)?relationships?"
     )
+    want = (totals["objects"], totals["fields"], totals["relationships"])
     triples = 0
     for path in TRIPLE_SITES:
+        # Per site, not in aggregate. A global "did anything match?" only fires when
+        # every site drops out at once, so one file rewording its citation — or being
+        # renamed — took itself out of the audit while the run reported clean. Both
+        # were demonstrated on `scripts/ai/README.md`, which is *also* the file the
+        # last sweep already missed once and the only one whose citation wraps.
         if not os.path.isfile(path):
+            check(f"{rel(path)}_exists", False,
+                  "a site that restates the figures is missing — remove it from "
+                  "TRIPLE_SITES deliberately or fix the path; skipping it silently is "
+                  "how a file leaves the audit")
             continue
         with open(path) as f:
             lines = f.read().split("\n")
+        here = 0
         for i, line in enumerate(lines):
-            window = " ".join(lines[i:i + 3])
+            window = " ".join(lines[i:i + WINDOW])
             for m in triple.finditer(window):
                 # Count a match only where it starts, so overlapping windows do not
                 # report the same citation three times.
                 if m.start() >= len(line) + 1:
                     continue
-                triples += 1
+                here += 1
                 got = (num(m.group(1)), num(m.group(2)), num(m.group(3)))
-                want = (totals["objects"], totals["fields"], totals["relationships"])
                 check(
                     f"{rel(path)}:{i + 1}_triple",
                     got == want,
                     f"doc says {got}, erd-data.json has {want}",
                 )
-    check("headline_triple_found", triples > 0,
-          "no citation matched the triple pattern — the phrasing changed and this "
-          "direction stopped auditing anything")
+        triples += here
+        check(f"{rel(path)}_states_the_triple", here > 0,
+              f"no citation in {rel(path)} matched the triple pattern — it was "
+              f"reworded, or wrapped across more than {WINDOW} lines, and this file "
+              "stopped being audited")
+
+    print()
+    print("Statistics block")
+    # `docs/erds/README.md` restates all three totals *and* the domain count as a
+    # bullet list, which the triple pattern cannot match — so the file was audited at
+    # three prose citations while four bullets in it went unchecked. Found by review.
+    stat_bullets = {
+        "Total Objects": totals["objects"],
+        "Total Fields": totals["fields"],
+        "Total Relationships": totals["relationships"],
+        "Total Domains": len(per_domain),
+    }
+    readme = os.path.join(REPO_ROOT, "docs", "erds", "README.md")
+    with open(readme) as f:
+        readme_lines = f.read().split("\n")
+    for label, expected in stat_bullets.items():
+        hits = [
+            (i + 1, num(m.group(1)))
+            for i, line in enumerate(readme_lines)
+            for m in [re.match(rf"-\s+\*\*{label}:\*\*\s+([\d,]+)", line)]
+            if m
+        ]
+        # Absence is a failure, not a skip: these bullets are the densest restatement
+        # of the figures in the repo, so a reworded label must not quietly drop them.
+        check(f"statistics_{label.replace(' ', '_').lower()}_present", len(hits) == 1,
+              f"expected exactly 1 `- **{label}:** N` bullet in {rel(readme)}, "
+              f"found {len(hits)}")
+        for lineno, claimed in hits:
+            check(f"{rel(readme)}:{lineno}_{label.replace(' ', '_').lower()}",
+                  claimed == expected,
+                  f"bullet says {claimed}, erd-data.json has {expected}")
 
     print()
     print("Domain Overview table")
@@ -264,12 +353,21 @@ def main():
         if not os.path.isfile(path):
             check(f"{stem}.md_exists", False, f"{rel(path)} is missing")
             continue
+        # Scoped to the preamble — everything before the first `## ` section — rather
+        # than to a fixed line budget. These files also state *data-plan* object counts
+        # further down (`approvals.md`: "2 objects across 2 objectSets"), so a fixed
+        # window that the front matter outgrew would start checking the wrong number
+        # instead of reporting a missing one.
         with open(path) as f:
-            head = f.read().split("\n")[:12]
+            head = []
+            for line in f.read().split("\n"):
+                if line.startswith("## "):
+                    break
+                head.append(line)
         found = None
         for lineno, line in enumerate(head, 1):
             m = headline.search(line)
-            if m:
+            if m and num(m.group(1)) is not None:
                 found = (lineno, num(m.group(1)))
                 break
         actual = per_domain.get(domain, 0)
@@ -280,8 +378,8 @@ def main():
             # leaves the audit while the run reports clean. Demonstrated: the note
             # form survived the mutation that removed dro.md's count.
             check(f"{stem}.md_states_a_count", False,
-                  f"{rel(path)} states no object count in its first 12 lines — a "
-                  "headline was deleted or reworded, taking it out of this audit")
+                  f"{rel(path)} states no object count in its preamble — a headline "
+                  "was deleted or reworded, taking it out of this audit")
             continue
         lineno, claimed = found
         check(
@@ -300,15 +398,47 @@ def main():
     missing = sorted(documented - seen)
     check("every_documented_domain_has_a_row", not missing,
           f"documented domain(s) absent from the Domain Overview table: {missing}")
-    check("domain_count_matches_docs", len(documented) == 9,
-          f"{len(documented)} documented domains, but the docs say 9 across "
-          f"{len(set(o.get('domain', '?') for o in erd['objects'].values()))} raw labels")
+    # Against the DATA, not against a literal. `len(set(ROW_TO_DOMAIN.values())) == 9`
+    # was the first version and it audited nothing: both sides were constants in this
+    # file, so it could not fail. The quantity that actually moves is the number of
+    # folded domains in erd-data.json, and what it must agree with is the "across N
+    # domains" the docs claim — so both are read from their sources.
+    raw_labels = len(set(o.get("domain", "?") for o in erd["objects"].values()))
+    check("documented_domains_match_the_data",
+          len(documented) == len(per_domain),
+          f"{len(documented)} domains documented, {len(per_domain)} in the data "
+          f"({raw_labels} raw labels before folding)")
+    claim = re.compile(r"across\s+([\d,]+)\s+domains")
+    claims = 0
+    for path in TRIPLE_SITES:
+        if not os.path.isfile(path):
+            continue
+        with open(path) as f:
+            for lineno, line in enumerate(f.read().split("\n"), 1):
+                for m in claim.finditer(line):
+                    claims += 1
+                    check(f"{rel(path)}:{lineno}_domain_count",
+                          num(m.group(1)) == len(per_domain),
+                          f"doc says {num(m.group(1))} domains, the data folds to "
+                          f"{len(per_domain)}")
+    check("domain_count_is_claimed_somewhere", claims > 0,
+          "no doc states `across N domains` — the phrasing changed and this direction "
+          "stopped auditing anything")
+
+    # Counted like any other check, so the summary cannot read "N/N passed" next to a
+    # non-zero exit. `ran` is sampled before the call, so the pin does not count itself.
+    print()
+    ran = _total
+    check("check_count_is_pinned", ran == EXPECTED_CHECKS,
+          f"ran {ran} checks, expected {EXPECTED_CHECKS} — a citation, row, headline "
+          "or file left the audit; if the change was deliberate, update "
+          "EXPECTED_CHECKS")
 
     print("=" * 116)
     print(
         f"{_passed}/{_total} checks passed  ({totals['objects']} objects / "
         f"{totals['fields']:,} fields / {totals['relationships']} relationships "
-        f"across {len(per_domain)} domains)"
+        f"across {len(per_domain)} domains, {triples} triple citations)"
     )
     return 0 if _passed == _total else 1
 

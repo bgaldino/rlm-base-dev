@@ -23,15 +23,22 @@ context.
 
 ⚠ **These figures are hardcoded prose with no generator behind them**, so a refresh
 staled every copy at once — the 262→264 pass missed this file, and `stats` printed
-264 figures while the line above still said 262. Four files carry them; sweep all
-four:
+264 figures while the line above still said 262. Four files carry them:
 
-| File | Carries |
-|---|---|
-| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** |
-| `docs/erds/README.md` | objects, fields, relationships |
-| `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships |
-| `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships |
+| File | Carries | Gated by `tests/test_erd_doc_counts.py` |
+|---|---|---|
+| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** | the triple, yes; `1,148`, **no** |
+| `docs/erds/README.md` | objects, fields, relationships | yes, prose **and** the Statistics bullets |
+| `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships | yes |
+| `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships | yes |
+
+**`python tests/test_erd_doc_counts.py` now gates the triple in all four**, per site
+rather than in aggregate, so a file that reworded or renamed its citation fails instead
+of quietly leaving the audit. The wrapped citation above — `263` on one line, `objects,
+4,252 platform fields…` on the next — is exactly the shape that escaped the first
+version of that check, so keep the phrase within three lines. Still unchecked, and
+still needing the manual sweep: the **`1,148` reference-field total** here, the
+org-describe pair (254 objects / 3,913 fields), and the orphan/gap baselines.
 
 `query_erd.py stats` is the generated source for all of them — reconcile against it,
 not against another doc.

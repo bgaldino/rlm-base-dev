@@ -196,18 +196,31 @@ python tests/test_erd_doc_counts.py                      # ERD object/field/doma
 
 `test_erd_doc_counts.py` covers the same shape of drift one level down. The
 **headline** ERD triple gets swept on every refresh — 4,190 → 4,252 fields at 264,
-all five citations updated — but the **per-domain** counts under it never did, and
-the sweep does not look at them: 7 of the 9 rows in the Domain Overview table of
+all seven citations updated — but the **per-domain** counts under it never did, and
+the sweep does not look at them: 8 of the 9 rows in the Domain Overview table of
 `revenue-cloud-data-model/SKILL.md` disagreed with the data, summing to 185 against
-an actual 263, directly beneath a correct "263 objects" headline. Six of eight
-`domains/*.md` headlines were wrong too.
+an actual 263, directly beneath a correct "263 objects" headline. 7 of the 9
+`domains/*.md` headlines were wrong too — 15 numbers in all.
 
-Two things make this worth a check rather than another sweep. The drift was **not**
+Three things make this worth a check rather than another sweep. The drift was **not**
 uniformly stale-low — `rates.md` claimed 15 Rate Management objects where the data
-has 11 — so "add the new ones" would not have found it. And 6 of 9 matched neither
-the ERD nor the file's own object table, meaning the numbers had stopped describing
-anything measurable. Run it after any ERD refresh, and see `schema-validation` for
-where it sits in that procedure.
+has 11 — so "add the new ones" would not have found it. The numbers had stopped
+describing anything measurable: most matched neither the ERD nor the file's own
+object table. And the refresh is not what staled them — the per-domain counts in
+`erd-data.json` are byte-identical at `release/262`, so these were **never** right.
+Run it after any ERD refresh anyway, since that is when someone is looking at the
+figures; see `schema-validation` for where it sits in that procedure.
+
+Two of its layers exist only because the first version of this check had the same
+defect it was written to catch. Asking whether *any* headline citation matched let a
+file that reworded or renamed its own citation leave the audit while the run reported
+clean — wrong numbers in a reworded `scripts/ai/README.md` passed 33/33 — so every
+site is now asserted individually and **the total check count is pinned**, which is
+what turns "one citation quietly stopped being audited" into a failure. The other
+layer covers the Statistics bullet block in `docs/erds/README.md`, which restates all
+three totals in a form the triple pattern cannot match; that file was being audited at
+three prose citations while four bullets in it went unchecked. **When you add a
+citation or a site, expect the pin to fail and raise `EXPECTED_CHECKS` deliberately.**
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
