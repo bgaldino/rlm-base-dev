@@ -146,17 +146,20 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
     (Release 262)" banner — the most visible artifact in the change was the one
     misstating the release. Deriving them here means the header cannot drift from
     the data it describes.
+
+    Returns `(html, patched, expected)`. **Compare the last two and fail if they
+    differ** — a count alone is not enough. Each pattern targets a different piece of
+    chrome, so if a template edit breaks one of them the other two still match and the
+    build reports success while shipping a half-updated banner. That is the same
+    silent drift this function exists to prevent, so a partial patch has to be loud.
     """
     release = str(metadata.get("release") or "")
     api = str(metadata.get("apiVersion") or "")
-    if not release or not api:
-        return html, 0
 
     label = RELEASE_NAMES.get(release)
     subtitle = f"{label} (Release {release})" if label else f"Release {release}"
 
-    patched = 0
-    for pattern, replacement in (
+    patterns = (
         (r"<title>Revenue Cloud v[\d.]+ — Interactive ERD</title>",
          f"<title>Revenue Cloud v{api} — Interactive ERD</title>"),
         (r'<span class="ver-badge">v[\d.]+</span>',
@@ -168,11 +171,17 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
         # while the title and badge moved on — the drift this exists to prevent.
         (r"<small>[^<]*?(?:\(Release \d+\)|Release \d+)\s*&mdash;",
          f"<small>{subtitle} &mdash;"),
-    ):
+    )
+
+    if not release or not api:
+        return html, 0, 0
+
+    patched = 0
+    for pattern, replacement in patterns:
         html, n = re.subn(pattern, replacement, html)
         patched += n
 
-    return html, patched
+    return html, patched, len(patterns)
 
 
 def patch_html(html_path: str, nodes: list, links: list, metadata: dict = None) -> bool:
@@ -181,8 +190,17 @@ def patch_html(html_path: str, nodes: list, links: list, metadata: dict = None) 
         html = f.read()
 
     if metadata:
-        html, patched = patch_version_strings(html, metadata)
-        print(f"  Version strings patched: {patched}")
+        html, patched, expected = patch_version_strings(html, metadata)
+        if patched != expected:
+            print(
+                f"Error: patched {patched} of {expected} version strings in "
+                f"{html_path}. A partial patch means the page chrome now disagrees "
+                f"with the data it describes — check whether the title, version "
+                f"badge or subtitle markup changed.",
+                file=sys.stderr,
+            )
+            return False
+        print(f"  Version strings patched: {patched}/{expected}")
 
     # Find D= block boundaries
     marker = "const D="

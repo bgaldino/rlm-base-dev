@@ -18,8 +18,14 @@ Outputs a normalized JSON snapshot that can be diffed between releases (e.g.,
 260 vs 262) by `diff_schemas.py`.
 
 Usage:
-    python scripts/erd/schema_diff/extract_schema.py --org rlm-base__262buildtest --output scripts/erd/schema_diff/262-schema.json
-    python scripts/erd/schema_diff/extract_schema.py --org techido-260 --output scripts/erd/schema_diff/260-schema.json
+    python scripts/erd/schema_diff/extract_schema.py --org rlm-base__264merged --output scripts/erd/schema_diff/264-schema.json
+
+Pass no object flag: the default reads the object list from erd-data.json, which is
+what a release refresh wants. Do NOT pass --all-objects — it fails with
+EXCEEDED_ID_LIMIT because EntityDefinition does not support queryMore().
+
+Use a fresh `prepare_rlm_org` scratch org. Ad-hoc orgs (the old `techido-260`
+example) are ruled out for baselines by .cursor/skills/schema-validation/SKILL.md.
 
 Options:
     --org ALIAS         sf CLI target org alias (required)

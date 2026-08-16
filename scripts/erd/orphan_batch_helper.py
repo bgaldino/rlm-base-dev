@@ -245,7 +245,7 @@ def cmd_validate(args):
     report_out = REPO / "docs" / "erds" / f"orphan-candidates-after-batch{args.batch}.md"
     cmd = [
         sys.executable, str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
-        "--orgs", "ent-r1,rlm-base__ent-sb0",
+        "--orgs", args.orgs,
         "--dry-run",
         "--report", str(report_out),
         "--concurrency", "15",
@@ -310,6 +310,16 @@ def main():
 
     p_val = sub.add_parser("validate", help="Run validator + regenerate HTML")
     p_val.add_argument("--batch", type=int, required=True)
+    p_val.add_argument("--orgs", required=True,
+                       help="Comma-separated pair of orgs to classify orphans "
+                            "against, e.g. rlm-base__264merged,rlm-base__264fresh. "
+                            "Required, and deliberately has no default: both must be "
+                            "fresh prepare_rlm_org builds of the SAME release and the "
+                            "SAME shape. A pair spanning two releases or shapes makes "
+                            "a feature-gated field indistinguishable from a removed "
+                            "one, which is the failure this two-org check exists to "
+                            "catch. This used to default to a 260/262 pair, so the "
+                            "documented command silently validated the wrong release.")
     p_val.set_defaults(func=cmd_validate)
 
     args = p.parse_args()

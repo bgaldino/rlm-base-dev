@@ -22,7 +22,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 
 ## DO NOT
 
-1. **DO NOT** patch `erd-data.json` from a single org without cross-validating against another release/configuration. You'll baseline feature-gated noise as canonical schema.
+1. **DO NOT** patch `erd-data.json` from a single org without cross-validating against a second org **of the same release and the same shape**. You'll baseline feature-gated noise as canonical schema. And do not reach for a different release or shape as the second org — that is worse than one org, not better: a field gated by the shape you didn't build, or added in the release you didn't build, is indistinguishable from a removed one, so the check that was supposed to separate gating from removal manufactures both kinds of false verdict.
 2. **DO NOT** use `techido-260` or other ad-hoc orgs for baseline — only fresh `prepare_rlm_org` builds.
 2a. **DO NOT** trust `validate_erd_against_org.py --patch` to remove anything. It only **adds** — `patch_erd` never increments its `fields_removed` counter, so the `0` that `main` prints for it is unconditional, not a finding. Fields the release retired have to be removed deliberately (see Workflow A step 4b).
 3. **DO NOT** assume a field is a PDF artifact just because it's missing from one org. Verify against Core UDD source.
@@ -158,8 +158,11 @@ python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 # .agents/artifacts/orphan-fields/orphan-field-ownership.json, then:
 python scripts/erd/orphan_batch_helper.py apply --batch 4
 
-# Re-validate and produce the next orphan report
-python scripts/erd/orphan_batch_helper.py validate --batch 4
+# Re-validate and produce the next orphan report. --orgs is REQUIRED and has no
+# default: pass two same-release, same-shape orgs. It used to default to a 260/262
+# pair, so this command silently classified orphans against the wrong release.
+python scripts/erd/orphan_batch_helper.py validate --batch 4 \
+  --orgs rlm-base__264merged,rlm-base__264fresh
 ```
 
 ## The Three Orphan Classifications

@@ -39,8 +39,12 @@ Usage:
     python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
         --safe-only --apply
 
-    # Cross-validate against multiple orgs before aggressive removal
-    python scripts/erd/cleanup_orphan_erd_fields.py --orgs ent-r1,rlm-base__ent-sb0 \\
+    # Cross-validate against multiple orgs before aggressive removal. Pass orgs of
+    # the SAME release and SAME shape — a cross-release pair (the old
+    # ent-r1,rlm-base__ent-sb0 example) makes a field added in the release you did
+    # not build look identical to a removed one.
+    python scripts/erd/cleanup_orphan_erd_fields.py \\
+        --orgs rlm-base__264merged,rlm-base__264fresh \\
         --aggressive --dry-run
 
     # Include custom (__c) fields in the comparison — only when intentionally
