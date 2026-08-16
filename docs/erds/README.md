@@ -68,7 +68,8 @@ object count see the Domain Overview table in
 - **usage-management.mermaid** — Usage Management (24 entities)
   - Product usage grants, usage resources, usage records, and policies
   - Draws `RatingFrequencyPolicy`, which the data tags **Rate Management** — the one
-    cross-domain node in any of these files, and why this count exceeds the domain's 23
+    cross-domain node in any of these files, and why this count exceeds the domain's
+    own object count in the Domain Overview table
 
 - **billing.mermaid** — Billing (72 entities)
   - Billing accounts, schedules, treatments, invoices, credit/debit memos

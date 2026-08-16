@@ -245,6 +245,17 @@ closed** — "I fixed the ones I found" is not the same claim; a near-miss quant
 most of the rest hide, and a different *label* for the same number is where the last one
 does.
 
+That lesson had to be applied to *itself* before it took. Two further citations of the
+object total — "covering 263 objects" and "the full 263-object schema" — survived the
+corrected sweep as well, because both name the figure in prose the triple pattern cannot
+match. They were found the way the rule prescribes: list every numeral in these documents
+that `erd-data.json` can justify, subtract the ones a check already covers, and read what
+is left. That enumeration takes about ten lines of Python and finishes in a second,
+whereas three consecutive review rounds each found exactly one more instance by reading.
+**Enumerate against the data, not against the phrasings you already know**, and gate the
+figures a definition quotes to justify itself — those read as prose and so escape the
+count checks entirely.
+
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
 or removing a single step silently invalidates every citation downstream of it**.

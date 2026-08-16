@@ -48,7 +48,7 @@ the same short name through that function's fallback, which is the subject of
 pack 148. Two operations get from 14 raw labels to the documented **9**: stripping
 the 4 `(Core Object)` suffixes (14 -> 10), then this fold (10 -> 9).
 
-Seven directions are checked, because these fail independently:
+Eight directions are checked, because these fail independently:
 
 1. **`erd-data.json` agrees with itself** — its `stats` block vs the objects,
    fields and relationships actually present. Everything else trusts `stats`
@@ -88,6 +88,15 @@ Seven directions are checked, because these fail independently:
    else would name it. The pinned count does move, but it says "something left the
    audit" and prompts you to raise EXPECTED_CHECKS, which would accept the
    unaudited domain. A smoke alarm is not a diagnosis.
+8. **Every other figure derived from the data matches it** — the excluded-core
+   total and the raw-label count that the definition above quotes to justify
+   itself, and the object total where prose states it outside the triple phrasing
+   ("covering N objects", "the full N-object schema"). Each is checked *and*
+   required to still be cited, so a rewording drops out loudly. These were found
+   by listing every numeral in these docs that the data can justify and
+   subtracting the gated ones; three earlier rounds each surfaced one more loose
+   citation by reading, which is what reading finds. A number quoted to justify a
+   rule needs the same gate as the rule.
 
 Two things the pattern deliberately cannot do. It cannot tell the ERD triple from
 the org-describe pair, so a doc phrasing that as "254 objects, 3,913 fields, 0
@@ -114,7 +123,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 88
+EXPECTED_CHECKS = 97
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -393,6 +402,18 @@ def main():
     # them drift: the numbers they carried were the stale domain counts, and two of the
     # eight coincidentally matched their file, which made the rest look plausible.
     drawn = {stem: len(mermaid_entities(stem)) for stem in MERMAID_TO_DOMAIN}
+    # This map's *values* were dead until review pointed it out — the layer keyed off
+    # the stems alone, so a new domain could get its table row and its `domains/*.md`
+    # (both required above) while its diagram and both inventory entries were simply
+    # absent, and nothing here would say so. Only the pinned count moved: the same
+    # "bump the pin and accept an unaudited domain" hole closed for the other two maps
+    # one round earlier, still open in the map added by that same round.
+    only_map = sorted(set(MERMAID_TO_DOMAIN.values()) - set(per_domain))
+    only_data = sorted(set(per_domain) - set(MERMAID_TO_DOMAIN.values()))
+    check("every_domain_has_a_diagram", not only_map and not only_data,
+          f"mapped to a diagram but absent from the data: {only_map}; in the data with "
+          f"no diagram: {only_data} — every domain needs a `<stem>.mermaid` and a line "
+          "in both inventories")
     for path in MERMAID_INVENTORIES:
         with open(path) as f:
             body = f.read()
@@ -525,11 +546,46 @@ def main():
     # file, so it could not fail. The quantity that actually moves is the number of
     # folded domains in erd-data.json, and what it must agree with is the "across N
     # domains" the docs claim — so both are read from their sources.
-    raw_labels = len(set(o.get("domain", "?") for o in erd["objects"].values()))
+    raw = [o.get("domain", "?") for o in erd["objects"].values()]
+    raw_labels = len(set(raw))
+    excluding_core = sum(1 for d in raw if not d.endswith("(Core Object)"))
     check("documented_domains_match_the_data",
           len(documented) == len(per_domain),
           f"{len(documented)} domains documented, {len(per_domain)} in the data "
           f"({raw_labels} raw labels before folding)")
+
+    # The two figures the count *definition* quotes. Both were published as bare prose
+    # and appeared in a failure message only — so `239` and `14 raw labels` could drift
+    # while all other checks passed, in the same paragraph that tells the reader this
+    # file enforces the definition. A number cited to justify a rule needs the same
+    # gate as the rule.
+    # Two more sites state the object total in prose the triple regex cannot see —
+    # found by listing every ERD-justifiable numeral in these docs and subtracting the
+    # gated ones, rather than by reading for it. Rounds 3 and 5 each surfaced one more
+    # loose citation because the sweep looked for the phrasings it already knew.
+    derived = {
+        r"excluding those variants gives (\d+)": ("excluding_core_total", excluding_core),
+        r"(\d+) raw labels": ("raw_label_count", raw_labels),
+        r"covering ([\d,]+) objects": ("prose_object_total", len(erd["objects"])),
+        r"([\d,]+)-object schema": ("hyphenated_object_total", len(erd["objects"])),
+    }
+    for pattern, (name, expected) in derived.items():
+        hits = []
+        # dict.fromkeys, not a set: SKILL is itself a TRIPLE_SITES entry, and a plain
+        # concatenation double-counted every hit while keeping order deterministic.
+        for path in dict.fromkeys([SKILL, *TRIPLE_SITES]):
+            if not os.path.isfile(path):
+                continue
+            with open(path) as f:
+                for lineno, line in enumerate(f.read().split("\n"), 1):
+                    for m in re.finditer(pattern, line):
+                        hits.append((path, lineno, num(m.group(1))))
+        check(f"{name}_is_cited", len(hits) >= 1,
+              f"no doc states `{pattern}` — the phrasing changed and this figure "
+              "stopped being audited")
+        for path, lineno, claimed in hits:
+            check(f"{rel(path)}:{lineno}_{name}", claimed == expected,
+                  f"doc says {claimed}, the data gives {expected}")
     claim = re.compile(r"across\s+([\d,]+)\s+domains")
     claims = 0
     for path in TRIPLE_SITES:
