@@ -307,6 +307,22 @@ than a suite that fails outside pytest: run as `python tests/test_docgen_helpers
 it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
 convention gap itself is a separate todo.
 
+A check has to be selected by **every file it reads**, not only by the code it tests — the
+absence hole one level up from a missing check. Five shipped at once: a suite asserting that
+this README cites its current size while a README edit selected nothing; the CumulusCI pin
+compared against `prepare-rlm-org.yml` with that workflow untriggered; the "do not edit"
+generated references editable without the drift check running; the manifest audit resolving
+paths repo-wide from a three-prefix trigger list; and two suites reading a skill's stated count
+and a `docs/references/` example outside their triggers. Each was invisible the same way — the
+check ran and passed, just not when the input it asserts against changed. `tests/test_pr_gate.py`
+now enumerates the paths each suite names and fails if any of them cannot select that suite;
+the two script-backed checks get exact gates instead, reading `_PATH_ROOTS`/`_ROOT_FILES` out
+of `skill_manifest.py` and the required-file lists out of `analyze_agent_tooling.py`, so a
+hand-kept copy cannot drift. Writing that enumeration immediately found three more: `CLAUDE.md`
+is a file `analyze_agent_tooling.py` asserts the presence of, the `qb-dro` dataset is read by
+`test_fulfillment_scope_tolerance.py` to verify a banner's count, and the gate's own suite reads
+two other `scripts/ai/` modules to prove the matrix still selects on their constants.
+
 A dependency is probed by really importing it, in a child process, not by `find_spec`. The
 distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_resources`,
 which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
@@ -337,7 +353,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (108 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (121 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -351,9 +367,10 @@ dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, eit
 empty stdout, indistinguishable from a clean tree, so it would drop uncommitted paths from
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
-a directory claim swallowing shell suites again, and `pyproject.toml` removed from either
-pytest-driven check's triggers. The first round of mutations found two live holes in these
-tests, both in the gap between a helper returning the right value and the gate acting on it.
+a directory claim swallowing shell suites again, `pyproject.toml` removed from either
+pytest-driven check's triggers, and each of the eight trigger lists narrowed back off an input
+its check reads. The first round of mutations found two live holes in these tests, both in the
+gap between a helper returning the right value and the gate acting on it.
 
 Building it turned up four real defects rather than only proving the wiring. Making
 `skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a

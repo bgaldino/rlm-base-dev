@@ -94,15 +94,26 @@ CHECKS = [
     dict(
         name="agent_tooling",
         cmd=["python", "scripts/ai/analyze_agent_tooling.py", "check"],
-        triggers=["AGENTS.md", "REVIEW.md", ".github/copilot-instructions.md",
+        # CLAUDE.md is in the script's REQUIRED_FILES, so its deletion fails this check —
+        # it was missing here, found by the read-enumeration in tests/test_pr_gate.py.
+        triggers=["AGENTS.md", "CLAUDE.md", "REVIEW.md", ".github/copilot-instructions.md",
                   ".claude/skill-manifest.yml", ".cursor/", ".agents/", "scripts/ai/"],
         deps=[], min_python=(3, 10), gating=True,
     ),
     dict(
         name="skill_manifest",
         cmd=["python", "scripts/ai/skill_manifest.py", "--check"],
-        triggers=[".cursor/skills/", ".claude/skill-manifest.yml",
-                  "scripts/ai/skill_manifest.py"],
+        # The audit resolves every path the manifest cites, and the manifest cites paths all
+        # over the repo — so triggering only on the manifest and the skills tree let a cited
+        # target be deleted or renamed under docs/, postman/, orgs/ with the check skipped,
+        # which is precisely the drift it exists to catch. These are the script's own
+        # _PATH_ROOTS and _ROOT_FILES; tests/test_pr_gate.py reads them back out of the
+        # script and fails if the two lists diverge. Broad selection is affordable here
+        # because this is the cheapest check in the matrix (~0.1s).
+        triggers=[".agents/", ".claude/", ".cursor/", ".github/", "config/", "datasets/",
+                  "docs/", "force-app/", "orgs/", "postman/", "robot/", "scripts/",
+                  "tasks/", "templates/", "unpackaged/",
+                  "AGENTS.md", "CLAUDE.md", "REVIEW.md", "README.md", "cumulusci.yml"],
         deps=[], gating=True,
     ),
     dict(
@@ -125,7 +136,10 @@ CHECKS = [
     dict(
         name="branch_scope",
         cmd=["python", "tests/test_branch_scope.py"],
-        triggers=["scripts/ai/check_branch_scope.py", "tests/test_branch_scope.py"],
+        # The last two are read by the suite, which asserts both cite its current size — so
+        # editing either without selecting this check is how a stale count survives.
+        triggers=["scripts/ai/check_branch_scope.py", "tests/test_branch_scope.py",
+                  "scripts/ai/README.md", ".cursor/skills/audit-review/SKILL.md"],
         deps=[], gating=True,
     ),
     dict(
@@ -142,14 +156,25 @@ CHECKS = [
     dict(
         name="cci_reference_drift",
         cmd=None,  # regenerate, then require a clean tree — see run_cci_reference_drift
-        triggers=["cumulusci.yml", "scripts/ai/generate_cci_reference.py"],
+        # The generated files themselves are triggers: they carry a "do not edit" banner, so a
+        # hand edit to one is the exact case this check adjudicates, and it cannot adjudicate
+        # what it is not selected for.
+        triggers=["cumulusci.yml", "scripts/ai/generate_cci_reference.py",
+                  ".cursor/skills/cci-orchestration/tasks-reference.md",
+                  ".cursor/skills/cci-orchestration/flows-reference.md",
+                  ".cursor/skills/cci-orchestration/feature-flags.md"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
         name="stdlib_offline_suites",
         cmd=None,  # expanded at runtime — see stdlib_suites()
+        # The last two are non-code inputs these suites read and assert against: the
+        # usage-consumption skill's stated check count, and the shipped overlay example that
+        # test_expression_set_schema.py validates. Editing either could invalidate a suite
+        # that was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
-                  "force-app/", "unpackaged/"],
+                  "force-app/", "unpackaged/",
+                  ".cursor/skills/usage-consumption/", "docs/references/"],
         deps=[], gating=True,
     ),
     dict(
@@ -157,8 +182,12 @@ CHECKS = [
         cmd=["python", "tests/test_decision_table_tasks.py",
              "tests/test_fulfillment_scope_tolerance.py",
              "tests/test_skill_manifest_audit.py"],  # run in sequence
+        # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
+        # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
+        # usage product to that dataset invalidates the assertion, so it has to select this.
         triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
                   ".claude/skill-manifest.yml",
+                  "datasets/sfdmu/qb/en-US/qb-dro/",
                   "tests/test_decision_table_tasks.py",
                   "tests/test_fulfillment_scope_tolerance.py",
                   "tests/test_skill_manifest_audit.py"],
@@ -199,7 +228,14 @@ CHECKS = [
         # do not run it, which bounds the nesting at one level.
         name="pr_gate_suite",
         cmd=["python", "tests/test_pr_gate.py"],
-        triggers=["scripts/ai/pr_gate.py", "tests/test_pr_gate.py"],
+        # prepare-rlm-org.yml is read by the suite, which asserts its CumulusCI pin matches
+        # PINS here. Without it as a trigger the two workflows could drift apart while this
+        # gate reported success — the cross-workflow guarantee unenforced from one side. The
+        # scripts/ai/ prefix rather than pr_gate.py alone because the suite also reads
+        # skill_manifest.py's audited roots and analyze_agent_tooling.py's required-file
+        # lists, to prove the matrix still selects on them.
+        triggers=["scripts/ai/", "tests/test_pr_gate.py",
+                  ".github/workflows/prepare-rlm-org.yml"],
         deps=[], gating=True,
     ),
     dict(

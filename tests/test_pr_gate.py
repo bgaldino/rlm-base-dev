@@ -8,6 +8,7 @@ skip, an advisory check silently promoted or demoted, a trigger list that select
 Run offline: python tests/test_pr_gate.py
 """
 
+import ast
 import importlib.util
 import io
 import os
@@ -93,7 +94,10 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-sel = selected_names(["robot/rlm-base/some.robot"])
+# Selection must still be able to come up empty, or "selected" means nothing. The probe has
+# to be outside the manifest audit's roots, which are deliberately repo-wide: a manifest can
+# cite a path anywhere, so robot/ (a root) no longer qualifies as an unclaimed path.
+sel = selected_names(["docker/Dockerfile"])
 check("a path no check claims selects nothing rather than everything", sel == set(), sel)
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
@@ -406,14 +410,168 @@ with tempfile.TemporaryDirectory() as repo:
     finally:
         pr_gate.REPO_ROOT = saved_root
 
+print("\nEvery file a check reads can select that check")
+# The absence hole one level up from a missing check: a check that runs, but not when the
+# input it asserts against changes. Five of these shipped at once — a suite asserting that
+# scripts/ai/README.md cites its current size while a README edit selected nothing; the
+# CumulusCI pin compared against prepare-rlm-org.yml with that workflow untriggered; the
+# "do not edit" generated references editable without the drift check; the manifest audit
+# resolving paths repo-wide from a three-prefix trigger list; two suites reading skill and
+# docs/references inputs outside their triggers. Each was invisible in the same way: the
+# check passes, so nothing looks wrong. Enumerating the reads is what makes the sixth one
+# fail loudly instead of joining quietly.
+#
+# Paths a suite names but does not depend on, so an unavoidable static-analysis false
+# positive is a written decision rather than a loosened rule.
+NOT_INPUTS = {
+    "tests/test_pr_gate.py": {
+        "datasets/sfdmu": "a path built inside a throwaway repo, not read from this one",
+    },
+    "tests/test_skill_manifest_audit.py": {
+        # .agents/artifacts is gitignored, so it can never appear in a PR diff — nothing
+        # there is selectable, which is the very asymmetry this suite exists to pin.
+        ".agents/artifacts": "gitignored: cannot appear in a diff, so cannot select anything",
+        ".agents/artifacts/integration-staging/pmos-integration.md": "gitignored",
+    },
+    "tests/test_fix_scratch_identity.py": {
+        ".sf/orgs": "runtime org state, gitignored — not a repo input",
+    },
+}
+
+
+def named_paths(py_file, joins_only=False):
+    """Repo-relative paths a source file names, from string constants and os.path.join()."""
+    try:
+        tree = ast.parse(pathlib.Path(py_file).read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return set()
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and not joins_only:
+            if "/" in node.value and not node.value.startswith(("/", "http")):
+                found.add(node.value.strip("/"))
+        elif isinstance(node, ast.Call):
+            # os.path.join(REPO, "a", "b") — the segments carry no slash of their own, so
+            # the constant branch above cannot see this shape.
+            fn = node.func
+            if isinstance(fn, ast.Attribute) and fn.attr == "join" and node.args:
+                segs = [a.value for a in node.args[1:]
+                        if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+                if len(segs) == len(node.args) - 1 and len(segs) > 1:
+                    found.add("/".join(segs))
+    return found
+
+
+def check_sources(spec):
+    """The test suites a check's command executes.
+
+    Suites only, deliberately: running a suite runs everything in it, so every path it names
+    is a path it reads. A script invoked with a subcommand (`skill_manifest.py --check`)
+    exercises one branch, so its other paths — a report's output file, a table another
+    subcommand renders — would be false positives. Those checks get the exact, data-driven
+    gates below instead of a static read of the whole file.
+    """
+    if spec["name"] == "stdlib_offline_suites":
+        return list(pr_gate.STDLIB_SUITES)
+    if spec["cmd"] is None:
+        return []
+    return [a for a in spec["cmd"][1:] if a.endswith(".py") and a.startswith("tests/")]
+
+
+def as_change(rel):
+    """A directory named as an input stands for a change underneath it."""
+    return rel + "/probe" if os.path.isdir(os.path.join(REPO, rel)) else rel
+
+
+SELF = "tests/test_pr_gate.py"
+unselected_reads, inspected = [], 0
+for spec in pr_gate.CHECKS:
+    for src in check_sources(spec):
+        declared = NOT_INPUTS.get(src, {})
+        # This suite is *about* selection, so nearly every path it names is a fixture — an
+        # expected trigger, a probe, content written into a throwaway repo. Enumerating those
+        # produced a declaration list that grew with every assertion added, which is the drift
+        # this gate is supposed to prevent, not cause. Every real read here goes through
+        # os.path.join(REPO, …), so that shape is the enumeration, and the check below refuses
+        # a read written any other way.
+        for rel in sorted(named_paths(os.path.join(REPO, src), joins_only=(src == SELF))):
+            inspected += 1
+            if rel in declared or not os.path.exists(os.path.join(REPO, rel)):
+                continue
+            if not pr_gate.selects(spec, [as_change(rel)]):
+                unselected_reads.append(f"{spec['name']} reads {rel} ({src}) but is not "
+                                        f"selected by it")
+check("no suite reads a file that cannot select it", not unselected_reads,
+      "; ".join(unselected_reads[:8]))
+check("the enumeration actually inspected something", inspected > 20, inspected)
+
+# The convention the joins_only narrowing above depends on: a read written as
+# open("docs/x.md") in this file would be invisible to the enumeration, so it is refused
+# outright rather than left as a quiet exemption.
+self_src = "\n".join(
+    ln for ln in pathlib.Path(os.path.join(REPO, SELF)).read_text(
+        encoding="utf-8").splitlines()
+    if not ln.lstrip().startswith("#"))  # the comment above names the shape it forbids
+bare_reads = re.findall(r'(?:open|read_text|Path)\(\s*"[^"]*/[^"]*"', self_src)
+check("this suite reads repo files only through os.path.join(REPO, …)",
+      not bare_reads, bare_reads)
+
+# agent_tooling asserts these files exist, so deleting one must select it. Read back out of
+# the script for the same reason as the manifest roots below: a hand-kept copy drifts.
+tooling_src = pathlib.Path(
+    os.path.join(REPO, "scripts", "ai", "analyze_agent_tooling.py")).read_text()
+required = []
+for const in ("REQUIRED_FILES", "GENERATED_CCI_REFERENCE_FILES", "BASELINE_EXTRA_FILES"):
+    block = re.search(rf"^{const} = \[(.*?)\]", tooling_src, re.S | re.M)
+    check(f"analyze_agent_tooling.py still declares {const}", block is not None)
+    required += re.findall(r'"([^"]+)"', block.group(1) if block else "")
+tooling_check = next(c for c in pr_gate.CHECKS if c["name"] == "agent_tooling")
+check("the required-file list is non-trivial", len(required) > 8, len(required))
+missed_required = [r for r in required if not pr_gate.selects(tooling_check, [r])]
+check("every file agent_tooling asserts the presence of can select it",
+      not missed_required, missed_required)
+
+# The manifest audit resolves paths anywhere under its own declared roots, so the trigger
+# list is read back out of the script rather than kept in step by hand.
+manifest_src = pathlib.Path(os.path.join(REPO, "scripts", "ai", "skill_manifest.py")).read_text()
+roots = re.search(r"_PATH_ROOTS = \((.*?)\)", manifest_src, re.S)
+root_files = re.search(r"_ROOT_FILES = \((.*?)\)", manifest_src, re.S)
+check("skill_manifest.py still declares the roots it audits",
+      roots is not None and root_files is not None)
+audited = [v for v in re.findall(r'"([^"]+)"', (roots.group(1) if roots else "")
+                                 + (root_files.group(1) if root_files else ""))]
+check("the audited root list is non-trivial", len(audited) > 15, len(audited))
+manifest_check = next(c for c in pr_gate.CHECKS if c["name"] == "skill_manifest")
+missed_roots = [r for r in audited
+                if not pr_gate.selects(manifest_check, [r.rstrip("/") + "/probe.md"
+                                                        if r.endswith("/") else r])]
+check("every root the manifest audit resolves can select the manifest check",
+      not missed_roots, missed_roots)
+
 print("\nThe CCI reference drift check watches only what the generator writes")
 src = open(os.path.join(REPO, "scripts", "ai", "pr_gate.py")).read()
 check("the drift scope names the three generated files",
       all(n in src for n in ("tasks-reference.md", "flows-reference.md",
                              "feature-flags.md")))
+# Scoped to the function, not the file: docs/references/ is a legitimate trigger elsewhere
+# (a suite validates a shipped example under it), so a whole-file search would conflate the
+# two and pass or fail for the wrong reason.
+drift_body = src.split("def run_cci_reference_drift")[1].split("\ndef ")[0]
+drift_code = "\n".join(ln for ln in drift_body.splitlines()
+                       if not ln.lstrip().startswith("#"))
 check("the drift scope no longer includes hand-authored docs/references/",
-      '"docs/references/"' not in src,
+      "docs/references/" not in drift_code,
       "generate_cci_reference.py writes only to .cursor/skills/cci-orchestration/")
+# This check adjudicates hand edits to files that carry a "do not edit" banner, so each of
+# them has to be able to select it. Not reachable by the read-enumeration above: the scope
+# lives inside a cmd=None runtime branch, which is exactly where an ungated input hides.
+drift_check = next(c for c in pr_gate.CHECKS if c["name"] == "cci_reference_drift")
+drift_scope = [f".cursor/skills/cci-orchestration/{n}"
+               for n in re.findall(r'"([^"]+\.md)"', drift_code)]
+check("the drift scope was parsed out of the function", len(drift_scope) == 3, drift_scope)
+unselecting = [g for g in drift_scope if not pr_gate.selects(drift_check, [g])]
+check("every generated file the drift check judges can select it", not unselecting,
+      unselecting)
 
 print("\nA dependency-blocked advisory check does not fail the gate")
 listing = changed_list("zz_probe_path/thing.txt")
@@ -597,7 +755,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 108
+EXPECTED = 121
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
