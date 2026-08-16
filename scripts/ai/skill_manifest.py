@@ -243,11 +243,13 @@ class RepoLocation:
     candidates_tried: list[Path]
     env_var: str | None  # which env var was tried first (if any)
     # Identity of the accepted candidate relative to the declared repo_url:
-    #   "verified"   — git remote matches repo_url (or the candidate IS the
-    #                  repo containing this manifest)
-    #   "unverified" — structural match accepted, but no readable git remote
-    #                  to compare (LENIENT downgraded to a warning)
-    #   "unknown"    — no candidate accepted
+    #   "verified-remote" — git remote matches repo_url
+    #   "verified-self"   — the candidate IS the repo containing this manifest
+    #                       AND carries this section's repo-specific surface
+    #                       (remote not consulted)
+    #   "unverified"      — structural match (strict or lenient) accepted, but
+    #                       no remote/URL comparison was possible
+    #   "unknown"         — no candidate accepted
     identity: str = "unknown"
     # Candidates that structurally matched but were REJECTED because their git
     # remote names a different repo than the manifest's repo_url. Each entry is
@@ -376,12 +378,12 @@ def _discover_repo(
                 and (cand / ".cursor" / "skills").is_dir()
             )
             if self_is_this_section:
-                return "verified"
+                return "verified-self"
         remote = _git_remote_url(cand)
         if remote is None or not declared_url:
             return "unverified"
         if _urls_equivalent(remote, declared_url):
-            return "verified"
+            return "verified-remote"
         rejected.append((cand, remote))
         return None
 
@@ -642,13 +644,20 @@ def _cli_check(manifest: dict[str, Any]) -> int:
         else:
             tag = "OK-OPT" if is_optional else "OK"
             print(f"  [{tag:6s}] {key}: {resolved.path}")
-            if resolved.identity == "verified":
+            if resolved.identity == "verified-remote":
                 print("          identity: verified (git remote matches repo_url)")
+            elif resolved.identity == "verified-self":
+                print(
+                    "          identity: verified (this clone contains this "
+                    "manifest and the section's repo surface; remote not "
+                    "consulted)"
+                )
             else:
                 print(
-                    "          identity: UNVERIFIED — no readable git remote to "
-                    "compare against repo_url; lenient match accepted. Confirm "
-                    "this clone is the declared repo."
+                    "          identity: UNVERIFIED — no remote/URL comparison "
+                    "was possible (unreadable git remote or undeclared "
+                    "repo_url); structural match accepted. Confirm this clone "
+                    "is the declared repo."
                 )
             if key == "pmos":
                 skills_dir = resolved.path / ".claude" / "skills"
