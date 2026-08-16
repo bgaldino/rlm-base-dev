@@ -180,6 +180,17 @@ with tempfile.TemporaryDirectory() as fake_repo:
         check("a shell suite is discovered rather than missed by the .py filter",
               "tests/test-probe.sh" in pr_gate.unlisted_suites(),
               pr_gate.unlisted_suites())
+        # A directory claim covers pytest-collectable .py only. A shell suite dropped into a
+        # claimed directory has no runner, so being "claimed" there would be a silent skip.
+        claimed_dir = sorted(c for c in pr_gate.CLAIMED_SUITES if c.endswith("/"))[0]
+        os.makedirs(os.path.join(fake_repo, claimed_dir), exist_ok=True)
+        open(os.path.join(fake_repo, claimed_dir, "test_inside.py"), "w").close()
+        open(os.path.join(fake_repo, claimed_dir, "test-inside.sh"), "w").close()
+        listed = pr_gate.unlisted_suites()
+        check("a .py suite under a claimed directory is covered by the claim",
+              claimed_dir + "test_inside.py" not in listed, listed)
+        check("a shell suite under a claimed directory is not covered by the claim",
+              claimed_dir + "test-inside.sh" in listed, listed)
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -242,7 +253,8 @@ try:
     code, out = main_with(["--changed-files-from", listing])
     check("the same failure as advisory does not fail the gate", code == 0, code)
     check("but is still reported as an advisory failure", "advisory failure" in out)
-    # Advisory output is tailed; a gating failure's is not, so it stays diagnosable.
+    # Advisory output is truncated to its head; a gating failure's is not, so it stays
+    # diagnosable from the log alone.
     noisy = ["python", "-c",
              f"print('\\n'.join(str(i) for i in range({pr_gate.ADVISORY_HEAD + 30})))"
              "; import sys; sys.exit(1)"]
@@ -372,6 +384,25 @@ with tempfile.TemporaryDirectory() as repo:
               any(f.endswith("café.md") for f in files), files)
         check("...and is not wrapped in quotes",
               not any(f.startswith('"') for f in files), files)
+
+        # A wholly new, still-untracked directory. Plain `git status --porcelain` collapses
+        # it to the topmost new directory ("brand-new/"), so the leaf file never reaches
+        # selection: no .md suffix, no deeper prefix. The gate claims uncommitted work is
+        # covered, so the collapse has to be defeated rather than documented.
+        os.makedirs(os.path.join(repo, "brand-new", "guide"), exist_ok=True)
+        open(os.path.join(repo, "brand-new", "guide", "page.md"), "w").write("# new\n")
+        files = pr_gate.changed_files("base")
+        check("a file inside a brand-new untracked directory reaches selection by full path",
+              "brand-new/guide/page.md" in files, files)
+        check("...and the collapsed directory entry is not what selection sees",
+              "brand-new/" not in files, files)
+        # The same collapse, now proved to change a verdict: this citation is wrong, and
+        # doc_build_steps only sees it if the leaf path survives.
+        open(os.path.join(repo, "brand-new", "guide", "page.md"), "w").write(
+            "See step 99.99 of a flow that does not exist.\n")
+        check("the new directory's markdown selects the build-step check",
+              "doc_build_steps" in selected_names(pr_gate.changed_files("base")),
+              selected_names(pr_gate.changed_files("base")))
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -415,8 +446,6 @@ for name in ("cci_reference_drift", "stdlib_offline_suites", "yaml_offline_suite
     check(f"{name} resolves to a runnable callable", callable(pr_gate.resolve(spec)))
 
 print("\nCommand-line contract")
-
-print("\nCommand-line contract")
 code, out = run_gate("--list")
 check("--list exits 0", code == 0, code)
 check("--list names every check", all(n in out for n in names))
@@ -429,6 +458,30 @@ check("--requirements emits the pinned CumulusCI spec",
       "cumulusci==" in out, out.strip())
 check("--requirements emits nothing unpinned for cumulusci",
       not re.search(r"^cumulusci$", out, re.M), out.strip())
+# Installing exactly what --requirements prints has to leave the dependency importable.
+# CumulusCI needs pkg_resources at import time, which a 3.12+ venv lacks until setuptools is
+# installed — so omitting it here hands the caller a MISSING-DEP for a package it just
+# installed, and pip's install order means the pin must come first.
+req_lines = [ln for ln in out.splitlines() if ln.strip()]
+check("--requirements pairs the CumulusCI pin with setuptools",
+      any(ln.startswith("setuptools") for ln in req_lines), req_lines)
+check("...and emits setuptools before CumulusCI, the order pip installs in",
+      next(i for i, ln in enumerate(req_lines) if ln.startswith("setuptools"))
+      < next(i for i, ln in enumerate(req_lines) if ln.startswith("cumulusci")),
+      req_lines)
+code, out_nocci = run_gate("--requirements", "--changed-files-from", os.devnull)
+check("a selection without CumulusCI does not drag setuptools in",
+      "setuptools" not in out_nocci, out_nocci.strip())
+
+# pyproject.toml carries [tool.pytest.ini_options], so it decides what the two pytest-invoking
+# checks collect. If it selected nothing, a change that broke collection would merge without
+# either suite running once.
+pytest_driven = {c["name"] for c in pr_gate.CHECKS
+                 if c["cmd"] and "pytest" in " ".join(c["cmd"])}
+selected_by_pyproject = set(selected_names(["pyproject.toml"]))
+check("pyproject.toml selects every pytest-driven check",
+      pytest_driven and pytest_driven <= selected_by_pyproject,
+      sorted(pytest_driven - selected_by_pyproject))
 # This suite runs the gate, so its probe path must not select a check that runs this suite
 # (infinite nesting) or one whose dependency CI would not have installed for the outer
 # selection (a MISSING-DEP failure that says nothing about the gate).
@@ -513,8 +566,8 @@ source = pathlib.Path(pr_gate.__file__).read_text()
 status_calls = source.count('"git", "status", "--porcelain"')
 check("both git status call sites are still present", status_calls == 2, status_calls)
 check("changed_files dies when git status fails",
-      re.search(r'"git", "status", "--porcelain", "-z".*?if st\.returncode != 0:\s*\n\s*die\(',
-                source, re.S) is not None)
+      re.search(r'"git", "status", "--porcelain", "--untracked-files=all", "-z"'
+                r'.*?if st\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
 check("the drift check fails when git status fails",
       re.search(r'"git", "status", "--porcelain", "--", \*generated.*?'
                 r'if diff\.returncode != 0:\s*\n\s*return 1,', source, re.S) is not None)
@@ -544,7 +597,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 99
+EXPECTED = 108
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

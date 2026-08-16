@@ -69,6 +69,14 @@ DEPS = {
 # CumulusCI versions would let a flow-citation check pass here and fail there.
 PINS = {"cumulusci": "cumulusci==4.8.1"}
 
+# Installed alongside a package, because installing only the package leaves it unusable.
+# CumulusCI imports `fs`, which imports `pkg_resources`, which Python 3.12+ venvs do not
+# ship — so a caller that installs exactly what `--requirements` prints would still get
+# MISSING-DEP for cumulusci. Emitting this here rather than documenting a manual extra step
+# keeps that knowledge in one place: `prepare-rlm-org.yml` already installs the same pin, and
+# the second workflow author should not have to rediscover why.
+CO_REQUIRES = {"cumulusci": ["setuptools>=75.4,<77"]}
+
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing
 # plan, so tailing kept a wall of passes and elided the only thing the reader needs.
@@ -158,12 +166,15 @@ CHECKS = [
     ),
     dict(
         name="docgen_suite",
-        # The one pytest-style suite in tests/: pytest collects it and it has no __main__
-        # block, so `python tests/test_docgen_helpers.py` exits 0 having run zero tests
-        # once pytest is installed (and ModuleNotFoundError before that). A silent green,
-        # so it is invoked through pytest, not the repo's usual `python tests/<name>.py`.
+        # The one pytest-style suite directly under tests/ (the harness directories below
+        # hold ~30 more): pytest collects it and it has no __main__ block, so
+        # `python tests/test_docgen_helpers.py` exits 0 having run zero tests once pytest is
+        # installed (and ModuleNotFoundError before that). A silent green, so it is invoked
+        # through pytest, not the repo's usual `python tests/<name>.py`.
         cmd=["python", "-m", "pytest", "-q", "tests/test_docgen_helpers.py"],
-        triggers=["scripts/docgen/", "tests/test_docgen_helpers.py"],
+        # pyproject.toml carries [tool.pytest.ini_options], so it shapes what this command
+        # collects — a change there that breaks collection has to select the pytest checks.
+        triggers=["scripts/docgen/", "tests/test_docgen_helpers.py", "pyproject.toml"],
         deps=["pytest"], gating=True,
     ),
     dict(
@@ -175,8 +186,10 @@ CHECKS = [
         name="harness_suites",
         cmd=["python", "-m", "pytest", "-q",
              "tests/build_harness", "tests/txn_data_harness"],
+        # pyproject.toml sets testpaths/python_files/addopts for these two directories, so a
+        # collection change there must select this check rather than land unexercised.
         triggers=["scripts/build_harness/", "scripts/txn_data_harness/",
-                  "tests/build_harness/", "tests/txn_data_harness/"],
+                  "tests/build_harness/", "tests/txn_data_harness/", "pyproject.toml"],
         deps=["pytest", "PyYAML", "textual", "requests"], min_python=(3, 11), gating=True,
     ),
     dict(
@@ -274,11 +287,15 @@ def unlisted_suites():
             if not name.endswith((".py", ".sh")):
                 continue
             found.add(os.path.relpath(os.path.join(root, name), REPO_ROOT))
+    # A directory claim covers only the .py files under it, because the checks that claim
+    # directories invoke pytest. A shell suite added under tests/build_harness/ would
+    # otherwise read as claimed while nothing ran it and no exclusion recorded the decision
+    # — the same silent-suite gap this function exists to close, one level down.
     claimed_dirs = tuple(c for c in CLAIMED_SUITES if c.endswith("/"))
     return sorted(f for f in found
                   if f not in CLAIMED_SUITES
                   and f not in EXCLUDED_SUITES
-                  and not f.startswith(claimed_dirs))
+                  and not (f.endswith(".py") and f.startswith(claimed_dirs)))
 
 
 def changed_files(base):
@@ -298,8 +315,14 @@ def changed_files(base):
             die(f"git diff against {base!r} failed: {out.stderr.strip()}")
         files = [p for p in out.stdout.split("\0") if p]
         # Uncommitted work counts too, so running this locally before a commit is honest.
-        st = subprocess.run(["git", "status", "--porcelain", "-z"], cwd=REPO_ROOT,
-                            capture_output=True, text=True)
+        # --untracked-files=all, because the default collapses a wholly new directory to a
+        # single `?? docs/` entry — the TOPMOST new directory, not even the leaf. Every
+        # file in a new subtree would then be invisible to selection: the `.md` suffix
+        # never matches `docs/`, so adding docs/new-guide/page.md with a wrong
+        # `step N of <flow>` citation selected nothing while the report said uncommitted
+        # work was covered.
+        st = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "-z"],
+                            cwd=REPO_ROOT, capture_output=True, text=True)
         # Checked, not assumed: a failed `git status` returns empty stdout, which is
         # indistinguishable from a clean tree — so an unreadable index would silently
         # drop every uncommitted path from the selection and still exit 0.
@@ -457,8 +480,17 @@ def main():
         selected = [c for c in CHECKS if selects(c, files)]
 
     if args.requirements:
-        for pkg in sorted({d for c in selected for d in c["deps"]}):
-            print(PINS.get(pkg, pkg))
+        needed = sorted({d for c in selected for d in c["deps"]})
+        emitted = []
+        for pkg in needed:
+            # Co-requirements first: pip installs in order, and setuptools has to be there
+            # before the package that imports pkg_resources at import time.
+            for extra in CO_REQUIRES.get(pkg, ()):
+                if extra not in emitted:
+                    emitted.append(extra)
+            emitted.append(PINS.get(pkg, pkg))
+        for line in emitted:
+            print(line)
         return 0
 
     orphans = unlisted_suites()
@@ -507,7 +539,8 @@ def main():
             body = out.rstrip() or "(the check produced no output)"
             # A gating failure is echoed whole — it has to be diagnosable from the log
             # alone. An advisory one is informational, and the SFDMU validator prints a
-            # ~100-line report every run, so it is tailed rather than allowed to bury
+            # ~100-line report every run, so it is truncated to its HEAD (where the summary
+            # and the Critical counts are) rather than allowed to bury
             # the failures above it.
             if not check["gating"]:
                 lines = body.split("\n")

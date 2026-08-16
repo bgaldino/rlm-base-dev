@@ -296,9 +296,12 @@ a new suite that nothing runs is not a passing suite. It walks the tree recursiv
 counts `.sh` as well as `.py`, because the first version listed only the top directory and
 so reported "none unclaimed" while 30 nested suites and 2 shell scripts went unrun. A suite
 that genuinely should not run in CI goes in `EXCLUDED_SUITES` with its reason, so the
-exclusion is a written decision rather than an oversight.
+exclusion is a written decision rather than an oversight. A directory claim covers only the
+`.py` files beneath it, since the checks that claim directories invoke pytest: a shell suite
+added under `tests/build_harness/` stays unlisted until someone runs it or records why not.
 
-`tests/test_docgen_helpers.py` is the one pytest-style suite in the repo, and it is worse
+`tests/test_docgen_helpers.py` is the one pytest-style suite **directly under `tests/`** — the
+two harness directories hold roughly 30 more — and it is worse
 than a suite that fails outside pytest: run as `python tests/test_docgen_helpers.py` it exits
 **0 having run nothing**, because the file is all `def test_*` and no `__main__`. That is why
 it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
@@ -309,12 +312,18 @@ distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_re
 which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
 that install fine, and the breakage surfaces later as unrelated-looking suite failures. The
 `cumulusci` entry therefore probes `cumulusci.core.tasks`, the depth a task actually needs,
-and a workflow installing it must pin `setuptools>=75.4,<77` first, exactly as
-`prepare-rlm-org.yml` already does.
+and `--requirements` emits `setuptools>=75.4,<77` ahead of the CumulusCI pin whenever a
+selected check needs it — the same pin `prepare-rlm-org.yml` installs. Emitting it is the
+point: installing exactly what `--requirements` prints has to *work*, or the caller gets
+`MISSING-DEP` for a dependency it just installed and has to rediscover why.
 
 Selection diffs `base...HEAD` — three dots, from the merge base — so commits that landed on
 the base after the branch diverged do not enlarge it, and uncommitted work counts too, so
-running it before a commit is honest. Exit 0 all selected gating checks passed, 1 at least
+running it before a commit is honest. That last part needs `--untracked-files=all`: plain
+`git status --porcelain` collapses a wholly new directory to a single `?? docs/` entry — the
+topmost new directory, not even the leaf — so every file in a new subtree was invisible to
+suffix and deeper-prefix triggers while the report still said uncommitted work was covered.
+Exit 0 all selected gating checks passed, 1 at least
 one failed, 2 usage or tool error (matching `check_branch_scope.py`, so a tool error is
 never read as a verdict).
 
@@ -328,7 +337,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (99 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (108 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -337,12 +346,14 @@ unclaimed, the silent-failure section dropped, an advisory flipped to gating, `r
 short-circuiting, a drifting CumulusCI pin, an emptied trigger list, a usage error exiting 1,
 a dropped Python floor, a dropped requirements pin, renames collapsed to the destination
 only, the per-check timeout removed, advisory output truncated from the tail again, the
-dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, and either
+dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, either
 `git status` return code left unchecked — which matters because a failed `git status` returns
 empty stdout, indistinguishable from a clean tree, so it would drop uncommitted paths from
-the selection and, in the CCI-reference check, report "no drift" and pass. The first round
-of mutations found two live holes in these tests, both in the gap between a helper returning
-the right value and the gate acting on it.
+the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
+dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
+a directory claim swallowing shell suites again, and `pyproject.toml` removed from either
+pytest-driven check's triggers. The first round of mutations found two live holes in these
+tests, both in the gap between a helper returning the right value and the gate acting on it.
 
 Building it turned up four real defects rather than only proving the wiring. Making
 `skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a
