@@ -21,10 +21,20 @@ total — see the "Reference Fields" line in `query_erd.py stats` for the
 distinction. Avoids loading the 30K-line JSON file directly into AI
 context.
 
-⚠ Those four figures are restated here, in `docs/erds/README.md`, and in
-`.cursor/skills/revenue-cloud-data-model/SKILL.md`, with no generator behind
-them. Sweep all three plus this file when the ERD is refreshed — the 262→264
-refresh missed this one, so `stats` printed 264 while this line still said 262.
+⚠ **These figures are hardcoded prose with no generator behind them**, so a refresh
+staled every copy at once — the 262→264 pass missed this file, and `stats` printed
+264 figures while the line above still said 262. Four files carry them; sweep all
+four:
+
+| File | Carries |
+|---|---|
+| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** |
+| `docs/erds/README.md` | objects, fields, relationships |
+| `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships |
+| `.cursor/skills/schema-validation/SKILL.md` | fields, relationships |
+
+`query_erd.py stats` is the generated source for all of them — reconcile against it,
+not against another doc.
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain

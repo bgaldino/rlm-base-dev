@@ -27,10 +27,12 @@ The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields
 
 **262 → 264 delta:** **70 fields added, 8 removed**, 0 type changes, 1 polymorphic
 reference-target change, 270 picklist values added and 18 removed, across 62 changed
-objects. All 8 removals are in the usage domain and are one coherent change rather
-than attrition — 264 moved the usage policy bindings off the definition and runtime
-objects and onto `ProductUsageResourcePolicy`, the **product-and-resource-specific**
-binding site.
+objects. All 8 removals are in the usage domain, and **7 of the 8** are one coherent
+change rather than attrition — 264 moved the usage policy bindings off the definition
+and runtime objects and onto `ProductUsageResourcePolicy`, the
+**product-and-resource-specific** binding site. The 8th,
+`TransactionUsageEntitlement.DrawdownOrder`, is a separate change and is the row most
+often got wrong — see the table below.
 
 ⚠ **PURP is the new binding site, not the only one.** `UsageResourcePolicy` still
 carries the same four lookups (`RatingFrequencyPolicyId`,
@@ -197,7 +199,21 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
 - `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields; both collapsed at 264 because the refresh patched in every field the org had. Trust the generated report over any count quoted in prose.
-- `scripts/erd/schema_diff/{260,262,264}-schema.json` — fresh-org schema snapshots per release. **264 is the current one**, and `264-schema-crossval.json` beside it is the second-org cross-validation that makes the 264 capture dual-sourced. Field metadata in these files is a **dict keyed by field name**, not a list — an accessor written for a list returns `None` for every field and any check built on it silently passes
+- `scripts/erd/schema_diff/{260,262,264}-schema.json` — fresh-org schema snapshots, **one committed per release**; 264 is the current one. Field metadata in these files is a **dict keyed by field name**, not a list — an accessor written for a list returns `None` for every field and any check built on it silently passes
+- ⚠ **The second-org cross-validation is not a committed artifact.** The 264 capture is dual-sourced, but only one snapshot is kept; the second extraction is reproducible rather than stored, so the repo does not carry two 2 MB snapshots per release. To re-confirm, extract the ERD's own object list from a second org of the same release and diff:
+
+  ```bash
+  python scripts/erd/schema_diff/extract_schema.py --org <second-alias> \
+      --output /tmp/crossval.json
+  ```
+
+  Pass **neither** `--objects` nor `--all-objects`: the default reads the object list
+  straight from `erd-data.json`, which is what you want. `--all-objects` fails outright
+  with `EXCEEDED_ID_LIMIT`, because `EntityDefinition` does not support `queryMore()`.
+  Re-run on 2026-08-15 against `rlm-base__264fresh`: 254 objects / 3,913 fields,
+  **0 field-set and 0 `referenceTo` differences** vs the committed capture. The 9
+  objects reported missing are the documented feature-gated set, not a discrepancy.
+  Full workflow in `.cursor/skills/schema-validation/SKILL.md`
 - `scripts/erd/schema_diff/262-vs-264-diff.md` — current verified release delta (262 → 264), including the SFDMU plan `--impact` cross-reference
 - `scripts/erd/schema_diff/260-vs-262-diff.md` — previous release delta, kept for history
 

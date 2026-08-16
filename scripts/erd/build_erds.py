@@ -161,7 +161,12 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
          f"<title>Revenue Cloud v{api} — Interactive ERD</title>"),
         (r'<span class="ver-badge">v[\d.]+</span>',
          f'<span class="ver-badge">v{api}</span>'),
-        (r"<small>[^<]*\(Release \d+\)\s*&mdash;",
+        # Matches both subtitle forms this function can emit: the named
+        # "Summer '26 (Release 262)" and the unnamed "Release 266" fallback used
+        # when RELEASE_NAMES has no entry yet. Matching only the parenthesised
+        # form would strand a fallback subtitle on the old release forever,
+        # while the title and badge moved on — the drift this exists to prevent.
+        (r"<small>[^<]*?(?:\(Release \d+\)|Release \d+)\s*&mdash;",
          f"<small>{subtitle} &mdash;"),
     ):
         html, n = re.subn(pattern, replacement, html)

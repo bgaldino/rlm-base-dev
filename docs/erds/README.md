@@ -12,14 +12,19 @@ release while serving another one's data.
 The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch` is carried forward from the 262 pass and was not re-run; 264 has no published Core UDD branch or Metadata Coverage Report yet, which is why a live org is ground truth for this release.
 
 **262 → 264:** 70 fields added, 8 removed, 0 type changes, 1 polymorphic
-reference-target change, 270 picklist values added and 18 removed, over 62 changed
-objects. All 8 removals are usage-domain, and together they are a single
+reference-target change, 270 picklist values added and 18 removed, across 62 changed
+objects. All 8 removals are usage-domain, and **7 of them** are a single
 architectural move rather than attrition: 264 relocated the usage policy bindings
 off the definition and runtime objects and onto `ProductUsageResourcePolicy`, the
 **product-and-resource-specific** binding site. `UsageResourcePolicy` still carries
 the same four policy lookups at **resource** level in a 264 org, so PURP is the new
-binding site, not the only one. Full delta, including the SFDMU `--impact`
-cross-reference, at `scripts/erd/schema_diff/262-vs-264-diff.md`.
+binding site, not the only one.
+
+The 8th removal, `TransactionUsageEntitlement.DrawdownOrder`, is **not** part of that
+move — PURP has no drawdown field. In 264 drawdown ordering lives on
+`ProductUsageGrant` and on the per-transaction policy objects. Full delta, including
+the SFDMU `--impact` cross-reference, at
+`scripts/erd/schema_diff/262-vs-264-diff.md`.
 
 <details>
 <summary>260 → 262 (previous baseline, kept for history)</summary>

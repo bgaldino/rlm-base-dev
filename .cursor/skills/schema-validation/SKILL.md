@@ -55,12 +55,16 @@ installed under, not a 3.9 system Python.
 cci flow run prepare_rlm_org --org 264merged
 cci flow run prepare_rlm_org --org 264fresh
 
-# 2. Extract from both, then confirm they agree field-for-field before trusting either
+# 2. Extract from both, then confirm they agree field-for-field before trusting either.
+#    Pass no object flag: the default reads the list from erd-data.json. Do NOT pass
+#    --all-objects — it fails with EXCEEDED_ID_LIMIT (EntityDefinition has no queryMore).
+#    Only ONE snapshot is committed per release; the second stays in /tmp by design.
 python scripts/erd/schema_diff/extract_schema.py --org rlm-base__264merged \
   --output scripts/erd/schema_diff/264-schema.json
 python scripts/erd/schema_diff/extract_schema.py --org rlm-base__264fresh \
   --output /tmp/264-crossval.json
 # any object/field difference between the two is org noise, not schema — resolve it first
+# 264 result (2026-08-15, re-confirmed): 254 objects / 3,913 fields each, 0 differences
 
 # 3. Diff against the PREVIOUS release's committed snapshot (not a live old org)
 python scripts/erd/schema_diff/diff_schemas.py \
