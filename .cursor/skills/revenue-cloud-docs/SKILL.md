@@ -26,10 +26,13 @@ For **developer-facing** material — standard object/field reference, Business 
 > **A passing `discover` proves nothing on its own — it exits 0 having found zero articles.** `_discover_articles` catches a sidebar-walker failure, logs it, and returns `[]`; the caller filters by prefix, logs the count, writes the manifest, and exits cleanly without ever rejecting an empty result (`tasks/rlm_snapshot_help.py`, discovery phase). A wrong root, a reorganized ID prefix, and a JS failure are therefore indistinguishable from success at the exit code. **Read the count this run logged:**
 >
 > ```bash
-> cci task run snapshot_pcm_help_264 -o mode discover 2>&1 | grep 'unique articles'
-> # "Discovered 0 unique articles (0 total before prefix filter)"   -> bad root, or the walker failed
-> # "Discovered 0 unique articles (N total before prefix filter)"   -> root walks, prefix is wrong for this area
+> cci task run snapshot_pcm_help_264 -o mode discover     # run it plainly; keep the exit status
+> # then read this line out of the output:
+> #   "Discovered 0 unique articles (0 total before prefix filter)"   -> bad root, or the walker failed
+> #   "Discovered 0 unique articles (N total before prefix filter)"   -> root walks, prefix is wrong for this area
 > ```
+>
+> **Do not pipe it through `grep`.** The pipeline would report `grep`'s status instead of the task's, so a failure *after* the count is logged — the manifest save, the index build — would read as success, and the traceback would be filtered away. The exit status is still worth having: it catches every failure mode *except* the empty walk. If you want a filtered copy, keep both with `set -o pipefail` and `tee`.
 >
 > **Do not substitute the manifest's `stats.discovered` for that line** — it is cumulative, not per-run. `_merge_discovered` only ever adds, so an empty discovery leaves the prior articles untouched; `_compute_stats` then counts **every area at once** (262 reports 935, the sum of 11 areas), and the per-area figure under `areas[]` is likewise the running total for that area. A failed re-discovery therefore leaves both numbers positive and unchanged. On a first 264 run neither exists — `docs/salesforce/264/help/` is not there yet, so reading the manifest raises `FileNotFoundError`.
 >
@@ -212,12 +215,12 @@ When a new release ships (e.g., Salesforce announces 264 GA):
 2. **Run discovery first** to see what's new:
 
    ```bash
-   cci task run snapshot_billing_help_264 -o mode discover 2>&1 | grep 'unique articles'
+   cci task run snapshot_billing_help_264 -o mode discover
    ```
 
    The discovery phase walks the sidebar and writes `manifest.json` with all discovered article IDs as `pending`. Compare against the previous release's manifest to see additions, removals, renames.
 
-   **Read the `Discovered N unique articles` line before moving on — a zero-article discovery also exits 0**, so the exit code cannot distinguish a good walk from a wrong root, a reorganized prefix, or a walker crash. That log line is the only number computed from *this* invocation. The manifest's `stats.discovered` is cumulative and cannot substitute for it: an empty discovery adds nothing and removes nothing, so both the top-level count (every area summed) and the per-area count under `areas[]` survive a failed re-walk unchanged.
+   **Read the `Discovered N unique articles` line before moving on — a zero-article discovery also exits 0**, so the exit code cannot distinguish a good walk from a wrong root, a reorganized prefix, or a walker crash. That log line is the only number computed from *this* invocation. Read it out of the task's own output rather than piping to `grep`, which would substitute `grep`'s exit status for the task's and hide anything that fails after the count is logged. The manifest's `stats.discovered` is cumulative and cannot substitute for it either: an empty discovery adds nothing and removes nothing, so both the top-level count (every area summed) and the per-area count under `areas[]` survive a failed re-walk unchanged.
 
 3. **Run full capture**:
 

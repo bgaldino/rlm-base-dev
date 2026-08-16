@@ -27,8 +27,8 @@ published source.
    stable across release reorgs. Validate each area's root first:
 
    ```bash
-   cci task run snapshot_pcm_help_264 -o mode discover 2>&1 | grep 'unique articles'
-   cci task run snapshot_pcm_help_264   # only if that line reports a non-zero count
+   cci task run snapshot_pcm_help_264 -o mode discover   # read "Discovered N unique articles"
+   cci task run snapshot_pcm_help_264                    # only if that N is non-zero
    ```
 
    Captures land in `docs/salesforce/264/help/` and
@@ -36,10 +36,13 @@ published source.
 
    **`discover` does not fail on a bad root** — it exits 0 with zero discovered
    articles, so the `Discovered N unique articles` line it logs is the only
-   signal that the root and prefix are right. Read that line, not the manifest:
-   `stats.discovered` sums every area and keeps prior runs, so it stays positive
-   through a failed re-walk (and on a first 264 run the manifest does not exist
-   yet). And even a non-zero count says nothing about whether 264 content
+   signal that the root and prefix are right. Read that line out of the task's
+   own output: piping to `grep` would report `grep`'s exit status instead of the
+   task's and hide a failure that happens after the count is logged. Don't use
+   the manifest either — `stats.discovered` sums every area and keeps prior runs,
+   so it stays positive through a failed re-walk (and on a first 264 run the
+   manifest does not exist yet). And even a non-zero count says nothing about
+   whether 264 content
    was *written*: the articles behind a valid root can still be 262 text, so a
    capture can spend 10–15 minutes writing last release's content under a 264
    path. Per-area readiness and capture order are assessed in the private
