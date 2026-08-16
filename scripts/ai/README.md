@@ -31,7 +31,7 @@ four:
 | `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** |
 | `docs/erds/README.md` | objects, fields, relationships |
 | `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships |
-| `.cursor/skills/schema-validation/SKILL.md` | fields, relationships |
+| `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships |
 
 `query_erd.py stats` is the generated source for all of them — reconcile against it,
 not against another doc.

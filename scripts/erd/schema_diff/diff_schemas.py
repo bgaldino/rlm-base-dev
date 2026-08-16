@@ -104,6 +104,37 @@ def diff_fields(baseline_fields: dict, target_fields: dict) -> dict:
     }
 
 
+# Selection modes that enumerate the org rather than a predetermined list. Only these
+# make the object rows of a diff meaningful.
+EXHAUSTIVE_SELECTIONS = ("--all-objects (EntityDefinition)",)
+
+
+def bounded_sides(baseline: dict, target: dict) -> dict:
+    """Map org alias -> selection mode, for each side built from a fixed object list.
+
+    A snapshot enumerated from `erd-data.json` or `--objects FILE` has its key set
+    decided before the org is queried, so `objects_added` can only ever be 0 — true by
+    construction, not measured. A snapshot with no `object_selection` is *unknown* and
+    counted as bounded on purpose: assuming an unlabelled snapshot was exhaustive is
+    the fail-open direction, and every snapshot committed before that field existed
+    would silently regain a bare, authoritative-looking 0.
+    """
+    out = {}
+    for meta in (baseline.get("metadata", baseline), target.get("metadata", target)):
+        if not isinstance(meta, dict):
+            continue
+        sel = meta.get("object_selection")
+        if sel in EXHAUSTIVE_SELECTIONS:
+            continue
+        out[meta.get("org_alias", "unknown")] = sel or "unrecorded (snapshot predates provenance)"
+    return out
+
+
+def objects_measured(baseline: dict, target: dict) -> bool:
+    """True only when both sides enumerated the org, so object rows are real findings."""
+    return not bounded_sides(baseline, target)
+
+
 def diff_schemas(baseline: dict, target: dict) -> dict:
     """Produce a full diff between two schema snapshots."""
     b_objects = set(baseline["objects"].keys())
@@ -128,6 +159,11 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
         "baseline": baseline.get("metadata", {}),
         "target": target.get("metadata", {}),
         "summary": {
+            # Say outright whether the object rows mean anything. `object_selection`
+            # provenance alone would make a consumer of the JSON re-derive which
+            # selection modes are exhaustive, and the safe reading of a bare
+            # `objects_added: 0` is not obvious enough to leave implicit.
+            "objects_measured": objects_measured(baseline, target),
             "objects_added": len(objects_added),
             "objects_removed": len(objects_removed),
             "objects_changed": len(object_diffs),
@@ -322,15 +358,11 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append("")
     lines.append("## Summary")
     lines.append("")
-    # A snapshot enumerated from erd-data.json carries the ERD's key set, so if either
-    # side was built that way the object rows are bounded by that set and a 0 is true by
-    # construction. Reporting it as a measured count invites exactly the wrong reading —
-    # that the release added no objects — so mark it instead of printing a bare number.
-    erd_bounded = [
-        m.get("org_alias", "unknown") for m in (b_meta, t_meta)
-        if m.get("object_selection") == "erd-data.json"
-    ]
-    obj_note = " *(not measured)*" if erd_bounded else ""
+    # Marked, not printed bare: a fixed object list makes `objects_added: 0` true by
+    # construction. Shares bounded_sides() with the JSON's `objects_measured` flag so the
+    # two renderings of the same fact cannot drift apart.
+    bounded = bounded_sides({"metadata": b_meta}, {"metadata": t_meta})
+    obj_note = " *(not measured)*" if bounded else ""
 
     lines.append(f"| Metric | Count |")
     lines.append(f"|--------|-------|")
@@ -346,13 +378,14 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"| Picklist values removed | {summary.get('total_picklist_value_removals', 0)} |")
     lines.append("")
 
-    if erd_bounded:
+    if bounded:
+        which = "; ".join(f"`{alias}` from {sel}" for alias, sel in sorted(bounded.items()))
         lines.append(
             f"> **Object additions and removals are not measured by this report.** "
-            f"The snapshot for {' and '.join(sorted(set(erd_bounded)))} was enumerated "
-            f"from `erd-data.json`, so both sides are restricted to the object keys the "
-            f"ERD already had and the object rows above can only ever be 0. To find "
-            f"objects the target release added, enumerate them independently — "
+            f"These snapshots were enumerated from a fixed object list ({which}), so "
+            f"their key sets were decided before either org was queried and the object "
+            f"rows above can only ever be 0. To find objects the target release added, "
+            f"enumerate them independently — "
             f"`sf sobject list --sobject all --target-org <alias> --json`, which unlike "
             f"`--all-objects` has no ID limit and returns canonical API names — then "
             f"re-extract and re-diff. Field-level rows below are unaffected: they are "
