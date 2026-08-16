@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **65** Markdown files under `.cursor/skills/`
+- Skills inventoried: **67** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **55** checked, **0** missing
+- AGENTS.md skill references: **57** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -42,6 +42,8 @@
 - `.cursor/skills/context-service/data-model-and-api.md`
 - `.cursor/skills/context-service/runtime-and-persistence.md`
 - `.cursor/skills/decision-tables/SKILL.md`
+- `.cursor/skills/decision-tables/authoring-and-data-model.md`
+- `.cursor/skills/decision-tables/lifecycle-and-refresh.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
 - `.cursor/skills/document-generation/SKILL.md`
 - `.cursor/skills/document-generation/data-mapper-authoring.md`
@@ -124,6 +126,8 @@
 - ✅ `.cursor/skills/context-service/data-model-and-api.md`
 - ✅ `.cursor/skills/context-service/runtime-and-persistence.md`
 - ✅ `.cursor/skills/decision-tables/SKILL.md`
+- ✅ `.cursor/skills/decision-tables/authoring-and-data-model.md`
+- ✅ `.cursor/skills/decision-tables/lifecycle-and-refresh.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `.cursor/skills/document-generation/SKILL.md`
 - ✅ `.cursor/skills/document-generation/data-mapper-authoring.md`
