@@ -4,10 +4,14 @@
 branch cut so the per-release corpus has a home. It intentionally contains no
 feature inventory yet, because the source material does not exist:
 
-- Feature freeze is **2026-08-14 01:00 UTC**; GA waves run **2026-09-05 →
+- Feature freeze **passed on 2026-08-14 01:00 UTC**; GA waves run **2026-09-05 →
   2026-10-10**. Production is still on 262.
 - No 264 release notes have been published, and there is no Metadata Coverage
   Report entry for **API v68.0**.
+- No official 264 ERD documentation has published either, so
+  [`docs/erds/erd-data.json`](../../erds/erd-data.json) — refreshed to 264 from
+  live-org describe — has nothing to reconcile against. It is *ahead of* the
+  published doc for this release, not behind it.
 
 Until those land, the ground truth for 264 behavior is a **live 264 org** (the dev
 hub is on API 68.0, so every scratch org it creates is a 264 org), not
@@ -29,6 +33,13 @@ published source.
 
    Captures land in `docs/salesforce/264/help/` and
    `docs/salesforce/264/dev-guide{,-industries}/`.
+
+   A passing `discover` proves only that the root article ID still resolves — on
+   a pre-GA release the articles behind it can still be 262 text, so a green
+   discover plus a full capture can spend 10–15 minutes writing last release's
+   content under a 264 path. Per-area readiness and the capture order are
+   assessed in the private artifacts repo (todo 145); check it before committing
+   a run to an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and

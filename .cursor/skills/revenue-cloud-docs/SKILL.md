@@ -22,6 +22,8 @@ Use the Salesforce Help portal snapshots at `docs/salesforce/{release}/help/` as
 For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Cloud Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
 
 > **Branch note (264).** This branch targets Release 264 (Winter '27, API v68.0), but **262 is still the only captured corpus** — `docs/salesforce/262/help/` and `docs/salesforce/262/dev-guide*/`. The `snapshot_*_264` task variants exist in `cumulusci.yml`, but their root article IDs and prefixes are inherited from 262 and **unverified** (264 is pre-GA and has no published release notes), so run `mode: discover` first. Until a 264 capture lands, ground claims against the 262 snapshot and flag anything a 264 change could invalidate.
+>
+> **A passing `discover` is not evidence the content exists.** It proves only that the area's root article ID still resolves. On a pre-GA release the articles behind that root can still be the *previous* release's text, so a green discover followed by a full capture can spend 10–15 minutes producing 262 content under a 264 path. Per-area readiness — which areas are worth capturing yet, and what to watch for before re-checking — is assessed in the private artifacts repo (`.agents/artifacts/todos/`, todo 145), because it derives from internal tracking that does not belong in this repo.
 
 ## Why the snapshot exists
 
