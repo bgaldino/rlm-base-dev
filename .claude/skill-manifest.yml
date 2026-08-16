@@ -481,7 +481,7 @@ foundations:
     postman_environment: postman/Agentforce Revenue Management v66.0.postman_environment.json
     postman_v67_status: needs_refresh
 
-# ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──
+# ─── PMOS (sibling repo; owner = the `maintainer` field in the section below) ─
 #
 # Discovery is OPTIONAL: most Foundations workflows do not need a local PMOS
 # clone. The cross-repo manifest exists so PMOS-aware skills (release-enablement,
