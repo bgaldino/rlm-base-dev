@@ -303,9 +303,19 @@ def _normalize_repo_url(url: str) -> tuple[str, str] | None:
     return (host.lower(), "/".join(parts[-2:]).lower())
 
 
-def _urls_equivalent(a: str, b: str) -> bool:
+def _urls_equivalent(a: str, b: str) -> bool | None:
+    """Compare two git URLs after normalization.
+
+    Returns True (same repo), False (provably DIFFERENT repos), or None when
+    either URL does not normalize (local-path or ``file://`` remotes, exotic
+    schemes). None means "cannot compare" — callers must treat it as
+    unverifiable, never as a mismatch: rejecting a legitimate clone because
+    its remote is a local mirror would be a false positive.
+    """
     na, nb = _normalize_repo_url(a), _normalize_repo_url(b)
-    return na is not None and na == nb
+    if na is None or nb is None:
+        return None
+    return na == nb
 
 
 def _discover_repo(
@@ -382,7 +392,13 @@ def _discover_repo(
         remote = _git_remote_url(cand)
         if remote is None or not declared_url:
             return "unverified"
-        if _urls_equivalent(remote, declared_url):
+        same = _urls_equivalent(remote, declared_url)
+        if same is None:
+            # Readable remote, but not comparable (local-path/file:// mirror,
+            # exotic scheme). Not a provable mismatch — fall back to the
+            # documented unverified acceptance rather than rejecting.
+            return "unverified"
+        if same:
             return "verified-remote"
         rejected.append((cand, remote))
         return None
@@ -655,9 +671,10 @@ def _cli_check(manifest: dict[str, Any]) -> int:
             else:
                 print(
                     "          identity: UNVERIFIED — no remote/URL comparison "
-                    "was possible (unreadable git remote or undeclared "
-                    "repo_url); structural match accepted. Confirm this clone "
-                    "is the declared repo."
+                    "was possible (unreadable git remote, undeclared repo_url, "
+                    "or a remote form that does not normalize, e.g. a "
+                    "local-path/file:// mirror); structural match accepted. "
+                    "Confirm this clone is the declared repo."
                 )
             if key == "pmos":
                 skills_dir = resolved.path / ".claude" / "skills"
