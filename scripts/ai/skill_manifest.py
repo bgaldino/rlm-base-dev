@@ -38,8 +38,9 @@ import importlib
 import importlib.util
 import os
 import re
+import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -241,6 +242,80 @@ class RepoLocation:
     path: Path | None
     candidates_tried: list[Path]
     env_var: str | None  # which env var was tried first (if any)
+    # Identity of the accepted candidate relative to the declared repo_url:
+    #   "verified-remote" — git remote matches repo_url
+    #   "verified-self"   — the candidate IS the repo containing this manifest
+    #                       AND carries this section's repo-specific surface
+    #                       (remote not consulted)
+    #   "unverified"      — structural match (strict or lenient) accepted, but
+    #                       no remote/URL comparison was possible
+    #   "unknown"         — no candidate accepted
+    identity: str = "unknown"
+    # Candidates that structurally matched but were REJECTED because their git
+    # remote names a different repo than the manifest's repo_url. Each entry is
+    # (path, remote_url). A stale clone of a departed maintainer's repo lands
+    # here instead of silently winning discovery — the P0 failure class.
+    rejected: list[tuple[Path, str]] = field(default_factory=list)
+
+
+def _git_remote_url(path: Path) -> str | None:
+    """Return the clone's ``remote.origin.url``, or None if unreadable.
+
+    Uses ``git -C <path> config --get remote.origin.url`` so worktrees and
+    gitfile indirection are handled by git itself. Any failure (not a git
+    repo, git not installed, no origin remote) returns None — the caller
+    treats that as "identity unverifiable", never as an error.
+    """
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(path), "config", "--get", "remote.origin.url"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    url = res.stdout.strip()
+    return url or None
+
+
+def _normalize_repo_url(url: str) -> tuple[str, str] | None:
+    """Reduce a git URL to ``(host, owner/repo)`` for identity comparison.
+
+    Handles https://host/owner/repo(.git), ssh://git@host/owner/repo(.git),
+    and scp-style git@host:owner/repo(.git). Returns None if the URL doesn't
+    parse into host + two path segments.
+    """
+    u = url.strip().rstrip("/")
+    if u.endswith(".git"):
+        u = u[: -len(".git")]
+    m = re.match(r"^(?:ssh://)?git@([^:/]+)[:/](.+)$", u)
+    if m:
+        host, rest = m.group(1), m.group(2)
+    else:
+        m = re.match(r"^[a-z+]+://([^/]+)/(.+)$", u)
+        if not m:
+            return None
+        host, rest = m.group(1), m.group(2)
+    parts = [p for p in rest.split("/") if p]
+    if len(parts) < 2:
+        return None
+    return (host.lower(), "/".join(parts[-2:]).lower())
+
+
+def _urls_equivalent(a: str, b: str) -> bool | None:
+    """Compare two git URLs after normalization.
+
+    Returns True (same repo), False (provably DIFFERENT repos), or None when
+    either URL does not normalize (local-path or ``file://`` remotes, exotic
+    schemes). None means "cannot compare" — callers must treat it as
+    unverifiable, never as a mismatch: rejecting a legitimate clone because
+    its remote is a local mirror would be a false positive.
+    """
+    na, nb = _normalize_repo_url(a), _normalize_repo_url(b)
+    if na is None or nb is None:
+        return None
+    return na == nb
 
 
 def _discover_repo(
@@ -283,17 +358,67 @@ def _discover_repo(
     # the manifest declared its repo name, and we can sanity-check via a
     # well-known marker (.claude/ or .cursor/).
     repo_name = repo_section.get("name", "")
+    declared_url = repo_section.get("repo_url", "") or ""
+    rejected: list[tuple[Path, str]] = []
+
+    def _identity_of(cand: Path) -> str | None:
+        """Classify a structurally-matching candidate against repo_url.
+
+        Returns "verified", "unverified", or None (= REJECT: the clone's
+        remote provably names a different repo). Structural matching alone
+        is what let a departed maintainer's stale clone win discovery and
+        silently supply outdated grounding — the P0 failure class — so a
+        readable remote that disagrees with the declared repo_url disqualifies
+        the candidate outright.
+        """
+        if manifest_root is not None and cand.resolve() == manifest_root.resolve():
+            # The repo containing this manifest is trivially itself — but only
+            # for the section that actually DESCRIBES this repo. The manifest
+            # is designed to ship identically in both repos, so containment
+            # alone cannot say which section it satisfies: a PMOS hint pointed
+            # at this Foundations checkout would otherwise be accepted as a
+            # "verified" PMOS clone. Require the section's repo-specific agent
+            # surface; on mismatch, fall through to remote comparison, which
+            # rejects a provably different repo.
+            self_is_this_section = (
+                repo_name == "pmos-revenue-cloud"
+                and (cand / ".claude" / "skills").is_dir()
+            ) or (
+                repo_name == "rlm-base-dev"
+                and (cand / ".cursor" / "skills").is_dir()
+            )
+            if self_is_this_section:
+                return "verified-self"
+        remote = _git_remote_url(cand)
+        if remote is None or not declared_url:
+            return "unverified"
+        same = _urls_equivalent(remote, declared_url)
+        if same is None:
+            # Readable remote, but not comparable (local-path/file:// mirror,
+            # exotic scheme). Not a provable mismatch — fall back to the
+            # documented unverified acceptance rather than rejecting.
+            return "unverified"
+        if same:
+            return "verified-remote"
+        rejected.append((cand, remote))
+        return None
+
     for cand in candidates:
         if not cand.is_dir():
             continue
         # Strict match: manifest already shipped here
         if (cand / MANIFEST_FILENAME).is_file():
+            identity = _identity_of(cand)
+            if identity is None:
+                continue
             return RepoLocation(
                 name=repo_name or "<unknown>",
                 role=repo_section.get("role", "<unknown>"),
                 path=cand,
                 candidates_tried=candidates,
                 env_var=env_var,
+                identity=identity,
+                rejected=rejected,
             )
         # Lenient match: directory exists with the expected agent surface.
         # Foundations ships .cursor/skills/; PMOS ships .claude/skills/.
@@ -303,12 +428,17 @@ def _discover_repo(
         if (repo_name == "pmos-revenue-cloud" and looks_like_pmos) or (
             repo_name == "rlm-base-dev" and looks_like_foundations
         ):
+            identity = _identity_of(cand)
+            if identity is None:
+                continue
             return RepoLocation(
                 name=repo_name or "<unknown>",
                 role=repo_section.get("role", "<unknown>"),
                 path=cand,
                 candidates_tried=candidates,
                 env_var=env_var,
+                identity=identity,
+                rejected=rejected,
             )
 
     return RepoLocation(
@@ -317,6 +447,7 @@ def _discover_repo(
         path=None,
         candidates_tried=candidates,
         env_var=env_var,
+        rejected=rejected,
     )
 
 
@@ -503,6 +634,13 @@ def _cli_check(manifest: dict[str, Any]) -> int:
             print(f"  [ERROR] {key}: section missing in manifest")
             overall_ok = False
             continue
+        for rej_path, rej_remote in resolved.rejected:
+            print(
+                f"  [WARN]  {key}: REJECTED candidate {rej_path} — its git remote "
+                f"({rej_remote}) names a different repo than the declared repo_url. "
+                f"A stale/foreign clone at a hint path must not win discovery; "
+                f"remove or re-clone it."
+            )
         if resolved.path is None:
             if is_optional:
                 print(
@@ -522,6 +660,31 @@ def _cli_check(manifest: dict[str, Any]) -> int:
         else:
             tag = "OK-OPT" if is_optional else "OK"
             print(f"  [{tag:6s}] {key}: {resolved.path}")
+            if resolved.identity == "verified-remote":
+                print("          identity: verified (git remote matches repo_url)")
+            elif resolved.identity == "verified-self":
+                print(
+                    "          identity: verified (this clone contains this "
+                    "manifest and the section's repo surface; remote not "
+                    "consulted)"
+                )
+            else:
+                print(
+                    "          identity: UNVERIFIED — no remote/URL comparison "
+                    "was possible (unreadable git remote, undeclared repo_url, "
+                    "or a remote form that does not normalize, e.g. a "
+                    "local-path/file:// mirror); structural match accepted. "
+                    "Confirm this clone is the declared repo."
+                )
+            if key == "pmos":
+                skills_dir = resolved.path / ".claude" / "skills"
+                if skills_dir.is_dir():
+                    n = sum(
+                        1
+                        for d in skills_dir.iterdir()
+                        if d.is_dir() and (d / "SKILL.md").is_file()
+                    )
+                    print(f"          skills on disk: {n} (measured, not hand-kept)")
 
     return 0 if _audit_foundations(manifest) and overall_ok else 1
 

@@ -38,10 +38,10 @@ A cross-repo skill manifest that lets agents in either repo discover and consume
 | 935 Salesforce Help articles per release | **Foundations** (`docs/salesforce/{release}/help/`) | Mirrored from help.salesforce.com, diffable across releases |
 | QB scenario reference (real demo records) | **Foundations** (`docs/enablement/master/qb-scenario-reference.md`) | The records `prepare_rlm_org` actually loads |
 | RLM business APIs reference | **Foundations** (`.cursor/skills/rlm-business-apis/`) | API endpoints + working examples |
-| `prepare_rlm_org` flow + 36 feature flags | **Foundations** (`cumulusci.yml`) | The build itself |
+| `prepare_rlm_org` flow + 41 feature flags | **Foundations** (`cumulusci.yml`) | The build itself |
 | PRDs (proposed features) | **PMOS** (`docs/Releases/{release}/`) | Per-release authoring layer |
 | Roadmap / capability map | **PMOS** (`context/CAPABILITIES.md`, 218 rows) | PM-owned status: Beta → GA → deprecated |
-| PM authoring skills (prd, demo-script, sales-enablement, release-notes, presentation, documentation, spec, technical-review) | **PMOS** (`.claude/skills/`) | 61 skills total in PMOS |
+| PM authoring skills (prd, demo-script, sales-enablement, release-notes, presentation, documentation, spec, technical-review) | **PMOS** (`.claude/skills/`) | Skill count is measured from the resolved clone: `skill_manifest.py --check` prints "skills on disk: N" |
 | Multi-agent review personas (csm, eng-lead, ux-designer, etc.) | **PMOS** (`.claude/agents/`) | 16 reviewer agent definitions |
 | Per-feature knowledge packages (~25k lines) | **PMOS** (`packages/available/revenue-cloud-*/`) | 11 RC packages: billing, pricing, configurator, pcm, transaction-mgmt, usage, ui-ux, performance, integrations, approvals, contracts |
 
