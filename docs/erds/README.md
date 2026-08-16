@@ -39,33 +39,46 @@ To refresh the ERD against a new release or different org configuration, see `.c
 
 ### Individual Domain Mermaid Diagrams
 
-Detailed ERDs for each domain, suitable for documentation and analysis:
+Detailed ERDs for each domain, suitable for documentation and analysis. The count is
+**entities drawn in that file**, which is *not* its domain's object count: a diagram may
+draw fewer than its domain holds, all of them, or one more where an edge reaches into
+another domain. Do not read one number off the other. For a domain's
+object count see the Domain Overview table in
+`.cursor/skills/revenue-cloud-data-model/SKILL.md`. Both are gated by
+`tests/test_erd_doc_counts.py`; the numbers below are counted from the files.
 
-- **pcm.mermaid** — Product Catalog Management (11 objects)
+- **pcm.mermaid** — Product Catalog Management (11 entities)
   - Product hierarchy, attributes, classifications, and qualifications
-  
-- **pricing.mermaid** — Salesforce Pricing (14 objects)
+
+- **pricing.mermaid** — Salesforce Pricing (26 entities)
   - Price books, price book entries, and adjustment logic
-  
-- **rate-management.mermaid** — Rate Management (15 objects)
+
+- **rate-management.mermaid** — Rate Management (11 entities)
   - Rate cards, rate card entries, and rate lookup data
-  
-- **configurator.mermaid** — Product Configurator (4 objects)
+
+- **configurator.mermaid** — Product Configurator (4 entities)
   - Product configuration flows, rules, and assignments
-  
-- **transaction-management.mermaid** — Transaction Management (37 objects)
+
+- **transaction-management.mermaid** — Transaction Management (44 entities)
   - Assets, asset state periods, orders, order items, quotes, approvals
   - Contract items, pricing details, and related transaction records
-  
-- **dro.mermaid** — Dynamic Revenue Orchestrator (27 objects)
+
+- **dro.mermaid** — Dynamic Revenue Orchestrator (29 entities)
   - DRO transactions, message sets, outbound messages, and orchestration rules
-  
-- **usage-management.mermaid** — Usage Management (22 objects)
+
+- **usage-management.mermaid** — Usage Management (24 entities)
   - Product usage grants, usage resources, usage records, and policies
-  
-- **billing.mermaid** — Billing (54 objects)
+  - Draws `RatingFrequencyPolicy`, which the data tags **Rate Management** — the one
+    cross-domain node in any of these files, and why this count exceeds the domain's
+    own object count in the Domain Overview table
+
+- **billing.mermaid** — Billing (72 entities)
   - Billing accounts, schedules, treatments, invoices, credit/debit memos
   - Payment schedules, tax treatment, and general ledger integration
+
+- **approvals.mermaid** — Approvals (1 entity)
+  - `ApprovalSubmission`; the domain's other two objects (`EmailTemplate`,
+    `ApprovalAlertContentDef`) are not drawn
 
 ### Master Diagram
 
@@ -147,7 +160,9 @@ Mermaid files can be viewed in several ways:
 ## Diagram Layout Strategy
 
 ### Domain Diagrams
-- Show all objects within a domain and their internal relationships
+- Draw a domain's objects and their internal relationships — not necessarily every
+  object the domain holds, and occasionally one from another domain where an edge
+  needs it, which is why the entity counts above are not domain object counts
 - Include key field names for context
 - Suitable for:
   - Feature documentation
@@ -182,7 +197,8 @@ To refresh after a schema change or new release:
 2. Run `python scripts/erd/validate_erd_against_org.py --org <alias> --patch` to add new fields and relationships. `--patch` is **add-only at field granularity** — for a field the ERD already carries it writes nothing, so a wrong `refersTo`, `relationshipName`, `description`, or `type` on an existing field survives the run. Re-check those four against the org describe yourself; see `.cursor/skills/schema-validation/SKILL.md`
 3. Run `python scripts/erd/cleanup_orphan_erd_fields.py --orgs <alias>,<alias2> --dry-run` to identify candidates for cleanup. Pass **two distinct orgs on the target release with complementary shapes**. Orphans are unioned across orgs, so a second org can only rescue a feature-gated field from deletion — which makes a differently shaped org useful and an identically shaped one inert. Either way, absence from every org is a candidate filter, not proof of removal: confirm each against the release diff or Core source before removing. The 264 pass used two Enterprise orgs and so removed only the 8 fields the 262→264 diff independently showed gone
 4. Run `python scripts/erd/build_erds.py` to regenerate the HTML viewer
-5. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias> --report docs/erds/validation-report.md` and confirm only the **expected feature-gated gaps** remain (diff against the committed `validation-report.md`; the current expected baseline is 9 feature-gated objects unfindable in a default RLM scratch profile — `AssetDowntimePeriod`, `AssetOwnerSharingRule`, `AssetShare`, `AssetTag`, `AssetWarranty`, `PricingProcedureResolution`, `ProductPriceHistoryLog`, `ProductPriceRange`, `ProductSellingModelDataTranslation` — plus **0** objects with field gaps and **58** ERD-side fields that don't surface in a stock org, which are the feature-gated / cross-cloud set carried forward from the 262 pass). A clean refresh produces **zero NEW gaps** vs the committed baseline, not zero gaps absolute.
+5. Run `python tests/test_erd_doc_counts.py` and fix whatever it names. Updating the headline triple is not enough: the **per-domain** counts in `.cursor/skills/revenue-cloud-data-model/SKILL.md` and its `domains/*.md` are separate hand-maintained numbers that this repo had never swept, and 8 of that table's 9 rows disagreed with `erd-data.json`, summing to 185 against an actual 263 — under a correct "263 objects" headline. A refresh is when to run it, but not what breaks it: the per-domain counts in `erd-data.json` are byte-identical at `release/262`, so those 15 numbers were wrong before the refresh and would have stayed wrong after it. It also gates the `- **Total Objects:** …` bullets below, which the headline sweep does not read. If you *add* a citation the check will fail on its pinned check count — raise `EXPECTED_CHECKS` deliberately rather than reflexively
+6. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias> --report docs/erds/validation-report.md` and confirm only the **expected feature-gated gaps** remain (diff against the committed `validation-report.md`; the current expected baseline is 9 feature-gated objects unfindable in a default RLM scratch profile — `AssetDowntimePeriod`, `AssetOwnerSharingRule`, `AssetShare`, `AssetTag`, `AssetWarranty`, `PricingProcedureResolution`, `ProductPriceHistoryLog`, `ProductPriceRange`, `ProductSellingModelDataTranslation` — plus **0** objects with field gaps and **58** ERD-side fields that don't surface in a stock org, which are the feature-gated / cross-cloud set carried forward from the 262 pass). A clean refresh produces **zero NEW gaps** vs the committed baseline, not zero gaps absolute.
 
 > The 262 baseline was 33 objects with field gaps and 822 ERD-side fields; at 264 the report reads 0 and 58. The two moved for different reasons, and only one of them is `--patch`: patching **adds**, so it can close org-side gaps (33 → 0) but can never lower the ERD-side count. That fell through deliberate removal — the orphan-cleanup batches, plus this refresh's 8 retired fields — which is why step 3 exists and why `--patch` is not a substitute for it. Quote the report rather than these numbers if they disagree; `validation-report.md` is generated, this line is not.
 

@@ -122,6 +122,45 @@ two and this one and **missed `scripts/ai/README.md`**, leaving `query_erd.py st
 printing 264 figures while its own README described 262 — so sweep by grepping the
 outgoing numbers, not by walking a list from memory.
 
+**Then run `python tests/test_erd_doc_counts.py`, which now gates part of that sweep.**
+It pins the headline triple *and* the per-domain counts — the Domain Overview table in
+`revenue-cloud-data-model/SKILL.md` and every `domains/*.md` headline — to
+`erd-data.json`, plus `erd-data.json` against its own `stats` block so a stale
+generator cannot certify the docs. The per-domain layer is what the manual sweep never
+reached: at 264 the headline triple was correct in all seven places while 15 per-domain
+counts under it were wrong — and not merely stale, since those counts are byte-identical at
+`release/262`, so the refresh did not move them. Grepping the outgoing numbers could not
+have caught that. Full account:
+[`doc-consistency/erd-count-drift.md`](../doc-consistency/erd-count-drift.md).
+
+All four docs above are covered, `scripts/ai/README.md` included — its citation wraps
+mid-phrase (`263` / `objects, 4,252 platform fields, 674 verified relationship edges`),
+so the check matches over a sliding window rather than per line, and **each site must
+still state a triple**: asking only whether *any* site matched let that file carry wrong
+numbers behind a reworded phrase and still pass. The Statistics bullet block in
+`docs/erds/README.md` is covered too, in a separate layer, because bullets do not match
+the triple pattern. What it does **not** cover is the other figures those files carry:
+the org-describe pair (254 objects / 3,913 fields), the 1,148 reference-field total, and
+the orphan and gap baselines. Those still need the grep.
+
+⚠ **A domain's object count and a diagram's entity count are different numbers.** The
+mermaid inventories in `docs/erds/README.md` and `docs/erds/erd-quickstart.md` quote
+entities *drawn* in a `.mermaid` file, which may fall short of its domain, match it
+exactly, or exceed it where a diagram pulls in a node the data tags elsewhere. No fixed
+ratio holds, so the inventories are gated against those files, not `erd-data.json`.
+Conflating the two is what let both inventories keep the stale **domain** counts through
+the very sweep that fixed those numbers elsewhere, in files that sweep already had open.
+
+The count definition it enforces: a domain's objects are all objects carrying that
+domain **including** the `(Core Object)` variants (the only reading that sums to the
+headline), with `Advanced Approvals` folded into `Approvals` as `get_short_domain` does.
+That definition is also why the tally is 15 and not the 13 first published: reading
+Usage Mgmt's 22 as correct requires excluding the core variants, which contradicts it.
+
+It reads only `erd-data.json` and the docs, so it is order-independent with respect to
+re-validation — anywhere after `build_erds.py` is fine. `docs/erds/README.md` therefore
+lists it at its step 5, one before re-validate, rather than last as here.
+
 Two other things the same refresh had to fix by hand, worth checking rather than
 assuming:
 
