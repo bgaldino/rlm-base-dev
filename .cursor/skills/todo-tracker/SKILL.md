@@ -41,9 +41,11 @@ especially when starting a session in this repo with no idea what is in flight.
   `github_issue` number.
 - **DO NOT** allocate a pack id from a stale `ls`. There is no allocator — you take the
   next number after the highest across `open/` **and** `done/`, so pull first. Two
-  workstations both created a pack 119 three hours apart on 2026-08-14 doing exactly this.
-  `--check` now fails on a duplicate and `claim`/`close` refuse an ambiguous id, but the
-  collision itself is still yours to avoid.
+  workstations both created a pack 119 on 2026-08-14, 3h38m apart; the two commits even
+  carry different UTC offsets, which is how you can tell it was two machines rather than
+  one careless session. `--check` now fails on a duplicate, and `show`/`claim`/`close`
+  refuse an ambiguous id instead of resolving it, but the collision itself is still yours
+  to avoid.
 
 ## Entry Conditions
 
@@ -130,7 +132,10 @@ it is telling you step 3 has not been done — that is the check working.
 - `python .agents/artifacts/todos/index.py --check` reports **0 problems** and a current
   index. Run it before ending a session. Expect the "INDEX.md is stale" line roughly daily
   even when nothing changed — the index embeds computed claim ages, so time alone stales
-  it. Read the message anyway; a real closeout violation arrives by the same channel.
+  it. **A stale index exits `1`, exactly like a real closeout violation**, so the exit
+  code alone cannot tell "a day passed" from "you left a pack half-closed" — do not gate a
+  hook or CI job on it expecting otherwise, and always read the message. `INDEX.md is
+  stale` on its own means regenerate; `Closeout problems` means fix the pack.
 - A pack you closed is in `done/`, has `status: done`, a `closed_at`, and no claim.
 - A pack you claimed shows your name on the remote, not just locally.
 - Nothing you intend to survive this session exists only in a session task list.
