@@ -166,9 +166,10 @@ ERD_DIR = os.path.join(REPO_ROOT, "docs", "erds")
 # The `<domain>.mermaid` files, and the two docs that inventory them. Both inventories
 # quote a per-file entity count, and both carried the *domain* counts this change
 # corrects elsewhere (11/14/15/4/37/27/22/54) — 16 more instances of the same stale
-# set, in files this change already edits. Two of the eight happened to be right,
-# which is what let the rest look plausible. Found by review, after the first sweep
-# fixed 15 of the 31 instances and declared the class swept.
+# set (8 diagrams x 2 inventories), in files this change already edits. Two of the
+# eight happened to be right, which is what let the rest look plausible. Found by
+# review, after the first sweep fixed 15 of the class's 32 instances and declared it
+# swept: 15 domain counts + these 16 + the 1 prose citation below.
 MERMAID_INVENTORIES = (
     os.path.join(ERD_DIR, "README.md"),
     os.path.join(ERD_DIR, "erd-quickstart.md"),

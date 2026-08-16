@@ -222,16 +222,28 @@ three totals in a form the triple pattern cannot match; that file was being audi
 three prose citations while four bullets in it went unchecked. **When you add a
 citation or a site, expect the pin to fail and raise `EXPECTED_CHECKS` deliberately.**
 
-⭐ **The most instructive finding came last: the first sweep fixed 15 of 31 instances and
-declared the class swept.** The mermaid inventories in `docs/erds/README.md` and
-`docs/erds/erd-quickstart.md` carried the same stale set (11/14/15/4/37/27/22/54) — 16
-more, in a file that sweep already had open — because they *look* like a different
-quantity. They are: entities drawn in a diagram, a relationship-focused subset. But they
-had been populated from the domain counts, so they drifted with them, and two of the
-eight coincidentally matched their diagram, which made the other six look deliberate.
-Both are now gated against the `.mermaid` files. **When sweeping a class, enumerate every
-instance mechanically before claiming the class is closed** — "I fixed the ones I found"
-is not the same claim, and a near-miss quantity is where the rest hide.
+⭐ **The most instructive finding came last: the first sweep fixed 15 of 32 instances and
+declared the class swept.** The arithmetic is worth spelling out, because each group was
+found by a different means: **15** domain counts (8 Domain Overview rows + 7 `domains/*.md`
+headlines), **16** mermaid-inventory entries (8 diagrams × the 2 inventories in
+`docs/erds/README.md` and `docs/erds/erd-quickstart.md`), and **1** prose citation —
+`erd-quickstart.md`'s "all 54 billing domain objects" — which is the entry that matters
+most, since it took a *third* method to find.
+
+The inventories carried the same stale set (11/14/15/4/37/27/22/54) — in a file that sweep
+already had open — because they *look* like a different quantity. They are: entities drawn
+in a diagram, a relationship-focused subset. But they had been populated from the domain
+counts, so they drifted with them, and two of the eight coincidentally matched their
+diagram, which made the other six look deliberate. The 32nd escaped even the corrected
+sweep: a grep for the stale *numbers* passed over it twice because it said "objects"
+rather than "entities", and it surfaced only by enumerating every line naming a `.mermaid`
+file. All 32 are now gated — the inventories against the `.mermaid` files, the domain
+counts against `erd-data.json`.
+
+**When sweeping a class, enumerate every instance mechanically before claiming the class is
+closed** — "I fixed the ones I found" is not the same claim; a near-miss quantity is where
+most of the rest hide, and a different *label* for the same number is where the last one
+does.
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
