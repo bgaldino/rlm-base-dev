@@ -405,8 +405,18 @@ def main():
     else:
         parser.error("--org or --orgs is required")
 
-    if args.aggressive and len(org_aliases) < 2:
-        parser.error("--aggressive requires multiple orgs via --orgs (cross-validation)")
+    if args.aggressive:
+        # Count *distinct* aliases. `--orgs a,a` satisfies a length check while giving
+        # one org two votes, so a single describe would look like two independent
+        # confirmations — and --aggressive deletes fields on the strength of them.
+        if len(set(org_aliases)) < 2:
+            parser.error(
+                "--aggressive requires at least two DISTINCT orgs via --orgs "
+                f"(cross-validation); got {len(set(org_aliases))}: "
+                f"{','.join(sorted(set(org_aliases))) or '(none)'}. Use two orgs of the "
+                "same release and same shape, e.g. "
+                "--orgs rlm-base__264merged,rlm-base__264fresh"
+            )
 
     if not args.apply:
         args.dry_run = True

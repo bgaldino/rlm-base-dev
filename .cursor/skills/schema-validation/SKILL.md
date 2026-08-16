@@ -108,14 +108,19 @@ outgoing numbers, not by walking a list from memory.
 Two other things the same refresh had to fix by hand, worth checking rather than
 assuming:
 
-- **`validate_erd_against_org.py --patch` corrects `refersTo` but not
-  `relationshipName` or `description`.** Those three name the same target, so a
-  repaired field can end up asserting a correct `refersTo` beside a
-  `relationshipName` and a description belonging to the *old, wrong* target. That is
-  worse than a uniformly wrong field, because two of the three still read as
-  authoritative — and `relationshipName` is the SOQL parent-traversal token, so a
-  stale one is a hard `INVALID_FIELD`. Sweep all three against the org describe
-  together.
+- **`validate_erd_against_org.py --patch` fixes nothing on a field the ERD already
+  has.** Both patch branches are guarded by `if f.name not in obj_fields`
+  (`validate_erd_against_org.py:226-260`), so patching is *add-only at field
+  granularity*: it writes `refersTo`, `relationshipName`, `description`, and `type`
+  only for fields it is adding. For a field already present, a wrong or null value in
+  any of those survives every patch run, indefinitely — which is why the 264 refresh
+  had to repair 94 null `refersTo`, 6 `relationshipName`, and 44 `type` values by
+  hand, and why ~1,100 more `type` contradictions are still outstanding (pack 144).
+  Do not read a clean `--patch` run as evidence that existing fields agree with the
+  org. Those four attributes all name the same target, so a half-repaired field is
+  worse than a uniformly wrong one: the untouched ones still read as authoritative,
+  and `relationshipName` is the SOQL parent-traversal token, so a stale one is a hard
+  `INVALID_FIELD`. Sweep all four against the org describe together.
 - **`refersTo` must match an ERD node key exactly.** `query_erd.build_relationship_index`
   tests `ref in erd["objects"]`, which is case-sensitive, so a target that is right in
   API terms but spelled differently from the node key (`PricebookEntry` vs the node
