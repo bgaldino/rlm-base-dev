@@ -360,8 +360,23 @@ def _discover_repo(
         the candidate outright.
         """
         if manifest_root is not None and cand.resolve() == manifest_root.resolve():
-            # The repo containing this manifest is trivially itself.
-            return "verified"
+            # The repo containing this manifest is trivially itself — but only
+            # for the section that actually DESCRIBES this repo. The manifest
+            # is designed to ship identically in both repos, so containment
+            # alone cannot say which section it satisfies: a PMOS hint pointed
+            # at this Foundations checkout would otherwise be accepted as a
+            # "verified" PMOS clone. Require the section's repo-specific agent
+            # surface; on mismatch, fall through to remote comparison, which
+            # rejects a provably different repo.
+            self_is_this_section = (
+                repo_name == "pmos-revenue-cloud"
+                and (cand / ".claude" / "skills").is_dir()
+            ) or (
+                repo_name == "rlm-base-dev"
+                and (cand / ".cursor" / "skills").is_dir()
+            )
+            if self_is_this_section:
+                return "verified"
         remote = _git_remote_url(cand)
         if remote is None or not declared_url:
             return "unverified"
