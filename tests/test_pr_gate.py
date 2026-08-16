@@ -55,6 +55,18 @@ def main_with(args):
     problem while the gate still exited 0 — the absence hole this gate exists to prevent, in
     the gate's own tests. These go through the exit code.
     """
+    # pr_gate_suite triggers on tests/, so a fixture naming a tests/ path would select this
+    # very suite and main() would run it as a subprocess of itself. Refused here, once, rather
+    # than trusted to every future call site: an unbounded recursion in a test that runs the
+    # real gate is a hang, not a failure.
+    if "--changed-files-from" in args:
+        listed = args[args.index("--changed-files-from") + 1]
+        with open(listed) as fh:
+            fixture_paths = [ln.strip() for ln in fh if ln.strip()]
+        nesting = [c["name"] for c in pr_gate.CHECKS
+                   if pr_gate.selects(c, fixture_paths) and c["cmd"]
+                   and "tests/test_pr_gate.py" in c["cmd"]]
+        assert not nesting, f"fixture {fixture_paths} would nest the gate inside {nesting}"
     saved = sys.argv
     buf = io.StringIO()
     try:
@@ -436,7 +448,31 @@ NOT_INPUTS = {
     "tests/test_fix_scratch_identity.py": {
         ".sf/orgs": "runtime org state, gitignored — not a repo input",
     },
+    "tests/build_harness/test_tui_runner.py": {
+        "orgs/ent.json": "a value in a stubbed load_cci dict, with runner.ROOT pointed at "
+                         "tmp_path — never read from this repo",
+    },
 }
+
+
+#: Names the suites use for the repository root. A single path segment counts as a read only
+#: when it hangs off one of these: os.path.join(REPO, "tui-cci") is the root launcher, while
+#: os.path.join(ERD_DIR, "README.md") is not the root README, and treating the two alike
+#: reported both erd-count suites as reading a file they never touch.
+#: Deliberately excludes a bare `root`, which the harness suites use for a tmp_path fixture
+#: they write into — `root / "cumulusci.yml"` there is not this repo's cumulusci.yml.
+ROOT_NAMES = {"REPO", "REPO_ROOT", "ROOT", "repo_root"}
+
+
+def root_anchored(node):
+    """Segments of a `REPO / "a" / "b"` chain, or () if it is not rooted at the repo."""
+    segs = []
+    while isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        if not (isinstance(node.right, ast.Constant) and isinstance(node.right.value, str)):
+            return ()
+        segs.insert(0, node.right.value)
+        node = node.left
+    return tuple(segs) if isinstance(node, ast.Name) and node.id in ROOT_NAMES else ()
 
 
 def named_paths(py_file, joins_only=False):
@@ -446,10 +482,21 @@ def named_paths(py_file, joins_only=False):
     except (OSError, SyntaxError):
         return set()
     found = set()
+    # ast.walk visits the inner nodes of a `REPO / "scripts" / "ai" / "x.py"` chain too, and
+    # each one is a valid rooted path — reporting the prefixes as separate reads.
+    partial = {id(n.left) for n in ast.walk(tree)
+               if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)}
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and not joins_only:
             if "/" in node.value and not node.value.startswith(("/", "http")):
                 found.add(node.value.strip("/"))
+        elif isinstance(node, ast.BinOp):
+            # repo_root / "tui-cci" — a single root-level segment carries no slash to
+            # recognise it by, so this read stayed invisible: the launcher had no trigger at
+            # all and the mutation proving that survived.
+            segs = root_anchored(node) if id(node) not in partial else ()
+            if segs:
+                found.add("/".join(segs))
         elif isinstance(node, ast.Call):
             # os.path.join(REPO, "a", "b") — the segments carry no slash of their own, so
             # the constant branch above cannot see this shape.
@@ -457,9 +504,14 @@ def named_paths(py_file, joins_only=False):
             if isinstance(fn, ast.Attribute) and fn.attr == "join" and node.args:
                 segs = [a.value for a in node.args[1:]
                         if isinstance(a, ast.Constant) and isinstance(a.value, str)]
-                if len(segs) == len(node.args) - 1 and len(segs) > 1:
+                rooted = (isinstance(node.args[0], ast.Name)
+                          and node.args[0].id in ROOT_NAMES)
+                if len(segs) == len(node.args) - 1 and segs and (len(segs) > 1 or rooted):
                     found.add("/".join(segs))
-    return found
+    # A lone root-level segment counts only when it names a file. `ROOT / "scripts"` is a
+    # directory on its way to a longer path, not something a suite reads.
+    return {p for p in found
+            if "/" in p or os.path.isfile(os.path.join(REPO, p))}
 
 
 def check_sources(spec):
@@ -475,7 +527,19 @@ def check_sources(spec):
         return list(pr_gate.STDLIB_SUITES)
     if spec["cmd"] is None:
         return []
-    return [a for a in spec["cmd"][1:] if a.endswith(".py") and a.startswith("tests/")]
+    sources = []
+    for arg in spec["cmd"][1:]:
+        if arg.endswith(".py") and arg.startswith("tests/"):
+            sources.append(arg)
+        elif os.path.isdir(os.path.join(REPO, arg)):
+            # A directory argument is ~30 suites plus their conftest.py. Skipping it — the
+            # first version of this function did, having only matched names ending in .py —
+            # left every nested harness suite outside the guarantee, which is how the root
+            # `tui-cci` launcher came to be read by a test that no check selected.
+            for root, _dirs, files in os.walk(os.path.join(REPO, arg)):
+                sources += [os.path.relpath(os.path.join(root, f), REPO)
+                            for f in files if f.endswith(".py")]
+    return sources
 
 
 def as_change(rel):
@@ -504,6 +568,27 @@ for spec in pr_gate.CHECKS:
 check("no suite reads a file that cannot select it", not unselected_reads,
       "; ".join(unselected_reads[:8]))
 check("the enumeration actually inspected something", inspected > 20, inspected)
+# Coverage of the enumeration itself, which the failure above cannot assert: a shape it stops
+# recognising silently narrows the guarantee instead of failing. Both shapes below were blind
+# spots that let a real missing trigger through — the nested suites reached only via a
+# directory argument, and the root launcher named as a single rooted segment.
+enumerated = {s for spec in pr_gate.CHECKS for s in check_sources(spec)}
+check("the enumeration reaches suites named only by a directory argument",
+      "tests/build_harness/test_tui_launcher.py" in enumerated)
+check("a single root-level segment is recognised as a read",
+      "tui-cci" in named_paths(os.path.join(REPO, "tests/build_harness/test_tui_launcher.py")))
+# The two rooted single-segment shapes, told apart: a root *file* is a read, a root directory
+# is the start of a longer path. Asserted on a synthetic source because no suite currently
+# writes the directory form, so the distinction is otherwise unobservable.
+shapes = tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+shapes.write('a = os.path.join(REPO, "tui-cci")\nb = os.path.join(REPO, "scripts")\n')
+shapes.close()
+try:
+    shape_reads = named_paths(shapes.name)
+    check("a rooted root-file segment counts as a read", "tui-cci" in shape_reads)
+    check("a rooted root-directory segment does not", "scripts" not in shape_reads, shape_reads)
+finally:
+    os.unlink(shapes.name)
 
 # The convention the joins_only narrowing above depends on: a read written as
 # open("docs/x.md") in this file would be invisible to the enumeration, so it is refused
@@ -648,6 +733,16 @@ check("pyproject.toml selects every pytest-driven check",
 # edit started (correctly) selecting the PyYAML-dependent suite that audits the manifest.
 PROBE_PATH = "docs/erds/erd-data.json"
 probe_selection = [c for c in pr_gate.CHECKS if pr_gate.selects(c, [PROBE_PATH])]
+nesting_fixture = changed_list("tests/test_branch_scope.py")
+try:
+    main_with(["--changed-files-from", nesting_fixture])
+    refused = False
+except AssertionError:
+    refused = True
+finally:
+    os.unlink(nesting_fixture)
+check("a fixture that would nest the gate inside itself is refused, not run", refused,
+      "pr_gate_suite triggers on tests/, so running it on a tests/ fixture recurses")
 check("the probe path selects at least one check", probe_selection != [])
 check("the probe path selects no check that re-runs this suite",
       all("tests/test_pr_gate.py" not in (c["cmd"] or []) for c in probe_selection)
@@ -755,7 +850,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 121
+EXPECTED = 126
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

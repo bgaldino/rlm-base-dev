@@ -217,8 +217,12 @@ CHECKS = [
              "tests/build_harness", "tests/txn_data_harness"],
         # pyproject.toml sets testpaths/python_files/addopts for these two directories, so a
         # collection change there must select this check rather than land unexercised.
+        # tui-cci because tests/build_harness/test_tui_launcher.py copies and executes that
+        # root launcher: nothing else in the matrix claimed it, so a launcher regression could
+        # pass the gate with its own existing test unrun.
         triggers=["scripts/build_harness/", "scripts/txn_data_harness/",
-                  "tests/build_harness/", "tests/txn_data_harness/", "pyproject.toml"],
+                  "tests/build_harness/", "tests/txn_data_harness/", "pyproject.toml",
+                  "tui-cci"],
         deps=["pytest", "PyYAML", "textual", "requests"], min_python=(3, 11), gating=True,
     ),
     dict(
@@ -234,8 +238,13 @@ CHECKS = [
         # scripts/ai/ prefix rather than pr_gate.py alone because the suite also reads
         # skill_manifest.py's audited roots and analyze_agent_tooling.py's required-file
         # lists, to prove the matrix still selects on them.
-        triggers=["scripts/ai/", "tests/test_pr_gate.py",
-                  ".github/workflows/prepare-rlm-org.yml"],
+        #
+        # tests/ because this suite holds the meta-check that every *other* suite's reads are
+        # selectable. Without it, a PR could add a repo-file read to a suite and omit the
+        # trigger, and the one check that would have caught the omission never ran. The suite
+        # runs the gate as a subprocess, so this widening risks nesting — bounded by the
+        # fixtures it feeds those runs, which main_with() asserts never select this check.
+        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml"],
         deps=[], gating=True,
     ),
     dict(

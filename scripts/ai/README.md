@@ -323,6 +323,26 @@ is a file `analyze_agent_tooling.py` asserts the presence of, the `qb-dro` datas
 `test_fulfillment_scope_tolerance.py` to verify a banner's count, and the gate's own suite reads
 two other `scripts/ai/` modules to prove the matrix still selects on their constants.
 
+That enumeration then had to be widened twice, because a guarantee is only as wide as the
+shapes it recognises and a shape it cannot see fails nothing. It skipped **directory**
+arguments, so the ~30 suites under `tests/build_harness/` and `tests/txn_data_harness/` — named
+only by their parent directory — sat outside it entirely; and it required a slash to recognise a
+path, so a root-level file named as a single segment (`repo_root / "tui-cci"`) was invisible.
+Together those hid a real gap: `tests/build_harness/test_tui_launcher.py` copies and executes
+the root `tui-cci` launcher, which **no** matrix entry selected, so a launcher regression could
+merge with its own existing test unrun. A single rooted segment now counts when it names a root
+*file* — `os.path.join(REPO, "scripts")` is a directory on its way to a longer path, not a read
+— and only the outermost node of a `REPO / "a" / "b"` chain counts, since `ast.walk` sees every
+prefix in it and each one is a validly rooted path.
+
+The meta-check that carries all of this is selected by any `tests/` change, not just by edits to
+itself. Otherwise a PR could add a repo-file read to some other suite, omit the trigger, and the
+one check that would have caught the omission never ran. That widening makes the suite selectable
+by its own fixtures, so `main_with()` refuses a fixture whose paths would select the gate — once,
+centrally, rather than trusting every future call site. Worth knowing if you remove that guard:
+the failure mode is not a failing check but a **hang**, each level re-running the gate inside the
+level above it, bounded only by the nested per-check timeouts.
+
 A dependency is probed by really importing it, in a child process, not by `find_spec`. The
 distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_resources`,
 which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
@@ -353,7 +373,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (121 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (126 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -368,11 +388,15 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, and each of the eight trigger lists narrowed back off an input
-its check reads. The first round of mutations found two live holes in these tests, both in the
-gap between a helper returning the right value and the gate acting on it.
+pytest-driven check's triggers, each of the nine trigger lists narrowed back off an input its
+check reads, and each of the four read-enumeration shapes stopped being recognised (directory
+arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
+directory counted as a read). The first round of mutations found two live holes in these tests,
+both in the gap between a helper returning the right value and the gate acting on it. The
+nesting guard is the one property confirmed by hang rather than by failure, for the reason
+given above.
 
-Building it turned up four real defects rather than only proving the wiring. Making
+Building it turned up five real defects rather than only proving the wiring. Making
 `skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a
 path inside the gitignored private artifacts tree, so it failed on every fresh clone while
 passing on the workstation that held the clone (fixed above, in that script's own section). A
@@ -380,8 +404,9 @@ stale `--api-version 67.0` assertion in `tests/txn_data_harness/test_cli.py` had
 bump because nothing ran that suite. Three suites bound an exception class from CumulusCI
 while the module under test bound its own fallback shim, so on a partially importable
 CumulusCI the `except` clause missed and the suite failed with a confusing traceback instead
-of a clear environment error; they now bind the class from the module under test. And the
-gate's own unclaimed-suite check caught its own new suite.
+of a clear environment error; they now bind the class from the module under test. The root
+`tui-cci` launcher was read and executed by a test that no check selected, so nothing ran it on
+a launcher change. And the gate's own unclaimed-suite check caught its own new suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
 drafted in pack 125 and is the remaining half of `#264-58`.
