@@ -410,7 +410,7 @@ foundations:
       path: docs/salesforce/262/help/articles/
       manifest: docs/salesforce/262/help/manifest.json
       index: docs/salesforce/262/help/index.md
-      article_count: 932
+      article_count: 935  # = len(manifest.json articles) = files on disk, verified 2026-08-16; becomes generator-computed when generate_skill_manifest lands (todo 132)
       release: "262"
       season: "Summer '26"
       api_version: v67.0
@@ -492,20 +492,25 @@ foundations:
 # repo containing it can't be located).
 pmos:
   name: pmos-revenue-cloud
-  repo_url: https://git.soma.salesforce.com/s-varadharajan/pmos-revenue-cloud
+  # Endpoint = Brian's fork (interim, per the reconciled federation plan Track A).
+  # The prior endpoint (s-varadharajan) is a departed maintainer's repo; his local
+  # clone still LENIENT-matches discovery, so keep it OUT of the hints below —
+  # a stale clone that resolves silently is the exact P0 failure this fixes.
+  repo_url: https://git.soma.salesforce.com/bgaldino/pmos-revenue-cloud
   role: author
-  maintainer: Santhanagopalan Varadharajan
+  maintainer: Brian Galdino
   optional: true   # discovery may legitimately fail on Foundations-only clones
   local_path_hints:
     - "$PMOS_REPO_ROOT"
     - "$RC_WORKSPACE/pmos"
-    - "${HOME}/Documents/GitHub/Enterprise/_s-varadharajan/pmos-revenue-cloud"
+    - "${HOME}/Documents/GitHub/Enterprise/_bgaldino/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
-  # Today PMOS has 61 skills; only the ones likely consumed across repos
-  # are listed here. Sandy can extend in his copy.
+  # Do not hand-maintain a PMOS skill count here — measure it from the resolved
+  # clone (`skill_manifest.py --check` reports what it finds). Only the skills
+  # likely consumed across repos are listed; the fork owner can extend.
   skills:
     - id: prd
       path: .claude/skills/prd/SKILL.md
