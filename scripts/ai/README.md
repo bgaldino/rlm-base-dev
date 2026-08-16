@@ -251,6 +251,58 @@ silently each fail the suite.
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"
 
+### `pr_gate.py`
+
+Runs the mechanical checks a change actually needs, and reports the status of **every**
+check — including the ones it skipped, and why. One command instead of remembering which
+of a dozen validators a given diff should have run.
+
+```bash
+python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
+python scripts/ai/pr_gate.py --all               # run everything
+python scripts/ai/pr_gate.py --list              # the matrix: check, gating, deps, triggers
+python scripts/ai/pr_gate.py --requirements --base origin/264   # pip deps the selection needs
+```
+
+Selection lives here rather than in a workflow's `paths:` filter because a path filter makes
+the job **skip**, and a skipped job cannot serve as a required status check while reading
+exactly like a pass in the PR summary. The same reasoning drives three statuses that are
+easy to conflate:
+
+| status | meaning | fails? |
+|--------|---------|--------|
+| `SKIPPED` | not selected — nothing it covers changed | no, and it says so on its own line |
+| `MISSING-DEP` | selected, but a package or the interpreter floor is absent | **yes** — otherwise a broken install silently turns a gate green |
+| `ADVISORY` | runs and reports, never fails | no, and the reason is printed inline |
+
+Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
+tree today, on two known validator false positives (pack 123). A check that always fails
+gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
+reason instead of being dropped or allowed to fail every PR touching `datasets/`.
+
+Two details worth knowing before editing the matrix. `unlisted_suites()` fails the gate when
+a suite in `tests/` is not claimed by any check — a new suite that nothing runs is not a
+passing suite, and this caught its own author. And `tests/test_docgen_helpers.py` is the one
+pytest-style suite in the repo: `python tests/test_docgen_helpers.py` raises
+`ModuleNotFoundError` because it has no `__main__` block, so it is invoked through pytest,
+not the repo's usual `python tests/<name>.py`.
+
+Selection diffs `base...HEAD` — three dots, from the merge base — so commits that landed on
+the base after the branch diverged do not enlarge it, and uncommitted work counts too, so
+running it before a commit is honest. Exit 0 all selected gating checks passed, 1 at least
+one failed, 2 usage or tool error (matching `check_branch_scope.py`, so a tool error is
+never read as a verdict).
+
+Verified by `tests/test_pr_gate.py` (60 checks, hermetic throwaway repos, no network),
+which drives the verdict rather than the helpers: 17 of 17 mutations die, including
+reclassifying a runtime failure as advisory, reporting a missing dependency as a skip,
+blinding the unclaimed-suite check, a two-dot diff, prefix-vs-substring trigger matching,
+and a CumulusCI pin that drifts from the one `prepare-rlm-org.yml` installs. The first
+round of mutations found two live holes in these tests, both in that gap between a helper
+returning the right value and the gate acting on it.
+
+**Used by:** the `PR Checks` workflow (see `AGENTS.md` §"Pre-merge checklists")
+
 ---
 
 ## Dependencies

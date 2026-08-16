@@ -186,6 +186,7 @@ Understanding where truth lives prevents duplication drift.
 ## Verification Commands
 
 ```bash
+python scripts/ai/pr_gate.py --base origin/264            # all of the below, selected by your diff
 python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should pass

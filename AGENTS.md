@@ -196,6 +196,15 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 Use these before opening or updating a PR. They complement the **PR Review Focus Areas** below.
 
+**Run `python scripts/ai/pr_gate.py --base origin/264` first.** It selects the mechanical
+checks your diff actually needs, runs them, and prints a status for **every** check —
+including the ones it skipped and why. That is the point: the checks below already existed
+and were enforced only by an agent reading this list, which is the enforcement that failed
+in `#264-27`, `#264-55` and `#264-56`. A missing dependency **fails** the gate rather than
+skipping, and one check (`validate_sfdmu_v5_datasets.py`) is advisory until pack 123 lands
+because it exits non-zero on a clean tree. The checklists below remain the reference for
+*what* each check means and for the judgement steps no gate can make.
+
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
 1. Run `python scripts/validate_sfdmu_v5_datasets.py` and fix reported issues.
@@ -368,6 +377,7 @@ reference and worked examples. Read that skill rather than guessing flags:
 | `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
 | `scripts/ai/pr_review.py` — automated-PR-review helper | **Responding to Automated PR Reviews**, above |
 | `scripts/ai/check_branch_scope.py` — fail a branch carrying commits it does not own (already upstream, or another open PR's) | `audit-review/SKILL.md` → **Step −1** |
+| `scripts/ai/pr_gate.py` — run the mechanical checks a change needs and report the status of every one (incl. skipped) | **Pre-merge checklists**, above |
 | `scripts/ai/generate_cci_reference.py`, `scripts/ai/check_plan_readme_consistency.py`, `scripts/validate_sfdmu_v5_datasets.py` | **Pre-merge checklists**, above |
 
 Two Context Service rules are worth obeying without a second read (rationale in
