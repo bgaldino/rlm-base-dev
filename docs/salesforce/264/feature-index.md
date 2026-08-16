@@ -4,10 +4,14 @@
 branch cut so the per-release corpus has a home. It intentionally contains no
 feature inventory yet, because the source material does not exist:
 
-- Feature freeze is **2026-08-14 01:00 UTC**; GA waves run **2026-09-05 →
+- Feature freeze **passed on 2026-08-14 01:00 UTC**; GA waves run **2026-09-05 →
   2026-10-10**. Production is still on 262.
 - No 264 release notes have been published, and there is no Metadata Coverage
   Report entry for **API v68.0**.
+- No official 264 ERD documentation has been published either, so
+  [`docs/erds/erd-data.json`](../../erds/erd-data.json) — refreshed to 264 from
+  live-org describe — has nothing to reconcile against. It is *ahead of* the
+  published doc for this release, not behind it.
 
 Until those land, the ground truth for 264 behavior is a **live 264 org** (the dev
 hub is on API 68.0, so every scratch org it creates is a 264 org), not
@@ -23,12 +27,26 @@ published source.
    stable across release reorgs. Validate each area's root first:
 
    ```bash
-   cci task run snapshot_pcm_help_264 -o mode discover   # fails loudly on a bad root
-   cci task run snapshot_pcm_help_264                    # full capture once discover passes
+   cci task run snapshot_pcm_help_264 -o mode discover   # read "Discovered N unique articles"
+   cci task run snapshot_pcm_help_264                    # only if that N is non-zero
    ```
 
    Captures land in `docs/salesforce/264/help/` and
    `docs/salesforce/264/dev-guide{,-industries}/`.
+
+   **`discover` does not fail on a bad root** — it exits 0 with zero discovered
+   articles, so the `Discovered N unique articles` line it logs is the only
+   signal that the root and prefix are right. Read that line out of the task's
+   own output: piping to `grep` would report `grep`'s exit status instead of the
+   task's and hide a failure that happens after the count is logged. Don't use
+   the manifest either — `stats.discovered` sums every area and keeps prior runs,
+   so it stays positive through a failed re-walk (and on a first 264 run the
+   manifest does not exist yet). And even a non-zero count says nothing about
+   whether 264 content
+   was *written*: the articles behind a valid root can still be 262 text, so a
+   capture can spend 10–15 minutes writing last release's content under a 264
+   path. Per-area readiness and capture order are assessed in the private
+   artifacts repo (todo 145); check it before committing a run to an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and

@@ -22,6 +22,21 @@ Use the Salesforce Help portal snapshots at `docs/salesforce/{release}/help/` as
 For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Cloud Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
 
 > **Branch note (264).** This branch targets Release 264 (Winter '27, API v68.0), but **262 is still the only captured corpus** — `docs/salesforce/262/help/` and `docs/salesforce/262/dev-guide*/`. The `snapshot_*_264` task variants exist in `cumulusci.yml`, but their root article IDs and prefixes are inherited from 262 and **unverified** (264 is pre-GA and has no published release notes), so run `mode: discover` first. Until a 264 capture lands, ground claims against the 262 snapshot and flag anything a 264 change could invalidate.
+>
+> **A passing `discover` proves nothing on its own — it exits 0 having found zero articles.** `_discover_articles` catches a sidebar-walker failure, logs it, and returns `[]`; the caller filters by prefix, logs the count, writes the manifest, and exits cleanly without ever rejecting an empty result (`tasks/rlm_snapshot_help.py`, discovery phase). A wrong root, a reorganized ID prefix, and a JS failure are therefore indistinguishable from success at the exit code. **Read the count this run logged:**
+>
+> ```bash
+> cci task run snapshot_pcm_help_264 -o mode discover     # run it plainly; keep the exit status
+> # then read this line out of the output:
+> #   "Discovered 0 unique articles (0 total before prefix filter)"   -> bad root, or the walker failed
+> #   "Discovered 0 unique articles (N total before prefix filter)"   -> root walks, prefix is wrong for this area
+> ```
+>
+> **Do not pipe it through `grep`.** The pipeline would report `grep`'s status instead of the task's, so a failure *after* the count is logged — the manifest save, the index build — would read as success, and the traceback would be filtered away. The exit status is still worth having: it catches every failure mode *except* the empty walk. If you want a filtered copy, keep both with `set -o pipefail` and `tee`.
+>
+> **Do not substitute the manifest's `stats.discovered` for that line** — it is cumulative, not per-run. `_merge_discovered` only ever adds, so an empty discovery leaves the prior articles untouched; `_compute_stats` then counts **every area at once** (262 reports 935, the sum of 11 areas), and the per-area figure under `areas[]` is likewise the running total for that area. A failed re-discovery therefore leaves both numbers positive and unchanged. On a first 264 run neither exists — `docs/salesforce/264/help/` is not there yet, so reading the manifest raises `FileNotFoundError`.
+>
+> And even a non-zero discover says nothing about *whether the release's content was written*: on a pre-GA release the articles behind a valid root can still hold the previous release's text, so a full capture can spend 10–15 minutes writing 262 content under a 264 path. Per-area readiness — which areas are worth capturing yet, and what to watch before re-checking — is assessed in the private artifacts repo (`.agents/artifacts/todos/`, todo 145), because it derives from internal tracking that does not belong in this repo.
 
 ## Why the snapshot exists
 
@@ -205,6 +220,8 @@ When a new release ships (e.g., Salesforce announces 264 GA):
 
    The discovery phase walks the sidebar and writes `manifest.json` with all discovered article IDs as `pending`. Compare against the previous release's manifest to see additions, removals, renames.
 
+   **Read the `Discovered N unique articles` line before moving on — a zero-article discovery also exits 0**, so the exit code cannot distinguish a good walk from a wrong root, a reorganized prefix, or a walker crash. That log line is the only number computed from *this* invocation. Read it out of the task's own output rather than piping to `grep`, which would substitute `grep`'s exit status for the task's and hide anything that fails after the count is logged. The manifest's `stats.discovered` is cumulative and cannot substitute for it either: an empty discovery adds nothing and removes nothing, so both the top-level count (every area summed) and the per-area count under `areas[]` survive a failed re-walk unchanged.
+
 3. **Run full capture**:
 
    ```bash
@@ -282,7 +299,7 @@ To get full agent coverage you need: `snapshot_agents_help_262` (the dedicated a
 
 **IMPORTANT — don't conflate adjacent domains.** Usage Management (`ind.um_*`) and Rate Management (`ind.rm_*`) are two distinct data-model domains and two distinct Help-portal areas. Pricing (`ind.pricing_*`) and Rate Management (`ind.rm_*`) are similarly distinct. Configurator (`ind.product_configurator_*`) is its own domain — easy to skip past because it has only 4 objects, but the Help portal area is real and covers configuration rules / flows that affect Quote/Order configuration. The `article_id_prefix` filter is a single startswith match, so capturing each requires **its own task variant**. Module 3 of the L2 Billing Trailhead mix straddles Usage + Rating, which is why `cumulusci.yml` defines `snapshot_usage_help_262` AND `snapshot_rating_help_262` separately.
 
-To add a new area: walk the sidebar from the Revenue Lifecycle Management parent (`ind.revenue_lifecycle_management.htm`) using the `SIDEBAR_WALKER_JS` pattern from `tasks/rlm_snapshot_help.py`. Note the area's root article ID, identify the prefix that filters its child articles, and add a new task in `cumulusci.yml`. The same task class handles every area; only options differ. Always run `mode: discover` first — it fails loudly if the root ID is wrong, so verification is cheap.
+To add a new area: walk the sidebar from the Revenue Lifecycle Management parent (`ind.revenue_lifecycle_management.htm`) using the `SIDEBAR_WALKER_JS` pattern from `tasks/rlm_snapshot_help.py`. Note the area's root article ID, identify the prefix that filters its child articles, and add a new task in `cumulusci.yml`. The same task class handles every area; only options differ. Always run `mode: discover` first and read the `Discovered N unique articles` line it logs — the task does **not** fail on a wrong root ID; it exits 0 with zero discovered articles, so that per-run count is the only signal. Do not read `stats.discovered` from the manifest instead: it sums every area and retains prior runs, so it stays positive when a new area discovers nothing.
 
 ## Known limitations
 

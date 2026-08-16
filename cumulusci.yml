@@ -3674,7 +3674,15 @@ tasks:
   #
   #   cci task run snapshot_{area}_help_264 -o mode discover
   #
-  # The discover phase fails loudly on a wrong root. If it fails, start from the
+  # The discover phase does NOT fail on a wrong root — it exits 0 having found
+  # zero articles (a walker failure returns an empty list and an empty
+  # post-prefix result is not rejected), so the "Discovered N unique articles"
+  # line it logs is the only signal. Read that line from the task's own output:
+  # piping to grep would report grep's exit status instead of the task's and
+  # hide a failure occurring after the count is logged. Do not read
+  # stats.discovered from the manifest either: it sums all areas and retains
+  # prior runs, so it stays positive through a failed re-walk. If the logged
+  # count is 0, start from the
   # Revenue Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
   # walk the sidebar, and copy the id= param into root_article_id /
   # article_id_prefix here. See the 262 header above for the per-area domain
