@@ -8,7 +8,7 @@ feature inventory yet, because the source material does not exist:
   2026-10-10**. Production is still on 262.
 - No 264 release notes have been published, and there is no Metadata Coverage
   Report entry for **API v68.0**.
-- No official 264 ERD documentation has published either, so
+- No official 264 ERD documentation has been published either, so
   [`docs/erds/erd-data.json`](../../erds/erd-data.json) — refreshed to 264 from
   live-org describe — has nothing to reconcile against. It is *ahead of* the
   published doc for this release, not behind it.
@@ -27,17 +27,19 @@ published source.
    stable across release reorgs. Validate each area's root first:
 
    ```bash
-   cci task run snapshot_pcm_help_264 -o mode discover
-   python3 -c "import json;print(json.load(open('docs/salesforce/264/help/manifest.json'))['stats'])"
-   cci task run snapshot_pcm_help_264   # only if discovered > 0
+   cci task run snapshot_pcm_help_264 -o mode discover 2>&1 | grep 'unique articles'
+   cci task run snapshot_pcm_help_264   # only if that line reports a non-zero count
    ```
 
    Captures land in `docs/salesforce/264/help/` and
    `docs/salesforce/264/dev-guide{,-industries}/`.
 
    **`discover` does not fail on a bad root** — it exits 0 with zero discovered
-   articles, so `stats.discovered` is the only signal that the root and prefix
-   are right. And even a non-zero count says nothing about whether 264 content
+   articles, so the `Discovered N unique articles` line it logs is the only
+   signal that the root and prefix are right. Read that line, not the manifest:
+   `stats.discovered` sums every area and keeps prior runs, so it stays positive
+   through a failed re-walk (and on a first 264 run the manifest does not exist
+   yet). And even a non-zero count says nothing about whether 264 content
    was *written*: the articles behind a valid root can still be 262 text, so a
    capture can spend 10–15 minutes writing last release's content under a 264
    path. Per-area readiness and capture order are assessed in the private
