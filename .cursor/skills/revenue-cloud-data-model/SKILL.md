@@ -50,8 +50,14 @@ resource-wide default.
 | `RatingFrequencyPolicy.ProductId`, `.UsageResourceId` | `ProductUsageResourcePolicy.RatingFrequencyPolicyId` (the policy no longer knows its own product/resource) |
 | `ProductUsageGrant.OverageChargeable` | `UsageOveragePolicy.OverageChargeable` via `ProductUsageResourcePolicy` |
 
-The four `TransactionUsageEntitlement` removals are the ones that made `264` fail to
-compile until #365; the other four were found by this diff and had not been noticed.
+Only **one** of the eight broke the 264 compile: `TransactionUsageEntitlement.ChargeForOverage`,
+which `RLM_UsageUploaderController` read in two places, fixed in #365. #365 names the
+other three `TransactionUsageEntitlement` removals alongside it and sources chargeability
+from the replacement `UsageOveragePolicy.OverageChargeable`, so those were already known
+there — what this diff adds for them is the schema record, not the discovery. Genuinely
+first recorded here: `UsageResource.UsageResourceBillingPolicyId`, both
+`RatingFrequencyPolicy` lookups, and the removal of `ProductUsageGrant.OverageChargeable`
+(which #365 implied by reading from the policy instead, but never stated).
 Both `RatingFrequencyPolicy` removals are still selected by the `qb-rating` and
 `q3-rating` export queries — see #264-66. Full diff at
 `scripts/erd/schema_diff/262-vs-264-diff.md`.

@@ -15,14 +15,19 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 ## Quick Rules
 
 1. **The ERD reflects PLATFORM schema only.** Custom fields (any `__c` suffix, including project `RLM_*__c` and managed-package fields) are excluded by every validator and extraction script. Don't override this.
-2. **Always cross-validate against TWO orgs** when classifying orphan fields — a field present in one org but absent in another is likely feature-gated, not removed. Hold the **org shape constant** across the pair (two `ent` orgs, say): a field gated by a shape you didn't build looks identical to a removed one.
+2. **Always cross-validate against TWO orgs** when classifying orphan fields — a field present in one org but absent in another is feature-gated, not removed. Hold the **release** constant and let the **shapes differ**: `find_orphans` keeps a field present in *any* queried org, so a second org can only rescue fields from deletion, never accuse one. That makes complementary shapes (`ent` + `pde`, feature on + off) the only pairing that can actually disprove an orphan, and a same-shape pair worthless — it cannot disagree, so "two orgs agreed" is not corroboration. Absence is never positive evidence of removal either way; see DO NOT #1.
 3. **Verify against Core source** before bulk-removing fields. The validators surface candidates; codesearch confirms ground truth. For a pre-GA release there may be no Core UDD branch yet (264 had none), in which case a live org is the only ground truth and the previous release's UDD verification carries forward unchanged rather than being re-run.
 4. **Use `prepare_rlm_org`-built scratch orgs.** The 264 refresh used two of them — `rlm-base__264merged` and `rlm-base__264fresh` — and diffed against the *committed* `scripts/erd/schema_diff/262-schema.json` rather than a live 262 org, so the baseline is byte-identical to what the previous refresh was built from.
 5. **All schema diff scripts default to skipping custom fields**. Pass `--include-custom` only for project-internal tooling that needs to see deployed `RLM_*__c` fields.
 
 ## DO NOT
 
-1. **DO NOT** patch `erd-data.json` from a single org without cross-validating against a second org **of the same release and the same shape**. You'll baseline feature-gated noise as canonical schema. And do not reach for a different release or shape as the second org — that is worse than one org, not better: a field gated by the shape you didn't build, or added in the release you didn't build, is indistinguishable from a removed one, so the check that was supposed to separate gating from removal manufactures both kinds of false verdict.
+1. **DO NOT** treat org absence as proof of removal, and **DO NOT** classify orphans from a single org. Two rules that pull in opposite directions, because `find_orphans` unions fields across orgs (`present_in_any`) so adding an org can only ever *shrink* the orphan set:
+   - **Release: hold it constant.** A field added in 264 is absent from a 262 org for reasons unrelated to removal, and 262's extra fields aren't the ERD's subject. A cross-release second org is worse than one org.
+   - **Shape: do NOT hold it constant.** Two `ent` orgs cannot disagree about a field gated out of `ent`, so the pair corroborates nothing while reading as if it did. Prefer complementary shapes.
+   - **Ceiling on the whole method:** a feature that *neither* org enables looks removed in both, however many orgs you add. Positive evidence of removal is the release diff (present in the N−1 snapshot, absent in N) or canonical Core UDD source. Require one of those before `--aggressive --apply`; org absence is a candidate filter, not a verdict.
+
+   The 264 refresh used `264merged` + `264fresh`, both **Enterprise** — a same-shape pair, so its orphan verdicts rest on orgs that could not disagree. Nothing was deleted on that basis (the 8 retirements came from the release diff; the remaining 58 were kept and classified), but don't cite that pass as the model for aggressive removal.
 2. **DO NOT** use `techido-260` or other ad-hoc orgs for baseline — only fresh `prepare_rlm_org` builds.
 2a. **DO NOT** trust `validate_erd_against_org.py --patch` to remove anything. It only **adds** — `patch_erd` never increments its `fields_removed` counter, so the `0` that `main` prints for it is unconditional, not a finding. Fields the release retired have to be removed deliberately (see Workflow A step 4b).
 3. **DO NOT** assume a field is a PDF artifact just because it's missing from one org. Verify against Core UDD source.
@@ -51,7 +56,11 @@ Worked example: the 262 → 264 refresh. `diff_schemas.py` needs **Python 3.10+*
 installed under, not a 3.9 system Python.
 
 ```bash
-# 1. Build TWO scratch orgs of the SAME shape on the target release
+# 1. Build TWO scratch orgs of the SAME shape on the target release.
+#    Same shape is what step 2 needs: it is an equality check on the extraction, and
+#    it is only meaningful if both orgs expose the same feature set.
+#    Step 5 (orphan classification) wants the opposite — see the note there. The two
+#    checks have genuinely different requirements; a same-shape pair satisfies one.
 cci flow run prepare_rlm_org --org 264merged
 cci flow run prepare_rlm_org --org 264fresh
 
@@ -85,6 +94,14 @@ python scripts/erd/validate_erd_against_org.py --org rlm-base__264merged --patch
 # 5. Orphans across both orgs — expect the previous release's documented
 #    feature-gated/cross-cloud set to still be listed. Only entries that appear in
 #    the diff's `removed` list are this release's doing.
+#
+#    Unlike step 2, this wants COMPLEMENTARY shapes. Orphans are unioned across orgs
+#    (`present_in_any`), so the step-1 same-shape pair cannot disagree about a field
+#    gated out of that shape — it produces a list, not a corroborated one. Either add
+#    a differently shaped org of the same release, or treat the output strictly as
+#    candidates and confirm each against the release diff / Core source. The 264 pass
+#    did the latter: both orgs were Enterprise, so it removed only the 8 fields the
+#    release diff independently showed gone and kept all 58 remaining candidates.
 python scripts/erd/cleanup_orphan_erd_fields.py \
   --orgs rlm-base__264merged,rlm-base__264fresh \
   --dry-run --report docs/erds/orphan-candidates.md
@@ -163,11 +180,12 @@ python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 # .agents/artifacts/orphan-fields/orphan-field-ownership.json, then:
 python scripts/erd/orphan_batch_helper.py apply --batch 4
 
-# Re-validate and produce the next orphan report. --orgs is REQUIRED and has no
-# default: pass two same-release, same-shape orgs. It used to default to a 260/262
-# pair, so this command silently classified orphans against the wrong release.
+# Re-validate and produce the next orphan report. --orgs is REQUIRED, has no default,
+# and rejects a repeated alias: pass two distinct orgs on the target release with
+# complementary shapes. It used to default to a 260/262 pair, so this command silently
+# classified orphans against the wrong release.
 python scripts/erd/orphan_batch_helper.py validate --batch 4 \
-  --orgs rlm-base__264merged,rlm-base__264fresh
+  --orgs rlm-base__264ent,rlm-base__264pde
 ```
 
 ## The Three Orphan Classifications

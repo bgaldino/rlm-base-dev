@@ -10,9 +10,9 @@ Usage:
   python scripts/erd/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
 
   # Re-validate against both orgs and produce next orphan report. --orgs is required:
-  # two DISTINCT orgs of the same release and shape (see cmd_validate).
+  # two DISTINCT orgs, same release, complementary shapes (see cmd_validate).
   python scripts/erd/orphan_batch_helper.py validate --batch 4 \
-      --orgs rlm-base__264merged,rlm-base__264fresh
+      --orgs rlm-base__264ent,rlm-base__264pde
 
 This script consolidates the manual steps used in batches 1-3 into one place.
 """
@@ -255,10 +255,11 @@ def cmd_validate(args):
     if len(set(aliases)) < 2:
         print(
             f"Error: --orgs needs two distinct aliases, got {aliases}. This command "
-            f"classifies orphan fields, and a field absent from one org is only "
-            f"evidence of removal if a second same-release, same-shape org agrees. "
-            f"With one org (or the same one twice) feature gating is indistinguishable "
-            f"from removal.",
+            f"classifies orphan fields, and orphans are unioned across orgs, so one "
+            f"org (or the same one twice) leaves feature gating indistinguishable from "
+            f"removal. Use the target release with COMPLEMENTARY shapes — a second org "
+            f"of the same shape cannot disagree about a shape-gated field, so it "
+            f"corroborates nothing.",
             file=sys.stderr,
         )
         return 2
@@ -333,14 +334,14 @@ def main():
     p_val.add_argument("--batch", type=int, required=True)
     p_val.add_argument("--orgs", required=True,
                        help="Comma-separated pair of orgs to classify orphans "
-                            "against, e.g. rlm-base__264merged,rlm-base__264fresh. "
+                            "against, e.g. rlm-base__264ent,rlm-base__264pde. "
                             "Required, and deliberately has no default: both must be "
-                            "fresh prepare_rlm_org builds of the SAME release and the "
-                            "SAME shape. A pair spanning two releases or shapes makes "
-                            "a feature-gated field indistinguishable from a removed "
-                            "one, which is the failure this two-org check exists to "
-                            "catch. This used to default to a 260/262 pair, so the "
-                            "documented command silently validated the wrong release.")
+                            "fresh prepare_rlm_org builds of the SAME release, with "
+                            "COMPLEMENTARY shapes. Orphans are unioned across orgs, so "
+                            "a cross-release pair manufactures false orphans while a "
+                            "same-shape pair cannot disprove any. This used to default "
+                            "to a 260/262 pair, so the documented command silently "
+                            "validated the wrong release.")
     p_val.set_defaults(func=cmd_validate)
 
     args = p.parse_args()
