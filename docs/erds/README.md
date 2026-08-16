@@ -40,8 +40,9 @@ To refresh the ERD against a new release or different org configuration, see `.c
 ### Individual Domain Mermaid Diagrams
 
 Detailed ERDs for each domain, suitable for documentation and analysis. The count is
-**entities drawn in that file**, which is *not* its domain's object count — these are
-relationship-focused subsets, and most draw well under half their domain. For a domain's
+**entities drawn in that file**, which is *not* its domain's object count: a diagram may
+draw fewer than its domain holds, all of them, or one more where an edge reaches into
+another domain. Do not read one number off the other. For a domain's
 object count see the Domain Overview table in
 `.cursor/skills/revenue-cloud-data-model/SKILL.md`. Both are gated by
 `tests/test_erd_doc_counts.py`; the numbers below are counted from the files.
@@ -159,7 +160,9 @@ Mermaid files can be viewed in several ways:
 ## Diagram Layout Strategy
 
 ### Domain Diagrams
-- Show all objects within a domain and their internal relationships
+- Draw a domain's objects and their internal relationships — not necessarily every
+  object the domain holds, and occasionally one from another domain where an edge
+  needs it, which is why the entity counts above are not domain object counts
 - Include key field names for context
 - Suitable for:
   - Feature documentation

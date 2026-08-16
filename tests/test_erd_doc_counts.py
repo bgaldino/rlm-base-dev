@@ -67,8 +67,12 @@ Eight directions are checked, because these fail independently:
    and `docs/erds/erd-quickstart.md` both inventory the `<domain>.mermaid` files with a
    per-file count — and both carried the *domain* counts corrected above, 16 more
    instances of the same stale set, in files this change already edits. Checked against
-   the diagrams, not `erd-data.json`, because they count a different thing: a diagram is
-   a relationship-focused subset, and most draw well under half their domain.
+   the diagrams, not `erd-data.json`, because they count a different thing: a diagram's
+   entity set is determined by what is drawn in it, so it can fall short of its domain
+   (objects with no edge worth drawing are left out), match it exactly, or exceed it
+   (`usage-management` draws `RatingFrequencyPolicy`, which the data tags Rate
+   Management). No fixed ratio holds between the two — an earlier version of this note
+   asserted one, and review disproved it from the very counts this file gates.
    Conflating the two is what let them drift, and two of the eight coincidentally
    matched their file, which made the other six look plausible. A third phrasing
    ("all N entities", in prose rather than an inventory) turned up only by

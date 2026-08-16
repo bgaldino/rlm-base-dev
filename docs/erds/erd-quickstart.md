@@ -40,8 +40,9 @@ python3 -m http.server 8000
 
 ## Domain Diagram Descriptions
 
-**Entities** is how many the diagram draws, **not** the domain's object count — these
-files are relationship-focused subsets. For object counts see the Domain Overview table
+**Entities** is how many the diagram draws, **not** the domain's object count — a diagram
+is organized around relationships, so it may draw fewer entities than its domain holds,
+all of them, or one from another domain. For object counts see the Domain Overview table
 in `.cursor/skills/revenue-cloud-data-model/SKILL.md`. Both are gated by
 `tests/test_erd_doc_counts.py`.
 

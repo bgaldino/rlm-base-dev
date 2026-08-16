@@ -232,7 +232,8 @@ most, since it took a *third* method to find.
 
 The inventories carried the same stale set (11/14/15/4/37/27/22/54) — in a file that sweep
 already had open — because they *look* like a different quantity. They are: entities drawn
-in a diagram, a relationship-focused subset. But they had been populated from the domain
+in a diagram, which is organized around relationships and need not hold the same entities
+as the domain — in one case it draws one more. But they had been populated from the domain
 counts, so they drifted with them, and two of the eight coincidentally matched their
 diagram, which made the other six look deliberate. The 32nd escaped even the corrected
 sweep: a grep for the stale *numbers* passed over it twice because it said "objects"
@@ -255,6 +256,16 @@ whereas three consecutive review rounds each found exactly one more instance by 
 **Enumerate against the data, not against the phrasings you already know**, and gate the
 figures a definition quotes to justify itself — those read as prose and so escape the
 count checks entirely.
+
+⭐ **A qualitative claim about the data is a citation too, and no count check can gate it.**
+The note explaining *why* the diagram inventories are gated separately asserted that most
+diagrams "draw well under half their domain." Review checked it against the very counts
+the change had just established: only two of nine are below half, four match their domain
+exactly, and one exceeds it. The claim was invented to justify the layer, was wrong the
+day it was written, and was copied to five sites. Prefer wording the data cannot
+contradict — "may draw fewer, all, or one more" — over a ratio or a "most," because a
+summary statistic in prose has all the drift risk of a number with none of the
+gateability. When a rationale needs a quantity, compute it and let a check hold it.
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
