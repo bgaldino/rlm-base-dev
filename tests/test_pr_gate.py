@@ -59,7 +59,13 @@ def main_with(args):
     try:
         sys.argv = ["pr_gate.py", *args]
         with redirect_stdout(buf):
-            code = pr_gate.main()
+            try:
+                code = pr_gate.main()
+            except SystemExit as exc:
+                # `die()` exits rather than returning, so a tool error arrives as SystemExit.
+                # Letting it escape would abort this suite mid-run and look like a crash
+                # instead of the exit code under test.
+                code = exc.code if isinstance(exc.code, int) else 2
     finally:
         sys.argv = saved
     return code, buf.getvalue()
@@ -426,7 +432,10 @@ check("--requirements emits nothing unpinned for cumulusci",
 # This suite runs the gate, so its probe path must not select a check that runs this suite
 # (infinite nesting) or one whose dependency CI would not have installed for the outer
 # selection (a MISSING-DEP failure that says nothing about the gate).
-PROBE_PATH = ".claude/skill-manifest.yml"
+# erd-data.json selects exactly one check, which needs no package and does not run this
+# suite. It replaced .claude/skill-manifest.yml, which stopped qualifying once a manifest
+# edit started (correctly) selecting the PyYAML-dependent suite that audits the manifest.
+PROBE_PATH = "docs/erds/erd-data.json"
 probe_selection = [c for c in pr_gate.CHECKS if pr_gate.selects(c, [PROBE_PATH])]
 check("the probe path selects at least one check", probe_selection != [])
 check("the probe path selects no check that re-runs this suite",
@@ -496,6 +505,35 @@ with tempfile.TemporaryDirectory() as probe_dir:
 check("cumulusci is probed at the depth a task actually needs",
       pr_gate.DEPS["cumulusci"] == "cumulusci.core.tasks", pr_gate.DEPS["cumulusci"])
 
+# A failed `git status` returns empty stdout, which reads exactly like a clean tree. In
+# changed_files that would silently drop every uncommitted path from the selection; in the
+# CCI-reference check, where the status IS the verdict, it would report "no drift" and pass.
+# Both must fail loudly instead, so both return codes are asserted here.
+source = pathlib.Path(pr_gate.__file__).read_text()
+status_calls = source.count('"git", "status", "--porcelain"')
+check("both git status call sites are still present", status_calls == 2, status_calls)
+check("changed_files dies when git status fails",
+      re.search(r'"git", "status", "--porcelain", "-z".*?if st\.returncode != 0:\s*\n\s*die\(',
+                source, re.S) is not None)
+check("the drift check fails when git status fails",
+      re.search(r'"git", "status", "--porcelain", "--", \*generated.*?'
+                r'if diff\.returncode != 0:\s*\n\s*return 1,', source, re.S) is not None)
+
+broken_git = tempfile.mkdtemp()
+try:
+    # An unreadable repo: `git status` cannot succeed, so the gate must be a tool error
+    # (exit 2) rather than a verdict computed from an empty result.
+    prior_root = pr_gate.REPO_ROOT
+    pr_gate.REPO_ROOT = broken_git
+    try:
+        code, out = main_with(["--base", "origin/264"])
+        check("an unusable repo is a tool error, not a clean selection",
+              code == 2, f"exit {code}: {out[-200:]}")
+    finally:
+        pr_gate.REPO_ROOT = prior_root
+finally:
+    os.rmdir(broken_git)
+
 code, out = run_gate("--changed-files-from", os.devnull)
 check("an empty change set is a clean pass, not an error", code == 0, out[-300:])
 code, out = run_gate("--changed-files-from", "/no/such/file")
@@ -506,7 +544,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 95
+EXPECTED = 99
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

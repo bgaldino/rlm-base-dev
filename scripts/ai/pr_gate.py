@@ -147,9 +147,13 @@ CHECKS = [
     dict(
         name="yaml_offline_suites",
         cmd=["python", "tests/test_decision_table_tasks.py",
-             "tests/test_fulfillment_scope_tolerance.py"],  # run in sequence
-        triggers=["tasks/", "cumulusci.yml", "tests/test_decision_table_tasks.py",
-                  "tests/test_fulfillment_scope_tolerance.py"],
+             "tests/test_fulfillment_scope_tolerance.py",
+             "tests/test_skill_manifest_audit.py"],  # run in sequence
+        triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
+                  ".claude/skill-manifest.yml",
+                  "tests/test_decision_table_tasks.py",
+                  "tests/test_fulfillment_scope_tolerance.py",
+                  "tests/test_skill_manifest_audit.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
@@ -220,6 +224,7 @@ STDLIB_SUITES = [
 CLAIMED_SUITES = set(STDLIB_SUITES) | {
     "tests/test_decision_table_tasks.py",
     "tests/test_fulfillment_scope_tolerance.py",
+    "tests/test_skill_manifest_audit.py",
     "tests/test_doc_build_steps.py",
     "tests/test_docgen_helpers.py",
     "tests/test_pr_gate.py",
@@ -295,6 +300,11 @@ def changed_files(base):
         # Uncommitted work counts too, so running this locally before a commit is honest.
         st = subprocess.run(["git", "status", "--porcelain", "-z"], cwd=REPO_ROOT,
                             capture_output=True, text=True)
+        # Checked, not assumed: a failed `git status` returns empty stdout, which is
+        # indistinguishable from a clean tree — so an unreadable index would silently
+        # drop every uncommitted path from the selection and still exit 0.
+        if st.returncode != 0:
+            die(f"git status failed: {st.stderr.strip()}")
         # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
         # halves are wanted here, so every non-status token is taken as a path.
         for entry in st.stdout.split("\0"):
@@ -369,6 +379,11 @@ def run_cci_reference_drift():
                               "feature-flags.md")]
     diff = subprocess.run(["git", "status", "--porcelain", "--", *generated],
                           cwd=REPO_ROOT, capture_output=True, text=True)
+    # Here the empty-output-means-clean trap is worse than in changed_files: this git status
+    # *is* the verdict, so a failed one reads as "no drift" and passes the check.
+    if diff.returncode != 0:
+        return 1, (out + "\ngit status failed, so drift could not be determined:\n"
+                   + diff.stderr), secs
     if diff.stdout.strip():
         return 1, (out + "\nRegenerating changed committed files — commit the result:\n"
                    + diff.stdout), secs

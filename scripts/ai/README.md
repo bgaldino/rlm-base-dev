@@ -90,8 +90,17 @@ python scripts/ai/skill_manifest.py --check              # validate the manifest
 python scripts/ai/skill_manifest.py --list-skills foundations
 ```
 
+`--check` resolves every path-shaped value in the Foundations section, with one documented
+exemption: `.agents/artifacts/` is a separate **private** repo that the main one gitignores,
+and the analysis-artifacts rule requires generated working documents to live there, so
+tracked files legitimately cite paths inside it. Those references are audited normally when
+the private tree is present — a typo on a workstation still fails — and **reported as
+unaudited**, with the run passing, when it is absent. Without that split, `--check` failed on
+every fresh clone and in CI while passing on the one workstation holding the clone, which is
+what made it unfit to be a gating check. Covered by `tests/test_skill_manifest_audit.py`.
+
 **Data source:** `.claude/skill-manifest.yml`
-**Used by:** `.cursor/skills/pmos-integration/SKILL.md`
+**Used by:** `.cursor/skills/pmos-integration/SKILL.md`, `pr_gate.py`
 
 ### `analyze_agent_tooling.py`
 
@@ -319,7 +328,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (95 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (99 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -327,13 +336,19 @@ as a skip or relabelled `SKIPPED`, the unclaimed-suite check blinded or its new 
 unclaimed, the silent-failure section dropped, an advisory flipped to gating, `run_sequence`
 short-circuiting, a drifting CumulusCI pin, an emptied trigger list, a usage error exiting 1,
 a dropped Python floor, a dropped requirements pin, renames collapsed to the destination
-only, the per-check timeout removed, advisory output truncated from the tail again, and the
-dependency probe reverted to `find_spec` or to a shallow `cumulusci` import. The first round
+only, the per-check timeout removed, advisory output truncated from the tail again, the
+dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, and either
+`git status` return code left unchecked — which matters because a failed `git status` returns
+empty stdout, indistinguishable from a clean tree, so it would drop uncommitted paths from
+the selection and, in the CCI-reference check, report "no drift" and pass. The first round
 of mutations found two live holes in these tests, both in the gap between a helper returning
 the right value and the gate acting on it.
 
-Building it turned up three real defects rather than only proving the wiring. A stale
-`--api-version 67.0` assertion in `tests/txn_data_harness/test_cli.py` had survived the 264
+Building it turned up four real defects rather than only proving the wiring. Making
+`skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a
+path inside the gitignored private artifacts tree, so it failed on every fresh clone while
+passing on the workstation that held the clone (fixed above, in that script's own section). A
+stale `--api-version 67.0` assertion in `tests/txn_data_harness/test_cli.py` had survived the 264
 bump because nothing ran that suite. Three suites bound an exception class from CumulusCI
 while the module under test bound its own fallback shim, so on a partially importable
 CumulusCI the `except` clause missed and the suite failed with a confusing traceback instead
