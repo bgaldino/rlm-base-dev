@@ -39,33 +39,44 @@ To refresh the ERD against a new release or different org configuration, see `.c
 
 ### Individual Domain Mermaid Diagrams
 
-Detailed ERDs for each domain, suitable for documentation and analysis:
+Detailed ERDs for each domain, suitable for documentation and analysis. The count is
+**entities drawn in that file**, which is *not* its domain's object count — these are
+relationship-focused subsets, and most draw well under half their domain. For a domain's
+object count see the Domain Overview table in
+`.cursor/skills/revenue-cloud-data-model/SKILL.md`. Both are gated by
+`tests/test_erd_doc_counts.py`; the numbers below are counted from the files.
 
-- **pcm.mermaid** — Product Catalog Management (11 objects)
+- **pcm.mermaid** — Product Catalog Management (11 entities)
   - Product hierarchy, attributes, classifications, and qualifications
-  
-- **pricing.mermaid** — Salesforce Pricing (14 objects)
+
+- **pricing.mermaid** — Salesforce Pricing (26 entities)
   - Price books, price book entries, and adjustment logic
-  
-- **rate-management.mermaid** — Rate Management (15 objects)
+
+- **rate-management.mermaid** — Rate Management (11 entities)
   - Rate cards, rate card entries, and rate lookup data
-  
-- **configurator.mermaid** — Product Configurator (4 objects)
+
+- **configurator.mermaid** — Product Configurator (4 entities)
   - Product configuration flows, rules, and assignments
-  
-- **transaction-management.mermaid** — Transaction Management (37 objects)
+
+- **transaction-management.mermaid** — Transaction Management (44 entities)
   - Assets, asset state periods, orders, order items, quotes, approvals
   - Contract items, pricing details, and related transaction records
-  
-- **dro.mermaid** — Dynamic Revenue Orchestrator (27 objects)
+
+- **dro.mermaid** — Dynamic Revenue Orchestrator (29 entities)
   - DRO transactions, message sets, outbound messages, and orchestration rules
-  
-- **usage-management.mermaid** — Usage Management (22 objects)
+
+- **usage-management.mermaid** — Usage Management (24 entities)
   - Product usage grants, usage resources, usage records, and policies
-  
-- **billing.mermaid** — Billing (54 objects)
+  - Draws `RatingFrequencyPolicy`, which the data tags **Rate Management** — the one
+    cross-domain node in any of these files, and why this count exceeds the domain's 23
+
+- **billing.mermaid** — Billing (72 entities)
   - Billing accounts, schedules, treatments, invoices, credit/debit memos
   - Payment schedules, tax treatment, and general ledger integration
+
+- **approvals.mermaid** — Approvals (1 entity)
+  - `ApprovalSubmission`; the domain's other two objects (`EmailTemplate`,
+    `ApprovalAlertContentDef`) are not drawn
 
 ### Master Diagram
 

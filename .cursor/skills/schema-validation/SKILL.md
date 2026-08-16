@@ -144,6 +144,15 @@ the triple pattern. What it does **not** cover is the other figures those files 
 the org-describe pair (254 objects / 3,913 fields), the 1,148 reference-field total, and
 the orphan and gap baselines. Those still need the grep.
 
+⚠ **A domain's object count and a diagram's entity count are different numbers.** The
+mermaid inventories in `docs/erds/README.md` and `docs/erds/erd-quickstart.md` quote
+entities *drawn* in a `.mermaid` file — a relationship-focused subset, most of which draw
+well under half their domain — and are gated against those files, not `erd-data.json`.
+Conflating the two is what let both inventories keep the stale **domain** counts
+(11/14/15/4/37/27/22/54) through the very sweep that fixed those numbers elsewhere:
+16 further instances, in files that sweep already had open. Two of the eight happened to
+match their diagram, which is what made the other six look plausible.
+
 The count definition it enforces: a domain's objects are all objects carrying that
 domain **including** the `(Core Object)` variants (the only reading that sums to the
 headline), with `Advanced Approvals` folded into `Approvals` as `get_short_domain` does.

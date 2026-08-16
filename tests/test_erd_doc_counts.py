@@ -48,7 +48,7 @@ the same short name through that function's fallback, which is the subject of
 pack 148. Two operations get from 14 raw labels to the documented **9**: stripping
 the 4 `(Core Object)` suffixes (14 -> 10), then this fold (10 -> 9).
 
-Six directions are checked, because these fail independently:
+Seven directions are checked, because these fail independently:
 
 1. **`erd-data.json` agrees with itself** — its `stats` block vs the objects,
    fields and relationships actually present. Everything else trusts `stats`
@@ -63,17 +63,28 @@ Six directions are checked, because these fail independently:
    three figures plus the domain count as a bullet list, which the triple pattern
    cannot match — so that file was audited at its three prose citations while four
    bullets in it went unchecked.
-4. **Every Domain Overview row matches its domain.** Catches the 8 wrong rows.
-5. **Every `domains/*.md` headline matches its domain.** Catches the 7 wrong ones.
-6. **The taxonomy is closed and complete** — every domain label in the data folds
+4. **Every mermaid inventory count matches the diagram it names.** `docs/erds/README.md`
+   and `docs/erds/erd-quickstart.md` both inventory the `<domain>.mermaid` files with a
+   per-file count — and both carried the *domain* counts corrected above, 16 more
+   instances of the same stale set, in files this change already edits. Checked against
+   the diagrams, not `erd-data.json`, because they count a different thing: a diagram is
+   a relationship-focused subset, and most draw well under half their domain.
+   Conflating the two is what let them drift, and two of the eight coincidentally
+   matched their file, which made the other six look plausible. A third phrasing
+   ("all N entities", in prose rather than an inventory) turned up only by
+   enumerating every line that names a `.mermaid` file — the manual grep for the
+   stale numbers had passed over it twice, because it said "billing domain objects".
+5. **Every Domain Overview row matches its domain.** Catches the 8 wrong rows.
+6. **Every `domains/*.md` headline matches its domain.** Catches the 7 wrong ones.
+7. **The taxonomy is closed and complete** — every domain label in the data folds
    into one of the documented domains, all of them appear in the table, the rows
    sum to the total, every "across N domains" claim matches how many the data
    actually folds to, and the table and the `domains/*.md` set cover the *same*
    domains. This is the direction that catches the *next* refresh rather than this
    one: a new domain label, or a domain silently dropped from the table, is
-   invisible to checks 4 and 5 because they only audit rows that exist. The
+   invisible to checks 5 and 6 because they only audit rows that exist. The
    two-map agreement is here for the same reason — a domain with a table row but
-   no sub-file is invisible to check 5, which iterates the file map, so nothing
+   no sub-file is invisible to check 6, which iterates the file map, so nothing
    else would name it. The pinned count does move, but it says "something left the
    audit" and prompts you to raise EXPECTED_CHECKS, which would accept the
    unaudited domain. A smoke alarm is not a diagnosis.
@@ -103,7 +114,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 51
+EXPECTED_CHECKS = 88
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -150,6 +161,34 @@ ROW_TO_DOMAIN = {
     "Approvals": "Approvals",
 }
 
+ERD_DIR = os.path.join(REPO_ROOT, "docs", "erds")
+
+# The `<domain>.mermaid` files, and the two docs that inventory them. Both inventories
+# quote a per-file entity count, and both carried the *domain* counts this change
+# corrects elsewhere (11/14/15/4/37/27/22/54) — 16 more instances of the same stale
+# set, in files this change already edits. Two of the eight happened to be right,
+# which is what let the rest look plausible. Found by review, after the first sweep
+# fixed 15 of the 31 instances and declared the class swept.
+MERMAID_INVENTORIES = (
+    os.path.join(ERD_DIR, "README.md"),
+    os.path.join(ERD_DIR, "erd-quickstart.md"),
+)
+
+# mermaid file stem -> domain, for the entity-count layer. Distinct from
+# FILE_TO_DOMAIN: these are diagram filenames, which use different stems
+# (`rate-management` vs the sub-file's `rates`).
+MERMAID_TO_DOMAIN = {
+    "pcm": "Product Catalog Management",
+    "pricing": "Salesforce Pricing",
+    "rate-management": "Rate Management",
+    "configurator": "Product Configurator",
+    "transaction-management": "Transaction Management",
+    "dro": "Dynamic Revenue Orchestrator",
+    "usage-management": "Usage Management",
+    "billing": "Billing",
+    "approvals": "Approvals",
+}
+
 _passed = _total = 0
 
 
@@ -188,6 +227,30 @@ def load():
         "relationships": len(erd.get("relationships", [])),
     }
     return erd, totals, per_domain
+
+
+def mermaid_entities(stem):
+    """Entity names drawn in `docs/erds/<stem>.mermaid`.
+
+    An `erDiagram` body declares an entity either on a line of its own or as either
+    side of a relationship, so both forms count — a node named only in a relationship
+    is still drawn.
+    """
+    path = os.path.join(ERD_DIR, f"{stem}.mermaid")
+    names = set()
+    with open(path) as f:
+        for line in f.read().split("\n")[1:]:
+            s = line.strip()
+            if not s or s.startswith("%%"):
+                continue
+            solo = re.match(r"^([A-Za-z_]\w*)$", s)
+            if solo:
+                names.add(solo.group(1))
+                continue
+            pair = re.match(r"^([A-Za-z_]\w*)\s+[|}o][^\s]*\s+([A-Za-z_]\w*)\s*:", s)
+            if pair:
+                names.update(pair.groups())
+    return names
 
 
 def num(text):
@@ -321,6 +384,41 @@ def main():
             check(f"{rel(readme)}:{lineno}_{label.replace(' ', '_').lower()}",
                   claimed == expected,
                   f"bullet says {claimed}, erd-data.json has {expected}")
+
+    print()
+    print("mermaid entity inventories")
+    # These quote a per-*file* count, not a per-domain one, so they are checked against
+    # the diagrams rather than against erd-data.json. Conflating the two is what let
+    # them drift: the numbers they carried were the stale domain counts, and two of the
+    # eight coincidentally matched their file, which made the rest look plausible.
+    drawn = {stem: len(mermaid_entities(stem)) for stem in MERMAID_TO_DOMAIN}
+    for path in MERMAID_INVENTORIES:
+        with open(path) as f:
+            body = f.read()
+        for stem, count in sorted(drawn.items()):
+            # Three phrasings, because there are three in the docs: `(N entities)`, a
+            # `| N |` table cell, and the prose `all N entities`. The third was found
+            # only by enumerating every line naming a `.mermaid` file — a manual grep
+            # for the stale numbers had already missed it twice, since it called them
+            # "billing domain objects" rather than entities.
+            hits = []
+            for i, line in enumerate(body.split("\n")):
+                if f"{stem}.mermaid" not in line:
+                    continue
+                m = re.search(r"\((\d+)\s+entit|\|\s*(\d+)\s*\||all\s+(\d+)\s+entit",
+                              line)
+                if m:
+                    hits.append((i + 1, num(next(g for g in m.groups() if g))))
+            # Absence fails: `approvals.mermaid` was in neither inventory, so eight of
+            # the nine domains were listed and nothing reported the ninth as missing.
+            check(f"{rel(path)}_lists_{stem}", len(hits) >= 1,
+                  f"no entity count for `{stem}.mermaid` in {rel(path)} — a diagram "
+                  "left the inventory, or its phrasing drifted past all three patterns")
+            # Every citation, not just the first: a file may legitimately state the
+            # count more than once, and the extra ones are exactly where drift hides.
+            for lineno, claimed in hits:
+                check(f"{rel(path)}:{lineno}_{stem}_entities", claimed == count,
+                      f"claims {claimed} entities, {stem}.mermaid draws {count}")
 
     print()
     print("Domain Overview table")

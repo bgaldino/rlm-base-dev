@@ -40,16 +40,22 @@ python3 -m http.server 8000
 
 ## Domain Diagram Descriptions
 
-| Domain | File | Objects | Purpose |
+**Entities** is how many the diagram draws, **not** the domain's object count — these
+files are relationship-focused subsets. For object counts see the Domain Overview table
+in `.cursor/skills/revenue-cloud-data-model/SKILL.md`. Both are gated by
+`tests/test_erd_doc_counts.py`.
+
+| Domain | File | Entities | Purpose |
 |--------|------|---------|---------|
 | PCM | `pcm.mermaid` | 11 | Product definitions, attributes, classifications |
-| Pricing | `pricing.mermaid` | 14 | Price books and pricing strategy |
-| Rate Management | `rate-management.mermaid` | 15 | Rate cards and rating rules |
+| Pricing | `pricing.mermaid` | 26 | Price books and pricing strategy |
+| Rate Management | `rate-management.mermaid` | 11 | Rate cards and rating rules |
 | Configurator | `configurator.mermaid` | 4 | Product configuration flows |
-| Transaction Management | `transaction-management.mermaid` | 37 | Orders, assets, quotes, contracts |
-| DRO | `dro.mermaid` | 27 | Dynamic revenue orchestration engine |
-| Usage Management | `usage-management.mermaid` | 22 | Usage grants, tracking, policies |
-| Billing | `billing.mermaid` | 54 | Invoicing, payments, tax, GL integration |
+| Transaction Management | `transaction-management.mermaid` | 44 | Orders, assets, quotes, contracts |
+| DRO | `dro.mermaid` | 29 | Dynamic revenue orchestration engine |
+| Usage Management | `usage-management.mermaid` | 24 | Usage grants, tracking, policies |
+| Billing | `billing.mermaid` | 72 | Invoicing, payments, tax, GL integration |
+| Approvals | `approvals.mermaid` | 1 | Approval workflow submissions |
 
 ## Legend
 
@@ -81,7 +87,7 @@ Open `revenue-cloud-erd.html`, search for "Product2", and observe all connected 
 
 ### "What are all the billing-related objects?"
 
-Open `billing.mermaid` to see all 54 billing domain objects in one diagram.
+Open `billing.mermaid` to see all 72 entities in one diagram.
 
 ### "How do orders connect to invoices?"
 

@@ -222,6 +222,17 @@ three totals in a form the triple pattern cannot match; that file was being audi
 three prose citations while four bullets in it went unchecked. **When you add a
 citation or a site, expect the pin to fail and raise `EXPECTED_CHECKS` deliberately.**
 
+⭐ **The most instructive finding came last: the first sweep fixed 15 of 31 instances and
+declared the class swept.** The mermaid inventories in `docs/erds/README.md` and
+`docs/erds/erd-quickstart.md` carried the same stale set (11/14/15/4/37/27/22/54) — 16
+more, in a file that sweep already had open — because they *look* like a different
+quantity. They are: entities drawn in a diagram, a relationship-focused subset. But they
+had been populated from the domain counts, so they drifted with them, and two of the
+eight coincidentally matched their diagram, which made the other six look deliberate.
+Both are now gated against the `.mermaid` files. **When sweeping a class, enumerate every
+instance mechanically before claiming the class is closed** — "I fixed the ones I found"
+is not the same claim, and a near-miss quantity is where the rest hide.
+
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
 or removing a single step silently invalidates every citation downstream of it**.
