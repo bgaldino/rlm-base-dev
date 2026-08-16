@@ -191,7 +191,23 @@ git diff .cursor/skills/cci-orchestration/               # should show only inte
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should pass
 python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
 python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
+python tests/test_erd_doc_counts.py                      # ERD object/field/domain counts in docs ↔ erd-data.json
 ```
+
+`test_erd_doc_counts.py` covers the same shape of drift one level down. The
+**headline** ERD triple gets swept on every refresh — 4,190 → 4,252 fields at 264,
+all five citations updated — but the **per-domain** counts under it never did, and
+the sweep does not look at them: 7 of the 9 rows in the Domain Overview table of
+`revenue-cloud-data-model/SKILL.md` disagreed with the data, summing to 185 against
+an actual 263, directly beneath a correct "263 objects" headline. Six of eight
+`domains/*.md` headlines were wrong too.
+
+Two things make this worth a check rather than another sweep. The drift was **not**
+uniformly stale-low — `rates.md` claimed 15 Rate Management objects where the data
+has 11 — so "add the new ones" would not have found it. And 6 of 9 matched neither
+the ERD nor the file's own object table, meaning the numbers had stopped describing
+anything measurable. Run it after any ERD refresh, and see `schema-validation` for
+where it sits in that procedure.
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting

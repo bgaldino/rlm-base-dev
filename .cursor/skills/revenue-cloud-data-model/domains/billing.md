@@ -1,6 +1,6 @@
 # Billing Domain
 
-54 objects covering invoicing, payments, credits, tax, general ledger, collections, and billing policies.
+72 objects covering invoicing, payments, credits, tax, general ledger, collections, and billing policies.
 
 ## Billing Policy Objects
 

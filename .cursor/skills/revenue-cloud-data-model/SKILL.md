@@ -89,15 +89,23 @@ Both `RatingFrequencyPolicy` removals are still selected by the `qb-rating` and
 
 | Domain | Objects | Key Entities | Purpose |
 |--------|---------|-------------|---------|
-| **PCM** | 11 | Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent | Product catalog: products, bundles, attributes, classifications, categories |
-| **Pricing** | 14+ | PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
-| **Rate Management** | 15 | RateCard, RateCardEntry, RateAdjustmentByTier, PriceBookRateCard | Rate cards for usage-based pricing, tiered adjustments |
+| **PCM** | 33 | Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent | Product catalog: products, bundles, attributes, classifications, categories |
+| **Pricing** | 27 | PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
+| **Rate Management** | 11 | RateCard, RateCardEntry, RateAdjustmentByTier, PriceBookRateCard | Rate cards for usage-based pricing, tiered adjustments |
 | **Configurator** | 4 | ProductConfigurationFlow, ProductConfigurationRule | Product configuration rules and flow assignments |
-| **Transaction Mgmt** | 37 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
-| **DRO** | 27 | FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule | Dynamic Revenue Orchestration: fulfillment plans, decomposition, orchestration |
-| **Usage Mgmt** | 22 | ProductUsageResource (PUR), ProductUsageResourcePolicy (PURP), ProductUsageGrant (PUG), UsageResource, UsageSummary | Usage entitlements, grants, rating, metering |
-| **Billing** | 54 | BillingSchedule, Invoice, InvoiceLine, CreditMemo, Payment, TaxPolicy, LegalEntity | Invoicing, payments, tax, GL, collections |
-| **Approvals** | 1 | ApprovalSubmission | Approval workflow submissions |
+| **Transaction Mgmt** | 58 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
+| **DRO** | 32 | FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule | Dynamic Revenue Orchestration: fulfillment plans, decomposition, orchestration |
+| **Usage Mgmt** | 23 | ProductUsageResource (PUR), ProductUsageResourcePolicy (PURP), ProductUsageGrant (PUG), UsageResource, UsageSummary | Usage entitlements, grants, rating, metering |
+| **Billing** | 72 | BillingSchedule, Invoice, InvoiceLine, CreditMemo, Payment, TaxPolicy, LegalEntity | Invoicing, payments, tax, GL, collections |
+| **Approvals** | 3 | ApprovalSubmission, ApprovalAlertContentDef, EmailTemplate | Approval workflow submissions and alert content |
+
+Counts are every object in `erd-data.json` carrying that domain, **including** the
+`(Core Object)` variants — the only reading under which they sum to the 263 above
+(excluding those variants gives 239). `Advanced Approvals` folds into Approvals, as
+it does in `DOMAIN_MAP` (`scripts/erd/build_erds.py`), which is what makes 9 domains
+out of 14 raw labels. `python tests/test_erd_doc_counts.py` enforces both, here and
+in every `domains/*.md`; these numbers had drifted to describe nothing measurable
+before it existed, so refresh the data and rerun rather than editing a cell.
 
 ## Central Object: Product2
 

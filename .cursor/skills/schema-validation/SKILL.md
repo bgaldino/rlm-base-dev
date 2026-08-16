@@ -122,6 +122,25 @@ two and this one and **missed `scripts/ai/README.md`**, leaving `query_erd.py st
 printing 264 figures while its own README described 262 — so sweep by grepping the
 outgoing numbers, not by walking a list from memory.
 
+**Then run `python tests/test_erd_doc_counts.py`, which now gates part of that sweep.**
+It pins the headline triple *and* the per-domain counts — the Domain Overview table in
+`revenue-cloud-data-model/SKILL.md` and every `domains/*.md` headline — to
+`erd-data.json`, plus `erd-data.json` against its own `stats` block so a stale
+generator cannot certify the docs. The per-domain layer is what the manual sweep never
+reached: at 264 the headline triple was correct in all five places while **7 of the
+table's 9 rows** were wrong, summing to 185 against an actual 263. It was not simple
+staleness either — `rates.md` over-claimed 15 against 11 — so grepping the outgoing
+numbers would not have caught it. All four docs above are covered, `scripts/ai/README.md`
+included — its citation wraps mid-phrase (`263` / `objects, 4,252 platform fields, 674
+verified relationship edges`), so the check matches over a sliding window rather than
+per line. What it does **not** cover is the other figures those files carry: the
+org-describe pair (254 objects / 3,913 fields), the 1,148 reference-field total, and
+the orphan and gap baselines. Those still need the grep.
+
+The count definition it enforces: a domain's objects are all objects carrying that
+domain **including** the `(Core Object)` variants (the only reading that sums to the
+headline), with `Advanced Approvals` folded into `Approvals` as `DOMAIN_MAP` does.
+
 Two other things the same refresh had to fix by hand, worth checking rather than
 assuming:
 
