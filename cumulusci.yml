@@ -3673,8 +3673,12 @@ tasks:
   # found. Before any full capture, validate the root for that area:
   #
   #   cci task run snapshot_{area}_help_264 -o mode discover
+  #   python3 -c "import json;print(json.load(open('docs/salesforce/264/help/manifest.json'))['stats'])"
   #
-  # The discover phase fails loudly on a wrong root. If it fails, start from the
+  # The discover phase does NOT fail on a wrong root — it exits 0 having found
+  # zero articles (a walker failure returns an empty list and an empty
+  # post-prefix result is not rejected), so stats.discovered is the only signal.
+  # If it is 0, start from the
   # Revenue Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
   # walk the sidebar, and copy the id= param into root_article_id /
   # article_id_prefix here. See the 262 header above for the per-area domain

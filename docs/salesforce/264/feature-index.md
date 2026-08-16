@@ -27,19 +27,21 @@ published source.
    stable across release reorgs. Validate each area's root first:
 
    ```bash
-   cci task run snapshot_pcm_help_264 -o mode discover   # fails loudly on a bad root
-   cci task run snapshot_pcm_help_264                    # full capture once discover passes
+   cci task run snapshot_pcm_help_264 -o mode discover
+   python3 -c "import json;print(json.load(open('docs/salesforce/264/help/manifest.json'))['stats'])"
+   cci task run snapshot_pcm_help_264   # only if discovered > 0
    ```
 
    Captures land in `docs/salesforce/264/help/` and
    `docs/salesforce/264/dev-guide{,-industries}/`.
 
-   A passing `discover` proves only that the root article ID still resolves — on
-   a pre-GA release the articles behind it can still be 262 text, so a green
-   discover plus a full capture can spend 10–15 minutes writing last release's
-   content under a 264 path. Per-area readiness and the capture order are
-   assessed in the private artifacts repo (todo 145); check it before committing
-   a run to an area.
+   **`discover` does not fail on a bad root** — it exits 0 with zero discovered
+   articles, so `stats.discovered` is the only signal that the root and prefix
+   are right. And even a non-zero count says nothing about whether 264 content
+   was *written*: the articles behind a valid root can still be 262 text, so a
+   capture can spend 10–15 minutes writing last release's content under a 264
+   path. Per-area readiness and capture order are assessed in the private
+   artifacts repo (todo 145); check it before committing a run to an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and
