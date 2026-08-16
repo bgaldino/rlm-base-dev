@@ -152,6 +152,19 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
     chrome, so if a template edit breaks one of them the other two still match and the
     build reports success while shipping a half-updated banner. That is the same
     silent drift this function exists to prevent, so a partial patch has to be loud.
+
+    Two ways this check has already tried to fail *open*, both fixed here, both worth
+    remembering because they look like working checks:
+
+    - Counting total substitutions instead of per-pattern ones. `re.subn` returns how
+      many it replaced, so one pattern matching twice covered for another matching
+      zero times and the total still reached the expected number. Each pattern must
+      match **exactly once**.
+    - Returning `expected == 0` for metadata that exists but lacks `release` or
+      `apiVersion`. `patched == expected == 0` then satisfies the caller's equality
+      check, so malformed metadata published refreshed data under stale chrome. The
+      expected count is a property of the patterns, never of the input, so it is
+      returned unconditionally below.
     """
     release = str(metadata.get("release") or "")
     api = str(metadata.get("apiVersion") or "")
@@ -174,12 +187,12 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
     )
 
     if not release or not api:
-        return html, 0, 0
+        return html, 0, len(patterns)
 
     patched = 0
     for pattern, replacement in patterns:
         html, n = re.subn(pattern, replacement, html)
-        patched += n
+        patched += 1 if n == 1 else 0
 
     return html, patched, len(patterns)
 
@@ -192,11 +205,17 @@ def patch_html(html_path: str, nodes: list, links: list, metadata: dict = None) 
     if metadata:
         html, patched, expected = patch_version_strings(html, metadata)
         if patched != expected:
+            missing = [k for k in ("release", "apiVersion") if not metadata.get(k)]
+            why = (
+                f"metadata is missing {' and '.join(missing)}"
+                if missing
+                else "check whether the title, version badge or subtitle markup "
+                     "changed, or now matches more than once"
+            )
             print(
                 f"Error: patched {patched} of {expected} version strings in "
-                f"{html_path}. A partial patch means the page chrome now disagrees "
-                f"with the data it describes — check whether the title, version "
-                f"badge or subtitle markup changed.",
+                f"{html_path} — {why}. Publishing now would put refreshed data "
+                f"under stale page chrome.",
                 file=sys.stderr,
             )
             return False

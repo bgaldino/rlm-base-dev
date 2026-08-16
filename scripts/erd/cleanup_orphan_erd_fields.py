@@ -24,8 +24,17 @@ reliably. This utility supports two safety modes:
                 (empty description AND no refersTo). 100% safe to remove.
 
   --aggressive  Remove any orphan field. Use only after cross-validating
-                against multiple orgs (e.g., 260 baseline + 262 + ent-pde
-                + tso). Pass --orgs <alias1>,<alias2>,... to verify.
+                against two or more orgs of the SAME release and the SAME
+                shape (e.g. rlm-base__264merged + rlm-base__264fresh).
+                Pass --orgs <alias1>,<alias2>,... to verify.
+
+                This used to recommend a mixed set (260 baseline + 262 +
+                ent-pde + tso). Do not: spanning releases or shapes cannot
+                separate case (1) from (2) or (3) above, it multiplies them.
+                A field added in the release you did not build, or gated by
+                the shape you did not build, is absent for reasons that have
+                nothing to do with removal — and --aggressive deletes on that
+                evidence.
 
 Usage:
     # Show candidates without modifying anything

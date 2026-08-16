@@ -20,12 +20,28 @@ Outputs a normalized JSON snapshot that can be diffed between releases (e.g.,
 Usage:
     python scripts/erd/schema_diff/extract_schema.py --org rlm-base__264merged --output scripts/erd/schema_diff/264-schema.json
 
-Pass no object flag: the default reads the object list from erd-data.json, which is
-what a release refresh wants. Do NOT pass --all-objects — it fails with
-EXCEEDED_ID_LIMIT because EntityDefinition does not support queryMore().
-
 Use a fresh `prepare_rlm_org` scratch org. Ad-hoc orgs (the old `techido-260`
 example) are ruled out for baselines by .cursor/skills/schema-validation/SKILL.md.
+
+KNOWN LIMITATION — this cannot discover objects, only fields.
+
+The default object list comes from `erd-data.json`, so a release diff built from two
+default extractions compares the *same key set* on both sides. "Objects added: 0" out
+of `diff_schemas.py` is then true by construction and is not evidence that the release
+added no objects. `--all-objects` was meant to cover this and does not work: it fails
+with EXCEEDED_ID_LIMIT because `EntityDefinition` does not support `queryMore()`.
+
+`describeGlobal` has no such limit and returns **canonical** API names:
+
+    sf sobject list --sobject all --target-org <alias> --json
+
+That distinction matters twice over. Object *describe* is case-insensitive — it accepts
+`PriceBookEntry` and answers with `PricebookEntry` — so `validate_erd_against_org.py`
+structurally cannot see an ERD object key whose casing is not canonical, and reports it
+as present. Only a describeGlobal listing surfaces those. Three such keys are known to
+be in `erd-data.json` today (`PriceBookEntry`, `PriceBook2`, `PricingAPIExecution`);
+because these snapshots are keyed off the ERD, they inherit that casing too. See
+`.agents/artifacts/todos/open/143-erd-cannot-discover-objects.md`.
 
 Options:
     --org ALIAS         sf CLI target org alias (required)
@@ -216,11 +232,15 @@ def main():
     # --fail-on-missing overrides the default --allow-missing
     fail_on_missing = bool(args.fail_on_missing)
 
-    # Determine object list
+    # Determine object list. Record *how* it was chosen, not just the result: a
+    # snapshot enumerated from erd-data.json cannot evidence object additions, and
+    # diff_schemas.py has no way to know that from the object list alone.
     if args.objects:
+        object_selection = f"--objects {args.objects}"
         with open(args.objects) as f:
             objects = [line.strip() for line in f if line.strip() and not line.startswith("#")]
     elif args.all_objects:
+        object_selection = "--all-objects (EntityDefinition)"
         print(f"Querying all EntityDefinitions from {args.org}...")
         records = query_tooling(
             args.org,
@@ -229,8 +249,11 @@ def main():
         objects = [r["QualifiedApiName"] for r in records]
         print(f"  Found {len(objects)} queryable objects")
     else:
+        object_selection = "erd-data.json"
         objects = get_erd_objects()
         print(f"Using {len(objects)} objects from erd-data.json")
+        print("  NOTE: this snapshot cannot evidence object additions or removals — "
+              "its key set is the ERD's. See the module docstring.")
 
     # Extract schema for each object
     print(f"Extracting schema from {args.org} ({len(objects)} objects, concurrency={args.concurrency})...")
@@ -293,6 +316,7 @@ def main():
             "object_count": len(schema),
             "total_fields": sum(obj["fieldCount"] for obj in schema.values()),
             "source": "sf sobject describe",
+            "object_selection": object_selection,
         },
         "objects": schema,
     }

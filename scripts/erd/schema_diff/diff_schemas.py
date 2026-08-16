@@ -322,10 +322,20 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append("")
     lines.append("## Summary")
     lines.append("")
+    # A snapshot enumerated from erd-data.json carries the ERD's key set, so if either
+    # side was built that way the object rows are bounded by that set and a 0 is true by
+    # construction. Reporting it as a measured count invites exactly the wrong reading —
+    # that the release added no objects — so mark it instead of printing a bare number.
+    erd_bounded = [
+        m.get("org_alias", "unknown") for m in (b_meta, t_meta)
+        if m.get("object_selection") == "erd-data.json"
+    ]
+    obj_note = " *(not measured)*" if erd_bounded else ""
+
     lines.append(f"| Metric | Count |")
     lines.append(f"|--------|-------|")
-    lines.append(f"| Objects added | {summary['objects_added']} |")
-    lines.append(f"| Objects removed | {summary['objects_removed']} |")
+    lines.append(f"| Objects added | {summary['objects_added']}{obj_note} |")
+    lines.append(f"| Objects removed | {summary['objects_removed']}{obj_note} |")
     lines.append(f"| Objects with field changes | {summary['objects_changed']} |")
     lines.append(f"| Objects unchanged | {summary['objects_unchanged']} |")
     lines.append(f"| Total fields added | {summary['total_fields_added']} |")
@@ -335,6 +345,20 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"| Picklist values added | {summary.get('total_picklist_value_additions', 0)} |")
     lines.append(f"| Picklist values removed | {summary.get('total_picklist_value_removals', 0)} |")
     lines.append("")
+
+    if erd_bounded:
+        lines.append(
+            f"> **Object additions and removals are not measured by this report.** "
+            f"The snapshot for {' and '.join(sorted(set(erd_bounded)))} was enumerated "
+            f"from `erd-data.json`, so both sides are restricted to the object keys the "
+            f"ERD already had and the object rows above can only ever be 0. To find "
+            f"objects the target release added, enumerate them independently — "
+            f"`sf sobject list --sobject all --target-org <alias> --json`, which unlike "
+            f"`--all-objects` has no ID limit and returns canonical API names — then "
+            f"re-extract and re-diff. Field-level rows below are unaffected: they are "
+            f"measured per object from full describes."
+        )
+        lines.append("")
 
     # Objects added
     if diff["objects_added"]:

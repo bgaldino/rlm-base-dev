@@ -9,8 +9,10 @@ Usage:
   # Apply ownership findings (after researcher returns batch JSON merged into orphan-field-ownership.json)
   python scripts/erd/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
 
-  # Re-validate against both orgs and produce next orphan report
-  python scripts/erd/orphan_batch_helper.py validate --batch 4
+  # Re-validate against both orgs and produce next orphan report. --orgs is required:
+  # two DISTINCT orgs of the same release and shape (see cmd_validate).
+  python scripts/erd/orphan_batch_helper.py validate --batch 4 \
+      --orgs rlm-base__264merged,rlm-base__264fresh
 
 This script consolidates the manual steps used in batches 1-3 into one place.
 """
@@ -241,7 +243,26 @@ def cmd_apply(args):
 
 
 def cmd_validate(args):
-    """Run cleanup_orphan_erd_fields against both orgs to produce post-batch report."""
+    """Run cleanup_orphan_erd_fields against both orgs to produce post-batch report.
+
+    `--orgs` being *required* only guarantees a nonempty string, which is not what this
+    command promises. `--orgs one-alias` would run a single-org classification while
+    still reading as the two-org cross-validation, and single-org classification is
+    exactly what mistakes a feature-gated field for a removed one. So parse the list
+    and require two distinct aliases before dispatching.
+    """
+    aliases = [a.strip() for a in args.orgs.split(",") if a.strip()]
+    if len(set(aliases)) < 2:
+        print(
+            f"Error: --orgs needs two distinct aliases, got {aliases}. This command "
+            f"classifies orphan fields, and a field absent from one org is only "
+            f"evidence of removal if a second same-release, same-shape org agrees. "
+            f"With one org (or the same one twice) feature gating is indistinguishable "
+            f"from removal.",
+            file=sys.stderr,
+        )
+        return 2
+
     report_out = REPO / "docs" / "erds" / f"orphan-candidates-after-batch{args.batch}.md"
     cmd = [
         sys.executable, str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
