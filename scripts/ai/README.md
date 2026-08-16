@@ -280,12 +280,28 @@ tree today, on two known validator false positives (pack 123). A check that alwa
 gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
 reason instead of being dropped or allowed to fail every PR touching `datasets/`.
 
-Two details worth knowing before editing the matrix. `unlisted_suites()` fails the gate when
-a suite in `tests/` is not claimed by any check — a new suite that nothing runs is not a
-passing suite, and this caught its own author. And `tests/test_docgen_helpers.py` is the one
-pytest-style suite in the repo: `python tests/test_docgen_helpers.py` raises
-`ModuleNotFoundError` because it has no `__main__` block, so it is invoked through pytest,
-not the repo's usual `python tests/<name>.py`.
+Three details worth knowing before editing the matrix.
+
+`unlisted_suites()` fails the gate when a suite under `tests/` is not claimed by any check —
+a new suite that nothing runs is not a passing suite. It walks the tree recursively and
+counts `.sh` as well as `.py`, because the first version listed only the top directory and
+so reported "none unclaimed" while 30 nested suites and 2 shell scripts went unrun. A suite
+that genuinely should not run in CI goes in `EXCLUDED_SUITES` with its reason, so the
+exclusion is a written decision rather than an oversight.
+
+`tests/test_docgen_helpers.py` is the one pytest-style suite in the repo, and it is worse
+than a suite that fails outside pytest: run as `python tests/test_docgen_helpers.py` it exits
+**0 having run nothing**, because the file is all `def test_*` and no `__main__`. That is why
+it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
+convention gap itself is a separate todo.
+
+A dependency is probed by really importing it, in a child process, not by `find_spec`. The
+distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_resources`,
+which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
+that install fine, and the breakage surfaces later as unrelated-looking suite failures. The
+`cumulusci` entry therefore probes `cumulusci.core.tasks`, the depth a task actually needs,
+and a workflow installing it must pin `setuptools>=75.4,<77` first, exactly as
+`prepare-rlm-org.yml` already does.
 
 Selection diffs `base...HEAD` — three dots, from the merge base — so commits that landed on
 the base after the branch diverged do not enlarge it, and uncommitted work counts too, so
@@ -293,15 +309,39 @@ running it before a commit is honest. Exit 0 all selected gating checks passed, 
 one failed, 2 usage or tool error (matching `check_branch_scope.py`, so a tool error is
 never read as a verdict).
 
-Verified by `tests/test_pr_gate.py` (60 checks, hermetic throwaway repos, no network),
-which drives the verdict rather than the helpers: 17 of 17 mutations die, including
-reclassifying a runtime failure as advisory, reporting a missing dependency as a skip,
-blinding the unclaimed-suite check, a two-dot diff, prefix-vs-substring trigger matching,
-and a CumulusCI pin that drifts from the one `prepare-rlm-org.yml` installs. The first
-round of mutations found two live holes in these tests, both in that gap between a helper
-returning the right value and the gate acting on it.
+What it deliberately does not cover: `check_branch_scope.py --pr <n>` itself. The matrix runs
+that checker's *tests*, which is a path-selectable thing, but the per-PR branch verification
+takes a PR number and talks to GitHub, so it belongs in the workflow (which has
+`github.event.pull_request.number`) rather than in a local, hermetic gate. Keep running it by
+hand before a merge until the workflow lands.
 
-**Used by:** the `PR Checks` workflow (see `AGENTS.md` §"Pre-merge checklists")
+A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
+so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
+selection is a couple of seconds.
+
+Verified by `tests/test_pr_gate.py` (95 checks, hermetic throwaway repos, no network), which
+drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
+suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
+reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
+as a skip or relabelled `SKIPPED`, the unclaimed-suite check blinded or its new suite left
+unclaimed, the silent-failure section dropped, an advisory flipped to gating, `run_sequence`
+short-circuiting, a drifting CumulusCI pin, an emptied trigger list, a usage error exiting 1,
+a dropped Python floor, a dropped requirements pin, renames collapsed to the destination
+only, the per-check timeout removed, advisory output truncated from the tail again, and the
+dependency probe reverted to `find_spec` or to a shallow `cumulusci` import. The first round
+of mutations found two live holes in these tests, both in the gap between a helper returning
+the right value and the gate acting on it.
+
+Building it turned up three real defects rather than only proving the wiring. A stale
+`--api-version 67.0` assertion in `tests/txn_data_harness/test_cli.py` had survived the 264
+bump because nothing ran that suite. Three suites bound an exception class from CumulusCI
+while the module under test bound its own fallback shim, so on a partially importable
+CumulusCI the `except` clause missed and the suite failed with a confusing traceback instead
+of a clear environment error; they now bind the class from the module under test. And the
+gate's own unclaimed-suite check caught its own new suite.
+
+**Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
+drafted in pack 125 and is the remaining half of `#264-58`.
 
 ---
 

@@ -12,12 +12,17 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_dev_guide import SnapshotSalesforceDevGuide  # noqa: E402
+from tasks.rlm_snapshot_dev_guide import (  # noqa: E402
+    SnapshotSalesforceDevGuide,
+    TaskOptionsError,
+)
 
-try:
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:  # stdlib-only fallback mirrors the task module
-    TaskOptionsError = Exception
+# TaskOptionsError comes from the module under test, not from CumulusCI, so the
+# assertion always names the class the code will actually raise. The task binds
+# BaseTask and TaskOptionsError in one try block, so a CumulusCI that imports
+# but whose cumulusci.core.tasks does not (3.12+ without setuptools: fs needs
+# pkg_resources) drops it to the fallback shim while a narrower import here
+# would still resolve the real class — and every raise assertion would miss.
 
 
 _passed = _total = 0

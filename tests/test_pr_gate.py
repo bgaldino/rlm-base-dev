@@ -8,8 +8,10 @@ skip, an advisory check silently promoted or demoted, a trigger list that select
 Run offline: python tests/test_pr_gate.py
 """
 
+import importlib.util
 import io
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -87,6 +89,22 @@ sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
 sel = selected_names(["robot/rlm-base/some.robot"])
 check("a path no check claims selects nothing rather than everything", sel == set(), sel)
+# A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
+# the root README and seven datasets/**/README.md build-step citations unable to select the
+# suite that audits them.
+check("the root README selects the build-step check",
+      "doc_build_steps" in selected_names(["README.md"]),
+      selected_names(["README.md"]))
+check("a data plan README selects the build-step check",
+      "doc_build_steps" in selected_names(
+          ["datasets/sfdmu/qb/en-US/qb-billing/README.md"]))
+check("a non-markdown file does not select it via the suffix",
+      "doc_build_steps" not in selected_names(["robot/x.robot"]))
+check("only the whole-repo check carries a suffix selector",
+      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")] == ["doc_build_steps"],
+      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")])
+check("a harness change selects the harness suites",
+      "harness_suites" in selected_names(["scripts/txn_data_harness/cli.py"]))
 check("an empty change set selects nothing", selected_names([]) == set())
 # Triggers are path prefixes, not substrings: a vendored or nested lookalike must not
 # select a check that has no authority over it.
@@ -116,21 +134,57 @@ check("no suite in tests/ is left unclaimed", pr_gate.unlisted_suites() == [],
 missing = [s for s in pr_gate.STDLIB_SUITES if not os.path.exists(os.path.join(REPO, s))]
 check("every stdlib suite the gate names exists on disk", missing == [], missing)
 missing = [s for s in pr_gate.CLAIMED_SUITES if not os.path.exists(os.path.join(REPO, s))]
-check("every claimed suite exists on disk", missing == [], missing)
-# The whole point of unlisted_suites: a new suite must fail loudly, not join silently.
-with tempfile.NamedTemporaryFile(dir=os.path.join(REPO, "tests"), prefix="test_zz_probe_",
-                                 suffix=".py", delete=False) as tmp:
-    probe = tmp.name
-try:
-    found = pr_gate.unlisted_suites()
-    check("an unclaimed new suite is detected",
-          any(os.path.basename(probe) in f for f in found), found)
-    # And it must fail the gate, even on a change that selects nothing else.
-    code, out = main_with(["--changed-files-from", os.devnull])
-    check("an unclaimed suite fails the gate", code == 1, code)
-    check("the unclaimed suite is named in the output", "suites no check runs" in out)
-finally:
-    os.unlink(probe)
+check("every claimed suite or directory exists on disk", missing == [], missing)
+missing = [s for s in pr_gate.EXCLUDED_SUITES if not os.path.exists(os.path.join(REPO, s))]
+check("every excluded suite exists on disk", missing == [], missing)
+check("every exclusion states a reason",
+      all(r.strip() for r in pr_gate.EXCLUDED_SUITES.values()))
+check("no suite is both claimed and excluded",
+      not (set(pr_gate.EXCLUDED_SUITES) & pr_gate.CLAIMED_SUITES))
+check("a suite is never run twice — no dedicated check's suite is also in a bulk list",
+      "tests/test_branch_scope.py" not in pr_gate.STDLIB_SUITES
+      and "tests/test_erd_doc_counts.py" not in pr_gate.STDLIB_SUITES)
+# Discovery must recurse. A flat listing missed 30 suites in tests/build_harness/ and
+# tests/txn_data_harness/ while reporting "none unclaimed".
+nested = [s for s in pr_gate.CLAIMED_SUITES if s.endswith("/")]
+check("nested suite directories are claimed as directories", len(nested) >= 2, nested)
+real_nested = [
+    f for d in nested
+    for f in os.listdir(os.path.join(REPO, d))
+    if f.startswith("test_") and f.endswith(".py")
+]
+check("those directories really do hold suites", len(real_nested) > 20, len(real_nested))
+
+# A new suite must fail loudly rather than join silently — verified in a temp tree, so a
+# crash cannot leave a stray file in the real tests/ that then fails everyone else's gate.
+with tempfile.TemporaryDirectory() as fake_repo:
+    os.makedirs(os.path.join(fake_repo, "tests", "nested"))
+    open(os.path.join(fake_repo, "tests", "nested", "test_probe.py"), "w").close()
+    saved_root = pr_gate.REPO_ROOT
+    try:
+        pr_gate.REPO_ROOT = fake_repo
+        found = pr_gate.unlisted_suites()
+        check("an unclaimed suite in a nested directory is detected",
+              found == ["tests/nested/test_probe.py"], found)
+        code, out = main_with(["--changed-files-from", os.devnull])
+        check("an unclaimed suite fails the gate", code == 1, code)
+        check("the unclaimed suite is named in the output", "suites no check runs" in out)
+        # A shell suite must be discovered too, so excluding one is a declaration.
+        open(os.path.join(fake_repo, "tests", "test-probe.sh"), "w").close()
+        check("a shell suite is discovered rather than missed by the .py filter",
+              "tests/test-probe.sh" in pr_gate.unlisted_suites(),
+              pr_gate.unlisted_suites())
+    finally:
+        pr_gate.REPO_ROOT = saved_root
+
+with tempfile.TemporaryDirectory() as empty:
+    saved_root = pr_gate.REPO_ROOT
+    try:
+        pr_gate.REPO_ROOT = empty
+        check("a missing tests/ directory is reported, not read as 'none unclaimed'",
+              pr_gate.unlisted_suites() != [], pr_gate.unlisted_suites())
+    finally:
+        pr_gate.REPO_ROOT = saved_root
 
 print("\nA missing dependency fails a gating check instead of skipping it")
 fake_gating = dict(name="probe", cmd=["python", "-c", "pass"], triggers=["x"],
@@ -184,17 +238,38 @@ try:
     check("but is still reported as an advisory failure", "advisory failure" in out)
     # Advisory output is tailed; a gating failure's is not, so it stays diagnosable.
     noisy = ["python", "-c",
-             f"print('\\n'.join(str(i) for i in range({pr_gate.ADVISORY_TAIL + 30})))"
+             f"print('\\n'.join(str(i) for i in range({pr_gate.ADVISORY_HEAD + 30})))"
              "; import sys; sys.exit(1)"]
     pr_gate.CHECKS[-1]["cmd"] = noisy
     code, out = main_with(["--changed-files-from", listing])
-    check("a long advisory report is tailed rather than dumped whole",
+    check("a long advisory report is truncated rather than dumped whole",
           "line(s) elided" in out, out[-300:])
+    # The head, not the tail: the SFDMU validator's Critical counts are at the top, and
+    # tailing kept twenty lines of passing plans and elided the only useful part.
+    check("truncation keeps the beginning of an advisory report", "\n0\n" in out)
+    check("...and drops the end",
+          f"\n{pr_gate.ADVISORY_HEAD + 29}\n" not in out)
     pr_gate.CHECKS[-1]["gating"] = True
     code, out = main_with(["--changed-files-from", listing])
     check("a gating failure is never truncated", "line(s) elided" not in out)
     check("...and shows its earliest output too", "\n0\n" in out)
 finally:
+    pr_gate.CHECKS.pop()
+    os.unlink(listing)
+
+print("\nA hung check is bounded and reported, not left to burn the job's budget")
+listing = changed_list("zz_probe_path/thing.txt")
+saved_timeout = pr_gate.CHECK_TIMEOUT
+pr_gate.CHECKS.append(dict(name="zz_probe_hang",
+                           cmd=["python", "-c", "import time; time.sleep(30)"],
+                           triggers=["zz_probe_path/"], deps=[], gating=True))
+try:
+    pr_gate.CHECK_TIMEOUT = 1
+    code, out = main_with(["--changed-files-from", listing])
+    check("a check exceeding the timeout fails the gate", code == 1, code)
+    check("the timeout is named in the output", "timed out after 1s" in out, out[-300:])
+finally:
+    pr_gate.CHECK_TIMEOUT = saved_timeout
     pr_gate.CHECKS.pop()
     os.unlink(listing)
 
@@ -241,13 +316,16 @@ with tempfile.TemporaryDirectory() as repo:
     git(repo, "config", "user.email", "t@example.com")
     git(repo, "config", "user.name", "t")
     open(os.path.join(repo, "seed.txt"), "w").write("seed\n")
+    # Present on the base, so a later move reads as a deletion from it. Given a body, so
+    # git's similarity detection actually fires — with a one-line file it falls back to
+    # delete+add and the rename case is never exercised.
+    os.makedirs(os.path.join(repo, "datasets", "sfdmu"), exist_ok=True)
+    open(os.path.join(repo, "datasets", "sfdmu", "export.json"), "w").write(
+        "\n".join(f'{{"object": "Obj{i}", "operation": "Upsert"}}' for i in range(40)))
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "seed")
     git(repo, "checkout", "-q", "-b", "feature")
-    open(os.path.join(repo, "datasets"), "w").close()
-    os.remove(os.path.join(repo, "datasets"))
-    os.makedirs(os.path.join(repo, "datasets", "sfdmu"), exist_ok=True)
-    open(os.path.join(repo, "datasets", "sfdmu", "export.json"), "w").write("{}\n")
+    open(os.path.join(repo, "feature-change.md"), "w").write("feature work\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "feature work")
     git(repo, "checkout", "-q", "base")
@@ -260,12 +338,77 @@ with tempfile.TemporaryDirectory() as repo:
     try:
         pr_gate.REPO_ROOT = repo
         files = pr_gate.changed_files("base")
-        check("the feature's own change is selected",
-              "datasets/sfdmu/export.json" in files, files)
+        check("the feature's own change is selected", "feature-change.md" in files, files)
         check("a commit landed on the base after divergence is excluded",
               "base_only.txt" not in files, files)
+
+        # A rename must report the source too. Git's default rename detection names only
+        # the destination, so moving a plan README out of datasets/sfdmu/ would not select
+        # the check that notices the plan lost its README.
+        git(repo, "mv", "datasets/sfdmu/export.json", "moved-away.json")
+        git(repo, "commit", "-qm", "move it out")
+        files = pr_gate.changed_files("base")
+        check("a rename reports the source path, not only the destination",
+              "datasets/sfdmu/export.json" in files, files)
+        check("...and the destination", "moved-away.json" in files, files)
+        check("moving a file out of a directory still selects that directory's check",
+              "plan_readme_consistency" in selected_names(files), selected_names(files))
+
+        # Non-ASCII paths: git quotes and escapes them unless -z is used, and a leading
+        # quote matches no prefix.
+        odd = os.path.join(repo, "docs")
+        os.makedirs(odd, exist_ok=True)
+        open(os.path.join(odd, "café.md"), "w").write("x\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "non-ascii")
+        files = pr_gate.changed_files("base")
+        check("a non-ASCII path arrives unquoted and selects normally",
+              any(f.endswith("café.md") for f in files), files)
+        check("...and is not wrapped in quotes",
+              not any(f.startswith('"') for f in files), files)
     finally:
         pr_gate.REPO_ROOT = saved_root
+
+print("\nThe CCI reference drift check watches only what the generator writes")
+src = open(os.path.join(REPO, "scripts", "ai", "pr_gate.py")).read()
+check("the drift scope names the three generated files",
+      all(n in src for n in ("tasks-reference.md", "flows-reference.md",
+                             "feature-flags.md")))
+check("the drift scope no longer includes hand-authored docs/references/",
+      '"docs/references/"' not in src,
+      "generate_cci_reference.py writes only to .cursor/skills/cci-orchestration/")
+
+print("\nA dependency-blocked advisory check does not fail the gate")
+listing = changed_list("zz_probe_path/thing.txt")
+pr_gate.CHECKS.append(dict(name="zz_probe_advisory", cmd=["python", "-c", "pass"],
+                           triggers=["zz_probe_path/"], deps=["pytest"], gating=False,
+                           note="probe"))
+saved = dict(pr_gate.DEPS)
+try:
+    pr_gate.DEPS["pytest"] = "a_module_that_does_not_exist_anywhere"
+    code, out = main_with(["--changed-files-from", listing])
+    check("an advisory check blocked on a dependency does not fail the gate", code == 0, code)
+    check("it is labelled ADVISORY-DEP rather than passed over", "ADVISORY-DEP" in out)
+finally:
+    pr_gate.DEPS.clear()
+    pr_gate.DEPS.update(saved)
+    pr_gate.CHECKS.pop()
+    os.unlink(listing)
+
+print("\nA check with no command and no resolve() branch is a tool error, not a verdict")
+exit_code = None
+try:
+    pr_gate.resolve(dict(name="zz_probe_nocmd", cmd=None, triggers=[], deps=[],
+                         gating=True))
+except SystemExit as exc:
+    exit_code = exc.code
+check("an unresolvable check exits 2, not a traceback or a gating failure",
+      exit_code == 2, exit_code)
+for name in ("cci_reference_drift", "stdlib_offline_suites", "yaml_offline_suites"):
+    spec = next(c for c in pr_gate.CHECKS if c["name"] == name)
+    check(f"{name} resolves to a runnable callable", callable(pr_gate.resolve(spec)))
+
+print("\nCommand-line contract")
 
 print("\nCommand-line contract")
 code, out = run_gate("--list")
@@ -287,7 +430,11 @@ PROBE_PATH = ".claude/skill-manifest.yml"
 probe_selection = [c for c in pr_gate.CHECKS if pr_gate.selects(c, [PROBE_PATH])]
 check("the probe path selects at least one check", probe_selection != [])
 check("the probe path selects no check that re-runs this suite",
-      all("tests/test_pr_gate.py" not in (c["cmd"] or []) for c in probe_selection),
+      all("tests/test_pr_gate.py" not in (c["cmd"] or []) for c in probe_selection)
+      # cmd=None checks expand at runtime, so the command list alone is not enough: a
+      # bulk-suite check would satisfy the test above while still re-running this file.
+      and "tests/test_pr_gate.py" not in pr_gate.STDLIB_SUITES
+      and not any(c["name"] == "stdlib_offline_suites" for c in probe_selection),
       [c["name"] for c in probe_selection])
 check("the probe path needs no installed dependency",
       all(not c["deps"] for c in probe_selection),
@@ -303,10 +450,51 @@ try:
           all(re.search(rf"\] {re.escape(n)}\b", out) for n in names),
           [n for n in names if not re.search(rf"\] {re.escape(n)}\b", out)])
     check("skipped checks say why they were skipped", "nothing it covers changed" in out)
-    check("the summary counts executed and skipped separately",
-          re.search(r"\d+ executed, \d+ skipped, \d+ failed", out) is not None)
+    # Every check lands in exactly one bucket and the buckets sum to the total, so a reader
+    # reconciling them never finds one unaccounted for.
+    buckets = re.search(r"(\d+) checks: (\d+) executed, (\d+) skipped, "
+                        r"(\d+) blocked on a missing dependency, (\d+) failed", out)
+    check("the summary reports every bucket separately", buckets is not None, out[-300:])
+    check("the buckets account for every check",
+          buckets and int(buckets.group(1)) == sum(int(buckets.group(i))
+                                                  for i in (2, 3, 4)),
+          buckets.groups() if buckets else None)
 finally:
     os.unlink(changed)
+
+# A dependency that is present on disk but cannot be imported must read as absent. This is
+# not hypothetical: cumulusci 4.8.1 imports `fs`, which imports `pkg_resources`, which a
+# Python 3.12+ venv lacks until setuptools is installed. find_spec called that install fine
+# and the breakage surfaced as two unrelated-looking suite failures instead of one blocked
+# dependency, so the probe has to be a real import.
+with tempfile.TemporaryDirectory() as probe_dir:
+    name = "zz_present_but_unimportable"
+    pathlib.Path(probe_dir, name + ".py").write_text(
+        "raise ModuleNotFoundError(\"No module named 'pretend_transitive_dep'\")\n")
+    prior_path, prior_cache = sys.path[:], dict(pr_gate._IMPORTABLE)
+    prior_env = os.environ.get("PYTHONPATH")
+    sys.path.insert(0, probe_dir)
+    os.environ["PYTHONPATH"] = probe_dir + os.pathsep + (prior_env or "")
+    try:
+        pr_gate._IMPORTABLE.clear()
+        check("find_spec alone would call the broken dependency present",
+              importlib.util.find_spec(name) is not None)
+        check("a present-but-unimportable dependency reads as absent",
+              pr_gate.have_module(name) is False)
+        pr_gate._IMPORTABLE.clear()
+        check("a genuinely importable dependency still reads as present",
+              pr_gate.have_module("json") is True)
+    finally:
+        sys.path[:] = prior_path
+        if prior_env is None:
+            os.environ.pop("PYTHONPATH", None)
+        else:
+            os.environ["PYTHONPATH"] = prior_env
+        pr_gate._IMPORTABLE.clear()
+        pr_gate._IMPORTABLE.update(prior_cache)
+
+check("cumulusci is probed at the depth a task actually needs",
+      pr_gate.DEPS["cumulusci"] == "cumulusci.core.tasks", pr_gate.DEPS["cumulusci"])
 
 code, out = run_gate("--changed-files-from", os.devnull)
 check("an empty change set is a clean pass, not an error", code == 0, out[-300:])
@@ -318,7 +506,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 60
+EXPECTED = 95
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

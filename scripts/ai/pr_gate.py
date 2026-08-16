@@ -46,13 +46,22 @@ import time
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Package -> the import name that proves it is installed. `analyze_agent_tooling.py` also
-# needs Python 3.10+ (`sys.stdlib_module_names`); on 3.9 it reported `json, os, re` as
-# non-stdlib, so the version is checked as a dependency rather than assumed.
+# Package -> the import that proves it is USABLE, not merely present. `cumulusci` maps to
+# `cumulusci.core.tasks` because the top-level package imports on a install that cannot run
+# a task: `cumulusci.core.tasks` -> `cumulusci.core.config` -> `fs` -> `pkg_resources`, which
+# Python 3.12+ venvs do not ship unless setuptools is installed (`prepare-rlm-org.yml` pins
+# `setuptools>=75.4,<77` ahead of CumulusCI for exactly this reason). Probed with a real
+# import rather than `find_spec`, which answers "is there a file to import" and so calls such
+# an install fine — the failure then surfaces as two unrelated-looking suite failures instead
+# of one blocked dependency. `analyze_agent_tooling.py` also needs Python 3.10+
+# (`sys.stdlib_module_names`); on 3.9 it reported `json, os, re` as non-stdlib, so the version
+# is checked as a dependency rather than assumed.
 DEPS = {
     "PyYAML": "yaml",
-    "cumulusci": "cumulusci",
+    "cumulusci": "cumulusci.core.tasks",
     "pytest": "pytest",
+    "textual": "textual",
+    "requests": "requests",
 }
 
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
@@ -60,10 +69,19 @@ DEPS = {
 # CumulusCI versions would let a flow-citation check pass here and fail there.
 PINS = {"cumulusci": "cumulusci==4.8.1"}
 
-# Lines of an advisory check's output to keep. Gating failures are never truncated.
-ADVISORY_TAIL = 20
+# Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
+# validator puts its summary and its Critical counts at the top and then lists every passing
+# plan, so tailing kept a wall of passes and elided the only thing the reader needs.
+# Gating failures are never truncated.
+ADVISORY_HEAD = 20
 
-# name, command, path prefixes that select it, extra pip deps, gating, note
+# Per-check wall-clock ceiling. Generous: the slowest real check is ~8s.
+CHECK_TIMEOUT = 900
+
+# name, command, path prefixes that select it, extra pip deps, gating, note.
+# `suffixes` is for a check that reads the whole repo rather than a subtree: prefixes cannot
+# express "every .md file", and pretending otherwise is how a check ends up unable to select
+# on the very files it audits.
 CHECKS = [
     dict(
         name="agent_tooling",
@@ -88,8 +106,11 @@ CHECKS = [
     dict(
         name="erd_doc_counts",
         cmd=["python", "tests/test_erd_doc_counts.py"],
+        # Exactly the files the suite reads (its TRIPLE_SITES, docs/erds/*, domains/*.md).
+        # doc-consistency/ was here and the suite never reads it — over-selection is matrix
+        # drift in a matrix whose job is preventing drift.
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
-                  ".cursor/skills/schema-validation/", ".cursor/skills/doc-consistency/",
+                  ".cursor/skills/schema-validation/",
                   "scripts/ai/README.md", "tests/test_erd_doc_counts.py"],
         deps=[], gating=True,
     ),
@@ -102,8 +123,12 @@ CHECKS = [
     dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
-        triggers=["cumulusci.yml", "docs/", "tests/test_doc_build_steps.py",
-                  ".cursor/skills/"],
+        # The suite walks every .md in the repo, so any .md must be able to select it.
+        # With prefixes alone, live `step N of <flow>` citations in the root README and in
+        # seven datasets/**/README.md files could be edited with this check skipped —
+        # cumulusci.yml covered renumbering, but not writing a new wrong citation.
+        triggers=["cumulusci.yml", "tests/test_doc_build_steps.py"],
+        suffixes=[".md"],
         deps=["cumulusci"], gating=True,
     ),
     dict(
@@ -129,13 +154,26 @@ CHECKS = [
     ),
     dict(
         name="docgen_suite",
-        # The one pytest-style suite in tests/. `python tests/test_docgen_helpers.py`
-        # raises ModuleNotFoundError even where pytest is installed, because it has no
-        # __main__ block — so it must be invoked through pytest, not the repo's usual
-        # `python tests/<name>.py`.
+        # The one pytest-style suite in tests/: pytest collects it and it has no __main__
+        # block, so `python tests/test_docgen_helpers.py` exits 0 having run zero tests
+        # once pytest is installed (and ModuleNotFoundError before that). A silent green,
+        # so it is invoked through pytest, not the repo's usual `python tests/<name>.py`.
         cmd=["python", "-m", "pytest", "-q", "tests/test_docgen_helpers.py"],
         triggers=["scripts/docgen/", "tests/test_docgen_helpers.py"],
         deps=["pytest"], gating=True,
+    ),
+    dict(
+        # 30 pytest suites under tests/build_harness/ and tests/txn_data_harness/ that no
+        # check ran and no report mentioned, because discovery used a non-recursive listing.
+        # 512 pass; build_harness needs 3.11+ for enum.StrEnum. Running them found a real
+        # 264 regression: test_cli.py still asserted api-version 67.0 after commit 66f193f9
+        # bumped the harness to 68.0 — a stale assertion nothing had executed since.
+        name="harness_suites",
+        cmd=["python", "-m", "pytest", "-q",
+             "tests/build_harness", "tests/txn_data_harness"],
+        triggers=["scripts/build_harness/", "scripts/txn_data_harness/",
+                  "tests/build_harness/", "tests/txn_data_harness/"],
+        deps=["pytest", "PyYAML", "textual", "requests"], min_python=(3, 11), gating=True,
     ),
     dict(
         # Kept out of stdlib_offline_suites on purpose: this suite invokes pr_gate.py as a
@@ -163,7 +201,6 @@ CHECKS = [
 # reports anything in tests/ that no check claims, so adding one is not silently ignored.
 STDLIB_SUITES = [
     "tests/test_agents_common.py",
-    "tests/test_branch_scope.py",
     "tests/test_context_apply.py",
     "tests/test_context_delete.py",
     "tests/test_context_payload.py",
@@ -171,7 +208,6 @@ STDLIB_SUITES = [
     "tests/test_context_runtime.py",
     "tests/test_decision_tables_client.py",
     "tests/test_decision_tables_toolkit.py",
-    "tests/test_erd_doc_counts.py",
     "tests/test_expression_set_schema.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
@@ -187,6 +223,20 @@ CLAIMED_SUITES = set(STDLIB_SUITES) | {
     "tests/test_doc_build_steps.py",
     "tests/test_docgen_helpers.py",
     "tests/test_pr_gate.py",
+    # Run as whole directories by harness_suites rather than file by file.
+    "tests/build_harness/",
+    "tests/txn_data_harness/",
+    # Its own check; also a member of no bulk list, so it is not run twice.
+    "tests/test_branch_scope.py",
+    "tests/test_erd_doc_counts.py",
+}
+
+# Suites deliberately outside the gate, each with the reason. Separate from CLAIMED_SUITES so
+# "nothing runs it" and "we decided not to run it" cannot be confused, and so neither can
+# happen silently: discovery reports anything in tests/ that appears in neither.
+EXCLUDED_SUITES = {
+    "tests/test-cleanup.sh": "integration script — requires a live org",
+    "tests/test-prepare-rlm-org.sh": "integration script — requires a live org",
 }
 
 
@@ -196,13 +246,34 @@ def die(msg):
 
 
 def unlisted_suites():
-    """Suites in tests/ that no check runs. A new one must not join silently."""
+    """Suites under tests/ that no check runs and no exclusion covers.
+
+    Walks, rather than listing one directory: a flat listing missed the 30 suites in
+    tests/build_harness/ and tests/txn_data_harness/ entirely, so the report said "none
+    unclaimed" while editing one of them ran seventeen unrelated suites and passed. Shell
+    suites are discovered too — they were previously skipped by the `.py` filter, which
+    means the right outcome (not gating an org-requiring script) happened by accident
+    instead of by declaration.
+    """
     tests_dir = os.path.join(REPO_ROOT, "tests")
     if not os.path.isdir(tests_dir):
-        return []
-    found = {f"tests/{f}" for f in os.listdir(tests_dir)
-             if f.startswith("test_") and f.endswith(".py")}
-    return sorted(found - CLAIMED_SUITES)
+        # An absent tests/ is not an empty tests/; saying "none unclaimed" here would be
+        # the same lie this function exists to catch.
+        return ["tests/ is missing entirely"]
+    found = set()
+    for root, dirs, names in os.walk(tests_dir):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".pytest_cache")]
+        for name in names:
+            if not (name.startswith("test_") or name.startswith("test-")):
+                continue
+            if not name.endswith((".py", ".sh")):
+                continue
+            found.add(os.path.relpath(os.path.join(root, name), REPO_ROOT))
+    claimed_dirs = tuple(c for c in CLAIMED_SUITES if c.endswith("/"))
+    return sorted(f for f in found
+                  if f not in CLAIMED_SUITES
+                  and f not in EXCLUDED_SUITES
+                  and not f.startswith(claimed_dirs))
 
 
 def changed_files(base):
@@ -210,26 +281,35 @@ def changed_files(base):
     enlarge the selection (the mistake `check_branch_scope.py` documents)."""
     try:
         # Three dots, not two: `base...HEAD` diffs from the merge base, so commits that
-        # landed on the base after this branch diverged do not enter the selection. Two
-        # dots would select checks for files the pull request never touched.
-        out = subprocess.run(["git", "diff", "--name-only", f"{base}...HEAD"],
+        # landed on the base after this branch diverged do not enter the selection.
+        # --no-renames, because git's rename detection reports only the destination — so
+        # moving a plan README *out* of datasets/sfdmu/ would not select the check that
+        # notices the plan lost its README. -z, because git quotes and escapes non-ASCII
+        # paths ("docs/caf\303\251.md"), and a leading quote matches no trigger prefix.
+        out = subprocess.run(["git", "diff", "--no-renames", "-z", "--name-only",
+                              f"{base}...HEAD"],
                              cwd=REPO_ROOT, capture_output=True, text=True)
         if out.returncode != 0:
             die(f"git diff against {base!r} failed: {out.stderr.strip()}")
-        files = [ln.strip() for ln in out.stdout.split("\n") if ln.strip()]
+        files = [p for p in out.stdout.split("\0") if p]
         # Uncommitted work counts too, so running this locally before a commit is honest.
-        st = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT,
+        st = subprocess.run(["git", "status", "--porcelain", "-z"], cwd=REPO_ROOT,
                             capture_output=True, text=True)
-        for line in st.stdout.split("\n"):
-            if len(line) > 3:
-                files.append(line[3:].strip().split(" -> ")[-1])
+        # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
+        # halves are wanted here, so every non-status token is taken as a path.
+        for entry in st.stdout.split("\0"):
+            if not entry:
+                continue
+            files.append(entry[3:] if len(entry) > 3 and entry[2] == " " else entry)
         return sorted(set(files))
     except FileNotFoundError:
         die("git not found on PATH")
 
 
 def selects(check, files):
-    return any(f.startswith(t) for t in check["triggers"] for f in files)
+    if any(f.startswith(t) for t in check["triggers"] for f in files):
+        return True
+    return any(f.endswith(s) for s in check.get("suffixes", ()) for f in files)
 
 
 def missing_deps(check):
@@ -242,12 +322,19 @@ def missing_deps(check):
     return missing
 
 
+_IMPORTABLE = {}
+
+
 def have_module(name):
-    import importlib.util
-    try:
-        return importlib.util.find_spec(name) is not None
-    except (ImportError, ValueError):
-        return False
+    """True when `import name` actually succeeds, in a child so nothing leaks in here."""
+    if name not in _IMPORTABLE:
+        try:
+            proc = subprocess.run([sys.executable, "-c", f"import {name}"],
+                                  capture_output=True, timeout=120)
+            _IMPORTABLE[name] = proc.returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            _IMPORTABLE[name] = False
+    return _IMPORTABLE[name]
 
 
 def run(cmd):
@@ -256,7 +343,12 @@ def run(cmd):
     if argv and argv[0] == "python":
         argv[0] = sys.executable
     started = time.time()
-    proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True)
+    try:
+        # Bounded, so one hung check cannot burn the whole CI job's budget with no output.
+        proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True,
+                              timeout=CHECK_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"), time.time() - started
     return proc.returncode, proc.stdout + proc.stderr, time.time() - started
 
 
@@ -269,8 +361,13 @@ def run_cci_reference_drift():
     code, out, secs = run(["python", "scripts/ai/generate_cci_reference.py"])
     if code != 0:
         return code, out, secs
-    diff = subprocess.run(["git", "status", "--porcelain", "--",
-                           ".cursor/skills/cci-orchestration/", "docs/references/"],
+    # Scoped to exactly the three files the generator writes. It was scoped to
+    # docs/references/ as well, which it never writes and which is hand-authored — so any
+    # unrelated edit there failed the check with "commit the regenerated result".
+    generated = [f".cursor/skills/cci-orchestration/{name}"
+                 for name in ("tasks-reference.md", "flows-reference.md",
+                              "feature-flags.md")]
+    diff = subprocess.run(["git", "status", "--porcelain", "--", *generated],
                           cwd=REPO_ROOT, capture_output=True, text=True)
     if diff.stdout.strip():
         return 1, (out + "\nRegenerating changed committed files — commit the result:\n"
@@ -285,6 +382,11 @@ def resolve(check):
         return lambda: run_sequence([["python", s] for s in STDLIB_SUITES])
     if check["name"] == "yaml_offline_suites":
         return lambda: run_sequence([["python", s] for s in check["cmd"][1:]])
+    if check["cmd"] is None:
+        # A runtime-expanded check whose branch above was never added would otherwise reach
+        # run(None) and raise, aborting the loop before any result printed — and exit 1,
+        # reading as a gating failure rather than the tool error it is.
+        die(f"{check['name']} has cmd=None and resolve() has no branch for it")
     return lambda: run(check["cmd"])
 
 
@@ -311,12 +413,16 @@ def main():
     args = ap.parse_args()
 
     if args.list:
-        print(f"{'check':26} {'gating':7} {'deps':12} triggers")
+        print(f"{'check':26} {'gating':7} {'deps':34} triggers")
         for c in CHECKS:
+            selectors = list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
             print(f"{c['name']:26} {str(c['gating']):7} "
-                  f"{','.join(c['deps']) or '-':12} {', '.join(c['triggers'])}")
+                  f"{','.join(c['deps']) or '-':34} {', '.join(selectors)}")
+        print("\nexcluded from the gate, deliberately:")
+        for path, reason in sorted(EXCLUDED_SUITES.items()):
+            print(f"  {path:40} {reason}")
         orphans = unlisted_suites()
-        print(f"\nsuites no check runs: {orphans or 'none'}")
+        print(f"\nsuites no check runs and no exclusion covers: {orphans or 'none'}")
         return 0
 
     if sum(bool(x) for x in (args.base, args.changed_files_from, args.all)) != 1:
@@ -390,10 +496,10 @@ def main():
             # the failures above it.
             if not check["gating"]:
                 lines = body.split("\n")
-                if len(lines) > ADVISORY_TAIL:
-                    body = (f"({len(lines) - ADVISORY_TAIL} earlier line(s) elided; run "
-                            f"the check directly for the full report)\n"
-                            + "\n".join(lines[-ADVISORY_TAIL:]))
+                if len(lines) > ADVISORY_HEAD:
+                    body = ("\n".join(lines[:ADVISORY_HEAD])
+                            + f"\n({len(lines) - ADVISORY_HEAD} later line(s) elided; run "
+                              f"the check directly for the full report)")
             print(f"\n----- {check['name']} ({status}) -----\n{body}")
 
     if orphans:
@@ -402,9 +508,16 @@ def main():
               "reason — an unrun suite is not a passing suite")
         failures.append("unlisted_suites")
 
+    # Every check appears in exactly one bucket and the buckets sum to len(CHECKS).
+    # MISSING-DEP previously fell out of both counts, so a reader reconciling "11 executed,
+    # 0 skipped" against 12 checks found one unaccounted for — the shape this file exists
+    # to eliminate.
     executed = sum(1 for _, s, _, _ in results if s in ("PASS", "FAIL", "ADVISORY"))
     skipped = sum(1 for _, s, _, _ in results if s == "SKIPPED")
-    print(f"\n{executed} executed, {skipped} skipped, {len(failures)} failed"
+    blocked = sum(1 for _, s, _, _ in results if s in ("MISSING-DEP", "ADVISORY-DEP"))
+    assert executed + skipped + blocked == len(CHECKS), "a check fell out of the summary"
+    print(f"\n{len(CHECKS)} checks: {executed} executed, {skipped} skipped, "
+          f"{blocked} blocked on a missing dependency, {len(failures)} failed"
           + (f", {len(advisory_failures)} advisory failure(s): "
              f"{', '.join(advisory_failures)}" if advisory_failures else ""))
 
