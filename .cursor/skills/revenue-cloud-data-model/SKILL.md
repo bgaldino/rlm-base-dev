@@ -10,28 +10,68 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v67.0 (Summer '26 / Release 262) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
-
-> **Branch note (264).** This branch targets Release 264 / API v68.0, but the
-> schema figures above are the **262 / v67.0** capture in `docs/erds/erd-data.json`
-> and are deliberately left at their source release — they are provenance of the
-> org they were extracted from, not a version pin. Object/field counts and any
-> 264 schema deltas are unknown until the ERD is regenerated from a verified 264
-> org; see [`docs/erds/README.md`](../../../docs/erds/README.md) for that workflow.
+Revenue Cloud v68.0 (Winter '27 / Release 264) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
 
 The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
 
-**Verified 2026-05-27 against:**
-- 260 baseline scratch org `ent-r1` (Spring '26, API v66)
-- 262 target scratch org `rlm-base__ent-sb0` (Summer '26, API v67)
-- Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`
-- 127 entities individually verified against canonical entity XMLs
+**Verified 2026-08-15 against:**
+- Two fresh `prepare_rlm_org` 264 scratch orgs — `rlm-base__264merged` and
+  `rlm-base__264fresh` (Winter '27, API v68, `ent` shape). They agreed
+  field-for-field (254 describable objects, 3,913 platform fields each), so no
+  figure here rests on a single org.
+- The committed 262 snapshot `scripts/erd/schema_diff/262-schema.json` as baseline —
+  the same artifact the previous refresh was built from, and the same org shape, so
+  the delta is not confounded by shape differences.
+- Core UDD source and the 127-entity orphan classification carried forward from the
+  262 pass (`.agents/artifacts/orphan-fields/`); not re-run for 264.
+
+**262 → 264 delta:** **70 fields added, 8 removed**, 0 type changes, 1 polymorphic
+reference-target change, 270 picklist values added and 18 removed, across 62 changed
+objects. All 8 removals are in the usage domain, and **7 of the 8** are one coherent
+change rather than attrition — 264 moved the usage policy bindings off the definition
+and runtime objects and onto `ProductUsageResourcePolicy`, the
+**product-and-resource-specific** binding site. The 8th,
+`TransactionUsageEntitlement.DrawdownOrder`, is a separate change and is the row most
+often got wrong — see the table below.
+
+⚠ **PURP is the new binding site, not the only one.** `UsageResourcePolicy` still
+carries the same four lookups (`RatingFrequencyPolicyId`,
+`UsageAggregationPolicyId`, `UsageCommitmentPolicyId`, `UsageOveragePolicyId`) in a
+264 org, bound at **resource** level rather than product-and-resource. Verified on
+`rlm-base__264merged` and `rlm-base__264fresh`. When you need the policy that applies
+to a specific product's use of a resource, read PURP; `UsageResourcePolicy` is the
+resource-wide default.
+
+| Removed in 264 | Where the binding lives now |
+|---|---|
+| `TransactionUsageEntitlement.ChargeForOverage`, `.RatingFrequencyPolicyId`, `.UsageAggregationPolicyId` | `ProductUsageResourcePolicy` → `UsageOveragePolicy` / `RatingFrequencyPolicy` / `UsageResourceBillingPolicy` |
+| `TransactionUsageEntitlement.DrawdownOrder` | **Not on PURP** — PURP has no drawdown field. In 264 `DrawdownOrder` lives on `ProductUsageGrant` (design time) and on the per-transaction policy objects `QuotLineItmUsageRsrcPlcy`, `OrderItemUsageRsrcPlcy` and `BindingObjUsageRsrcPlcy` (runtime). The maintained rating plans already carry `ProductUsageGrant.DrawdownOrder`. |
+| `UsageResource.UsageResourceBillingPolicyId` | `ProductUsageResourcePolicy.UsageAggregationPolicyId` |
+| `RatingFrequencyPolicy.ProductId`, `.UsageResourceId` | `ProductUsageResourcePolicy.RatingFrequencyPolicyId` (the policy no longer knows its own product/resource) |
+| `ProductUsageGrant.OverageChargeable` | `UsageOveragePolicy.OverageChargeable` via `ProductUsageResourcePolicy` |
+
+Only **one** of the eight broke the 264 compile: `TransactionUsageEntitlement.ChargeForOverage`,
+which `RLM_UsageUploaderController` read in two places, fixed in #365. #365 names the
+other three `TransactionUsageEntitlement` removals alongside it and sources chargeability
+from the replacement `UsageOveragePolicy.OverageChargeable`, so those were already known
+there — what this diff adds for them is the schema record, not the discovery. Genuinely
+first recorded here: `UsageResource.UsageResourceBillingPolicyId`, both
+`RatingFrequencyPolicy` lookups, and the removal of `ProductUsageGrant.OverageChargeable`
+(which #365 implied by reading from the policy instead, but never stated).
+Both `RatingFrequencyPolicy` removals are still selected by the `qb-rating` and
+`q3-rating` export queries — see #264-66. Full diff at
+`scripts/erd/schema_diff/262-vs-264-diff.md`.
+
+<details>
+<summary>260 → 262 delta (previous refresh, kept for history)</summary>
 
 **260 → 262 delta:** **Field-level additive** (45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded — e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`) with **value-level picklist deltas** of 243 added and 62 removed. The 62 picklist removals are IANA TimeZone renames on datetime-zone fields plus cleanup of unused industry-specific `UsageType` values (`InsuranceRuleAction`, `StageManagement`) on fulfillment objects and a few miscellaneous values. Every removed value was cross-referenced against every CSV under `datasets/sfdmu/{qb,q3,mfg}/**` — **zero maintained-plan rows reference any removed value**. Nine objects with deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md` `--impact` output, but **no SFDMU remediation is required**: additive fields cannot break existing CSV imports, and the removed picklist values aren't in use. Full diff at `scripts/erd/schema_diff/260-vs-262-diff.md`.
 
+</details>
+
 **Common misconceptions resolved (DO NOT propagate):**
 - The Revenue Cloud "PUG" entity is `ProductUsageGrant`, NOT `ProductUsageGroup` (which doesn't exist in core source)
-- `RateCard.Status` does not exist in any Salesforce release. The Status field is on `RateCardEntry` (slot=10, identical 260 vs 262)
+- `RateCard.Status` does not exist in any Salesforce release. The Status field is on `RateCardEntry` (slot=10, identical across 260, 262 and 264)
 - The 262 `RateCardEntry` SOAP DML failure (#262-2) is a runtime platform regression, not a schema change
 - The 262 PUR overlap validation enforcement (#262-4) is runtime-gated, not a schema/validator code change
 
@@ -49,15 +89,23 @@ The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields
 
 | Domain | Objects | Key Entities | Purpose |
 |--------|---------|-------------|---------|
-| **PCM** | 11 | Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent | Product catalog: products, bundles, attributes, classifications, categories |
-| **Pricing** | 14+ | PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
-| **Rate Management** | 15 | RateCard, RateCardEntry, RateAdjustmentByTier, PriceBookRateCard | Rate cards for usage-based pricing, tiered adjustments |
+| **PCM** | 33 | Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent | Product catalog: products, bundles, attributes, classifications, categories |
+| **Pricing** | 27 | PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
+| **Rate Management** | 11 | RateCard, RateCardEntry, RateAdjustmentByTier, PriceBookRateCard | Rate cards for usage-based pricing, tiered adjustments |
 | **Configurator** | 4 | ProductConfigurationFlow, ProductConfigurationRule | Product configuration rules and flow assignments |
-| **Transaction Mgmt** | 37 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
-| **DRO** | 27 | FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule | Dynamic Revenue Orchestration: fulfillment plans, decomposition, orchestration |
-| **Usage Mgmt** | 22 | ProductUsageResource (PUR), ProductUsageResourcePolicy (PURP), ProductUsageGrant (PUG), UsageResource, UsageSummary | Usage entitlements, grants, rating, metering |
-| **Billing** | 54 | BillingSchedule, Invoice, InvoiceLine, CreditMemo, Payment, TaxPolicy, LegalEntity | Invoicing, payments, tax, GL, collections |
-| **Approvals** | 1 | ApprovalSubmission | Approval workflow submissions |
+| **Transaction Mgmt** | 58 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
+| **DRO** | 32 | FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule | Dynamic Revenue Orchestration: fulfillment plans, decomposition, orchestration |
+| **Usage Mgmt** | 23 | ProductUsageResource (PUR), ProductUsageResourcePolicy (PURP), ProductUsageGrant (PUG), UsageResource, UsageSummary | Usage entitlements, grants, rating, metering |
+| **Billing** | 72 | BillingSchedule, Invoice, InvoiceLine, CreditMemo, Payment, TaxPolicy, LegalEntity | Invoicing, payments, tax, GL, collections |
+| **Approvals** | 3 | ApprovalSubmission, ApprovalAlertContentDef, EmailTemplate | Approval workflow submissions and alert content |
+
+Counts are every object in `erd-data.json` carrying that domain, **including** the
+`(Core Object)` variants — the only reading under which they sum to the 263 above
+(excluding those variants gives 239). `Advanced Approvals` folds into Approvals, as
+it does in `DOMAIN_MAP` (`scripts/erd/build_erds.py`), which is what makes 9 domains
+out of 14 raw labels. `python tests/test_erd_doc_counts.py` enforces both, here and
+in every `domains/*.md`; these numbers had drifted to describe nothing measurable
+before it existed, so refresh the data and rerun rather than editing a cell.
 
 ## Central Object: Product2
 
@@ -161,13 +209,28 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,190 fields, 674 relationships, custom fields excluded)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,252 fields, 674 relationships, custom fields excluded)
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
-- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, 33 objects with cross-cloud / version-gated field gaps, 822 ERD-side fields verified against Core UDD source but absent from a stock org). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute.
-- `scripts/erd/schema_diff/{260,262}-schema.json` — fresh-org schema snapshots for 260 and 262
-- `scripts/erd/schema_diff/260-vs-262-diff.md` — verified release delta
+- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields. The object figure fell to 0 because `--patch` added every field the org had; the field figure fell to 58 through deliberate removal (orphan-cleanup batches plus the 8 fields 264 retired), because `--patch` only ever adds and cannot reduce it. Trust the generated report over any count quoted in prose.
+- `scripts/erd/schema_diff/{260,262,264}-schema.json` — fresh-org schema snapshots, **one committed per release**; 264 is the current one. Field metadata in these files is a **dict keyed by field name**, not a list — an accessor written for a list returns `None` for every field and any check built on it silently passes
+- ⚠ **The second-org cross-validation is not a committed artifact.** The 264 capture is dual-sourced, but only one snapshot is kept; the second extraction is reproducible rather than stored, so the repo does not carry two 2 MB snapshots per release. To re-confirm, extract the ERD's own object list from a second org of the same release and diff:
+
+  ```bash
+  python scripts/erd/schema_diff/extract_schema.py --org <second-alias> \
+      --output /tmp/crossval.json
+  ```
+
+  Pass **neither** `--objects` nor `--all-objects`: the default reads the object list
+  straight from `erd-data.json`, which is what you want. `--all-objects` fails outright
+  with `EXCEEDED_ID_LIMIT`, because `EntityDefinition` does not support `queryMore()`.
+  Re-run on 2026-08-15 against `rlm-base__264fresh`: 254 objects / 3,913 fields,
+  **0 field-set and 0 `referenceTo` differences** vs the committed capture. The 9
+  objects reported missing are the documented feature-gated set, not a discrepancy.
+  Full workflow in `.cursor/skills/schema-validation/SKILL.md`
+- `scripts/erd/schema_diff/262-vs-264-diff.md` — current verified release delta (262 → 264), including the SFDMU plan `--impact` cross-reference
+- `scripts/erd/schema_diff/260-vs-262-diff.md` — previous release delta, kept for history
 
 Internal-only (not committed; intentionally git-ignored):
-- `.agents/artifacts/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
+- `.agents/artifacts/orphan-fields/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
 - `docs/erds/orphan-candidates-after-batch*.md` — per-batch orphan classification reports produced by the cleanup workflow. The final outcome of the cleanup is already baked into `erd-data.json` and `validation-report.md`; the intermediate batch reports are local artifacts only.

@@ -191,7 +191,33 @@ git diff .cursor/skills/cci-orchestration/               # should show only inte
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should pass
 python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
 python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
+python tests/test_erd_doc_counts.py                      # ERD object/field/domain counts in docs ↔ erd-data.json
 ```
+
+`test_erd_doc_counts.py` covers the same shape of drift one level down: the headline ERD
+triple is swept on every refresh, but the **per-domain** counts underneath it are not, and
+15 of them described nothing measurable. It gates the domain counts and the derived figures
+against `erd-data.json`, and the mermaid inventories against the `.mermaid` files —
+**entity counts are not domain object counts**, so never read one off the other. Run it
+after any ERD refresh; `schema-validation` owns where it sits in that procedure. Adding a
+citation or a site will fail the pinned check count, which you then raise deliberately.
+
+⭐ **Four rules that came out of it, and generalize to any check over hand-copied figures:**
+
+1. **Enumerate against the data, not against the phrasings you know.** List every numeral
+   the source can justify, subtract what a check covers, read what is left. The first sweep
+   here closed at 15 of 32 instances; three review rounds then each found one more by
+   reading, and the enumeration found the rest in a second.
+2. **Assert per site, and pin the total count** — but pair the pin with checks that name
+   what is absent. A count invariant is a good backstop and a bad explanation.
+3. **Gate the figures your rationale quotes to justify itself.** They read as prose and so
+   escape the count checks entirely.
+4. **A qualitative claim about the data is a citation too**, and nothing can gate it. Prefer
+   wording the data cannot contradict over a ratio or a "most" — a summary statistic in
+   prose carries all the drift risk of a number and none of the gateability.
+
+Full retrospective, including the three occasions this check had the defect it was written
+to catch: [`erd-count-drift.md`](erd-count-drift.md).
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
@@ -255,6 +281,12 @@ git add .cursor/skills/cci-orchestration/tasks-reference.md \
 ```
 
 ---
+
+## Sub-Files
+
+| File | Contains |
+|---|---|
+| [`erd-count-drift.md`](erd-count-drift.md) | Retrospective on the ERD count drift and the six review rounds that gated it: what 15 wrong per-domain counts cost, the three occasions the check carried the defect it was written to catch, the sweep declared closed at 15 of 32 instances, and the carry-outs for the next check over hand-copied figures. Read before writing or hardening such a check, or when a sweep of yours has just been reported closed. Does not restate the ERD refresh procedure — `schema-validation` owns that. |
 
 ## Related Skills
 

@@ -9,8 +9,10 @@ Usage:
   # Apply ownership findings (after researcher returns batch JSON merged into orphan-field-ownership.json)
   python scripts/erd/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
 
-  # Re-validate against both orgs and produce next orphan report
-  python scripts/erd/orphan_batch_helper.py validate --batch 4
+  # Re-validate against both orgs and produce next orphan report. --orgs is required:
+  # two DISTINCT orgs, same release, complementary shapes (see cmd_validate).
+  python scripts/erd/orphan_batch_helper.py validate --batch 4 \
+      --orgs rlm-base__264ent,rlm-base__264pde
 
 This script consolidates the manual steps used in batches 1-3 into one place.
 """
@@ -32,7 +34,8 @@ ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # accumulates iterative researcher findings during a cleanup campaign). The
 # default path is configurable via --ownership-json so this script works on
 # fresh clones and in CI without requiring the .agents/ artifacts to exist.
-DEFAULT_OWNERSHIP_JSON = REPO / ".agents" / "artifacts" / "orphan-field-ownership.json"
+ARTIFACTS = REPO / ".agents" / "artifacts" / "orphan-fields"
+DEFAULT_OWNERSHIP_JSON = ARTIFACTS / "orphan-field-ownership.json"
 
 
 def _load_ownership(path: Path) -> Tuple[dict, bool]:
@@ -134,9 +137,9 @@ def cmd_prepare(args):
         "objects": next_batch,
     }
     # Default output dir lives under .agents/ (intentionally untracked); create
-    # parents so this works on fresh clones where .agents/artifacts/ doesn't
-    # exist yet. Override via --output-dir for CI or alternate staging.
-    out_dir = Path(args.output_dir) if args.output_dir else REPO / ".agents" / "artifacts"
+    # parents so this works on fresh clones where the directory doesn't exist
+    # yet. Override via --output-dir for CI or alternate staging.
+    out_dir = Path(args.output_dir) if args.output_dir else ARTIFACTS
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
@@ -240,11 +243,31 @@ def cmd_apply(args):
 
 
 def cmd_validate(args):
-    """Run cleanup_orphan_erd_fields against both orgs to produce post-batch report."""
+    """Run cleanup_orphan_erd_fields against both orgs to produce post-batch report.
+
+    `--orgs` being *required* only guarantees a nonempty string, which is not what this
+    command promises. `--orgs one-alias` would run a single-org classification while
+    still reading as the two-org cross-validation, and single-org classification is
+    exactly what mistakes a feature-gated field for a removed one. So parse the list
+    and require two distinct aliases before dispatching.
+    """
+    aliases = [a.strip() for a in args.orgs.split(",") if a.strip()]
+    if len(set(aliases)) < 2:
+        print(
+            f"Error: --orgs needs two distinct aliases, got {aliases}. This command "
+            f"classifies orphan fields, and orphans are unioned across orgs, so one "
+            f"org (or the same one twice) leaves feature gating indistinguishable from "
+            f"removal. Use the target release with COMPLEMENTARY shapes — a second org "
+            f"of the same shape cannot disagree about a shape-gated field, so it "
+            f"corroborates nothing.",
+            file=sys.stderr,
+        )
+        return 2
+
     report_out = REPO / "docs" / "erds" / f"orphan-candidates-after-batch{args.batch}.md"
     cmd = [
-        "python3", str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
-        "--orgs", "ent-r1,rlm-base__ent-sb0",
+        sys.executable, str(REPO / "scripts" / "erd" / "cleanup_orphan_erd_fields.py"),
+        "--orgs", args.orgs,
         "--dry-run",
         "--report", str(report_out),
         "--concurrency", "15",
@@ -261,9 +284,12 @@ def cmd_validate(args):
     # the batch workflow happily reported success. Capture the result, log
     # stderr on failure, and propagate the worse of the two return codes so
     # callers (and CI) actually see the breakage.
+    # sys.executable, not "python3": the sibling ERD scripts need 3.10+ (diff_schemas.py
+    # fails at import on 3.9), and on a workstation where `python3` is the pyenv shim it
+    # can easily be 3.9 even when this helper was launched under the CumulusCI venv.
     print("\nRegenerating HTML...")
     html_result = subprocess.run(
-        ["python3", str(REPO / "scripts" / "erd" / "build_erds.py")],
+        [sys.executable, str(REPO / "scripts" / "erd" / "build_erds.py")],
         capture_output=True, text=True,
     )
     if html_result.returncode != 0:
@@ -289,10 +315,10 @@ def main():
                              f"(default: {DEFAULT_OWNERSHIP_JSON.relative_to(REPO)}; "
                              f"missing-file is non-fatal for prepare).")
     p_prep.add_argument("--output-dir",
-                        help="Directory to write the batch input JSON into "
-                             "(default: .agents/artifacts/; the directory is "
-                             "auto-created so fresh clones work without "
-                             "manually mkdir-ing .agents/artifacts/).")
+                        help=f"Directory to write the batch input JSON into "
+                             f"(default: {ARTIFACTS.relative_to(REPO)}/; the "
+                             f"directory is auto-created so fresh clones work "
+                             f"without mkdir-ing it first).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")
@@ -306,6 +332,16 @@ def main():
 
     p_val = sub.add_parser("validate", help="Run validator + regenerate HTML")
     p_val.add_argument("--batch", type=int, required=True)
+    p_val.add_argument("--orgs", required=True,
+                       help="Comma-separated pair of orgs to classify orphans "
+                            "against, e.g. rlm-base__264ent,rlm-base__264pde. "
+                            "Required, and deliberately has no default: both must be "
+                            "fresh prepare_rlm_org builds of the SAME release, with "
+                            "COMPLEMENTARY shapes. Orphans are unioned across orgs, so "
+                            "a cross-release pair manufactures false orphans while a "
+                            "same-shape pair cannot disprove any. This used to default "
+                            "to a 260/262 pair, so the documented command silently "
+                            "validated the wrong release.")
     p_val.set_defaults(func=cmd_validate)
 
     args = p.parse_args()

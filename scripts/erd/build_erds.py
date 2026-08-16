@@ -19,6 +19,7 @@ Output: docs/erds/revenue-cloud-erd.html (patched in place)
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from collections import defaultdict
@@ -133,10 +134,92 @@ def erd_data_to_html_links(erd_data: dict, node_ids: set) -> list:
     return links
 
 
-def patch_html(html_path: str, nodes: list, links: list) -> bool:
-    """Replace the D= data block in the HTML file."""
+RELEASE_NAMES = {"260": "Spring '26", "262": "Summer '26", "264": "Winter '27"}
+
+
+def patch_version_strings(html: str, metadata: dict) -> tuple:
+    """Rewrite the release/API-version strings in the page chrome from metadata.
+
+    The data block and the header used to be updated by different means: this
+    script replaced `const D=`, and the `<title>` and version badge were edited by
+    hand. So the 264 refresh shipped 264 schema under a "v67.0 / Summer '26
+    (Release 262)" banner — the most visible artifact in the change was the one
+    misstating the release. Deriving them here means the header cannot drift from
+    the data it describes.
+
+    Returns `(html, patched, expected)`. **Compare the last two and fail if they
+    differ** — a count alone is not enough. Each pattern targets a different piece of
+    chrome, so if a template edit breaks one of them the other two still match and the
+    build reports success while shipping a half-updated banner. That is the same
+    silent drift this function exists to prevent, so a partial patch has to be loud.
+
+    Two ways this check has already tried to fail *open*, both fixed here, both worth
+    remembering because they look like working checks:
+
+    - Counting total substitutions instead of per-pattern ones. `re.subn` returns how
+      many it replaced, so one pattern matching twice covered for another matching
+      zero times and the total still reached the expected number. Each pattern must
+      match **exactly once**.
+    - Returning `expected == 0` for metadata that exists but lacks `release` or
+      `apiVersion`. `patched == expected == 0` then satisfies the caller's equality
+      check, so malformed metadata published refreshed data under stale chrome. The
+      expected count is a property of the patterns, never of the input, so it is
+      returned unconditionally below.
+    """
+    release = str(metadata.get("release") or "")
+    api = str(metadata.get("apiVersion") or "")
+
+    label = RELEASE_NAMES.get(release)
+    subtitle = f"{label} (Release {release})" if label else f"Release {release}"
+
+    patterns = (
+        (r"<title>Revenue Cloud v[\d.]+ — Interactive ERD</title>",
+         f"<title>Revenue Cloud v{api} — Interactive ERD</title>"),
+        (r'<span class="ver-badge">v[\d.]+</span>',
+         f'<span class="ver-badge">v{api}</span>'),
+        # Matches both subtitle forms this function can emit: the named
+        # "Summer '26 (Release 262)" and the unnamed "Release 266" fallback used
+        # when RELEASE_NAMES has no entry yet. Matching only the parenthesised
+        # form would strand a fallback subtitle on the old release forever,
+        # while the title and badge moved on — the drift this exists to prevent.
+        (r"<small>[^<]*?(?:\(Release \d+\)|Release \d+)\s*&mdash;",
+         f"<small>{subtitle} &mdash;"),
+    )
+
+    if not release or not api:
+        return html, 0, len(patterns)
+
+    patched = 0
+    for pattern, replacement in patterns:
+        html, n = re.subn(pattern, replacement, html)
+        patched += 1 if n == 1 else 0
+
+    return html, patched, len(patterns)
+
+
+def patch_html(html_path: str, nodes: list, links: list, metadata: dict = None) -> bool:
+    """Replace the D= data block in the HTML file, and the version strings with it."""
     with open(html_path, "r") as f:
         html = f.read()
+
+    if metadata:
+        html, patched, expected = patch_version_strings(html, metadata)
+        if patched != expected:
+            missing = [k for k in ("release", "apiVersion") if not metadata.get(k)]
+            why = (
+                f"metadata is missing {' and '.join(missing)}"
+                if missing
+                else "check whether the title, version badge or subtitle markup "
+                     "changed, or now matches more than once"
+            )
+            print(
+                f"Error: patched {patched} of {expected} version strings in "
+                f"{html_path} — {why}. Publishing now would put refreshed data "
+                f"under stale page chrome.",
+                file=sys.stderr,
+            )
+            return False
+        print(f"  Version strings patched: {patched}/{expected}")
 
     # Find D= block boundaries
     marker = "const D="
@@ -240,7 +323,7 @@ def main():
     print(f"  {len(nodes)} nodes, {len(links)} links")
 
     print(f"Patching {html_file}...")
-    if patch_html(str(html_file), nodes, links):
+    if patch_html(str(html_file), nodes, links, erd_data.get("metadata")):
         print(f"✓ Patched successfully")
         verify(str(html_file))
         return 0
