@@ -67,10 +67,16 @@ Six directions are checked, because these fail independently:
 5. **Every `domains/*.md` headline matches its domain.** Catches the 7 wrong ones.
 6. **The taxonomy is closed and complete** — every domain label in the data folds
    into one of the documented domains, all of them appear in the table, the rows
-   sum to the total, and every "across N domains" claim matches how many the data
-   actually folds to. This is the direction that catches the *next* refresh rather
-   than this one: a new domain label, or a domain silently dropped from the table,
-   is invisible to checks 4 and 5 because they only audit rows that exist.
+   sum to the total, every "across N domains" claim matches how many the data
+   actually folds to, and the table and the `domains/*.md` set cover the *same*
+   domains. This is the direction that catches the *next* refresh rather than this
+   one: a new domain label, or a domain silently dropped from the table, is
+   invisible to checks 4 and 5 because they only audit rows that exist. The
+   two-map agreement is here for the same reason — a domain with a table row but
+   no sub-file is invisible to check 5, which iterates the file map, so nothing
+   else would name it. The pinned count does move, but it says "something left the
+   audit" and prompts you to raise EXPECTED_CHECKS, which would accept the
+   unaudited domain. A smoke alarm is not a diagnosis.
 
 Two things the pattern deliberately cannot do. It cannot tell the ERD triple from
 the org-describe pair, so a doc phrasing that as "254 objects, 3,913 fields, 0
@@ -97,7 +103,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 50
+EXPECTED_CHECKS = 51
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -337,9 +343,14 @@ def main():
             claimed == actual,
             f"{rel(SKILL)}:{lineno} claims {claimed}, {domain} has {actual}",
         )
-    check("domain_overview_row_sum", sum(c for _, _, c in rows) == totals["objects"],
-          f"rows sum to {sum(c for _, _, c in rows)}, total is {totals['objects']} — "
-          "a domain is missing from the table or double-counted")
+    # `None` skipped, not summed: `num()` returns it for a malformed cell, and
+    # `sum()` over it raises TypeError *before* this check or the pinned count can
+    # report — a traceback in place of a `[FAIL]`. The row's own comparison above
+    # already fails on `None`, so dropping it here loses no signal.
+    counted = [c for _, _, c in rows if c is not None]
+    check("domain_overview_row_sum", sum(counted) == totals["objects"],
+          f"rows sum to {sum(counted)}, total is {totals['objects']} — a domain is "
+          "missing from the table or double-counted")
 
     print()
     print("domains/*.md headlines")
@@ -398,6 +409,18 @@ def main():
     missing = sorted(documented - seen)
     check("every_documented_domain_has_a_row", not missing,
           f"documented domain(s) absent from the Domain Overview table: {missing}")
+    # The two maps must agree, asserted directly. A domain that reaches the data and
+    # the table but never gets a `domains/*.md` is invisible to the headline layer,
+    # which iterates FILE_TO_DOMAIN — so nothing here would have named it. The pinned
+    # count does move, but it reports "a citation, row, headline or file left the
+    # audit" and prompts you to raise EXPECTED_CHECKS, which is precisely the wrong
+    # action: bumping it accepts an unaudited domain. A smoke alarm is not a diagnosis.
+    only_row = sorted(set(ROW_TO_DOMAIN.values()) - set(FILE_TO_DOMAIN.values()))
+    only_file = sorted(set(FILE_TO_DOMAIN.values()) - set(ROW_TO_DOMAIN.values()))
+    check("table_and_sub_files_cover_the_same_domains",
+          not only_row and not only_file,
+          f"in the table with no domains/*.md: {only_row}; with a sub-file but no "
+          f"table row: {only_file} — every domain needs both")
     # Against the DATA, not against a literal. `len(set(ROW_TO_DOMAIN.values())) == 9`
     # was the first version and it audited nothing: both sides were constants in this
     # file, so it could not fail. The quantity that actually moves is the number of
