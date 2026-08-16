@@ -127,12 +127,11 @@ It pins the headline triple *and* the per-domain counts — the Domain Overview 
 `revenue-cloud-data-model/SKILL.md` and every `domains/*.md` headline — to
 `erd-data.json`, plus `erd-data.json` against its own `stats` block so a stale
 generator cannot certify the docs. The per-domain layer is what the manual sweep never
-reached: at 264 the headline triple was correct in all seven places while **8 of the
-table's 9 rows** were wrong, summing to 185 against an actual 263, and 7 of the 9
-`domains/*.md` headlines with them. It was not staleness either — `rates.md`
-over-claimed 15 against 11, and the per-domain counts in `erd-data.json` are
-byte-identical at `release/262`, so the refresh did not move them; they had never been
-right. Grepping the outgoing numbers could not have caught that.
+reached: at 264 the headline triple was correct in all seven places while 15 per-domain
+counts under it were wrong — and not merely stale, since those counts are byte-identical at
+`release/262`, so the refresh did not move them. Grepping the outgoing numbers could not
+have caught that. Full account:
+[`doc-consistency/erd-count-drift.md`](../doc-consistency/erd-count-drift.md).
 
 All four docs above are covered, `scripts/ai/README.md` included — its citation wraps
 mid-phrase (`263` / `objects, 4,252 platform fields, 674 verified relationship edges`),
@@ -149,10 +148,8 @@ mermaid inventories in `docs/erds/README.md` and `docs/erds/erd-quickstart.md` q
 entities *drawn* in a `.mermaid` file, which may fall short of its domain, match it
 exactly, or exceed it where a diagram pulls in a node the data tags elsewhere. No fixed
 ratio holds, so the inventories are gated against those files, not `erd-data.json`.
-Conflating the two is what let both inventories keep the stale **domain** counts
-(11/14/15/4/37/27/22/54) through the very sweep that fixed those numbers elsewhere:
-16 further instances, in files that sweep already had open. Two of the eight happened to
-match their diagram, which is what made the other six look plausible.
+Conflating the two is what let both inventories keep the stale **domain** counts through
+the very sweep that fixed those numbers elsewhere, in files that sweep already had open.
 
 The count definition it enforces: a domain's objects are all objects carrying that
 domain **including** the `(Core Object)` variants (the only reading that sums to the

@@ -194,78 +194,30 @@ python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` st
 python tests/test_erd_doc_counts.py                      # ERD object/field/domain counts in docs ↔ erd-data.json
 ```
 
-`test_erd_doc_counts.py` covers the same shape of drift one level down. The
-**headline** ERD triple gets swept on every refresh — 4,190 → 4,252 fields at 264,
-all seven citations updated — but the **per-domain** counts under it never did, and
-the sweep does not look at them: 8 of the 9 rows in the Domain Overview table of
-`revenue-cloud-data-model/SKILL.md` disagreed with the data, summing to 185 against
-an actual 263, directly beneath a correct "263 objects" headline. 7 of the 9
-`domains/*.md` headlines were wrong too — 15 numbers in all.
+`test_erd_doc_counts.py` covers the same shape of drift one level down: the headline ERD
+triple is swept on every refresh, but the **per-domain** counts underneath it are not, and
+15 of them described nothing measurable. It gates the domain counts and the derived figures
+against `erd-data.json`, and the mermaid inventories against the `.mermaid` files —
+**entity counts are not domain object counts**, so never read one off the other. Run it
+after any ERD refresh; `schema-validation` owns where it sits in that procedure. Adding a
+citation or a site will fail the pinned check count, which you then raise deliberately.
 
-Three things make this worth a check rather than another sweep. The drift was **not**
-uniformly stale-low — `rates.md` claimed 15 Rate Management objects where the data
-has 11 — so "add the new ones" would not have found it. The numbers had stopped
-describing anything measurable: most matched neither the ERD nor the file's own
-object table. And the refresh is not what staled them — the per-domain counts in
-`erd-data.json` are byte-identical at `release/262`, so these were **never** right.
-Run it after any ERD refresh anyway, since that is when someone is looking at the
-figures; see `schema-validation` for where it sits in that procedure.
+⭐ **Four rules that came out of it, and generalize to any check over hand-copied figures:**
 
-Two of its layers exist only because the first version of this check had the same
-defect it was written to catch. Asking whether *any* headline citation matched let a
-file that reworded or renamed its own citation leave the audit while the run reported
-clean — wrong numbers in a reworded `scripts/ai/README.md` passed 33/33 — so every
-site is now asserted individually and **the total check count is pinned**, which is
-what turns "one citation quietly stopped being audited" into a failure. The other
-layer covers the Statistics bullet block in `docs/erds/README.md`, which restates all
-three totals in a form the triple pattern cannot match; that file was being audited at
-three prose citations while four bullets in it went unchecked. **When you add a
-citation or a site, expect the pin to fail and raise `EXPECTED_CHECKS` deliberately.**
+1. **Enumerate against the data, not against the phrasings you know.** List every numeral
+   the source can justify, subtract what a check covers, read what is left. The first sweep
+   here closed at 15 of 32 instances; three review rounds then each found one more by
+   reading, and the enumeration found the rest in a second.
+2. **Assert per site, and pin the total count** — but pair the pin with checks that name
+   what is absent. A count invariant is a good backstop and a bad explanation.
+3. **Gate the figures your rationale quotes to justify itself.** They read as prose and so
+   escape the count checks entirely.
+4. **A qualitative claim about the data is a citation too**, and nothing can gate it. Prefer
+   wording the data cannot contradict over a ratio or a "most" — a summary statistic in
+   prose carries all the drift risk of a number and none of the gateability.
 
-⭐ **The most instructive finding came last: the first sweep fixed 15 of 32 instances and
-declared the class swept.** The arithmetic is worth spelling out, because each group was
-found by a different means: **15** domain counts (8 Domain Overview rows + 7 `domains/*.md`
-headlines), **16** mermaid-inventory entries (8 diagrams × the 2 inventories in
-`docs/erds/README.md` and `docs/erds/erd-quickstart.md`), and **1** prose citation —
-`erd-quickstart.md`'s "all 54 billing domain objects" — which is the entry that matters
-most, since it took a *third* method to find.
-
-The inventories carried the same stale set (11/14/15/4/37/27/22/54) — in a file that sweep
-already had open — because they *look* like a different quantity. They are: entities drawn
-in a diagram, which is organized around relationships and need not hold the same entities
-as the domain — in one case it draws one more. But they had been populated from the domain
-counts, so they drifted with them, and two of the eight coincidentally matched their
-diagram, which made the other six look deliberate. The 32nd escaped even the corrected
-sweep: a grep for the stale *numbers* passed over it twice because it said "objects"
-rather than "entities", and it surfaced only by enumerating every line naming a `.mermaid`
-file. All 32 are now gated — the inventories against the `.mermaid` files, the domain
-counts against `erd-data.json`.
-
-**When sweeping a class, enumerate every instance mechanically before claiming the class is
-closed** — "I fixed the ones I found" is not the same claim; a near-miss quantity is where
-most of the rest hide, and a different *label* for the same number is where the last one
-does.
-
-That lesson had to be applied to *itself* before it took. Two further citations of the
-object total — "covering 263 objects" and "the full 263-object schema" — survived the
-corrected sweep as well, because both name the figure in prose the triple pattern cannot
-match. They were found the way the rule prescribes: list every numeral in these documents
-that `erd-data.json` can justify, subtract the ones a check already covers, and read what
-is left. That enumeration takes about ten lines of Python and finishes in a second,
-whereas three consecutive review rounds each found exactly one more instance by reading.
-**Enumerate against the data, not against the phrasings you already know**, and gate the
-figures a definition quotes to justify itself — those read as prose and so escape the
-count checks entirely.
-
-⭐ **A qualitative claim about the data is a citation too, and no count check can gate it.**
-The note explaining *why* the diagram inventories are gated separately asserted that most
-diagrams "draw well under half their domain." Review checked it against the very counts
-the change had just established: only two of nine are below half, four match their domain
-exactly, and one exceeds it. The claim was invented to justify the layer, was wrong the
-day it was written, and was copied to five sites. Prefer wording the data cannot
-contradict — "may draw fewer, all, or one more" — over a ratio or a "most," because a
-summary statistic in prose has all the drift risk of a number with none of the
-gateability. When a rationale needs a quantity, compute it and let a check hold it.
+Full retrospective, including the three occasions this check had the defect it was written
+to catch: [`erd-count-drift.md`](erd-count-drift.md).
 
 `test_doc_build_steps.py` covers a class of drift that reading cannot catch.
 Build-step numbers in docs are hand-maintained with no generator, so **inserting
@@ -329,6 +281,12 @@ git add .cursor/skills/cci-orchestration/tasks-reference.md \
 ```
 
 ---
+
+## Sub-Files
+
+| File | Contains |
+|---|---|
+| [`erd-count-drift.md`](erd-count-drift.md) | Retrospective on the ERD count drift and the six review rounds that gated it: what 15 wrong per-domain counts cost, the three occasions the check carried the defect it was written to catch, the sweep declared closed at 15 of 32 instances, and the carry-outs for the next check over hand-copied figures. Read before writing or hardening such a check, or when a sweep of yours has just been reported closed. Does not restate the ERD refresh procedure — `schema-validation` owns that. |
 
 ## Related Skills
 
