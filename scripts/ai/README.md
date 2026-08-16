@@ -14,12 +14,27 @@ pipeline and work with any AI coding agent.
 ### `query_erd.py`
 
 CLI tool for querying the Revenue Cloud data model stored in
-`docs/erds/erd-data.json` — Release 262 (Summer '26, API v67.0): 263
-objects, 4,190 platform fields, 674 verified relationship edges (custom
-fields excluded). The same JSON also exposes 1,135 reference fields in
+`docs/erds/erd-data.json` — Release 264 (Winter '27, API v68.0): 263
+objects, 4,252 platform fields, 674 verified relationship edges (custom
+fields excluded). The same JSON also exposes 1,148 reference fields in
 total — see the "Reference Fields" line in `query_erd.py stats` for the
 distinction. Avoids loading the 30K-line JSON file directly into AI
 context.
+
+⚠ **These figures are hardcoded prose with no generator behind them**, so a refresh
+staled every copy at once — the 262→264 pass missed this file, and `stats` printed
+264 figures while the line above still said 262. Four files carry them; sweep all
+four:
+
+| File | Carries |
+|---|---|
+| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** |
+| `docs/erds/README.md` | objects, fields, relationships |
+| `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships |
+| `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships |
+
+`query_erd.py stats` is the generated source for all of them — reconcile against it,
+not against another doc.
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain

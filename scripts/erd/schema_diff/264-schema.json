@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "extracted_at": "2026-05-27T01:53:35Z",
+    "extracted_at": "2026-08-15T21:24:25Z",
     "object_count": 254,
     "object_selection": "erd-data.json",
-    "org_alias": "rlm-base__ent-sb0",
+    "org_alias": "rlm-base__264merged",
     "source": "sf sobject describe",
-    "total_fields": 3851
+    "total_fields": 3913
   },
   "objects": {
     "Account": {
@@ -1207,7 +1207,7 @@
     },
     "ApprovalSubmission": {
       "createable": false,
-      "deletable": false,
+      "deletable": true,
       "fieldCount": 13,
       "fields": {
         "Comments": {
@@ -1399,16 +1399,20 @@
             "AttributePicklist",
             "AttributePicklistValue",
             "AuditTrailFileExport",
+            "AuthFormRequestRecord",
             "AuthorizationForm",
             "AuthorizationFormConsent",
             "AuthorizationFormDataUse",
             "AuthorizationFormText",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
             "BatchJob",
             "BatchJobPart",
             "BatchJobPartFailedRecord",
             "BillingAccount",
             "BillingArrangement",
             "BillingArrangementLine",
+            "BillingForecast",
             "BillingMilestonePlan",
             "BillingMilestonePlanItem",
             "BillingPolicy",
@@ -1423,6 +1427,7 @@
             "BsgRelationship",
             "BundleBasedAdjustment",
             "BusinessBrand",
+            "BusinessMilestone",
             "BusinessProfile",
             "BuyerAccount",
             "BuyerGroup",
@@ -1440,6 +1445,7 @@
             "CartValidationOutput",
             "Case",
             "CaseComment",
+            "CaseParticipant",
             "CaseProceeding",
             "CaseProceedingParticipant",
             "CaseProceedingResult",
@@ -1460,6 +1466,7 @@
             "ContactPointAddress",
             "ContactPointConsent",
             "ContactPointEmail",
+            "ContactPointOttSvc",
             "ContactPointPhone",
             "ContactPointTypeConsent",
             "ContactRequest",
@@ -1502,12 +1509,17 @@
             "DigitalSignature",
             "Dispute",
             "DisputeItem",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
             "DocGenerationBatchProcess",
             "DocGenerationQueryResult",
             "DocTemplateSectionCondition",
             "DocumentAuthoredContent",
+            "DocumentChecklistItem",
             "DocumentClause",
+            "DocumentClauseContentToken",
             "DocumentClauseSet",
+            "DocumentDecisionRequirement",
             "DocumentEnvelope",
             "DocumentGenerationProcess",
             "DocumentRecipient",
@@ -1560,6 +1572,8 @@
             "Image",
             "IndexRate",
             "Individual",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
             "IntegrationProviderDcsnRqmt",
             "IntegrationProviderExecution",
             "InvBatchDraftToPostedRun",
@@ -1590,6 +1604,8 @@
             "MerchAccPaymentMethodSet",
             "MerchAccPaymentMethodType",
             "MerchantAccount",
+            "MessagingSessionClient",
+            "MultipartyInfoAuthRequest",
             "ObjectStateActionDefinition",
             "ObjectStateDefinition",
             "ObjectStateTransition",
@@ -1599,6 +1615,8 @@
             "OmniComponentErrorLog",
             "OmniGlobalAutoNumber",
             "OmniProcessAsmtQuestionVer",
+            "OperatingHours",
+            "OperatingHoursHoliday",
             "Opportunity",
             "OpportunityRelatedDeleteLog",
             "Order",
@@ -1623,17 +1641,22 @@
             "OrderSummaryRoutingSchedule",
             "OrgMetricScanSummary",
             "Organization",
+            "OutboundEngagementTemplate",
+            "OutboundEngmtContentRsrc",
             "PartnerFundAllocation",
             "PartnerFundClaim",
             "PartnerFundRequest",
             "PartnerMarketingBudget",
             "PartyConsent",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
             "PaymentCreditLinePayment",
             "PaymentCreditTransaction",
             "PaymentLink",
             "PaymentSchedule",
             "PaymentScheduleItem",
             "PendingServiceRouting",
+            "PersonLifeEvent",
             "PickTicket",
             "PickTicketAssignment",
             "PickTicketProduct",
@@ -1675,6 +1698,7 @@
             "Promotion",
             "PromotionLineItemRule",
             "PromotionMarketSegment",
+            "PromotionPartyUsage",
             "PromotionQualifier",
             "PromotionSegment",
             "PromotionSegmentBuyerGroup",
@@ -1688,6 +1712,7 @@
             "QuotLineItmUsageRsrcPlcy",
             "QuotLineItmUseRsrcGrant",
             "Quote",
+            "QuoteClause",
             "QuoteItemTaxItem",
             "QuoteLineDetail",
             "QuoteLineGroup",
@@ -1702,6 +1727,8 @@
             "RateCard",
             "RateCardEntry",
             "RatingFrequencyPolicy",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
             "RecordActnSelItemExtrc",
             "RecordAlert",
             "RecordAlertActionableTarget",
@@ -1744,6 +1771,7 @@
             "TaxRate",
             "TaxTreatmentItem",
             "TenantConsumptionAlert",
+            "TimeSlot",
             "Topic",
             "TransactionJournal",
             "TransactionUsageEntitlement",
@@ -1779,8 +1807,10 @@
             "VideoCallParticipant",
             "VideoCallRecording",
             "WebCart",
+            "WebCartActivityLog",
             "WebCartAdjustmentBasis",
             "WebCartAdjustmentGroup",
+            "WebCartCollaborator",
             "WebCartCredit",
             "WebStore",
             "WebStoreBuyerGroup",
@@ -1788,7 +1818,12 @@
             "WebStoreInventorySource",
             "WebStoreNetwork",
             "WorkOrder",
-            "WorkOrderLineItem"
+            "WorkOrderLineItem",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
           ],
           "relationshipName": "RelatedRecord",
           "scale": 0,
@@ -3532,6 +3567,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -3748,7 +3784,7 @@
     "AssetAction": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 32,
+      "fieldCount": 33,
       "fields": {
         "ActionDate": {
           "createable": true,
@@ -3981,6 +4017,23 @@
           "relationshipName": null,
           "scale": 2,
           "type": "double",
+          "updateable": true
+        },
+        "RolledBackAssetActionId": {
+          "createable": true,
+          "custom": false,
+          "label": "Asset Action ID",
+          "length": 18,
+          "name": "RolledBackAssetActionId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "AssetAction"
+          ],
+          "relationshipName": "RolledBackAssetAction",
+          "scale": 0,
+          "type": "reference",
           "updateable": true
         },
         "SubtotalChange": {
@@ -4280,7 +4333,7 @@
     "AssetActionSource": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 36,
+      "fieldCount": 37,
       "fields": {
         "ActualTax": {
           "createable": true,
@@ -4357,6 +4410,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
+          "updateable": true
+        },
+        "BillingTerm": {
+          "createable": true,
+          "custom": false,
+          "label": "Billing Term",
+          "length": 0,
+          "name": "BillingTerm",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
           "updateable": true
         },
         "CurrencyIsoCode": {
@@ -4874,7 +4942,7 @@
     "AssetActionSrcPriceAdjustment": {
       "createable": true,
       "deletable": false,
-      "fieldCount": 9,
+      "fieldCount": 10,
       "fields": {
         "AdjustmentValue": {
           "createable": true,
@@ -4891,8 +4959,23 @@
           "type": "double",
           "updateable": false
         },
+        "AppliedAdjustmentAmount": {
+          "createable": false,
+          "custom": false,
+          "label": "Applied Adjustment Amount",
+          "length": 0,
+          "name": "AppliedAdjustmentAmount",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
+          "updateable": false
+        },
         "AppliedPriceAdjustmentDate": {
-          "createable": true,
+          "createable": false,
           "custom": false,
           "label": "Applied Price Adjustment Date",
           "length": 0,
@@ -4907,7 +4990,7 @@
           "updateable": false
         },
         "AssetActionSourceId": {
-          "createable": true,
+          "createable": false,
           "custom": false,
           "label": "Asset Action Source ID",
           "length": 18,
@@ -4979,7 +5062,7 @@
           "updateable": false
         },
         "PriceAdjustmentCauseId": {
-          "createable": true,
+          "createable": false,
           "custom": false,
           "label": "Price Adjustment Cause ID",
           "length": 18,
@@ -4996,7 +5079,7 @@
           "updateable": false
         },
         "PriceAdjustmentSource": {
-          "createable": true,
+          "createable": false,
           "custom": false,
           "label": "Price Adjustment Source",
           "length": 255,
@@ -5016,7 +5099,7 @@
           "updateable": false
         },
         "PrioritySequence": {
-          "createable": true,
+          "createable": false,
           "custom": false,
           "label": "Priority Sequence",
           "length": 0,
@@ -5970,7 +6053,7 @@
     "AssetStatePeriod": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 20,
+      "fieldCount": 23,
       "fields": {
         "Amount": {
           "createable": true,
@@ -5985,6 +6068,21 @@
           "relationshipName": null,
           "scale": 2,
           "type": "currency",
+          "updateable": true
+        },
+        "ApplUnitPriceUpliftPct": {
+          "createable": true,
+          "custom": false,
+          "label": "Applied Unit Price Uplift Percent",
+          "length": 0,
+          "name": "ApplUnitPriceUpliftPct",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 5,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "percent",
           "updateable": true
         },
         "AssetId": {
@@ -6028,6 +6126,7 @@
           "nillable": true,
           "picklistValues": [
             "MilestonePlan",
+            "Weekly",
             "Monthly",
             "Quarterly",
             "Semi-Annual",
@@ -6177,6 +6276,23 @@
           "type": "reference",
           "updateable": true
         },
+        "PricingContractId": {
+          "createable": true,
+          "custom": false,
+          "label": "Contract ID",
+          "length": 18,
+          "name": "PricingContractId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "Contract"
+          ],
+          "relationshipName": "PricingContract",
+          "scale": 0,
+          "type": "reference",
+          "updateable": true
+        },
         "Quantity": {
           "createable": true,
           "custom": false,
@@ -6205,6 +6321,24 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
+          "updateable": true
+        },
+        "RampUpliftType": {
+          "createable": true,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 255,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
           "updateable": true
         },
         "SegmentIdentifier": {
@@ -6384,7 +6518,7 @@
           "createable": true,
           "custom": false,
           "label": "Value",
-          "length": 150,
+          "length": 255,
           "name": "AttributeValue",
           "nillable": true,
           "picklistValues": [],
@@ -7228,6 +7362,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -9106,7 +9241,7 @@
     "BillingBatchScheduler": {
       "createable": false,
       "deletable": false,
-      "fieldCount": 22,
+      "fieldCount": 23,
       "fields": {
         "BillingSchedulerName": {
           "createable": false,
@@ -9212,7 +9347,9 @@
           "nillable": false,
           "picklistValues": [
             "Payment",
-            "Invoice"
+            "Invoice",
+            "Forecast",
+            "Catchup"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -9373,6 +9510,21 @@
           "label": "Bypass weekend",
           "length": 0,
           "name": "ShouldExcludeWkendAndHldy",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
+          "updateable": false
+        },
+        "ShouldGenerateInvoiceDocuments": {
+          "createable": false,
+          "custom": false,
+          "label": "Generate Invoice Documents",
+          "length": 0,
+          "name": "ShouldGenerateInvoiceDocuments",
           "nillable": false,
           "picklistValues": [],
           "precision": 0,
@@ -10698,7 +10850,8 @@
           "picklistValues": [
             "Draft",
             "Reviewed",
-            "Canceled"
+            "Canceled",
+            "Catch Up Processed"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -10846,7 +10999,7 @@
     "BillingSchedule": {
       "createable": false,
       "deletable": false,
-      "fieldCount": 54,
+      "fieldCount": 62,
       "fields": {
         "BillDayOfMonth": {
           "createable": false,
@@ -11078,6 +11231,7 @@
           "picklistValues": [
             "OneTime",
             "Day",
+            "Week",
             "Month",
             "Quarter",
             "Semi-Annual",
@@ -11089,6 +11243,23 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
+          "updateable": false
+        },
+        "BillingTreatmentId": {
+          "createable": false,
+          "custom": false,
+          "label": "Billing Treatment ID",
+          "length": 18,
+          "name": "BillingTreatmentId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "BillingTreatment"
+          ],
+          "relationshipName": "BillingTreatment",
+          "scale": 0,
+          "type": "reference",
           "updateable": false
         },
         "BillingTreatmentItemId": {
@@ -11215,6 +11386,43 @@
           "type": "string",
           "updateable": true
         },
+        "ForecastBatchRunId": {
+          "createable": false,
+          "custom": false,
+          "label": "Invoice Batch Run ID",
+          "length": 18,
+          "name": "ForecastBatchRunId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "InvoiceBatchRun"
+          ],
+          "relationshipName": "ForecastBatchRun",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
+        },
+        "ForecastStatus": {
+          "createable": false,
+          "custom": false,
+          "label": "Forecast Status",
+          "length": 255,
+          "name": "ForecastStatus",
+          "nillable": true,
+          "picklistValues": [
+            "PendingForecast",
+            "Processing",
+            "Forecasted",
+            "Error"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": true
+        },
         "GroupingKey": {
           "createable": false,
           "custom": false,
@@ -11326,6 +11534,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "boolean",
+          "updateable": false
+        },
+        "LastForecastRunTargetDate": {
+          "createable": false,
+          "custom": false,
+          "label": "Last Forecast Run Target Date",
+          "length": 0,
+          "name": "LastForecastRunTargetDate",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "date",
           "updateable": false
         },
         "LineAmount": {
@@ -11461,6 +11684,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -11499,6 +11723,21 @@
           "scale": 2,
           "type": "double",
           "updateable": false
+        },
+        "RampIdentifier": {
+          "createable": false,
+          "custom": false,
+          "label": "Ramp Identifier",
+          "length": 255,
+          "name": "RampIdentifier",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
         },
         "Reference": {
           "createable": false,
@@ -11572,6 +11811,56 @@
           "type": "string",
           "updateable": false
         },
+        "SegmentIdentifier": {
+          "createable": false,
+          "custom": false,
+          "label": "Segment Identifier",
+          "length": 255,
+          "name": "SegmentIdentifier",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
+        "SegmentName": {
+          "createable": false,
+          "custom": false,
+          "label": "Segment Name",
+          "length": 255,
+          "name": "SegmentName",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
+        "SegmentType": {
+          "createable": false,
+          "custom": false,
+          "label": "Segment Type",
+          "length": 255,
+          "name": "SegmentType",
+          "nillable": true,
+          "picklistValues": [
+            "Yearly",
+            "Custom",
+            "FreeTrial",
+            "Prorated"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": true
+        },
         "Status": {
           "createable": false,
           "custom": false,
@@ -11584,7 +11873,8 @@
             "CompletelyBilled",
             "Processing",
             "Error",
-            "WaitingForMilestoneEventAccomplishment"
+            "WaitingForMilestoneEventAccomplishment",
+            "Draft"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -11791,7 +12081,7 @@
         "BillDayOfMonth": {
           "createable": false,
           "custom": false,
-          "label": "Bill Day Of Month",
+          "label": "Period Boundary Day",
           "length": 0,
           "name": "BillDayOfMonth",
           "nillable": true,
@@ -12023,7 +12313,7 @@
         "BillingStartMonth": {
           "createable": false,
           "custom": false,
-          "label": "Billing Start Month",
+          "label": "Period Boundary Start Month",
           "length": 255,
           "name": "BillingStartMonth",
           "nillable": true,
@@ -12118,6 +12408,7 @@
           "picklistValues": [
             "OneTime",
             "Day",
+            "Week",
             "Month",
             "Quarter",
             "Semi-Annual",
@@ -14263,6 +14554,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -15344,7 +15636,7 @@
     "CollectionPlanItem": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 6,
+      "fieldCount": 7,
       "fields": {
         "CollectionPlanId": {
           "createable": true,
@@ -15384,6 +15676,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
+          "updateable": true
+        },
+        "InitialInvoiceBalance": {
+          "createable": false,
+          "custom": false,
+          "label": "Initial Invoice Balance",
+          "length": 0,
+          "name": "InitialInvoiceBalance",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
           "updateable": true
         },
         "InvoiceBalance": {
@@ -16417,7 +16724,7 @@
     "Contract": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 51,
+      "fieldCount": 52,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -16928,6 +17235,24 @@
           "type": "picklist",
           "updateable": true
         },
+        "RampUpliftType": {
+          "createable": true,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 40,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": true
+        },
         "RecordTypeId": {
           "createable": true,
           "custom": false,
@@ -16971,6 +17296,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -18363,7 +18689,7 @@
     "CreditMemo": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 45,
+      "fieldCount": 49,
       "fields": {
         "Balance": {
           "createable": false,
@@ -18544,6 +18870,21 @@
           "type": "date",
           "updateable": false
         },
+        "CreditMemoLockedDateTime": {
+          "createable": false,
+          "custom": false,
+          "label": "Credit Memo Locked Date Time",
+          "length": 0,
+          "name": "CreditMemoLockedDateTime",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "datetime",
+          "updateable": false
+        },
         "CreditMemoNumber": {
           "createable": true,
           "custom": false,
@@ -18717,6 +19058,21 @@
           "type": "string",
           "updateable": true
         },
+        "IsCreditMemoLocked": {
+          "createable": false,
+          "custom": false,
+          "label": "Is Credit Memo Locked",
+          "length": 0,
+          "name": "IsCreditMemoLocked",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
+          "updateable": false
+        },
         "LegalEntityAccountingPeriodId": {
           "createable": true,
           "custom": false,
@@ -18757,6 +19113,21 @@
           "label": "Net Credits Applied",
           "length": 0,
           "name": "NetCreditsApplied",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
+          "updateable": false
+        },
+        "NetRefundsApplied": {
+          "createable": false,
+          "custom": false,
+          "label": "Net Refunds Applied",
+          "length": 0,
+          "name": "NetRefundsApplied",
           "nillable": true,
           "picklistValues": [],
           "precision": 18,
@@ -18814,6 +19185,23 @@
             "OrderSummary"
           ],
           "relationshipName": "ReferenceEntity",
+          "scale": 0,
+          "type": "reference",
+          "updateable": true
+        },
+        "SavedPaymentMethodId": {
+          "createable": true,
+          "custom": false,
+          "label": "Saved Payment Method ID",
+          "length": 18,
+          "name": "SavedPaymentMethodId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "SavedPaymentMethod"
+          ],
+          "relationshipName": "SavedPaymentMethod",
           "scale": 0,
           "type": "reference",
           "updateable": true
@@ -20386,7 +20774,7 @@
     "CreditMemoLineInvoiceLine": {
       "createable": true,
       "deletable": false,
-      "fieldCount": 17,
+      "fieldCount": 19,
       "fields": {
         "Amount": {
           "createable": true,
@@ -20565,6 +20953,23 @@
           "type": "reference",
           "updateable": false
         },
+        "InvoiceLineTaxId": {
+          "createable": true,
+          "custom": false,
+          "label": "Invoice Line Tax ID",
+          "length": 18,
+          "name": "InvoiceLineTaxId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "InvoiceLineTax"
+          ],
+          "relationshipName": "InvoiceLineTax",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
+        },
         "LegalEntityAccountingPeriodId": {
           "createable": true,
           "custom": false,
@@ -20614,6 +21019,25 @@
           "relationshipName": "RelatedCrMemoLineInvcLine",
           "scale": 0,
           "type": "reference",
+          "updateable": false
+        },
+        "SettlementType": {
+          "createable": true,
+          "custom": false,
+          "label": "Settlement Type",
+          "length": 255,
+          "name": "SettlementType",
+          "nillable": true,
+          "picklistValues": [
+            "Charge",
+            "Tax",
+            "Balance"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
           "updateable": false
         },
         "Type": {
@@ -21439,7 +21863,7 @@
     "DebitMemo": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 28,
+      "fieldCount": 29,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -21660,6 +22084,23 @@
           "scale": 0,
           "type": "string",
           "updateable": true
+        },
+        "InvoiceBatchRunId": {
+          "createable": false,
+          "custom": false,
+          "label": "Invoice Batch Run ID",
+          "length": 18,
+          "name": "InvoiceBatchRunId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "InvoiceBatchRun"
+          ],
+          "relationshipName": "InvoiceBatchRun",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
         },
         "InvoiceGenerationStatus": {
           "createable": true,
@@ -23840,10 +24281,14 @@
             "AttrPicklistExcludedValue",
             "AudienceMembership",
             "AuditTrailFileExport",
+            "AuthFormRequestRecord",
             "AuthorizationForm",
             "AuthorizationFormConsent",
             "AuthorizationFormDataUse",
             "AuthorizationFormText",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPplnDefChangeLog",
             "BackgroundOperation",
             "BatchJob",
             "BatchJobPart",
@@ -23853,6 +24298,7 @@
             "BillingArrangementLine",
             "BillingBatchFilterCriteria",
             "BillingBatchScheduler",
+            "BillingForecast",
             "BillingMilestonePlan",
             "BillingMilestonePlanItem",
             "BillingPeriodItem",
@@ -23869,6 +24315,7 @@
             "BsgRelationship",
             "BundleBasedAdjustment",
             "BusinessBrand",
+            "BusinessMilestone",
             "BusinessProfile",
             "BuyerAccount",
             "BuyerGroup",
@@ -23911,6 +24358,7 @@
             "CaseExternalDocument",
             "CaseHistory2",
             "CaseMilestone",
+            "CaseParticipant",
             "CaseProceeding",
             "CaseProceedingParticipant",
             "CaseProceedingResult",
@@ -23953,6 +24401,7 @@
             "ContactPointAddress",
             "ContactPointConsent",
             "ContactPointEmail",
+            "ContactPointOttSvc",
             "ContactPointPhone",
             "ContactPointTypeConsent",
             "ContactRequest",
@@ -24021,12 +24470,15 @@
             "CostBookEntry",
             "Coupon",
             "CouponCodeRedemption",
+            "CpdpHandlerStatus",
             "CreditMemo",
             "CreditMemoAddressGroup",
             "CreditMemoInvApplication",
             "CreditMemoLine",
             "CreditMemoLineInvoiceLine",
+            "CreditMemoLineRefund",
             "CreditMemoLineTax",
+            "CreditMemoRefund",
             "Customer",
             "Dashboard",
             "DashboardComponent",
@@ -24039,6 +24491,8 @@
             "DataAssessmentValueMetric",
             "DataAssetSemanticGraphEdge",
             "DataAssetUsageTrackingInfo",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
             "DataflowTriggerEvent",
             "DataPrepServiceLocator",
             "DataUseLegalBasis",
@@ -24065,13 +24519,18 @@
             "DirectMessageMemberActivity",
             "Dispute",
             "DisputeItem",
+            "DocChkItemValidatedTarget",
+            "DocClauseContentTokenTrkg",
             "DocGenerationBatchProcess",
             "DocGenerationQueryResult",
             "DocTemplateSectionCondition",
             "Document",
             "DocumentAuthoredContent",
+            "DocumentChecklistItem",
             "DocumentClause",
+            "DocumentClauseContentToken",
             "DocumentClauseSet",
+            "DocumentDecisionRequirement",
             "DocumentEnvelope",
             "DocumentGenerationProcess",
             "DocumentRecipient",
@@ -24124,6 +24583,7 @@
             "ExternalEvent",
             "ExternalEventMapping",
             "ExternalServiceDataType",
+            "ExtlClntAppAppleAttestKey",
             "ExtlRecShrStagedRecord",
             "FeedActionState",
             "FeedAttachment",
@@ -24163,6 +24623,13 @@
             "FlowTestResult",
             "FlowVersionMilestone",
             "FolderedContentDocument",
+            "ForecastingAdjustment",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingFact",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
             "FulfillmentAsset",
             "FulfillmentAssetRelationship",
             "FulfillmentAssetStatePeriod",
@@ -24206,6 +24673,8 @@
             "IncrementalCandidate",
             "IndexRate",
             "Individual",
+            "InfoAuthorizationRequest",
+            "InfoAuthRequestForm",
             "InstalledMobileApp",
             "IntegrationProviderDcsnRqmt",
             "IntegrationProviderExecution",
@@ -24304,6 +24773,7 @@
             "MerchantAccount",
             "MessagingEndUser",
             "MessagingSession",
+            "MessagingSessionClient",
             "MessagingSessionMetrics",
             "MetadataContainerMember",
             "MlFeatureValueMetric",
@@ -24314,6 +24784,7 @@
             "MLModelFactorComponent",
             "MLModelMetric",
             "MobileMarkedRecord",
+            "MultipartyInfoAuthRequest",
             "Name",
             "NameUnion",
             "NetworkActivityAudit",
@@ -24354,6 +24825,8 @@
             "OmniScriptSavedSession",
             "OmniUiCard",
             "OpenActivity",
+            "OperatingHours",
+            "OperatingHoursHoliday",
             "Opportunity",
             "OpportunityAlert",
             "OpportunityCompetitor",
@@ -24398,6 +24871,8 @@
             "OrgMetric",
             "OrgMetricScanResult",
             "OrgMetricScanSummary",
+            "OutboundEngagementTemplate",
+            "OutboundEngmtContentRsrc",
             "OwnedContentDocument",
             "Participant",
             "ParticipantDevice",
@@ -24409,6 +24884,8 @@
             "PartnerMarketingBudget",
             "PartyConsent",
             "Payment",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
             "PaymentAuthAdjustment",
             "PaymentAuthorization",
             "PaymentBatchRun",
@@ -24438,6 +24915,7 @@
             "PendingServiceRouting",
             "PendingServiceRoutingInteractionInfo",
             "PersonalizationResource",
+            "PersonLifeEvent",
             "Photo",
             "PhotoItem",
             "PickTicket",
@@ -24505,6 +24983,7 @@
             "Promotion",
             "PromotionLineItemRule",
             "PromotionMarketSegment",
+            "PromotionPartyUsage",
             "PromotionQualifier",
             "PromotionSegment",
             "PromotionSegmentBuyerGroup",
@@ -24525,6 +25004,7 @@
             "QuickTextUsage",
             "Quote",
             "QuoteAction",
+            "QuoteClause",
             "QuoteDocument",
             "QuoteItemTaxItem",
             "QuoteLineDetail",
@@ -24546,6 +25026,8 @@
             "RatingFrequencyPolicy",
             "RatingRequest",
             "RatingRequestBatchJob",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
             "Recommendation",
             "RecommendationAudience",
             "RecommendationDefinition",
@@ -24558,6 +25040,7 @@
             "RecordAlertActionableTarget",
             "RecordMergeHistory",
             "RecordOrigin",
+            "RecordParticipant",
             "Refund",
             "RefundLinePayment",
             "RelationshipGraphView",
@@ -24647,7 +25130,6 @@
             "SocialPersonaFieldBackup",
             "SocialPost",
             "SocialPostFieldBackup",
-            "SoftwareProduct",
             "Solution",
             "StagedInviteeEmail",
             "StandardShippingRate",
@@ -24675,6 +25157,7 @@
             "TenantPvsnLicConsumption",
             "TenantPvsnProdtLicMap",
             "TenantPvsnProduct",
+            "TimeSlot",
             "TimeStop",
             "TodayGoal",
             "Tombstone",
@@ -24751,8 +25234,10 @@
             "WaveNotificationConfig",
             "WaveTemplateValues",
             "WebCart",
+            "WebCartActivityLog",
             "WebCartAdjustmentBasis",
             "WebCartAdjustmentGroup",
+            "WebCartCollaborator",
             "WebCartCredit",
             "WebStore",
             "WebStoreBuyerGroup",
@@ -24763,7 +25248,12 @@
             "WebStoreNetwork",
             "WorkflowSLAAction",
             "WorkOrder",
-            "WorkOrderLineItem"
+            "WorkOrderLineItem",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -25001,7 +25491,12 @@
             "GpaCalculationProcedure",
             "Bre",
             "ItServiceManagement",
-            "IntelligentDecisionStudio"
+            "IntelligentDecisionStudio",
+            "PricingCalculationSchema",
+            "PricingSpecification",
+            "PricingSearchStrategy",
+            "PricingKeyType",
+            "PolicyEngine"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -25070,7 +25565,8 @@
           "nillable": true,
           "picklistValues": [
             "Standard",
-            "Custom"
+            "Custom",
+            "IntelligentDecision"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -25095,7 +25591,6 @@
             "DefaultStudentInformationSystem",
             "HoldsAndBlocks",
             "RevenueCloudConfigurator",
-            "Insurance",
             "Media",
             "Commerce",
             "Education",
@@ -25134,7 +25629,11 @@
             "RatingDiscovery",
             "FulfillmentCondition",
             "DecompositionEnrichmentMapping",
-            "RevenueStandardTax"
+            "RevenueStandardTax",
+            "CatalogQualification",
+            "CommandCenterAlerts",
+            "CommandCenterMetric",
+            "CommandCenterRootCause"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -25578,6 +26077,7 @@
           "picklistValues": [
             "ActionCadenceAutolnch",
             "ActionCadenceStepScrn",
+            "Cadence",
             "ActionPlanAutolnch",
             "ApprovalOrchAutolnch",
             "ApprovalOrchRecTrigAftSave",
@@ -25597,6 +26097,7 @@
             "ProcessBuilderCustmEvnt",
             "DataCaptureScrn",
             "DigitalFormScrn",
+            "AutoApprovalEvalAutolnch",
             "EvaluationAutolnch",
             "FieldServiceMobileScrn",
             "FieldServiceWebScrn",
@@ -25646,6 +26147,7 @@
             "AgxBackground",
             "AgxDataRetrieval",
             "AgxScreen",
+            "AgxOverview",
             "AgxOrchestration",
             "OnDemandNoTrigger",
             "IndivRelatedRecTrigAutolnch",
@@ -25780,7 +26282,8 @@
             "CampaignMember",
             "EnterpriseScaleExternalSystemChange",
             "List",
-            "ApiEventTrigger"
+            "ApiEventTrigger",
+            "Cadence"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -26986,7 +27489,7 @@
     "FulfillmentOrder": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 56,
+      "fieldCount": 57,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -27475,6 +27978,21 @@
           "type": "int",
           "updateable": true
         },
+        "RoutingReference": {
+          "createable": true,
+          "custom": false,
+          "label": "Routing Reference",
+          "length": 255,
+          "name": "RoutingReference",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
         "StartFulfillmentDate": {
           "createable": true,
           "custom": false,
@@ -27908,7 +28426,7 @@
     "FulfillmentOrderLineItem": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 40,
+      "fieldCount": 42,
       "fields": {
         "Action": {
           "createable": true,
@@ -28091,7 +28609,7 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
-          "updateable": false
+          "updateable": true
         },
         "GrossUnitPrice": {
           "createable": true,
@@ -28106,6 +28624,23 @@
           "relationshipName": null,
           "scale": 2,
           "type": "currency",
+          "updateable": false
+        },
+        "InvoiceId": {
+          "createable": false,
+          "custom": false,
+          "label": "Invoice ID",
+          "length": 18,
+          "name": "InvoiceId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "Invoice"
+          ],
+          "relationshipName": "Invoice",
+          "scale": 0,
+          "type": "reference",
           "updateable": false
         },
         "IsReship": {
@@ -28337,6 +28872,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "datetime",
+          "updateable": false
+        },
+        "SubAction": {
+          "createable": true,
+          "custom": false,
+          "label": "Sub Action",
+          "length": 255,
+          "name": "SubAction",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
           "updateable": false
         },
         "SupplementalAction": {
@@ -28728,7 +29278,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -28747,7 +29298,7 @@
     "FulfillmentStep": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 40,
+      "fieldCount": 41,
       "fields": {
         "ActualCompletionDate": {
           "createable": true,
@@ -29311,6 +29862,21 @@
           "type": "reference",
           "updateable": true
         },
+        "ScopeIdentifierText": {
+          "createable": true,
+          "custom": false,
+          "label": "Scope Identifier",
+          "length": 255,
+          "name": "ScopeIdentifierText",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
         "State": {
           "createable": true,
           "custom": false,
@@ -29360,7 +29926,7 @@
           "label": "Step Type",
           "length": 255,
           "name": "StepType",
-          "nillable": true,
+          "nillable": false,
           "picklistValues": [
             "AutoTask",
             "Callout",
@@ -29422,7 +29988,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -29441,7 +30008,7 @@
     "FulfillmentStepDefinition": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 27,
+      "fieldCount": 28,
       "fields": {
         "AmendGroupId": {
           "createable": true,
@@ -29595,6 +30162,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
+          "updateable": true
+        },
+        "Description": {
+          "createable": true,
+          "custom": false,
+          "label": "Description",
+          "length": 255,
+          "name": "Description",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "textarea",
           "updateable": true
         },
         "ExecuteOn": {
@@ -29855,7 +30437,7 @@
           "label": "Step Type",
           "length": 255,
           "name": "StepType",
-          "nillable": true,
+          "nillable": false,
           "picklistValues": [
             "AutoTask",
             "Callout",
@@ -29900,7 +30482,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -29987,7 +30570,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -30126,7 +30710,7 @@
     "FulfillmentStepDependencyDef": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 7,
+      "fieldCount": 8,
       "fields": {
         "CurrencyIsoCode": {
           "createable": true,
@@ -30149,6 +30733,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
+          "updateable": true
+        },
+        "CustomScope": {
+          "createable": true,
+          "custom": false,
+          "label": "Custom Scope",
+          "length": 80,
+          "name": "CustomScope",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
           "updateable": true
         },
         "DependencyScope": {
@@ -30743,7 +31342,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -31483,7 +32083,9 @@
             "CreditMemoLineInvoiceLine",
             "RefundLinePayment",
             "DebitMemoLine",
-            "DebitMemoLineTax"
+            "DebitMemoLineTax",
+            "CreditMemoRefund",
+            "CreditMemoLineRefund"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -33739,7 +34341,7 @@
     "InvoiceBatchRun": {
       "createable": false,
       "deletable": false,
-      "fieldCount": 31,
+      "fieldCount": 37,
       "fields": {
         "BatchJobId": {
           "createable": false,
@@ -33899,6 +34501,53 @@
           "type": "picklist",
           "updateable": false
         },
+        "DocGenerationBatchProcessId": {
+          "createable": false,
+          "custom": false,
+          "label": "Document Generation Batch Process ID",
+          "length": 18,
+          "name": "DocGenerationBatchProcessId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "DocGenerationBatchProcess"
+          ],
+          "relationshipName": "DocGenerationBatchProcess",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
+        },
+        "ForecastRunDate": {
+          "createable": false,
+          "custom": false,
+          "label": "Forecast Run Date",
+          "length": 0,
+          "name": "ForecastRunDate",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "date",
+          "updateable": false
+        },
+        "ForecastTargetDate": {
+          "createable": false,
+          "custom": false,
+          "label": "Forecast Target Date",
+          "length": 0,
+          "name": "ForecastTargetDate",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "date",
+          "updateable": false
+        },
         "InvoiceBatchRunNumber": {
           "createable": false,
           "custom": false,
@@ -33942,6 +34591,26 @@
           "relationshipName": null,
           "scale": 0,
           "type": "int",
+          "updateable": false
+        },
+        "JobType": {
+          "createable": false,
+          "custom": false,
+          "label": "Job Type",
+          "length": 255,
+          "name": "JobType",
+          "nillable": true,
+          "picklistValues": [
+            "Payment",
+            "Invoice",
+            "Forecast",
+            "Catchup"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
           "updateable": false
         },
         "OwnerId": {
@@ -34041,6 +34710,13 @@
             "Invoice Generation for Billing Arrangement DPE Definition Run Completed",
             "Invoice Tax Calculation In Progress",
             "Billing Schedule and Billing Schedule Group Updates In Progress",
+            "Forecast Generation Started",
+            "Forecast Generation In Progress",
+            "Forecast Generation Completed",
+            "Catch-Up Billing Schedules Started",
+            "Catch-Up Billing Schedules In Progress",
+            "Catch-Up Billing Schedules Completed",
+            "Catch-Up Billing Schedules Summarization In Progress",
             "Invoice Generation Summarization In Progress",
             "Completed",
             "Failed"
@@ -34172,6 +34848,36 @@
           "type": "int",
           "updateable": false
         },
+        "TotalForecastLines": {
+          "createable": false,
+          "custom": false,
+          "label": "Total Forecast Lines",
+          "length": 0,
+          "name": "TotalForecastLines",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
+          "updateable": false
+        },
+        "TotalForecastedAmount": {
+          "createable": false,
+          "custom": false,
+          "label": "Total Forecasted Amount",
+          "length": 0,
+          "name": "TotalForecastedAmount",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
+          "updateable": false
+        },
         "TotalInvSuccessfullyProcessed": {
           "createable": false,
           "custom": false,
@@ -34272,8 +34978,23 @@
     "InvoiceBatchRunCriteria": {
       "createable": false,
       "deletable": false,
-      "fieldCount": 11,
+      "fieldCount": 16,
       "fields": {
+        "BillingCycleCount": {
+          "createable": false,
+          "custom": false,
+          "label": "Billing Period Count",
+          "length": 0,
+          "name": "BillingCycleCount",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
+          "updateable": false
+        },
         "Comments": {
           "createable": false,
           "custom": false,
@@ -34417,6 +35138,36 @@
           "type": "reference",
           "updateable": false
         },
+        "ShouldCatchUpBillRun": {
+          "createable": false,
+          "custom": false,
+          "label": "Should Catch Up Bill Run",
+          "length": 0,
+          "name": "ShouldCatchUpBillRun",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
+          "updateable": false
+        },
+        "ShouldRecalculateAllForecastLn": {
+          "createable": false,
+          "custom": false,
+          "label": "Recalculate All Forecast Lines",
+          "length": 0,
+          "name": "ShouldRecalculateAllForecastLn",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
+          "updateable": false
+        },
         "TargetDate": {
           "createable": false,
           "custom": false,
@@ -34430,6 +35181,36 @@
           "relationshipName": null,
           "scale": 0,
           "type": "date",
+          "updateable": false
+        },
+        "TargetDateDayOfMonth": {
+          "createable": false,
+          "custom": false,
+          "label": "Target Date Day Of Month",
+          "length": 0,
+          "name": "TargetDateDayOfMonth",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
+          "updateable": false
+        },
+        "TargetDateMonthOffset": {
+          "createable": false,
+          "custom": false,
+          "label": "Target Date Month Offset",
+          "length": 0,
+          "name": "TargetDateMonthOffset",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
           "updateable": false
         },
         "TargetDateOffset": {
@@ -35923,7 +36704,7 @@
     "InvoiceLineTax": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 22,
+      "fieldCount": 24,
       "fields": {
         "BillingAddressId": {
           "createable": true,
@@ -36075,6 +36856,36 @@
           "scale": 0,
           "type": "reference",
           "updateable": true
+        },
+        "NetCreditsApplied": {
+          "createable": false,
+          "custom": false,
+          "label": "Net Credits Applied",
+          "length": 0,
+          "name": "NetCreditsApplied",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
+          "updateable": false
+        },
+        "NetPaymentsApplied": {
+          "createable": false,
+          "custom": false,
+          "label": "Net Payments Applied",
+          "length": 0,
+          "name": "NetPaymentsApplied",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 18,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "currency",
+          "updateable": false
         },
         "ShipFromAddressId": {
           "createable": true,
@@ -37078,7 +37889,8 @@
           "picklistValues": [
             "Anonymous",
             "PerUser",
-            "NamedUser"
+            "NamedUser",
+            "NamedCustomPrincipal"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -37431,6 +38243,8 @@
             "AccountPartner",
             "AccountRecordUserAccess",
             "QuickActionDefinition",
+            "ActionableEventOrchDef",
+            "ActionableEventTypeDef",
             "ActionFlowParam",
             "ActionLauncherItemDef",
             "ActionLink",
@@ -37460,6 +38274,7 @@
             "Address",
             "AddressCountry",
             "AddressState",
+            "AgentExchangeInstallRequest",
             "AgentGraphReference",
             "AgenticCtxtDecorDefinition",
             "AgenticCtxtDecorRetriever",
@@ -37470,6 +38285,7 @@
             "AiAgentFieldLvlRecordAccs",
             "AIAgentStatusEvent",
             "AiAgentVariable",
+            "AiAppIntlUserSignalPref",
             "AIApplication",
             "AIApplicationConfig",
             "AIError",
@@ -37530,10 +38346,10 @@
             "AIScoringStatusEvent",
             "AIState",
             "AiSurfaceDefinition",
+            "AiSurfaceInputDef",
             "AiSurfaceInstructionDef",
             "AiSurfaceModalityDef",
             "AiSurfaceResponseFormat",
-            "AiTagDefinition",
             "AiTestCaseDef",
             "AiTestConvCriteriaDef",
             "AiTestConvCritPersonaDef",
@@ -37555,6 +38371,8 @@
             "AIWorksheetColProcEvent",
             "AIWorksheetColRelation",
             "AIWorksheetRow",
+            "AIWorksheetTemplate",
+            "AIWorksheetTemplateColumn",
             "AllInstalledPackageVersion",
             "AllManagedClassRelationship",
             "AllManagedMemberOption",
@@ -37582,12 +38400,14 @@
             "AnalyticThreshold",
             "AnalyticNotificationTracker",
             "AnalyticRecordUserAccess",
+            "AnalyticsAppTmplActivation",
             "WaveAnnotationTarget",
             "AnalyticsBotSession",
             "AnalyticsDataAssetFile",
             "AnlytDataAssetEventStore",
             "AnlytDataAssetUsageEvent",
             "AnalyticsIndexMetadata",
+            "AnalyticsInteropMigrDef",
             "AnalyticsLicensedAsset",
             "AnalyticRecipeCompleteEvent",
             "AnalyticsResourceConfig",
@@ -37756,6 +38576,7 @@
             "AiAuthoringBundleDefVer",
             "AiAuthoringBundleVerContent",
             "AiAuthoringBundleVerCntntDep",
+            "AuthFormRequestRecord",
             "AuthorizationForm",
             "AuthorizationFormConsent",
             "AuthorizationFormDataUse",
@@ -37763,11 +38584,18 @@
             "AuthorizedEmailDomain",
             "AuthProvParamFwdAllowlist",
             "AuthSession",
+            "AutomationPipelineDef",
+            "AutomationPplnDefChangeLog",
+            "AutomationPplnExecStsChgEvent",
+            "AutomationPipelineExec",
+            "AutomationPipelineExecPart",
+            "AutomationPipelinePrmptTmpl",
             "AutoResponseRule",
             "BackgroundOperation",
             "BatchApexErrorEvent",
             "BatchApexRelationship",
             "BatchCalcJobHierarchyPathAggregateField",
+            "BatchCalcJobActivity",
             "BatchCalcJobAggregate",
             "BatchCalcJobAggregateField",
             "BatchCalcJobAggregateKey",
@@ -37794,6 +38622,9 @@
             "BatchCalcJobProcessType",
             "BatchCalcJobQuery",
             "BatchCalcJobSourceJoin",
+            "BatchCalcJobStep",
+            "BatchCalcJobStepDependency",
+            "BatchCalcJobStepProcNode",
             "BatchCalcJobTransform",
             "BatchCalcJobTransformAddedField",
             "BatchCalcJobTransformDroppedField",
@@ -37817,6 +38648,7 @@
             "BillingArrangementLine",
             "BillingBatchFilterCriteria",
             "BillingBatchScheduler",
+            "BillingForecast",
             "BillingMilestonePlan",
             "BillingMilestonePlanItem",
             "BillingPeriodItem",
@@ -37859,6 +38691,8 @@
             "BundleBasedAdjustment",
             "BusinessBrand",
             "BusinessHours",
+            "BusinessInsightType",
+            "BusinessMilestone",
             "BusinessProcess",
             "BusinessProcessPicklist",
             "BusinessProcessTypeDef",
@@ -37893,9 +38727,11 @@
             "CardPaymentMethod",
             "WebCart",
             "CartAction",
+            "WebCartActivityLog",
             "WebCartAdjustmentBasis",
             "WebCartAdjustmentGroup",
             "CartCheckoutSession",
+            "WebCartCollaborator",
             "CartDeliveryGroup",
             "CartDeliveryGroupMethod",
             "CartDeliveryGroupMethodAdj",
@@ -37913,6 +38749,7 @@
             "CaseExternalDocument",
             "CaseHistory2",
             "CaseMilestone",
+            "CaseParticipant",
             "CaseProceeding",
             "CaseProceedingParticipant",
             "CaseProceedingResult",
@@ -38038,6 +38875,7 @@
             "ContactPointAddress",
             "ContactPointConsent",
             "ContactPointEmail",
+            "ContactPointOttSvc",
             "ContactPointPhone",
             "ContactPointTypeConsent",
             "ContactRequest",
@@ -38090,6 +38928,7 @@
             "ContextDefinitionSync",
             "ContextDefinitionTfrm",
             "ContextDefinitionVersion",
+            "ContextExtendedElement",
             "ContextMapping",
             "CtxMapToCtxDefExtlRef",
             "ContextMappingIntent",
@@ -38179,6 +39018,7 @@
             "CostBookEntry",
             "Coupon",
             "CouponCodeRedemption",
+            "CpdpHandlerStatus",
             "NLQueryFragment",
             "NLPhrase",
             "CreateAssetOrderDtlEvent",
@@ -38189,9 +39029,11 @@
             "CreditMemoInvApplication",
             "CreditMemoLine",
             "CreditMemoLineInvoiceLine",
+            "CreditMemoLineRefund",
             "CreditMemoLineTax",
             "CrMemoProcessErrDtlEvent",
             "CreditMemoProcessedEvent",
+            "CreditMemoRefund",
             "CronJobDetail",
             "CsnDomain",
             "CuratedExpJobEvent",
@@ -38254,6 +39096,7 @@
             "DashboardComponentSort",
             "DBCThumbnail",
             "DBCThumbnailFilter",
+            "DashboardCompUpdateFilter",
             "DashboardDynamicValue",
             "DashboardFilter",
             "DashboardFilterItem",
@@ -38275,6 +39118,11 @@
             "DataCategory",
             "DataCategoryMapping",
             "DataCategoryGroup",
+            "DataContentQltyScanAgntTyp",
+            "DataContentQltyScanDef",
+            "DataContentQltyScanRun",
+            "DataContentQltyScanRunRslt",
+            "DataContentQltyScanSrcDef",
             "AIDataDefinition",
             "Dataflow",
             "DataflowInstance",
@@ -38289,6 +39137,7 @@
             "InteractionDataInput",
             "DataIntegrationRecordPurchasePermission",
             "CleanRule",
+            "InteractionDataLookup",
             "OmniDataMapperView",
             "DataObjectDataChgEvent",
             "InteractionDataOutput",
@@ -38353,11 +39202,13 @@
             "EmbeddedServiceCustomization",
             "DeployDirection",
             "DeployMessage",
+            "DeployNotification",
             "DeployRequest",
             "DeployTestResult",
             "PriceBookEntryDerivedPrice",
             "DevelopmentPackageVersion",
             "DevopsRequestInfoEvent",
+            "DevopsTestProvider",
             "ConversationDefinitionDialog",
             "ConversationDefinitionDialogGroup",
             "DgtAssetMgmtProvider",
@@ -38380,8 +39231,15 @@
             "DisputeItem",
             "Document",
             "DocumentAuthoredContent",
+            "DocumentCategory",
+            "DocumentCategoryDocumentType",
+            "DocumentChecklistItem",
+            "DocChkItemValidatedTarget",
             "DocumentClause",
+            "DocumentClauseContentToken",
+            "DocClauseContentTokenTrkg",
             "DocumentClauseSet",
+            "DocumentDecisionRequirement",
             "DocumentAttachmentMap",
             "DocumentEnvelope",
             "DocGenerationBatchProcess",
@@ -38397,10 +39255,12 @@
             "DocumentTemplateSection",
             "DocTemplateSectionCondition",
             "DocumentTemplateToken",
+            "DocumentType",
             "Domain",
             "DomainProvision",
             "DominoApp",
             "DominoAppActivity",
+            "DominoAppActivityEvent",
             "DominoAppInstalledAsset",
             "DominoAppSchedule",
             "DominoAttachment",
@@ -38421,6 +39281,8 @@
             "DuplicateRuleFilter",
             "DuplicateRuleFilterItem",
             "DuplicateRuleMatchRule",
+            "DynamicGroupCriteria",
+            "DynamicGroupCriterion",
             "EclairNgMap",
             "EdgeMartDataObject",
             "AacObjectSetting",
@@ -38440,6 +39302,7 @@
             "EmailMessage",
             "EmailMessageRelation",
             "EmailRelay",
+            "EmailRelayDomainKey",
             "EmailServicesFunction",
             "EmailServicesAddress",
             "EmailStatus",
@@ -38540,6 +39403,7 @@
             "NetworkPulseSetting",
             "NetworkSelfRegistration",
             "ExprcSiteDataspcIntegInfo",
+            "ExperienceTypeChangedEvent",
             "ExperienceTypeRegistry",
             "NetworkUserHistoryRecent",
             "CommunityWorkspacesNode",
@@ -38584,8 +39448,13 @@
             "ExtlAuthIdentityPrvdParm",
             "ExtlClntAppOauthConsumer",
             "ExternalClientApplication",
+            "ExtlClntAppAndroidAttestConfig",
             "ExtlClntAppAndroidPushConfig",
+            "ExtlClntAppAppleAttestConfig",
+            "ExtlClntAppAppleAttestKey",
             "ExtlClntAppApplePushConfig",
+            "ExtlClntAppAttestPolicy",
+            "ExtlClntAppAttestSettings",
             "ExtlClntAppCanvasSettings",
             "ExtlClntAppLocalOauthConsumer",
             "ExtlClntAppMobPlcyConfig",
@@ -38606,8 +39475,6 @@
             "ExtlClntAppPlcyCnfg",
             "ExtlClntAppSamlPlcyCnfg",
             "ExtlClntAppSamlPolicyAttr",
-            "ExtlClntAppSamplePlcyCnfg",
-            "ExtlClntAppSampleSettings",
             "ExternalCredential",
             "ExternalCredentialParameter",
             "InsightsExternalData",
@@ -38618,7 +39485,6 @@
             "ExternalDocStorageConfig",
             "ExternalEvent",
             "ExternalEventMapping",
-            "ExtLearningUsrContentRtng",
             "DelegatedAccount",
             "MlExternalModel",
             "ExtlRecShrStagedRecord",
@@ -38641,6 +39507,7 @@
             "PackageDateValue",
             "PackageIntegerValue",
             "FeatureUsageEvent",
+            "FedTokenExchangeProviderRegistration",
             "FeedActionDefinition",
             "FeedActionState",
             "FeedAttachment",
@@ -38694,6 +39561,7 @@
             "FlowApexClassDescriptor",
             "FlowApexClassPropertyDesc",
             "InteractionAttribute",
+            "FlowBatchProperties",
             "InteractionCapability",
             "FlowCategory",
             "FlowCategoryItem",
@@ -38704,6 +39572,7 @@
             "FlowElementTestCoverage",
             "FlowExecutionErrorEvent",
             "FlowExecutionEventMetric",
+            "InteractionExpEngmtSignal",
             "FlowExtension",
             "FlowExtensionGenericType",
             "FlowExtensionParam",
@@ -38716,10 +39585,12 @@
             "FlowStageRelation",
             "InteractionLanguageMetrics",
             "InteractionMetadataValue",
+            "FlowOrchestrationWorkItemEvent",
             "FlowRecordElementOccurrence",
             "FlowRecordRelation",
             "InteractionRefOrValue",
             "InteractionResource",
+            "FlowResumeRefreshEvent",
             "FlowSaveTrigger",
             "FlowTest",
             "FlowTestAssertion",
@@ -38751,6 +39622,26 @@
             "FolderClosure",
             "FolderedContentDocument",
             "FolderObjDatasetMapping",
+            "ForecastingAdjustment",
+            "ForecastingCategoryMapping",
+            "ForecastingColumnDefinition",
+            "ForecastingCompositeKey",
+            "ForecastingCustomData",
+            "ForecastingDisplayedFamily",
+            "ForecastingFact",
+            "ForecastingFilter",
+            "ForecastingFilterCondition",
+            "ForecastingGroup",
+            "ForecastingGroupItem",
+            "ForecastingItem",
+            "ForecastingOwnerAdjustment",
+            "ForecastingQuota",
+            "ForecastingShare",
+            "ForecastingSourceDefinition",
+            "ForecastingType",
+            "ForecastingTypeSource",
+            "ForecastingTypeToCategory",
+            "ForecastingUserPreference",
             "InteractionForm",
             "FormItem",
             "FormulaFunctionAllowedType",
@@ -38870,6 +39761,7 @@
             "CustomPageItem",
             "ComponentResponseCache",
             "PageComponent",
+            "Icon",
             "IconDefinition",
             "Idea",
             "IdeaReputationLevel",
@@ -38893,11 +39785,20 @@
             "IndexKeyDefinitionItem",
             "IndexRate",
             "Individual",
+            "InfoAuthorizationRequest",
+            "InfoAuthRequestForm",
             "InstalledMobileApp",
             "InstalledPackageVersion",
             "InstalledSubscriberPackageVersion",
             "InstalledSubscriberPackage",
+            "InsEmailRoutingAddress",
             "IntegAppClientSecretStatus",
+            "IntegrationEnvApplication",
+            "IntegEnvApplnConnection",
+            "IntegrationEnvConfig",
+            "IntegrationEnvConnection",
+            "IntegrationEnvResource",
+            "IntegrationEnvSysDependency",
             "OmniIntegrationProcdView",
             "IntegrationProviderAttr",
             "IntegrationProviderDcsnRqmt",
@@ -38925,6 +39826,7 @@
             "InteractionConnector",
             "InteractionCountReport",
             "InteractionDataColumn",
+            "InteractionEnd",
             "InteractionExitEventParam",
             "InteractionExitRule",
             "InteractionFieldValue",
@@ -38933,6 +39835,7 @@
             "InteractionLayoutDetail",
             "InteractionLayoutSet",
             "InteractionLCMetrics",
+            "InteractionLiteTrigger",
             "InteractionLoop",
             "InteractionOperand",
             "InteractionReference",
@@ -39008,6 +39911,7 @@
             "KnowledgeLanguageConfig",
             "KnowledgeMigrationJob",
             "KnowledgeMigrationStat",
+            "SearchActivity",
             "UserDefinedLabel",
             "UserDefinedLabelAssignment",
             "LabelData",
@@ -39021,14 +39925,6 @@
             "LeadConvertMapping",
             "LeadConvertSettings",
             "LeadStatus",
-            "LearningAward",
-            "LearningContent",
-            "LearningContentItem",
-            "LearningContentItemProgress",
-            "LearningContentProgress",
-            "LearningEarnedAward",
-            "LearningRank",
-            "LearningUserSummary",
             "LegalEntity",
             "LegalEntyAccountingPeriod",
             "Lens",
@@ -39179,6 +40075,7 @@
             "ExternalSocialAccount",
             "ManagedTopicLocation",
             "MktProfileActionOverride",
+            "MarketingSiteDefinition",
             "MassMail",
             "MatchIndexDefinition",
             "MatchingInformation",
@@ -39208,6 +40105,7 @@
             "ConversationMessageDefinition",
             "MessagingSession",
             "ConvMsgSessionAuthResult",
+            "MessagingSessionClient",
             "MessagingSessionMetrics",
             "MsgSessStatusChangedEvent",
             "MessagingEndUser",
@@ -39283,6 +40181,8 @@
             "Module",
             "ModuleDependency",
             "Mru",
+            "MultiAgntTskStsUpdtEvnt",
+            "MultipartyInfoAuthRequest",
             "MutingPermissionSet",
             "MyDomainDiscoverableLogin",
             "OrgDomainLog",
@@ -39383,6 +40283,8 @@
             "OmniUiCardConfig",
             "OnboardingMetrics",
             "OpenActivity",
+            "OperatingHours",
+            "OperatingHoursHoliday",
             "OperationLog",
             "Opportunity",
             "OpportunityCompetitor",
@@ -39463,6 +40365,9 @@
             "OrgSigningKey",
             "OrgSizingInfo",
             "ContentReference",
+            "OutboundEngmtContentRsrc",
+            "OutboundEngagementTemplate",
+            "OutboundEngagementTmplView",
             "OutboundField",
             "OutboundMessage",
             "OutboundNetworkConnection",
@@ -39478,6 +40383,7 @@
             "AllPackage",
             "Project",
             "PacCrudPermission",
+            "PkgAuthOrgSbscrbTrustRela",
             "PackageDependency",
             "PackageEvent",
             "PackageExtension",
@@ -39489,6 +40395,7 @@
             "PackageSupportAccess",
             "AllPackageVersion",
             "PackageVersionPatchOrg",
+            "PkgVrfyAuthOrgTrustRela",
             "PageAssignment",
             "PageAssignmentCriteria",
             "Layout",
@@ -39501,6 +40408,7 @@
             "ParallelJobStatus",
             "Participant",
             "ParticipantDevice",
+            "ParticipantRole",
             "PartitionLevelMember",
             "PartitionLevelScheme",
             "PartitionStatus",
@@ -39522,6 +40430,8 @@
             "PathAssistantStepInfo",
             "PathAssistantStepItem",
             "Payment",
+            "PaymentAdviceInvoiceRecile",
+            "PaymentAdviceReconciliation",
             "PaymentAuthorization",
             "PaymentAuthAdjustment",
             "PaymentBatchRun",
@@ -39579,6 +40489,7 @@
             "PersonalizationTargetInfo",
             "PersonalizationTargetSet",
             "PersonalizedMsgGeneratorDef",
+            "PersonLifeEvent",
             "Photo",
             "PhotoItem",
             "PicklistItemProperty",
@@ -39731,7 +40642,9 @@
             "Promotion",
             "PromotionLineItemRule",
             "PromotionMarketSegment",
+            "PromotionPartyUsage",
             "PromotionQualifier",
+            "PromotionRuleTemplate",
             "PromotionSegment",
             "PromotionSegmentBuyerGroup",
             "PromotionSegmentSalesStore",
@@ -39741,6 +40654,7 @@
             "McpServerPromptDefinition",
             "PromptAction",
             "PromptError",
+            "GenAiPromptTemplateVersionFile",
             "PromptVersion",
             "ProposedEventResponse",
             "ProposedEventTime",
@@ -39779,6 +40693,7 @@
             "QuickTextUsage",
             "Quote",
             "QuoteAction",
+            "QuoteClause",
             "QuoteItemTaxItem",
             "QuoteLineDetail",
             "QuoteLineGroup",
@@ -39796,6 +40711,7 @@
             "QuoteRecipientGroupMember",
             "QuoteSaveEvent",
             "QuoteTemplateRichTextData",
+            "QuoteToOpportunitySyncEvent",
             "QuoteToOrderCompletedEvent",
             "QuoteToOrderErrDtlEvent",
             "RateAdjustmentByAttribute",
@@ -39806,6 +40722,8 @@
             "RatingRequest",
             "RatingRequestBatchJob",
             "RawEmail",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
             "RecentFieldChange",
             "RecentlyViewed",
             "UserRecentSearchInfo",
@@ -39840,12 +40758,11 @@
             "RecordAlertTemplate",
             "RecordMergeHistory",
             "RecordOrigin",
+            "RecordParticipant",
             "RecordRecommendation",
             "RecordSalt",
             "RecordType",
             "RecordTypePicklist",
-            "RecoveryCopyJob",
-            "RecoveryFlashback",
             "DeleteEvent",
             "Refund",
             "RefundLinePayment",
@@ -39895,6 +40812,7 @@
             "ReputationPointsRule",
             "DevopsRequestInfo",
             "RequestTrace",
+            "McpServerResourceDefinition",
             "RestrictionRule",
             "ReturnOrder",
             "ReturnOrderItemAdjustment",
@@ -39945,7 +40863,6 @@
             "ScorecardAssociation",
             "ScorecardMetric",
             "SearchableField",
-            "SearchActivity",
             "SearchCustomization",
             "SearchCustomizationRule",
             "SearchCustomRuleValue",
@@ -39997,6 +40914,8 @@
             "ServiceDeskCustomStyling",
             "ServiceDeskHotkey",
             "ServiceFieldDataType",
+            "SrvcMgmtCollabAppFldDef",
+            "SrvcMgmtCollabAppObjDef",
             "SrvcMgmntEmailRoutgAddr",
             "SrvcMgmtObjCollabAppCnfg",
             "ServiceOpPriorityConfig",
@@ -40019,6 +40938,7 @@
             "SetupDataSynchronization",
             "SetupEntityAccess",
             "SetupNode",
+            "SfdcOrgCommRecipient",
             "SfdcOutboundMessage",
             "SfdcPartner",
             "SharingOperation",
@@ -40045,7 +40965,9 @@
             "SitePageOverride",
             "SiteRedirectMapping",
             "SlackApp",
+            "SlackAppTemplate",
             "SlackChannelRecordObjectConfig",
+            "SlackChannelRefreshEvent",
             "SlackChannelRelatedRecord",
             "SlackTeam",
             "SlackTeamUserAuthorization",
@@ -40062,7 +40984,6 @@
             "SoftphoneLayoutItem",
             "SoftphoneLayoutSection",
             "SoftphoneScreenPopOption",
-            "SoftwareProduct",
             "Solution",
             "SolutionStatus",
             "SourceChangeNotification",
@@ -40088,6 +41009,7 @@
             "StandardShippingRate",
             "StandardValueSet",
             "InteractionStatement",
+            "StaticDynamicValMapping",
             "StaticResource",
             "StatsInvalidationEvent",
             "WebStore",
@@ -40148,6 +41070,7 @@
             "TestSuiteMembership",
             "ThirdPartyAccountLink",
             "TimelineObjectDefinition",
+            "TimeSlot",
             "Tombstone",
             "McpServerToolDefinition",
             "Topic",
@@ -40183,10 +41106,15 @@
             "TwoFactorMethodsInfoLocal",
             "TwoFactorWebAuthN",
             "TwoFactorU2F",
+            "UIBundle",
+            "UIBundleDeployment",
+            "UIBundleApplication",
             "UiFormatSpecification",
             "UiFormatSpecificationSet",
             "UiFormulaCriterion",
             "UiFormulaRule",
+            "UiWidget",
+            "UiWidgetExternalReference",
             "UndecidedEventRelation",
             "UnistlAppDenyOauthAtmpt",
             "UninstallExport",
@@ -40225,6 +41153,7 @@
             "UserExternalCredential",
             "UserFeedChannel",
             "UserFieldAccess",
+            "GroupActionOverride",
             "UserLicense",
             "UserLicenseMetrics",
             "UserListPreference",
@@ -40300,10 +41229,10 @@
             "WaveReplicationFilterItem",
             "WaveSyncOut",
             "WaveTemplateExternalData",
-            "UIBundle",
             "WebAppResource",
             "WebAppResourceDependency",
             "WebCartCredit",
+            "WebCartFailedEvent",
             "WebServiceDefinition",
             "WebStoreConfig",
             "WebStoreInventorySource",
@@ -40328,6 +41257,12 @@
             "WorkOrderLineItem",
             "WorkOrderLineItemStatus",
             "WorkOrderStatus",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepStatus",
+            "WorkStepTemplate",
             "WsdlDataType",
             "Xmd",
             "XmdDate",
@@ -40789,8 +41724,23 @@
     "OmniProcess": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 33,
+      "fieldCount": 35,
       "fields": {
+        "AiGeneratedDescription": {
+          "createable": true,
+          "custom": false,
+          "label": "AI Generated Description",
+          "length": 32000,
+          "name": "AiGeneratedDescription",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "textarea",
+          "updateable": true
+        },
         "CurrencyIsoCode": {
           "createable": true,
           "custom": false,
@@ -40882,7 +41832,8 @@
           "name": "DiscoveryFrameworkUsageType",
           "nillable": true,
           "picklistValues": [
-            "Default"
+            "Default",
+            "GsUsageType"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -40905,6 +41856,21 @@
           "scale": 0,
           "type": "textarea",
           "updateable": true
+        },
+        "EmbeddingPayload": {
+          "createable": false,
+          "custom": false,
+          "label": "Embedding Payload",
+          "length": 32000,
+          "name": "EmbeddingPayload",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "textarea",
+          "updateable": false
         },
         "IntegrationProcedureInput": {
           "createable": true,
@@ -41284,7 +42250,7 @@
           "nillable": true,
           "picklistValues": [
             "Contract",
-            "Licensing & Permitting"
+            "LicensingAndPermitting"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -41545,7 +42511,8 @@
           "name": "DiscoveryFrameworkUsageType",
           "nillable": true,
           "picklistValues": [
-            "Default"
+            "Default",
+            "GsUsageType"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -41775,7 +42742,8 @@
             "Submit",
             "External File Upload",
             "Offline Data Action",
-            "Offline Data Mutation Action"
+            "Offline Data Mutation Action",
+            "Section"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -41896,7 +42864,8 @@
             "Submit",
             "External File Upload",
             "Offline Data Action",
-            "Offline Data Mutation Action"
+            "Offline Data Mutation Action",
+            "Section"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -41991,7 +42960,7 @@
     "Order": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 79,
+      "fieldCount": 80,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -42315,7 +43284,13 @@
             "GroupRampConfigurationFailed",
             "ContextHydrationInProgress",
             "PstBaseStepFailed",
-            "PartialSaveSuccess"
+            "PartialSaveSuccess",
+            "QueuedForARC",
+            "ARCInProgress",
+            "ARCStepFailed",
+            "QueuedForClone",
+            "CloneInProgress",
+            "CloneFailed"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -42518,6 +43493,21 @@
           "relationshipName": null,
           "scale": 2,
           "type": "currency",
+          "updateable": false
+        },
+        "IsLargeDeal": {
+          "createable": false,
+          "custom": false,
+          "label": "Large Deal",
+          "length": 0,
+          "name": "IsLargeDeal",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
           "updateable": false
         },
         "IsReductionOrder": {
@@ -43498,7 +44488,7 @@
     "OrderItem": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 89,
+      "fieldCount": 93,
       "fields": {
         "AggregatedQuantity": {
           "createable": false,
@@ -43513,6 +44503,21 @@
           "relationshipName": null,
           "scale": 2,
           "type": "double",
+          "updateable": false
+        },
+        "ApplUnitPriceUpliftPct": {
+          "createable": false,
+          "custom": false,
+          "label": "Applied Unit Price Uplift Percent",
+          "length": 0,
+          "name": "ApplUnitPriceUpliftPct",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 5,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "percent",
           "updateable": false
         },
         "AvailableQuantity": {
@@ -43554,6 +44559,7 @@
           "nillable": true,
           "picklistValues": [
             "MilestonePlan",
+            "Weekly",
             "Monthly",
             "Quarterly",
             "Semi-Annual",
@@ -43579,6 +44585,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
+          "updateable": true
+        },
+        "BillingTerm": {
+          "createable": true,
+          "custom": false,
+          "label": "Billing Term",
+          "length": 0,
+          "name": "BillingTerm",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
           "updateable": true
         },
         "BillingTreatmentId": {
@@ -44707,6 +45728,24 @@
           "type": "reference",
           "updateable": false
         },
+        "PricingSource": {
+          "createable": false,
+          "custom": false,
+          "label": "Pricing Source",
+          "length": 40,
+          "name": "PricingSource",
+          "nillable": true,
+          "picklistValues": [
+            "PriceBookListPrice",
+            "LastTransaction"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": false
+        },
         "PricingTermCount": {
           "createable": true,
           "custom": false,
@@ -44836,6 +45875,24 @@
           "scale": 0,
           "type": "string",
           "updateable": true
+        },
+        "RampUpliftType": {
+          "createable": false,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 40,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": false
         },
         "RelatedChangeIdentifier": {
           "createable": true,
@@ -45421,7 +46478,7 @@
           "createable": true,
           "custom": false,
           "label": "Value",
-          "length": 150,
+          "length": 255,
           "name": "AttributeValue",
           "nillable": true,
           "picklistValues": [],
@@ -45736,7 +46793,7 @@
     "OrderItemGroup": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 23,
+      "fieldCount": 24,
       "fields": {
         "CurrencyIsoCode": {
           "createable": false,
@@ -45913,6 +46970,24 @@
           "relationshipName": "ParentOrderItemGroup",
           "scale": 0,
           "type": "reference",
+          "updateable": true
+        },
+        "RampUpliftType": {
+          "createable": true,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 255,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
           "updateable": true
         },
         "SegmentType": {
@@ -48238,7 +49313,7 @@
     "PaymentLineInvoiceLine": {
       "createable": true,
       "deletable": false,
-      "fieldCount": 19,
+      "fieldCount": 21,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -48402,6 +49477,23 @@
           "type": "reference",
           "updateable": false
         },
+        "InvoiceLineTaxId": {
+          "createable": false,
+          "custom": false,
+          "label": "Invoice Line Tax ID",
+          "length": 18,
+          "name": "InvoiceLineTaxId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "InvoiceLineTax"
+          ],
+          "relationshipName": "InvoiceLineTax",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
+        },
         "LegalEntityAccountingPeriodId": {
           "createable": true,
           "custom": false,
@@ -48498,6 +49590,25 @@
           "relationshipName": "RelatedPaymentLineInvcLine",
           "scale": 0,
           "type": "reference",
+          "updateable": false
+        },
+        "SettlementType": {
+          "createable": false,
+          "custom": false,
+          "label": "Settlement Type",
+          "length": 255,
+          "name": "SettlementType",
+          "nillable": true,
+          "picklistValues": [
+            "Charge",
+            "Tax",
+            "Balance"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
           "updateable": false
         },
         "Type": {
@@ -50539,7 +51650,7 @@
     "PriceAdjustmentSchedule": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 11,
+      "fieldCount": 12,
       "fields": {
         "AdjustmentMethod": {
           "createable": true,
@@ -50642,6 +51753,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "datetime",
+          "updateable": true
+        },
+        "GlobalKey": {
+          "createable": true,
+          "custom": false,
+          "label": "Global Key",
+          "length": 80,
+          "name": "GlobalKey",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
           "updateable": true
         },
         "IsActive": {
@@ -50887,6 +52013,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -51029,7 +52156,7 @@
     "PriceBook2": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 9,
+      "fieldCount": 10,
       "fields": {
         "CostBookId": {
           "createable": true,
@@ -51077,6 +52204,21 @@
           "label": "Description",
           "length": 255,
           "name": "Description",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
+        "GlobalKey": {
+          "createable": true,
+          "custom": false,
+          "label": "Global Key",
+          "length": 80,
+          "name": "GlobalKey",
           "nillable": true,
           "picklistValues": [],
           "precision": 0,
@@ -52882,7 +54024,7 @@
     "Product2": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 32,
+      "fieldCount": 33,
       "fields": {
         "AvailabilityDate": {
           "createable": true,
@@ -53364,7 +54506,7 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
-          "updateable": false
+          "updateable": true
         },
         "UnitOfMeasureId": {
           "createable": true,
@@ -53382,6 +54524,21 @@
           "scale": 0,
           "type": "reference",
           "updateable": false
+        },
+        "UniversalProductCode": {
+          "createable": true,
+          "custom": false,
+          "label": "Universal Product Code",
+          "length": 50,
+          "name": "UniversalProductCode",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
         },
         "UsageModelType": {
           "createable": true,
@@ -53431,7 +54588,7 @@
     "ProductAttributeDefinition": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 27,
+      "fieldCount": 28,
       "fields": {
         "AttributeCategoryId": {
           "createable": true,
@@ -53480,6 +54637,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
+          "updateable": true
+        },
+        "CategorySequence": {
+          "createable": true,
+          "custom": false,
+          "label": "Category Sequence",
+          "length": 0,
+          "name": "CategorySequence",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
           "updateable": true
         },
         "CurrencyIsoCode": {
@@ -54732,7 +55904,7 @@
     "ProductClassificationAttr": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 25,
+      "fieldCount": 26,
       "fields": {
         "AttributeCategoryId": {
           "createable": true,
@@ -54781,6 +55953,21 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
+          "updateable": true
+        },
+        "CategorySequence": {
+          "createable": true,
+          "custom": false,
+          "label": "Category Sequence",
+          "length": 0,
+          "name": "CategorySequence",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
           "updateable": true
         },
         "CurrencyIsoCode": {
@@ -55597,7 +56784,7 @@
     "ProductConfigurationFlow": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 12,
+      "fieldCount": 13,
       "fields": {
         "AnchorObject": {
           "createable": true,
@@ -55698,6 +56885,21 @@
           "label": "Default",
           "length": 0,
           "name": "IsDefault",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
+          "updateable": true
+        },
+        "IsRequestDetailEditable": {
+          "createable": true,
+          "custom": false,
+          "label": "Request Detail Editable",
+          "length": 0,
+          "name": "IsRequestDetailEditable",
           "nillable": false,
           "picklistValues": [],
           "precision": 0,
@@ -56988,7 +58190,8 @@
           "picklistValues": [
             "IntegrationOrchestrator",
             "Fulfillment",
-            "Generic"
+            "Generic",
+            "Billing"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -57946,7 +59149,7 @@
     "ProductRelationshipType": {
       "createable": true,
       "deletable": false,
-      "fieldCount": 3,
+      "fieldCount": 4,
       "fields": {
         "AssociatedProductRoleCat": {
           "createable": true,
@@ -57968,6 +59171,21 @@
           "scale": 0,
           "type": "picklist",
           "updateable": false
+        },
+        "GlobalKey": {
+          "createable": true,
+          "custom": false,
+          "label": "Global Key",
+          "length": 80,
+          "name": "GlobalKey",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
         },
         "MainProductRoleCat": {
           "createable": true,
@@ -58072,6 +59290,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -58222,7 +59441,7 @@
     "ProductUsageGrant": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 22,
+      "fieldCount": 21,
       "fields": {
         "DrawdownOrder": {
           "createable": true,
@@ -58286,24 +59505,6 @@
           "relationshipName": null,
           "scale": 0,
           "type": "string",
-          "updateable": true
-        },
-        "OverageChargeable": {
-          "createable": true,
-          "custom": false,
-          "label": "Overage Chargeable",
-          "length": 255,
-          "name": "OverageChargeable",
-          "nillable": true,
-          "picklistValues": [
-            "Yes",
-            "No"
-          ],
-          "precision": 0,
-          "referenceTo": [],
-          "relationshipName": null,
-          "scale": 0,
-          "type": "picklist",
           "updateable": true
         },
         "OwnerId": {
@@ -59455,7 +60656,7 @@
     "Quote": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 86,
+      "fieldCount": 87,
       "fields": {
         "AccountId": {
           "createable": false,
@@ -59900,7 +61101,13 @@
             "ImportQLIFailed",
             "ContextHydrationInProgress",
             "PstBaseStepFailed",
-            "PartialSaveSuccess"
+            "PartialSaveSuccess",
+            "QueuedForARC",
+            "ARCInProgress",
+            "ARCStepFailed",
+            "QueuedForClone",
+            "CloneInProgress",
+            "CloneFailed"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -60069,6 +61276,21 @@
           "relationshipName": null,
           "scale": 2,
           "type": "currency",
+          "updateable": false
+        },
+        "IsLargeDeal": {
+          "createable": false,
+          "custom": false,
+          "label": "Large Deal",
+          "length": 0,
+          "name": "IsLargeDeal",
+          "nillable": false,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "boolean",
           "updateable": false
         },
         "IsSyncing": {
@@ -61279,7 +62501,7 @@
     "QuoteLineGroup": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 23,
+      "fieldCount": 24,
       "fields": {
         "CurrencyIsoCode": {
           "createable": false,
@@ -61457,6 +62679,24 @@
           "scale": 0,
           "type": "reference",
           "updateable": false
+        },
+        "RampUpliftType": {
+          "createable": true,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 255,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": true
         },
         "SegmentType": {
           "createable": true,
@@ -61659,7 +62899,7 @@
     "QuoteLineItem": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 84,
+      "fieldCount": 88,
       "fields": {
         "AggregatedQuantity": {
           "createable": false,
@@ -61674,6 +62914,21 @@
           "relationshipName": null,
           "scale": 2,
           "type": "double",
+          "updateable": false
+        },
+        "ApplUnitPriceUpliftPct": {
+          "createable": false,
+          "custom": false,
+          "label": "Applied Unit Price Uplift Percent",
+          "length": 0,
+          "name": "ApplUnitPriceUpliftPct",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 5,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 2,
+          "type": "percent",
           "updateable": false
         },
         "BatchIdentifier": {
@@ -61700,6 +62955,7 @@
           "nillable": true,
           "picklistValues": [
             "MilestonePlan",
+            "Weekly",
             "Monthly",
             "Quarterly",
             "Semi-Annual",
@@ -61726,6 +62982,21 @@
           "scale": 0,
           "type": "string",
           "updateable": false
+        },
+        "BillingTerm": {
+          "createable": true,
+          "custom": false,
+          "label": "Billing Term",
+          "length": 0,
+          "name": "BillingTerm",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "int",
+          "updateable": true
         },
         "BillingTreatmentId": {
           "createable": true,
@@ -62253,6 +63524,24 @@
           "type": "reference",
           "updateable": true
         },
+        "PricingSource": {
+          "createable": false,
+          "custom": false,
+          "label": "Pricing Source",
+          "length": 255,
+          "name": "PricingSource",
+          "nillable": true,
+          "picklistValues": [
+            "PriceBookListPrice",
+            "LastTransaction"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": false
+        },
         "PricingTerm": {
           "createable": false,
           "custom": false,
@@ -62294,6 +63583,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -62500,6 +63790,24 @@
           "scale": 0,
           "type": "string",
           "updateable": true
+        },
+        "RampUpliftType": {
+          "createable": false,
+          "custom": false,
+          "label": "Ramp Uplift Type",
+          "length": 255,
+          "name": "RampUpliftType",
+          "nillable": true,
+          "picklistValues": [
+            "Standard",
+            "Compound"
+          ],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": false
         },
         "RecipientScaledQuantity": {
           "createable": false,
@@ -63192,6 +64500,7 @@
             "Months",
             "Quarterly",
             "Semi-Annual",
+            "Weekly",
             "Annual"
           ],
           "precision": 0,
@@ -64815,7 +66124,7 @@
     "RatingFrequencyPolicy": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 7,
+      "fieldCount": 5,
       "fields": {
         "Name": {
           "createable": true,
@@ -64846,23 +66155,6 @@
             "User"
           ],
           "relationshipName": "Owner",
-          "scale": 0,
-          "type": "reference",
-          "updateable": true
-        },
-        "ProductId": {
-          "createable": true,
-          "custom": false,
-          "label": "Product ID",
-          "length": 18,
-          "name": "ProductId",
-          "nillable": true,
-          "picklistValues": [],
-          "precision": 0,
-          "referenceTo": [
-            "Product2"
-          ],
-          "relationshipName": "Product",
           "scale": 0,
           "type": "reference",
           "updateable": true
@@ -64916,23 +66208,6 @@
           "relationshipName": null,
           "scale": 0,
           "type": "picklist",
-          "updateable": true
-        },
-        "UsageResourceId": {
-          "createable": true,
-          "custom": false,
-          "label": "Usage Resource ID",
-          "length": 18,
-          "name": "UsageResourceId",
-          "nillable": true,
-          "picklistValues": [],
-          "precision": 0,
-          "referenceTo": [
-            "UsageResource"
-          ],
-          "relationshipName": "UsageResource",
-          "scale": 0,
-          "type": "reference",
           "updateable": true
         }
       },
@@ -65165,7 +66440,7 @@
     "Refund": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 47,
+      "fieldCount": 49,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -65811,6 +67086,38 @@
           "type": "picklist",
           "updateable": false
         },
+        "ReasonCode": {
+          "createable": false,
+          "custom": false,
+          "label": "Reason Code",
+          "length": 40,
+          "name": "ReasonCode",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "picklist",
+          "updateable": false
+        },
+        "ReferenceRecordId": {
+          "createable": false,
+          "custom": false,
+          "label": "Reference Record ID",
+          "length": 18,
+          "name": "ReferenceRecordId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "CreditMemo"
+          ],
+          "relationshipName": "ReferenceRecord",
+          "scale": 0,
+          "type": "reference",
+          "updateable": false
+        },
         "RefundNumber": {
           "createable": false,
           "custom": false,
@@ -66350,6 +67657,8 @@
             "CreditTaxIntegrationAPI",
             "ApplyAPI",
             "Core Invoice Generation Failure",
+            "CatchupProcessedFailed",
+            "ForecastBatchRun",
             "ConvertNegativeInvoiceLineToCredit",
             "PaymentScheduleGeneration",
             "MaterialLineGeneration",
@@ -66390,7 +67699,12 @@
             "Bulk Currency Conversion",
             "LoadSalesRecipientData",
             "SetupEnergyAgreement",
-            "ProcessAutoQuote"
+            "ProcessAutoQuote",
+            "ComputeRecipientPrices",
+            "ExternalPricingBulk",
+            "QuoteToOpportunitySync",
+            "PstARCStepFailure",
+            "EUSubmitOrderEnrollment"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -67478,7 +68792,7 @@
           "createable": false,
           "custom": false,
           "label": "Prefix",
-          "length": 40,
+          "length": 255,
           "name": "Prefix",
           "nillable": true,
           "picklistValues": [],
@@ -67526,7 +68840,7 @@
           "createable": true,
           "custom": false,
           "label": "Sequence Pattern",
-          "length": 40,
+          "length": 255,
           "name": "SequencePattern",
           "nillable": false,
           "picklistValues": [],
@@ -67556,7 +68870,7 @@
           "createable": false,
           "custom": false,
           "label": "Suffix",
-          "length": 40,
+          "length": 255,
           "name": "Suffix",
           "nillable": true,
           "picklistValues": [],
@@ -68034,8 +69348,40 @@
     "TaxEngine": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 19,
+      "fieldCount": 21,
       "fields": {
+        "CustomMetadataTypeApiName": {
+          "createable": true,
+          "custom": false,
+          "label": "Custom Metadata Type API Name",
+          "length": 255,
+          "name": "CustomMetadataTypeApiName",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [],
+          "relationshipName": null,
+          "scale": 0,
+          "type": "string",
+          "updateable": true
+        },
+        "DecisionTableId": {
+          "createable": true,
+          "custom": false,
+          "label": "Decision Table ID",
+          "length": 18,
+          "name": "DecisionTableId",
+          "nillable": true,
+          "picklistValues": [],
+          "precision": 0,
+          "referenceTo": [
+            "DecisionTable"
+          ],
+          "relationshipName": "DecisionTable",
+          "scale": 0,
+          "type": "reference",
+          "updateable": true
+        },
         "Description": {
           "createable": true,
           "custom": false,
@@ -68501,6 +69847,7 @@
             "image/jpeg;type=mobile",
             "application/javascript",
             "application/json",
+            "application/yaml",
             "audio/mpeg",
             "video/mpeg",
             "video/quicktime",
@@ -68568,7 +69915,10 @@
             "audio/x-caf",
             "video/3gpp",
             "video/3gpp2",
-            "text/vcard"
+            "text/vcard",
+            "font/ttf",
+            "font/woff",
+            "font/woff2"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -68678,6 +70028,7 @@
             "image/jpeg;type=mobile",
             "application/javascript",
             "application/json",
+            "application/yaml",
             "audio/mpeg",
             "video/mpeg",
             "video/quicktime",
@@ -68745,7 +70096,10 @@
             "audio/x-caf",
             "video/3gpp",
             "video/3gpp2",
-            "text/vcard"
+            "text/vcard",
+            "font/ttf",
+            "font/woff",
+            "font/woff2"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -70007,7 +71361,9 @@
             "CreditMemoLineInvoiceLine",
             "RefundLinePayment",
             "DebitMemoLine",
-            "DebitMemoLineTax"
+            "DebitMemoLineTax",
+            "CreditMemoRefund",
+            "CreditMemoLineRefund"
           ],
           "precision": 0,
           "referenceTo": [],
@@ -70288,7 +71644,7 @@
     "TransactionUsageEntitlement": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 31,
+      "fieldCount": 27,
       "fields": {
         "AccountId": {
           "createable": true,
@@ -70343,43 +71699,6 @@
           "relationshipName": "Asset",
           "scale": 0,
           "type": "reference",
-          "updateable": true
-        },
-        "ChargeForOverage": {
-          "createable": true,
-          "custom": false,
-          "label": "Charge For Overage",
-          "length": 255,
-          "name": "ChargeForOverage",
-          "nillable": true,
-          "picklistValues": [
-            "Yes",
-            "No"
-          ],
-          "precision": 0,
-          "referenceTo": [],
-          "relationshipName": null,
-          "scale": 0,
-          "type": "picklist",
-          "updateable": true
-        },
-        "DrawdownOrder": {
-          "createable": true,
-          "custom": false,
-          "label": "Drawdown Order",
-          "length": 255,
-          "name": "DrawdownOrder",
-          "nillable": true,
-          "picklistValues": [
-            "ExpiringFirst",
-            "GrantedFirst",
-            "GrantedLast"
-          ],
-          "precision": 0,
-          "referenceTo": [],
-          "relationshipName": null,
-          "scale": 0,
-          "type": "picklist",
           "updateable": true
         },
         "EffectiveEndDateTime": {
@@ -70647,23 +71966,6 @@
           "type": "reference",
           "updateable": false
         },
-        "RatingFrequencyPolicyId": {
-          "createable": true,
-          "custom": false,
-          "label": "Rating Frequency Policy ID",
-          "length": 18,
-          "name": "RatingFrequencyPolicyId",
-          "nillable": true,
-          "picklistValues": [],
-          "precision": 0,
-          "referenceTo": [
-            "RatingFrequencyPolicy"
-          ],
-          "relationshipName": "RatingFrequencyPolicy",
-          "scale": 0,
-          "type": "reference",
-          "updateable": true
-        },
         "TokenResourceId": {
           "createable": true,
           "custom": false,
@@ -70695,23 +71997,6 @@
           "scale": 6,
           "type": "double",
           "updateable": true
-        },
-        "UsageAggregationPolicyId": {
-          "createable": false,
-          "custom": false,
-          "label": "Usage Aggregation Policy ID",
-          "length": 18,
-          "name": "UsageAggregationPolicyId",
-          "nillable": true,
-          "picklistValues": [],
-          "precision": 0,
-          "referenceTo": [
-            "UsageResourceBillingPolicy"
-          ],
-          "relationshipName": "UsageAggregationPolicy",
-          "scale": 0,
-          "type": "reference",
-          "updateable": false
         },
         "UsageGrantRefreshPolicyId": {
           "createable": true,
@@ -73253,7 +74538,7 @@
     "UsageResource": {
       "createable": true,
       "deletable": true,
-      "fieldCount": 11,
+      "fieldCount": 10,
       "fields": {
         "Category": {
           "createable": true,
@@ -73420,23 +74705,6 @@
             "Product2"
           ],
           "relationshipName": "UsageDefinitionProduct",
-          "scale": 0,
-          "type": "reference",
-          "updateable": true
-        },
-        "UsageResourceBillingPolicyId": {
-          "createable": true,
-          "custom": false,
-          "label": "Usage Aggregation Policy ID",
-          "length": 18,
-          "name": "UsageResourceBillingPolicyId",
-          "nillable": true,
-          "picklistValues": [],
-          "precision": 0,
-          "referenceTo": [
-            "UsageResourceBillingPolicy"
-          ],
-          "relationshipName": "UsageResourceBillingPolicy",
           "scale": 0,
           "type": "reference",
           "updateable": true
