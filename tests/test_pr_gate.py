@@ -540,6 +540,13 @@ if os.path.exists(workflow):
     def invocations(script, args_required=()):
         return [ln for ln in run_contents(wf) if executes(ln, script, args_required)]
 
+    # `exit`/`return` do not mask a status, they end the shell: every command after one, on that
+    # line or any later line of the step, is unreachable.
+    TERMINATOR = ("exit", "return")
+
+    def opens(seg):
+        return seg.split()[:1]
+
     def foreground(ln, script, args_required=()):
         """Whether the command *runs*, which is a different question from whether its status
         escapes. `true || python …check_branch_scope.py "$@"` satisfies `executes()` — the segment is
@@ -547,9 +554,15 @@ if os.path.exists(workflow):
         command and the status captured is 0, so a FOREIGN or STACKED branch goes green. What makes a
         segment skippable is a *conditional* predecessor (`&&`/`||`); `;` does not, which is why the
         cleanup idiom `rm -f gate.log || true; python …` remains acceptable.
+
+        A predecessor that *ends the shell* is the other way a permitted, unmasked command never
+        runs, and the separator is irrelevant to it: `exit 0; python …pr_gate.py ${SEL}` is one
+        segment that leaves nothing to run, so scanning stops there rather than continuing.
         """
         pieces = re.split(r"(&&|\|\||;|\||&)", ln)
         for i in range(0, len(pieces), 2):
+            if opens(pieces[i]) and opens(pieces[i])[0] in TERMINATOR:
+                return False
             if (pieces[i - 1].strip() if i else "") in ("&&", "||"):
                 continue
             if runs_segment(pieces[i], "".join(pieces[i + 1:]), script, args_required):
@@ -645,9 +658,26 @@ if os.path.exists(workflow):
     def steps_named(job, script, exclude=()):
         return [s for s in (job.get("steps") or []) if step_runs(s, script, exclude)]
 
-    def shell_of(step):
-        return [ln.strip() for ln
+    def raw_shell_of(step):
+        return [ln for ln
                 in run_contents("        run: |\n" + str(step.get("run", ""))) if ln.strip()]
+
+    def shell_of(step):
+        return [ln.strip() for ln in raw_shell_of(step)]
+
+    def escapes_early(step):
+        """Commands at the step's own indentation that end the shell. Reachability is a property of
+        the whole step, not of one line: an `exit 0` on a line of its own leaves every per-line
+        assertion about the checker below it — invoked, exit code captured, fork branch guarded,
+        `--no-fetch` supplied — satisfied and unreached. Nesting is what makes an exit conditional,
+        so the real `exit 2` inside the retry loop's `if` and the single-line `if …; then exit …; fi`
+        (which opens with `if`) are both accepted; one at the top level is not.
+        """
+        raw = raw_shell_of(step)
+        base = min((len(ln) - len(ln.lstrip()) for ln in raw), default=0)
+        return [ln.strip() for ln in raw
+                if len(ln) - len(ln.lstrip()) == base
+                and opens(ln.strip()) and opens(ln.strip())[0] in TERMINATOR]
 
     def pure_echo(ln):
         """One segment, and that segment is an echo. `startswith("echo ")` was a *prefix* test, so
@@ -678,6 +708,8 @@ if os.path.exists(workflow):
               len(runs_gate) == 1, cmds)
         check("every other command is a bare echo, which cannot swallow the verdict",
               all(pure_echo(ln) for ln in cmds[1:] if ln not in runs_gate), cmds)
+        check("nothing in the gate step ends the shell before the gate runs",
+              not escapes_early(gate_step), escapes_early(gate_step))
     # Selection is the other way to make a passing gate meaningless: `--base HEAD` is an empty diff,
     # and an empty diff selects nothing and exits 0. So SEL may only be built two ways.
     # Both the assignments *and* the export: the gate runs in a different step and receives the
@@ -749,6 +781,8 @@ if os.path.exists(workflow):
                     or foreground(ln, "check_branch_scope.py", ["--no-fetch"])]
         check("the checker does not fetch, since checkout already did so authenticated",
               no_fetch, seq)
+        check("nothing in the branch-scope step ends the shell before the checker runs",
+              not escapes_early(scope_step), escapes_early(scope_step))
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
     # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
@@ -879,6 +913,39 @@ if os.path.exists(workflow):
     check("the foreground rule still accepts a cleanup before the real command, which `;` cannot skip",
           foreground("rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
                      "scripts/ai/pr_gate.py"))
+    # Unreachable, not merely skippable: a predecessor that ends the shell needs no conditional to
+    # make what follows it dead, so `;` — the separator the rule above deliberately accepts — is
+    # exactly the one this shape uses.
+    for label, ln in (("a gate behind a successful exit",
+                       "exit 0; python scripts/ai/pr_gate.py ${SEL}"),
+                      ("a checker behind a successful exit",
+                       'exit 0; python scripts/ai/check_branch_scope.py "$@"'),
+                      ("a gate behind a return",
+                       "return 0; python scripts/ai/pr_gate.py ${SEL}")):
+        script = ("scripts/ai/pr_gate.py" if "pr_gate" in ln
+                  else "scripts/ai/check_branch_scope.py")
+        check(f"the foreground rule rejects {label}", not foreground(ln, script))
+        check(f"and the skippable-command rule could not see {label}", executes(ln, script))
+    check("a handler that re-raises still reads as running, since the invocation precedes its exit",
+          foreground('python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }',
+                     "scripts/ai/pr_gate.py"))
+    # Controls for the step-scoped form of the same property. The real steps must pass it; a step
+    # with a top-level `exit 0` must not; and nesting must still be read as conditional, or the rule
+    # would reject the retry loop's own `exit 2`.
+    def as_step(*shell):
+        """A step whose `run` carries the indentation a block scalar has in the file, since that is
+        what tells a nested line from a top-level one."""
+        return {"run": "\n".join(" " * 10 + ln for ln in shell)}
+
+    check("the step-reachability rule rejects an early exit on its own line",
+          escapes_early(as_step("set -euo pipefail", "exit 0",
+                               "python scripts/ai/pr_gate.py ${SEL}")))
+    check("that rule accepts an exit nested in a block, which is conditional on it",
+          not escapes_early({"run": "\n".join((" " * 10 + 'if [ "$x" = 1 ]; then',
+                                              " " * 12 + "exit 2",
+                                              " " * 10 + "fi"))}))
+    check("that rule accepts a single-line guarded exit, which opens with `if`",
+          not escapes_early(as_step('if [ "$c" -ne 2 ]; then exit "$c"; fi')))
     check("masking is judged on what follows the command, not the whole line, so a cleanup "
           "before the real call is still accepted",
           executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
@@ -1603,7 +1670,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 223
+EXPECTED = 235
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
