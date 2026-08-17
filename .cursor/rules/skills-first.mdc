@@ -1,0 +1,58 @@
+---
+description: Consult the skill index before building tooling — including work inside nested or external repos cloned under this workspace
+alwaysApply: true
+---
+
+# Check the Skill Index First — Including in Nested/External Repos
+
+Before designing an approach or building tooling for a task, consult the skill
+index in `AGENTS.md` and read the relevant `.cursor/skills/**/SKILL.md`. Skills
+are plain markdown and encode live-verified platform behavior that is expensive
+to rediscover.
+
+## The failure mode this guards against
+
+The skill index is always applied, so the usual way it gets missed is **not**
+that an agent never saw it — it's that the work happened somewhere that felt
+out of scope:
+
+- A **nested clone of another repository** under this workspace (for example a
+  third-party toolkit cloned in to be run against an org).
+- A task framed around an **external tool**, a vendor repo, or a one-off script.
+- A request phrased as *"deploy/run this repo"*, which reads as plumbing rather
+  than as Revenue Cloud work.
+
+None of those put the task outside the skills' scope. If the work touches
+Revenue Cloud behavior — PST, quotes, orders, activation, pricing, bundles and
+constraint models, assets, usage, invoicing, context, or the data model — the
+skills apply regardless of which directory the code lives in.
+
+## Rule
+
+1. **Check before building.** When a task involves generating, converting, or
+   activating Revenue Cloud transaction data, read
+   `.cursor/skills/txn-data-harness/SKILL.md` (and, for backdated
+   Quote→Order→Asset chains, `usage-consumption/building-usage-assets.md`)
+   before writing new code. Overlapping tooling already exists.
+2. **Say so when there is overlap.** If an existing skill or script covers what
+   is being built, tell the user — even when they asked for a different tool.
+   They may still choose the other tool; that is their call to make with the
+   information, not a reason to withhold it.
+3. **Reuse the hard-won contracts.** Skills document which endpoints are gone in
+   the current API version, which fields are not writable, and which operations
+   are blocked by platform validation. Prefer reading them over rediscovering
+   the same walls empirically.
+
+## Example
+
+```
+# ❌ BAD — treats a nested clone as a separate world
+"The user asked me to run <vendor>/some-toolkit against the org, so I'll work
+ entirely inside that directory and build the order-generation logic from
+ scratch."
+
+# ✅ GOOD
+"This generates Revenue Cloud transaction data, so txn-data-harness is prior
+ art even though the user asked for the vendor toolkit. Reading it first, and
+ flagging the overlap."
+```

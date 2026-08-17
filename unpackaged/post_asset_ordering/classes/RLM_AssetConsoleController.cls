@@ -24,11 +24,15 @@ public with sharing class RLM_AssetConsoleController {
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
         @AuraEnabled public Integer totalAssetCount;
+        // Number of accounts the assets were read from (1 unless the hierarchy
+        // is included - then the whole account tree the primary account belongs to).
+        @AuraEnabled public Integer accountCount;
         @AuraEnabled public List<ContractGroupView> groups;
 
         public ConsoleData() {
             groups = new List<ContractGroupView>();
             totalAssetCount = 0;
+            accountCount = 1;
         }
     }
 
@@ -48,6 +52,9 @@ public with sharing class RLM_AssetConsoleController {
     public class AssetRow {
         @AuraEnabled public Id id;
         @AuraEnabled public String name;
+        @AuraEnabled public Id accountId;      // owning account (may differ from the primary in a hierarchy)
+        @AuraEnabled public String accountName;
+        @AuraEnabled public String serialNumber;
         @AuraEnabled public String productName;
         @AuraEnabled public String productCode;
         @AuraEnabled public Decimal quantity;
@@ -60,7 +67,11 @@ public with sharing class RLM_AssetConsoleController {
         @AuraEnabled public Id rootAssetId;
         @AuraEnabled public Id parentId;
         @AuraEnabled public Boolean hasLifecycleManagement;
-        @AuraEnabled public String assetStatus; // RLM_Asset_Status__c (Active/Suspended)
+        @AuraEnabled public String assetStatus; // RLM_Asset_Status__c (Active/Suspended/BillingHeld)
+        @AuraEnabled public Boolean billingHeld; // true when assetStatus == BillingHeld
+        @AuraEnabled public String billingStartDate; // RLM_Billing_Start_Date__c (ISO) or null
+        @AuraEnabled public Integer serialUnitCount; // native SerializedProduct records for this asset
+        @AuraEnabled public String serialUnitSummary; // e.g. "SN1 (Sent), SN2 (Sent)"
         @AuraEnabled public Boolean canAmend;
         @AuraEnabled public Boolean canRenew;
         @AuraEnabled public Boolean canCancel;
@@ -71,33 +82,59 @@ public with sharing class RLM_AssetConsoleController {
     // Read
     // ------------------------------------------------------------------
     @AuraEnabled(cacheable=true)
-    public static ConsoleData getConsole(Id recordId, String objectApiName) {
+    public static ConsoleData getConsole(Id recordId, String objectApiName, Boolean includeHierarchy) {
         ConsoleData data = new ConsoleData();
         if (recordId == null) return data;
 
-        Id accountId = resolveAccountId(Id.valueOf(recordId), objectApiName);
-        if (accountId == null) return data;
-        data.accountId = accountId;
+        Id primaryAccountId = resolveAccountId(Id.valueOf(recordId), objectApiName);
+        if (primaryAccountId == null) return data;
+        data.accountId = primaryAccountId;
 
-        List<Account> accts = [
-            SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1
-        ];
-        if (!accts.isEmpty()) data.accountName = accts[0].Name;
+        // Read from just the primary account, or - when the hierarchy is
+        // requested - from every account in the tree the primary belongs to.
+        Set<Id> accountIds = (includeHierarchy == true)
+            ? collectHierarchyAccountIds(primaryAccountId)
+            : new Set<Id>{ primaryAccountId };
+        data.accountCount = accountIds.size();
+
+        Map<Id, Account> acctById = new Map<Id, Account>([
+            SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE
+        ]);
+        if (acctById.containsKey(primaryAccountId)) {
+            data.accountName = acctById.get(primaryAccountId).Name;
+        }
 
         List<Asset> assets = [
-            SELECT Id, Name, Product2.Name, Product2.ProductCode, Quantity,
-                   CurrentQuantity, CurrentMrr, CurrentAmount, Status, StatusReason,
+            SELECT Id, Name, AccountId, Account.Name, SerialNumber, Product2.Name, Product2.ProductCode,
+                   Quantity, CurrentQuantity, CurrentMrr, CurrentAmount, Status, StatusReason,
                    LifecycleEndDate, RootAssetId, ParentId, HasLifecycleManagement,
-                   RLM_Asset_Status__c
+                   RLM_Asset_Status__c, RLM_Billing_Start_Date__c
             FROM Asset
-            WHERE AccountId = :accountId
+            WHERE AccountId IN :accountIds
             WITH USER_MODE
-            ORDER BY Name
+            ORDER BY Account.Name, Name
         ];
         data.totalAssetCount = assets.size();
         if (assets.isEmpty()) return data;
 
         Set<Id> assetIds = (new Map<Id, Asset>(assets)).keySet();
+
+        // Native serialized-product units mapped to each asset. Linked via the
+        // custom RLM_Asset__c lookup, not the standard AssetId (which cannot be set
+        // in this edition - see RLM_ShipmentFulfillmentService).
+        Map<Id, List<SerializedProduct>> serialsByAsset = new Map<Id, List<SerializedProduct>>();
+        for (SerializedProduct sp : [
+            SELECT Id, RLM_Asset__c, SerialNumber, Status
+            FROM SerializedProduct
+            WHERE RLM_Asset__c IN :assetIds
+            WITH USER_MODE
+            ORDER BY SerialNumber
+        ]) {
+            if (!serialsByAsset.containsKey(sp.RLM_Asset__c)) {
+                serialsByAsset.put(sp.RLM_Asset__c, new List<SerializedProduct>());
+            }
+            serialsByAsset.get(sp.RLM_Asset__c).add(sp);
+        }
 
         // asset -> owning (active) contract
         Map<Id, AssetContractRelationship> assetToRel = new Map<Id, AssetContractRelationship>();
@@ -133,17 +170,20 @@ public with sharing class RLM_AssetConsoleController {
                 }
                 groupByKey.put(key, grp);
             }
-            grp.assets.add(toRow(a));
+            grp.assets.add(toRow(a, serialsByAsset.get(a.Id)));
             grp.assetCount = grp.assets.size();
         }
         data.groups = groupByKey.values();
         return data;
     }
 
-    private static AssetRow toRow(Asset a) {
+    private static AssetRow toRow(Asset a, List<SerializedProduct> serials) {
         AssetRow r = new AssetRow();
         r.id = a.Id;
         r.name = a.Name;
+        r.accountId = a.AccountId;
+        r.accountName = (a.Account != null) ? a.Account.Name : null;
+        r.serialNumber = a.SerialNumber;
         r.productName = (a.Product2 != null) ? a.Product2.Name : null;
         r.productCode = (a.Product2 != null) ? a.Product2.ProductCode : null;
         r.quantity = a.Quantity;
@@ -156,6 +196,21 @@ public with sharing class RLM_AssetConsoleController {
         r.parentId = a.ParentId;
         r.hasLifecycleManagement = a.HasLifecycleManagement;
         r.assetStatus = a.RLM_Asset_Status__c;
+        r.billingHeld = (a.RLM_Asset_Status__c == 'BillingHeld');
+        r.billingStartDate = (a.RLM_Billing_Start_Date__c == null)
+            ? null
+            : a.RLM_Billing_Start_Date__c.year() + '-'
+              + leftPad(a.RLM_Billing_Start_Date__c.month()) + '-'
+              + leftPad(a.RLM_Billing_Start_Date__c.day());
+        Integer spCount = (serials == null) ? 0 : serials.size();
+        r.serialUnitCount = spCount;
+        if (spCount > 0) {
+            List<String> parts = new List<String>();
+            for (SerializedProduct sp : serials) {
+                parts.add(sp.SerialNumber + ' (' + sp.Status + ')');
+            }
+            r.serialUnitSummary = String.join(parts, ', ');
+        }
         r.lifecycleEndDate = (a.LifecycleEndDate == null)
             ? null
             : a.LifecycleEndDate.date().year() + '-'
@@ -207,6 +262,54 @@ public with sharing class RLM_AssetConsoleController {
         return null;
     }
 
+    // Depth caps keep the traversal governor-safe (one SOQL per level). Real
+    // Salesforce account hierarchies are far shallower than this.
+    private static final Integer MAX_HIERARCHY_LEVELS = 20;
+
+    /**
+     * Collect every account in the hierarchy the given account belongs to:
+     * walk up ParentId to the root, then breadth-first down to gather all
+     * descendants (the full tree, not just the start account's own branch).
+     */
+    private static Set<Id> collectHierarchyAccountIds(Id startAccountId) {
+        Set<Id> all = new Set<Id>{ startAccountId };
+
+        // Up: find the root of the tree.
+        Id root = startAccountId;
+        Id cursor = startAccountId;
+        Integer up = 0;
+        while (cursor != null && up < MAX_HIERARCHY_LEVELS) {
+            up++;
+            List<Account> parents = [
+                SELECT ParentId FROM Account WHERE Id = :cursor WITH USER_MODE LIMIT 1
+            ];
+            if (parents.isEmpty() || parents[0].ParentId == null) {
+                root = cursor;
+                break;
+            }
+            cursor = parents[0].ParentId;
+            root = cursor;
+            all.add(cursor);
+        }
+
+        // Down: breadth-first from the root, level by level.
+        all.add(root);
+        Set<Id> frontier = new Set<Id>{ root };
+        Integer levels = 0;
+        while (!frontier.isEmpty() && levels < MAX_HIERARCHY_LEVELS) {
+            levels++;
+            List<Account> children = [
+                SELECT Id FROM Account WHERE ParentId IN :frontier WITH USER_MODE
+            ];
+            Set<Id> next = new Set<Id>();
+            for (Account c : children) {
+                if (all.add(c.Id)) next.add(c.Id); // Set.add returns true only for new ids
+            }
+            frontier = next;
+        }
+        return all;
+    }
+
     // ------------------------------------------------------------------
     // Write
     // ------------------------------------------------------------------
@@ -241,6 +344,25 @@ public with sharing class RLM_AssetConsoleController {
         Set<Id> validated = new Set<Id>();
         for (Id raw : assetIds) {
             validated.add(Id.valueOf(raw));
+        }
+
+        // A consolidated action produces ONE output record, and a Quote/Order
+        // belongs to a single account. When the hierarchy view lets a user
+        // select assets from several related accounts, stop with a clear message
+        // rather than letting the native action fail cryptically. (Assets from
+        // different contracts on the SAME account still consolidate as before.)
+        Set<Id> distinctAccounts = new Set<Id>();
+        for (Asset a : [
+            SELECT AccountId FROM Asset WHERE Id IN :validated WITH USER_MODE
+        ]) {
+            if (a.AccountId != null) distinctAccounts.add(a.AccountId);
+        }
+        if (distinctAccounts.size() > 1) {
+            throw new AuraHandledException(
+                'The selected assets belong to ' + distinctAccounts.size() +
+                ' different accounts. A consolidated action produces one output for one ' +
+                'account - select assets from a single account at a time.'
+            );
         }
 
         // Regroup selected assets by owning (active) contract.

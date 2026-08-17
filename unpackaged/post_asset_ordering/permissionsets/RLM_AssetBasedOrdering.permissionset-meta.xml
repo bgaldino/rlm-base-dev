@@ -40,6 +40,18 @@
         <apexClass>RLM_AssetSuspensionService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_ShipmentFulfillmentService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <!-- Phase 4: auto born-held gate (Asset + BillingScheduleGroup triggers).
+             Trigger DML/queries run in system mode; the billing group override is
+             engine-owned data touched only in system mode, so no BillingScheduleGroup
+             object/FLS grant is needed here. -->
+        <apexClass>RLM_AssetBillingHoldHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <pageAccesses>
         <apexPage>RLM_SessionId</apexPage>
         <enabled>true</enabled>
@@ -113,6 +125,41 @@
         <object>Product2</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
+    <objectPermissions>
+        <!-- Phase 4: canonical serialized-product records. Create/Edit for the
+             shipment-confirmation event (RLM_ShipmentFulfillmentService.confirmShipment
+             maps serials to the shipped hardware, "as user"); Read for the console
+             serial-unit column. SerializedProduct fields are non-permissionable, so
+             access is governed by these object grants (no FLS entries). -->
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>SerializedProduct</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Phase 4: selling-model classification (one-time hardware vs
+             subscription software) for the bundle-billing gate. Read only;
+             SellingModelType / Product2Id are non-permissionable (object-governed). -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>ProductSellingModelOption</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>ProductSellingModel</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
 
     <!-- FLS read for permissionable fields the console queries -->
     <fieldPermissions>
@@ -136,7 +183,14 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>false</editable>
+        <!-- Editable: confirmShipment mirrors the first serial onto the hardware. -->
+        <editable>true</editable>
+        <field>Asset.SerialNumber</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Editable: confirmShipment sets the native lifecycle Status to Shipped. -->
+        <editable>true</editable>
         <field>Asset.Status</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -166,6 +220,13 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <!-- Read for the account-hierarchy traversal (walks Account.ParentId to
+             gather related accounts when "Include related accounts" is on). -->
+        <editable>false</editable>
+        <field>Account.ParentId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>AssetContractRelationship.EndDate</field>
         <readable>true</readable>
@@ -184,6 +245,20 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Asset.RLM_Suspension_Resume_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Phase 4: shipment-gated billing start (written "as user" on the shipment event). -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Asset.RLM_Billing_Start_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Phase 4: serial-to-asset link (custom lookup; standard AssetId unusable in
+         this edition). Editable: confirmShipment sets it on insert "as user".
+         Readable: the console counts serialized units per asset by this lookup. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>SerializedProduct.RLM_Asset__c</field>
         <readable>true</readable>
     </fieldPermissions>
 

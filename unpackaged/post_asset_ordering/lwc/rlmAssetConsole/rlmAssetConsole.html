@@ -14,9 +14,31 @@
             <lightning-tabset variant="scoped">
                 <!-- ============ ASSETS + ACTIONS ============ -->
                 <lightning-tab label="Assets & Actions">
+                    <!-- Hierarchy toggle: always available so related-account assets
+                         can be pulled in even when the primary account has none. -->
+                    <div class="slds-grid slds-wrap slds-grid_vertical-align-center slds-m-bottom_small">
+                        <div class="slds-col slds-no-flex">
+                            <lightning-input
+                                type="toggle"
+                                label="Include related accounts (hierarchy)"
+                                message-toggle-active="On"
+                                message-toggle-inactive="Off"
+                                checked={includeHierarchy}
+                                onchange={handleHierarchyToggle}></lightning-input>
+                        </div>
+                        <template if:true={hierarchySummary}>
+                            <div class="slds-col slds-text-body_small slds-text-color_weak slds-m-left_small">
+                                {hierarchySummary}
+                            </div>
+                        </template>
+                    </div>
+
                     <template if:true={hasNoRows}>
                         <div class="slds-align_absolute-center slds-p-vertical_large slds-text-color_weak">
                             No lifecycle-managed assets found for this account.
+                            <template if:false={includeHierarchy}>
+                                Turn on <strong>Include related accounts</strong> to check the rest of the hierarchy.
+                            </template>
                         </div>
                     </template>
 
@@ -114,14 +136,36 @@
                             </template>
                         </template>
 
-                        <!-- Asset grid (grouped by contract via the Contract column) -->
-                        <lightning-datatable
-                            key-field="id"
-                            data={rows}
-                            columns={columns}
-                            onrowselection={handleRowSelection}
-                            resize-column-disabled>
-                        </lightning-datatable>
+                        <!-- Search: matches account, serial number, asset name, product, contract -->
+                        <div class="slds-m-bottom_small slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input
+                                type="search"
+                                label="Search assets"
+                                variant="label-hidden"
+                                placeholder="Search by account, serial number, asset, product, or contract"
+                                value={searchTerm}
+                                onchange={handleSearch}></lightning-input>
+                        </div>
+
+                        <!-- Asset tree: child bundle items nested under their parent
+                             (Asset.ParentId); Contract shown as a column. -->
+                        <template if:true={hasVisibleRows}>
+                            <lightning-tree-grid
+                                key-field="id"
+                                data={treeRows}
+                                columns={columns}
+                                expanded-rows={expandedRows}
+                                selected-rows={selectedAssetIds}
+                                onrowselection={handleRowSelection}
+                                ontoggle={handleToggle}
+                                ontoggleall={handleToggleAll}>
+                            </lightning-tree-grid>
+                        </template>
+                        <template if:true={noSearchMatches}>
+                            <div class="slds-align_absolute-center slds-p-vertical_medium slds-text-color_weak">
+                                No assets match &ldquo;{searchTerm}&rdquo;.
+                            </div>
+                        </template>
                     </template>
                 </lightning-tab>
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Billing_Start_Date__c</fullName>
+    <label>RLM Billing Start Date</label>
+    <description>Asset-Based Ordering shipment-gated billing. For a software subscription bundled with physical hardware, billing is held until shipment; on the shipment/serial-mapping event RLM_ShipmentFulfillmentService stamps the confirmed billing start date here (the shipment date) and, best-effort, defers the real BillingSchedule to match.</description>
+    <type>Date</type>
+    <required>false</required>
+</CustomField>

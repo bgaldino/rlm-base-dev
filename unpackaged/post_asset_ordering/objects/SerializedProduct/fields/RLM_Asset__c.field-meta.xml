@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Asset__c</fullName>
+    <label>RLM Asset</label>
+    <description>Asset-Based Ordering shipment-gated billing. Direct link from a serialized unit to the shipped Asset. Used instead of the standard SerializedProduct.AssetId because a managed platform automation on AssetId references Asset.ProductItemId (absent in this edition) and fails; RLM_ShipmentFulfillmentService.confirmShipment stamps this custom lookup so the serial is visible on the asset and the console can count serialized units.</description>
+    <type>Lookup</type>
+    <referenceTo>Asset</referenceTo>
+    <relationshipLabel>Serialized Products (ABO)</relationshipLabel>
+    <relationshipName>RLM_Serialized_Products</relationshipName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <required>false</required>
+</CustomField>

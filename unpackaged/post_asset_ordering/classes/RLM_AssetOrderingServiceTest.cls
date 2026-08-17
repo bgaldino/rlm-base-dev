@@ -178,6 +178,63 @@ private class RLM_AssetOrderingServiceTest {
     }
 
     @IsTest
+    static void neutralizeOneTimeDates_guardsNullAndEmpty() {
+        // The one-time date cleanup is a best-effort post-step: a null id is a
+        // no-op, and a fake (non-existent) Quote id finds no lines, so no
+        // message is added and nothing throws. The real date-clearing on live
+        // one-time lines is covered by the Phase 1 live verification.
+        RLM_AssetOrderingService.ConsolidationResult res =
+            new RLM_AssetOrderingService.ConsolidationResult();
+        Test.startTest();
+        RLM_AssetOrderingService.neutralizeOneTimeDates(null, res);
+        RLM_AssetOrderingService.neutralizeOneTimeDates(fakeId(Quote.SObjectType), res);
+        RLM_AssetOrderingService.neutralizeOneTimeDates(fakeId(Order.SObjectType), res);
+        Test.stopTest();
+        System.assertEquals(0, res.messages.size(),
+            'No lines to clear -> no cleanup message');
+    }
+
+    @IsTest
+    static void reanchorStartDate_success() {
+        RLM_AssetOrderingService.mockOutcome = successOutcome();
+        Test.startTest();
+        RLM_AssetOrderingService.ConsolidationResult res =
+            RLM_AssetOrderingService.reanchorStartDate(
+                fakeId(Asset.SObjectType), Date.today());
+        Test.stopTest();
+        System.assert(res.isSuccess, 'Expected re-anchor success');
+        System.assertEquals('Quote', res.outputType, 'Re-anchor outputs a Quote');
+        System.assertNotEquals(null, res.outputRecordId, 'Expected an amendment quote id');
+        System.assertEquals(1, res.requestIdentifiers.size(), 'Request id threaded back');
+    }
+
+    @IsTest
+    static void reanchorStartDate_guardsNullInputs() {
+        RLM_AssetOrderingService.ConsolidationResult noAsset =
+            RLM_AssetOrderingService.reanchorStartDate(null, Date.today());
+        System.assert(!noAsset.isSuccess, 'Null asset should fail');
+
+        RLM_AssetOrderingService.ConsolidationResult noDate =
+            RLM_AssetOrderingService.reanchorStartDate(fakeId(Asset.SObjectType), null);
+        System.assert(!noDate.isSuccess, 'Null start date should fail');
+    }
+
+    @IsTest
+    static void reanchorStartDate_failurePropagates() {
+        RLM_AssetOrderingService.ActionOutcome bad =
+            new RLM_AssetOrderingService.ActionOutcome();
+        bad.isSuccess = false;
+        bad.errors.add('nope');
+        RLM_AssetOrderingService.mockOutcome = bad;
+        Test.startTest();
+        RLM_AssetOrderingService.ConsolidationResult res =
+            RLM_AssetOrderingService.reanchorStartDate(fakeId(Asset.SObjectType), Date.today());
+        Test.stopTest();
+        System.assert(!res.isSuccess, 'Amendment failure should propagate');
+        System.assert(res.messages.contains('nope'), 'Expected error propagated');
+    }
+
+    @IsTest
     static void runConsolidation_unsupportedActionThrows() {
         RLM_AssetOrderingService.mockOutcome = successOutcome();
         Boolean threw = false;

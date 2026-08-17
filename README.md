@@ -1123,6 +1123,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 
 | Document | Description |
 |----------|-------------|
+| [Deploy a Repo with an AI Agent](docs/guides/deploy-a-repo-with-ai-agent.md) | Point Cursor or Claude Code at any Salesforce GitHub repo link and have it clone, deploy, and run the README's post-deploy steps into an existing sandbox/dev org — reusable prompt templates + a worked example |
 | [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |

@@ -383,6 +383,7 @@ same guidance, or use the parent skill which covers the same content:
 | Rule File | Triggers On | Equivalent Skill |
 |-----------|-------------|------------------|
 | `.cursor/rules/analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated analysis artifacts must go to `.agents/artifacts/`, never committed to public repo)* |
+| `.cursor/rules/skills-first.mdc` | (always applies) | *(stand-alone — consult the skill index before building tooling, including inside nested/external repos cloned under this workspace)* |
 | `.cursor/rules/sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
 | `.cursor/rules/sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
 | `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |

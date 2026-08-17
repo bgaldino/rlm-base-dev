@@ -1,0 +1,119 @@
+<template>
+    <div class="slds-p-around_medium">
+        <template if:true={loadError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                <p>{loadError}</p>
+            </div>
+        </template>
+
+        <template if:true={notApplicable}>
+            <div class="slds-text-color_weak">
+                This action applies to a <strong>one-time hardware bundle</strong> that has software
+                subscription components. This asset doesn&rsquo;t match that shape.
+            </div>
+        </template>
+
+        <template if:true={isHardware}>
+            <div class="slds-text-heading_small slds-m-bottom_x-small">
+                {view.hardwareProductName}
+                <template if:true={alreadyShipped}>
+                    <lightning-badge label="Shipped" class="slds-m-left_x-small"></lightning-badge>
+                </template>
+            </div>
+
+            <template if:true={hasSoftware}>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                    Bundled software subscriptions:
+                </p>
+                <ul class="slds-list_dotted slds-m-bottom_small">
+                    <template for:each={software} for:item="s">
+                        <li key={s.assetId}>
+                            {s.productName}
+                            &mdash; <strong>{s.status}</strong>
+                            <template if:true={s.billingStartDate}> (bills from {s.billingStartDate})</template>
+                            <template if:true={s.billingHeldUntil}>
+                                <span class="slds-text-color_weak"> &middot; billing group override: {s.billingHeldUntil}</span>
+                            </template>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+            <!-- Demo setup: place the software on billing hold -->
+            <template if:true={canHold}>
+                <div class="slds-box slds-box_x-small slds-m-bottom_small slds-theme_shade">
+                    <p class="slds-m-bottom_x-small">
+                        The bundled software isn&rsquo;t on billing hold yet. Apply the hold to simulate
+                        an order where billing must wait for shipment.
+                    </p>
+                    <lightning-button
+                        label="Apply Billing Hold (pending shipment)"
+                        onclick={applyHold}
+                        disabled={working}></lightning-button>
+                </div>
+            </template>
+
+            <!-- Re-anchor amendment produced on shipment: review + activate -->
+            <template if:true={hasAmendmentQuote}>
+                <div class="slds-box slds-box_x-small slds-m-bottom_small slds-theme_success slds-theme_alert-texture">
+                    <p class="slds-m-bottom_x-small">
+                        A <strong>start-date amendment quote</strong> was created to re-anchor the
+                        subscription term to the shipment date. Review and activate it to regenerate
+                        billing from the ship date.
+                    </p>
+                    <lightning-formatted-url
+                        value={amendmentQuoteUrl}
+                        label="Open amendment quote"
+                        target="_blank"></lightning-formatted-url>
+                </div>
+            </template>
+
+            <!-- Confirm shipment: serialize + release billing -->
+            <template if:true={canConfirm}>
+                <div class="slds-box slds-box_x-small slds-m-bottom_small">
+                    <template if:true={isSerialized}>
+                        <lightning-textarea
+                            label="Serial numbers"
+                            value={serialText}
+                            placeholder={serialPlaceholder}
+                            onchange={handleSerial}
+                            class="slds-m-bottom_x-small"></lightning-textarea>
+                    </template>
+                    <template if:false={isSerialized}>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                            This hardware product isn&rsquo;t marked serialized
+                            (<code>Product2.IsSerialized</code>), so no serial records are created.
+                            Enable serialization on the product to capture serial numbers.
+                        </p>
+                    </template>
+                    <lightning-input
+                        type="date"
+                        label="Shipment date"
+                        value={shipmentDate}
+                        onchange={handleDate}
+                        class="slds-m-bottom_x-small"></lightning-input>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                        Confirming maps the serial number(s) to this hardware (as native
+                        SerializedProduct records), marks it Shipped, and releases the bundled
+                        software to bill from the shipment date.
+                    </p>
+                </div>
+            </template>
+        </template>
+    </div>
+
+    <template if:true={working}>
+        <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+    </template>
+
+    <div slot="footer" class="slds-m-top_small">
+        <lightning-button label="Close" onclick={close} class="slds-m-right_x-small"></lightning-button>
+        <template if:true={canConfirm}>
+            <lightning-button
+                variant="brand"
+                label="Confirm Shipment"
+                onclick={confirm}
+                disabled={confirmDisabled}></lightning-button>
+        </template>
+    </div>
+</template>

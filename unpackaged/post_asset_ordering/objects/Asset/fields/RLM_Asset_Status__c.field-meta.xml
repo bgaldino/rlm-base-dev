@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Asset_Status__c</fullName>
     <label>RLM Asset Status</label>
-    <description>Asset-Based Ordering suspend/resume state. Complements native billing suspension; drives console UI. Active by default; set to Suspended by RLM_AssetSuspensionService.</description>
+    <description>Asset-Based Ordering lifecycle state. Complements native billing suspension and shipment-gated billing; drives console UI. Active by default; Suspended by RLM_AssetSuspensionService; BillingHeld by RLM_ShipmentFulfillmentService for software bundled with hardware that has not yet shipped.</description>
     <type>Picklist</type>
     <required>false</required>
     <valueSet>
@@ -18,6 +18,11 @@
                 <fullName>Suspended</fullName>
                 <default>false</default>
                 <label>Suspended</label>
+            </value>
+            <value>
+                <fullName>BillingHeld</fullName>
+                <default>false</default>
+                <label>Billing Held (Pending Shipment)</label>
             </value>
         </valueSetDefinition>
     </valueSet>
