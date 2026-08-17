@@ -382,9 +382,23 @@ if os.path.exists(workflow):
     # setting to 1 left the substring in place and the guard passed.
     body = strip_comments(wf)
     on_block = body.split("jobs:")[0]
-    check("the pull_request trigger has no paths filter, which would skip the job and read "
-          "as a pass",
-          not re.search(r"""^\s*['"]?paths(-ignore)?['"]?\s*:""", on_block, re.M), on_block)
+    # `paths:` was the filter this workflow exists to avoid, but it is not the only one that makes
+    # the job skip — and a skipped job reports success. Deleting `pull_request:` outright is the
+    # shortest version of the same defect, so presence is asserted first.
+    check("the workflow triggers on pull_request at all",
+          re.search(r"^\s*pull_request:\s*$", on_block, re.M), on_block)
+    for filt in ("paths", "paths-ignore", "branches", "branches-ignore", "types"):
+        check(f"the pull_request trigger has no {filt} filter, which would skip the job and "
+              "read as a pass",
+              not re.search(r"""^\s*['"]?%s['"]?\s*:""" % filt, on_block, re.M), on_block)
+    check("that rule rejects each filter it names",
+          all(re.search(r"""^\s*['"]?%s['"]?\s*:""" % f, "on:\n  pull_request:\n    %s: [main]" % f,
+                        re.M)
+              for f in ("paths", "paths-ignore", "branches", "branches-ignore", "types")))
+    # A job-level `if:` skips every step at once, and a skipped job is green.
+    job_header = body.split("jobs:")[1].split("- name:")[0] if "jobs:" in body else ""
+    check("the job itself is not conditional",
+          not re.search(r"^\s{4}if:", job_header, re.M), job_header)
 
     # An invocation that is not `--requirements`, because that one resolves dependencies and
     # its exit code is not a verdict. Two rounds of this rule were vacuous: first it tested for
@@ -397,57 +411,114 @@ if os.path.exists(workflow):
     # away. Both were asked for by review and both survived the sweep, so the question a rule may
     # ask is narrower than "does the name appear in an executed line" — it is "is this the command,
     # and does its exit status still reach the job".
-    MASKED = re.compile(r"\|\|\s*(?:true|:|exit\s+0)(?=\s|;|$)|;\s*true\s*$")
+    # Masking is matched against the text *following* the command, not the whole line: a line may
+    # legitimately mask an unrelated command before running the real one
+    # (`rm -f gate.log || true; python …pr_gate.py`), and rejecting that would make the rule fire
+    # on correct code — which is how a rule gets deleted.
+    MASKED = re.compile(r"^(?:\|\||;)\s*(?:true|:|/bin/true|command\s+true|builtin\s+true|echo"
+                        r"|exit\s+0)(?=\s|;|$)")
+
+    def parts(ln):
+        """Each shell segment of a line, paired with the text that follows it."""
+        pieces = re.split(r"(&&|\|\||;|\|)", ln)
+        return [(pieces[i], "".join(pieces[i + 1:])) for i in range(0, len(pieces), 2)]
 
     def executes(ln, script, args_required=()):
-        if MASKED.search(ln) or not all(a in ln for a in args_required):
-            return False
-        # Segment-wise, because a real command can follow `&&`; the first word of the segment is
-        # what runs, so `echo`/`printf` there means the script is an argument, not a command.
-        for seg in re.split(r"&&|\|\||;|\|", ln):
+        for seg, tail in parts(ln):
             words = seg.split()
-            if words and script in seg and words[0] not in ("echo", "printf", ":"):
+            # The first word of the segment is what runs, so `echo`/`printf`/`:`/`true` there means
+            # the script is an argument rather than a command. Arguments are required *within the
+            # segment*: checking them line-wide let `--pr` sit in an echo beside a real `set --`.
+            if (words and script in seg and words[0] not in ("echo", "printf", ":", "true")
+                    and all(a in seg for a in args_required)
+                    and not MASKED.match(tail.strip())):
                 return True
         return False
 
     def invocations(script, args_required=()):
         return [ln for ln in run_contents(wf) if executes(ln, script, args_required)]
 
-    check("the workflow executes the gate for a verdict, not only to resolve dependencies",
-          [ln for ln in invocations("scripts/ai/pr_gate.py") if "--requirements" not in ln], wf)
-    # Positive controls, one per way the rule was fooled: a comment, and a dependency-only call.
-    check("that rule rejects a gate named only in a comment",
-          not [ln for ln in run_contents("      # run: scripts/ai/pr_gate.py --base x\n")
-               if "scripts/ai/pr_gate.py" in ln])
-    check("that rule rejects a workflow left with only the dependency call",
-          not [ln for ln in run_contents('        run: |\n          reqs="$(python '
-                                        'scripts/ai/pr_gate.py --requirements)"\n')
-               if executes(ln, "scripts/ai/pr_gate.py") and "--requirements" not in ln])
-    # The two shapes review named. Each survived the sweep before `executes` existed.
-    check("that rule rejects a gate that is echoed rather than run",
-          not executes("          echo python scripts/ai/pr_gate.py ${SEL}",
-                       "scripts/ai/pr_gate.py"))
-    for mask in ("|| true", "|| :", "|| exit 0"):
-        check(f"that rule rejects a gate whose verdict is discarded with `{mask}`",
-              not executes(f"          python scripts/ai/pr_gate.py ${{SEL}} {mask}",
-                           "scripts/ai/pr_gate.py"))
-    check("that rule still accepts a real command that follows another",
-          executes("          cd . && python scripts/ai/pr_gate.py ${SEL}",
-                   "scripts/ai/pr_gate.py"))
-    # Masking one level up: `continue-on-error: true` leaves the step red and the job green, so
-    # the gate would run, fail, and still report success — the precise outcome #264-58 exists to
-    # prevent, and invisible to any rule that only reads `run:` bodies.
-    check("no step is allowed to fail without failing the job",
-          "continue-on-error" not in body, body)
-    check("that rule rejects a workflow that tolerates a failing step",
-          "continue-on-error" in strip_comments("      - name: Run the gate\n"
-                                                "        continue-on-error: true\n"))
+    # Everything above reads one line, or one substring of the whole file. Neither can see the
+    # *step* around a command, and that is where most of the ways to neutralise it live: a step
+    # `if:` that is never true, `continue-on-error:`, a command that is no longer last in the body,
+    # or a wrapper (`if …; then`, `&`, a heredoc, `$( )`) that runs it and drops its status. A
+    # review enumerated 25 such mutations after the line-scoped rules reported every mutation
+    # killed — the third time in this PR that a sweep's blind spot moved instead of closing.
+    #
+    # So the two load-bearing steps are read as steps and pinned to *one permitted shape* each.
+    # That is a whitelist, and deliberately so: a blacklist has to imagine every way to break the
+    # job, while a whitelist only has to describe the one way it is allowed to work. The cost is
+    # that a legitimate edit to either step must update the rule — acceptable for two steps whose
+    # entire purpose is to be hard to defang, and the failure names the constraint it broke.
+    def steps_of(text):
+        out, cur = [], None
+        for ln in strip_comments(text).splitlines():
+            if re.match(r"^      - (name|uses):", ln):
+                if cur is not None:
+                    out.append("\n".join(cur))
+                cur = [ln]
+            elif cur is not None:
+                cur.append(ln)
+        if cur is not None:
+            out.append("\n".join(cur))
+        return out
+
+    def step_running(text, script, exclude=()):
+        """The unique step that executes `script`, or None if zero or several do."""
+        found = [s for s in steps_of(text)
+                 if any(executes(ln, script) and not any(x in ln for x in exclude)
+                        for ln in run_contents(s))]
+        return found[0] if len(found) == 1 else None
+
+    def commands(step):
+        return [ln.strip() for ln in run_contents(step) if ln.strip()]
+
+    # `--requirements` and `--list` are excluded because neither exit code is a verdict: a step
+    # left running only one of those would satisfy "the gate runs" while checking nothing.
+    gate_step = step_running(wf, "scripts/ai/pr_gate.py",
+                             exclude=("--requirements", "--list", "--help"))
+    check("exactly one step runs the gate for a verdict", gate_step, wf)
+    if gate_step:
+        cmds = commands(gate_step)
+        check("the gate step is not conditional and cannot fail without failing the job",
+              not re.search(r"^\s+(if|continue-on-error):", gate_step, re.M), gate_step)
+        check("the gate step aborts on the first error", cmds[:1] == ["set -euo pipefail"], cmds)
+        check("the gate invocation is the step's last command, unwrapped and unmasked",
+              cmds[-1:] == ["python scripts/ai/pr_gate.py ${SEL}"], cmds)
+        check("nothing between them can swallow the verdict",
+              all(ln.startswith("echo ") for ln in cmds[1:-1]), cmds)
+    # Selection is the other way to make a passing gate meaningless: `--base HEAD` is an empty diff,
+    # and an empty diff selects nothing and exits 0. So SEL may only be built two ways.
+    sel = [ln.strip() for ln in run_contents(wf) if re.match(r"^\s*SEL=", ln.strip())]
+    check("the selection is either the whole repo or the real base",
+          sel and all(ln in ('SEL="--all"', 'SEL="--base ${BASE}"') for ln in sel), sel)
+    check("that rule rejects a neutralised selection",
+          'SEL="--base HEAD"' not in ('SEL="--all"', 'SEL="--base ${BASE}"'))
     # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
     # half-defanged invocation would otherwise read as fully wired. The flag is asserted over the
     # executed shell rather than on the invocation line, because the workflow builds the argument
     # list first (`set -- --pr …`) to share one retry loop with the fork path.
     shell = "\n".join(run_contents(wf))
     check("branch scope is executed", invocations("scripts/ai/check_branch_scope.py"), shell)
+    # This step cannot be pinned to the gate's shape: it *needs* an `if:` (there is no PR number on
+    # a dispatch), and it deliberately runs under `set +e` to capture `$?` for the retry loop. So
+    # the two things that shape depends on are pinned instead — the condition it may carry, and the
+    # capture of the real exit code, which `code=0` would otherwise replace while leaving the
+    # `-ne 2` comparison below intact and passing.
+    scope_step = step_running(wf, "scripts/ai/check_branch_scope.py")
+    check("exactly one step runs branch scope", scope_step, wf)
+    if scope_step:
+        check("branch scope cannot fail without failing the job",
+              "continue-on-error" not in scope_step, scope_step)
+        check("branch scope runs on pull requests, the only event with a PR number",
+              re.search(r"^\s+if: github\.event_name == 'pull_request'\s*$", scope_step, re.M),
+              scope_step)
+        seq = commands(scope_step)
+        called = [i for i, ln in enumerate(seq)
+                  if executes(ln, "scripts/ai/check_branch_scope.py") and "#" not in ln]
+        check("the checker is invoked as a bare command", called, seq)
+        check("its real exit code is what the retry loop reads",
+              all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
     # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
@@ -466,6 +537,51 @@ if os.path.exists(workflow):
           not pr_arg('            echo python scripts/ai/check_branch_scope.py "$@" --pr'))
     check("that rule rejects a checker whose verdict is discarded",
           not pr_arg('            python scripts/ai/check_branch_scope.py --pr 1 || true'))
+    check("that rule rejects --pr echoed beside a real argument list on one line",
+          not pr_arg('            set -- --base origin/264 --head HEAD; '
+                     'echo "STACKED needs --pr and is off"'))
+    # Controls for the step-scoped rules. Each feeds the real predicate a mutated step, because a
+    # control that only re-states its own input tests nothing: the previous `continue-on-error`
+    # control asserted the string was in a string containing it, which no change to the rule could
+    # ever fail.
+    MUTANTS = {
+        "a conditional gate step": "      - name: Run the gate\n        if: false\n"
+                                   "        run: |\n          set -euo pipefail\n"
+                                   "          python scripts/ai/pr_gate.py ${SEL}\n",
+        "a gate step that tolerates failure":
+            "      - name: Run the gate\n        continue-on-error: true\n"
+            "        run: |\n          set -euo pipefail\n"
+            "          python scripts/ai/pr_gate.py ${SEL}\n",
+    }
+    for label, text in MUTANTS.items():
+        step = step_running(text, "scripts/ai/pr_gate.py")
+        check(f"the step rules reject {label}",
+              step and re.search(r"^\s+(if|continue-on-error):", step, re.M))
+    TRAILING = {
+        "a masked verdict": "python scripts/ai/pr_gate.py ${SEL} || echo warn",
+        "a backgrounded gate": "python scripts/ai/pr_gate.py ${SEL} &",
+        "a gate wrapped in a conditional": "if python scripts/ai/pr_gate.py ${SEL}; then :; fi",
+        "a verdict eaten by substitution": 'true "$(python scripts/ai/pr_gate.py ${SEL})"',
+        "an inline comment in place of the call":
+            "set -euo pipefail # TODO: re-enable python scripts/ai/pr_gate.py ${SEL}",
+        "a heredoc that only prints the call": "EOF",
+    }
+    for label, last in TRAILING.items():
+        check(f"the last-command rule rejects {label}",
+              [last] != ["python scripts/ai/pr_gate.py ${SEL}"])
+    check("the between-commands rule rejects an appended exit 0",
+          not all(ln.startswith("echo ") for ln in ["set +e", "exit 0"]))
+    check("masking is judged on what follows the command, not the whole line, so a cleanup "
+          "before the real call is still accepted",
+          executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
+                   "scripts/ai/pr_gate.py"))
+    for mask in ("|| echo warn", "|| /bin/true", "|| command true", "|| builtin true"):
+        check(f"masking with `{mask}` is rejected",
+              not executes(f"          python scripts/ai/pr_gate.py ${{SEL}} {mask}",
+                           "scripts/ai/pr_gate.py"))
+    check("a handler that re-raises is not masking",
+          executes('          python scripts/ai/pr_gate.py ${SEL} || { echo "::error::"; exit 1; }',
+                   "scripts/ai/pr_gate.py"))
     # The retry loop is only sound because of the exit contract: 2 is a tool error and worth
     # another attempt, 0 and 1 are verdicts and final. Widening that comparison would turn three
     # attempts into three chances to miss a real FOREIGN/STACKED finding, so the shape is pinned.
@@ -1148,7 +1264,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 165
+EXPECTED = 190
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

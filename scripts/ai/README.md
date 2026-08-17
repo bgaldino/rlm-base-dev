@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (165 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (190 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,18 +440,26 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). Twenty more break the CI workflow instead of the driver, all
-killed: a `paths:` filter added (bare or quoted), a pin restated in place of `--requirements`
-(`==`, `~=`, `<`, or unpinned), the `--requirements` call removed, the clone made shallow, the
-Python floor dropped below the matrix, `${{ }}` moved into a `run:` step in each of its three
-scalar styles, the gate step and the branch-scope step each gutted — twice over, once cleanly
-and once leaving the script's name behind in a comment — the branch-scope call stripped of
-`--pr`, the retry loop widened to swallow a verdict or stripped of its condition, either step
-echoed instead of run or its verdict discarded with `|| true`, the gate step marked
-`continue-on-error`, the workflow dropped from this check's own triggers, and the file deleted.
+directory counted as a read). **Fifty-one** more break the CI workflow instead of the driver, all
+killed, in eight families: the job never runs (a `paths:`/`paths-ignore:`/`branches:`/`types:`
+filter, `pull_request:` deleted from `on:`, an `if:` on the job or on either step, `if: false`,
+`if: vars.X`); dependencies drift (a pin restated in place of `--requirements` in any of four
+spellings, the `--requirements` call removed); the diff is empty (the clone made shallow,
+`SEL="--base HEAD"`); the environment is wrong (the Python floor dropped below the matrix);
+untrusted input reaches the shell (`${{ }}` moved into a `run:` step in each of its three scalar
+styles); either command is present but not run (echoed, inside a heredoc, behind a shell flag,
+wrapped in `if …; then`, replaced by an inline trailing comment, or replaced by `--list`/`--help`,
+whose exit codes are not verdicts); the command runs but its verdict is discarded (`|| true`,
+`|| :`, `|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
+dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
+`code=0`); and the checker is defanged (`--pr` stripped, or left only in an `echo` beside a real
+argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
+moved off `pull_request`). Plus the two that remove the guard itself: the workflow dropped from
+this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **ten of these guards were vacuous on the first attempt,
-every one the same shape**: the rule tested that a string appeared *somewhere* rather than that
+The doubled shapes are there because **thirty-six of these guards were vacuous on the first
+attempt, every one the same shape**: the rule tested that a string appeared *somewhere* rather than
+that
 the job *did* something. Deleting the gate step left its name on the `--requirements` line;
 deleting it and leaving a `# TODO` comment defeated the narrower replacement; the branch-scope
 rule never excluded comments at all; flipping `fetch-depth: 0` to `1` passed because a comment
@@ -460,17 +468,33 @@ two steps below still said `fetch-depth: 0`; and removing `--pr` passed because 
 correction to the obvious lesson, since that string is neither a comment nor inert-looking. It
 is executed, and still proves nothing. The rules now ask where a token appears, not whether.
 
-The last five were the same insight one step further, and they are the reason `executes()` exists:
+The next five were the same insight one step further, and they are the reason `executes()` exists:
 being *inside* a `run:` body is not the same as running. `echo python scripts/ai/pr_gate.py`
 executes a line and runs nothing; `python scripts/ai/pr_gate.py ${SEL} || true` runs the gate and
 throws its verdict away; `continue-on-error: true` lets the step fail and the job pass, and lives
-outside `run:` entirely, so no rule reading run bodies could ever have seen it. A rule may
-therefore only ask the narrow question — is this the command, and does its exit status still reach
-the job — which is what `executes()` answers by checking the first word of each `&&`-separated
-segment and rejecting status masking. Two of the ten were caught by the mutation sweep and eight by
-review *after* the sweep reported every mutation killed, twice over: a sweep can only mutate in the
-shapes its author already imagined, and after the first correction its author imagined comments but
-not echoes, then echoes but not masking.
+outside `run:` entirely, so no rule reading run bodies could ever have seen it. `executes()` answers
+the narrower question — is this the command, and does its exit status still reach the job — by
+taking the first word of each shell segment (split on `&&`, `||`, `;`, and `|`; `echo`, `printf`,
+`:`, or `true` there means the script is an argument) and rejecting masking in the text that
+*follows* that segment, so a cleanup like `rm -f log || true; python …` is still accepted.
+
+**The remaining twenty-six retired the approach rather than extended it.** A line-scoped rule cannot
+see the step around a command, and that is where most ways to neutralise one live — so the two
+load-bearing steps are now read as steps and pinned to a single permitted shape each: no `if:`, no
+`continue-on-error:`, `set -euo pipefail` first, the invocation last and unwrapped, only `echo`
+between. The `on:` block must contain `pull_request:` and none of five filters; the job may not be
+conditional; `SEL` may only be `--all` or `--base ${BASE}`; and the checker's `$?` must be captured
+on the line after it runs. That is a whitelist, deliberately: a blacklist has to imagine every way
+to break the job, a whitelist only has to describe the one way it may work. The cost is that a
+legitimate edit to those two steps must update the rule — acceptable for two steps whose purpose is
+to be hard to defang.
+
+Two of the thirty-six were caught by the mutation sweep and thirty-four by review, each time *after*
+a sweep reported every mutation killed — three rounds running. A sweep only mutates in the shapes
+its author already imagined, and here the blind spot moved rather than closed each time: comments,
+then echoes, then masking, then the step and trigger levels the rules never read at all. The
+durable lesson is not any one of those shapes; it is that "all mutations killed" is evidence about
+the sweep, and a guard is only as good as the narrowest question it asks.
 The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
