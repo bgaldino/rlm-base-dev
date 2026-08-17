@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (194 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (216 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,10 +440,14 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Fifty-seven** more break the CI workflow instead of the driver, all
-killed, in eight families: the job never runs (a `paths:`/`paths-ignore:`/`branches:`/`types:`
-filter, `pull_request:` deleted from `on:`, an `if:` on the job or on either step, `if: false`,
-`if: vars.X`); dependencies drift (a pin restated in place of `--requirements` in any of four
+directory counted as a read). **Seventy-four** more break the CI workflow instead of the driver, all
+killed, in nine families. The families are what the rules cover; the parenthesised shapes are the
+ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
+`|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
+The job never runs (a `paths:` filter quoted and unquoted, `branches:`, `types:` narrowed,
+`pull_request:` deleted from `on:`, an `if:` on the job — before *and* after the `steps:` list — or
+on either step, quoted or bare, `if: false`, `if: vars.X`, a decoy job placed above the real one);
+dependencies drift (a pin restated in place of `--requirements` in any of four
 spellings, the `--requirements` call removed); the diff is empty (the clone made shallow, or
 `SEL` neutralised to `--base HEAD` — in either local assignment *or* in the `$GITHUB_ENV` export,
 which is the line the separate gate step actually reads, and the one a rule that looked only for
@@ -454,16 +458,31 @@ wrapped in `if …; then`, replaced by an inline trailing comment, or replaced b
 whose exit codes are not verdicts); the command runs but its verdict is discarded (`|| true`,
 `|| :`, `|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
 dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
-`code=0`); and the checker is defanged (backgrounded with `&`, so `$?` is the fork's status and the
+`code=0`, an `echo` that then `exit 0`s or shadows `python` as a function); the checker is defanged
+(backgrounded with `&`, so `$?` is the fork's status and the
 real script still runs and still reports success; `--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
 moved off `pull_request`; the retry loop replaced by a one-shot that captures `$?` and never
 exits with it; `--no-fetch` dropped, which reinstates an unauthenticated `git fetch` that passes on
-a public repo and fails on a private one). Plus the two that remove the guard itself: the workflow dropped from
+a public repo and fails on a private one; the fork branch's condition made always-true, which sends
+every PR down the path that has no `--pr` and so loses STACKED while the flag survives, unreachable,
+in the `else`); and the step is present but reinterpreted (`shell: "cat {0}"`, which makes the runner
+print the script instead of executing it, at step level or as a job-wide `defaults.run.shell`; a step
+`env:` re-pointing `SEL`; the base ref rewritten to `HEAD` upstream of a correctly-pinned `SEL`).
+Plus the two that remove the guard itself: the workflow dropped from
 this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **forty of these guards were vacuous on the first
-attempt, every one the same shape**: the rule tested that a string appeared *somewhere* rather than
+Six *correct* edits are separately confirmed to be accepted, because a rule that fires on a
+legitimate change is a rule someone deletes: a re-raising handler
+(`|| { echo "::error::…"; exit 1; }`), a trailing `echo "::notice::"`, a progress `echo` before the
+call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
+*superset* of the default three, and a second job that carries its own `if:`.
+
+The doubled shapes are there because **fifty-four of these guards were vacuous on the first
+attempt**, in five waves of 7, 5, 26, 2 and 14 — each wave a narrower version of one mistake, and
+each found *after* the previous wave's fix was reported complete.
+
+The first seven tested that a string appeared *somewhere* rather than
 that
 the job *did* something. Deleting the gate step left its name on the `--requirements` line;
 deleting it and leaving a `# TODO` comment defeated the narrower replacement; the branch-scope
@@ -471,7 +490,9 @@ rule never excluded comments at all; flipping `fetch-depth: 0` to `1` passed bec
 two steps below still said `fetch-depth: 0`; and removing `--pr` passed because the fork branch
 *echoes* the words "needs `--pr`" while explaining its own absence — which is the useful
 correction to the obvious lesson, since that string is neither a comment nor inert-looking. It
-is executed, and still proves nothing. The rules now ask where a token appears, not whether.
+is executed, and still proves nothing. The rules now ask where a token appears, not whether. (Two of
+the seven are the round-3 pair described below — a guard made conditional on the token it guards, and
+`--no-fetch` — which the prose used to describe without counting.)
 
 The next five were the same insight one step further, and they are the reason `executes()` exists:
 being *inside* a `run:` body is not the same as running. `echo python scripts/ai/pr_gate.py`
@@ -483,28 +504,60 @@ taking the first word of each shell segment (split on `&&`, `||`, `;`, and `|`; 
 `:`, or `true` there means the script is an argument) and rejecting masking in the text that
 *follows* that segment, so a cleanup like `rm -f log || true; python …` is still accepted.
 
-**The remaining twenty-six retired the approach rather than extended it.** A line-scoped rule cannot
+**Twenty-six retired the approach rather than extended it.** A line-scoped rule cannot
 see the step around a command, and that is where most ways to neutralise one live — so the two
-load-bearing steps are now read as steps and pinned to a single permitted shape each: no `if:`, no
-`continue-on-error:`, `set -euo pipefail` first, the invocation last and unwrapped, only `echo`
-between. The `on:` block must contain `pull_request:` and none of five filters; the job may not be
-conditional; `SEL` may only be `--all` or `--base ${BASE}`; and the checker's `$?` must be captured
-on the line after it runs. That is a whitelist, deliberately: a blacklist has to imagine every way
-to break the job, a whitelist only has to describe the one way it may work. The cost is that a
-legitimate edit to those two steps must update the rule — acceptable for two steps whose purpose is
-to be hard to defang.
+load-bearing steps are read as steps and pinned to a single permitted shape each: no `if:`, no
+`continue-on-error:`, `set -euo pipefail` first, exactly one command executing the gate, only bare
+`echo`s around it. The `on:` block must contain `pull_request:` and no filter; the gate job may carry
+only keys that cannot stop it running; `SEL` may only be `--all` or `--base ${BASE}`; and the
+checker's `$?` must be captured on the line after it runs. That is a whitelist, deliberately: a
+blacklist has to imagine every way to break the job, a whitelist only has to describe the one way it
+may work.
 
-Two of the forty were caught by the mutation sweep and thirty-eight by review, each time *after*
-a sweep reported every mutation killed — four rounds running. A sweep only mutates in the shapes
+**The last fourteen are the reason those whitelists are now read from a parse rather than matched as
+text**, and they are the most instructive of the five waves, because the whitelist was the right
+idea implemented against the wrong representation. A whitelist of *keys* enforced by a regex over
+unquoted keys is not a whitelist: `"continue-on-error": true` slipped through it, and so did every
+key the regex did not name — `shell: "cat {0}"`, which makes the runner print the script instead of
+running it, at step level or as a job-wide `defaults.run.shell`; a step `env:` re-pointing `SEL`. A
+whitelist of *job* keys enforced by "the text between `jobs:` and the first `- name:`" is not one
+either: `if: false` appended after the `steps:` list lands outside that window, and a decoy job above
+the real one collapses it entirely. So the workflow is now parsed — 90 lines of stdlib block YAML,
+because this suite declares no dependencies and the check that judges the workflow must not be the
+one that reports MISSING-DEP and skips — and the parser **refuses** what it cannot model (flow-style
+steps, anchors, aliases, duplicate keys, tabs) rather than reading past it, since a step whose keys
+are invisible satisfies "only these keys" by having none. Two rules also moved from spelling to
+property in the same pass: the gate's invocation is no longer pinned to one literal line but to
+"exactly one command *executes* it", and `--no-fetch` need only reach the checker rather than arrive
+via `set --`. Both changes were forced by finding that the literal versions rejected correct edits.
+
+The cost of a whitelist is that a legitimate edit to those two steps must update the rule —
+acceptable for two steps whose purpose is to be hard to defang, and the six accepted edits listed
+above are what keeps that cost honest.
+
+Two of the fifty-four were caught by the mutation sweep and fifty-two by review, each time *after*
+a sweep reported every mutation killed — five rounds running. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
-then echoes, then masking, then the step and trigger levels the rules never read at all, and finally
+then echoes, then masking, then the step and trigger levels the rules never read at all, then
 the two shapes a whitelist of *permitted commands* still cannot see — a permitted command whose
 status the shell throws away (`&`), and a value that crosses a step boundary through `$GITHUB_ENV`
-rather than appearing in the step being read. The durable lesson is not any one of those shapes; it
+rather than appearing in the step being read — and finally the gap between a whitelist and the text
+it was matched against. The durable lesson is not any one of those shapes; it
 is that "all mutations killed" is evidence about the sweep, and a guard is only as good as the
-narrowest question it asks. The corpus is kept at `.agents/artifacts/sweeps/` for that reason: both
-files now refuse to run on a modified tree or a failing baseline, because this corpus once reported
-21/25 with two anchors "missing" against a workflow one line off HEAD, and 25/25 once restored.
+narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
+not be conditional" — which two mutations disproved: documentation asserting a property the code does
+not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
+The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 74 mutations across four files,
+all killed.
+
+How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the
+tracked workflow in place and restore it with `git checkout`, and that design produced two confident
+wrong answers: one reported 21/25 with two anchors "missing" against a workflow one line off HEAD
+(25/25 once restored), and a suite run in another terminal failed on `SEL="--base HEAD"` — a mutation
+from this corpus, caught mid-flight, in a shell that had touched nothing. Any concurrent reader sees a
+mutated tree, so results are noise in both directions. All of them now refuse to run on a modified
+tree or a failing baseline, and the round-5 file goes further: it mutates a throwaway `git worktree`
+and copies in only the files under test, so a sweep can no longer be seen by anything but itself.
 
 One corollary is worth stating separately, because it makes a passing suite actively misleading:
 **never condition a guard on the token it guards.** The exit-propagation rule was written

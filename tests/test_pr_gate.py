@@ -346,10 +346,126 @@ if os.path.exists(workflow):
     with open(workflow) as fh:
         wf = fh.read()
 
-    # Text, not a parse, on purpose: PyYAML is not a dependency of this suite (deps=[]), and
-    # the injection rule below is a property of the literal text anyway.
+    # Trailing comments, not just whole-line ones. The first version dropped only lines that
+    # *start* with `#`, which left every substring rule below satisfiable by a comment on the same
+    # line as the setting it contradicts: `fetch-depth: 1 # was fetch-depth: 0` passed the
+    # full-history rule, and `pip install requests # reqs, pinned elsewhere` passed the
+    # restated-dependency rule, because the excluded word was supplied by the prose. Quote-aware,
+    # so a `#` inside a string (`echo "a # b"`) is text and not a comment.
+    def uncomment(line):
+        out, quote = [], None
+        for i, ch in enumerate(line):
+            if quote:
+                out.append(ch)
+                if ch == quote:
+                    quote = None
+            elif ch in "\"'":
+                quote = ch
+                out.append(ch)
+            elif ch == "#" and (i == 0 or line[i - 1] in " \t"):
+                break
+            else:
+                out.append(ch)
+        return "".join(out).rstrip()
+
     def strip_comments(text):
-        return "\n".join(ln for ln in text.splitlines() if not ln.strip().startswith("#"))
+        return "\n".join(uncomment(ln) for ln in text.splitlines())
+
+    # Enough block YAML to read this workflow's *structure*, which regexes over its text cannot.
+    # A review defeated fourteen text-scoped rules at once, and every defeat exploited the gap
+    # between a rule's spelling and the property it meant: `"continue-on-error": true` slipped a
+    # regex over unquoted keys; `shell: "cat {0}"` made the step print the script instead of running
+    # it, and the rule enumerated only two keys; `if: false` appended after the `steps:` list landed
+    # outside the positional window that stood in for "the job"; a decoy job before the real one
+    # truncated that window entirely. None of those is an exotic shape — they are all just *keys*,
+    # which is what a parser sees and a substring cannot.
+    #
+    # Stdlib, because this suite declares no dependencies: the check that judges the workflow must
+    # not be the one that reports MISSING-DEP and skips. It refuses anything it cannot model rather
+    # than guessing, since a step whose keys the reader cannot see would satisfy every whitelist
+    # below by having no visible keys at all.
+    class YamlUnsupported(Exception):
+        pass
+
+    def _dequote(text):
+        return text[1:-1] if len(text) > 1 and text[0] == text[-1] and text[0] in "\"'" else text
+
+    def _parse_block(lines, i, min_indent):
+        """(value, next_index) for the block starting at or after `lines[i]`.
+
+        The block's own column is taken from its first line rather than assumed, because YAML only
+        requires a child to be deeper than its parent, not deeper by a fixed amount."""
+        # A sequence and a mapping cannot both start a block, so the first non-blank line decides.
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+        if i >= len(lines) or _col(lines[i]) < min_indent:
+            return None, i
+        indent = _col(lines[i])
+        if lines[i].strip().startswith("- "):
+            items = []
+            while i < len(lines):
+                if not lines[i].strip():
+                    i += 1
+                    continue
+                col = _col(lines[i])
+                if col < indent or not lines[i].strip().startswith("- "):
+                    break
+                rest = lines[i].strip()[2:]
+                if rest[:1] in ("{", "["):
+                    raise YamlUnsupported("flow collection in a sequence: %r" % lines[i])
+                inner = col + 2
+                if re.match(r"""^['"]?[\w.-]+['"]?\s*:""", rest):
+                    # `- key: value` — the item is a mapping whose first key shares this line.
+                    synthetic = [" " * inner + rest] + lines[i + 1:]
+                    value, consumed = _parse_block(synthetic, 0, inner)
+                    i = i + 1 + (consumed - 1)
+                    items.append(value)
+                else:
+                    items.append(_dequote(rest))
+                    i += 1
+            return items, i
+        mapping = {}
+        while i < len(lines):
+            if not lines[i].strip():
+                i += 1
+                continue
+            col = _col(lines[i])
+            if col < indent:
+                break
+            if col > indent:
+                raise YamlUnsupported("unexpected indent: %r" % lines[i])
+            m = re.match(r"""^['"]?([\w.$-]+)['"]?\s*:\s*(.*)$""", lines[i].strip())
+            if not m:
+                raise YamlUnsupported("not a mapping entry: %r" % lines[i])
+            key, rest = _dequote(m.group(1)), m.group(2)
+            if key in mapping:
+                raise YamlUnsupported("duplicate key %r would hide the first" % key)
+            if rest[:1] in ("&", "*") or rest.startswith("<<"):
+                raise YamlUnsupported("anchor, alias or merge key: %r" % lines[i])
+            if re.match(r"^[|>][-+]?$", rest):
+                # Block scalar: every deeper line, kept raw, because it is shell and not YAML.
+                body, i = [], i + 1
+                while i < len(lines) and (not lines[i].strip() or _col(lines[i]) > col):
+                    body.append(lines[i])
+                    i += 1
+                mapping[key] = "\n".join(body)
+            elif rest:
+                mapping[key] = rest
+                i += 1
+            else:
+                mapping[key], i = _parse_block(lines, i + 1, col + 1)
+        return mapping, i
+
+    def _col(line):
+        return len(line) - len(line.lstrip())
+
+    def parse_yaml(text):
+        if "\t" in text:
+            raise YamlUnsupported("tab in indentation")
+        lines = [uncomment(ln) for ln in text.splitlines()
+                 if ln.strip() != "---" and not ln.startswith("%")]
+        value, _ = _parse_block(lines, 0, 0)
+        return value or {}
 
     def run_contents(text):
         """Every shell line the workflow executes, whatever scalar style declared it.
@@ -374,31 +490,6 @@ if os.path.exists(workflow):
                     break
                 out.append(nxt)
         return out
-
-    # Every textual assertion below reads the comment-stripped body. A rule about what the job
-    # *does* must not be satisfiable by prose about what it does — and this file is heavily
-    # commented, precisely because each setting is load-bearing. The sweep proved the point:
-    # `fetch-depth: 0` is named in a comment two steps below the real setting, so flipping the
-    # setting to 1 left the substring in place and the guard passed.
-    body = strip_comments(wf)
-    on_block = body.split("jobs:")[0]
-    # `paths:` was the filter this workflow exists to avoid, but it is not the only one that makes
-    # the job skip — and a skipped job reports success. Deleting `pull_request:` outright is the
-    # shortest version of the same defect, so presence is asserted first.
-    check("the workflow triggers on pull_request at all",
-          re.search(r"^\s*pull_request:\s*$", on_block, re.M), on_block)
-    for filt in ("paths", "paths-ignore", "branches", "branches-ignore", "types"):
-        check(f"the pull_request trigger has no {filt} filter, which would skip the job and "
-              "read as a pass",
-              not re.search(r"""^\s*['"]?%s['"]?\s*:""" % filt, on_block, re.M), on_block)
-    check("that rule rejects each filter it names",
-          all(re.search(r"""^\s*['"]?%s['"]?\s*:""" % f, "on:\n  pull_request:\n    %s: [main]" % f,
-                        re.M)
-              for f in ("paths", "paths-ignore", "branches", "branches-ignore", "types")))
-    # A job-level `if:` skips every step at once, and a skipped job is green.
-    job_header = body.split("jobs:")[1].split("- name:")[0] if "jobs:" in body else ""
-    check("the job itself is not conditional",
-          not re.search(r"^\s{4}if:", job_header, re.M), job_header)
 
     # An invocation that is not `--requirements`, because that one resolves dependencies and
     # its exit code is not a verdict. Two rounds of this rule were vacuous: first it tested for
@@ -433,7 +524,13 @@ if os.path.exists(workflow):
             # The first word of the segment is what runs, so `echo`/`printf`/`:`/`true` there means
             # the script is an argument rather than a command. Arguments are required *within the
             # segment*: checking them line-wide let `--pr` sit in an echo beside a real `set --`.
-            if (words and script in seg and words[0] not in ("echo", "printf", ":", "true")
+            # `if`/`while`/`until`/`!` consume the command's status instead of letting it reach the
+            # job, so a wrapped invocation runs the real script and still cannot fail the step. The
+            # literal last-command rule used to reject those by accident; once that rule became a
+            # property ("one command executes the gate"), the keywords had to be named here.
+            if (words and script in seg
+                    and words[0] not in ("echo", "printf", ":", "true",
+                                         "if", "elif", "while", "until", "!")
                     and all(a in seg for a in args_required)
                     and not MASKED.match(tail.strip())):
                 return True
@@ -441,6 +538,72 @@ if os.path.exists(workflow):
 
     def invocations(script, args_required=()):
         return [ln for ln in run_contents(wf) if executes(ln, script, args_required)]
+
+
+    # Every textual assertion below reads the comment-stripped body. A rule about what the job
+    # *does* must not be satisfiable by prose about what it does — and this file is heavily
+    # commented, precisely because each setting is load-bearing. The sweep proved the point:
+    # `fetch-depth: 0` is named in a comment two steps below the real setting, so flipping the
+    # setting to 1 left the substring in place and the guard passed.
+    body = strip_comments(wf)
+    try:
+        doc = parse_yaml(wf)
+        parse_error = ""
+    except YamlUnsupported as exc:
+        doc, parse_error = {}, str(exc)
+    check("the workflow is in the subset this suite can read structurally, so no key is invisible "
+          "to the rules below", not parse_error, parse_error)
+
+    def flow_list(scalar):
+        return [w.strip().strip("'\"") for w in str(scalar).strip("[]").split(",") if w.strip()]
+
+    # `paths:` was the filter this workflow exists to avoid, but it is not the only one that makes
+    # the job skip — and a skipped job reports success. Read as keys rather than matched as text:
+    # naming five forbidden filters left every other one permitted, and the quoting the rule had to
+    # tolerate (`'paths':`) was a second spelling to remember. A whitelist needs neither.
+    on = doc.get("on") or {}
+    check("the workflow triggers on pull_request at all", "pull_request" in on, list(on))
+    pr_trigger = on.get("pull_request")
+    # `types` is allowed only as a superset of the default three, which cannot skip a PR that the
+    # default would have run. Rejecting it outright made the rule fire on a correct edit
+    # (`types: [opened, synchronize, reopened, ready_for_review]`), and a rule that fires on correct
+    # code is a rule someone deletes.
+    DEFAULT_TYPES = {"opened", "synchronize", "reopened"}
+    filters = sorted(set(pr_trigger or {}) - {"types"})
+    check("the pull_request trigger carries no filter that could skip the job and read as a pass",
+          not filters, filters)
+    # Unconditional, like every other rule here: writing this as `if "types" in trigger:` would make
+    # the suite's own check count depend on the workflow, so adding a `types:` filter would trip the
+    # count invariant — whose message asks the reader to update EXPECTED, i.e. to wave the filter
+    # through. Absent `types`, the effective set *is* the default, so the same assertion holds.
+    types = set(flow_list((pr_trigger or {}).get("types", ""))) or DEFAULT_TYPES
+    check("the trigger's event types are a superset of the default three, so no PR is skipped",
+          types >= DEFAULT_TYPES, types)
+
+    # The job that runs the gate, found by what its steps do rather than by position. The rule this
+    # replaces read "everything between `jobs:` and the first `- name:`" as a stand-in for the job,
+    # so `if: false` appended after the steps list was outside the window, and a decoy job whose
+    # first step preceded the real job's collapsed the window to nothing.
+    def step_runs(step, script, exclude=()):
+        return any(executes(ln, script) and not any(x in ln for x in exclude)
+                   for ln in run_contents("        run: |\n" + str(step.get("run", ""))))
+
+    def job_with(script, exclude=()):
+        found = [(name, job) for name, job in (doc.get("jobs") or {}).items()
+                 if any(step_runs(s, script, exclude) for s in (job.get("steps") or []))]
+        return found[0] if len(found) == 1 else (None, {})
+
+    gate_job_name, gate_job = job_with("scripts/ai/pr_gate.py",
+                                       exclude=("--requirements", "--list", "--help"))
+    check("exactly one job runs the gate", gate_job_name, list(doc.get("jobs") or {}))
+    # A whitelist of job keys, not a search for `if:`. `continue-on-error:` at job level, and
+    # `defaults: {run: {shell: …}}` — which replaces the shell for *every* step in the job and so
+    # needs no step edit at all — were both invisible to a rule that looked for one key.
+    JOB_KEYS = {"name", "runs-on", "timeout-minutes", "steps"}
+    check("the gate job carries only keys that cannot stop it running",
+          not sorted(set(gate_job) - JOB_KEYS), sorted(set(gate_job) - JOB_KEYS))
+    check("the workflow sets no defaults or env above the job, which would reach into every step",
+          not ({"defaults", "env"} & set(doc)), sorted({"defaults", "env"} & set(doc)))
 
     # Everything above reads one line, or one substring of the whole file. Neither can see the
     # *step* around a command, and that is where most of the ways to neutralise it live: a step
@@ -454,43 +617,50 @@ if os.path.exists(workflow):
     # job, while a whitelist only has to describe the one way it is allowed to work. The cost is
     # that a legitimate edit to either step must update the rule — acceptable for two steps whose
     # entire purpose is to be hard to defang, and the failure names the constraint it broke.
-    def steps_of(text):
-        out, cur = [], None
-        for ln in strip_comments(text).splitlines():
-            if re.match(r"^      - (name|uses):", ln):
-                if cur is not None:
-                    out.append("\n".join(cur))
-                cur = [ln]
-            elif cur is not None:
-                cur.append(ln)
-        if cur is not None:
-            out.append("\n".join(cur))
-        return out
-
-    def step_running(text, script, exclude=()):
-        """The unique step that executes `script`, or None if zero or several do."""
-        found = [s for s in steps_of(text)
-                 if any(executes(ln, script) and not any(x in ln for x in exclude)
-                        for ln in run_contents(s))]
-        return found[0] if len(found) == 1 else None
-
-    def commands(step):
-        return [ln.strip() for ln in run_contents(step) if ln.strip()]
-
+    #
+    # The first version of that whitelist split steps with a regex on `^      - (name|uses):` and
+    # asked about keys with another regex. Fourteen mutations walked through it — a quoted key, an
+    # unenumerated key, a key appended after the steps list, a decoy job — so the steps now come
+    # from parse_yaml above and the rules read the mapping. What the whitelist permits did not
+    # change; what it can *see* did.
     # `--requirements` and `--list` are excluded because neither exit code is a verdict: a step
     # left running only one of those would satisfy "the gate runs" while checking nothing.
-    gate_step = step_running(wf, "scripts/ai/pr_gate.py",
+    def steps_named(job, script, exclude=()):
+        return [s for s in (job.get("steps") or []) if step_runs(s, script, exclude)]
+
+    def shell_of(step):
+        return [ln.strip() for ln
+                in run_contents("        run: |\n" + str(step.get("run", ""))) if ln.strip()]
+
+    def pure_echo(ln):
+        """One segment, and that segment is an echo. `startswith("echo ")` was a *prefix* test, so
+        `echo "disabled" && exit 0` and `echo "shim"; python() { return 0; }` both satisfied it while
+        making the gate that follows either unreachable or a no-op."""
+        segs = parts(ln)
+        return len(segs) == 1 and segs[0][0].split()[:1] == ["echo"]
+
+    found_gate = steps_named(gate_job, "scripts/ai/pr_gate.py",
                              exclude=("--requirements", "--list", "--help"))
-    check("exactly one step runs the gate for a verdict", gate_step, wf)
-    if gate_step:
-        cmds = commands(gate_step)
-        check("the gate step is not conditional and cannot fail without failing the job",
-              not re.search(r"^\s+(if|continue-on-error):", gate_step, re.M), gate_step)
+    check("exactly one step runs the gate for a verdict", len(found_gate) == 1, len(found_gate))
+    if len(found_gate) == 1:
+        gate_step = found_gate[0]
+        cmds = shell_of(gate_step)
+        # Keys, exactly: `if:`/`continue-on-error:` were the two a regex looked for, but `shell:`
+        # ("cat {0}" makes the runner print the script instead of executing it) and `env:`
+        # (re-pointing SEL at an empty selection) neutralise the step just as completely, and no
+        # enumeration of bad keys would have named them all.
+        check("the gate step carries only a name and a script, so nothing can skip, tolerate or "
+              "reinterpret it", sorted(gate_step) == ["name", "run"], sorted(gate_step))
         check("the gate step aborts on the first error", cmds[:1] == ["set -euo pipefail"], cmds)
-        check("the gate invocation is the step's last command, unwrapped and unmasked",
-              cmds[-1:] == ["python scripts/ai/pr_gate.py ${SEL}"], cmds)
-        check("nothing between them can swallow the verdict",
-              all(ln.startswith("echo ") for ln in cmds[1:-1]), cmds)
+        # Property, not spelling: exactly one command must *execute* the gate with its status still
+        # reaching the job. Pinning the last line to one literal rejected two correct edits — a
+        # re-raising handler (`|| { echo "::error::…"; exit 1; }`, which this suite separately
+        # asserts is not masking) and a trailing `echo "::notice::"`, unreachable under `set -e`.
+        runs_gate = [ln for ln in cmds if executes(ln, "scripts/ai/pr_gate.py")]
+        check("one command executes the gate with its verdict reaching the job",
+              len(runs_gate) == 1, cmds)
+        check("every other command is a bare echo, which cannot swallow the verdict",
+              all(pure_echo(ln) for ln in cmds[1:] if ln not in runs_gate), cmds)
     # Selection is the other way to make a passing gate meaningless: `--base HEAD` is an empty diff,
     # and an empty diff selects nothing and exits 0. So SEL may only be built two ways.
     # Both the assignments *and* the export: the gate runs in a different step and receives the
@@ -523,24 +693,45 @@ if os.path.exists(workflow):
     # the two things that shape depends on are pinned instead — the condition it may carry, and the
     # capture of the real exit code, which `code=0` would otherwise replace while leaving the
     # `-ne 2` comparison below intact and passing.
-    scope_step = step_running(wf, "scripts/ai/check_branch_scope.py")
-    check("exactly one step runs branch scope", scope_step, wf)
-    if scope_step:
-        check("branch scope cannot fail without failing the job",
-              "continue-on-error" not in scope_step, scope_step)
+    found_scope = steps_named(gate_job, "scripts/ai/check_branch_scope.py")
+    check("exactly one step runs branch scope", len(found_scope) == 1, len(found_scope))
+    if len(found_scope) == 1:
+        scope_step = found_scope[0]
+        SCOPE_KEYS = {"name", "if", "env", "run"}
+        check("branch scope carries only keys its shape needs",
+              not sorted(set(scope_step) - SCOPE_KEYS), sorted(set(scope_step) - SCOPE_KEYS))
         check("branch scope runs on pull requests, the only event with a PR number",
-              re.search(r"^\s+if: github\.event_name == 'pull_request'\s*$", scope_step, re.M),
-              scope_step)
-        seq = commands(scope_step)
+              scope_step.get("if") == "github.event_name == 'pull_request'", scope_step.get("if"))
+        # The env is pinned per key, because these four values decide which branch the step takes
+        # and what it compares: pinning `CROSS`'s *expression* is what stops a hardcoded `CROSS:
+        # "true"` sending every PR down the fork path, where --pr — and with it signal 2 — is gone.
+        SCOPE_ENV = {
+            "PR": "${{ github.event.pull_request.number }}",
+            "BASE_REF": "${{ github.base_ref }}",
+            "CROSS": "${{ github.event.pull_request.head.repo.full_name != github.repository }}",
+            "GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+        }
+        check("the inputs that decide its comparison are the real event values",
+              (scope_step.get("env") or {}) == SCOPE_ENV, scope_step.get("env"))
+        seq = shell_of(scope_step)
         called = [i for i, ln in enumerate(seq)
-                  if executes(ln, "scripts/ai/check_branch_scope.py") and "#" not in ln]
+                  if executes(ln, "scripts/ai/check_branch_scope.py")]
         check("the checker is invoked as a bare command", called, seq)
         check("its real exit code is what the retry loop reads",
               all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
-        # Pinned because dropping it silently reintroduces an unauthenticated `git fetch` inside
-        # the checker, which passes on a public repo and fails on a private or mirrored one.
+        # The fork branch is the one without --pr, so a condition that is always true sends every
+        # PR down it and loses STACKED permanently while `set -- --pr` survives, unreachable, in the
+        # else. Textual rules could see the flag but not which branch runs.
+        check("the fork branch is taken only for a genuine cross-repository PR",
+              [ln for ln in seq if ln == 'if [ "${CROSS}" = "true" ]; then'], seq)
+        # A property, not a mechanism: the earlier rule pinned `set --` as the way the flag is
+        # assembled, which rejected the equivalent (and clearer) edit of putting it on the
+        # invocation. What matters is that the flag reaches the checker, however the args are built.
+        no_fetch = [ln for ln in seq
+                    if executes(ln, "set --", ["--no-fetch"])
+                    or executes(ln, "check_branch_scope.py", ["--no-fetch"])]
         check("the checker does not fetch, since checkout already did so authenticated",
-              [ln for ln in seq if executes(ln, "set --", ["--no-fetch"])], seq)
+              no_fetch, seq)
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
     # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
@@ -566,19 +757,72 @@ if os.path.exists(workflow):
     # control that only re-states its own input tests nothing: the previous `continue-on-error`
     # control asserted the string was in a string containing it, which no change to the rule could
     # ever fail.
-    MUTANTS = {
-        "a conditional gate step": "      - name: Run the gate\n        if: false\n"
-                                   "        run: |\n          set -euo pipefail\n"
-                                   "          python scripts/ai/pr_gate.py ${SEL}\n",
+    # Each control runs the *real* predicate over a mutated workflow, because the versions these
+    # replace fed a mutated step to a rule that no longer exists: they asserted a regex for
+    # `if|continue-on-error` still matched, while the assertion above had become a key whitelist.
+    # A control for a retired rule reports on nothing and keeps reporting PASS.
+    def gate_step_of(text):
+        _, job = None, None
+        try:
+            parsed = parse_yaml(text)
+        except YamlUnsupported:
+            return None, {}
+        for job in (parsed.get("jobs") or {}).values():
+            hits = [s for s in (job.get("steps") or [])
+                    if step_runs(s, "scripts/ai/pr_gate.py",
+                                 ("--requirements", "--list", "--help"))]
+            if hits:
+                return hits[0], job
+        return None, {}
+
+    STEP_MUTANTS = {
+        "a conditional gate step": ("        run: |", "        if: false\n        run: |"),
         "a gate step that tolerates failure":
-            "      - name: Run the gate\n        continue-on-error: true\n"
-            "        run: |\n          set -euo pipefail\n"
-            "          python scripts/ai/pr_gate.py ${SEL}\n",
+            ("        run: |", "        continue-on-error: true\n        run: |"),
+        "a quoted key the old regex could not see":
+            ("        run: |", '        "continue-on-error": true\n        run: |'),
+        "a step whose shell prints the script instead of running it":
+            ("        run: |", '        shell: "cat {0}"\n        run: |'),
+        "a step env that re-points the selection":
+            ("        run: |", '        env:\n          SEL: "--all --dry-run"\n        run: |'),
     }
-    for label, text in MUTANTS.items():
-        step = step_running(text, "scripts/ai/pr_gate.py")
-        check(f"the step rules reject {label}",
-              step and re.search(r"^\s+(if|continue-on-error):", step, re.M))
+    for label, (anchor, repl) in STEP_MUTANTS.items():
+        mutant, _ = gate_step_of(wf.replace("      - name: Run the gate\n" + anchor,
+                                            "      - name: Run the gate\n" + repl, 1))
+        check(f"the gate-step key rule rejects {label}",
+              mutant is not None and sorted(mutant) != ["name", "run"], sorted(mutant or {}))
+    JOB_MUTANTS = {
+        "a job that tolerates failure": "    continue-on-error: true",
+        "a job that never runs": "    if: false",
+        "a job default shell that swallows every step": "    defaults:\n      run:\n"
+                                                        '        shell: "cat {0}"',
+    }
+    # Anchored on the gate job's own header rather than the first `runs-on:` in the file, so these
+    # controls keep landing on the job under test if another job is ever added above it.
+    GATE_HEADER = "  %s:\n    name: %s" % (gate_job_name, gate_job.get("name"))
+    for label, extra in JOB_MUTANTS.items():
+        _, job = gate_step_of(wf.replace(GATE_HEADER, GATE_HEADER + "\n" + extra, 1))
+        check(f"the job key rule rejects {label}", sorted(set(job) - JOB_KEYS), sorted(job))
+    check("the job rule sees a key appended after the steps list, which a positional window missed",
+          sorted(set(gate_step_of(wf + "    if: false\n")[1]) - JOB_KEYS) == ["if"])
+    check("a decoy job before the real one no longer hides it",
+          sorted(set(gate_step_of(
+              wf.replace("jobs:\n  gate:", "jobs:\n  noop:\n    runs-on: ubuntu-latest\n"
+                         "    steps:\n      - name: nothing\n        run: echo ok\n\n  gate:", 1)
+          )[1]) - JOB_KEYS) == [])
+    # The parser's refusals are what make every whitelist above honest: a shape it cannot model is
+    # a step whose keys are invisible, which would satisfy "only these keys" by having none.
+    for bad, why in (("jobs:\n  gate:\n    steps:\n      - { name: x, run: echo hi }\n",
+                      "a flow-style step"),
+                     ("a: &anchor 1\nb: *anchor\n", "an anchor or alias"),
+                     ("a: 1\na: 2\n", "a duplicate key"),
+                     ("a:\n\t- 1\n", "a tab")):
+        try:
+            parse_yaml(bad)
+            refused = False
+        except YamlUnsupported:
+            refused = True
+        check(f"the reader refuses {why} rather than reading past it", refused)
     TRAILING = {
         "a masked verdict": "python scripts/ai/pr_gate.py ${SEL} || echo warn",
         "a backgrounded gate": "python scripts/ai/pr_gate.py ${SEL} &",
@@ -586,13 +830,22 @@ if os.path.exists(workflow):
         "a verdict eaten by substitution": 'true "$(python scripts/ai/pr_gate.py ${SEL})"',
         "an inline comment in place of the call":
             "set -euo pipefail # TODO: re-enable python scripts/ai/pr_gate.py ${SEL}",
-        "a heredoc that only prints the call": "EOF",
+        "a gate wrapped in a while loop": "while python scripts/ai/pr_gate.py ${SEL}; do :; done",
+        "a gate wrapped in until": "until python scripts/ai/pr_gate.py ${SEL}; do break; done",
+        "a negated gate": "! python scripts/ai/pr_gate.py ${SEL}",
     }
     for label, last in TRAILING.items():
-        check(f"the last-command rule rejects {label}",
-              [last] != ["python scripts/ai/pr_gate.py ${SEL}"])
-    check("the between-commands rule rejects an appended exit 0",
-          not all(ln.startswith("echo ") for ln in ["set +e", "exit 0"]))
+        check(f"the executed-gate rule rejects {label}",
+              not executes(strip_comments(last), "scripts/ai/pr_gate.py"))
+    # The between-commands rule is now "a bare echo", not "starts with echo": the prefix form
+    # accepted a line that echoes and then does anything at all.
+    for label, ln in (("an appended exit 0", "exit 0"),
+                      ("an echo that then exits", 'echo "disabled" && exit 0'),
+                      ("an echo that then shadows the interpreter",
+                       'echo "shim"; python() { return 0; }'),
+                      ("an echo piped into a shell", 'echo "$CMD" | bash')):
+        check(f"the between-commands rule rejects {label}", not pure_echo(ln))
+    check("that rule still accepts a plain progress echo", pure_echo('echo "running the gate"'))
     check("masking is judged on what follows the command, not the whole line, so a cleanup "
           "before the real call is still accepted",
           executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
@@ -644,11 +897,34 @@ if os.path.exists(workflow):
 
     # fetch-depth: 0 is load-bearing, not hygiene: on a shallow clone the merge-base diff has
     # no base to resolve against, so selection would come up empty and the gate would pass by
-    # having checked nothing.
-    check("history is fetched in full, so the merge base resolves", "fetch-depth: 0" in body)
-    check("that rule is not satisfied by a comment mentioning the setting",
-          "fetch-depth: 0" not in strip_comments("        # fetch-depth: 0 is why this works\n"
-                                                 "          fetch-depth: 1\n"))
+    # having checked nothing. Read from the step's `with:` rather than matched as a substring —
+    # `fetch-depth: 1 # was fetch-depth: 0` satisfied the substring form.
+    checkouts = [s for s in (gate_job.get("steps") or [])
+                 if str(s.get("uses", "")).startswith("actions/checkout")]
+    depths = [str((s.get("with") or {}).get("fetch-depth")) for s in checkouts]
+    check("history is fetched in full, so the merge base resolves", depths == ["0"], depths)
+    # And the coupling, asserted rather than assumed: passing --no-fetch to the checker is only safe
+    # because *this job* fetched full history moments earlier. Two settings in different steps, one
+    # guarantee — if a future edit shallows the clone, the checker would compare against a stale
+    # base and report clean, which test_branch_scope.py calls "the trap" precisely because it is a
+    # silent exit 0 rather than an error.
+    if len(found_scope) == 1:
+        check("the step that skips fetching is in the same job as the full-history checkout",
+              bool(no_fetch) and depths == ["0"] and found_scope[0] in (gate_job.get("steps") or []),
+              f"no_fetch={bool(no_fetch)}, depths={depths}")
+
+    # The selection's *input*, not just its spelling. SEL is pinned to `--base ${BASE}` below, and
+    # BASE is whatever this step wrote: `echo "ref=HEAD"` left both permitted SEL lines untouched
+    # and made the diff `HEAD...HEAD`, so the gate selected nothing and passed.
+    ALLOWED_REF = ('echo "ref=" >> "$GITHUB_OUTPUT"',
+                   'echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"')
+    ref_lines = [ln.strip() for ln in run_contents(wf) if "ref=" in ln and "GITHUB_OUTPUT" in ln]
+    check("the base the selection diffs against is the real base ref, or empty for a dispatch",
+          ref_lines and all(ln in ALLOWED_REF for ln in ref_lines), ref_lines)
+    for mutant in ('echo "ref=HEAD" >> "$GITHUB_OUTPUT"',
+                   'echo "ref=origin/main" >> "$GITHUB_OUTPUT"'):
+        check(f"that rule rejects a neutralised base: {mutant.split('=')[1].split(chr(34))[0]}",
+              mutant not in ALLOWED_REF)
 
     # Derived from the matrix, not asserted as a constant: a check whose min_python exceeds the
     # runner reports MISSING-DEP, and a missing dependency *fails* the gate. The first version
@@ -1294,7 +1570,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 194
+EXPECTED = 216
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
