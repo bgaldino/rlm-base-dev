@@ -369,7 +369,13 @@ topmost new directory, not even the leaf — so every file in a new subtree was 
 suffix and deeper-prefix triggers while the report still said uncommitted work was covered.
 Exit 0 all selected gating checks passed, 1 at least
 one failed, 2 usage or tool error (matching `check_branch_scope.py`, so a tool error is
-never read as a verdict).
+never read as a verdict). That contract is only worth having if it holds everywhere: the
+CCI-reference check returned 1 when its `git status` failed, presenting an unusable git as a
+failed check while the two calls in `changed_files()` already died, and a command that could not
+be spawned at all raised `OSError` out of `run()` and escaped as a traceback, which the
+interpreter turns into exit 1. Both are exit 2 now. A **timeout** deliberately stays a check
+failure: a check that hangs is a property of the change under test, unlike an interpreter that
+will not start.
 
 What it deliberately does not cover: `check_branch_scope.py --pr <n>` itself. The matrix runs
 that checker's *tests*, which is a path-selectable thing, but the per-PR branch verification
@@ -381,7 +387,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (128 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (131 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -391,7 +397,9 @@ short-circuiting, a drifting CumulusCI pin, an emptied trigger list, a usage err
 a dropped Python floor, a dropped requirements pin, renames collapsed to the destination
 only, the per-check timeout removed, advisory output truncated from the tail again, the
 dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, either
-`git status` return code left unchecked — which matters because a failed `git status` returns
+`git status` return code left unchecked or the drift one downgraded from a tool error to a
+verdict, an unspawnable command left to escape as a traceback, a timeout reclassified as a tool
+error — which matters because a failed `git status` returns
 empty stdout, indistinguishable from a clean tree, so it would drop uncommitted paths from
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,

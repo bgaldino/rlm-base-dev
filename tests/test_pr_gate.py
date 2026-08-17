@@ -844,9 +844,42 @@ check("both git status call sites are still present", status_calls == 2, status_
 check("changed_files dies when git status fails",
       re.search(r'"git", "status", "--porcelain", "--untracked-files=all", "-z"'
                 r'.*?if st\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
-check("the drift check fails when git status fails",
+check("the drift check dies when git status fails",
       re.search(r'"git", "status", "--porcelain", "--", \*generated.*?'
-                r'if diff\.returncode != 0:\s*\n\s*return 1,', source, re.S) is not None)
+                r'if diff\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
+
+# ...and the exit code, not only the shape of the branch. Returning 1 here presented an
+# unusable git as a failed check — an infrastructure problem wearing a code verdict — while the
+# two calls in changed_files() already died. The generator is stubbed out because with a broken
+# root it fails first and the status branch is never reached.
+no_repo = tempfile.mkdtemp()
+prior_root, prior_run = pr_gate.REPO_ROOT, pr_gate.run
+try:
+    pr_gate.REPO_ROOT = no_repo
+    pr_gate.run = lambda cmd: (0, "", 0.0)
+    try:
+        pr_gate.run_cci_reference_drift()
+        drift_code = 0
+    except SystemExit as exc:
+        drift_code = exc.code
+finally:
+    pr_gate.REPO_ROOT, pr_gate.run = prior_root, prior_run
+    os.rmdir(no_repo)
+check("an unusable git makes the drift check a tool error (exit 2), not a failed check",
+      drift_code == 2, drift_code)
+
+# The same class one layer down: a command that cannot be spawned at all raised OSError out of
+# run(), escaped main() as a traceback, and left the interpreter exiting 1 — a tool error read
+# as a gating failure, the very confusion the 0/1/2 contract exists to prevent.
+try:
+    pr_gate.run(["a_binary_that_does_not_exist_anywhere", "x"])
+    spawn_code = 0
+except SystemExit as exc:
+    spawn_code = exc.code
+check("an unspawnable command is a tool error (exit 2), not a traceback",
+      spawn_code == 2, spawn_code)
+check("a timeout stays a check failure, since a hanging check is the change's own doing",
+      re.search(r'except subprocess\.TimeoutExpired:.*?return 1,', source, re.S) is not None)
 
 broken_git = tempfile.mkdtemp()
 try:
@@ -873,7 +906,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 128
+EXPECTED = 131
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

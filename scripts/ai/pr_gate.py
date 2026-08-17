@@ -212,7 +212,8 @@ CHECKS = [
     dict(
         # 30 pytest suites under tests/build_harness/ and tests/txn_data_harness/ that no
         # check ran and no report mentioned, because discovery used a non-recursive listing.
-        # 512 pass; build_harness needs 3.11+ for enum.StrEnum. Running them found a real
+        # They pass; build_harness needs 3.11+ for enum.StrEnum. No count here on purpose —
+        # nothing offline can verify one, and it had already drifted once. Running them found a real
         # 264 regression: test_cli.py still asserted api-version 67.0 after commit 66f193f9
         # bumped the harness to 68.0 — a stale assertion nothing had executed since.
         name="harness_suites",
@@ -429,7 +430,11 @@ def run(cmd):
         proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True,
                               timeout=CHECK_TIMEOUT)
     except subprocess.TimeoutExpired:
+        # A timeout stays a check failure, not a tool error: a check that hangs is a property
+        # of the change under test, unlike an interpreter that will not start.
         return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"), time.time() - started
+    except OSError as exc:
+        die(f"could not run {argv[0]!r}: {exc}")
     return proc.returncode, proc.stdout + proc.stderr, time.time() - started
 
 
@@ -451,10 +456,12 @@ def run_cci_reference_drift():
     diff = subprocess.run(["git", "status", "--porcelain", "--", *generated],
                           cwd=REPO_ROOT, capture_output=True, text=True)
     # Here the empty-output-means-clean trap is worse than in changed_files: this git status
-    # *is* the verdict, so a failed one reads as "no drift" and passes the check.
+    # *is* the verdict, so a failed one reads as "no drift" and passes the check. It dies
+    # rather than returning 1, matching the two calls in changed_files(): an unusable git is
+    # exit 2, a tool error, and reporting it as a failed check would present an infrastructure
+    # problem as a code verdict.
     if diff.returncode != 0:
-        return 1, (out + "\ngit status failed, so drift could not be determined:\n"
-                   + diff.stderr), secs
+        die(f"git status failed, so drift could not be determined: {diff.stderr.strip()}")
     if diff.stdout.strip():
         return 1, (out + "\nRegenerating changed committed files — commit the result:\n"
                    + diff.stdout), secs
