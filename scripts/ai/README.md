@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (192 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (194 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,26 +440,29 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Fifty-three** more break the CI workflow instead of the driver, all
+directory counted as a read). **Fifty-seven** more break the CI workflow instead of the driver, all
 killed, in eight families: the job never runs (a `paths:`/`paths-ignore:`/`branches:`/`types:`
 filter, `pull_request:` deleted from `on:`, an `if:` on the job or on either step, `if: false`,
 `if: vars.X`); dependencies drift (a pin restated in place of `--requirements` in any of four
-spellings, the `--requirements` call removed); the diff is empty (the clone made shallow,
-`SEL="--base HEAD"`); the environment is wrong (the Python floor dropped below the matrix);
+spellings, the `--requirements` call removed); the diff is empty (the clone made shallow, or
+`SEL` neutralised to `--base HEAD` — in either local assignment *or* in the `$GITHUB_ENV` export,
+which is the line the separate gate step actually reads, and the one a rule that looked only for
+`SEL=…` assignments never saw); the environment is wrong (the Python floor dropped below the matrix);
 untrusted input reaches the shell (`${{ }}` moved into a `run:` step in each of its three scalar
 styles); either command is present but not run (echoed, inside a heredoc, behind a shell flag,
 wrapped in `if …; then`, replaced by an inline trailing comment, or replaced by `--list`/`--help`,
 whose exit codes are not verdicts); the command runs but its verdict is discarded (`|| true`,
 `|| :`, `|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
 dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
-`code=0`); and the checker is defanged (`--pr` stripped, or left only in an `echo` beside a real
+`code=0`); and the checker is defanged (backgrounded with `&`, so `$?` is the fork's status and the
+real script still runs and still reports success; `--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
 moved off `pull_request`; the retry loop replaced by a one-shot that captures `$?` and never
 exits with it; `--no-fetch` dropped, which reinstates an unauthenticated `git fetch` that passes on
 a public repo and fails on a private one). Plus the two that remove the guard itself: the workflow dropped from
 this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **thirty-eight of these guards were vacuous on the first
+The doubled shapes are there because **forty of these guards were vacuous on the first
 attempt, every one the same shape**: the rule tested that a string appeared *somewhere* rather than
 that
 the job *did* something. Deleting the gate step left its name on the `--requirements` line;
@@ -491,12 +494,17 @@ to break the job, a whitelist only has to describe the one way it may work. The 
 legitimate edit to those two steps must update the rule — acceptable for two steps whose purpose is
 to be hard to defang.
 
-Two of the thirty-eight were caught by the mutation sweep and thirty-six by review, each time *after*
-a sweep reported every mutation killed — three rounds running. A sweep only mutates in the shapes
+Two of the forty were caught by the mutation sweep and thirty-eight by review, each time *after*
+a sweep reported every mutation killed — four rounds running. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
-then echoes, then masking, then the step and trigger levels the rules never read at all. The
-durable lesson is not any one of those shapes; it is that "all mutations killed" is evidence about
-the sweep, and a guard is only as good as the narrowest question it asks.
+then echoes, then masking, then the step and trigger levels the rules never read at all, and finally
+the two shapes a whitelist of *permitted commands* still cannot see — a permitted command whose
+status the shell throws away (`&`), and a value that crosses a step boundary through `$GITHUB_ENV`
+rather than appearing in the step being read. The durable lesson is not any one of those shapes; it
+is that "all mutations killed" is evidence about the sweep, and a guard is only as good as the
+narrowest question it asks. The corpus is kept at `.agents/artifacts/sweeps/` for that reason: both
+files now refuse to run on a modified tree or a failing baseline, because this corpus once reported
+21/25 with two anchors "missing" against a workflow one line off HEAD, and 25/25 once restored.
 
 One corollary is worth stating separately, because it makes a passing suite actively misleading:
 **never condition a guard on the token it guards.** The exit-propagation rule was written

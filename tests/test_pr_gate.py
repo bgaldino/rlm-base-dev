@@ -415,12 +415,16 @@ if os.path.exists(workflow):
     # legitimately mask an unrelated command before running the real one
     # (`rm -f gate.log || true; python …pr_gate.py`), and rejecting that would make the rule fire
     # on correct code — which is how a rule gets deleted.
-    MASKED = re.compile(r"^(?:\|\||;)\s*(?:true|:|/bin/true|command\s+true|builtin\s+true|echo"
-                        r"|exit\s+0)(?=\s|;|$)")
+    # A bare `&` is masking too, and the sneakiest kind: `cmd &` exits 0 immediately because `$?`
+    # is the fork's status, not the command's, so a backgrounded checker reports success while
+    # still being a real invocation of the real script. `&&` is a separate token in the split
+    # below, so the negative lookahead keeps ordinary chains acceptable.
+    MASKED = re.compile(r"^(?:(?:\|\||;)\s*(?:true|:|/bin/true|command\s+true|builtin\s+true"
+                        r"|echo|exit\s+0)(?=\s|;|$)|&(?!&))")
 
     def parts(ln):
         """Each shell segment of a line, paired with the text that follows it."""
-        pieces = re.split(r"(&&|\|\||;|\|)", ln)
+        pieces = re.split(r"(&&|\|\||;|\||&)", ln)
         return [(pieces[i], "".join(pieces[i + 1:])) for i in range(0, len(pieces), 2)]
 
     def executes(ln, script, args_required=()):
@@ -489,11 +493,25 @@ if os.path.exists(workflow):
               all(ln.startswith("echo ") for ln in cmds[1:-1]), cmds)
     # Selection is the other way to make a passing gate meaningless: `--base HEAD` is an empty diff,
     # and an empty diff selects nothing and exits 0. So SEL may only be built two ways.
-    sel = [ln.strip() for ln in run_contents(wf) if re.match(r"^\s*SEL=", ln.strip())]
-    check("the selection is either the whole repo or the real base",
-          sel and all(ln in ('SEL="--all"', 'SEL="--base ${BASE}"') for ln in sel), sel)
-    check("that rule rejects a neutralised selection",
-          'SEL="--base HEAD"' not in ('SEL="--all"', 'SEL="--base ${BASE}"'))
+    # Both the assignments *and* the export: the gate runs in a different step and receives the
+    # value through $GITHUB_ENV, so a rule that reads only `SEL=…` assignments leaves the line that
+    # actually reaches the gate unchecked — `echo "SEL=--base HEAD" >> "$GITHUB_ENV"` neutralised
+    # the whole gate with both permitted assignments still in place.
+    ALLOWED_SEL = ('SEL="--all"', 'SEL="--base ${BASE}"',
+                   'echo "SEL=${SEL}" >> "$GITHUB_ENV"')
+
+    def sel_lines(text):
+        return [ln.strip() for ln in run_contents(text) if "SEL=" in ln]
+
+    sel = sel_lines(wf)
+    check("every line that sets or exports the selection names the whole repo or the real base",
+          sel and all(ln in ALLOWED_SEL for ln in sel), sel)
+    for label, mutant in (("a neutralised assignment", 'SEL="--base HEAD"'),
+                          ("a neutralised export",
+                           'echo "SEL=--base HEAD" >> "$GITHUB_ENV"'),
+                          ("an export that drops the variable",
+                           'echo "SEL=--all" >> "$GITHUB_ENV"')):
+        check(f"that rule rejects {label}", not all(ln in ALLOWED_SEL for ln in [mutant]))
     # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
     # half-defanged invocation would otherwise read as fully wired. The flag is asserted over the
     # executed shell rather than on the invocation line, because the workflow builds the argument
@@ -1276,7 +1294,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 192
+EXPECTED = 194
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
