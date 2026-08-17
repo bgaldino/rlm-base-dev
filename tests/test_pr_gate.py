@@ -407,11 +407,31 @@ if os.path.exists(workflow):
                                         'scripts/ai/pr_gate.py --requirements)"\n')
                if "scripts/ai/pr_gate.py" in ln and "--requirements" not in ln])
     # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
-    # half-defanged invocation would otherwise read as fully wired. The fork path in the
-    # workflow deliberately uses --base/--head instead, which is why this asks for one
-    # --pr invocation rather than for every invocation to carry it.
-    check("branch scope is executed with --pr, which is what gets both signals",
-          invocations("scripts/ai/check_branch_scope.py", ["--pr"]), run_contents(wf))
+    # half-defanged invocation would otherwise read as fully wired. The flag is asserted over the
+    # executed shell rather than on the invocation line, because the workflow builds the argument
+    # list first (`set -- --pr …`) to share one retry loop with the fork path.
+    shell = "\n".join(run_contents(wf))
+    check("branch scope is executed", invocations("scripts/ai/check_branch_scope.py"), shell)
+    # Where the flag appears, not merely that it appears in an executed line. Searching the whole
+    # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
+    # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
+    # comment-stripping is not enough, since a string inside an echo is executed and still inert.
+    pr_form = [ln for ln in run_contents(wf)
+               if re.search(r"(set --|check_branch_scope\.py)[^#]*--pr\b", ln)]
+    check("--pr reaches the checker as an argument, which is what gets both signals",
+          pr_form, shell)
+    check("that rule is not satisfied by an echo that merely mentions the flag",
+          not [ln for ln in run_contents('        run: echo "STACKED needs --pr and is off"\n')
+               if re.search(r"(set --|check_branch_scope\.py)[^#]*--pr\b", ln)])
+    # The retry loop is only sound because of the exit contract: 2 is a tool error and worth
+    # another attempt, 0 and 1 are verdicts and final. Widening that comparison would turn three
+    # attempts into three chances to miss a real FOREIGN/STACKED finding, so the shape is pinned.
+    if "while" in shell:
+        check("only a tool error is retried, so no verdict gets a second chance",
+              re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi', shell), shell)
+        check("that rule rejects a loop that retries a verdict",
+              not re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi',
+                            'if [ "$code" -eq 0 ]; then exit "$code"; fi'))
 
     # Every pip install must come from --requirements. Checking for two literal pin spellings
     # missed `cumulusci~=4.8.1` and `setuptools<77`; naming the operators would still miss an
@@ -1085,7 +1105,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 152
+EXPECTED = 156
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

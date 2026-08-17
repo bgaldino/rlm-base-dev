@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (152 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (156 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,22 +440,27 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). Eighteen more break the CI workflow instead of the driver, all
+directory counted as a read). Twenty more break the CI workflow instead of the driver, all
 killed: a `paths:` filter added (bare or quoted), a pin restated in place of `--requirements`
 (`==`, `~=`, `<`, or unpinned), the `--requirements` call removed, the clone made shallow, the
 Python floor dropped below the matrix, `${{ }}` moved into a `run:` step in each of its three
 scalar styles, the gate step and the branch-scope step each gutted — twice over, once cleanly
 and once leaving the script's name behind in a comment — the branch-scope call stripped of
-`--pr`, the workflow dropped from this check's own triggers, and the file deleted.
+`--pr`, the retry loop widened to swallow a verdict or stripped of its condition, the workflow
+dropped from this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **four of these guards were vacuous on the first attempt,
-each in the same way**: the rule tested that a string appeared *somewhere* in the file. Deleting
-the gate step left its name on the `--requirements` line; deleting it and leaving a `# TODO`
-comment defeated the narrower replacement; the branch-scope rule never excluded comments at all;
-and flipping `fetch-depth: 0` to `1` passed because a comment two steps below still said
-`fetch-depth: 0`. Only the last of the four was found by the mutation sweep — the other three
-were found by review after the sweep had reported the suite complete, which is the argument for
-both practices rather than either. The first round of mutations found two live holes in these tests,
+The doubled shapes are there because **five of these guards were vacuous on the first attempt,
+every one the same shape**: the rule tested that a string appeared *somewhere* rather than that
+the job *did* something. Deleting the gate step left its name on the `--requirements` line;
+deleting it and leaving a `# TODO` comment defeated the narrower replacement; the branch-scope
+rule never excluded comments at all; flipping `fetch-depth: 0` to `1` passed because a comment
+two steps below still said `fetch-depth: 0`; and removing `--pr` passed because the fork branch
+*echoes* the words "needs `--pr`" while explaining its own absence — which is the useful
+correction to the obvious lesson, since that string is neither a comment nor inert-looking. It
+is executed, and still proves nothing. The rules now ask where a token appears, not whether.
+Two of the five were caught by the mutation sweep and three by review *after* the sweep reported
+every mutation killed, because a sweep can only mutate in the shapes its author already imagined.
+The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
 given above.

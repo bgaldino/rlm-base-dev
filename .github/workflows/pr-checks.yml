@@ -115,7 +115,28 @@ jobs:
             # unavailable here; signal 1 still covers the branch.
             echo "Fork PR: comparing explicit refs; STACKED detection needs --pr and is off."
             git fetch --no-tags origin "pull/${PR}/head:pr-${PR}"
-            python scripts/ai/check_branch_scope.py --base "origin/${BASE_REF}" --head "pr-${PR}"
+            set -- --base "origin/${BASE_REF}" --head "pr-${PR}"
           else
-            python scripts/ai/check_branch_scope.py --pr "${PR}"
+            set -- --pr "${PR}"
           fi
+          # The checker's exit contract is what makes this loop safe, and the reason it exists:
+          # this step first went red on an HTTP 503 from GitHub's GraphQL API, correctly reported
+          # as exit 2 — a tool error, which the contract says must never read as a verdict, yet a
+          # red check reads as exactly that. So a 2 is retried and anything else is final. The
+          # `-ne 2` line is load-bearing: widening it would make a real FOREIGN/STACKED finding
+          # retryable, turning three attempts into three chances to miss it.
+          attempt=1
+          while :; do
+            set +e
+            python scripts/ai/check_branch_scope.py "$@"
+            code=$?
+            set -e
+            if [ "$code" -ne 2 ]; then exit "$code"; fi
+            if [ "$attempt" -ge 3 ]; then
+              echo "Branch scope could not run after ${attempt} attempts (last exit ${code})."
+              exit 2
+            fi
+            echo "Tool error (exit ${code}); retrying attempt $((attempt + 1)) of 3."
+            sleep $((attempt * 15))
+            attempt=$((attempt + 1))
+          done
