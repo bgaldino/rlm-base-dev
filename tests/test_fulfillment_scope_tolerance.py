@@ -38,13 +38,13 @@ sys.path.insert(0, str(REPO))
 from tasks.rlm_manage_fulfillment_scope_cnfg import (  # noqa: E402
     ManageFulfillmentScopeCnfg,
     ToolingWriteError,
+    TaskOptionsError,
     _CONTEXT_TAG_FIELD,
 )
 
-try:
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:  # mirrors the task module's own guard
-    TaskOptionsError = Exception
+# TaskOptionsError comes from the module under test so the assertion names the
+# class the code will raise. See tests/test_snapshot_dev_guide.py for why a
+# narrower import from CumulusCI silently disagrees with the module's fallback.
 
 RESULTS = []
 

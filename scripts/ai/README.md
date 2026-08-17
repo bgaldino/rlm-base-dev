@@ -90,8 +90,17 @@ python scripts/ai/skill_manifest.py --check              # validate the manifest
 python scripts/ai/skill_manifest.py --list-skills foundations
 ```
 
+`--check` resolves every path-shaped value in the Foundations section, with one documented
+exemption: `.agents/artifacts/` is a separate **private** repo that the main one gitignores,
+and the analysis-artifacts rule requires generated working documents to live there, so
+tracked files legitimately cite paths inside it. Those references are audited normally when
+the private tree is present — a typo on a workstation still fails — and **reported as
+unaudited**, with the run passing, when it is absent. Without that split, `--check` failed on
+every fresh clone and in CI while passing on the one workstation holding the clone, which is
+what made it unfit to be a gating check. Covered by `tests/test_skill_manifest_audit.py`.
+
 **Data source:** `.claude/skill-manifest.yml`
-**Used by:** `.cursor/skills/pmos-integration/SKILL.md`
+**Used by:** `.cursor/skills/pmos-integration/SKILL.md`, `pr_gate.py`
 
 ### `analyze_agent_tooling.py`
 
@@ -250,6 +259,184 @@ silently each fail the suite.
 
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"
+
+### `pr_gate.py`
+
+Runs the mechanical checks a change actually needs, and reports the status of **every**
+check — including the ones it skipped, and why. One command instead of remembering which
+of a dozen validators a given diff should have run.
+
+```bash
+python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
+python scripts/ai/pr_gate.py --all               # run everything
+python scripts/ai/pr_gate.py --list              # the matrix: check, gating, deps, triggers
+python scripts/ai/pr_gate.py --requirements --base origin/264   # pip deps the selection needs
+```
+
+Selection lives here rather than in a workflow's `paths:` filter because a path filter makes
+the job **skip**, and a skipped job cannot serve as a required status check while reading
+exactly like a pass in the PR summary. The same reasoning drives three statuses that are
+easy to conflate:
+
+| status | meaning | fails? |
+|--------|---------|--------|
+| `SKIPPED` | not selected — nothing it covers changed | no, and it says so on its own line |
+| `MISSING-DEP` | selected, but a package or the interpreter floor is absent | **yes** — otherwise a broken install silently turns a gate green |
+| `ADVISORY` | runs and reports, never fails | no, and the reason is printed inline |
+
+Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
+tree today, on two known validator false positives (pack 123). A check that always fails
+gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
+reason instead of being dropped or allowed to fail every PR touching `datasets/`.
+
+Three details worth knowing before editing the matrix.
+
+`unlisted_suites()` fails the gate when a suite under `tests/` is not claimed by any check —
+a new suite that nothing runs is not a passing suite. It walks the tree recursively and
+counts `.sh` as well as `.py`, because the first version listed only the top directory and
+so reported "none unclaimed" while 30 nested suites and 2 shell scripts went unrun. A suite
+that genuinely should not run in CI goes in `EXCLUDED_SUITES` with its reason, so the
+exclusion is a written decision rather than an oversight. A directory claim covers only the
+`.py` files beneath it, since the checks that claim directories invoke pytest: a shell suite
+added under `tests/build_harness/` stays unlisted until someone runs it or records why not.
+
+`tests/test_docgen_helpers.py` is the one pytest-style suite **directly under `tests/`** — the
+two harness directories hold roughly 30 more — and it is worse
+than a suite that fails outside pytest: run as `python tests/test_docgen_helpers.py` it exits
+**0 having run nothing**, because the file is all `def test_*` and no `__main__`. That is why
+it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
+convention gap itself is a separate todo.
+
+A check has to be selected by **every file it reads**, not only by the code it tests — the
+absence hole one level up from a missing check. Five shipped at once: a suite asserting that
+this README cites its current size while a README edit selected nothing; the CumulusCI pin
+compared against `prepare-rlm-org.yml` with that workflow untriggered; the "do not edit"
+generated references editable without the drift check running; the manifest audit resolving
+paths repo-wide from a three-prefix trigger list; and two suites reading a skill's stated count
+and a `docs/references/` example outside their triggers. Each was invisible the same way — the
+check ran and passed, just not when the input it asserts against changed. `tests/test_pr_gate.py`
+now enumerates the paths each suite names and fails if any of them cannot select that suite;
+the two script-backed checks get exact gates instead, reading `_PATH_ROOTS`/`_ROOT_FILES` out
+of `skill_manifest.py` and the required-file lists out of `analyze_agent_tooling.py`, so a
+hand-kept copy cannot drift. Writing that enumeration immediately found three more: `CLAUDE.md`
+is a file `analyze_agent_tooling.py` asserts the presence of, the `qb-dro` dataset is read by
+`test_fulfillment_scope_tolerance.py` to verify a banner's count, and the gate's own suite reads
+two other `scripts/ai/` modules to prove the matrix still selects on their constants.
+
+That enumeration then had to be widened twice, because a guarantee is only as wide as the
+shapes it recognises and a shape it cannot see fails nothing. It skipped **directory**
+arguments, so the ~30 suites under `tests/build_harness/` and `tests/txn_data_harness/` — named
+only by their parent directory — sat outside it entirely; and it required a slash to recognise a
+path, so a root-level file named as a single segment (`repo_root / "tui-cci"`) was invisible.
+Together those hid a real gap: `tests/build_harness/test_tui_launcher.py` copies and executes
+the root `tui-cci` launcher, which **no** matrix entry selected, so a launcher regression could
+merge with its own existing test unrun. A single rooted segment now counts when it names a root
+*file* — `os.path.join(REPO, "scripts")` is a directory on its way to a longer path, not a read
+— and only the outermost node of a `REPO / "a" / "b"` chain counts, since `ast.walk` sees every
+prefix in it and each one is a validly rooted path.
+
+The rule runs the other way too: a check must be selected by the script it **executes**. The
+enumeration above walks each check's test-suite sources, so the two checks whose command is a
+validator rather than a suite contributed nothing to it — and both were editable without the
+check that runs them running, leaving only `agent_tooling`'s syntax scan between a semantic
+regression in a validator and a merge. Derived from each check's own `cmd` rather than a
+hand-kept list, with a positive control: on a correct matrix, blinding that rule yields the same
+empty answer, so the assertion alone cannot tell a held property from an unexercised one.
+
+The meta-check that carries all of this is selected by any `tests/` change, not just by edits to
+itself. Otherwise a PR could add a repo-file read to some other suite, omit the trigger, and the
+one check that would have caught the omission never ran. That widening makes the suite selectable
+by its own fixtures, so `main_with()` refuses a fixture whose paths would select the gate — once,
+centrally, rather than trusting every future call site. Worth knowing if you remove that guard:
+the failure mode is not a failing check but a **hang**, each level re-running the gate inside the
+level above it, bounded only by the nested per-check timeouts.
+
+A dependency is probed by really importing it, in a child process, not by `find_spec`. The
+distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_resources`,
+which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
+that install fine, and the breakage surfaces later as unrelated-looking suite failures. The
+`cumulusci` entry therefore probes `cumulusci.core.tasks`, the depth a task actually needs,
+and `--requirements` emits `setuptools>=75.4,<77` ahead of the CumulusCI pin whenever a
+selected check needs it — the same pin `prepare-rlm-org.yml` installs. Emitting it is the
+point: installing exactly what `--requirements` prints has to *work*, or the caller gets
+`MISSING-DEP` for a dependency it just installed and has to rediscover why.
+
+Selection diffs `base...HEAD` — three dots, from the merge base — so commits that landed on
+the base after the branch diverged do not enlarge it, and uncommitted work counts too, so
+running it before a commit is honest. That last part needs `--untracked-files=all`: plain
+`git status --porcelain` collapses a wholly new directory to a single `?? docs/` entry — the
+topmost new directory, not even the leaf — so every file in a new subtree was invisible to
+suffix and deeper-prefix triggers while the report still said uncommitted work was covered.
+Exit 0 all selected gating checks passed, 1 at least
+one failed, 2 usage or tool error (matching `check_branch_scope.py`, so a tool error is
+never read as a verdict). That contract is only worth having if it holds everywhere, and it took
+three rounds to make it: the CCI-reference check returned 1 when its `git status` failed,
+presenting an unusable git as a failed check while the two calls in `changed_files()` already
+died; then a command that could not be spawned at all raised `OSError` out of `run()` and escaped
+as a traceback, which the interpreter turns into exit 1; then the *same* spawn gap turned out to
+remain at every call site that bypasses `run()` — `changed_files()` caught only
+`FileNotFoundError`, so a git present on `PATH` but not executable (`PermissionError`, equally an
+`OSError`) still escaped, and the drift check's status call had no spawn guard at all.
+
+Adding a guard per call site is what failed twice, so git now has one door: **`git(args,
+purpose)`** dies on a spawn failure and on a non-zero exit, and a test refuses a raw
+`subprocess.run` in any function other than the three that own a guard. A **timeout** deliberately
+stays a check failure: a check that hangs is a property of the change under test, unlike an
+interpreter that will not start.
+
+What it deliberately does not cover: `check_branch_scope.py --pr <n>` itself. The matrix runs
+that checker's *tests*, which is a path-selectable thing, but the per-PR branch verification
+takes a PR number and talks to GitHub, so it belongs in the workflow (which has
+`github.event.pull_request.number`) rather than in a local, hermetic gate. Keep running it by
+hand before a merge until the workflow lands.
+
+A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
+so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
+selection is a couple of seconds.
+
+Verified by `tests/test_pr_gate.py` (134 checks, hermetic throwaway repos, no network), which
+drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
+suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
+reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
+as a skip or relabelled `SKIPPED`, the unclaimed-suite check blinded or its new suite left
+unclaimed, the silent-failure section dropped, an advisory flipped to gating, `run_sequence`
+short-circuiting, a drifting CumulusCI pin, an emptied trigger list, a usage error exiting 1,
+a dropped Python floor, a dropped requirements pin, renames collapsed to the destination
+only, the per-check timeout removed, advisory output truncated from the tail again, the
+dependency probe reverted to `find_spec` or to a shallow `cumulusci` import, either
+`git status` return code left unchecked or the drift one downgraded from a tool error to a
+verdict, an unspawnable command left to escape as a traceback, `git()` narrowed back to
+`FileNotFoundError` or no longer dying on a non-zero exit, a raw `subprocess.run` reintroduced
+outside the three guarded functions, a timeout reclassified as a tool error — which matters because a failed `git status` returns
+empty stdout, indistinguishable from a clean tree, so it would drop uncommitted paths from
+the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
+dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
+a directory claim swallowing shell suites again, `pyproject.toml` removed from either
+pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
+check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
+arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
+directory counted as a read). The first round of mutations found two live holes in these tests,
+both in the gap between a helper returning the right value and the gate acting on it. The
+nesting guard is the one property confirmed by hang rather than by failure, for the reason
+given above.
+
+Building it turned up six real defects rather than only proving the wiring. Making
+`skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a
+path inside the gitignored private artifacts tree, so it failed on every fresh clone while
+passing on the workstation that held the clone (fixed above, in that script's own section). A
+stale `--api-version 67.0` assertion in `tests/txn_data_harness/test_cli.py` had survived the 264
+bump because nothing ran that suite. Three suites bound an exception class from CumulusCI
+while the module under test bound its own fallback shim, so on a partially importable
+CumulusCI the `except` clause missed and the suite failed with a confusing traceback instead
+of a clear environment error; they now bind the class from the module under test. The root
+`tui-cci` launcher was read and executed by a test that no check selected, so nothing ran it on
+a launcher change. Two validators — the SFDMU dataset checker and the plan-README checker — could
+be changed without the check that executes them being selected, so a semantic regression in
+either would have merged unexercised. And the gate's own unclaimed-suite check caught its own new
+suite.
+
+**Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
+drafted in pack 125 and is the remaining half of `#264-58`.
 
 ---
 

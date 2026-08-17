@@ -30,10 +30,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from tasks import rlm_agents_common as common  # noqa: E402
 
-try:
-    from cumulusci.core.exceptions import CommandException
-except ImportError:  # stdlib-only fallback mirrors the module under test
-    CommandException = Exception
+# CommandException comes from the module under test so the assertion names the
+# class the code will raise. See tests/test_snapshot_dev_guide.py for why a
+# narrower import from CumulusCI silently disagrees with the module's fallback.
+CommandException = common.CommandException
 
 
 _passed = _total = 0

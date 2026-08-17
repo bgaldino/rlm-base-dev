@@ -57,6 +57,13 @@ except Exception:
 
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 
+# The private nested artifacts repo. The main repo gitignores it, and the analysis-artifacts
+# rule requires generated working documents to live there, so tracked files legitimately
+# cite paths inside it — paths a fresh clone and CI cannot have. See `auditable()` in
+# `_audit_foundations` for how references into it are treated.
+LOCAL_ONLY_ROOT = ".agents/artifacts"
+LOCAL_ONLY_PREFIXES = (LOCAL_ONLY_ROOT + "/",)
+
 PY_YAML_HELP = (
     "PyYAML is not available (not installed, or failed to import), so "
     "skill_manifest.py is using its minimal fallback. "
@@ -764,12 +771,36 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
             return any(root.glob(pattern.rstrip("/")))
         return (root / rel).exists()
 
+    unauditable: list[str] = []
+
+    def auditable(rel: str) -> bool:
+        """False only for a path this checkout cannot possibly have.
+
+        `.agents/artifacts/` is a separate PRIVATE repo, gitignored by the main one
+        (`.gitignore`), and the analysis-artifacts rule requires generated working
+        documents to live there — so tracked files legitimately cite paths inside it.
+        A fresh clone and CI have no such tree, and demanding those paths resolve made
+        `--check` fail for everyone but the workstation that happened to hold the clone.
+
+        Strict where it can be: when the private tree IS present, its paths are audited
+        normally, so a typo is still caught on a workstation. Only its absence downgrades
+        them to a reported note — never a silent skip, which is how an unfalsifiable
+        check gets built by accident.
+        """
+        if not rel.startswith(LOCAL_ONLY_PREFIXES):
+            return True
+        return (root / LOCAL_ONLY_ROOT).is_dir()
+
     declared = {s.get("id") for s in section.get("skills", []) or []}
     for entry in section.get("skills", []) or []:
         for rel in [entry.get("path")] + list(entry.get("sub_skills") or []) + list(
             entry.get("tooling") or []
         ):
-            if rel and not exists(rel):
+            if not rel:
+                continue
+            if not auditable(rel):
+                unauditable.append(f"skill {entry.get('id')}: {rel}")
+            elif not exists(rel):
                 problems.append(f"skill {entry.get('id')}: missing {rel}")
 
     on_disk = {p.parent.name for p in sorted(root.glob(".cursor/skills/*/SKILL.md"))}
@@ -786,7 +817,9 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     # AGENTS.md, still went unaudited while the output said "all paths resolve".
     # The lesson both times: scope the walk to the claim, or weaken the claim.
     for where, rel in _path_like_values(section, "foundations"):
-        if not exists(rel):
+        if not auditable(rel):
+            unauditable.append(f"{where}: {rel}")
+        elif not exists(rel):
             problems.append(f"{where}: missing {rel}")
 
     print()
@@ -796,8 +829,16 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         for problem in problems:
             print(f"          - {problem}")
         return False
+    if unauditable:
+        # Printed, not swallowed: the reader is told exactly which claims went unverified
+        # and why, so "all paths resolve" never covers a path nobody looked at.
+        print(f"  [NOTE  ] {len(unauditable)} path(s) point into the private "
+              f"{LOCAL_ONLY_ROOT} tree, which is absent here — not audited:")
+        for item in unauditable:
+            print(f"          - {item}")
     print(f"  [OK    ] foundations manifest matches the working tree "
-          f"({len(declared)} skills declared, all paths resolve)")
+          f"({len(declared)} skills declared, "
+          f"{'all auditable paths resolve' if unauditable else 'all paths resolve'})")
     return True
 
 
