@@ -11,7 +11,9 @@ permissions:
   contents: read
   # check_branch_scope.py calls `gh pr view` and `gh pr list`. `contents: read` alone leaves
   # every other scope at none, which happens to work while this repo is public and would stop
-  # working the moment it is private or mirrored internally.
+  # working the moment it is private or mirrored internally. That is necessary but not sufficient
+  # for a private repo: git fetches are separate from GH_TOKEN and are not authenticated by it, so
+  # see the --no-fetch note in the branch-scope step.
   pull-requests: read
 
 concurrency:
@@ -119,6 +121,15 @@ jobs:
           else
             set -- --pr "${PR}"
           fi
+          # --no-fetch because the checker otherwise fetches `origin` itself, and with
+          # persist-credentials: false that fetch is unauthenticated: it works anonymously on a
+          # public repo and fails on a private or internally mirrored one — exactly the case the
+          # permissions block above exists for, so leaving it in made that comment a half-truth.
+          # Skipping it is safe *here* and nowhere else: the guard exists to stop a comparison
+          # against a stale workstation clone, and checkout fetched full history seconds earlier in
+          # this same job, which the base-ref step then verified. (The fork branch's own fetch is
+          # still unauthenticated; that path is unexercised by a real fork PR and tracked as such.)
+          set -- "$@" --no-fetch
           # The checker's exit contract is what makes this loop safe, and the reason it exists:
           # this step first went red on an HTTP 503 from GitHub's GraphQL API, correctly reported
           # as exit 2 — a tool error, which the contract says must never read as a verdict, yet a

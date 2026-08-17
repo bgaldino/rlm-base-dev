@@ -519,6 +519,10 @@ if os.path.exists(workflow):
         check("the checker is invoked as a bare command", called, seq)
         check("its real exit code is what the retry loop reads",
               all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
+        # Pinned because dropping it silently reintroduces an unauthenticated `git fetch` inside
+        # the checker, which passes on a public repo and fails on a private or mirrored one.
+        check("the checker does not fetch, since checkout already did so authenticated",
+              [ln for ln in seq if executes(ln, "set --", ["--no-fetch"])], seq)
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
     # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
@@ -585,12 +589,20 @@ if os.path.exists(workflow):
     # The retry loop is only sound because of the exit contract: 2 is a tool error and worth
     # another attempt, 0 and 1 are verdicts and final. Widening that comparison would turn three
     # attempts into three chances to miss a real FOREIGN/STACKED finding, so the shape is pinned.
-    if "while" in shell:
-        check("only a tool error is retried, so no verdict gets a second chance",
-              re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi', shell), shell)
-        check("that rule rejects a loop that retries a verdict",
-              not re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi',
-                            'if [ "$code" -eq 0 ]; then exit "$code"; fi'))
+    # Unconditional, which it was not: guarding this with `if "while" in shell` made the rule
+    # conditional on the very token it protects, so replacing the loop with a one-shot
+    # `set +e; …; code=$?` that never exits with `$code` skipped *both* checks. That mutation was
+    # caught only by the total-count invariant — and its failure message says "update EXPECTED
+    # deliberately", so the natural response to it merges the defect. A guard that disappears with
+    # the thing it guards is worse than no guard, because the suite still reports success.
+    check("the checker's exit code is what the step exits with, whatever the retry shape",
+          re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi', shell), shell)
+    check("that rule rejects a loop that retries a verdict",
+          not re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi',
+                        'if [ "$code" -eq 0 ]; then exit "$code"; fi'))
+    check("that rule rejects a one-shot that captures the code and never exits with it",
+          not re.search(r'if \[ "\$code" -ne 2 \]; then exit "\$code"; fi',
+                        'set +e\npython check.py "$@"\ncode=$?\nset -e\necho "exited ${code}"'))
 
     # Every pip install must come from --requirements. Checking for two literal pin spellings
     # missed `cumulusci~=4.8.1` and `setuptools<77`; naming the operators would still miss an
@@ -1264,7 +1276,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 190
+EXPECTED = 192
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
