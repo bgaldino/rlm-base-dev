@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (216 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (223 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,7 +440,7 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Seventy-four** more break the CI workflow instead of the driver, all
+directory counted as a read). **Seventy-seven** more break the CI workflow instead of the driver, all
 killed, in nine families. The families are what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
 `|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
@@ -458,7 +458,9 @@ wrapped in `if …; then`, replaced by an inline trailing comment, or replaced b
 whose exit codes are not verdicts); the command runs but its verdict is discarded (`|| true`,
 `|| :`, `|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
 dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
-`code=0`, an `echo` that then `exit 0`s or shadows `python` as a function); the checker is defanged
+`code=0`, an `echo` that then `exit 0`s or shadows `python` as a function); the command is present,
+unmasked, and never reached (`true || python …`, `false && python …` — for either the gate or the
+checker); the checker is defanged
 (backgrounded with `&`, so `$?` is the fork's status and the
 real script still runs and still reports success; `--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
@@ -478,8 +480,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **fifty-four of these guards were vacuous on the first
-attempt**, in five waves of 7, 5, 26, 2 and 14 — each wave a narrower version of one mistake, and
+The doubled shapes are there because **fifty-seven of these guards were vacuous on the first
+attempt**, in six waves of 7, 5, 26, 2, 14 and 3 — each wave a narrower version of one mistake, and
 each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -535,19 +537,22 @@ The cost of a whitelist is that a legitimate edit to those two steps must update
 acceptable for two steps whose purpose is to be hard to defang, and the six accepted edits listed
 above are what keeps that cost honest.
 
-Two of the fifty-four were caught by the mutation sweep and fifty-two by review, each time *after*
-a sweep reported every mutation killed — five rounds running. A sweep only mutates in the shapes
+Two of the fifty-seven were caught by the mutation sweep and fifty-five by review, each time *after*
+a sweep reported every mutation killed — six rounds running. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all, then
 the two shapes a whitelist of *permitted commands* still cannot see — a permitted command whose
 status the shell throws away (`&`), and a value that crosses a step boundary through `$GITHUB_ENV`
 rather than appearing in the step being read — and finally the gap between a whitelist and the text
-it was matched against. The durable lesson is not any one of those shapes; it
+it was matched against — and then, once the parse landed, the difference between a command whose
+status escapes and a command bash reaches at all: `true || python …checker.py` is a real invocation,
+the `code=$?` after it captures a real status, and the status is 0 because the command never ran.
+The durable lesson is not any one of those shapes; it
 is that "all mutations killed" is evidence about the sweep, and a guard is only as good as the
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 74 mutations across four files,
+The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 77 mutations across four files,
 all killed.
 
 How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the

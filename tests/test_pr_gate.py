@@ -518,26 +518,43 @@ if os.path.exists(workflow):
         pieces = re.split(r"(&&|\|\||;|\||&)", ln)
         return [(pieces[i], "".join(pieces[i + 1:])) for i in range(0, len(pieces), 2)]
 
-    def executes(ln, script, args_required=()):
-        for seg, tail in parts(ln):
-            words = seg.split()
-            # The first word of the segment is what runs, so `echo`/`printf`/`:`/`true` there means
-            # the script is an argument rather than a command. Arguments are required *within the
-            # segment*: checking them line-wide let `--pr` sit in an echo beside a real `set --`.
-            # `if`/`while`/`until`/`!` consume the command's status instead of letting it reach the
-            # job, so a wrapped invocation runs the real script and still cannot fail the step. The
-            # literal last-command rule used to reject those by accident; once that rule became a
-            # property ("one command executes the gate"), the keywords had to be named here.
-            if (words and script in seg
+    def runs_segment(seg, tail, script, args_required=()):
+        """Is this one segment an invocation of `script` whose status is not thrown away?"""
+        words = seg.split()
+        # The first word of the segment is what runs, so `echo`/`printf`/`:`/`true` there means
+        # the script is an argument rather than a command. Arguments are required *within the
+        # segment*: checking them line-wide let `--pr` sit in an echo beside a real `set --`.
+        # `if`/`while`/`until`/`!` consume the command's status instead of letting it reach the
+        # job, so a wrapped invocation runs the real script and still cannot fail the step. The
+        # literal last-command rule used to reject those by accident; once that rule became a
+        # property ("one command executes the gate"), the keywords had to be named here.
+        return bool(words and script in seg
                     and words[0] not in ("echo", "printf", ":", "true",
                                          "if", "elif", "while", "until", "!")
                     and all(a in seg for a in args_required)
-                    and not MASKED.match(tail.strip())):
-                return True
-        return False
+                    and not MASKED.match(tail.strip()))
+
+    def executes(ln, script, args_required=()):
+        return any(runs_segment(seg, tail, script, args_required) for seg, tail in parts(ln))
 
     def invocations(script, args_required=()):
         return [ln for ln in run_contents(wf) if executes(ln, script, args_required)]
+
+    def foreground(ln, script, args_required=()):
+        """Whether the command *runs*, which is a different question from whether its status
+        escapes. `true || python …check_branch_scope.py "$@"` satisfies `executes()` — the segment is
+        a genuine invocation and the `code=$?` line still captures a status — but bash skips the
+        command and the status captured is 0, so a FOREIGN or STACKED branch goes green. What makes a
+        segment skippable is a *conditional* predecessor (`&&`/`||`); `;` does not, which is why the
+        cleanup idiom `rm -f gate.log || true; python …` remains acceptable.
+        """
+        pieces = re.split(r"(&&|\|\||;|\||&)", ln)
+        for i in range(0, len(pieces), 2):
+            if (pieces[i - 1].strip() if i else "") in ("&&", "||"):
+                continue
+            if runs_segment(pieces[i], "".join(pieces[i + 1:]), script, args_required):
+                return True
+        return False
 
 
     # Every textual assertion below reads the comment-stripped body. A rule about what the job
@@ -656,7 +673,7 @@ if os.path.exists(workflow):
         # reaching the job. Pinning the last line to one literal rejected two correct edits — a
         # re-raising handler (`|| { echo "::error::…"; exit 1; }`, which this suite separately
         # asserts is not masking) and a trailing `echo "::notice::"`, unreachable under `set -e`.
-        runs_gate = [ln for ln in cmds if executes(ln, "scripts/ai/pr_gate.py")]
+        runs_gate = [ln for ln in cmds if foreground(ln, "scripts/ai/pr_gate.py")]
         check("one command executes the gate with its verdict reaching the job",
               len(runs_gate) == 1, cmds)
         check("every other command is a bare echo, which cannot swallow the verdict",
@@ -715,7 +732,7 @@ if os.path.exists(workflow):
               (scope_step.get("env") or {}) == SCOPE_ENV, scope_step.get("env"))
         seq = shell_of(scope_step)
         called = [i for i, ln in enumerate(seq)
-                  if executes(ln, "scripts/ai/check_branch_scope.py")]
+                  if foreground(ln, "scripts/ai/check_branch_scope.py")]
         check("the checker is invoked as a bare command", called, seq)
         check("its real exit code is what the retry loop reads",
               all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
@@ -728,8 +745,8 @@ if os.path.exists(workflow):
         # assembled, which rejected the equivalent (and clearer) edit of putting it on the
         # invocation. What matters is that the flag reaches the checker, however the args are built.
         no_fetch = [ln for ln in seq
-                    if executes(ln, "set --", ["--no-fetch"])
-                    or executes(ln, "check_branch_scope.py", ["--no-fetch"])]
+                    if foreground(ln, "set --", ["--no-fetch"])
+                    or foreground(ln, "check_branch_scope.py", ["--no-fetch"])]
         check("the checker does not fetch, since checkout already did so authenticated",
               no_fetch, seq)
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
@@ -737,8 +754,8 @@ if os.path.exists(workflow):
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
     # comment-stripping is not enough, since a string inside an echo is executed and still inert.
     def pr_arg(ln):
-        return (executes(ln, "set --", ["--pr"])
-                or executes(ln, "check_branch_scope.py", ["--pr"]))
+        return (foreground(ln, "set --", ["--pr"])
+                or foreground(ln, "check_branch_scope.py", ["--pr"]))
 
     pr_form = [ln for ln in run_contents(wf) if pr_arg(ln)]
     check("--pr reaches the checker as an argument, which is what gets both signals",
@@ -846,6 +863,22 @@ if os.path.exists(workflow):
                       ("an echo piped into a shell", 'echo "$CMD" | bash')):
         check(f"the between-commands rule rejects {label}", not pure_echo(ln))
     check("that rule still accepts a plain progress echo", pure_echo('echo "running the gate"'))
+    # Skippable, not merely masked. Both load-bearing invocations are pinned to a command bash will
+    # actually reach: `true || python …` is a real invocation whose status a `code=$?` on the next
+    # line duly captures — as 0, because the command never ran.
+    for label, ln in (("a command skipped by a succeeding predecessor",
+                       'true || python scripts/ai/check_branch_scope.py "$@"'),
+                      ("a command skipped by a failing predecessor",
+                       'false && python scripts/ai/check_branch_scope.py "$@"'),
+                      ("a gate skipped by a succeeding predecessor",
+                       "true || python scripts/ai/pr_gate.py ${SEL}")):
+        script = ("scripts/ai/pr_gate.py" if "pr_gate" in ln
+                  else "scripts/ai/check_branch_scope.py")
+        check(f"the foreground rule rejects {label}", not foreground(ln, script))
+        check(f"and the older masking rule could not see {label}", executes(ln, script))
+    check("the foreground rule still accepts a cleanup before the real command, which `;` cannot skip",
+          foreground("rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
+                     "scripts/ai/pr_gate.py"))
     check("masking is judged on what follows the command, not the whole line, so a cleanup "
           "before the real call is still accepted",
           executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
@@ -1570,7 +1603,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 216
+EXPECTED = 223
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
