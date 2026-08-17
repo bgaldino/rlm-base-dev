@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (156 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (165 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -446,10 +446,11 @@ killed: a `paths:` filter added (bare or quoted), a pin restated in place of `--
 Python floor dropped below the matrix, `${{ }}` moved into a `run:` step in each of its three
 scalar styles, the gate step and the branch-scope step each gutted — twice over, once cleanly
 and once leaving the script's name behind in a comment — the branch-scope call stripped of
-`--pr`, the retry loop widened to swallow a verdict or stripped of its condition, the workflow
-dropped from this check's own triggers, and the file deleted.
+`--pr`, the retry loop widened to swallow a verdict or stripped of its condition, either step
+echoed instead of run or its verdict discarded with `|| true`, the gate step marked
+`continue-on-error`, the workflow dropped from this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **five of these guards were vacuous on the first attempt,
+The doubled shapes are there because **ten of these guards were vacuous on the first attempt,
 every one the same shape**: the rule tested that a string appeared *somewhere* rather than that
 the job *did* something. Deleting the gate step left its name on the `--requirements` line;
 deleting it and leaving a `# TODO` comment defeated the narrower replacement; the branch-scope
@@ -458,8 +459,18 @@ two steps below still said `fetch-depth: 0`; and removing `--pr` passed because 
 *echoes* the words "needs `--pr`" while explaining its own absence — which is the useful
 correction to the obvious lesson, since that string is neither a comment nor inert-looking. It
 is executed, and still proves nothing. The rules now ask where a token appears, not whether.
-Two of the five were caught by the mutation sweep and three by review *after* the sweep reported
-every mutation killed, because a sweep can only mutate in the shapes its author already imagined.
+
+The last five were the same insight one step further, and they are the reason `executes()` exists:
+being *inside* a `run:` body is not the same as running. `echo python scripts/ai/pr_gate.py`
+executes a line and runs nothing; `python scripts/ai/pr_gate.py ${SEL} || true` runs the gate and
+throws its verdict away; `continue-on-error: true` lets the step fail and the job pass, and lives
+outside `run:` entirely, so no rule reading run bodies could ever have seen it. A rule may
+therefore only ask the narrow question — is this the command, and does its exit status still reach
+the job — which is what `executes()` answers by checking the first word of each `&&`-separated
+segment and rejecting status masking. Two of the ten were caught by the mutation sweep and eight by
+review *after* the sweep reported every mutation killed, twice over: a sweep can only mutate in the
+shapes its author already imagined, and after the first correction its author imagined comments but
+not echoes, then echoes but not masking.
 The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
