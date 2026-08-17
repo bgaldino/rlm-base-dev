@@ -205,6 +205,13 @@ skipping, and one check (`validate_sfdmu_v5_datasets.py`) is advisory until pack
 because it exits non-zero on a clean tree. The checklists below remain the reference for
 *what* each check means and for the judgement steps no gate can make.
 
+**The same gate now runs in CI** on every pull request
+(`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs the PR number
+and so can only run there). Run it locally anyway — a local failure costs seconds, a CI one
+costs a round trip — but a change that skips it no longer merges unchecked. The workflow is
+deliberately **not** path-filtered: a `paths:` filter makes the job skip, and a skipped job
+reports success, so selection is the driver's job and never the trigger's.
+
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
 1. Run `python scripts/validate_sfdmu_v5_datasets.py` and fix reported issues.

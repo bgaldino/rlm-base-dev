@@ -248,7 +248,14 @@ CHECKS = [
         # trigger, and the one check that would have caught the omission never ran. The suite
         # runs the gate as a subprocess, so this widening risks nesting — bounded by the
         # fixtures it feeds those runs, which main_with() asserts never select this check.
-        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml"],
+        #
+        # pr-checks.yml is the job that runs this gate on a pull request, and the suite asserts
+        # it cannot be defanged (no paths filter, full history, pins from --requirements). That
+        # guarantee has to hold from this side too: an edit to the workflow alone must run the
+        # suite that judges it. The enumeration gate below demanded this trigger the moment the
+        # assertion was written, which is the intended order.
+        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml",
+                  ".github/workflows/pr-checks.yml"],
         deps=[], gating=True,
     ),
     dict(

@@ -336,6 +336,77 @@ if os.path.exists(prepare):
 else:
     check("prepare-rlm-org.yml exists to compare pins against", False, "file missing")
 
+print("\nThe workflow that runs the gate cannot be quietly defanged")
+# The gate is only as real as the job that invokes it, and every way of disabling that job
+# leaves a green PR behind — which is the exact failure #264-58 exists to fix, one level up.
+# So the workflow is asserted here rather than trusted to review: a `paths:` filter added in
+# good faith would skip the job, and a skipped job reports success.
+workflow = os.path.join(REPO, ".github", "workflows", "pr-checks.yml")
+if os.path.exists(workflow):
+    with open(workflow) as fh:
+        wf = fh.read()
+
+    # Text, not a parse, on purpose: PyYAML is not a dependency of this suite (deps=[]), and
+    # the injection rule below is a property of the literal text anyway.
+    def run_bodies(text):
+        """The lines inside every `run: |` block, by indentation."""
+        bodies, lines = [], text.splitlines()
+        for i, line in enumerate(lines):
+            opener = re.match(r"^(\s*)run: \|", line)
+            if not opener:
+                continue
+            indent, body = len(opener.group(1)), []
+            for nxt in lines[i + 1:]:
+                if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= indent:
+                    break
+                body.append(nxt)
+            bodies.append("\n".join(body))
+        return bodies
+
+    on_block = wf.split("jobs:")[0]
+    check("the pull_request trigger has no paths filter, which would skip the job and read "
+          "as a pass", not re.search(r"^\s*paths(-ignore)?:", on_block, re.M), on_block)
+    # An invocation that is not `--requirements`, because that one resolves dependencies and
+    # its exit code is not a verdict. Testing for the bare string let a mutation that deleted
+    # the gate step survive: the name still appeared on the dependency line, so the workflow
+    # read as wired while nothing judged the diff.
+    def gate_runs(text):
+        return [ln for ln in text.splitlines()
+                if "scripts/ai/pr_gate.py" in ln and "--requirements" not in ln]
+
+    check("the workflow invokes the gate for a verdict, not only to resolve dependencies",
+          gate_runs(wf), wf)
+    check("that rule rejects a workflow left with only the dependency call",
+          not gate_runs('          reqs="$(python scripts/ai/pr_gate.py --requirements)"\n'))
+    check("branch scope runs too, since no local gate can select it", 
+          "scripts/ai/check_branch_scope.py" in wf)
+    # Comments stripped first: the workflow names `setuptools>=75.4,<77` in prose precisely to
+    # record why it does *not* install it, and reading that as a restated pin failed this check
+    # on the very file it was written for.
+    installs = "\n".join(ln for ln in wf.splitlines() if not ln.strip().startswith("#"))
+    check("dependencies come from --requirements rather than being restated",
+          "--requirements" in wf and not re.search(r"cumulusci==|setuptools>=", installs),
+          "a restated pin here can drift from PINS/CO_REQUIRES silently")
+    check("that rule still sees a pin that is actually installed",
+          re.search(r"cumulusci==|setuptools>=",
+                    "\n".join(ln for ln in "  # note\n  pip install cumulusci==4.8.1\n"
+                              .splitlines() if not ln.strip().startswith("#"))) is not None)
+    # fetch-depth: 0 is load-bearing, not hygiene: on a shallow clone the merge-base diff has
+    # no base to resolve against, so selection would come up empty and the gate would pass by
+    # having checked nothing.
+    check("history is fetched in full, so the merge base resolves", "fetch-depth: 0" in wf)
+    minor = re.search(r'python-version:\s*"3\.(\d+)"', wf)
+    check("Python is 3.10+, which sys.stdlib_module_names requires",
+          bool(minor) and int(minor.group(1)) >= 10, minor.group(0) if minor else "unset")
+    interpolated = [b for b in run_bodies(wf) if "${{" in b]
+    check("no run body interpolates ${{ }} directly, so untrusted input arrives via env",
+          not interpolated, interpolated)
+    check("the run-body scan can actually see inside a block, so the rule above is not vacuous",
+          run_bodies('    run: |\n      echo ${{ github.head_ref }}\n') == [
+              "      echo ${{ github.head_ref }}"])
+else:
+    check("pr-checks.yml exists to assert the gate is actually wired", False, "file missing")
+
 print("\nSelection reads the merge base, so commits landed on the base after divergence "
       "do not enlarge it")
 # Hermetic: a throwaway repo, so this asserts git behaviour rather than whatever the real
@@ -950,7 +1021,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 134
+EXPECTED = 144
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

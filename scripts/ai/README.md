@@ -387,14 +387,24 @@ interpreter that will not start.
 What it deliberately does not cover: `check_branch_scope.py --pr <n>` itself. The matrix runs
 that checker's *tests*, which is a path-selectable thing, but the per-PR branch verification
 takes a PR number and talks to GitHub, so it belongs in the workflow (which has
-`github.event.pull_request.number`) rather than in a local, hermetic gate. Keep running it by
-hand before a merge until the workflow lands.
+`github.event.pull_request.number`) rather than in a local, hermetic gate.
+
+That workflow is `.github/workflows/pr-checks.yml`, and it runs on every pull request: it asks
+`--requirements` what the selection needs, installs exactly that, runs the gate, then runs the
+per-PR branch scope. The suite asserts the workflow cannot be quietly defanged, because every
+way of disabling it leaves a green PR behind — the same absence the gate exists to close, one
+level up. Four of those properties are load-bearing rather than stylistic: no `paths:` filter
+(a skipped job reports success), `fetch-depth: 0` (a shallow clone has no merge base to diff
+against, so selection would come up empty and pass by checking nothing), an invocation that is
+not `--requirements` (that one resolves dependencies; its exit code is not a verdict), and no
+`${{ }}` inside a `run:` body. The dependency pin is never restated there — it comes from
+`--requirements`, so the workflow cannot drift from `PINS`.
 
 A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (134 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (144 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -415,7 +425,14 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). The first round of mutations found two live holes in these tests,
+directory counted as a read). Nine more break the CI workflow instead of the driver: a `paths:`
+filter added, the pin restated in place of `--requirements`, the clone made shallow, the Python
+floor dropped, `${{ }}` moved into a `run:` body, the gate step or the branch-scope step gutted,
+the workflow dropped from this check's own triggers, and the file deleted outright. One of those
+nine survived on the first attempt, in the by-now familiar shape: the rule tested that
+`scripts/ai/pr_gate.py` appeared *somewhere* in the workflow, and the name still appeared on the
+dependency line after the gate step was deleted — presence asserted where a verdict was meant.
+The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
 given above.

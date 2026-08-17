@@ -1,0 +1,91 @@
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: "Run every check regardless of which paths changed"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Mechanical checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # test_branch_scope.py and merge-base selection need real history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          # 3.10+ required: analyze_agent_tooling.py uses sys.stdlib_module_names.
+          python-version: "3.13"
+
+      - name: Resolve the base ref
+        id: base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_REF:-}" ]; then
+            git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+            echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install only what the selection needs
+        env:
+          BASE: ${{ steps.base.outputs.ref }}
+          RUN_ALL: ${{ github.event.inputs.run_all }}
+        run: |
+          set -euo pipefail
+          if [ "${RUN_ALL:-false}" = "true" ] || [ -z "${BASE:-}" ]; then
+            SEL="--all"
+          else
+            SEL="--base ${BASE}"
+          fi
+          echo "SEL=${SEL}" >> "$GITHUB_ENV"
+          reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"
+          if [ -n "${reqs}" ]; then
+            python -m pip install --upgrade pip
+            # Installed in the order printed, unquoted on purpose so each line is a separate
+            # spec. --requirements emits `setuptools>=75.4,<77` ahead of the CumulusCI pin
+            # itself (CumulusCI imports fs -> pkg_resources, absent from a 3.12+ venv), so this
+            # workflow does not restate that dependency and cannot drift from it.
+            python -m pip install ${reqs}
+          else
+            echo "No extra dependencies needed."
+          fi
+
+      - name: Run the gate
+        run: |
+          set -euo pipefail
+          python scripts/ai/pr_gate.py ${SEL}
+
+      # Not part of the matrix on purpose: this one takes a PR number and talks to GitHub,
+      # so it cannot be selected by path and cannot run in a hermetic local gate. The
+      # workflow is the only place that has the number.
+      - name: Branch scope
+        if: github.event_name == 'pull_request'
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python scripts/ai/check_branch_scope.py --pr "${PR}"
