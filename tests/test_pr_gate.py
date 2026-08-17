@@ -348,62 +348,126 @@ if os.path.exists(workflow):
 
     # Text, not a parse, on purpose: PyYAML is not a dependency of this suite (deps=[]), and
     # the injection rule below is a property of the literal text anyway.
-    def run_bodies(text):
-        """The lines inside every `run: |` block, by indentation."""
-        bodies, lines = [], text.splitlines()
+    def strip_comments(text):
+        return "\n".join(ln for ln in text.splitlines() if not ln.strip().startswith("#"))
+
+    def run_contents(text):
+        """Every shell line the workflow executes, whatever scalar style declared it.
+
+        The first version matched `run: |` only. That is not a stylistic omission: a
+        single-line `run: echo …` — the way anyone adds a quick step — was never collected, so
+        the injection rule below did not miss such a line, it never looked at one. Folded
+        (`>`, `>-`) blocks were invisible the same way. Comments are dropped because a rule
+        about what the job *executes* must not be satisfiable by prose.
+        """
+        out, lines = [], strip_comments(text).splitlines()
         for i, line in enumerate(lines):
-            opener = re.match(r"^(\s*)run: \|", line)
+            opener = re.match(r"^(\s*)run:\s*(?:([|>][-+]?)\s*)?(.*)$", line)
             if not opener:
                 continue
-            indent, body = len(opener.group(1)), []
+            indent, block, inline = len(opener.group(1)), opener.group(2), opener.group(3)
+            if not block:
+                out.append(inline)          # `run: cmd` on one line
+                continue
             for nxt in lines[i + 1:]:
                 if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= indent:
                     break
-                body.append(nxt)
-            bodies.append("\n".join(body))
-        return bodies
+                out.append(nxt)
+        return out
 
-    on_block = wf.split("jobs:")[0]
+    # Every textual assertion below reads the comment-stripped body. A rule about what the job
+    # *does* must not be satisfiable by prose about what it does — and this file is heavily
+    # commented, precisely because each setting is load-bearing. The sweep proved the point:
+    # `fetch-depth: 0` is named in a comment two steps below the real setting, so flipping the
+    # setting to 1 left the substring in place and the guard passed.
+    body = strip_comments(wf)
+    on_block = body.split("jobs:")[0]
     check("the pull_request trigger has no paths filter, which would skip the job and read "
-          "as a pass", not re.search(r"^\s*paths(-ignore)?:", on_block, re.M), on_block)
-    # An invocation that is not `--requirements`, because that one resolves dependencies and
-    # its exit code is not a verdict. Testing for the bare string let a mutation that deleted
-    # the gate step survive: the name still appeared on the dependency line, so the workflow
-    # read as wired while nothing judged the diff.
-    def gate_runs(text):
-        return [ln for ln in text.splitlines()
-                if "scripts/ai/pr_gate.py" in ln and "--requirements" not in ln]
+          "as a pass",
+          not re.search(r"""^\s*['"]?paths(-ignore)?['"]?\s*:""", on_block, re.M), on_block)
 
-    check("the workflow invokes the gate for a verdict, not only to resolve dependencies",
-          gate_runs(wf), wf)
+    # An invocation that is not `--requirements`, because that one resolves dependencies and
+    # its exit code is not a verdict. Two rounds of this rule were vacuous: first it tested for
+    # the bare string, which survived deleting the gate step because the name remained on the
+    # dependency line; then it excluded `--requirements` but still scanned every line, so
+    # deleting the step and leaving `# TODO: re-enable scripts/ai/pr_gate.py` also passed. It
+    # now asks the only question that matters — does the job *execute* it?
+    def invocations(script, args_required=()):
+        return [ln for ln in run_contents(wf)
+                if script in ln and all(a in ln for a in args_required)]
+
+    check("the workflow executes the gate for a verdict, not only to resolve dependencies",
+          [ln for ln in invocations("scripts/ai/pr_gate.py") if "--requirements" not in ln], wf)
+    # Positive controls, one per way the rule was fooled: a comment, and a dependency-only call.
+    check("that rule rejects a gate named only in a comment",
+          not [ln for ln in run_contents("      # run: scripts/ai/pr_gate.py --base x\n")
+               if "scripts/ai/pr_gate.py" in ln])
     check("that rule rejects a workflow left with only the dependency call",
-          not gate_runs('          reqs="$(python scripts/ai/pr_gate.py --requirements)"\n'))
-    check("branch scope runs too, since no local gate can select it", 
-          "scripts/ai/check_branch_scope.py" in wf)
-    # Comments stripped first: the workflow names `setuptools>=75.4,<77` in prose precisely to
-    # record why it does *not* install it, and reading that as a restated pin failed this check
-    # on the very file it was written for.
-    installs = "\n".join(ln for ln in wf.splitlines() if not ln.strip().startswith("#"))
-    check("dependencies come from --requirements rather than being restated",
-          "--requirements" in wf and not re.search(r"cumulusci==|setuptools>=", installs),
-          "a restated pin here can drift from PINS/CO_REQUIRES silently")
-    check("that rule still sees a pin that is actually installed",
-          re.search(r"cumulusci==|setuptools>=",
-                    "\n".join(ln for ln in "  # note\n  pip install cumulusci==4.8.1\n"
-                              .splitlines() if not ln.strip().startswith("#"))) is not None)
+          not [ln for ln in run_contents('        run: |\n          reqs="$(python '
+                                        'scripts/ai/pr_gate.py --requirements)"\n')
+               if "scripts/ai/pr_gate.py" in ln and "--requirements" not in ln])
+    # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
+    # half-defanged invocation would otherwise read as fully wired. The fork path in the
+    # workflow deliberately uses --base/--head instead, which is why this asks for one
+    # --pr invocation rather than for every invocation to carry it.
+    check("branch scope is executed with --pr, which is what gets both signals",
+          invocations("scripts/ai/check_branch_scope.py", ["--pr"]), run_contents(wf))
+
+    # Every pip install must come from --requirements. Checking for two literal pin spellings
+    # missed `cumulusci~=4.8.1` and `setuptools<77`; naming the operators would still miss an
+    # unpinned `pip install requests`. So the rule inverts: an install line may reference
+    # ${reqs} or upgrade pip, and nothing else. It needs no list of packages and so cannot
+    # drift from PINS/CO_REQUIRES/deps as those change.
+    restated = [ln for ln in run_contents(wf)
+                if "pip install" in ln
+                and "reqs" not in ln
+                and not re.search(r"pip install\s+--upgrade\s+pip\s*$", ln)]
+    check("every dependency install comes from --requirements rather than being restated",
+          not restated, restated)
+    check("the gate is asked what to install in the first place",
+          [ln for ln in run_contents(wf) if "--requirements" in ln], run_contents(wf))
+    for spelling in ('pip install "cumulusci~=4.8.1"', "pip install setuptools<77",
+                     "pip install requests"):
+        check(f"that rule catches a restated dependency: {spelling}",
+              [ln for ln in run_contents(f"        run: |\n          {spelling}\n")
+               if "pip install" in ln and "reqs" not in ln
+               and not re.search(r"pip install\s+--upgrade\s+pip\s*$", ln)])
+
     # fetch-depth: 0 is load-bearing, not hygiene: on a shallow clone the merge-base diff has
     # no base to resolve against, so selection would come up empty and the gate would pass by
     # having checked nothing.
-    check("history is fetched in full, so the merge base resolves", "fetch-depth: 0" in wf)
-    minor = re.search(r'python-version:\s*"3\.(\d+)"', wf)
-    check("Python is 3.10+, which sys.stdlib_module_names requires",
-          bool(minor) and int(minor.group(1)) >= 10, minor.group(0) if minor else "unset")
-    interpolated = [b for b in run_bodies(wf) if "${{" in b]
-    check("no run body interpolates ${{ }} directly, so untrusted input arrives via env",
-          not interpolated, interpolated)
-    check("the run-body scan can actually see inside a block, so the rule above is not vacuous",
-          run_bodies('    run: |\n      echo ${{ github.head_ref }}\n') == [
-              "      echo ${{ github.head_ref }}"])
+    check("history is fetched in full, so the merge base resolves", "fetch-depth: 0" in body)
+    check("that rule is not satisfied by a comment mentioning the setting",
+          "fetch-depth: 0" not in strip_comments("        # fetch-depth: 0 is why this works\n"
+                                                 "          fetch-depth: 1\n"))
+
+    # Derived from the matrix, not asserted as a constant: a check whose min_python exceeds the
+    # runner reports MISSING-DEP, and a missing dependency *fails* the gate. The first version
+    # asserted 3.10 (what sys.stdlib_module_names needs) while harness_suites declares 3.11, so
+    # a runner satisfying the test would have failed the job it was meant to protect.
+    floor = max(c.get("min_python") or (3, 0) for c in pr_gate.CHECKS)
+    minor = re.search(r'python-version:\s*"(\d+)\.(\d+)"', body)
+    runner = (int(minor.group(1)), int(minor.group(2))) if minor else (0, 0)
+    check(f"the runner meets the matrix's highest floor, {floor[0]}.{floor[1]}",
+          runner >= floor, f"runner={runner}, floor={floor}")
+
+    # Whole-file, not just the run lines: a `${{ }}` belongs on a `key: value` mapping line
+    # (env:, group:, if:), never anywhere the shell sees it. Scanning parsed run bodies was the
+    # weaker form — it could only reject what run_contents recognised, so a style it missed was
+    # unexamined rather than rejected.
+    injected = [ln for ln in strip_comments(wf).splitlines()
+                if "${{" in ln and re.match(r"^\s*run:", ln)]
+    injected += [ln for ln in run_contents(wf) if "${{" in ln]
+    check("no shell line interpolates ${{ }}, so untrusted input arrives only via env",
+          not injected, injected)
+    for style, sample in (("single-line", '        run: echo "${{ github.event.number }}"\n'),
+                          ("literal block", "        run: |\n          echo ${{ github.sha }}\n"),
+                          ("folded block", "        run: >-\n          echo ${{ github.ref }}\n")):
+        check(f"that rule sees a {style} run step, so it is not vacuous for one",
+              [ln for ln in run_contents(sample) if "${{" in ln], sample)
+    check("a token on an env: line is still allowed, or the rule would forbid the fix it wants",
+          not [ln for ln in run_contents("          PR: ${{ github.event.number }}\n")
+               if "${{" in ln])
 else:
     check("pr-checks.yml exists to assert the gate is actually wired", False, "file missing")
 
@@ -1021,7 +1085,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 144
+EXPECTED = 152
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

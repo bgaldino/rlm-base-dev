@@ -208,9 +208,15 @@ because it exits non-zero on a clean tree. The checklists below remain the refer
 **The same gate now runs in CI** on every pull request
 (`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs the PR number
 and so can only run there). Run it locally anyway — a local failure costs seconds, a CI one
-costs a round trip — but a change that skips it no longer merges unchecked. The workflow is
+costs a round trip — but a change that skips it is no longer *unchecked*. The workflow is
 deliberately **not** path-filtered: a `paths:` filter makes the job skip, and a skipped job
 reports success, so selection is the driver's job and never the trigger's.
+
+⚠ **Running is not blocking.** A red `Mechanical checks` does not prevent a merge until it is
+configured as a **required status check** on `264` (and on `main`), which is repository
+settings, not a file in this repo — the two existing rulesets target only the default branch
+and require no checks at all. Until that is set, treat a red gate as a stop sign that an agent
+still has to obey.
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 

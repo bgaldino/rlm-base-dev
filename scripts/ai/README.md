@@ -391,20 +391,35 @@ takes a PR number and talks to GitHub, so it belongs in the workflow (which has
 
 That workflow is `.github/workflows/pr-checks.yml`, and it runs on every pull request: it asks
 `--requirements` what the selection needs, installs exactly that, runs the gate, then runs the
-per-PR branch scope. The suite asserts the workflow cannot be quietly defanged, because every
-way of disabling it leaves a green PR behind — the same absence the gate exists to close, one
-level up. Four of those properties are load-bearing rather than stylistic: no `paths:` filter
-(a skipped job reports success), `fetch-depth: 0` (a shallow clone has no merge base to diff
-against, so selection would come up empty and pass by checking nothing), an invocation that is
-not `--requirements` (that one resolves dependencies; its exit code is not a verdict), and no
-`${{ }}` inside a `run:` body. The dependency pin is never restated there — it comes from
-`--requirements`, so the workflow cannot drift from `PINS`.
+per-PR branch scope. Note what running does *not* mean — a red job blocks nothing until
+`Mechanical checks` is configured as a **required status check**, which is repository settings
+rather than anything in this repo.
+
+The suite asserts the workflow cannot be quietly defanged, because every way of disabling it
+leaves a green PR behind — the same absence the gate exists to close, one level up. Load-bearing
+rather than stylistic: no `paths:` filter (a skipped job reports success), `fetch-depth: 0` (a
+shallow clone has no merge base to diff against, so selection comes up empty and passes having
+checked nothing), an *executed* invocation that is not `--requirements` (that one resolves
+dependencies; its exit code is not a verdict), `--pr` on the branch-scope call (without it the
+checker silently loses its STACKED signal), a Python floor **derived from the matrix's highest
+`min_python`** rather than written down (a check below its floor reports `MISSING-DEP`, which
+fails the gate — so a runner that satisfied a hardcoded 3.10 would have failed the job it was
+meant to protect), and no `${{ }}` anywhere the shell can see it. Dependencies are never
+restated: an install line may name `${reqs}` or upgrade pip and nothing else, a rule that needs
+no package list and so cannot drift from `PINS`/`CO_REQUIRES`/`deps`.
+
+Two properties of *how* those assertions are written, both learned by having them fail:
+every one reads the **comment-stripped** body, because a rule about what the job does must not
+be satisfiable by prose about what it does; and each is paired with a positive control feeding
+it the violation, because on a correct file a working rule and a blind one return the same
+answer. This file is densely commented precisely because each setting matters, which is what
+made the first version of three separate guards vacuous.
 
 A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (144 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (152 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -425,14 +440,22 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). Nine more break the CI workflow instead of the driver: a `paths:`
-filter added, the pin restated in place of `--requirements`, the clone made shallow, the Python
-floor dropped, `${{ }}` moved into a `run:` body, the gate step or the branch-scope step gutted,
-the workflow dropped from this check's own triggers, and the file deleted outright. One of those
-nine survived on the first attempt, in the by-now familiar shape: the rule tested that
-`scripts/ai/pr_gate.py` appeared *somewhere* in the workflow, and the name still appeared on the
-dependency line after the gate step was deleted — presence asserted where a verdict was meant.
-The first round of mutations found two live holes in these tests,
+directory counted as a read). Eighteen more break the CI workflow instead of the driver, all
+killed: a `paths:` filter added (bare or quoted), a pin restated in place of `--requirements`
+(`==`, `~=`, `<`, or unpinned), the `--requirements` call removed, the clone made shallow, the
+Python floor dropped below the matrix, `${{ }}` moved into a `run:` step in each of its three
+scalar styles, the gate step and the branch-scope step each gutted — twice over, once cleanly
+and once leaving the script's name behind in a comment — the branch-scope call stripped of
+`--pr`, the workflow dropped from this check's own triggers, and the file deleted.
+
+The doubled shapes are there because **four of these guards were vacuous on the first attempt,
+each in the same way**: the rule tested that a string appeared *somewhere* in the file. Deleting
+the gate step left its name on the `--requirements` line; deleting it and leaving a `# TODO`
+comment defeated the narrower replacement; the branch-scope rule never excluded comments at all;
+and flipping `fetch-depth: 0` to `1` passed because a comment two steps below still said
+`fetch-depth: 0`. Only the last of the four was found by the mutation sweep — the other three
+were found by review after the sweep had reported the suite complete, which is the argument for
+both practices rather than either. The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
 given above.

@@ -2,16 +2,17 @@ name: PR Checks
 
 on:
   pull_request:
+  # No inputs: on a dispatch there is no base ref to diff against, so the run is always
+  # `--all`. An earlier draft offered a `run_all` toggle, which was inert — false still
+  # produced `--all` — and an advertised choice that does nothing is worse than none.
   workflow_dispatch:
-    inputs:
-      run_all:
-        description: "Run every check regardless of which paths changed"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
+  # check_branch_scope.py calls `gh pr view` and `gh pr list`. `contents: read` alone leaves
+  # every other scope at none, which happens to work while this repo is public and would stop
+  # working the moment it is private or mirrored internally.
+  pull-requests: read
 
 concurrency:
   group: pr-checks-${{ github.event.pull_request.number || github.ref }}
@@ -33,7 +34,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          # 3.10+ required: analyze_agent_tooling.py uses sys.stdlib_module_names.
+          # The floor is the highest min_python in the check matrix, not the language feature
+          # any one script needs: a check below its floor reports MISSING-DEP, and a missing
+          # dependency fails the gate rather than skipping. tests/test_pr_gate.py derives the
+          # same number from pr_gate.CHECKS, so this cannot drift from the matrix silently.
           python-version: "3.13"
 
       - name: Resolve the base ref
@@ -42,20 +46,28 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          if [ -n "${BASE_REF:-}" ]; then
-            git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
-            echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "${BASE_REF:-}" ]; then
             echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # checkout with fetch-depth: 0 already fetches every branch, so this is normally a
+          # no-op verify. The fetch is the fallback rather than the default because
+          # persist-credentials is false: an unconditional fetch works anonymously on a public
+          # repo and would fail on a private one, which is a bad thing to depend on. Either
+          # way the ref must exist before selection runs — an unresolvable base makes the diff
+          # empty, and an empty diff selects nothing and passes.
+          if ! git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null; then
+            git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          fi
+          git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null
+          echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
 
       - name: Install only what the selection needs
         env:
           BASE: ${{ steps.base.outputs.ref }}
-          RUN_ALL: ${{ github.event.inputs.run_all }}
         run: |
           set -euo pipefail
-          if [ "${RUN_ALL:-false}" = "true" ] || [ -z "${BASE:-}" ]; then
+          if [ -z "${BASE:-}" ]; then
             SEL="--all"
           else
             SEL="--base ${BASE}"
@@ -64,11 +76,14 @@ jobs:
           reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"
           if [ -n "${reqs}" ]; then
             python -m pip install --upgrade pip
-            # Installed in the order printed, unquoted on purpose so each line is a separate
-            # spec. --requirements emits `setuptools>=75.4,<77` ahead of the CumulusCI pin
-            # itself (CumulusCI imports fs -> pkg_resources, absent from a 3.12+ venv), so this
-            # workflow does not restate that dependency and cannot drift from it.
+            # Unquoted on purpose so each printed line becomes its own requirement spec, with
+            # globbing off so a spec containing extras (`pkg[extra]`) cannot be eaten by
+            # pathname expansion. --requirements emits `setuptools>=75.4,<77` ahead of the
+            # CumulusCI pin itself (CumulusCI imports fs -> pkg_resources, absent from a 3.12+
+            # venv), so this workflow never restates a pin and cannot drift from PINS.
+            set -f
             python -m pip install ${reqs}
+            set +f
           else
             echo "No extra dependencies needed."
           fi
@@ -85,7 +100,22 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+          CROSS: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python scripts/ai/check_branch_scope.py --pr "${PR}"
+          if [ "${CROSS}" = "true" ]; then
+            # A fork's head is not in this checkout, and --pr refuses rather than compare
+            # against the wrong commits — exit 2, a tool error. Left alone that would paint
+            # every outside contributor's PR red for a condition they cannot fix, and would
+            # show an environment problem as a code verdict, which this repo's exit contract
+            # exists to prevent. So fetch the head and run the explicit form the checker's own
+            # error message prescribes. Signal 2 (STACKED) needs --pr and is therefore
+            # unavailable here; signal 1 still covers the branch.
+            echo "Fork PR: comparing explicit refs; STACKED detection needs --pr and is off."
+            git fetch --no-tags origin "pull/${PR}/head:pr-${PR}"
+            python scripts/ai/check_branch_scope.py --base "origin/${BASE_REF}" --head "pr-${PR}"
+          else
+            python scripts/ai/check_branch_scope.py --pr "${PR}"
+          fi
