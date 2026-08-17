@@ -501,6 +501,7 @@ This repository provides multiple entry points for different AI tools:
 | `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
 | `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
 | `REVIEW.md` | Any agent + Copilot | **How pull requests get reviewed** — severity rubric, what to look for, this repo's recurring defect classes, push discipline. Distinct content, not a duplicate of this file. |
+| `CONTRIBUTING.md` | Humans + any agent | **How to contribute** — fork → branch → validate → PR, commit/PR conventions, review-round expectations. Governance companions at the repo root: `LICENSE.txt` (Apache-2.0), `CODE_OF_CONDUCT.md`, `SECURITY.md`. |
 | `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
 
 `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
