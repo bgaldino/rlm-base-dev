@@ -119,7 +119,10 @@ CHECKS = [
     dict(
         name="plan_readme_consistency",
         cmd=["python", "scripts/ai/check_plan_readme_consistency.py"],
-        triggers=["datasets/sfdmu/"],
+        # The validator itself, not only the data it validates: a semantic regression in it
+        # otherwise merges with only `agent_tooling`'s syntax scan having looked at the file,
+        # and nothing having run it.
+        triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -250,7 +253,7 @@ CHECKS = [
     dict(
         name="sfdmu_datasets",
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
-        triggers=["datasets/"],
+        triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
         deps=[], gating=False,
         note="advisory until pack 123: 2 Criticals on a clean tree are validator "
              "false positives (Readonly CSV demand, objectset_source layout)",

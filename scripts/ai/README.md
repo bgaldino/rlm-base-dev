@@ -335,6 +335,14 @@ merge with its own existing test unrun. A single rooted segment now counts when 
 — and only the outermost node of a `REPO / "a" / "b"` chain counts, since `ast.walk` sees every
 prefix in it and each one is a validly rooted path.
 
+The rule runs the other way too: a check must be selected by the script it **executes**. The
+enumeration above walks each check's test-suite sources, so the two checks whose command is a
+validator rather than a suite contributed nothing to it — and both were editable without the
+check that runs them running, leaving only `agent_tooling`'s syntax scan between a semantic
+regression in a validator and a merge. Derived from each check's own `cmd` rather than a
+hand-kept list, with a positive control: on a correct matrix, blinding that rule yields the same
+empty answer, so the assertion alone cannot tell a held property from an unexercised one.
+
 The meta-check that carries all of this is selected by any `tests/` change, not just by edits to
 itself. Otherwise a PR could add a repo-file read to some other suite, omit the trigger, and the
 one check that would have caught the omission never ran. That widening makes the suite selectable
@@ -373,7 +381,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (126 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (128 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -388,15 +396,15 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the nine trigger lists narrowed back off an input its
-check reads, and each of the four read-enumeration shapes stopped being recognised (directory
+pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
+check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
 given above.
 
-Building it turned up five real defects rather than only proving the wiring. Making
+Building it turned up six real defects rather than only proving the wiring. Making
 `skill_manifest.py --check` gating exposed that it could not pass in CI at all: it demanded a
 path inside the gitignored private artifacts tree, so it failed on every fresh clone while
 passing on the workstation that held the clone (fixed above, in that script's own section). A
@@ -406,7 +414,10 @@ while the module under test bound its own fallback shim, so on a partially impor
 CumulusCI the `except` clause missed and the suite failed with a confusing traceback instead
 of a clear environment error; they now bind the class from the module under test. The root
 `tui-cci` launcher was read and executed by a test that no check selected, so nothing ran it on
-a launcher change. And the gate's own unclaimed-suite check caught its own new suite.
+a launcher change. Two validators — the SFDMU dataset checker and the plan-README checker — could
+be changed without the check that executes them being selected, so a semantic regression in
+either would have merged unexercised. And the gate's own unclaimed-suite check caught its own new
+suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
 drafted in pack 125 and is the remaining half of `#264-58`.

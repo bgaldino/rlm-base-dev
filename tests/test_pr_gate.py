@@ -568,6 +568,29 @@ for spec in pr_gate.CHECKS:
 check("no suite reads a file that cannot select it", not unselected_reads,
       "; ".join(unselected_reads[:8]))
 check("the enumeration actually inspected something", inspected > 20, inspected)
+
+# The other direction of the same rule: a check must also be selected by the script it *runs*.
+# The enumeration above walks each check's test-suite sources, so for the two checks whose
+# command is a validator rather than a suite it saw nothing — and both were editable without
+# the check that executes them running, leaving only a syntax scan between a semantic
+# regression in a validator and a merge.
+def unrun_commands(specs):
+    out = []
+    for spec in specs:
+        for arg in (spec["cmd"] or [])[1:]:
+            if (arg.endswith((".py", ".sh")) and os.path.isfile(os.path.join(REPO, arg))
+                    and not pr_gate.selects(spec, [arg])):
+                out.append(f"{spec['name']} runs {arg} but is not selected by it")
+    return out
+
+
+check("no check runs a script that cannot select it", not unrun_commands(pr_gate.CHECKS),
+      "; ".join(unrun_commands(pr_gate.CHECKS)))
+# Positive control: with the matrix correct, blinding the rule above yields the same empty
+# result, so the assertion alone cannot tell a held property from an unexercised one.
+check("that rule can actually detect a violation",
+      unrun_commands([dict(name="probe", cmd=["python", "scripts/ai/pr_gate.py"],
+                           triggers=["datasets/"])]) != [])
 # Coverage of the enumeration itself, which the failure above cannot assert: a shape it stops
 # recognising silently narrows the guarantee instead of failing. Both shapes below were blind
 # spots that let a real missing trigger through — the nested suites reached only via a
@@ -850,7 +873,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 126
+EXPECTED = 128
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
