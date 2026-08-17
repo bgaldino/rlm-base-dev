@@ -839,14 +839,58 @@ check("cumulusci is probed at the depth a task actually needs",
 # CCI-reference check, where the status IS the verdict, it would report "no drift" and pass.
 # Both must fail loudly instead, so both return codes are asserted here.
 source = pathlib.Path(pr_gate.__file__).read_text()
-status_calls = source.count('"git", "status", "--porcelain"')
+status_calls = source.count('"status", "--porcelain"')
 check("both git status call sites are still present", status_calls == 2, status_calls)
-check("changed_files dies when git status fails",
-      re.search(r'"git", "status", "--porcelain", "--untracked-files=all", "-z"'
-                r'.*?if st\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
-check("the drift check dies when git status fails",
-      re.search(r'"git", "status", "--porcelain", "--", \*generated.*?'
-                r'if diff\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
+
+# Every git invocation goes through git(), which dies on a non-zero exit *and* on a spawn
+# failure. Adding those guards call site by call site is what failed twice: run() gained an
+# OSError guard while this path kept only FileNotFoundError, so a git on PATH that cannot be
+# executed still escaped as a traceback (exit 1) — and the drift check's status call had no
+# spawn guard at all. The rule is enforced structurally instead: a raw subprocess.run may live
+# only in the three functions that own a guard.
+SPAWNERS = {"git", "run", "have_module"}
+
+
+def raw_spawns_in(text):
+    found = []
+    for node in ast.walk(ast.parse(text)):
+        if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name not in SPAWNERS):
+            for inner in ast.walk(node):
+                if (isinstance(inner, ast.Call) and isinstance(inner.func, ast.Attribute)
+                        and inner.func.attr == "run"
+                        and isinstance(inner.func.value, ast.Name)
+                        and inner.func.value.id == "subprocess"):
+                    found.append(f"{node.name}:{inner.lineno}")
+    return found
+
+
+check("no function spawns a subprocess outside the three that guard it",
+      not raw_spawns_in(source), "; ".join(raw_spawns_in(source)))
+# Positive control, per the lesson from the round that shipped a rule which survived its own
+# blinding: on a clean file this rule returns the same empty answer whether it works or not.
+check("that rule can actually detect a raw spawn",
+      raw_spawns_in("def elsewhere():\n    subprocess.run(['git', 'status'])\n") != [])
+check("git() dies on a non-zero exit rather than returning empty stdout as an answer",
+      re.search(r'def git\(.*?if out\.returncode != 0:\s*\n\s*die\(', source, re.S) is not None)
+
+# Behavioural, per spawn failure that is not FileNotFoundError: a git present on PATH but not
+# executable raises PermissionError, also an OSError, and used to escape as a traceback.
+for label, thunk in (("changed_files", lambda: pr_gate.changed_files("origin/264")),
+                     ("the drift check", pr_gate.run_cci_reference_drift)):
+    prior_spawn, prior_run = subprocess.run, pr_gate.run
+    try:
+        subprocess.run = lambda *a, **k: (_ for _ in ()).throw(PermissionError(13, "denied"))
+        pr_gate.run = lambda cmd: (0, "", 0.0)
+        try:
+            thunk()
+            perm_code = 0
+        except SystemExit as exc:
+            perm_code = exc.code
+    finally:
+        subprocess.run, pr_gate.run = prior_spawn, prior_run
+    check(f"a git that cannot be executed is a tool error in {label}, not a traceback",
+          perm_code == 2, perm_code)
 
 # ...and the exit code, not only the shape of the branch. Returning 1 here presented an
 # unusable git as a failed check — an infrastructure problem wearing a code verdict — while the
@@ -906,7 +950,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 131
+EXPECTED = 134
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

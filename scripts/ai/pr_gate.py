@@ -350,42 +350,53 @@ def unlisted_suites():
 def changed_files(base):
     """Paths changed against `base`, via the merge base so unrelated base commits do not
     enlarge the selection (the mistake `check_branch_scope.py` documents)."""
+    # Three dots, not two: `base...HEAD` diffs from the merge base, so commits that
+    # landed on the base after this branch diverged do not enter the selection.
+    # --no-renames, because git's rename detection reports only the destination — so
+    # moving a plan README *out* of datasets/sfdmu/ would not select the check that
+    # notices the plan lost its README. -z, because git quotes and escapes non-ASCII
+    # paths ("docs/caf\303\251.md"), and a leading quote matches no trigger prefix.
+    diffed = git(["diff", "--no-renames", "-z", "--name-only", f"{base}...HEAD"],
+                 f"diff against {base!r}")
+    files = [p for p in diffed.split("\0") if p]
+    # Uncommitted work counts too, so running this locally before a commit is honest.
+    # --untracked-files=all, because the default collapses a wholly new directory to a
+    # single `?? docs/` entry — the TOPMOST new directory, not even the leaf. Every
+    # file in a new subtree would then be invisible to selection: the `.md` suffix
+    # never matches `docs/`, so adding docs/new-guide/page.md with a wrong
+    # `step N of <flow>` citation selected nothing while the report said uncommitted
+    # work was covered.
+    #
+    # A failed status is fatal inside git(), not assumed clean: its empty stdout is
+    # indistinguishable from a clean tree, so an unreadable index would otherwise drop every
+    # uncommitted path from the selection and still exit 0.
+    status = git(["status", "--porcelain", "--untracked-files=all", "-z"], "status")
+    # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
+    # halves are wanted here, so every non-status token is taken as a path.
+    for entry in status.split("\0"):
+        if not entry:
+            continue
+        files.append(entry[3:] if len(entry) > 3 and entry[2] == " " else entry)
+    return sorted(set(files))
+
+
+def git(args, purpose):
+    """Run git from the repo root and return stdout, or die — never return a verdict.
+
+    Centralised after the same two guards had to be added to each call site separately and were
+    not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
+    on PATH that cannot be executed (`PermissionError`) still escaped as a traceback, which the
+    interpreter reports as exit 1 — a code verdict for an environment failure. Non-zero is fatal
+    here too, because every caller reads git's *stdout* as its answer and an empty stdout from a
+    failed command is indistinguishable from a clean tree.
+    """
     try:
-        # Three dots, not two: `base...HEAD` diffs from the merge base, so commits that
-        # landed on the base after this branch diverged do not enter the selection.
-        # --no-renames, because git's rename detection reports only the destination — so
-        # moving a plan README *out* of datasets/sfdmu/ would not select the check that
-        # notices the plan lost its README. -z, because git quotes and escapes non-ASCII
-        # paths ("docs/caf\303\251.md"), and a leading quote matches no trigger prefix.
-        out = subprocess.run(["git", "diff", "--no-renames", "-z", "--name-only",
-                              f"{base}...HEAD"],
-                             cwd=REPO_ROOT, capture_output=True, text=True)
-        if out.returncode != 0:
-            die(f"git diff against {base!r} failed: {out.stderr.strip()}")
-        files = [p for p in out.stdout.split("\0") if p]
-        # Uncommitted work counts too, so running this locally before a commit is honest.
-        # --untracked-files=all, because the default collapses a wholly new directory to a
-        # single `?? docs/` entry — the TOPMOST new directory, not even the leaf. Every
-        # file in a new subtree would then be invisible to selection: the `.md` suffix
-        # never matches `docs/`, so adding docs/new-guide/page.md with a wrong
-        # `step N of <flow>` citation selected nothing while the report said uncommitted
-        # work was covered.
-        st = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "-z"],
-                            cwd=REPO_ROOT, capture_output=True, text=True)
-        # Checked, not assumed: a failed `git status` returns empty stdout, which is
-        # indistinguishable from a clean tree — so an unreadable index would silently
-        # drop every uncommitted path from the selection and still exit 0.
-        if st.returncode != 0:
-            die(f"git status failed: {st.stderr.strip()}")
-        # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
-        # halves are wanted here, so every non-status token is taken as a path.
-        for entry in st.stdout.split("\0"):
-            if not entry:
-                continue
-            files.append(entry[3:] if len(entry) > 3 and entry[2] == " " else entry)
-        return sorted(set(files))
-    except FileNotFoundError:
-        die("git not found on PATH")
+        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
+    except OSError as exc:
+        die(f"could not run git ({purpose}): {exc}")
+    if out.returncode != 0:
+        die(f"git {purpose} failed: {out.stderr.strip()}")
+    return out.stdout
 
 
 def selects(check, files):
@@ -453,18 +464,13 @@ def run_cci_reference_drift():
     generated = [f".cursor/skills/cci-orchestration/{name}"
                  for name in ("tasks-reference.md", "flows-reference.md",
                               "feature-flags.md")]
-    diff = subprocess.run(["git", "status", "--porcelain", "--", *generated],
-                          cwd=REPO_ROOT, capture_output=True, text=True)
-    # Here the empty-output-means-clean trap is worse than in changed_files: this git status
-    # *is* the verdict, so a failed one reads as "no drift" and passes the check. It dies
-    # rather than returning 1, matching the two calls in changed_files(): an unusable git is
-    # exit 2, a tool error, and reporting it as a failed check would present an infrastructure
-    # problem as a code verdict.
-    if diff.returncode != 0:
-        die(f"git status failed, so drift could not be determined: {diff.stderr.strip()}")
-    if diff.stdout.strip():
+    # Through git(), which dies on both a spawn failure and a non-zero exit. Here the
+    # empty-output-means-clean trap is worse than in changed_files: this status *is* the
+    # verdict, so a failed one would read as "no drift" and pass the check.
+    drift = git(["status", "--porcelain", "--", *generated], "status for reference drift")
+    if drift.strip():
         return 1, (out + "\nRegenerating changed committed files — commit the result:\n"
-                   + diff.stdout), secs
+                   + drift), secs
     return 0, out + "\nno drift", secs
 
 
