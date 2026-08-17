@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (190 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (192 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,7 +440,7 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Fifty-one** more break the CI workflow instead of the driver, all
+directory counted as a read). **Fifty-three** more break the CI workflow instead of the driver, all
 killed, in eight families: the job never runs (a `paths:`/`paths-ignore:`/`branches:`/`types:`
 filter, `pull_request:` deleted from `on:`, an `if:` on the job or on either step, `if: false`,
 `if: vars.X`); dependencies drift (a pin restated in place of `--requirements` in any of four
@@ -454,10 +454,12 @@ whose exit codes are not verdicts); the command runs but its verdict is discarde
 dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
 `code=0`); and the checker is defanged (`--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
-moved off `pull_request`). Plus the two that remove the guard itself: the workflow dropped from
+moved off `pull_request`; the retry loop replaced by a one-shot that captures `$?` and never
+exits with it; `--no-fetch` dropped, which reinstates an unauthenticated `git fetch` that passes on
+a public repo and fails on a private one). Plus the two that remove the guard itself: the workflow dropped from
 this check's own triggers, and the file deleted.
 
-The doubled shapes are there because **thirty-six of these guards were vacuous on the first
+The doubled shapes are there because **thirty-eight of these guards were vacuous on the first
 attempt, every one the same shape**: the rule tested that a string appeared *somewhere* rather than
 that
 the job *did* something. Deleting the gate step left its name on the `--requirements` line;
@@ -489,12 +491,19 @@ to break the job, a whitelist only has to describe the one way it may work. The 
 legitimate edit to those two steps must update the rule — acceptable for two steps whose purpose is
 to be hard to defang.
 
-Two of the thirty-six were caught by the mutation sweep and thirty-four by review, each time *after*
+Two of the thirty-eight were caught by the mutation sweep and thirty-six by review, each time *after*
 a sweep reported every mutation killed — three rounds running. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all. The
 durable lesson is not any one of those shapes; it is that "all mutations killed" is evidence about
 the sweep, and a guard is only as good as the narrowest question it asks.
+
+One corollary is worth stating separately, because it makes a passing suite actively misleading:
+**never condition a guard on the token it guards.** The exit-propagation rule was written
+`if "while" in shell:`, so deleting the retry loop deleted its own check. Nothing failed except the
+total-count invariant — and that invariant's message says "update EXPECTED deliberately", which is
+precisely what someone would do next. The rule is now unconditional. Any assertion of the form
+"if the feature is present, check the feature" has the same defect and should be read as absent.
 The first round of mutations found two live holes in these tests,
 both in the gap between a helper returning the right value and the gate acting on it. The
 nesting guard is the one property confirmed by hang rather than by failure, for the reason
