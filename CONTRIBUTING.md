@@ -125,7 +125,8 @@ Target **base branch `main`** (Release 262 / Summer '26, API v67.0). Release
 260 work targets `release/260` — see *Branch Information* in the
 [README](README.md).
 
-Prefix the PR title with `feat:` or `fix:` (matching your commits), and write a
+Prefix the PR title with the Conventional Commit type that matches your
+commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`), and write a
 description that covers:
 
 ```
@@ -153,19 +154,11 @@ Avoid generic titles like "Update" or "Fix."
 
 Automated reviewers (GitHub Copilot, Codex) and maintainers comment inline.
 Every review comment is handled to completion, and each review round ends with
-**zero unresolved threads**:
+**zero unresolved threads**.
 
-1. **Verify** the finding against the actual source — reviewers are sometimes
-   wrong.
-2. **Sweep the class** — if a finding is real, fix every instance of that
-   pattern in the change, not just the cited line.
-3. **Reply in-thread** with the resolution and the commit SHA, or a clear,
-   evidence-backed refutation, then resolve the thread.
-
-Batch a round's fixes into **one push** — every push triggers a fresh review,
-so pushing mid-round spends a round on findings that no longer apply.
-[`REVIEW.md`](REVIEW.md) documents how review is conducted here: the severity
-rubric, this repository's recurring defect classes, and push discipline.
+[`REVIEW.md`](REVIEW.md) is the canonical protocol — how a finding is verified,
+how a round is closed out, and why a round's fixes are batched into a single
+push. Read it before responding to your first review.
 
 To update your PR:
 
@@ -179,13 +172,18 @@ Your PR updates automatically.
 
 ## 10. Keep Your Fork Updated
 
-Sync your fork with upstream before starting new work:
+Start each new branch from the latest upstream `main`. This keeps your work
+current without pushing to any `main` branch — which
+[`AGENTS.md`](AGENTS.md) prohibits:
 
 ```sh
-git checkout main
-git pull upstream main
-git push origin main
+git fetch upstream
+git checkout -b my-next-feature upstream/main
 ```
+
+Nothing in this workflow reads your fork's own `main`, so it can stay as it is.
+If you would rather keep it current, use your fork's **Sync fork** button on
+GitHub instead of pushing from the command line.
 
 ## 11. Merge
 
@@ -200,7 +198,7 @@ A maintainer merges your PR after approval and green checks.
 - Run the validations for what you changed.
 - Push the branch and open a PR against `main`.
 - Drive every review round to zero unresolved threads.
-- Keep your fork updated.
+- Branch from `upstream/main` for your next change.
 
 ## Code of Conduct
 

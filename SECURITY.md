@@ -8,9 +8,9 @@ If you believe you have found a security vulnerability, please report it to us a
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to [https://www.sfdc.co/SubmitVuln](https://www.sfdc.co/SubmitVuln) as soon as it is discovered. This repo limits its runtime dependencies in order to reduce the total cost of ownership as much as can be, but all consumers should remain vigilant and have their security stakeholders review all third-party products (3PP) like this one and their dependencies.
+Instead, please report any security issue through the Salesforce vulnerability submission portal at [https://www.sfdc.co/SubmitVuln](https://www.sfdc.co/SubmitVuln) as soon as it is discovered. This repo limits its runtime dependencies in order to reduce the total cost of ownership as much as can be, but all consumers should remain vigilant and have their security stakeholders review all third-party products (3PP) like this one and their dependencies.
 
-You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+The portal is the supported intake and follow-up channel. If you do not receive an acknowledgment, submit a follow-up through the same portal referencing your original report.
 
 Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
 
