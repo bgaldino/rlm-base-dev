@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (235 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (262 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,7 +440,7 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Eighty-three** more break the CI workflow instead of the driver, all
+directory counted as a read). **Ninety-three** more break the CI workflow instead of the driver, all
 killed, in nine families. The families are what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
 `|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
@@ -463,7 +463,11 @@ unmasked, and never reached (`true || python …`, `false && python …` — for
 checker, and for either `set --` line, since a skipped argument list supplies neither `--pr` nor
 `--no-fetch` while leaving both flags visible on the line; or the shell simply ends first, either on
 the same line as the command — `exit 0; python …` — or on an earlier line of the step, which no
-per-line rule can see); the checker is defanged
+per-line rule can see); the command runs and is not the program (`python` redefined as a shell
+function, by `alias`, `hash -p`, `export PATH=` or a bare `PATH=`, on the invocation line or above it,
+in the step or exported to it through `$GITHUB_ENV`/`$GITHUB_PATH`; the script truncated by a
+redirection or restored to an older revision by `git checkout`; the script passed as *data* to
+`python -c`); the checker is defanged
 (backgrounded with `&`, so `$?` is the fork's status and the
 real script still runs and still reports success; `--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
@@ -483,9 +487,9 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **sixty of these guards were vacuous on the first
-attempt**, in seven waves of 7, 5, 26, 2, 14, 3 and 3 — each wave a narrower version of one mistake,
-and each found *after* the previous wave's fix was reported complete.
+The doubled shapes are there because **sixty-six of these guards were vacuous on the first
+attempt**, in eight waves of 7, 5, 26, 2, 14, 3, 3 and 6 — each wave a narrower version of one
+mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
 that
@@ -505,7 +509,8 @@ executes a line and runs nothing; `python scripts/ai/pr_gate.py ${SEL} || true` 
 throws its verdict away; `continue-on-error: true` lets the step fail and the job pass, and lives
 outside `run:` entirely, so no rule reading run bodies could ever have seen it. `executes()` answers
 the narrower question — is this the command, and does its exit status still reach the job — by
-taking the first word of each shell segment (split on `&&`, `||`, `;`, and `|`; `echo`, `printf`,
+taking the first word of each shell segment (split on `&&`, `||`, `;`, `|` and a bare `&`, outside
+quotes; `echo`, `printf`,
 `:`, or `true` there means the script is an argument) and rejecting masking in the text that
 *follows* that segment, so a cleanup like `rm -f log || true; python …` is still accepted.
 
@@ -549,8 +554,25 @@ predecessor that ends the shell now stops the scan, and both load-bearing steps 
 that nothing at their own indentation exits. Nesting is what makes an exit conditional, which is why
 the retry loop's own `exit 2` and the single-line `if …; then exit …; fi` are still accepted.
 
-Two of the sixty were caught by the mutation sweep and fifty-eight by review, each time *after*
-a sweep reported every mutation killed — seven rounds running. A sweep only mutates in the shapes
+**The last six moved from the line to the segment, and from the command to the program.** Every rule
+so far exempted the *line* carrying an invocation once it found the invocation on it, which leaves the
+rest of that line unread: `python() { return 0; }; python …pr_gate.py ${SEL}` satisfies "one command
+executes the gate" while bash calls a function that returns 0. The branch-scope step had no
+per-segment rule at all, so a shim could sit anywhere in it. Shadowing has too many spellings to
+enumerate, so both steps are now whitelisted segment by segment against the handful of commands they
+exist to run — and a first attempt whitelisting command *words* was itself defeated three times out of
+five by its own author before shipping: `python` admits `python -c '…' scripts/ai/pr_gate.py`, which
+reads the gate as data; `echo` admits `echo -n > scripts/ai/pr_gate.py`, which truncates it; and a
+permitted `echo` can carry a command substitution. So a command taking a subcommand is pinned to the
+subcommand (`git fetch`), a conditional to a *test* rather than an arbitrary command, `python` to one
+of the two scripts, and neither step may redirect or substitute at all. Segmentation also had to
+become quote-aware in the same pass: both steps `echo` strings containing `;`, and a naive split
+invents a segment whose first word no whitelist could recognise.
+
+Two of the sixty-six were caught by the mutation sweep, sixty-one by review, and three by
+adversarially sweeping a new rule *before* shipping it — the eighth round is the first where the
+rule's author found the holes first, and three of five attempts got through. Every earlier round was
+found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all, then
 the two shapes a whitelist of *permitted commands* still cannot see — a permitted command whose
@@ -566,7 +588,7 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 83 mutations across four files,
+The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 93 mutations across three files,
 all killed.
 
 How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the

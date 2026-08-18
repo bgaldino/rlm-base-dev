@@ -513,9 +513,36 @@ if os.path.exists(workflow):
     MASKED = re.compile(r"^(?:(?:\|\||;)\s*(?:true|:|/bin/true|command\s+true|builtin\s+true"
                         r"|echo|exit\s+0)(?=\s|;|$)|&(?!&))")
 
+    def tokens(ln):
+        """Segments and separators, alternating, honouring quotes.
+
+        `re.split` on the operators was close enough while the rules only asked about the segment
+        that *contained* a script name. It stops being close enough once every segment must name a
+        permitted command, because a `;` inside `echo "a; b"` is text: splitting on it invents a
+        segment whose first word is `b"`, which no whitelist would recognise and no shell ever runs.
+        Backslash escapes are not modelled — a `\\;` would be read as a separator — which is
+        conservative here, since the effect is to see more segments rather than fewer.
+        """
+        out, cur, i, quote = [], "", 0, ""
+        while i < len(ln):
+            char = ln[i]
+            if quote:
+                cur += char
+                quote = "" if char == quote else quote
+                i += 1
+            elif char in "'\"":
+                cur, quote, i = cur + char, char, i + 1
+            elif ln[i:i + 2] in ("&&", "||"):
+                out, cur, i = out + [cur, ln[i:i + 2]], "", i + 2
+            elif char in ";|&":
+                out, cur, i = out + [cur, char], "", i + 1
+            else:
+                cur, i = cur + char, i + 1
+        return out + [cur]
+
     def parts(ln):
         """Each shell segment of a line, paired with the text that follows it."""
-        pieces = re.split(r"(&&|\|\||;|\||&)", ln)
+        pieces = tokens(ln)
         return [(pieces[i], "".join(pieces[i + 1:])) for i in range(0, len(pieces), 2)]
 
     def runs_segment(seg, tail, script, args_required=()):
@@ -559,7 +586,7 @@ if os.path.exists(workflow):
         runs, and the separator is irrelevant to it: `exit 0; python …pr_gate.py ${SEL}` is one
         segment that leaves nothing to run, so scanning stops there rather than continuing.
         """
-        pieces = re.split(r"(&&|\|\||;|\||&)", ln)
+        pieces = tokens(ln)
         for i in range(0, len(pieces), 2):
             if opens(pieces[i]) and opens(pieces[i])[0] in TERMINATOR:
                 return False
@@ -679,6 +706,68 @@ if os.path.exists(workflow):
                 if len(ln) - len(ln.lstrip()) == base
                 and opens(ln.strip()) and opens(ln.strip())[0] in TERMINATOR]
 
+    # Block keywords are not commands: `then exit 2` runs `exit`, `{ echo x` runs `echo`.
+    KEYWORDS = ("then", "else", "elif", "do", "done", "fi", "esac", "!", "{", "}", "(", ")")
+    # The two steps' whole vocabulary: `set`, a conditional, `echo`, `exit`, `sleep`, `git fetch`,
+    # the two scripts, and four variables. Small enough to whitelist, which is why this is possible
+    # here and would not be for an arbitrary step.
+    HARMLESS = ("set", "echo", "printf", "exit", "return", "sleep", ":", "true")
+    ASSIGNABLE = ("SEL", "reqs", "code", "attempt")
+    SCRIPTS = ("scripts/ai/pr_gate.py", "scripts/ai/check_branch_scope.py")
+
+    def permitted(seg):
+        """Whether one segment runs something the step is supposed to run.
+
+        Words, not forms, was the first attempt, and three of five self-authored escapes walked
+        through it: whitelisting `python` admits `python -c '…' scripts/ai/pr_gate.py`, which reads
+        the gate as data and exits 0; whitelisting `git` admits `git checkout HEAD~50 -- scripts/ai/`,
+        which silently restores an older checker. So a command that takes a subcommand is pinned to
+        the subcommand, and a conditional to a *test* — `if rm -f …; then` is a conditional whose
+        condition is an arbitrary command.
+        """
+        words = seg.split()
+        while words and words[0] in KEYWORDS:
+            words = words[1:]
+        if not words:
+            return True
+        if words[0] in HARMLESS:
+            return True
+        if words[0] in ("if", "elif", "while", "until"):
+            return words[1:2] and words[1] in ("[", "test", ":")
+        if words[0] == "git":
+            return words[1:2] == ["fetch"]
+        if words[0] == "python":
+            return words[1:2] and words[1] in SCRIPTS
+        if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", words[0]):
+            return words[0].split("=")[0] in ASSIGNABLE
+        return False
+
+    def foreign_commands(step):
+        """Segments of a step that run something outside its vocabulary.
+
+        The rules above ask what the *invocation* is, and exempt the line carrying it — which leaves
+        everything else on that line unread: `python() { return 0; }; python …pr_gate.py ${SEL}`
+        satisfies "one command executes the gate" while bash calls a shell function that returns 0.
+        The branch-scope step was worse still, having no per-segment rule at all, so a shim could sit
+        anywhere in it. Shadowing has too many spellings to enumerate — a function, `alias`, `eval`,
+        `hash -p`, `export PATH=`, a bare `PATH=` — so the question asked is the whitelist one:
+        is every segment one of the handful of commands this step exists to run?
+        """
+        return [seg.strip() for ln in shell_of(step)
+                for seg, _tail in parts(ln) if not permitted(seg)]
+
+    def rewrites(step):
+        """Segments that change what the step runs instead of running it.
+
+        Both escape a whitelist of commands while using only whitelisted ones. A redirection can
+        truncate the very script about to be invoked — `echo -n > scripts/ai/pr_gate.py` opens with a
+        permitted `echo` and leaves an empty file that exits 0 — and a command substitution smuggles
+        an arbitrary command inside a permitted one. Neither step needs either; `$(( ))` arithmetic,
+        which the retry loop does need, is not a substitution.
+        """
+        return [ln for ln in shell_of(step)
+                if ">" in ln or re.search(r"\$\((?!\()", ln) or "`" in ln]
+
     def pure_echo(ln):
         """One segment, and that segment is an echo. `startswith("echo ")` was a *prefix* test, so
         `echo "disabled" && exit 0` and `echo "shim"; python() { return 0; }` both satisfied it while
@@ -710,6 +799,11 @@ if os.path.exists(workflow):
               all(pure_echo(ln) for ln in cmds[1:] if ln not in runs_gate), cmds)
         check("nothing in the gate step ends the shell before the gate runs",
               not escapes_early(gate_step), escapes_early(gate_step))
+        check("every segment of the gate step runs a command the step is meant to run, so nothing "
+              "beside the invocation can redefine what `python` means",
+              not foreign_commands(gate_step), foreign_commands(gate_step))
+        check("the gate step neither redirects nor substitutes, so it cannot rewrite the script it "
+              "is about to run", not rewrites(gate_step), rewrites(gate_step))
     # Selection is the other way to make a passing gate meaningless: `--base HEAD` is an empty diff,
     # and an empty diff selects nothing and exits 0. So SEL may only be built two ways.
     # Both the assignments *and* the export: the gate runs in a different step and receives the
@@ -731,6 +825,20 @@ if os.path.exists(workflow):
                           ("an export that drops the variable",
                            'echo "SEL=--all" >> "$GITHUB_ENV"')):
         check(f"that rule rejects {label}", not all(ln in ALLOWED_SEL for ln in [mutant]))
+    # The selection is not the only thing a step can hand the gate. `$GITHUB_ENV` and `$GITHUB_PATH`
+    # cross step boundaries, so an earlier step can re-point `PATH` at a shim and the gate step —
+    # whose every segment is whitelisted — would still be running `python` as written and getting
+    # something else. Whitelisting the *writes* covers both variables and any value either carries.
+    crossings = [ln.strip() for ln in run_contents(wf)
+                 if "GITHUB_ENV" in ln or "GITHUB_PATH" in ln]
+    check("the only value a step hands another is the selection, so nothing can re-point PATH or "
+          "the interpreter out of band",
+          crossings and all(ln in ALLOWED_SEL for ln in crossings), crossings)
+    for label, mutant in (("a PATH re-pointed for later steps",
+                           'echo "PATH=/tmp/shim:$PATH" >> "$GITHUB_ENV"'),
+                          ("a directory prepended to PATH",
+                           'echo "/tmp/shim" >> "$GITHUB_PATH"')):
+        check(f"that rule rejects {label}", mutant not in ALLOWED_SEL)
     # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
     # half-defanged invocation would otherwise read as fully wired. The flag is asserted over the
     # executed shell rather than on the invocation line, because the workflow builds the argument
@@ -783,6 +891,10 @@ if os.path.exists(workflow):
               no_fetch, seq)
         check("nothing in the branch-scope step ends the shell before the checker runs",
               not escapes_early(scope_step), escapes_early(scope_step))
+        check("every segment of the branch-scope step runs a command the step is meant to run",
+              not foreign_commands(scope_step), foreign_commands(scope_step))
+        check("the branch-scope step neither redirects nor substitutes",
+              not rewrites(scope_step), rewrites(scope_step))
     # Where the flag appears, not merely that it appears in an executed line. Searching the whole
     # shell passed the mutation that removes --pr, because the fork branch *echoes* the words
     # "needs --pr" while explaining its absence. Third instance in this round of the same shape:
@@ -937,6 +1049,54 @@ if os.path.exists(workflow):
         what tells a nested line from a top-level one."""
         return {"run": "\n".join(" " * 10 + ln for ln in shell)}
 
+    # Controls for the vocabulary rule. The shapes are the ones that make an invocation inert without
+    # touching it: a shim on the same line as the real call (which the line-exempting rules could not
+    # see), a shim anywhere in a step, and the four other spellings of the same idea.
+    for label, snippet in (("a function shadowing the interpreter beside the real call",
+                            "python() { return 0; }; python scripts/ai/pr_gate.py ${SEL}"),
+                           ("a function shadowing it on a line of its own", "python() { return 0; }"),
+                           ("the `function` keyword form", "function python { return 0; }"),
+                           ("an alias", "alias python=true"),
+                           ("PATH re-pointed inside the step", "PATH=/tmp/shim:$PATH"),
+                           ("an exported PATH", "export PATH=/tmp/shim:$PATH"),
+                           ("a hashed path for the interpreter", "hash -p /bin/true python"),
+                           ("an eval of an arbitrary string", 'eval "$CMD"'),
+                           ("the gate read as data by another program",
+                            "python -c 'import sys; sys.exit(0)' scripts/ai/pr_gate.py ${SEL}"),
+                           ("an older checker restored by a whitelisted command",
+                            "git checkout HEAD~50 -- scripts/ai/"),
+                           ("a conditional whose condition is an arbitrary command",
+                            "if rm -f scripts/ai/pr_gate.py; then :; fi")):
+        check(f"the vocabulary rule rejects {label}",
+              foreign_commands(as_step("set -euo pipefail", snippet)), snippet)
+    for label, snippet in (("a redirection that truncates the script about to run",
+                            "echo -n > scripts/ai/pr_gate.py"),
+                           ("a command substitution hidden inside a permitted echo",
+                            'echo "$(printf %s x > scripts/ai/pr_gate.py)"'),
+                           ("a backtick substitution", "echo `id`")):
+        check(f"the rewrite rule rejects {label}",
+              rewrites(as_step("set -euo pipefail", snippet)), snippet)
+    check("that rule accepts the retry loop's arithmetic, which is not a substitution",
+          not rewrites(as_step("sleep $((attempt * 15))", "attempt=$((attempt + 1))")))
+    check("that rule accepts the gate step as written",
+          not foreign_commands(as_step("set -euo pipefail",
+                                       "python scripts/ai/pr_gate.py ${SEL}")))
+    check("that rule accepts a re-raising handler, whose pieces are `echo` and `exit`",
+          not foreign_commands(as_step(
+              'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }')))
+    check("that rule accepts the retry loop's arithmetic and its `set --` argument building",
+          not foreign_commands(as_step("attempt=1", "while :", "do", "set +e",
+                                       'python scripts/ai/check_branch_scope.py "$@"',
+                                       "code=$?", "set -e",
+                                       'if [ "$code" -ne 2 ]; then exit "$code"; fi',
+                                       "sleep $((attempt * 15))", "attempt=$((attempt + 1))",
+                                       "done")))
+    # Quote-awareness is what makes the rule above usable: both steps echo strings containing `;`,
+    # and a naive split turns the text after it into a segment that runs a command named `STACKED`.
+    check("a separator inside a quoted string is text, not a segment boundary",
+          len(parts('echo "Fork PR: comparing refs; STACKED needs --pr and is off."')) == 1)
+    check("and a real separator outside quotes still splits",
+          len(parts('echo "a; b"; exit 0')) == 2)
     check("the step-reachability rule rejects an early exit on its own line",
           escapes_early(as_step("set -euo pipefail", "exit 0",
                                "python scripts/ai/pr_gate.py ${SEL}")))
@@ -1670,7 +1830,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 235
+EXPECTED = 262
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
