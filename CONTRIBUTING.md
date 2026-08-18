@@ -83,17 +83,32 @@ Task-specific guidance lives in the skill files indexed in `AGENTS.md`
 
 ## 6. Validate Before You Push
 
-Run the checks that apply to what you changed — these are the same checks
-reviewers run:
+Run the checks that apply to what you changed:
 
 ```sh
 cci task run validate_setup                                # toolchain + repo sanity (no org)
-python scripts/validate_sfdmu_v5_datasets.py               # SFDMU v5 plan compliance
-python scripts/ai/check_plan_readme_consistency.py         # plan README ↔ export.json/CSVs
 python scripts/ai/generate_cci_reference.py                # after any cumulusci.yml edit — commit the output
-python tests/<name>.py                                     # offline Python test suites
-npm run lint && npm run prettier:verify && npm test        # LWC/Apex formatting and Jest
+python scripts/ai/check_plan_readme_consistency.py         # plan README ↔ export.json/CSVs (expects 0 errors)
+python scripts/validate_sfdmu_v5_datasets.py               # SFDMU v5 plan compliance — see the baseline note
+python tests/<name>.py                                     # offline Python test suites, no org needed
 ```
+
+For LWC or Apex work, check the files you touched rather than the whole repo:
+
+```sh
+npx eslint <changed-lwc-files>
+npx prettier --check <changed-files>
+npm test -- --passWithNoTests                              # Jest — the repo has no LWC suites yet,
+                                                           # so a bare `npm test` exits 1
+```
+
+> **Compare against the baseline, don't chase it.** Some repo-wide checks
+> already report findings on `main` that predate your change — today that
+> includes `npm run lint`, `npm run prettier:verify`, and
+> `validate_sfdmu_v5_datasets.py`. Run the check on `main` first and compare,
+> so you fix what your change introduced instead of inheriting the backlog.
+> Continuous integration gates on the baseline static checks and the automated
+> review, not on these commands.
 
 Documentation is part of the change, not a follow-up: when a task, flag, data
 plan, or flow changes, update the docs that name it. The change-surface map in
