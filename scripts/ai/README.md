@@ -408,7 +408,8 @@ Three platform behaviours sit outside every guard in that file and are worth kno
 trusting a green:
 
 * **`[skip ci]` skips the whole thing.** A head commit whose message contains `[skip ci]`,
-  `[ci skip]`, `[no ci]`, `[skip actions]`, or a `skip-checks: true` trailer produces no run at
+  `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, or a `skip-checks: true` trailer
+  produces no run at
   all. While the check is not required that is a complete, self-service bypass needing no
   permissions; once it *is* required the same case leaves it Pending, which correctly blocks.
 * **The two actions may be pinned by tag, and are.** `actions/checkout@v6` and
@@ -430,9 +431,11 @@ trusting a green:
 * **`workflow_dispatch` was removed, and the reason generalises.** A manual run publishes a check
   with the *same name* on the same SHA, and GitHub shows the latest conclusion for a name — so a
   dispatch on a PR's head SHA does not sit beside the PR's verdict, it *replaces* it. Anyone with
-  write access could turn a red gate green with one button and no commit, which is a worse bypass
-  than any shell trick the file's two hundred shell checks refuse. Convenience for re-running a
-  check does not buy that. The same argument rules out `push` and any other event that can carry a
+  write access could publish that check with no commit and no review. It could not turn a *failing*
+  gate green — a dispatch selects `--all`, a superset of any `--base` selection, so whatever failed
+  fails again — but it skips the branch-scope step, which is gated on `pull_request`, so a FOREIGN or
+  STACKED finding or a persistent tool error there is cleared by one button. Convenience for
+  re-running a check does not buy that. The same argument rules out `push` and any other event that can carry a
   PR head SHA, which is why the trigger list is a whitelist rather than a blacklist.
 
 The suite asserts the workflow cannot be quietly defanged, because every way of disabling it
@@ -461,7 +464,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (394 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (417 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -541,8 +544,8 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and five of these guards were vacuous on the first
-attempt**, in fifteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11 and 6 — each wave a narrower version
+The doubled shapes are there because **a hundred and fourteen of these guards were vacuous on the first
+attempt**, in sixteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6 and 9 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -789,6 +792,32 @@ there is now a second harness asking whether right ones pass; a rule that fires 
 rules get deleted rather than fixed. Two of those five turned out to be a property asserted in two
 places and fixed in one — the same class as the round before, one address further along.
 
+**The sixteenth wave found four live false greens, and the widest of them was reached by following a
+guard's own failure message.** The step-rename failure said "rename it in `JOB_STEPS` and `STEP_KEYS`
+together" and named two of the *four* constants keyed on a step name. Do exactly that and the suite
+goes green while `JOB_CONTROL` silently stops applying — and the count invariant does not notice,
+because the renamed step leaves the control-flow loop (one check fewer) and joins the reachability
+loop (one more). Two ordinary commits later, the first prescribed by the guard, the retry loop can be
+neutered with 417/417 passing. Every name-keyed rule now asserts that the name it keys on matched a
+real step, which is the only reason a count invariant can be trusted at all.
+
+The other three were shell and interpreter semantics believed rather than checked. A bare `exit`
+was exempted as a re-raise on the belief that it inherits the failure just caught: it inherits `$?`
+of the last command *run*, so `|| { echo "::error::x"; exit; }` — one character off the shape this
+file documents as correct — printed the annotation and reported success. `subprocess` reports a
+signal-killed child as a *negative* returncode, so the `max()` introduced one round earlier to rank
+tool errors above verdicts ranked `-9` below `0` and reported an OOM-killed suite as a pass; it is
+normalised to 2 in `run()` now, where every caller gets it. And the always-true-test reader knew only
+`a = a`, so `[ 1 -eq 1 ]`, `[ 1 == 1 ]`, `[ -n x ]` and four more read as real conditions — enough to
+hide an unconditional exit at the top of the branch-scope step.
+
+Five rejections in the same wave were of edits that cannot hide anything: `python3` (the same
+interpreter after `setup-python`), `set -euxo pipefail` (which still aborts on the first error, while
+the failure message said it does not), `--quiet` on the pip self-upgrade, and two step reorders. Four
+of the messages named the wrong rule, which is worse than naming none. Fixing the first two took four
+addresses — the invocation pin and both command whitelists at both scopes — and the first attempt
+fixed one of them, which is the class this file keeps relearning.
+
 **Two earlier findings were false rejections rather than holes, and they matter as much.** The
 argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
@@ -796,8 +825,8 @@ it, the last because the tokenizer read the `&` of `2>&1` as a separator and inv
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and five were caught by the mutation sweep, ninety-three by review — twenty-one of
-those by local passes rather than hosted ones — and ten by adversarially sweeping a new rule *before*
+Two of the hundred and fourteen were caught by the mutation sweep, a hundred and two by review —
+thirty of those by local passes rather than hosted ones — and ten by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
@@ -824,8 +853,8 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 153 mutations, 3 controls and 8 correct-edit assertions across
-five files — but **not in
+The corpus is kept for that reason — 153 mutations, 3 controls, 20 loosening probes and 11
+correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible by whoever holds that tree and not

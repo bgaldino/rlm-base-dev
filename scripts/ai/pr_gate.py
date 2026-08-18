@@ -470,7 +470,12 @@ def run(cmd):
         return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"), time.time() - started
     except OSError as exc:
         die(f"could not run {argv[0]!r}: {exc}")
-    return proc.returncode, proc.stdout + proc.stderr, time.time() - started
+    # `subprocess` reports a child killed by a signal as *negative* (-9 for SIGKILL). Left negative
+    # it loses every ordering comparison against 0, so an OOM-killed suite ranked below a clean one
+    # and reported a pass. Normalised here rather than at each caller: a signal kill produced no
+    # verdict, which is the definition of a tool error in this file's 0/1/2 contract.
+    code = 2 if proc.returncode < 0 else proc.returncode
+    return code, proc.stdout + proc.stderr, time.time() - started
 
 
 def run_cci_reference_drift():
@@ -525,7 +530,10 @@ def run_sequence(cmds):
     for cmd in cmds:
         code, out, secs = run(cmd)
         total += secs
-        worst = 2 if 2 in (worst, code) else max(worst, code)
+        # Ranked, not `max()`d: any negative code is normalised to 2 in `run()`, but ranking states
+        # the intended order (tool error beats verdict beats clean) instead of relying on 0 < 1 < 2
+        # happening to hold for the values that reach here.
+        worst = max(worst, code, key=lambda c: (c == 2, c != 0))
         chunks.append(f"$ {' '.join(cmd)}  -> exit {code} ({secs:.1f}s)\n{out}")
     return worst, "\n".join(chunks), total
 
