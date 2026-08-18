@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (285 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (295 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -487,8 +487,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **seventy-three of these guards were vacuous on the first
-attempt**, in ten waves of 7, 5, 26, 2, 14, 3, 3, 6, 5 and 2 — each wave a narrower version of one
+The doubled shapes are there because **seventy-four of these guards were vacuous on the first
+attempt**, in eleven waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2 and 1 — each wave a narrower version of one
 mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -605,7 +605,26 @@ had those five controls been synthetic like most of the others, the fold would h
 green sweep. So "N/N killed" is worth even less than the earlier lesson implies: it is evidence about
 the sweep *and* about how incidentally its fixtures are coupled to the artifact.
 
-Two of the seventy-three were caught by the mutation sweep, sixty-six by review, and five by
+**The last one is the round-6 mistake at job scope.** Every rule so far was scoped to the step it
+protects, and the job's six steps share one working tree: `echo 'import sys; sys.exit(0)' >
+scripts/ai/pr_gate.py` in the install step leaves the pinned gate command exactly as written and makes
+it a no-op. So do `sed -i` through a glob, a `cp` in a new step, and `pip install ${reqs} evil-shim`.
+Four of those five shapes survived the previous round's suite. The job is now whitelisted whole — the
+six step names, the two pinned actions, a per-segment vocabulary for all four `run:` steps, and
+redirection targets restricted to the GitHub-provided files and `/dev/null` — which is the same
+whitelist discipline one level up. The level *above* the job was already closed in an earlier round: a
+workflow-level `defaults.run.shell` and a workflow-level `env` both die to the rule that no `defaults`
+or `env` may sit above the job, which is what a self-sweep of the new rules confirmed rather than
+extended.
+
+Two of those five shapes also **died before the fix existed, and for the wrong reason** — the second
+instance of the round-8 lesson in as many rounds. `sed -i … scripts/ai/pr_gate.py` and `cp /tmp/stub.py
+scripts/ai/pr_gate.py` both failed "exactly one step runs the gate", because *naming the script* in
+another step made that step look like a second gate-runner. Spelled to name nothing — a glob, and a
+copy into the directory — both sailed through. A mutation that dies for a reason unrelated to its
+property is worse than no mutation, because it reports the class as covered.
+
+Two of the seventy-four were caught by the mutation sweep, sixty-seven by review, and five by
 adversarially sweeping a new rule *before* shipping it — from the eighth round on, the rule's author
 found some holes first, five of seven attempts getting through. Every earlier round was
 found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
@@ -624,10 +643,14 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 103 mutations across three files,
-all killed. Keeping it only helps if it still runs: all three files named a virtualenv under `/tmp`
-that the OS had since reaped, so the corpus was unrunnable at the exact moment round 9 needed it. They
-now default to the interpreter running them (`SWEEP_PY` overrides).
+The corpus is kept for that reason — 108 mutations across three files, all killed — but **not in this
+repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
+project keeps agent working output out of the public tree and because these files mutate the very
+workflow CI runs. So the 108 figure is a local result, reproducible by whoever holds that tree and not
+from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open question rather
+than an oversight. Keeping it only helps if it still runs, and all three files named a virtualenv under
+`/tmp` that the OS had since reaped, so the corpus was unrunnable at the exact moment a later round
+needed it. They now default to the interpreter running them (`SWEEP_PY` overrides).
 
 How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the
 tracked workflow in place and restore it with `git checkout`, and that design produced two confident

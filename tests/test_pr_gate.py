@@ -1301,6 +1301,89 @@ if os.path.exists(workflow):
               bool(no_fetch) and depths == ["0"] and found_scope[0] in (gate_job.get("steps") or []),
               f"no_fetch={bool(no_fetch)}, depths={depths}")
 
+    # Every step of the job shares one working tree, so pinning the two load-bearing steps says
+    # nothing about a *third* step rewriting what they run. `echo 'import sys; sys.exit(0)' >
+    # scripts/ai/pr_gate.py` in the install step leaves the pinned gate command exactly as written and
+    # makes it a no-op; so do `sed -i`, a `cp` in a new step, and a `pip install` of a shim. This is
+    # the round-6 mistake — a rule scoped to the thing it protects — one level up, at job scope. So the
+    # job is whitelisted whole: which steps exist, which actions they may use, and what their shell may
+    # say. Four of these five shapes survived the round-8 suite.
+    JOB_STEPS = ["Checkout repository", "Set up Python", "Resolve the base ref",
+                 "Install only what the selection needs", "Run the gate", "Branch scope"]
+    JOB_USES = {"Checkout repository": "actions/checkout@v6",
+                "Set up Python": "actions/setup-python@v6"}
+    # `python -m pip` cannot be left open the way `git fetch` can: `pip install ${reqs} evil-shim`
+    # installs whatever it is told, so the two install forms are pinned like everything else.
+    PIP_FORMS = ("python -m pip install --upgrade pip", "python -m pip install ${reqs}")
+    JOB_ASSIGN = ALLOWED_ASSIGN + (
+        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',)
+    # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
+    # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
+    # --verify` stays quiet.
+    REDIR_TARGETS = ('"$GITHUB_OUTPUT"', '"$GITHUB_ENV"', '"$GITHUB_PATH"', '"$GITHUB_STEP_SUMMARY"',
+                     "/dev/null")
+
+    def permitted_job(seg):
+        """Wider than `permitted()` — the other two steps resolve a ref and install pins — but still a
+        whitelist of forms, not of words."""
+        words = [w for w in seg.split() if w != "!"]
+        while words and (words[0] in KEYWORDS or words[0] in ("if", "elif", "while", "until")):
+            words = words[1:]
+        if not words:
+            return True
+        w0 = words[0]
+        if w0 in HARMLESS or w0 in ("[", "test"):
+            return True
+        if w0 == "set":
+            return " ".join(words) in ALLOWED_SET
+        if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
+            return re.sub(r"\s+", "", seg) in [re.sub(r"\s+", "", f) for f in JOB_ASSIGN]
+        if w0 == "git":
+            return len(words) > 1 and words[1] in ("fetch", "rev-parse")
+        if w0 == "python":
+            if len(words) > 1 and words[1] in SCRIPTS:
+                return True
+            return " ".join(w for w in words if not w.startswith(">")) in PIP_FORMS
+        return False
+
+    def redirections(step):
+        # The target stops at a separator: `>/dev/null; then` redirects to /dev/null, and reading the
+        # `;` as part of the path made the workflow fail its own rule.
+        return [ln.strip() for ln in shell_of(step)
+                for m in re.finditer(r"(?<![0-9<>])>>?\s*([^\s;&|)]+)", ln)
+                if m.group(1) not in REDIR_TARGETS]
+
+    job_steps = gate_job.get("steps") or []
+    check("the job runs exactly the six steps it is built from, so a seventh cannot arrive without "
+          "updating this rule", [s.get("name") for s in job_steps] == JOB_STEPS,
+          [s.get("name") for s in job_steps])
+    check("and uses only the two pinned actions, neither of which patches the tree",
+          {s["name"]: s["uses"] for s in job_steps if "uses" in s} == JOB_USES,
+          {s.get("name"): s.get("uses") for s in job_steps if "uses" in s})
+    stray = [(s.get("name"), seg.strip()) for s in job_steps if "run" in s
+             for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
+    check("every command in every step is one the job exists to run, so no step can rewrite what a "
+          "later one executes", not stray, stray[:4])
+    redirs = [(s.get("name"), r) for s in job_steps if "run" in s for r in redirections(s)]
+    check("and every redirection writes to a GitHub-provided file or /dev/null, never into the "
+          "checkout", not redirs, redirs[:4])
+    for label, snippet in (("a script overwritten by a redirection",
+                            "echo 'import sys; sys.exit(0)' > scripts/ai/pr_gate.py"),
+                           ("a script rewritten through a glob, naming nothing",
+                            "sed -i.bak 's/^/#/' scripts/ai/pr_g*.py"),
+                           ("a stub copied over the directory", "cp /tmp/stub.py scripts/ai/"),
+                           ("a shim installed alongside the pins",
+                            "python -m pip install ${reqs} evil-shim")):
+        step = as_step("set -euo pipefail", snippet)
+        check(f"those two rules reject {label}",
+              [seg for ln in shell_of(step) for seg, _ in parts(ln) if not permitted_job(seg)]
+              or redirections(step), snippet)
+    check("and accept the two steps this job needs them for",
+          not [seg for s in job_steps if "run" in s and s.get("name") in JOB_STEPS[2:4]
+               for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)])
+    check("a seventh step is visible to the step-list rule",
+          [s.get("name") for s in job_steps] + ["Prepare"] != JOB_STEPS)
+
     # The selection's *input*, not just its spelling. SEL is pinned to `--base ${BASE}` below, and
     # BASE is whatever this step wrote: `echo "ref=HEAD"` left both permitted SEL lines untouched
     # and made the diff `HEAD...HEAD`, so the gate selected nothing and passed.
@@ -1958,7 +2041,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 285
+EXPECTED = 295
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
