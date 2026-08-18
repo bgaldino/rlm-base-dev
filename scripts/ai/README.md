@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (278 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (285 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -487,8 +487,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **seventy-one of these guards were vacuous on the first
-attempt**, in nine waves of 7, 5, 26, 2, 14, 3, 3, 6 and 5 — each wave a narrower version of one
+The doubled shapes are there because **seventy-three of these guards were vacuous on the first
+attempt**, in ten waves of 7, 5, 26, 2, 14, 3, 3, 6, 5 and 2 — each wave a narrower version of one
 mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -585,7 +585,27 @@ thing from the other end, turning the lines after it into data that every rule h
 commands. Both are now refused workflow-wide rather than modelled, which costs nothing because the
 file contains neither.
 
-Two of the seventy-one were caught by the mutation sweep, sixty-four by review, and five by
+**The last two are about what a line *is* before any rule reads it.** Both whitelists above assume
+the step is a script executed line by line, and neither the scalar style nor a prefix assignment was
+checked. `run: >` folds the step into one line, so `set -euo pipefail` swallows the invocation below
+it as positional arguments and the step exits 0 having run nothing — while every rule here still sees
+two separate lines and passes. And `permitted()` accepted a segment whose *first* word was an allowed
+assignment without reading the rest, so `code=0 eval 'python() { return 0; }'` passed as an
+assignment while defining a shim: a prefix assignment is a command's environment, not a command.
+Folded scalars are now refused (cheaper than modelling the fold, and the file uses none), and the
+assignment forms are pinned like the `set` forms — whitespace-insensitively, because the first cut
+rejected `attempt=$((attempt+1))`, a correct respelling.
+
+The folded scalar carries the sharper lesson, though, and it is about the corpus rather than the
+workflow: the mutation was **killed before the fix existed**, and by nothing that was guarding
+anything. Five controls splice fixtures onto the real gate step's text, so changing its scalar
+indicator broke *them*, not a rule — the substantive assertions all passed, exactly as the review
+said. A kill by fixture breakage is indistinguishable from a kill by a guard in the summary line, and
+had those five controls been synthetic like most of the others, the fold would have sailed through a
+green sweep. So "N/N killed" is worth even less than the earlier lesson implies: it is evidence about
+the sweep *and* about how incidentally its fixtures are coupled to the artifact.
+
+Two of the seventy-three were caught by the mutation sweep, sixty-six by review, and five by
 adversarially sweeping a new rule *before* shipping it — from the eighth round on, the rule's author
 found some holes first, five of seven attempts getting through. Every earlier round was
 found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
@@ -604,7 +624,7 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 98 mutations across three files,
+The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 103 mutations across three files,
 all killed. Keeping it only helps if it still runs: all three files named a virtualenv under `/tmp`
 that the OS had since reaped, so the corpus was unrunnable at the exact moment round 9 needed it. They
 now default to the interpreter running them (`SWEEP_PY` overrides).

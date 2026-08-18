@@ -717,7 +717,12 @@ if os.path.exists(workflow):
     # the two scripts, and four variables. Small enough to whitelist, which is why this is possible
     # here and would not be for an arbitrary step.
     HARMLESS = ("echo", "printf", "exit", "return", "sleep", ":", "true")
-    ASSIGNABLE = ("SEL", "reqs", "code", "attempt")
+    # Pinned for the same reason as `set`: `permitted()` used to accept a segment whose *first*
+    # word was an allowed assignment and read no further, so `code=0 eval 'python() { return 0; }'`
+    # passed as an assignment while defining a shim — a prefix assignment is a command's environment,
+    # not a command in itself.
+    ALLOWED_ASSIGN = ("attempt=1", "code=$?", "attempt=$((attempt + 1))",
+                      'SEL="--all"', 'SEL="--base ${BASE}"')
     SCRIPTS = ("scripts/ai/pr_gate.py", "scripts/ai/check_branch_scope.py")
     # `set` was in HARMLESS, which is the same mistake this round already fixed for `git` and
     # `python`: a builtin whose *arguments* decide what runs is not harmless. `set --` builds the
@@ -757,7 +762,10 @@ if os.path.exists(workflow):
         if words[0] == "python":
             return words[1:2] and words[1] in SCRIPTS
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", words[0]):
-            return words[0].split("=")[0] in ASSIGNABLE
+            # Compared with whitespace removed, so `attempt=$((attempt+1))` — a correct respelling
+            # that the first cut of this rule rejected — is accepted. Nothing in the permitted list
+            # can collide once spaces go: the only one with a quoted space is `--base ${BASE}`.
+            return re.sub(r"\s+", "", seg) in [re.sub(r"\s+", "", f) for f in ALLOWED_ASSIGN]
         return False
 
     # Pinning argv is worthless if the command can ignore it: `python …check_branch_scope.py --base
@@ -887,6 +895,22 @@ if os.path.exists(workflow):
     # satisfy the flag rules for a step that no longer passes the flag. Neither appears in the file,
     # which is what makes refusing them free; if one is ever needed, the segmentation must model it
     # first.
+    # A folded scalar is not a line-by-line script: `run: >` makes the runner join the step's lines
+    # with spaces, so `set -euo pipefail` swallows the invocation below it as positional arguments and
+    # the step exits 0 having run nothing — while `run_contents()` still hands every rule here the
+    # lines separately. `run_contents()` deliberately *collects* folded blocks, because an earlier
+    # round found the injection rule blind to them; that is about seeing the text, and this is about
+    # what the text means. Refusing the style is cheaper than modelling the fold.
+    folded = [ln.strip() for ln in strip_comments(wf).splitlines()
+              if re.match(r"^\s*run:\s*>[-+]?\s*$", ln)]
+    check("every run: block is a literal scalar, since a folded one joins the lines this suite reads "
+          "as separate commands", not folded, folded)
+    check("that rule can see a folded block",
+          [ln for ln in "        run: >\n          set -euo pipefail\n".splitlines()
+           if re.match(r"^\s*run:\s*>[-+]?\s*$", ln)])
+    check("and accepts the two styles the workflow uses",
+          not [ln for ln in "        run: |\n          echo x\n        run: echo y\n".splitlines()
+               if re.match(r"^\s*run:\s*>[-+]?\s*$", ln)])
     for label, hits in (("a backslash escape or line continuation",
                          [ln.strip() for ln in run_contents(wf) if "\\" in ln]),
                         ("an input redirection or heredoc, whose body this suite would read as "
@@ -1161,6 +1185,15 @@ if os.path.exists(workflow):
     check("those forms accept the three the workflow actually builds argv with",
           not foreign_commands(as_step('set -- --base "origin/${BASE_REF}" --head "pr-${PR}"',
                                        'set -- --pr "${PR}"', 'set -- "$@" --no-fetch')))
+    for label, snippet in (("an assignment prefixing a command, which defines a shim",
+                            "code=0 eval 'python() { return 0; }'"),
+                           ("an assignment to a name this workflow does not use", "PATH=/tmp/shim"),
+                           ("a permitted name given an unexpected value", 'SEL="--base HEAD"')):
+        check(f"the pinned assignment forms reject {label}",
+              foreign_commands(as_step("set -euo pipefail", snippet)), snippet)
+    check("those forms accept the three the retry loop needs, in either arithmetic spelling",
+          not foreign_commands(as_step("attempt=1", "code=$?", "attempt=$((attempt + 1))",
+                                      "attempt=$((attempt+1))")))
     for label, snippet in (("a redirection that truncates the script about to run",
                             "echo -n > scripts/ai/pr_gate.py"),
                            ("a command substitution hidden inside a permitted echo",
@@ -1925,7 +1958,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 278
+EXPECTED = 285
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
