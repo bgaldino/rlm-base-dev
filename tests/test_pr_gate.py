@@ -630,13 +630,9 @@ if os.path.exists(workflow):
     # Masking is matched against the text *following* the command, not the whole line: a line may
     # legitimately mask an unrelated command before running the real one
     # (`rm -f gate.log || true; python …pr_gate.py`), and rejecting that would make the rule fire
-    # on correct code — which is how a rule gets deleted.
-    # A bare `&` is masking too, and the sneakiest kind: `cmd &` exits 0 immediately because `$?`
-    # is the fork's status, not the command's, so a backgrounded checker reports success while
-    # still being a real invocation of the real script. `&&` is a separate token in the split
-    # below, so the negative lookahead keeps ordinary chains acceptable.
-    MASKED = re.compile(r"^(?:(?:\|\||;)\s*(?:true|:|/bin/true|command\s+true|builtin\s+true"
-                        r"|echo|exit\s+0)(?=\s|;|$)|&(?!&))")
+    # on correct code — which is how a rule gets deleted. `tail_preserves_status` below is the
+    # answer; a `MASKED` regex that used to live here, listing the handler commands to refuse, is
+    # described in its docstring as the blacklist that failed.
 
     def tokens(ln):
         """Segments and separators, alternating, honouring quotes.
@@ -697,7 +693,16 @@ if os.path.exists(workflow):
             # only spellings that actually hand the failure on.
             return False
         bare = arg.strip("\"'").lstrip("$").strip("{}")
-        if bare in ("code", "?"):
+        # `$?` and `$code` were one branch, and they are not the same kind of thing. `$?` is whatever
+        # ran last, so it hands on the verdict only while nothing has run since; `$code` is a variable
+        # that already holds it — `ALLOWED_ASSIGN` admits no spelling of `code=` other than `code=$?`,
+        # and a separate rule requires that assignment to follow the invocation. Conflated, the pair
+        # was wrong in both directions: `|| { echo …; exit $?; }` passed (echo's zero), and the real
+        # workflow's `if [ "$code" -ne 2 ]; then exit "$code"; fi` was refused for being too far from
+        # the failure it re-raises.
+        if bare == "code":
+            return True
+        if bare == "?":
             return after_failure
         # `.isdigit()` alone read `exit -1` — a non-zero status — as masking. Any numeric
         # literal is fine as long as it is not zero; anything unparseable (`exit $((x))`) is
@@ -714,8 +719,11 @@ if os.path.exists(workflow):
     def tail_preserves_status(tail):
         """Can the text after a verdict-bearing invocation still let a failure reach the job?
 
-        `MASKED` was a *blacklist* of handler commands — `true`, `:`, `echo`, `exit 0`, `&` — and it
-        was the last blacklist in a file of whitelists. `|| sleep 0` is not on it, and `sleep` is in
+        `MASKED` was a *blacklist* of handler commands — `true`, `:`, `echo`, `exit 0`, `&` — in a file
+        that is otherwise whitelists. It was described here as the *last* such blacklist, which was
+        wrong when written: `set_flags_ok` and `pip_tail_ok` were both blacklists at the time, and both
+        were later found to have holes of exactly this shape and inverted for the same reason.
+        `|| sleep 0` is not on it, and `sleep` is in
         `HARMLESS`, so both whitelists waved the segment through as a command the step is meant to
         run while the blacklist saw nothing to refuse: the gate ran, produced a real non-zero verdict,
         and the step exited 0. Verified in bash. Two whitelists and one blacklist disagreeing about
@@ -723,13 +731,35 @@ if os.path.exists(workflow):
 
         - `&& …` runs only on success, so on failure the line's status is the invocation's — safe.
         - `|| …` and `; …` both make the *tail's* status the line's, so the tail has to end the shell
-          non-zero. That is exactly `reraises()`, which already knows every spelling that does
-          (`exit 1`, `exit $?`, `exit "$code"`) and every spelling that does not (bare `exit`,
-          `exit 0`, `exit 256`). The documented correct edit
+          non-zero on the failure path. The documented correct edit
           `|| { echo "::error::…"; exit 1; }` passes; `|| sleep 0`, `|| printf ''` and every other
           non-terminating handler do not.
         - a bare `&` backgrounds the invocation, so `$?` is the fork's status — masking, and the
           sneakiest kind, since the real script really does run.
+
+        "Ends the shell non-zero" is two questions, and the first version of this asked neither. It
+        scanned for the first segment whose command was `exit` and answered `reraises()` on that
+        alone, so four masking tails read as re-raising — all four verified in bash:
+
+        - `|| echo "::error::gate failed"; exit $?` — `$?` is the *echo's* status by then, so the step
+          exits 0. This is the worst shape in the set: it differs from the handler this file documents
+          as correct only in a brace group, and reads like an improvement on it ("propagate the real
+          status" rather than hardcoding 1).
+        - `|| { echo …; exit $?; }` — the same thing inside the documented braces.
+        - `|| true && exit $?` — the operator beside the terminator is `&&`, so the `exit` is reached
+          only when the *handler* succeeded, and `$?` is its zero.
+        - `|| { echo …; if false; then exit 1; fi; }` — a real `exit 1`, never executed.
+
+        So the walk tracks both things: whether anything has run since the failure (which replaces
+        `$?`), and whether the terminator is reached unconditionally. A control-flow opener anywhere
+        in the tail ends the answer at `False` — everything after it is conditional, and an
+        unreachable terminator is indistinguishable from an absent one. A handler that genuinely
+        needs a conditional can be admitted here deliberately; none does today.
+
+        The same walk fixed a false rejection in the other direction. `; exit $?` was refused, because
+        `after_failure` was read off the operator as "a `;` means no failure was caught" — but
+        `cmd; exit $?` propagates `cmd`'s status exactly, which bash confirms, and the idiom is a
+        normal thing to write. It cost 19 spurious `[FAIL]`s when someone wrote it.
         """
         tail = tail.strip()
         if not tail:
@@ -739,15 +769,32 @@ if os.path.exists(workflow):
         op = tail[:2] if tail[:2] in ("||", "&&") else tail[:1]
         if op == "&&":
             return True
+        if op == "|":
+            # A pipeline's status is the leftmost non-zero one *under* `set -o pipefail`, which
+            # `set_flags_ok` requires of every step. Admitted on that dependency, named here rather
+            # than left as a fall-through: without pipefail `python … | tee log` exits 0 on a failing
+            # gate, and the two rules would be disagreeing silently.
+            return True
         if op not in ("||", ";"):
             return True
+        # `$?` holds the invocation's status immediately after it, whether the operator is `||` or
+        # `;`. Any command that runs in between replaces it.
+        status_intact = True
         pieces = tokens(tail[len(op):])
         for i in range(0, len(pieces), 2):
             words = pieces[i].split()
             while words and words[0] in KEYWORDS:
                 words = words[1:]
-            if words[:1] and words[0] in TERMINATOR:
-                return reraises(words, after_failure=(op == "||"))
+            if not words:
+                continue
+            if words[0] in SHELL_OPENERS:
+                return False
+            if words[0] in TERMINATOR:
+                # Reached only if the preceding segment *succeeded* — so not on the failure path.
+                if i and pieces[i - 1].strip() == "&&":
+                    return False
+                return reraises(words, after_failure=status_intact)
+            status_intact = False
         return False
 
     def runs_segment(seg, tail, script, args_required=()):
@@ -972,8 +1019,16 @@ if os.path.exists(workflow):
             # Not "this step has extra keys": an unknown name subtracts from an empty set, so the two
             # *legal* keys were printed as the offenders. Renaming a step is harmless — only the job
             # name is load-bearing for a branch ruleset — but it has to be done in both places.
-            check(f"{name!r} is a step name this suite was written against; rename it in JOB_STEPS "
-                  f"and STEP_KEYS together", False, sorted(STEP_KEYS))
+            #
+            # An unnamed step is a different event and used to get the same sentence, which read
+            # "None is a step name this suite was written against; rename it" — advice that cannot be
+            # followed, aimed at the most ordinary Actions spelling there is (`- uses: …@v4`). Every
+            # step in this job is pinned by name, so the fix is to give it one.
+            check(f"every step in the job is named, since every rule here keys on the name — the step "
+                  f"spelled {sorted(step)} has none"
+                  if name is None else
+                  f"{name!r} is a step name this suite was written against; rename it in JOB_STEPS "
+                  f"and STEP_KEYS together", name is not None, sorted(STEP_KEYS))
             continue
         extra = sorted(set(step) - STEP_KEYS[name] - ALSO_FINE)
         check(f"{name!r} carries only the keys it was reviewed with (STEP_KEYS)", not extra, extra)
@@ -1023,7 +1078,7 @@ if os.path.exists(workflow):
     def shell_of(step):
         return [ln.strip() for ln in raw_shell_of(step)]
 
-    def escapes_early(step):
+    def escapes_early(step, after=None):
         """Commands at the step's own indentation that end the shell. Reachability is a property of
         the whole step, not of one line: an `exit 0` on a line of its own leaves every per-line
         assertion about the checker below it — invoked, exit code captured, fork branch guarded,
@@ -1035,6 +1090,15 @@ if os.path.exists(workflow):
         `true; exit 0` — first word `true;` — and `: && exit 0`, both of which end the shell before
         the checker runs while leaving every other assertion about it satisfied. Both were a live
         false green in the branch-scope step, whose commands `permitted()` all admits.
+
+        `after` names the load-bearing script, and "early" is meaningless without it. Read as "any
+        unconditional terminator anywhere", the rule refused
+        `python scripts/ai/pr_gate.py ${SEL}; exit $?` — which is the *last* line of the gate step, so
+        the terminator hands on a verdict the gate has already produced. A terminator positioned after
+        the invocation cannot mask its failure, because `set -e` (which `set_flags_ok` requires) has
+        already ended the shell by then; what can mask it is a tail on the invocation's own line, and
+        that is `tail_preserves_status`'s question, not this one. Callers that pass no `after` keep the
+        strict reading, which is right for the steps that carry no invocation at all.
         """
         raw = raw_shell_of(step)
         base = min((len(ln) - len(ln.lstrip()) for ln in raw), default=0)
@@ -1107,15 +1171,21 @@ if os.path.exists(workflow):
             reached on a *failure* — true for `||`, false for `&&` — because `exit $?` hands on a
             status only when the thing before it failed. After `&&` the predecessor succeeded, `$?`
             is 0, and `sleep 0 && exit $?` ended the step clean before the checker ran.
+
+            `after_failure` is the sense of the operator *immediately* before the segment, not a
+            disjunction over every operator on the line. Latched over all of them, it read
+            `sleep 0 || true && exit $?` as reached-on-failure when the `&&` beside the `exit` means
+            the opposite: `true` succeeded, `$?` is 0, and the exit is unconditional. That defeated
+            this file's own control for `&& exit $?` by putting a `||` earlier in the same chain, and
+            in the branch-scope step it ended the step green before the checker ran. Verified in bash.
             """
-            conditional, after_failure = False, False
+            conditional = False
             for j in range(1, idx, 2):
                 op = pieces[j].strip()
                 if op in ("&&", "||") and not constant_test(pieces[j - 1]):
                     conditional = True
-                    if op == "||":
-                        after_failure = True
-            return conditional, after_failure
+            governing = pieces[idx - 1].strip() if idx else ""
+            return conditional, governing == "||"
 
         def terminates(ln):
             # A line that *opens a block* keeps its exit conditional, which is how the real
@@ -1155,14 +1225,22 @@ if os.path.exists(workflow):
                     seg_words = seg_words[1:]
                 if not (seg_words[:1] and seg_words[0] in TERMINATOR):
                     continue
+                # Positioned after the invocation on its own line: the verdict already happened.
+                if after and any(executes(pieces[j], after) for j in range(0, i, 2)):
+                    continue
                 conditional, after_failure = conditional_before(pieces, i)
                 if conditional and reraises(seg_words, after_failure):
                     continue
                 return True
             return False
 
-        return [ln.strip() for ln in raw
-                if len(ln) - len(ln.lstrip()) == base and terminates(ln)]
+        out, seen = [], False
+        for ln in raw:
+            if len(ln) - len(ln.lstrip()) == base and terminates(ln) and not seen:
+                out.append(ln.strip())
+            if after and executes(ln, after):
+                seen = True
+        return out
 
     # A workflow command needs no redirection at all: the runner parses `::` on a step's *stdout*.
     # `echo "::set-output name=ref::HEAD"` sets the base-ref output that `ALLOWED_REF` exists to pin,
@@ -1490,7 +1568,12 @@ if os.path.exists(workflow):
     for step in others:
         check(f"nothing at the top level of {step.get('name')!r} ends the shell early",
               not escapes_early(step), escapes_early(step))
-    present = {s.get("name") for s in (gate_job.get("steps") or [])}
+    # An unnamed step (`- uses: actions/cache@v4`) put None in here, and `sorted()` cannot order
+    # None against str. The detail argument is evaluated eagerly, so it raised even on the
+    # iteration whose condition passed — aborting the suite ~275 checks early, so the count
+    # invariant that exists to notice a rule that stopped running never ran either. The same
+    # defensive spelling was already applied to three sibling *messages* and not to their subjects.
+    present = {s.get("name") or "<unnamed>" for s in (gate_job.get("steps") or [])}
     for named in NAMED_SHELL_STEPS:
         check(f"a step named {named!r} exists, so the rules keyed on that name still apply to "
               "something — renaming it must fail here rather than quietly exempt it",
@@ -1531,7 +1614,8 @@ if os.path.exists(workflow):
         check("every other command is a bare echo, which cannot swallow the verdict",
               all(pure_echo(ln) for ln in cmds[1:] if ln not in runs_gate), cmds)
         check("nothing in the gate step ends the shell before the gate runs",
-              not escapes_early(gate_step), escapes_early(gate_step))
+              not escapes_early(gate_step, after="scripts/ai/pr_gate.py"),
+              escapes_early(gate_step, after="scripts/ai/pr_gate.py"))
         check("every segment of the gate step runs a command the step is meant to run — either the "
               "command is not in the whitelists (HARMLESS, TEST_CMDS, NO_OPS, SCRIPTS, GIT_FORMS, "
               "ALLOWED_SET, ALLOWED_ASSIGN), or it is one of them respelled; the segment is printed "
@@ -1747,7 +1831,8 @@ if os.path.exists(workflow):
         check("the checker does not fetch, since checkout already did so authenticated",
               no_fetch, seq)
         check("nothing in the branch-scope step ends the shell before the checker runs",
-              not escapes_early(scope_step), escapes_early(scope_step))
+              not escapes_early(scope_step, after="scripts/ai/check_branch_scope.py"),
+              escapes_early(scope_step, after="scripts/ai/check_branch_scope.py"))
         check("every segment of the branch-scope step runs a command the step is meant to run — see "
               "the whitelists named in the gate-step version of this rule; the segment is below",
               not foreign_commands(scope_step), foreign_commands(scope_step))
@@ -1877,10 +1962,27 @@ if os.path.exists(workflow):
         "a gate wrapped in a while loop": "while python scripts/ai/pr_gate.py ${SEL}; do :; done",
         "a gate wrapped in until": "until python scripts/ai/pr_gate.py ${SEL}; do break; done",
         "a negated gate": "! python scripts/ai/pr_gate.py ${SEL}",
+        # Four tails that end with a real `exit` the shell either never reaches or reaches with a
+        # zero `$?`. The first is the dangerous one: it differs from the handler this file documents
+        # as *correct* only in a brace group, and reads like an improvement on it. All four verified
+        # in bash — the step exits 0 with the gate's failure discarded.
+        "a status re-raised after an annotation":
+            'python scripts/ai/pr_gate.py ${SEL} || echo "::error::gate failed"; exit $?',
+        "a status re-raised after an annotation inside the handler":
+            'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit $?; }',
+        "a status re-raised only when the handler succeeded":
+            "python scripts/ai/pr_gate.py ${SEL} || true && exit $?",
+        "a handler whose re-raise sits under a false condition":
+            'python scripts/ai/pr_gate.py ${SEL} || { echo "x"; if false; then exit 1; fi; }',
     }
     for label, last in TRAILING.items():
         check(f"the executed-gate rule rejects {label}",
               not executes(strip_comments(last), "scripts/ai/pr_gate.py"))
+    # …and the shape that is genuinely fine, which the same walk had been refusing: `cmd; exit $?`
+    # propagates `cmd`'s status exactly. Read as "a `;` means no failure was caught", it cost 19
+    # spurious [FAIL]s on a line a maintainer would reasonably write.
+    check("the executed-gate rule accepts a sequential re-raise of the gate's own status",
+          executes('python scripts/ai/pr_gate.py ${SEL}; exit $?', "scripts/ai/pr_gate.py"))
     # The between-commands rule is now "a bare echo", not "starts with echo": the prefix form
     # accepted a line that echoes and then does anything at all.
     for label, ln in (("an appended exit 0", "exit 0"),
@@ -2100,11 +2202,36 @@ if os.path.exists(workflow):
             # by one is a real condition. Called decided by operand count alone, a legitimate guard was
             # reported as an unconditional exit.
             ("an exit under a file test", "if [ -f /some/marker ]; then exit 0; fi", False),
-            ("an exit under a directory test", "if [ -d /some/dir ]; then exit 0; fi", False)):
+            ("an exit under a directory test", "if [ -d /some/dir ]; then exit 0; fi", False),
+            # `after_failure` used to be latched over every operator on the line rather than read off
+            # the one beside the terminator, so putting a `||` earlier in the chain flipped the sense
+            # of a following `&&` and defeated the `&& exit $?` control four rows up. Verified in bash.
+            ("the captured status re-raised after a success reached through an earlier failure",
+             "sleep 0 || true && exit $?", True),
+            # …and the durable capture is the opposite case: `$code` holds the verdict however far it
+            # sits from the invocation, so the real workflow's guarded propagation stays reachable.
+            ("the durable capture re-raised after an intervening command",
+             'python scripts/ai/pr_gate.py ${SEL} || { echo "x"; echo "y"; exit "$code"; }', False)):
         check(f"the reachability rule reads {label} as {'an early exit' if early else 'reachable'}",
               bool(escapes_early(as_step(snippet))) is early, snippet)
     check("and still accepts the retry loop's real guarded exit",
           not escapes_early(as_step('if [ "$code" -ne 2 ]; then exit "$code"; fi')))
+    # `after` makes "early" mean something. Without it the rule refused a terminator that hands on a
+    # verdict the invocation had already produced; with it, position is read — and the exemption is
+    # confined to terminators the invocation *precedes*, so the shapes this rule exists to catch are
+    # untouched.
+    GATE = "scripts/ai/pr_gate.py"
+    for label, snippet, early in (
+            ("a sequential re-raise on the invocation's own line",
+             "python scripts/ai/pr_gate.py ${SEL}; exit $?", False),
+            ("an exit on a later line, unreachable under set -e",
+             "python scripts/ai/pr_gate.py ${SEL}\nexit 0", False),
+            # The two that must stay refused: before the invocation, position earns nothing.
+            ("an exit on an earlier line", "exit 0\npython scripts/ai/pr_gate.py ${SEL}", True),
+            ("an exit earlier on the same line",
+             "exit 0; python scripts/ai/pr_gate.py ${SEL}", True)):
+        check(f"the positional reading reads {label} as {'an early exit' if early else 'reachable'}",
+              bool(escapes_early(as_step(*snippet.split("\n")), after=GATE)) is early, snippet)
     check("the annotation exception admits the brace-group handler this file calls a correct edit",
           annotation_only('{ echo "::error::selection was empty"'))
     check("and still refuses a state-changing workflow command however it is wrapped",
@@ -2364,7 +2491,12 @@ if os.path.exists(workflow):
             # anything, since pip's exit code is unchanged, and rejecting it made this rule report a
             # restated dependency where nothing was restated. A pinned form followed by a *package*
             # is still refused, because only options begin with `-`.
-            joined = strip_redir(" ".join(words))
+            # `interpreter()` normalises the *dispatch* above but the pinned forms are literals
+            # beginning `python`, so `python3 -m pip install ${reqs}` — the spelling this repo's own
+            # docs use everywhere else — matched none of them and was refused as a foreign command.
+            # Third instance of the same shape: a helper that knows `python3` is `python`, and a
+            # comparison beside it that does not.
+            joined = strip_redir(" ".join(["python"] + words[1:]))
             for form in PIP_FORMS:
                 if joined == form:
                     return True
@@ -2456,7 +2588,7 @@ if os.path.exists(workflow):
           "because all six share one working tree; edit JOB_STEPS to add, remove or move one",
           found_steps == JOB_STEPS,
           f"got {found_steps}, want {JOB_STEPS}" if found_steps != JOB_STEPS else found_steps)
-    used = {s["name"]: s["uses"] for s in job_steps if "uses" in s}
+    used = {s.get("name"): s["uses"] for s in job_steps if "uses" in s}
     check("and uses only the two pinned actions, neither of which patches the tree (JOB_USES)",
           {n: pinned_use(v)[0] for n, v in used.items()} == JOB_USES, used)
     check("each pinned to a release tag or a commit SHA, so what runs before the gate is not a "
@@ -2496,18 +2628,21 @@ if os.path.exists(workflow):
 
     check("each action's inputs are pinned, so checkout cannot be redirected at another ref "
           "(JOB_WITH; a value of None means another rule owns it)",
-          {s["name"]: inputs_of(s) for s in job_steps if "with" in s} == JOB_WITH,
+          {s.get("name"): inputs_of(s) for s in job_steps if "with" in s} == JOB_WITH,
           {s.get("name"): inputs_of(s) for s in job_steps if "with" in s})
     # Filtered to `in JOB_ENV`, this rule would have been conditional on the thing it guards — a step
     # outside the map could carry any env at all. The set of env-bearing steps is pinned too; the
     # branch-scope step's own mapping is pinned separately as SCOPE_ENV.
     check("and the env of each step that feeds the selection is pinned to the event's base ref",
-          {s["name"]: s["env"] for s in job_steps
+          {s.get("name"): s["env"] for s in job_steps
            if "env" in s and s.get("name") in JOB_ENV} == JOB_ENV,
           {s.get("name"): s.get("env") for s in job_steps if "env" in s})
     check("with no other step carrying an env block this rule would not read",
           {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {JOB_STEPS[5]},
-          sorted({s.get("name") for s in job_steps if "env" in s}))
+          # `or "<unnamed>"` for the same reason as the other four sites: an unnamed step carrying an
+          # `env:` block puts None in this set, and `sorted()` cannot order it against str — so the
+          # rule that exists to notice an unpinned env would crash instead of reporting it.
+          sorted({s.get("name") or "<unnamed>" for s in job_steps if "env" in s}))
     for label, mutant in (("a checkout redirected at the base branch",
                            {"fetch-depth": "0", "persist-credentials": "false",
                             "ref": "${{ github.base_ref }}"}),
@@ -3427,6 +3562,14 @@ check("an unreadable change list is a tool error (exit 2)", code == 2, code)
 print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
+    # One unresolved subject cascades. `job_with` returns `(None, {})` when it cannot name exactly one
+    # job, and the nineteen rules keyed on that job then each report their own subject — "the gate job
+    # carries only keys that cannot stop it running" against `{}` — so the reader chases nineteen
+    # symptoms with the cause sitting among them unmarked. Naming it costs three lines and is the
+    # difference between a diagnosis and a list.
+    if "exactly one job runs the gate" in FAILED:
+        print("  cause: the gate job could not be identified, so every rule keyed on it is reporting "
+              "an empty job rather than a real finding. Fix that one first — the rest are symptoms.")
 # Reported before the early exit, not after it: exiting on `FAILED` first meant a red run never
 # printed the count, so an edit that both broke a rule and silenced another showed only the break —
 # and the silencing was invisible until someone fixed the break and ran again. Both are findings.
@@ -3438,7 +3581,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 476
+EXPECTED = 487
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

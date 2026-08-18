@@ -465,7 +465,7 @@ A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (476 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (487 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -548,8 +548,8 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and thirty-three of these guards were vacuous on the first
-attempt**, in nineteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5 and 12 — each wave a narrower version
+The doubled shapes are there because **a hundred and thirty-seven of these guards were vacuous on the first
+attempt**, in twenty waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12 and 4 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -600,7 +600,7 @@ key the regex did not name — `shell: "cat {0}"`, which makes the runner print 
 running it, at step level or as a job-wide `defaults.run.shell`; a step `env:` re-pointing `SEL`. A
 whitelist of *job* keys enforced by "the text between `jobs:` and the first `- name:`" is not one
 either: `if: false` appended after the `steps:` list lands outside that window, and a decoy job above
-the real one collapses it entirely. So the workflow is now parsed — 92 lines of stdlib block YAML,
+the real one collapses it entirely. So the workflow is now parsed — a short stdlib block-YAML reader,
 because this suite declares no dependencies and the check that judges the workflow must not be the
 one that reports MISSING-DEP and skips — and the parser **refuses** what it cannot model (flow-style
 steps, anchors, aliases, duplicate keys, tabs) rather than reading past it, since a step whose keys
@@ -676,8 +676,10 @@ the sweep *and* about how incidentally its fixtures are coupled to the artifact.
 **The last one is the round-6 mistake at job scope.** Every rule so far was scoped to the step it
 protects, and the job's six steps share one working tree: `echo 'import sys; sys.exit(0)' >
 scripts/ai/pr_gate.py` in the install step leaves the pinned gate command exactly as written and makes
-it a no-op. So do `sed -i` through a glob, a `cp` in a new step, and `pip install ${reqs} evil-shim`.
-Four of those five shapes survived the previous round's suite. The job is now whitelisted whole — the
+it a no-op. So do five more — `sed -i` naming the script and `sed -i` through a glob, `cp /tmp/stub.py
+scripts/ai/pr_gate.py` and a `cp` into the directory that names nothing, and
+`pip install ${reqs} evil-shim`. Four of those six shapes survived the previous round's suite (the two
+that died are the subject of the paragraph below). The job is now whitelisted whole — the
 six step names, the two pinned actions, a per-segment vocabulary for all four `run:` steps, and
 redirection targets restricted to the GitHub-provided files and `/dev/null` — which is the same
 whitelist discipline one level up. The level *above* the job was already closed in an earlier round: a
@@ -685,7 +687,7 @@ workflow-level `defaults.run.shell` and a workflow-level `env` both die to the r
 or `env` may sit above the job, which is what a self-sweep of the new rules confirmed rather than
 extended.
 
-Two of those five shapes also **died before the fix existed, and for the wrong reason** — the second
+Two of those six shapes also **died before the fix existed, and for the wrong reason** — the second
 instance of the round-8 lesson in as many rounds. `sed -i … scripts/ai/pr_gate.py` and `cp /tmp/stub.py
 scripts/ai/pr_gate.py` both failed "exactly one step runs the gate", because *naming the script* in
 another step made that step look like a second gate-runner. Spelled to name nothing — a glob, and a
@@ -747,7 +749,8 @@ every pinned line present and ran none of them. And reachability was read per li
 
 The other eight are the same error at sites the first three fixes did not touch, and finding them
 took asking the question the fixes implied rather than the one they answered — *where else is a rule
-selecting its subject by substring, or covering one site of a class?* A GitHub workflow command needs
+selecting its subject by substring, or covering one site of a class?* Five of the eight, the ones worth
+naming: a GitHub workflow command needs
 no redirection at all (`echo "::set-output name=ref::HEAD"` sets the pinned base-ref output through
 stdout, a channel whose subject set cannot contain it by construction). `escapes_early` was applied to
 two steps of four, though an `exit 0` atop the resolver empties the base ref just as fatally.
@@ -872,7 +875,11 @@ refused, it turned out, only in the space-separated spelling, because one word b
 satisfied "every trailing token is an option".
 
 The widest of the five is the most instructive, and it is a structural point rather than a bug:
-**the masking rule was the last blacklist in a file of whitelists.** `|| sleep 0` discarded the gate's
+**the masking rule was a blacklist in a file of whitelists.** It was written up here as the *last* one,
+which was wrong at the time and worth recording as an error rather than quietly correcting: two more —
+the `set` flag rule and pip's trailing-option rule — were also blacklists, and both were found to have
+holes of precisely this shape a round later, and inverted for precisely this reason. "The last one" is
+the kind of claim that stops you looking. `|| sleep 0` discarded the gate's
 verdict because `sleep` sits in the harmless-command whitelist while the blacklist of handler commands
 did not name it — two whitelists said "a command this step may run" and one blacklist said "nothing to
 refuse", and the disagreement was the hole. It is now stated as the property instead: after a
@@ -890,7 +897,7 @@ passed, nine times over — and the total-count invariant is the only thing that
 
 **The nineteenth wave is the first whose findings were mostly not about the workflow at all, and that is
 the finding.** Nine of its twelve live false greens mutate `pr_gate.py` — the script the workflow runs —
-and every probe harness up to this point could only edit the YAML. A guard suite of 476 checks had grown
+and every probe harness up to this point could only edit the YAML. A guard suite of 487 checks had grown
 around one artifact while the artifact it protects had moved: selection, claim accounting and check argv
 all decide whether anything runs, and all three sat outside every sweep. `git diff … -- ":!tests/"`
 reported a clean `tests/` tree, so editing this very file selected nothing; `pytest --collect-only`
@@ -915,14 +922,49 @@ whitelists now. Enumerating what may not happen requires knowing every flag bash
 enumerating what may happen requires knowing what this workflow does, which is one install of one pinned
 requirement list and a `set` line that turns on errexit.
 
-**Two earlier findings were false rejections rather than holes, and they matter as much.** The
-argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
+**The twentieth wave is four spellings of one question the tail rule never asked.** Having inverted the
+blacklist into "a `||` or `;` tail must end the shell non-zero", the rule then looked for the first
+segment whose command was `exit` and answered on that alone — never asking whether bash *reaches* that
+exit, or whether `$?` still holds the verdict when it gets there. So four tails containing a real `exit`
+ended the step 0, all four confirmed in bash:
+`|| echo "::error::gate failed"; exit $?` (by then `$?` is the echo's zero), the same thing inside the
+documented brace group, `|| true && exit $?` (the operator beside the terminator is `&&`, so the exit is
+reached only when the *handler* succeeded), and `|| { echo …; if false; then exit 1; fi; }` (a real
+`exit 1`, never executed). The first is the one to remember: it differs from the handler this file
+documents as *correct* only in a brace group, and reads like an improvement on it — "propagate the real
+status" rather than hardcoding 1. A reviewer nodding along would approve it.
+
+The walk now tracks reachability and staleness together, and one distinction it had collapsed turned out
+to run in both directions: `$?` and `$code` were a single branch, and they are not the same kind of
+thing. `$?` is whatever ran last; `$code` is a variable that already holds the verdict, because
+`ALLOWED_ASSIGN` admits no spelling of `code=` other than `code=$?`. Conflated, the pair let
+`|| { echo …; exit $?; }` through *and* refused the real workflow's
+`if [ "$code" -ne 2 ]; then exit "$code"; fi` for sitting too far from the failure it re-raises.
+
+A crash sat alongside them, and it is the more dangerous defect of the two kinds. A step with no `name:`
+— `- uses: actions/cache@v4`, the most ordinary Actions spelling there is — put `None` into a set the
+suite then sorted, and `sorted()` cannot order `None` against `str`. Because the failure detail is
+evaluated eagerly, it raised on the *passing* iteration, aborting the run about 275 checks early: the
+total-count invariant that exists to notice a rule which stopped running never ran either. Three sibling
+*messages* had already been given the defensive spelling; their subjects had not.
+
+**Three false rejections came with it, and they matter as much.** `cmd; exit $?` propagates `cmd`'s
+status exactly, and both the masking rule and the reachability rule refused it — the second because
+"early" had never been given a reference point, so a terminator on the *last* line of the gate step,
+handing on a verdict the gate had already produced, counted as ending the shell before the gate ran. It
+does now take one (`after=`), and the exemption is confined to terminators the invocation precedes.
+`python3 -m pip install ${reqs}` was read as a foreign command, because the dispatch above the pin
+normalises `python3` and the pinned forms beside it are literals beginning `python` — the third instance
+of a helper that knows something a comparison next to it does not.
+
+**Two findings from the wave before were false rejections rather than holes, and they matter as much.**
+The argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
 it, the last because the tokenizer read the `&` of `2>&1` as a separator and invented a segment `1`. A
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and thirty-three were caught by the mutation sweep, a hundred and nineteen by review —
+Two of the hundred and thirty-seven were caught by the mutation sweep, a hundred and twenty-three by review —
 thirty of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
@@ -950,7 +992,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 53 loosening probes and 31
+The corpus is kept for that reason — 147 mutations, 60 loosening probes and 34
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
@@ -966,10 +1008,12 @@ with `git checkout`; the other three build a throwaway worktree — and mutating
 wrong answers: one reported 21/25 with two anchors "missing" against a workflow one line off HEAD
 (25/25 once restored), and a suite run in another terminal failed on `SEL="--base HEAD"` — a mutation
 from this corpus, caught mid-flight, in a shell that had touched nothing. Any concurrent reader sees a
-mutated tree, so results are noise in both directions. All of them now refuse to run on a modified
-tree or a failing baseline, and the round-5 file goes further — as do the probe and correct-edit
-harnesses: they mutate a throwaway `git worktree` and copy in only the files under test, so a sweep can
-no longer be seen by anything but itself. Porting the remaining two is the last open item there.
+mutated tree, so results are noise in both directions. The two that mutate in place now refuse to run
+on a modified tree or a failing baseline — which is the guard that matters when the tree is shared. The
+other three do not need it and do not have it: they mutate a throwaway `git worktree`, copy in only the
+files under test, and *subtract* a baseline rather than requiring it to be clean, so a sweep can no
+longer be seen by anything but itself and can run against work in progress. Porting the remaining two
+to the worktree runner is the last open item there.
 
 One corollary is worth stating separately, because it makes a passing suite actively misleading:
 **never condition a guard on the token it guards.** The exit-propagation rule was written
