@@ -90,10 +90,17 @@ cci task run validate_setup                                # toolchain + repo sa
 python scripts/ai/generate_cci_reference.py                # after any cumulusci.yml edit — commit the output
 python scripts/ai/check_plan_readme_consistency.py         # plan README ↔ export.json/CSVs (expects 0 errors)
 python scripts/validate_sfdmu_v5_datasets.py               # SFDMU v5 plan compliance — see the baseline note
-python tests/<name>.py                                     # offline Python test suites, no org needed
+python tests/<name>.py                                     # top-level suites — run directly, never via pytest
+python -m pytest tests/build_harness tests/txn_data_harness # harness suites — pytest-collected
 ```
 
-For LWC or Apex work, check the files you touched rather than the whole repo:
+`pyproject.toml` explains the split: top-level `tests/*.py` use a self-contained
+`check()` aggregator and would false-pass under pytest, so they are run directly;
+the harness suites are the pytest-collected ones. The build-harness suite needs
+`pip install -r scripts/build_harness/tui/requirements.txt`, and txn-data-harness
+additionally needs `requests` and `PyYAML`.
+
+For LWC work, check the files you touched rather than the whole repo:
 
 ```sh
 npx eslint <changed-lwc-files>
@@ -101,6 +108,21 @@ npx prettier --check <changed-files>
 npm test -- --passWithNoTests                              # Jest — the repo has no LWC suites yet,
                                                            # so a bare `npm test` exits 1
 ```
+
+`prettier --check` formats Apex but never compiles or runs it. **Apex changes
+need an org**: deploy, then run the tests, then confirm the permission set is
+actually sufficient at runtime.
+
+```sh
+sf project deploy start --target-org <alias>
+sf apex run test --target-org <alias>
+```
+
+`sf apex run test` passing is necessary but not sufficient — it runs as an
+admin. See the Validation Checks in
+[`.cursor/skills/apex-security-hardening/SKILL.md`](.cursor/skills/apex-security-hardening/SKILL.md)
+for the read-back and `System.runAs` / persona walk that catch what admin
+context hides.
 
 > **Compare against the baseline, don't chase it.** Some repo-wide checks
 > already report findings on `main` that predate your change — today that
