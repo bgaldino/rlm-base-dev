@@ -130,6 +130,7 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
+    mcp: false                # MCP servers (post_mcp): ClaudeMcpClientRC ECA + hosted server activations + the custom ramp-deals-connect server. Opt-in — the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
     qb: true                  # QuantumBit data
@@ -1408,6 +1409,49 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_large_stx
+
+  deploy_post_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy the MCP bundle — the ClaudeMcpClientRC External Client Application
+      (5 components: app, global OAuth settings, OAuth settings, and the two
+      policy sets) plus the RampCloneSalesTransaction invocable that backs the
+      custom server's CLASSIC-bound cloneSalesTransaction tool. The invocable here
+      is the 67.0, synchronous-only copy; deploy_post_mcp_264 overlays the
+      async-capable one on newer orgs. Must run before configure_mcp_servers,
+      which references that invocable by action path.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp
+
+  deploy_post_mcp_264:
+    group: Revenue Lifecycle Management
+    description: >
+      Overlay the 264 / v68.0 copy of RampCloneSalesTransaction, which adds the async
+      clone path (contextId in, trackerId/trackerUrl out). Those members do not exist
+      on 262 / v67.0, so the base bundle ships a synchronous-only copy and this task
+      replaces it — but only on orgs at v68.0 or later. On an older org it logs a skip
+      and changes nothing, rather than failing the flow. Run after deploy_post_mcp.
+    class_path: tasks.rlm_mcp.DeployMcpOverlay
+    options:
+      path: unpackaged/post_mcp_264
+      min_api_version: 68.0
+
+  configure_mcp_servers:
+    group: Revenue Lifecycle Management
+    description: >
+      Activate the hosted Salesforce MCP servers (McpServerAccess) and build the
+      custom rampdealsconnect server — McpServerDefinition plus two
+      McpServerToolDefinition tools and their McpServerToolApiDefinition
+      bindings — via the Tooling API, because only McpServerDefinition is a
+      deployable metadata type. Idempotent; every write checks first. Use
+      -o operation list to report the org's surface without changing it,
+      -o dry_run True to preview, and -o platform_servers True to also activate
+      sobject-all and headless-360 (off by default: sobject-all grants read/write
+      across every object).
+    class_path: tasks.rlm_mcp.ConfigureMcpServers
+    options:
+      operation: ensure
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -3728,6 +3772,8 @@ flows:
       33:
         task: rebuild_search_index
       34:
+        flow: prepare_mcp
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4041,6 +4087,25 @@ flows:
       3:
         task: seed_large_deal_billing_treatment
         when: project_config.project__custom__large_stx and project_config.project__custom__billing
+
+  prepare_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Stand up the org-side MCP surface: deploy the ECA + clone invocable, overlay the
+      async clone variant where the org supports it, then activate the servers. Every
+      step is gated on the mcp feature flag. This leaves one manual step per person —
+      the browser OAuth login — which no flow can do for them; see
+      .cursor/skills/mcp-integration/SKILL.md.
+    steps:
+      1:
+        task: deploy_post_mcp
+        when: project_config.project__custom__mcp
+      2:
+        task: deploy_post_mcp_264
+        when: project_config.project__custom__mcp
+      3:
+        task: configure_mcp_servers
+        when: project_config.project__custom__mcp
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management

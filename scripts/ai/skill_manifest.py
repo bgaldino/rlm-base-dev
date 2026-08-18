@@ -3,9 +3,11 @@
 skill_manifest.py — Cross-repo skill-manifest resolver.
 
 Loads .claude/skill-manifest.yml from the current repo, resolves the local
-filesystem paths for both Foundations and PMOS clones (via env vars or
+filesystem path of every repo clone it declares (via env vars or
 sibling-directory fallback), and exposes lookup helpers for skills and
 grounding artifacts that need to read across the repo boundary.
+
+The declared repos are listed in ``REPO_KEYS``.
 
 Design references:
   - Schema: .claude/skill-manifest.yml (this repo)
@@ -55,6 +57,12 @@ except Exception:
 
 
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
+
+# Repo sections the resolver knows how to discover, in manifest order. Adding a
+# repo to the manifest means adding its key here too, or its clone is never
+# resolved. Only ``foundations`` is required; the rest declare ``optional: true``
+# and degrade to a ``[INFO]`` line when the clone is absent.
+REPO_KEYS = ("foundations", "pmos", "ramp_demo_kit")
 
 PY_YAML_HELP = (
     "PyYAML is not available (not installed, or failed to import), so "
@@ -295,13 +303,17 @@ def _discover_repo(
                 candidates_tried=candidates,
                 env_var=env_var,
             )
-        # Lenient match: directory exists with the expected agent surface.
-        # Foundations ships .cursor/skills/; PMOS ships .claude/skills/.
-        # If either is present at this candidate, treat it as the clone.
-        looks_like_pmos = (cand / ".claude" / "skills").is_dir()
-        looks_like_foundations = (cand / ".cursor" / "skills").is_dir()
-        if (repo_name == "pmos-revenue-cloud" and looks_like_pmos) or (
-            repo_name == "rlm-base-dev" and looks_like_foundations
+        # Lenient match: the directory exists and carries a marker this repo
+        # section declares as distinctive of itself (Foundations ships
+        # .cursor/skills/, PMOS ships .claude/skills/, the ramp kit ships
+        # setup/bootstrap_org.py). Declaring the marker in the manifest keeps
+        # this generic — a new repo needs no code change here. A section with no
+        # `clone_markers` gets the strict match above and nothing else.
+        markers = repo_section.get("clone_markers") or []
+        if any(
+            (cand / marker).exists()
+            for marker in markers
+            if isinstance(marker, str) and marker
         ):
             return RepoLocation(
                 name=repo_name or "<unknown>",
@@ -368,11 +380,12 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
     manifest_root = manifest_path.parent.parent  # .claude/skill-manifest.yml -> repo root
     data["_self_repo_root"] = str(manifest_root)
 
-    # Discover both repos' clones, anchoring relative hints to the manifest's
-    # repo root (NOT process cwd) so discovery is stable from any subdirectory.
-    for key in ("foundations", "pmos"):
-        # An empty `foundations:`/`pmos:` section parses to None; only resolve
-        # when the section is actually a mapping.
+    # Discover each declared repo's clone, anchoring relative hints to the
+    # manifest's repo root (NOT process cwd) so discovery is stable from any
+    # subdirectory.
+    for key in REPO_KEYS:
+        # An empty repo section parses to None; only resolve when the section
+        # is actually a mapping.
         if isinstance(data.get(key), dict):
             data[key]["_resolved"] = _discover_repo(data[key], manifest_root)
 
@@ -493,7 +506,7 @@ def _cli_check(manifest: dict[str, Any]) -> int:
     print()
 
     overall_ok = True
-    for key in ("foundations", "pmos"):
+    for key in REPO_KEYS:
         section = manifest.get(key, {})
         resolved: RepoLocation | None = section.get("_resolved")
         is_optional = bool(section.get("optional", False))
@@ -702,7 +715,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     g.add_argument("--check", action="store_true", help="verify clone discovery")
     g.add_argument(
         "--list-skills",
-        choices=["foundations", "pmos"],
+        choices=list(REPO_KEYS),
         help="list declared skills for a repo",
     )
     g.add_argument(

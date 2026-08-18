@@ -174,3 +174,9 @@ scripts/build_harness/tui/settings.local.json
 # these AiEvaluationDefinition metadata files into the default package dir on
 # each run (force-overwritten); they should never be committed.
 force-app/main/default/aiEvaluationDefinitions/
+
+# MCP connector configs written by scripts/mcp/write_connector_config.py. Per
+# workstation and per org, they embed a resolved instance URL and consumer key —
+# and a consumer secret when running in client_credentials mode. Never commit one.
+.mcp.json
+**/.mcp.json
