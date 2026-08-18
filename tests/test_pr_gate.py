@@ -1360,6 +1360,59 @@ if os.path.exists(workflow):
     check("and uses only the two pinned actions, neither of which patches the tree",
           {s["name"]: s["uses"] for s in job_steps if "uses" in s} == JOB_USES,
           {s.get("name"): s.get("uses") for s in job_steps if "uses" in s})
+    # Pinning *which* action runs says nothing about what it is pointed at, and checkout's inputs
+    # decide what the whole job reads: `ref: ${{ github.base_ref }}` alongside `fetch-depth: 0`
+    # checks out the base branch, so the diff is the base against itself, the selection is empty, and
+    # the gate passes having chosen nothing — with every assertion above still green. The same
+    # argument applies to the two steps' `env:` mappings, which is where the base ref this job diffs
+    # against actually comes from: `BASE: HEAD` leaves both permitted `SEL` lines untouched and makes
+    # the selection `HEAD...HEAD`. So the inputs are pinned alongside the identities.
+    JOB_WITH = {"Checkout repository": {"fetch-depth": "0", "persist-credentials": "false"},
+                "Set up Python": {"python-version": '"3.13"'}}
+    JOB_ENV = {"Resolve the base ref": {"BASE_REF": "${{ github.base_ref }}"},
+               "Install only what the selection needs": {"BASE": "${{ steps.base.outputs.ref }}"}}
+    check("each action's inputs are pinned, so checkout cannot be redirected at another ref",
+          {s["name"]: s["with"] for s in job_steps if "with" in s} == JOB_WITH,
+          {s.get("name"): s.get("with") for s in job_steps if "with" in s})
+    check("and the env of each step that feeds the selection is pinned to the event's base ref",
+          {s["name"]: s["env"] for s in job_steps
+           if "env" in s and s.get("name") in JOB_ENV} == JOB_ENV,
+          {s.get("name"): s.get("env") for s in job_steps if "env" in s})
+    for label, mutant in (("a checkout redirected at the base branch",
+                           {"fetch-depth": "0", "persist-credentials": "false",
+                            "ref": "${{ github.base_ref }}"}),
+                          ("credentials left in the checkout for a later step to push with",
+                           {"fetch-depth": "0", "persist-credentials": "true"})):
+        check(f"that rule rejects {label}", mutant != JOB_WITH["Checkout repository"])
+    for label, mutant in (("a base neutralised to HEAD", {"BASE": "HEAD"}),
+                          ("a resolver pointed at the PR head",
+                           {"BASE_REF": "${{ github.head_ref }}"})):
+        check(f"the env rule rejects {label}", mutant not in JOB_ENV.values())
+    # The token scopes are part of the contract too, and dropping one is silent: `gh pr view` in the
+    # branch-scope step keeps working on a public repo with `contents: read` alone, and stops the day
+    # this repo is private or mirrored internally — which is the regression this workflow already had
+    # to fix once.
+    PERMISSIONS = {"contents": "read", "pull-requests": "read"}
+    check("the workflow grants exactly the two token scopes the checker needs",
+          doc.get("permissions") == PERMISSIONS, doc.get("permissions"))
+    check("that rule notices a dropped pull-requests scope",
+          {"contents": "read"} != PERMISSIONS)
+    # Three more unpinned inputs, found by sweeping the rules above rather than by review. The runner
+    # is the clearest: `runs-on: self-hosted` moves the gate onto a machine this repo does not control,
+    # and a verdict from there means nothing. The job *name* is load-bearing for a different reason —
+    # it is the string a branch ruleset matches when this check is made required, so renaming the job
+    # silently un-requires it, which is the failure mode of the carry-out that is still open. The
+    # concurrency group is the weakest of the three and is pinned on principle rather than on a
+    # demonstrated bypass: made constant, one PR's run cancels another's, and a cancelled run is not a
+    # pass but it is also not a verdict.
+    check("the gate runs on a runner this repository controls",
+          gate_job.get("runs-on") == "ubuntu-latest", gate_job.get("runs-on"))
+    check("the job keeps the name a required-check rule would be written against",
+          gate_job.get("name") == "Mechanical checks", gate_job.get("name"))
+    check("runs are scoped per pull request, so one PR's run cannot cancel another's",
+          (doc.get("concurrency") or {}).get("group")
+          == "pr-checks-${{ github.event.pull_request.number || github.ref }}",
+          (doc.get("concurrency") or {}).get("group"))
     stray = [(s.get("name"), seg.strip()) for s in job_steps if "run" in s
              for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
     check("every command in every step is one the job exists to run, so no step can rewrite what a "
@@ -2041,7 +2094,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 295
+EXPECTED = 306
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

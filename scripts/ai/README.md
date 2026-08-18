@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (295 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (306 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -487,8 +487,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **seventy-four of these guards were vacuous on the first
-attempt**, in eleven waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2 and 1 — each wave a narrower version of one
+The doubled shapes are there because **eighty of these guards were vacuous on the first
+attempt**, in twelve waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1 and 6 — each wave a narrower version of one
 mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -624,9 +624,29 @@ another step made that step look like a second gate-runner. Spelled to name noth
 copy into the directory — both sailed through. A mutation that dies for a reason unrelated to its
 property is worse than no mutation, because it reports the class as covered.
 
-Two of the seventy-four were caught by the mutation sweep, sixty-seven by review, and five by
-adversarially sweeping a new rule *before* shipping it — from the eighth round on, the rule's author
-found some holes first, five of seven attempts getting through. Every earlier round was
+**The last six are the identities-versus-inputs distinction.** Eleven rounds pinned *what* runs — the
+commands, the steps, the actions — and none of them asked what those things were pointed at. Adding
+`ref: ${{ github.base_ref }}` to a checkout that still has `fetch-depth: 0` checks out the base branch,
+so the diff is the base against itself, the selection is empty, and the gate passes having chosen
+nothing. `BASE: HEAD` in the install step's `env` does the same through the other door, leaving both
+permitted `SEL` spellings untouched. Dropping `pull-requests: read` from `permissions` is quieter still:
+`gh pr view` keeps working while the repo is public and stops the day it is private or mirrored, which
+is a regression this workflow has already had once. So the action inputs, both steps' `env` mappings and
+the token scopes are now pinned beside the identities.
+
+Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they are.
+`runs-on: self-hosted` moves the gate onto a machine the repository does not control, which makes the
+verdict meaningless — a real hole. The job *name* is load-bearing for a different reason: it is the
+string a branch ruleset matches, so renaming the job silently un-requires the check, which is precisely
+the failure mode of the still-open carry-out that the check is not yet required. The concurrency group is
+the weakest of the three and is pinned on principle rather than a demonstrated bypass — made constant,
+one PR's run cancels another's, and a cancelled run is not a pass but it is also not a verdict. Naming
+which of the three is which matters more than pinning all three, because a list of rules that does not
+say what each one buys is how the vacuous ones survived this long.
+
+Two of the eighty were caught by the mutation sweep, seventy by review, and eight by adversarially
+sweeping a new rule *before* shipping it — from the eighth round on, the rule's author found some holes
+first, eight of ten attempts getting through. Every earlier round was
 found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all, then
@@ -643,7 +663,7 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept for that reason — 108 mutations across three files, all killed — but **not in this
+The corpus is kept for that reason — 118 mutations across three files, all killed — but **not in this
 repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So the 108 figure is a local result, reproducible by whoever holds that tree and not
