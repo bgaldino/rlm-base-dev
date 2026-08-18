@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (262 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (278 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -487,8 +487,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **sixty-six of these guards were vacuous on the first
-attempt**, in eight waves of 7, 5, 26, 2, 14, 3, 3 and 6 — each wave a narrower version of one
+The doubled shapes are there because **seventy-one of these guards were vacuous on the first
+attempt**, in nine waves of 7, 5, 26, 2, 14, 3, 3, 6 and 5 — each wave a narrower version of one
 mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -569,9 +569,25 @@ of the two scripts, and neither step may redirect or substitute at all. Segmenta
 become quote-aware in the same pass: both steps `echo` strings containing `;`, and a naive split
 invents a segment whose first word no whitelist could recognise.
 
-Two of the sixty-six were caught by the mutation sweep, sixty-one by review, and three by
-adversarially sweeping a new rule *before* shipping it — the eighth round is the first where the
-rule's author found the holes first, and three of five attempts got through. Every earlier round was
+**The last five moved from the program to its arguments — and, twice, to whether the line is a
+command at all.** Pinning what runs says nothing about what it is told to do: `python
+…check_branch_scope.py --base HEAD --head HEAD --no-fetch` never expands `"$@"`, so every `set --`
+form stays in the file, permitted and unused, while the checker compares HEAD with itself and exits
+clean; the gate has the same shape with `${SEL}`. `set` had also been filed under *harmless*, which is
+the mistake this suite had just fixed for `git` and `python` — a builtin whose arguments decide what
+runs is not harmless, and one appended `set -- --base HEAD --head HEAD --no-fetch` leaves every
+earlier assertion true. So the `set` forms and both invoking segments are now pinned. The other two
+are about segmentation rather than whitelisting, and they invert an assumption this file used to state
+outright: that not modelling backslash escapes was *conservative* because it sees more segments than
+bash does. Seeing more segments manufactures a command — `echo disabled\; python …pr_gate.py ${SEL}`
+is one echo, and the invented second segment is an invocation nothing runs. A heredoc does the same
+thing from the other end, turning the lines after it into data that every rule here still reads as
+commands. Both are now refused workflow-wide rather than modelled, which costs nothing because the
+file contains neither.
+
+Two of the seventy-one were caught by the mutation sweep, sixty-four by review, and five by
+adversarially sweeping a new rule *before* shipping it — from the eighth round on, the rule's author
+found some holes first, five of seven attempts getting through. Every earlier round was
 found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all, then
@@ -588,8 +604,10 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 93 mutations across three files,
-all killed.
+The corpus is kept at `.agents/artifacts/sweeps/` for that reason — 98 mutations across three files,
+all killed. Keeping it only helps if it still runs: all three files named a virtualenv under `/tmp`
+that the OS had since reaped, so the corpus was unrunnable at the exact moment round 9 needed it. They
+now default to the interpreter running them (`SWEEP_PY` overrides).
 
 How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the
 tracked workflow in place and restore it with `git checkout`, and that design produced two confident

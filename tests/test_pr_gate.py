@@ -520,8 +520,13 @@ if os.path.exists(workflow):
         that *contained* a script name. It stops being close enough once every segment must name a
         permitted command, because a `;` inside `echo "a; b"` is text: splitting on it invents a
         segment whose first word is `b"`, which no whitelist would recognise and no shell ever runs.
-        Backslash escapes are not modelled — a `\\;` would be read as a separator — which is
-        conservative here, since the effect is to see more segments rather than fewer.
+
+        Backslash escapes are *not* modelled, and the first version of this docstring called that
+        conservative "since the effect is to see more segments rather than fewer". That was wrong in
+        the one direction that matters: `echo disabled\\; python …pr_gate.py ${SEL}` is a single echo
+        to bash, and the invented second segment is an invocation the shell never runs — seeing more
+        segments manufactures a command rather than missing one. So instead of modelling escapes, the
+        workflow is asserted to contain none, the same way `parse_yaml` refuses what it cannot read.
         """
         out, cur, i, quote = [], "", 0, ""
         while i < len(ln):
@@ -711,9 +716,20 @@ if os.path.exists(workflow):
     # The two steps' whole vocabulary: `set`, a conditional, `echo`, `exit`, `sleep`, `git fetch`,
     # the two scripts, and four variables. Small enough to whitelist, which is why this is possible
     # here and would not be for an arbitrary step.
-    HARMLESS = ("set", "echo", "printf", "exit", "return", "sleep", ":", "true")
+    HARMLESS = ("echo", "printf", "exit", "return", "sleep", ":", "true")
     ASSIGNABLE = ("SEL", "reqs", "code", "attempt")
     SCRIPTS = ("scripts/ai/pr_gate.py", "scripts/ai/check_branch_scope.py")
+    # `set` was in HARMLESS, which is the same mistake this round already fixed for `git` and
+    # `python`: a builtin whose *arguments* decide what runs is not harmless. `set --` builds the
+    # checker's argv, so appending `set -- --base HEAD --head HEAD --no-fetch` before the retry loop
+    # leaves every earlier assertion true — the `--pr` form is still there, `--no-fetch` is still
+    # there — while the checker compares HEAD with itself and exits clean. The four forms are
+    # therefore pinned; changing the fork path's refs must update this list, which is the cost of
+    # pinning argv and is the right cost to pay here.
+    ALLOWED_SET = ("set -euo pipefail", "set -e", "set +e", "set -f", "set +f",
+                   'set -- --base "origin/${BASE_REF}" --head "pr-${PR}"',
+                   'set -- --pr "${PR}"',
+                   'set -- "$@" --no-fetch')
 
     def permitted(seg):
         """Whether one segment runs something the step is supposed to run.
@@ -732,6 +748,8 @@ if os.path.exists(workflow):
             return True
         if words[0] in HARMLESS:
             return True
+        if words[0] == "set":
+            return " ".join(words) in ALLOWED_SET
         if words[0] in ("if", "elif", "while", "until"):
             return words[1:2] and words[1] in ("[", "test", ":")
         if words[0] == "git":
@@ -741,6 +759,20 @@ if os.path.exists(workflow):
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", words[0]):
             return words[0].split("=")[0] in ASSIGNABLE
         return False
+
+    # Pinning argv is worthless if the command can ignore it: `python …check_branch_scope.py --base
+    # HEAD --head HEAD --no-fetch` never expands `"$@"`, so every `set --` form stays in the file,
+    # permitted and unused, while the checker compares HEAD with itself. The gate has the same shape
+    # with `${SEL}`. So the invoking segment itself is pinned — the handler that may follow `||` is a
+    # later segment and is unaffected.
+    GATE_CMD = "python scripts/ai/pr_gate.py ${SEL}"
+    SCOPE_CMD = 'python scripts/ai/check_branch_scope.py "$@"'
+
+    def invoking_segment(ln, script):
+        for seg, tail in parts(ln):
+            if runs_segment(seg, tail, script):
+                return " ".join(seg.split())
+        return ""
 
     def foreign_commands(step):
         """Segments of a step that run something outside its vocabulary.
@@ -759,14 +791,17 @@ if os.path.exists(workflow):
     def rewrites(step):
         """Segments that change what the step runs instead of running it.
 
-        Both escape a whitelist of commands while using only whitelisted ones. A redirection can
-        truncate the very script about to be invoked — `echo -n > scripts/ai/pr_gate.py` opens with a
-        permitted `echo` and leaves an empty file that exits 0 — and a command substitution smuggles
-        an arbitrary command inside a permitted one. Neither step needs either; `$(( ))` arithmetic,
-        which the retry loop does need, is not a substitution.
+        All three escape a whitelist of commands while using only whitelisted ones. An *output*
+        redirection can truncate the very script about to be invoked — `echo -n >
+        scripts/ai/pr_gate.py` opens with a permitted `echo` and leaves an empty file that exits 0.
+        A command substitution smuggles an arbitrary command inside a permitted one. And an *input*
+        redirection is the subtlest: `echo disabled <<'echo'` makes the following line the heredoc's
+        body, so the gate invocation becomes data — every line still reads as a permitted command to
+        this suite, and bash runs one echo and exits 0. Neither step needs any of the three;
+        `$(( ))` arithmetic, which the retry loop does need, is not a substitution.
         """
         return [ln for ln in shell_of(step)
-                if ">" in ln or re.search(r"\$\((?!\()", ln) or "`" in ln]
+                if ">" in ln or "<" in ln or re.search(r"\$\((?!\()", ln) or "`" in ln]
 
     def pure_echo(ln):
         """One segment, and that segment is an echo. `startswith("echo ")` was a *prefix* test, so
@@ -795,6 +830,11 @@ if os.path.exists(workflow):
         runs_gate = [ln for ln in cmds if foreground(ln, "scripts/ai/pr_gate.py")]
         check("one command executes the gate with its verdict reaching the job",
               len(runs_gate) == 1, cmds)
+        check("the gate receives the selection this workflow computed, not a literal that would "
+              "make an empty diff",
+              len(runs_gate) == 1
+              and invoking_segment(runs_gate[0], "scripts/ai/pr_gate.py") == GATE_CMD,
+              [invoking_segment(ln, "scripts/ai/pr_gate.py") for ln in runs_gate])
         check("every other command is a bare echo, which cannot swallow the verdict",
               all(pure_echo(ln) for ln in cmds[1:] if ln not in runs_gate), cmds)
         check("nothing in the gate step ends the shell before the gate runs",
@@ -839,6 +879,27 @@ if os.path.exists(workflow):
                           ("a directory prepended to PATH",
                            'echo "/tmp/shim" >> "$GITHUB_PATH"')):
         check(f"that rule rejects {label}", mutant not in ALLOWED_SEL)
+    # Two shell constructs are refused workflow-wide rather than modelled, because both make the
+    # *whole file's* executed lines mean something other than what this suite reads them as — not
+    # just the two whitelisted steps. A backslash turns a separator into text, so `echo disabled\;
+    # python …pr_gate.py ${SEL}` is one echo while the segmentation reports an invocation. A heredoc
+    # turns the lines that follow it into data, so a phantom `set -- --pr "${PR}"` inside one would
+    # satisfy the flag rules for a step that no longer passes the flag. Neither appears in the file,
+    # which is what makes refusing them free; if one is ever needed, the segmentation must model it
+    # first.
+    for label, hits in (("a backslash escape or line continuation",
+                         [ln.strip() for ln in run_contents(wf) if "\\" in ln]),
+                        ("an input redirection or heredoc, whose body this suite would read as "
+                         "commands", [ln.strip() for ln in run_contents(wf) if "<" in ln])):
+        check(f"no executed line uses {label}", not hits, hits)
+    check("that pair of rules can see an escaped separator",
+          [ln for ln in run_contents(
+              '        run: |\n          echo disabled\\; python scripts/ai/pr_gate.py ${SEL}\n')
+           if "\\" in ln])
+    check("and a heredoc that would hide a command as data",
+          [ln for ln in run_contents(
+              "        run: |\n          echo disabled <<'echo'\n          set -- --pr \"${PR}\"\n")
+           if "<" in ln])
     # --pr, not merely the script: without it the checker loses signal 2 (STACKED), so a
     # half-defanged invocation would otherwise read as fully wired. The flag is asserted over the
     # executed shell rather than on the invocation line, because the workflow builds the argument
@@ -874,6 +935,12 @@ if os.path.exists(workflow):
         called = [i for i, ln in enumerate(seq)
                   if foreground(ln, "scripts/ai/check_branch_scope.py")]
         check("the checker is invoked as a bare command", called, seq)
+        # `--no-fetch` may ride on the invocation instead of the argument list, which is one of the
+        # correct edits this suite promises to accept; nothing else may.
+        check("the checker receives the argument list this step built, not literal refs",
+              all(invoking_segment(seq[i], "scripts/ai/check_branch_scope.py")
+                  in (SCOPE_CMD, SCOPE_CMD + " --no-fetch") for i in called),
+              [invoking_segment(seq[i], "scripts/ai/check_branch_scope.py") for i in called])
         check("its real exit code is what the retry loop reads",
               all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
         # The fork branch is the one without --pr, so a condition that is always true sends every
@@ -1069,10 +1136,38 @@ if os.path.exists(workflow):
                             "if rm -f scripts/ai/pr_gate.py; then :; fi")):
         check(f"the vocabulary rule rejects {label}",
               foreign_commands(as_step("set -euo pipefail", snippet)), snippet)
+    for label, snippet in (("an argv override that compares HEAD with itself",
+                            "set -- --base HEAD --head HEAD --no-fetch"),
+                           ("an argv override that drops the flags",
+                            'set -- --pr "${PR}" --no-stacked'),
+                           ("a shell option this workflow does not use", "set -x")):
+        check(f"the pinned `set` forms reject {label}",
+              foreign_commands(as_step("set -euo pipefail", snippet)), snippet)
+    for label, ln, script in (
+            ("a gate handed a literal selection",
+             "python scripts/ai/pr_gate.py --base HEAD", "scripts/ai/pr_gate.py"),
+            ("a checker handed literal refs",
+             'python scripts/ai/check_branch_scope.py --base HEAD --head HEAD --no-fetch',
+             "scripts/ai/check_branch_scope.py")):
+        check(f"the invocation rule rejects {label}",
+              invoking_segment(ln, script) not in (GATE_CMD, SCOPE_CMD, SCOPE_CMD + " --no-fetch"),
+              invoking_segment(ln, script))
+    check("it accepts the gate as written, and a re-raising handler after it",
+          invoking_segment('python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }',
+                           "scripts/ai/pr_gate.py") == GATE_CMD)
+    check("and the checker with --no-fetch moved onto the invocation",
+          invoking_segment('python scripts/ai/check_branch_scope.py "$@" --no-fetch',
+                           "scripts/ai/check_branch_scope.py") == SCOPE_CMD + " --no-fetch")
+    check("those forms accept the three the workflow actually builds argv with",
+          not foreign_commands(as_step('set -- --base "origin/${BASE_REF}" --head "pr-${PR}"',
+                                       'set -- --pr "${PR}"', 'set -- "$@" --no-fetch')))
     for label, snippet in (("a redirection that truncates the script about to run",
                             "echo -n > scripts/ai/pr_gate.py"),
                            ("a command substitution hidden inside a permitted echo",
                             'echo "$(printf %s x > scripts/ai/pr_gate.py)"'),
+                           ("a heredoc that turns the next line into data",
+                            "echo disabled <<'echo'"),
+                           ("a file read into a permitted command", "echo x < /etc/passwd"),
                            ("a backtick substitution", "echo `id`")):
         check(f"the rewrite rule rejects {label}",
               rewrites(as_step("set -euo pipefail", snippet)), snippet)
@@ -1830,7 +1925,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 262
+EXPECTED = 278
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
