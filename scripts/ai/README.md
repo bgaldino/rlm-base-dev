@@ -404,7 +404,7 @@ per-PR branch scope. Note what running does *not* mean — a red job blocks noth
 `Mechanical checks` is configured as a **required status check**, which is repository settings
 rather than anything in this repo.
 
-Three platform behaviours sit outside every guard in that file and are worth knowing before
+Four platform behaviours sit outside every guard in that file and are worth knowing before
 trusting a green:
 
 * **`[skip ci]` skips the whole thing.** A head commit whose message contains `[skip ci]`,
@@ -464,7 +464,7 @@ A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (417 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (443 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -489,7 +489,10 @@ directory counted as a read). The rest of the corpus — the figure given below,
 once — breaks the CI workflow instead of the driver, all killed, in eleven families. The families are
 what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
-`|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
+`|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them. Both of those
+handler shapes *are* probed now, along with `|| sleep 0` and `|| printf ''`, which is how the last
+blacklist in the file was found: `sleep` sat in the harmless-command whitelist while the masking
+blacklist did not name it, so the two disagreed and a real verdict was discarded.
 The job never runs (a `paths:` filter quoted and unquoted, `branches:`, `types:` narrowed,
 `pull_request:` deleted from `on:`, an `if:` on the job — before *and* after the `steps:` list — or
 on either step, quoted or bare, `if: false`, `if: vars.X`, a decoy job placed above the real one);
@@ -537,15 +540,15 @@ call, `--no-fetch` moved onto the invocation instead of the argument list, a `ty
 spellings the rule permits. Two of those six had no control until a review went looking: the superset
 `types:` passed only because the live workflow happens to carry one, and the `::notice::` only because
 the annotation alternation names it — "separately confirmed" was, for those two, a claim about a
-coincidence. Eight more are applied to the real workflow by a second harness (below), which is a
+coincidence. Twenty-eight more are applied to the real workflow by a second harness (below), which is a
 different question from a control: it asks whether the *file* still passes after the edit, not whether
 one predicate does. A seventh used to be "a second job that carries its own `if:`" — the
 one-job rule below retired it, and the entry is named rather than deleted because the cost of that
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and sixteen of these guards were vacuous on the first
-attempt**, in sixteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6 and 9 — each wave a narrower version
+The doubled shapes are there because **a hundred and twenty-one of these guards were vacuous on the first
+attempt**, in eighteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2 and 5 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -575,9 +578,13 @@ quotes; `echo`, `printf`,
 
 **Twenty-six retired the approach rather than extended it.** A line-scoped rule cannot
 see the step around a command, and that is where most ways to neutralise one live — so the two
-load-bearing steps are read as steps and pinned to a single permitted shape each: no `if:`, no
-`continue-on-error:`, `set -euo pipefail` first, exactly one command executing the gate, only bare
-`echo`s around it. The `on:` block must contain `pull_request:` and no filter that could skip a PR the default would
+load-bearing steps are read as steps and pinned to a single permitted shape each. For the gate step
+that shape is `name` and `run` and nothing else (bar `timeout-minutes`, `shell` and `id`, which cannot
+make a failure pass): no `if:`, no `continue-on-error:`, `set -euo pipefail` first, exactly one command
+executing the gate, only bare `echo`s around it. The branch-scope step does carry an `if:` and an
+`env:` — it has to, since it runs only on `pull_request` and reads the PR number — so for that one the
+pin is on the *values*: the condition, the four environment keys and the control-flow sequence are each
+fixed, which is why an inserted branch or a falsified condition fails. The `on:` block must contain `pull_request:` and no filter that could skip a PR the default would
 have run — a `types:` superset of the default three is allowed, anything else is not; the gate job may carry
 only keys that cannot stop it running; `SEL` may only be `--all` or `--base ${BASE}`; and the
 checker's `$?` must be captured on the line after it runs. That is a whitelist, deliberately: a
@@ -592,7 +599,7 @@ key the regex did not name — `shell: "cat {0}"`, which makes the runner print 
 running it, at step level or as a job-wide `defaults.run.shell`; a step `env:` re-pointing `SEL`. A
 whitelist of *job* keys enforced by "the text between `jobs:` and the first `- name:`" is not one
 either: `if: false` appended after the `steps:` list lands outside that window, and a decoy job above
-the real one collapses it entirely. So the workflow is now parsed — 82 lines of stdlib block YAML,
+the real one collapses it entirely. So the workflow is now parsed — 92 lines of stdlib block YAML,
 because this suite declares no dependencies and the check that judges the workflow must not be the
 one that reports MISSING-DEP and skips — and the parser **refuses** what it cannot model (flow-style
 steps, anchors, aliases, duplicate keys, tabs) rather than reading past it, since a step whose keys
@@ -798,7 +805,7 @@ together" and named two of the *four* constants keyed on a step name. Do exactly
 goes green while `JOB_CONTROL` silently stops applying — and the count invariant does not notice,
 because the renamed step leaves the control-flow loop (one check fewer) and joins the reachability
 loop (one more). Two ordinary commits later, the first prescribed by the guard, the retry loop can be
-neutered with 417/417 passing. Every name-keyed rule now asserts that the name it keys on matched a
+neutered with the suite fully green. Every name-keyed rule now asserts that the name it keys on matched a
 real step, which is the only reason a count invariant can be trusted at all.
 
 The other three were shell and interpreter semantics believed rather than checked. A bare `exit`
@@ -851,6 +858,35 @@ every other rule satisfied, nothing run, exit 0. Canonicalising `true` to `:` wa
 canonicalised to its own opposite. Neither reached a commit. Loosening a rule is writing a new rule,
 and a new rule gets swept before it ships.
 
+**The eighteenth wave found five live false greens, two of them shipped by the wave before it, and one
+sentence explains all five: a status this suite read as failure that bash reports as success.**
+Reading `set` flags case-insensitively — done to admit `set -Eeuo pipefail`, which keeps a real
+lowercase `e` — also admitted `set -Euo pipefail`, which has none: `-E` is `errtrace`, a valid option,
+so the line ran clean and the gate step silently stopped aborting on error under a check whose message
+says it does. `exit 256` was read as re-raising a failure, when bash truncates a status to eight bits
+and exits 0. `sleep 0 && exit $?` ended the branch-scope step before its checker ran, because `$?`
+hands on a failure only after `||`; after `&&` the predecessor succeeded and `$?` is 0. And
+`--index-url=https://…` was accepted by a rule whose own comment listed that option as refused —
+refused, it turned out, only in the space-separated spelling, because one word beginning with `-`
+satisfied "every trailing token is an option".
+
+The widest of the five is the most instructive, and it is a structural point rather than a bug:
+**the masking rule was the last blacklist in a file of whitelists.** `|| sleep 0` discarded the gate's
+verdict because `sleep` sits in the harmless-command whitelist while the blacklist of handler commands
+did not name it — two whitelists said "a command this step may run" and one blacklist said "nothing to
+refuse", and the disagreement was the hole. It is now stated as the property instead: after a
+verdict-bearing command, a `||` or `;` tail must end the shell non-zero, which the existing
+`reraises()` already knew how to decide in every spelling. That single change also killed
+`|| printf ''` and every other non-terminating handler, none of which any blacklist would have named.
+
+Six false-rejection classes came with it, and five were the same *sweep* failure rather than five
+distinct bugs: a helper written to stop a pin firing on a respelling (`python3` for `python`) had been
+applied at one of the four places that compare an invocation to a pin. Fixing the cited line and
+leaving its siblings is how a class survives being fixed, so all four now route through one call.
+And the wave's own bookkeeping caught the last one: relocating a loop by four spaces of indentation
+pulled six gate-step checks into its body, running each nine times. Nothing failed — the checks all
+passed, nine times over — and the total-count invariant is the only thing that noticed.
+
 **Two earlier findings were false rejections rather than holes, and they matter as much.** The
 argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
@@ -886,7 +922,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 153 mutations, 3 controls, 20 loosening probes and 11
+The corpus is kept for that reason — 147 mutations, 40 loosening probes and 28
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
@@ -896,14 +932,16 @@ than an oversight. Keeping it only helps if it still runs, and all three files n
 `/tmp` that the OS had since reaped, so the corpus was unrunnable at the exact moment a later round
 needed it. They now default to the interpreter running them (`SWEEP_PY` overrides).
 
-How a sweep runs turned out to matter as much as what it mutates. The first three files mutate the
-tracked workflow in place and restore it with `git checkout`, and that design produced two confident
+How a sweep runs turned out to matter as much as what it mutates. Two of the five files mutate the
+tracked workflow in place — the first restoring from a copy held in memory in a `finally`, the second
+with `git checkout`; the other three build a throwaway worktree — and mutating in place produced two confident
 wrong answers: one reported 21/25 with two anchors "missing" against a workflow one line off HEAD
 (25/25 once restored), and a suite run in another terminal failed on `SEL="--base HEAD"` — a mutation
 from this corpus, caught mid-flight, in a shell that had touched nothing. Any concurrent reader sees a
 mutated tree, so results are noise in both directions. All of them now refuse to run on a modified
-tree or a failing baseline, and the round-5 file goes further: it mutates a throwaway `git worktree`
-and copies in only the files under test, so a sweep can no longer be seen by anything but itself.
+tree or a failing baseline, and the round-5 file goes further — as do the probe and correct-edit
+harnesses: they mutate a throwaway `git worktree` and copy in only the files under test, so a sweep can
+no longer be seen by anything but itself. Porting the remaining two is the last open item there.
 
 One corollary is worth stating separately, because it makes a passing suite actively misleading:
 **never condition a guard on the token it guards.** The exit-propagation rule was written
