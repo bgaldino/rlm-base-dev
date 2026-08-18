@@ -273,10 +273,12 @@ python scripts/ai/pr_gate.py --list              # the matrix: check, gating, de
 python scripts/ai/pr_gate.py --requirements --base origin/264   # pip deps the selection needs
 ```
 
-Selection lives here rather than in a workflow's `paths:` filter because a path filter makes
-the job **skip**, and a skipped job cannot serve as a required status check while reading
-exactly like a pass in the PR summary. The same reasoning drives three statuses that are
-easy to conflate:
+Selection lives here rather than in a workflow's `paths:` filter because the two ways of not
+running fail in opposite directions. A workflow skipped by path filtering reports nothing, so a
+check required on it stays **Pending** and blocks the merge indefinitely; a job or step skipped
+by an `if:` condition reports **success**, so it reads like a pass. (This paragraph said the
+first behaved like the second until round 12 of review; the conclusion held, the reason did
+not.) The same care drives three statuses that are easy to conflate:
 
 | status | meaning | fails? |
 |--------|---------|--------|
@@ -285,7 +287,10 @@ easy to conflate:
 | `ADVISORY` | runs and reports, never fails | no, and the reason is printed inline |
 
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
-tree today, on two known validator false positives (pack 123). A check that always fails
+tree today, on two known validator false positives (pack 123 — "pack N" throughout this file
+means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
+so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
+N" means a round of review on the pull request that added this workflow). A check that always fails
 gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
 reason instead of being dropped or allowed to fail every PR touching `datasets/`.
 
@@ -302,9 +307,13 @@ added under `tests/build_harness/` stays unlisted until someone runs it or recor
 
 `tests/test_docgen_helpers.py` is the one pytest-style suite **directly under `tests/`** — the
 two harness directories hold roughly 30 more — and it is worse
-than a suite that fails outside pytest: run as `python tests/test_docgen_helpers.py` it exits
-**0 having run nothing**, because the file is all `def test_*` and no `__main__`. That is why
-it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
+than a suite that fails outside pytest: run as `python tests/test_docgen_helpers.py` on an
+interpreter where pytest is importable, it exits **0 having run nothing** — every test is a method
+inside one of its eleven `class Test…` bodies, and there is no `__main__` to collect them. (Where
+pytest is *not* importable it exits 1 on the `import pytest` at the top, which is the honest
+failure; the silent-pass case is the one to know about. An earlier version of this paragraph said
+the file was "all `def test_*`", which is exactly backwards — it has none at module level.) That is
+why it is invoked through pytest rather than the repo's usual `python tests/<name>.py`; the
 convention gap itself is a separate todo.
 
 A check has to be selected by **every file it reads**, not only by the code it tests — the
@@ -395,11 +404,44 @@ per-PR branch scope. Note what running does *not* mean — a red job blocks noth
 `Mechanical checks` is configured as a **required status check**, which is repository settings
 rather than anything in this repo.
 
+Three platform behaviours sit outside every guard in that file and are worth knowing before
+trusting a green:
+
+* **`[skip ci]` skips the whole thing.** A head commit whose message contains `[skip ci]`,
+  `[ci skip]`, `[no ci]`, `[skip actions]`, or a `skip-checks: true` trailer produces no run at
+  all. While the check is not required that is a complete, self-service bypass needing no
+  permissions; once it *is* required the same case leaves it Pending, which correctly blocks.
+* **The two actions may be pinned by tag, and are.** `actions/checkout@v6` and
+  `actions/setup-python@v6` both move with every 6.x release — the suite accepts either a release tag
+  or a full 40-hex commit SHA, so switching to a SHA is a one-line edit that needs no rule change
+  (the first version of that rule compared the whole `uses:` string and refused the *stronger* pin), and they execute in the workspace
+  immediately before the gate — so a repointed tag could patch the scripts or shim `python`,
+  which is precisely the class the shell rules spend two hundred checks refusing. It is accepted
+  rather than solved: first-party actions, a public repo, `contents: read` plus
+  `pull-requests: read`, and no repository secrets in scope — the job's only credential is the
+  read-scoped `GITHUB_TOKEN`, which is not nothing but cannot write — so the exposure is integrity
+  under an `actions`-org compromise. Also note `setup-python` legitimately prepends to `PATH`, which is
+  the same class the `$GITHUB_PATH` rule forbids in a `run:` line — permitted only because it
+  arrives through `uses:`.
+* **`merge_group` runs are not equivalent to a PR run.** A merge-queue run has no base ref, so it
+  selects `--all` and skips the branch-scope step: FOREIGN/STACKED do not run there. It is wired
+  anyway because a required check that never runs in a merge queue deadlocks the queue, and the
+  triggers are now whitelisted (`pull_request` and `merge_group`, nothing else) by a check.
+* **`workflow_dispatch` was removed, and the reason generalises.** A manual run publishes a check
+  with the *same name* on the same SHA, and GitHub shows the latest conclusion for a name — so a
+  dispatch on a PR's head SHA does not sit beside the PR's verdict, it *replaces* it. Anyone with
+  write access could turn a red gate green with one button and no commit, which is a worse bypass
+  than any shell trick the file's two hundred shell checks refuse. Convenience for re-running a
+  check does not buy that. The same argument rules out `push` and any other event that can carry a
+  PR head SHA, which is why the trigger list is a whitelist rather than a blacklist.
+
 The suite asserts the workflow cannot be quietly defanged, because every way of disabling it
 leaves a green PR behind — the same absence the gate exists to close, one level up. Load-bearing
-rather than stylistic: no `paths:` filter (a skipped job reports success), `fetch-depth: 0` (a
-shallow clone has no merge base to diff against, so selection comes up empty and passes having
-checked nothing), an *executed* invocation that is not `--requirements` (that one resolves
+rather than stylistic: no `paths:` filter (a path-skipped workflow leaves a required check
+Pending, blocking every PR that misses the paths; it is an `if:` skip that reports success),
+`fetch-depth: 0` (past a shallow boundary `git diff base...HEAD` fails outright, and the gate
+turns a failed git into exit 2 — a tool error, not a pass; the pin buys a *usable* diff rather
+than protection from a silent empty one), an *executed* invocation that is not `--requirements` (that one resolves
 dependencies; its exit code is not a verdict), `--pr` on the branch-scope call (without it the
 checker silently loses its STACKED signal), a Python floor **derived from the matrix's highest
 `min_python`** rather than written down (a check below its floor reports `MISSING-DEP`, which
@@ -419,7 +461,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (317 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (394 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -437,11 +479,11 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the thirteen trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted
-once — breaks the CI workflow instead of the driver, all killed, in nine families. The families are
+once — breaks the CI workflow instead of the driver, all killed, in eleven families. The families are
 what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
 `|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
@@ -457,7 +499,7 @@ untrusted input reaches the shell (`${{ }}` moved into a `run:` step in each of 
 styles); either command is present but not run (echoed, inside a heredoc, behind a shell flag,
 wrapped in `if …; then`, replaced by an inline trailing comment, or replaced by `--list`/`--help`,
 whose exit codes are not verdicts); the command runs but its verdict is discarded (`|| true`,
-`|| :`, `|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
+`|| exit 0`, `|| echo`, `|| /bin/true`, `&`, `$( )`, `continue-on-error:`, `set -e`
 dropped, `set +e` without a check, a trailing `echo` or `exit 0`, or `code=$?` replaced by
 `code=0`, an `echo` that then `exit 0`s or shadows `python` as a function); the command is present,
 unmasked, and never reached (`true || python …`, `false && python …` — for either the gate or the
@@ -465,10 +507,12 @@ checker, and for either `set --` line, since a skipped argument list supplies ne
 `--no-fetch` while leaving both flags visible on the line; or the shell simply ends first, either on
 the same line as the command — `exit 0; python …` — or on an earlier line of the step, which no
 per-line rule can see); the command runs and is not the program (`python` redefined as a shell
-function, by `alias`, `hash -p`, `export PATH=` or a bare `PATH=`, on the invocation line or above it,
-in the step or exported to it through `$GITHUB_ENV`/`$GITHUB_PATH`; the script truncated by a
-redirection or restored to an older revision by `git checkout`; the script passed as *data* to
-`python -c`); the checker is defanged
+function, or `PATH` re-pointed by a bare assignment, on the invocation line or above it, in the step
+or appended to `$GITHUB_PATH` for a later one; the script truncated by a redirection or restored to an
+older revision by `git checkout`; the script passed as *data* to `python -c`. `alias`, `hash -p` and
+`export PATH=` are refused too, but by *controls inside the suite* rather than by a corpus mutation —
+a distinction worth keeping, since a control asserts a predicate's answer and a mutation asserts the
+whole file's verdict); the checker is defanged
 (backgrounded with `&`, so `$?` is the fork's status and the
 real script still runs and still reports success; `--pr` stripped, or left only in an `echo` beside a real
 argument list; the retry loop widened to swallow a verdict or stripped of its condition; the step
@@ -482,15 +526,26 @@ print the script instead of executing it, at step level or as a job-wide `defaul
 Plus the two that remove the guard itself: the workflow dropped from
 this check's own triggers, and the file deleted.
 
-Six *correct* edits are separately confirmed to be accepted, because a rule that fires on a
-legitimate change is a rule someone deletes: a re-raising handler
+*Correct* edits are confirmed to be accepted too, because a rule that fires on a legitimate change
+is a rule someone deletes. Six are asserted by controls inside the suite — a re-raising handler
 (`|| { echo "::error::…"; exit 1; }`), a trailing `echo "::notice::"`, a progress `echo` before the
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
-*superset* of the default three, and a second job that carries its own `if:`.
+*superset* of the default three, and a `git rev-parse` written with any of the four redirection
+spellings the rule permits. Two of those six had no control until a review went looking: the superset
+`types:` passed only because the live workflow happens to carry one, and the `::notice::` only because
+the annotation alternation names it — "separately confirmed" was, for those two, a claim about a
+coincidence. Eight more are applied to the real workflow by a second harness (below), which is a
+different question from a control: it asks whether the *file* still passes after the edit, not whether
+one predicate does. A seventh used to be "a second job that carries its own `if:`" — the
+one-job rule below retired it, and the entry is named rather than deleted because the cost of that
+rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
+in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **eighty-eight of these guards were vacuous on the first
-attempt**, in thirteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6 and 8 — each wave a narrower version of one
-mistake, and each found *after* the previous wave's fix was reported complete.
+The doubled shapes are there because **a hundred and five of these guards were vacuous on the first
+attempt**, in fifteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11 and 6 — each wave a narrower version
+of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
+gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
+the prose keeps the instructive ones, and two of the small waves appear only in the count.
 
 The first seven tested that a string appeared *somewhere* rather than
 that
@@ -519,21 +574,22 @@ quotes; `echo`, `printf`,
 see the step around a command, and that is where most ways to neutralise one live — so the two
 load-bearing steps are read as steps and pinned to a single permitted shape each: no `if:`, no
 `continue-on-error:`, `set -euo pipefail` first, exactly one command executing the gate, only bare
-`echo`s around it. The `on:` block must contain `pull_request:` and no filter; the gate job may carry
+`echo`s around it. The `on:` block must contain `pull_request:` and no filter that could skip a PR the default would
+have run — a `types:` superset of the default three is allowed, anything else is not; the gate job may carry
 only keys that cannot stop it running; `SEL` may only be `--all` or `--base ${BASE}`; and the
 checker's `$?` must be captured on the line after it runs. That is a whitelist, deliberately: a
 blacklist has to imagine every way to break the job, a whitelist only has to describe the one way it
 may work.
 
 **The last fourteen are the reason those whitelists are now read from a parse rather than matched as
-text**, and they are the most instructive of the five waves, because the whitelist was the right
+text**, and they are the most instructive of the waves, because the whitelist was the right
 idea implemented against the wrong representation. A whitelist of *keys* enforced by a regex over
 unquoted keys is not a whitelist: `"continue-on-error": true` slipped through it, and so did every
 key the regex did not name — `shell: "cat {0}"`, which makes the runner print the script instead of
 running it, at step level or as a job-wide `defaults.run.shell`; a step `env:` re-pointing `SEL`. A
 whitelist of *job* keys enforced by "the text between `jobs:` and the first `- name:`" is not one
 either: `if: false` appended after the `steps:` list lands outside that window, and a decoy job above
-the real one collapses it entirely. So the workflow is now parsed — 90 lines of stdlib block YAML,
+the real one collapses it entirely. So the workflow is now parsed — 82 lines of stdlib block YAML,
 because this suite declares no dependencies and the check that judges the workflow must not be the
 one that reports MISSING-DEP and skips — and the parser **refuses** what it cannot model (flow-style
 steps, anchors, aliases, duplicate keys, tabs) rather than reading past it, since a step whose keys
@@ -658,7 +714,7 @@ The worst of the eight was found by a **local review pass, and it was live**: `p
 HEAD'`. `printf` sat in the harmless-by-word list, and `printf -v` writes a shell variable from its
 argument list — so the line contains no `SEL=` substring, the rule pinning the two SEL spellings never
 sees it, and neither does any assignment rule. Run against a real tree it produced exactly the false
-green all thirteen waves exist to stop: empty diff, thirteen checks skipped, exit 0. `printf` now has
+green every one of these waves exists to stop: empty diff, thirteen checks skipped, exit 0. `printf` now has
 its own branch that refuses `-v`, at both scopes.
 
 The other four were narrower and none was live, which is worth saying plainly rather than inflating
@@ -670,15 +726,79 @@ refused only incidentally, by the workflow-wide ban on `<` whose stated purpose 
 `git rev-parse --verify HEAD` belongs in this narrower group too — it verifies a ref nothing diffs
 against, but an unresolvable base makes `pr_gate` exit 2, which is a red run and not a silent pass.
 
-**Two findings in this round were false rejections rather than holes, and they matter as much.** The
+**The last eleven are one mistake with eleven addresses: a rule written against a *substring* rather
+than against the thing it means.** Three were live. The cross-step write rule selected its subject set
+by looking for `ref=` or `SEL=` in the line, so `echo "/tmp/shim" >> "$GITHUB_PATH"` was not a subject
+of the rule that exists to stop exactly that — it re-points `python` for every later step. The retry
+loop's control flow was pinned as a *set* of lines, so wrapping it in `if [ 1 = 2 ]; then … fi` kept
+every pinned line present and ran none of them. And reachability was read per line *prefix*, so
+`true; exit 0` ended the shell while every assertion about the checker below stayed satisfied.
+
+The other eight are the same error at sites the first three fixes did not touch, and finding them
+took asking the question the fixes implied rather than the one they answered — *where else is a rule
+selecting its subject by substring, or covering one site of a class?* A GitHub workflow command needs
+no redirection at all (`echo "::set-output name=ref::HEAD"` sets the pinned base-ref output through
+stdout, a channel whose subject set cannot contain it by construction). `escapes_early` was applied to
+two steps of four, though an `exit 0` atop the resolver empties the base ref just as fatally.
+`STEP_KEYS` pinned two steps' keys, so the other two could still take `if: false` or `shell: cat`.
+Nothing required the workflow to declare *one* job, so a decoy job could publish the required check
+name. And `run_lines` had two copies, so fixing the inline-scalar blind spot in one left a step
+spelled `run: id` invisible to the rule that finds the gate at all.
+
+Two of the eleven were **self-inflicted and live**, which is the part worth keeping: they were holes in
+rules written earlier the same round, found by a local review pass over the fix itself. `SUMMARY`
+admitted a step-summary write by shape using `.*` inside the quotes — greedy and unanchored, so it
+spanned an entire earlier command *including its own redirection*, and any line ending in a summary
+echo was admitted whole. `escapes_early`'s block exemption keyed on the opener *keyword*, so
+`if : ; then exit 0; fi` read as conditional. Both are now closed by the property rather than the
+spelling: a line that hands a value to a later step must be a single segment, and an opener is only
+exempt if it carries an actual test. The generalisable lesson is that a fix is a change to the rule's
+*subject*, and the sweep that follows it only respells the instance — the class has to be enumerated
+by hand, at every site, or the next round finds the same mistake at the address you did not visit.
+
+**The fifteenth wave came from five reviewers reading in parallel, and its first finding was the
+count itself.** Round 14 had made `EXPECTED` derive its per-step terms from the same iterables the
+per-step loops walk — so silencing a loop lowered the expected total by exactly what it silenced, and
+the invariant balanced. Measured: emptying the per-shell-step reachability loop, and emptying the
+control-flow loop, each left the suite green. The count exists to catch a rule that stopped running,
+and for the three loops that round introduced it could no longer do it. It is a hardcoded integer
+again; a step added later fails two *named* key rules rather than drifting a total, which is the
+right way for that edit to be refused.
+
+Four more were controls that had stopped testing anything. Two restated a rule's condition inline
+instead of calling it — a literal compared against a literal from the same source, which passes with
+the rule narrowed or deleted — and two had been rewritten on the strength of a comment claiming `::`
+was refused workflow-wide, which it is not: display-only annotations are admitted by design, so the
+rewrite deleted the only coverage that the *new* `::` rule still accepts the handler this file calls a
+correct edit. Both classes now go through the predicate they are about.
+
+**The live hole in this round was produced by fixing a false rejection, and a probe aimed at the fix
+found it before it shipped.** The re-raising handler `python … || { echo "::error::…"; exit 1; }` is
+documented here as correct, and the segment-wise reachability rule had started rejecting it, so the
+rule learned that a terminator after `&&`/`||` is conditional. That admitted
+`|| { echo "::error::x"; exit 0; }` — reached only when the gate has *failed*, and then reporting
+success. A loosening is where the next hole is, so each one now gets a mutation pointed at it, and a
+conditional exit is exempt only if it re-raises (a non-zero literal, or the status it caught).
+
+**And five of eight legitimate edits were being rejected, which nothing in the process was measuring.**
+Raising the retry budget from 3 to 5, pinning an action to a commit SHA, adding `timeout-minutes`,
+naming `shell: bash`, and writing a step summary from the gate step all failed the suite — the SHA
+case being the sharpest, since it refused the *stronger* pin while admitting the movable tag, under a
+message about the action patching the tree. The corpus only ever asked whether wrong edits fail, so
+there is now a second harness asking whether right ones pass; a rule that fires on correct code is how
+rules get deleted rather than fixed. Two of those five turned out to be a property asserted in two
+places and fixed in one — the same class as the round before, one address further along.
+
+**Two earlier findings were false rejections rather than holes, and they matter as much.** The
 argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
 it, the last because the tokenizer read the `&` of `2>&1` as a separator and invented a segment `1`. A
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the eighty-eight were caught by the mutation sweep, seventy-seven by review and nine by
-adversarially sweeping a new rule *before* shipping it. The split inside "by review" is the useful
+Two of the hundred and five were caught by the mutation sweep, ninety-three by review — twenty-one of
+those by local passes rather than hosted ones — and ten by adversarially sweeping a new rule *before*
+shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
 you just closed; a reader with the diff in hand asks which *other* words in the whitelist do what the
@@ -698,10 +818,15 @@ skips a command no condition guards.
 The durable lesson is not any one of those shapes; it
 is that "all mutations killed" is evidence about the sweep, and a guard is only as good as the
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
-not be conditional" — which two mutations disproved: documentation asserting a property the code does
-not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept for that reason — 124 mutations across three files, all killed — but **not in this
-repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
+not be conditional" — because two mutations disproved it at the time: documentation asserting a
+property the code does not have is worse than silence, since it is what the next reviewer trusts
+instead of re-deriving. That claim is true again, by a different mechanism: `JOB_KEYS` whitelists the
+job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
+withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
+now names the rule that makes the claim true instead of asserting the claim.
+The corpus is kept for that reason — 153 mutations, 3 controls and 8 correct-edit assertions across
+five files — but **not in
+this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible by whoever holds that tree and not
 from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open question rather
@@ -745,17 +870,20 @@ either would have merged unexercised. And the gate's own unclaimed-suite check c
 suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
-drafted in pack 125 and is the remaining half of `#264-58`.
+`.github/workflows/pr-checks.yml`, added by `#264-58`; making it a *required* check is repository
+settings and remains open (pack 125).
 
 ---
 
 ## Dependencies
 
-- **Python 3.10+** (the schema-diff and skill-manifest scripts use PEP 604
-  union types like `list[Path] | None`; the repo's CI workflow pins Python
-  3.13 and the README recommends 3.12 for CumulusCI itself, so 3.10 is a
-  safe lower bound and is what we test against in practice). The previous
-  "3.8+" claim predated the schema-diff tooling.
+- **Python 3.10+** for these scripts (the schema-diff and skill-manifest
+  scripts use PEP 604 union types like `list[Path] | None`). The previous
+  "3.8+" claim predated the schema-diff tooling. 3.10 is the floor for *this
+  directory*, not for the gate: the highest floor in `pr_gate.py`'s own matrix
+  is **3.11** (a check run below its floor reports `MISSING-DEP`, which fails
+  the gate), and CI pins `python-version: "3.13"` and exercises only that one
+  version — so nothing is tested on 3.10.
 - **PyYAML** — required by `generate_cci_reference.py` (a YAML generator) and
   used to enrich `skill_manifest.py` and `analyze_agent_tooling.py`
   (available in the CCI venv). `skill_manifest.py` and

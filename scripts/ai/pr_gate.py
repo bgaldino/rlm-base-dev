@@ -9,11 +9,14 @@ not the offline suites, not the dataset validators, not the doc-step or ERD-coun
 Every one of those was enforced only by an agent reading a checklist, which is the
 enforcement that failed in #264-27, #264-55 and #264-56: all three found by hand, late.
 
-**Why a driver instead of `paths:` filters and `if:` conditions in the workflow.** A path
-filter makes the job *skip*, and a skipped job is not a failed job — it cannot serve as a
-required status check, and in a PR summary it reads exactly like a pass. Same for a skipped
-step. So selection happens here, in one job that always runs, and every check is reported
-with an explicit status. A check that did not run says so on its own line.
+**Why a driver instead of `paths:` filters and `if:` conditions in the workflow.** The two
+fail in *opposite* directions, and this was documented backwards until a review caught it. A
+workflow skipped by path filtering never reports at all: a check required on it stays
+**Pending**, and a PR needing it is blocked from merging forever — so a `paths:` filter would
+wedge every PR that happens not to touch the paths. A job or step skipped by an `if:`
+condition is the reverse: it reports **success**, so it reads exactly like a pass. Selection
+therefore happens here, in one job that always runs, with every check reported under an
+explicit status. A check that did not run says so on its own line.
 
 Three statuses that are easy to conflate and must not be:
 
@@ -378,12 +381,26 @@ def changed_files(base):
     # indistinguishable from a clean tree, so an unreadable index would otherwise drop every
     # uncommitted path from the selection and still exit 0.
     status = git(["status", "--porcelain", "--untracked-files=all", "-z"], "status")
-    # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
-    # halves are wanted here, so every non-status token is taken as a path.
-    for entry in status.split("\0"):
-        if not entry:
-            continue
-        files.append(entry[3:] if len(entry) > 3 and entry[2] == " " else entry)
+    # -z separates entries with NUL and, for a rename or copy, emits "XY new\0old\0" — both halves
+    # are wanted here. Read positionally rather than by guessing: a status entry always begins with
+    # two status characters and a space, and R/C are the only ones followed by a bare path entry.
+    # Sniffing for a space in the third column instead truncated any old path that happened to have
+    # one (`ab cd/x.md` became `cd/x.md`), which both invents a path and loses the real one.
+    entries = [e for e in status.split("\0") if e]
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) > 3 and entry[2] == " ":
+            files.append(entry[3:])
+            if entry[0] in ("R", "C") or entry[1] in ("R", "C"):
+                if i < len(entries):
+                    files.append(entries[i])
+                    i += 1
+        else:
+            # Not a status entry and not consumed as a rename source: keep it rather than reshape it,
+            # since dropping a path here silently narrows the selection.
+            files.append(entry)
     return sorted(set(files))
 
 
@@ -497,12 +514,18 @@ def resolve(check):
 
 
 def run_sequence(cmds):
-    """Run every command even after one fails, so a single failure does not hide the rest."""
+    """Run every command even after one fails, so a single failure does not hide the rest.
+
+    `worst` means worst: a tool error (2) outranks a verdict failure (1), which outranks success.
+    Spelled `worst = worst or code` it kept the *first* non-zero, so a suite that could not run at
+    all was reported as a suite that ran and disagreed — the one conflation this script exists to
+    prevent everywhere else.
+    """
     worst, chunks, total = 0, [], 0.0
     for cmd in cmds:
         code, out, secs = run(cmd)
         total += secs
-        worst = worst or code
+        worst = 2 if 2 in (worst, code) else max(worst, code)
         chunks.append(f"$ {' '.join(cmd)}  -> exit {code} ({secs:.1f}s)\n{out}")
     return worst, "\n".join(chunks), total
 

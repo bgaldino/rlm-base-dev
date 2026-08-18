@@ -202,15 +202,19 @@ including the ones it skipped and why. That is the point: the checks below alrea
 and were enforced only by an agent reading this list, which is the enforcement that failed
 in `#264-27`, `#264-55` and `#264-56`. A missing dependency **fails** the gate rather than
 skipping, and one check (`validate_sfdmu_v5_datasets.py`) is advisory until pack 123 lands
-because it exits non-zero on a clean tree. The checklists below remain the reference for
+because it exits non-zero on a clean tree (pack 123 is an entry in the durable todo tracker under
+`.agents/artifacts/todos/`, which is gitignored — the reference resolves only from a tree that
+carries it). The checklists below remain the reference for
 *what* each check means and for the judgement steps no gate can make.
 
 **The same gate now runs in CI** on every pull request
 (`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs the PR number
 and so can only run there). Run it locally anyway — a local failure costs seconds, a CI one
 costs a round trip — but a change that skips it is no longer *unchecked*. The workflow is
-deliberately **not** path-filtered: a `paths:` filter makes the job skip, and a skipped job
-reports success, so selection is the driver's job and never the trigger's.
+deliberately **not** path-filtered, though not for the reason usually given: a path-skipped
+workflow reports *nothing*, so a required check on it sits **Pending** and blocks every PR that
+misses the paths. (What reports success is a *job-level* `if:` skip, which is a different
+mechanism.) Either way selection is the driver's job and never the trigger's.
 
 ⚠ **Running is not blocking.** A red `Mechanical checks` does not prevent a merge until it is
 configured as a **required status check** on `264` (and on `main`), which is repository

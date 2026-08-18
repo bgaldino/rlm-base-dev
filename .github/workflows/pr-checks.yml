@@ -2,10 +2,26 @@ name: PR Checks
 
 on:
   pull_request:
-  # No inputs: on a dispatch there is no base ref to diff against, so the run is always
-  # `--all`. An earlier draft offered a `run_all` toggle, which was inert — false still
-  # produced `--all` — and an advertised choice that does nothing is worse than none.
-  workflow_dispatch:
+    # Spelled out because the default set is `opened`, `synchronize`, `reopened` — and `edited`,
+    # which fires when a pull request's *base branch* changes, is not in it. Retarget a green PR
+    # from 264 to main and no event fires: the check run stays green on that head SHA, and the
+    # merge base, the selection and both branch-scope verdicts are now all computed against a
+    # base the gate never diffed. `ready_for_review` is belt-and-braces — a draft already fires
+    # `opened`/`synchronize`, so a check run exists on the SHA before it is undrafted.
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  # A merge queue does not replay `pull_request`; a required check that has no `merge_group`
+  # trigger is simply never reported, and the documented result is that the merge fails. No queue
+  # is enabled today, so this is pre-emptive — and it is safe to wire now because `github.base_ref`
+  # is empty for this event, which takes the same branch as a dispatch and selects `--all`.
+  merge_group:
+  # Nothing else. A required check is satisfied by the *most recent* check run bearing its name on
+  # the head SHA — that is why "Re-run failed jobs" clears a red one — so any trigger that can run
+  # this workflow on a PR's head SHA can publish `Mechanical checks` for it. `workflow_dispatch`
+  # was here and did exactly that: dispatch on the PR's branch, `github.base_ref` is empty, the
+  # selection widens to `--all`, the branch-scope step skips, and a green run supersedes the PR
+  # run's red verdict — from the Actions UI, with write access rather than admin. `push:` would be
+  # the same hole with no clicking at all. Manual runs are not worth that: the gate is a local
+  # command (`python scripts/ai/pr_gate.py --all`), which is the documented primary path anyway.
 
 permissions:
   contents: read
@@ -36,10 +52,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          # The floor is the highest min_python in the check matrix, not the language feature
-          # any one script needs: a check below its floor reports MISSING-DEP, and a missing
-          # dependency fails the gate rather than skipping. tests/test_pr_gate.py derives the
-          # same number from pr_gate.CHECKS, so this cannot drift from the matrix silently.
+          # At or above the highest min_python in the check matrix, not the language feature any
+          # one script needs: a check below its floor reports MISSING-DEP, and a missing dependency
+          # fails the gate rather than skipping. tests/test_pr_gate.py asserts this version is
+          # *at least* that floor (3.11 today) — deliberately an inequality, since pinning equality
+          # would forbid testing on anything newer, but it does mean CI exercises only this one
+          # version. A regression that only appears on the 3.11 floor is invisible here.
           python-version: "3.13"
 
       - name: Resolve the base ref
@@ -56,8 +74,10 @@ jobs:
           # no-op verify. The fetch is the fallback rather than the default because
           # persist-credentials is false: an unconditional fetch works anonymously on a public
           # repo and would fail on a private one, which is a bad thing to depend on. Either
-          # way the ref must exist before selection runs — an unresolvable base makes the diff
-          # empty, and an empty diff selects nothing and passes.
+          # way the ref must exist before selection runs. Not because an unresolvable base
+          # would pass quietly — this comment claimed that and it is wrong: `git diff` fails,
+          # and the gate turns a failed git into exit 2, a tool error. It is pinned because a
+          # red run on a base nobody can resolve costs a round trip to diagnose.
           if ! git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null; then
             git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
           fi
@@ -136,6 +156,17 @@ jobs:
           # red check reads as exactly that. So a 2 is retried and anything else is final. The
           # `-ne 2` line is load-bearing: widening it would make a real FOREIGN/STACKED finding
           # retryable, turning three attempts into three chances to miss it.
+          #
+          # What the loop does *not* buy, since this comment used to imply it: a step has no third
+          # state. After three attempts it still exits 2 and the job is red, indistinguishable to
+          # GitHub from a genuine finding. Retrying converts the transient case and only narrows the
+          # window; a persistent tool error (a permissions denial, say) still reads as a verdict
+          # after 45 seconds of sleeps. Expressing "advisory" would take `continue-on-error: true`,
+          # which keeps the job green, or a separate check run with a `neutral` conclusion, which
+          # needs `checks: write`. Neither is used, and tests/test_pr_gate.py forbids both — the
+          # first because a green-on-error step cannot gate anything, the second because widening
+          # `permissions` for a nicer status is a trade someone should have to argue for. So the
+          # ambiguity is narrowed, not removed, and that is a decision rather than an oversight.
           attempt=1
           while :; do
             set +e

