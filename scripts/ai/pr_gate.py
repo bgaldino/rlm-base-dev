@@ -18,16 +18,22 @@ condition is the reverse: it reports **success**, so it reads exactly like a pas
 therefore happens here, in one job that always runs, with every check reported under an
 explicit status. A check that did not run says so on its own line.
 
-Three statuses that are easy to conflate and must not be:
+Four statuses that are easy to conflate and must not be:
 
 * `SKIPPED` — not selected, because nothing the check covers changed. Benign, but printed.
 * `MISSING-DEP` — selected, but its interpreter or a package is absent. **This fails the
   gate.** Treating it as a skip is how a broken install silently turns a gate green; the
   same absence hole that let a documentation check pass by finding nothing to check.
+* `ADVISORY-DEP` — the same absence on an advisory check, which does *not* fail the gate.
+  A separate label because the two differ only in consequence, and reading one as the
+  other is the mistake this list exists to prevent.
 * `ADVISORY` — runs, reports, and never fails the gate. Exactly one check is advisory:
-  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today, on two known
-  false positives (pack 123). A check that always fails gets ignored, and an ignored
-  check is worse than an absent one — so it is labelled, with the reason, until 123 lands.
+  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today. Two of its findings
+  are the Critical false positives pack 123 covers; seven more are High severity (empty
+  CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket
+  fails the validator — so landing 123 alone will not turn this check green. A check that
+  always fails gets ignored, and an ignored check is worse than an absent one, so it is
+  labelled with the reason until both are resolved.
 
 Exit codes follow `check_branch_scope.py`, so a tool error is never read as a verdict:
 0 = every selected gating check passed · 1 = at least one failed · 2 = usage or tool error.
@@ -702,7 +708,7 @@ def main():
 
     if orphans:
         print(f"\n[FAIL       ] suites no check runs: {', '.join(orphans)}\n"
-              "              add each to a check in CHECKS, or to CLAIMED_SUITES with a "
+              "              add each to a check in CHECKS, or to EXCLUDED_SUITES with a "
               "reason — an unrun suite is not a passing suite")
         failures.append("unlisted_suites")
 

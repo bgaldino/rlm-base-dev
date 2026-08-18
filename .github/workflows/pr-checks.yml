@@ -45,7 +45,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          # test_branch_scope.py and merge-base selection need real history.
+          # Merge-base selection needs real history: past a shallow boundary `git diff base...HEAD`
+          # fails outright, and the gate turns a failed git into exit 2. (Not test_branch_scope.py,
+          # which builds its own throwaway repos and passes in a --depth 1 clone.)
           fetch-depth: 0
           persist-credentials: false
 

