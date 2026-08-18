@@ -115,11 +115,19 @@ actually sufficient at runtime.
 
 ```sh
 sf project deploy start --target-org <alias>
-sf apex run test --target-org <alias>
+sf apex run test --target-org <alias> --wait 30
 ```
 
-`sf apex run test` passing is necessary but not sufficient — it runs as an
-admin. See the Validation Checks in
+`--wait` is not optional here. Without it, Apex tests run asynchronously: the
+command immediately returns a test run ID and exits 0, which tells you nothing
+about whether anything passed. With it, the command waits and reports results.
+If the wait expires, it prints the run ID instead — collect the outcome with
+`sf apex get test --test-run-id <id> --target-org <alias>`. (`sf project deploy
+start` does wait by default, but on timeout it likewise hands back a job ID;
+resume with `sf project deploy resume`.)
+
+A green test run is necessary but not sufficient — it runs as an admin. See the
+Validation Checks in
 [`.cursor/skills/apex-security-hardening/SKILL.md`](.cursor/skills/apex-security-hardening/SKILL.md)
 for the read-back and `System.runAs` / persona walk that catch what admin
 context hides.
