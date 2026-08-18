@@ -314,20 +314,32 @@ REQUESTS_SUITES = [
     "tests/test_rlm_cml_import_failure.py",
 ]
 
-CLAIMED_SUITES = set(STDLIB_SUITES) | set(REQUESTS_SUITES) | {
-    "tests/test_decision_table_tasks.py",
-    "tests/test_fulfillment_scope_tolerance.py",
-    "tests/test_skill_manifest_audit.py",
-    "tests/test_doc_build_steps.py",
-    "tests/test_docgen_helpers.py",
-    "tests/test_pr_gate.py",
-    # Run as whole directories by harness_suites rather than file by file.
-    "tests/build_harness/",
-    "tests/txn_data_harness/",
-    # Its own check; also a member of no bulk list, so it is not run twice.
-    "tests/test_branch_scope.py",
-    "tests/test_erd_doc_counts.py",
-}
+def _claimed_suites():
+    """Every suite some check actually runs — read off `CHECKS`, never restated beside it.
+
+    This was a hand-maintained set listing the same paths a second time, and the two lists did not
+    have to agree. So deleting a whole check from `CHECKS`, or dropping one path from a check's
+    `cmd`, stopped running that suite while discovery still reported "none unclaimed" — the suite
+    went silent and the accounting said everything was accounted for. Three separate mutations
+    exploited that, and no rule could have caught them: the invariant they broke was one nothing
+    stated.
+
+    Derived, the invariant holds by construction. A path stops being claimed at the moment a check
+    stops naming it, and `unlisted_suites()` reports it on the next run.
+    """
+    claimed = set(STDLIB_SUITES) | set(REQUESTS_SUITES)  # spliced into argv by resolve()
+    for check in CHECKS:
+        for arg in check["cmd"] or ():
+            if not arg.startswith("tests/"):
+                continue
+            # A directory argument to pytest claims the .py files under it, and the claim is
+            # matched by prefix, so it needs its separator.
+            is_dir = os.path.isdir(os.path.join(REPO_ROOT, arg))
+            claimed.add(arg.rstrip("/") + "/" if is_dir else arg)
+    return claimed
+
+
+CLAIMED_SUITES = _claimed_suites()
 
 # Suites deliberately outside the gate, each with the reason. Separate from CLAIMED_SUITES so
 # "nothing runs it" and "we decided not to run it" cannot be confused, and so neither can

@@ -264,7 +264,7 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of a dozen validators a given diff should have run.
+of fourteen validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
@@ -285,6 +285,7 @@ not.) The same care drives three statuses that are easy to conflate:
 | `SKIPPED` | not selected — nothing it covers changed | no, and it says so on its own line |
 | `MISSING-DEP` | selected, but a package or the interpreter floor is absent | **yes** — otherwise a broken install silently turns a gate green |
 | `ADVISORY` | runs and reports, never fails | no, and the reason is printed inline |
+| `ADVISORY-DEP` | advisory, and its dependency is absent too | no — an advisory check cannot fail for a missing dep either |
 
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
 tree today, on two known validator false positives (pack 123 — "pack N" throughout this file
@@ -464,7 +465,7 @@ A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (443 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (476 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -482,7 +483,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the thirteen trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the fourteen trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted
@@ -547,8 +548,8 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and twenty-one of these guards were vacuous on the first
-attempt**, in eighteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2 and 5 — each wave a narrower version
+The doubled shapes are there because **a hundred and thirty-three of these guards were vacuous on the first
+attempt**, in nineteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5 and 12 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -887,6 +888,33 @@ And the wave's own bookkeeping caught the last one: relocating a loop by four sp
 pulled six gate-step checks into its body, running each nine times. Nothing failed — the checks all
 passed, nine times over — and the total-count invariant is the only thing that noticed.
 
+**The nineteenth wave is the first whose findings were mostly not about the workflow at all, and that is
+the finding.** Nine of its twelve live false greens mutate `pr_gate.py` — the script the workflow runs —
+and every probe harness up to this point could only edit the YAML. A guard suite of 476 checks had grown
+around one artifact while the artifact it protects had moved: selection, claim accounting and check argv
+all decide whether anything runs, and all three sat outside every sweep. `git diff … -- ":!tests/"`
+reported a clean `tests/` tree, so editing this very file selected nothing; `pytest --collect-only`
+walked the suites, reported what it found and exited 0; and deleting a whole check left its suite silent
+while discovery still printed "none unclaimed".
+
+That last one had a cause worth naming, because no rule could have caught it. `CLAIMED_SUITES` restated
+the same paths that `CHECKS` already named, and nothing required the two lists to agree — so "some check
+runs this suite" and "this suite is accounted for" were independent facts, and three separate mutations
+lived in the gap between them. It is derived from `CHECKS` now, which is not a new rule but the deletion
+of the possibility: a path stops being claimed in the same edit that stops running it. The reviewed set
+of *deliberate* exclusions is pinned in the test instead, because "we decided not to gate this" is a
+decision, and the only mechanism that puts a decision in front of a reviewer is a diff they have to read.
+
+The other three were the same shape as the wave before, in the two places it had been fixed by
+blacklist. `set -teuo pipefail` kept the required `e` and `u`, so the flag rule passed it, and `-t` makes
+bash execute one command and exit — the `set` being that command, the step reported success having never
+run the gate. The pip tail had been repaired by naming payload options and splitting on `=`, which closed
+`--index-url=URL` and left `-ihttps://evil/simple`, the glommed short form of the same option, plus
+`--no-index`, `--user`, `--trusted-host=` and every other option nobody had thought of. Both are
+whitelists now. Enumerating what may not happen requires knowing every flag bash and pip will ever have;
+enumerating what may happen requires knowing what this workflow does, which is one install of one pinned
+requirement list and a `set` line that turns on errexit.
+
 **Two earlier findings were false rejections rather than holes, and they matter as much.** The
 argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
@@ -894,7 +922,7 @@ it, the last because the tokenizer read the `&` of `2>&1` as a separator and inv
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and sixteen were caught by the mutation sweep, a hundred and two by review —
+Two of the hundred and thirty-three were caught by the mutation sweep, a hundred and nineteen by review —
 thirty of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
@@ -922,7 +950,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 40 loosening probes and 28
+The corpus is kept for that reason — 147 mutations, 53 loosening probes and 31
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
