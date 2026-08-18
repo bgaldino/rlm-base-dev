@@ -720,14 +720,18 @@ def main():
     skipped = sum(1 for _, s, _, _ in results if s == "SKIPPED")
     blocked = sum(1 for _, s, _, _ in results if s in ("MISSING-DEP", "ADVISORY-DEP"))
     assert executed + skipped + blocked == len(CHECKS), "a check fell out of the summary"
-    # "of which": the first three buckets are disjoint and sum to the total; `failed` overlaps them
-    # (a gating check blocked on a missing dependency is both blocked and failed). Listed as a fourth
-    # peer, it read as a fourth bucket, and a reader reconciling `6 + 7 + 1 + 1` against 14 checks
-    # found one too many — the same "one unaccounted for" confusion this summary was written to end,
-    # arrived at from the other direction.
+    # Three disjoint buckets that sum to the total, then failures in their own sentence. `failed` is
+    # not a bucket: it overlaps all three (a gating check blocked on a missing dependency is both), and
+    # `unlisted_suites` is in it without being a check at all. Listed as a fourth peer it read as a
+    # fourth bucket — `6 + 7 + 1 + 1` against 14 checks, one too many. Attached with "of which" it read
+    # as a subset of the *nearest* bucket, which produced the flat contradiction
+    # "0 blocked on a missing dependency, of which 1 failed". Both spellings were trying to avoid a
+    # second sentence; the second sentence is the fix.
     print(f"\n{len(CHECKS)} checks: {executed} executed, {skipped} skipped, "
-          f"{blocked} blocked on a missing dependency, of which {len(failures)} failed"
-          + (f", {len(advisory_failures)} advisory failure(s): "
+          f"{blocked} blocked on a missing dependency."
+          + (f" {len(failures)} failed (a count across those buckets, not a fourth one)"
+             if failures else " Nothing failed.")
+          + (f" {len(advisory_failures)} advisory failure(s): "
              f"{', '.join(advisory_failures)}" if advisory_failures else ""))
 
     if failures:

