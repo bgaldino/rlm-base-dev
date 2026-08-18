@@ -419,7 +419,7 @@ A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scop
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
-Verified by `tests/test_pr_gate.py` (306 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (317 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -440,8 +440,9 @@ a directory claim swallowing shell suites again, `pyproject.toml` removed from e
 pytest-driven check's triggers, each of the eleven trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
-directory counted as a read). **Ninety-three** more break the CI workflow instead of the driver, all
-killed, in nine families. The families are what the rules cover; the parenthesised shapes are the
+directory counted as a read). The rest of the corpus — the figure given below, counted
+once — breaks the CI workflow instead of the driver, all killed, in nine families. The families are
+what the rules cover; the parenthesised shapes are the
 ones actually mutated, which is narrower — an earlier version of this list named `paths-ignore:`,
 `|| :` and `|| exit 0` as though they had been probed when only the rules mentioned them.
 The job never runs (a `paths:` filter quoted and unquoted, `branches:`, `types:` narrowed,
@@ -487,8 +488,8 @@ legitimate change is a rule someone deletes: a re-raising handler
 call, `--no-fetch` moved onto the invocation instead of the argument list, a `types:` filter that is a
 *superset* of the default three, and a second job that carries its own `if:`.
 
-The doubled shapes are there because **eighty of these guards were vacuous on the first
-attempt**, in twelve waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1 and 6 — each wave a narrower version of one
+The doubled shapes are there because **eighty-eight of these guards were vacuous on the first
+attempt**, in thirteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6 and 8 — each wave a narrower version of one
 mistake, and each found *after* the previous wave's fix was reported complete.
 
 The first seven tested that a string appeared *somewhere* rather than
@@ -644,9 +645,45 @@ one PR's run cancels another's, and a cancelled run is not a pass but it is also
 which of the three is which matters more than pinning all three, because a list of rules that does not
 say what each one buys is how the vacuous ones survived this long.
 
-Two of the eighty were caught by the mutation sweep, seventy by review, and eight by adversarially
-sweeping a new rule *before* shipping it — from the eighth round on, the rule's author found some holes
-first, eight of ten attempts getting through. Every earlier round was
+**The last eight are the same lesson one level down: a whitelist of words is not a whitelist of
+commands.** The job-scope vocabulary admitted `git` with the subcommands `fetch` and `rev-parse` and
+never read their arguments, so `git fetch . "+HEAD:refs/remotes/origin/${BASE_REF}"` moves the base ref
+onto the PR head *locally*; the ref export downstream is then honest about a name that now means HEAD,
+and the gate diffs HEAD against itself. A segment whose first word was `echo` was trusted whole, so
+`echo "$(cp /dev/null scripts/ai/pr_gate.py)"` empties the gate script with no redirection for the
+redirection rule to see. Both refspecs and both verifies are now pinned by form, and command *and*
+process substitution are refused in every segment except the one assignment that needs one.
+
+The worst of the eight was found by a **local review pass, and it was live**: `printf -v SEL %s '--base
+HEAD'`. `printf` sat in the harmless-by-word list, and `printf -v` writes a shell variable from its
+argument list — so the line contains no `SEL=` substring, the rule pinning the two SEL spellings never
+sees it, and neither does any assignment rule. Run against a real tree it produced exactly the false
+green all thirteen waves exist to stop: empty diff, thirteen checks skipped, exit 0. `printf` now has
+its own branch that refuses `-v`, at both scopes.
+
+The other four were narrower and none was live, which is worth saying plainly rather than inflating
+them: `permitted()` still admitted `git` by subcommand, leaving the narrow rule looser than the
+job-wide one about the very command it guards; the `!` filter dropped negation from *anywhere* in a
+segment, so an "exact form" compare accepted `git fetch ! --no-tags origin …`; process substitution was
+refused only incidentally, by the workflow-wide ban on `<` whose stated purpose is heredocs; and the
+`env:` rule was filtered to the steps it pins, so a step outside the map could carry any env at all.
+`git rev-parse --verify HEAD` belongs in this narrower group too — it verifies a ref nothing diffs
+against, but an unresolvable base makes `pr_gate` exit 2, which is a red run and not a silent pass.
+
+**Two findings in this round were false rejections rather than holes, and they matter as much.** The
+argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
+`>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
+it, the last because the tokenizer read the `&` of `2>&1` as a separator and invented a segment `1`. A
+rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
+now normalised and four spellings are asserted to pass.
+
+Two of the eighty-eight were caught by the mutation sweep, seventy-seven by review and nine by
+adversarially sweeping a new rule *before* shipping it. The split inside "by review" is the useful
+number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
+found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
+you just closed; a reader with the diff in hand asks which *other* words in the whitelist do what the
+closed one did. Both are cheap, only one of them was being run, and the local pass now runs before the
+push rather than after it. Every earlier round was
 found by review, each time *after* a sweep reported every mutation killed. A sweep only mutates in the shapes
 its author already imagined, and here the blind spot moved rather than closed each time: comments,
 then echoes, then masking, then the step and trigger levels the rules never read at all, then
@@ -663,10 +700,10 @@ is that "all mutations killed" is evidence about the sweep, and a guard is only 
 narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — which two mutations disproved: documentation asserting a property the code does
 not have is worse than silence, because it is what the next reviewer trusts instead of re-deriving.
-The corpus is kept for that reason — 118 mutations across three files, all killed — but **not in this
+The corpus is kept for that reason — 124 mutations across three files, all killed — but **not in this
 repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
-workflow CI runs. So the 108 figure is a local result, reproducible by whoever holds that tree and not
+workflow CI runs. So that figure is a local result, reproducible by whoever holds that tree and not
 from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open question rather
 than an oversight. Keeping it only helps if it still runs, and all three files named a virtualenv under
 `/tmp` that the OS had since reaped, so the corpus was unrunnable at the exact moment a later round

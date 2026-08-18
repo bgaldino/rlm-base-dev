@@ -539,6 +539,10 @@ if os.path.exists(workflow):
                 cur, quote, i = cur + char, char, i + 1
             elif ln[i:i + 2] in ("&&", "||"):
                 out, cur, i = out + [cur, ln[i:i + 2]], "", i + 2
+            elif char == "&" and cur.rstrip().endswith(">"):
+                # `2>&1` is one redirection; splitting on this `&` invented a segment `1`, so a
+                # correct respelling of a permitted redirection failed the argv pins.
+                cur, i = cur + char, i + 1
             elif char in ";|&":
                 out, cur, i = out + [cur, char], "", i + 1
             else:
@@ -716,7 +720,25 @@ if os.path.exists(workflow):
     # The two steps' whole vocabulary: `set`, a conditional, `echo`, `exit`, `sleep`, `git fetch`,
     # the two scripts, and four variables. Small enough to whitelist, which is why this is possible
     # here and would not be for an arbitrary step.
-    HARMLESS = ("echo", "printf", "exit", "return", "sleep", ":", "true")
+    # `printf` is deliberately absent: it is the one word here that writes shell state. `printf -v SEL
+    # %s '--base HEAD'` contains no `SEL=` substring, so the rule pinning the two SEL spellings never
+    # sees it, and no assignment rule can — the assignment is in the argument list. It survived eleven
+    # rounds of these guards and produced the exact false green they exist to stop: an empty diff, 13
+    # checks skipped, exit 0. It gets its own branch below rather than a word.
+    HARMLESS = ("echo", "exit", "return", "sleep", ":", "true")
+    # Both refspecs and both verifies, pinned by form — see the `git` branches. Order-sensitive by
+    # construction, which is the accepted cost of pinning argv and is worth stating because git's flags
+    # are order-free: `git rev-parse --quiet --verify …` is the same command and this rejects it. A
+    # correct respelling failing a rule is how rules get deleted, so the redirection tail is normalised
+    # (`>/dev/null`, `> /dev/null`, `2>/dev/null`, `2>&1` are all the same argv) rather than matched
+    # literally.
+    GIT_FORMS = ('git rev-parse --verify --quiet "origin/${BASE_REF}"',
+                 'git fetch --no-tags origin '
+                 '"+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"',
+                 'git fetch --no-tags origin "pull/${PR}/head:pr-${PR}"')
+
+    def strip_redir(text):
+        return re.sub(r"\s*\d*>>?\s*&?\s*\S+", "", text).strip()
     # Pinned for the same reason as `set`: `permitted()` used to accept a segment whose *first*
     # word was an allowed assignment and read no further, so `code=0 eval 'python() { return 0; }'`
     # passed as an assignment while defining a shim — a prefix assignment is a command's environment,
@@ -753,12 +775,17 @@ if os.path.exists(workflow):
             return True
         if words[0] in HARMLESS:
             return True
+        if words[0] == "printf":
+            return "-v" not in words
         if words[0] == "set":
             return " ".join(words) in ALLOWED_SET
         if words[0] in ("if", "elif", "while", "until"):
             return words[1:2] and words[1] in ("[", "test", ":")
         if words[0] == "git":
-            return words[1:2] == ["fetch"]
+            # This step is the one carrying a `git fetch`, so accepting the subcommand and ignoring the
+            # refspec meant the narrow rule was looser than the job-wide one about the very command it
+            # guards. Same pin, one source.
+            return strip_redir(" ".join(words)) in GIT_FORMS
         if words[0] == "python":
             return words[1:2] and words[1] in SCRIPTS
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", words[0]):
@@ -1326,24 +1353,50 @@ if os.path.exists(workflow):
     def permitted_job(seg):
         """Wider than `permitted()` — the other two steps resolve a ref and install pins — but still a
         whitelist of forms, not of words."""
-        words = [w for w in seg.split() if w != "!"]
+        # Only a *leading* `!` is negation; elsewhere it is a literal argument, and dropping it
+        # everywhere made these "exact form" compares accept `git fetch ! --no-tags origin …`.
+        words = seg.split()
+        while words and words[0] == "!":
+            words = words[1:]
         while words and (words[0] in KEYWORDS or words[0] in ("if", "elif", "while", "until")):
             words = words[1:]
         if not words:
             return True
         w0 = words[0]
+        # Assignments are compared whole, and exactly one of them — `reqs="$(python … )"` — needs a
+        # command substitution, so that branch is reached before this one. Everywhere else a
+        # substitution is a way to smuggle an arbitrary command inside a permitted one:
+        # `echo "$(cp /dev/null scripts/ai/pr_gate.py)"` passes as a harmless echo, writes no
+        # redirection this suite can see, and empties the script the gate is about to run.
+        # `$(( ))` arithmetic, which the retry loop needs, is not a substitution.
+        # Process substitution runs a command too, and `echo <(cp /dev/null scripts/ai/pr_gate.py)`
+        # names no `$(`. It happens to die on the workflow-wide refusal of `<`, whose stated purpose is
+        # heredocs — an incidental kill, and the kind this file has twice mistaken for a rule. Named
+        # here so this rule stands on its own.
+        # Not quote-aware, unlike `tokens`: `echo 'literally $(cmd)'` is refused although bash expands
+        # nothing. That is a false rejection of inert text and is the safe direction — making it
+        # quote-aware would reopen the double-quoted case the rule exists for.
+        if not re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
+            if re.search(r"\$\((?!\()|<\(", seg) or "`" in seg:
+                return False
         if w0 in HARMLESS or w0 in ("[", "test"):
             return True
+        if w0 == "printf":
+            return "-v" not in words
         if w0 == "set":
             return " ".join(words) in ALLOWED_SET
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
             return re.sub(r"\s+", "", seg) in [re.sub(r"\s+", "", f) for f in JOB_ASSIGN]
         if w0 == "git":
-            return len(words) > 1 and words[1] in ("fetch", "rev-parse")
+            # Pinning the subcommand and not its arguments left the base ref writable *locally*:
+            # `git fetch . "+HEAD:refs/remotes/origin/${BASE_REF}"` moves origin/<base> onto the PR
+            # head, after which the export below is honest about a ref that now means HEAD, and the
+            # gate diffs HEAD against itself.
+            return strip_redir(" ".join(words)) in GIT_FORMS
         if w0 == "python":
             if len(words) > 1 and words[1] in SCRIPTS:
                 return True
-            return " ".join(w for w in words if not w.startswith(">")) in PIP_FORMS
+            return strip_redir(" ".join(words)) in PIP_FORMS
         return False
 
     def redirections(step):
@@ -1374,10 +1427,16 @@ if os.path.exists(workflow):
     check("each action's inputs are pinned, so checkout cannot be redirected at another ref",
           {s["name"]: s["with"] for s in job_steps if "with" in s} == JOB_WITH,
           {s.get("name"): s.get("with") for s in job_steps if "with" in s})
+    # Filtered to `in JOB_ENV`, this rule would have been conditional on the thing it guards — a step
+    # outside the map could carry any env at all. The set of env-bearing steps is pinned too; the
+    # branch-scope step's own mapping is pinned separately as SCOPE_ENV.
     check("and the env of each step that feeds the selection is pinned to the event's base ref",
           {s["name"]: s["env"] for s in job_steps
            if "env" in s and s.get("name") in JOB_ENV} == JOB_ENV,
           {s.get("name"): s.get("env") for s in job_steps if "env" in s})
+    check("with no other step carrying an env block this rule would not read",
+          {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {JOB_STEPS[5]},
+          sorted({s.get("name") for s in job_steps if "env" in s}))
     for label, mutant in (("a checkout redirected at the base branch",
                            {"fetch-depth": "0", "persist-credentials": "false",
                             "ref": "${{ github.base_ref }}"}),
@@ -1426,7 +1485,23 @@ if os.path.exists(workflow):
                             "sed -i.bak 's/^/#/' scripts/ai/pr_g*.py"),
                            ("a stub copied over the directory", "cp /tmp/stub.py scripts/ai/"),
                            ("a shim installed alongside the pins",
-                            "python -m pip install ${reqs} evil-shim")):
+                            "python -m pip install ${reqs} evil-shim"),
+                           # Round 11: the vocabulary was pinned by word, not by argument. Both of
+                           # these use nothing but whitelisted first words.
+                           ("a fetch that moves the base ref onto the PR head",
+                            'git fetch . "+HEAD:refs/remotes/origin/${BASE_REF}"'),
+                           ("a verify of a ref nothing diffs against",
+                            'git rev-parse --verify --quiet HEAD >/dev/null'),
+                           ("a substitution hidden inside a permitted echo",
+                            'echo "$(cp /dev/null scripts/ai/pr_gate.py)"'),
+                           ("a substitution hidden in backticks",
+                            "echo `cp /dev/null scripts/ai/pr_gate.py`"),
+                           # Found by the local review pass, not by a hosted one, and live: this
+                           # neutralised the selection with every other rule green.
+                           ("an assignment smuggled through printf -v",
+                            "printf -v SEL %s '--base HEAD'"),
+                           ("a process substitution behind a permitted echo",
+                            "echo <(cp /dev/null scripts/ai/pr_gate.py)")):
         step = as_step("set -euo pipefail", snippet)
         check(f"those two rules reject {label}",
               [seg for ln in shell_of(step) for seg, _ in parts(ln) if not permitted_job(seg)]
@@ -1436,6 +1511,16 @@ if os.path.exists(workflow):
                for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)])
     check("a seventh step is visible to the step-list rule",
           [s.get("name") for s in job_steps] + ["Prepare"] != JOB_STEPS)
+    # An argv pin that rejects a correct respelling is how a rule gets deleted rather than fixed, so
+    # the four spellings of the same permitted redirection are asserted to pass.
+    for spelling in ('git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null',
+                     'git rev-parse --verify --quiet "origin/${BASE_REF}" > /dev/null',
+                     'git rev-parse --verify --quiet "origin/${BASE_REF}" 2>/dev/null',
+                     'git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null 2>&1'):
+        step = as_step("set -euo pipefail", spelling)
+        check("and accept the same verify however its redirection is spelled",
+              all(permitted_job(seg) for ln in shell_of(step) for seg, _ in parts(ln))
+              and not redirections(step), spelling)
 
     # The selection's *input*, not just its spelling. SEL is pinned to `--base ${BASE}` below, and
     # BASE is whatever this step wrote: `echo "ref=HEAD"` left both permitted SEL lines untouched
@@ -2094,7 +2179,7 @@ if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
 # Pinned so a check that stops running is a failure rather than a smaller number nobody reads.
-EXPECTED = 306
+EXPECTED = 317
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
