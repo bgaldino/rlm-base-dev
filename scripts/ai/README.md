@@ -460,7 +460,7 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 13 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
+A full `--all` run is 14 checks in about 17 seconds, of which `check_branch_scope.py` is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
 selection is a couple of seconds.
 
@@ -544,7 +544,7 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and fourteen of these guards were vacuous on the first
+The doubled shapes are there because **a hundred and sixteen of these guards were vacuous on the first
 attempt**, in sixteen waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6 and 9 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs do not follow the tally's order: the numbers count waves,
@@ -717,7 +717,7 @@ The worst of the eight was found by a **local review pass, and it was live**: `p
 HEAD'`. `printf` sat in the harmless-by-word list, and `printf -v` writes a shell variable from its
 argument list — so the line contains no `SEL=` substring, the rule pinning the two SEL spellings never
 sees it, and neither does any assignment rule. Run against a real tree it produced exactly the false
-green every one of these waves exists to stop: empty diff, thirteen checks skipped, exit 0. `printf` now has
+green every one of these waves exists to stop: empty diff, every check skipped, exit 0. `printf` now has
 its own branch that refuses `-v`, at both scopes.
 
 The other four were narrower and none was live, which is worth saying plainly rather than inflating
@@ -818,6 +818,39 @@ of the messages named the wrong rule, which is worse than naming none. Fixing th
 addresses — the invocation pin and both command whitelists at both scopes — and the first attempt
 fixed one of them, which is the class this file keeps relearning.
 
+**The seventeenth wave found almost nothing but false rejections — twenty-six of them — and that is
+the finding.** A rule that fires on correct code does not get fixed, it gets deleted, so a suite with
+twenty-six of them is a suite on its way to being switched off. Most came from one cause: the same
+shell vocabulary written out five times with three different contents, so `[[ … ]]` for `[ … ]` and
+`while true` for `while :` were accepted by some rules and refused by others — the suite calling two
+spellings equivalent in one place and an attempt to shim the interpreter in another. There is now one
+definition of the test commands, one of the no-ops, and one of the loop openers. The same shape
+explained the rest: `set -Eeuo pipefail` matched against `[a-z]`, which cannot see an uppercase `E`,
+and was then reported as no longer aborting on the first error — bash confirms it does; `git rev-parse
+--quiet --verify` refused for flag order, in a rule whose own comment *conceded* it rejected that
+respelling (conceding a false rejection in a comment is not fixing it — the reader who hits it gets
+the failure, not the comment); `--upgrade-strategy eager` read as an appended package because "every
+trailing token starts with `-`" cannot tell an option's argument from a payload; and the job key
+pinned under a message about check-run names, which come from `name:` and were pinned elsewhere
+entirely. Twenty-two of thirty-three failure messages named no editable constant, and the two
+catch-alls fired fourteen times between them.
+
+The one hole this wave found in the *suite* was its third instance of a class fixed twice before:
+a control loop that splices a mutation into the live workflow, so any edit that moves the anchor makes
+the splice a silent no-op and the "mutant" is the real, clean file. Four cosmetic edits — a comment
+above the job name, a blank line, a key reorder — each made the suite report that it could no longer
+reject `if: false`, `continue-on-error: true` and a swallowing `defaults.run.shell`: three mutations
+nobody made, about a rule that still works. The remedy was already sitting next door, applied to five
+sibling controls two rounds earlier.
+
+And the loosenings this wave shipped came with probes, which paid for themselves immediately: two of
+the eight fixes were live false greens of my own making. Reading `set` flags as a set admitted
+`set -n`, which makes bash read the step without executing any of it — both required flags present,
+every other rule satisfied, nothing run, exit 0. Canonicalising `true` to `:` was written
+`(?:true|false)`, which mapped `while false; do` onto the pinned `while :; do` — a condition
+canonicalised to its own opposite. Neither reached a commit. Loosening a rule is writing a new rule,
+and a new rule gets swept before it ships.
+
 **Two earlier findings were false rejections rather than holes, and they matter as much.** The
 argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
 `>/dev/null 2>&1` — three correct respellings of a redirection the rule already permits — all failed
@@ -825,8 +858,8 @@ it, the last because the tokenizer read the `&` of `2>&1` as a separator and inv
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and fourteen were caught by the mutation sweep, a hundred and two by review —
-thirty of those by local passes rather than hosted ones — and ten by adversarially sweeping a new rule *before*
+Two of the hundred and sixteen were caught by the mutation sweep, a hundred and two by review —
+thirty of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole

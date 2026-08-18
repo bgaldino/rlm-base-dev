@@ -173,15 +173,30 @@ CHECKS = [
     ),
     dict(
         name="stdlib_offline_suites",
-        cmd=None,  # expanded at runtime — see stdlib_suites()
-        # The last two are non-code inputs these suites read and assert against: the
-        # usage-consumption skill's stated check count, and the shipped overlay example that
-        # test_expression_set_schema.py validates. Editing either could invalidate a suite
-        # that was not selected to notice.
+        cmd=None,  # expanded at runtime — see STDLIB_SUITES
+        # `docs/references/` is a non-code input one of these suites reads and asserts against (the
+        # usage-consumption skill's stated check count), so editing it could invalidate a suite that
+        # was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
                   ".cursor/skills/usage-consumption/", "docs/references/"],
         deps=[], gating=True,
+    ),
+    dict(
+        name="requests_offline_suites",
+        cmd=None,  # expanded at runtime — see REQUESTS_SUITES
+        # The modules these two suites exercise, plus the non-code inputs they read and assert
+        # against — the shipped overlay examples and the export fixture. The paths are the ones the
+        # trigger-coverage rule named when this check was first added with guessed ones: a suite that
+        # reads a file no trigger selects is a suite that can be invalidated without being run.
+        triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
+                  "scripts/expression_sets/", "scripts/cml/",
+                  "tests/test_expression_set_schema.py",
+                  "tests/test_rlm_cml_import_failure.py",
+                  "tests/data/expression_set/",
+                  "datasets/expression_set_overlays/",
+                  "docs/references/expression-set-overlay-examples/"],
+        deps=["requests"], gating=True,
     ),
     dict(
         name="yaml_offline_suites",
@@ -284,16 +299,22 @@ STDLIB_SUITES = [
     "tests/test_context_runtime.py",
     "tests/test_decision_tables_client.py",
     "tests/test_decision_tables_toolkit.py",
-    "tests/test_expression_set_schema.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_rlm_apex_file.py",
-    "tests/test_rlm_cml_import_failure.py",
     "tests/test_snapshot_dev_guide.py",
 ]
 
-CLAIMED_SUITES = set(STDLIB_SUITES) | {
+# Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
+# dependency is declared and installed rather than inherited by luck from another check's transitive
+# tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
+REQUESTS_SUITES = [
+    "tests/test_expression_set_schema.py",
+    "tests/test_rlm_cml_import_failure.py",
+]
+
+CLAIMED_SUITES = set(STDLIB_SUITES) | set(REQUESTS_SUITES) | {
     "tests/test_decision_table_tasks.py",
     "tests/test_fulfillment_scope_tolerance.py",
     "tests/test_skill_manifest_audit.py",
@@ -508,6 +529,8 @@ def resolve(check):
         return run_cci_reference_drift
     if check["name"] == "stdlib_offline_suites":
         return lambda: run_sequence([["python", s] for s in STDLIB_SUITES])
+    if check["name"] == "requests_offline_suites":
+        return lambda: run_sequence([["python", s] for s in REQUESTS_SUITES])
     if check["name"] == "yaml_offline_suites":
         return lambda: run_sequence([["python", s] for s in check["cmd"][1:]])
     if check["cmd"] is None:
