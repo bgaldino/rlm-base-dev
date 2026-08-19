@@ -471,31 +471,37 @@ class SFDMUValidator:
                         self._normalize_object_config(obj, query, idx))
         return by_pass
 
-    # The config keys each check actually reads, so dedup can be keyed on those and nothing else.
-    # A single fixed key tuple was wrong in both directions at once: it *included* `query`, which
-    # `_validate_csv_file` never looks at, so two reading passes differing only in their SELECT both
-    # survived and reported the same CSV defect twice — 2x on `q3-billing`, 3x on `qb-prm-pricing`,
-    # both real plans, inflating the very counters the baseline test pins. And it *omitted*
-    # `deleteOldData`, which `_validate_csv_file` does read to waive the composite-key requirement,
-    # so two passes differing only in that collapsed to whichever came first and the verdict flipped
-    # with declaration order. Dedup by what the consumer reads; anything else is a guess.
-    _CSV_CHECK_KEYS = ("externalId", "operation", "deleteOldData")
+    # Dedup keys, one tuple per *list*, each the union of what every consumer of that list reads.
+    # Per-consumer keys were the obvious design and are wrong, because a dedup can only remove and
+    # never restore: the reading-declaration list feeds both `_validate_csv_file` (externalId,
+    # operation, deleteOldData) and `_validate_external_id` (externalId, operation, fields), so
+    # keying it on the CSV check's fields dropped later passes before the externalId check could see
+    # them — silently disabling SELECT-coverage for passes 2..n, 96 lost findings across a 59,400-plan
+    # sweep. Re-deduping downstream on a wider key cannot undo it. Union per list, and dedup the
+    # *findings* rather than the declarations where multiplicity is the concern: since
+    # `ValidationResult.add_issue` drops identical findings, this dedup exists only to avoid repeated
+    # work, so erring wide is free and erring narrow loses checks.
+    _READING_CONFIG_KEYS = ("externalId", "operation", "deleteOldData", "fields")
     _OPERATION_CHECK_KEYS = ("operation",)
-    _EXTERNAL_ID_CHECK_KEYS = ("externalId", "operation", "fields")
 
     @staticmethod
     def _dedup_configs(configs: List[dict], keys: Tuple[str, ...]) -> List[dict]:
-        """Distinct declarations by `keys` — the config fields the *consuming check* reads.
+        """Distinct declarations by `keys` — the union of what every consumer of the list reads.
 
-        Two passes commonly declare an object identically; validating both would report the same
-        defect twice, which reads as two defects. `keys` is required rather than defaulted so a new
-        call site has to state what its check reads instead of inheriting someone else's answer.
+        Two passes commonly declare an object identically; validating both is wasted work. `keys` is
+        required rather than defaulted so a new call site has to state what its consumers read instead
+        of inheriting someone else's answer.
+
+        Key building is *total*, via `json.dumps(default=repr)`. A one-level `tuple()` looked
+        sufficient — the values are strings, bools and the parsed `fields` list — but a list
+        containing a list stays unhashable, so `"operation": [["x"]]` in one malformed `export.json`
+        raised `TypeError` out of `main()` and killed all 39 plans with no report at all. That is the
+        same failure the `str()` coercions elsewhere in this file exist to prevent: report the broken
+        plan, do not abort the run.
         """
         seen, out = set(), []
         for cfg in configs:
-            key = tuple(
-                tuple(cfg[k]) if isinstance(cfg.get(k), list) else str(cfg.get(k))
-                for k in keys)
+            key = tuple(json.dumps(cfg.get(k), sort_keys=True, default=repr) for k in keys)
             if key not in seen:
                 seen.add(key)
                 out.append(cfg)
@@ -612,10 +618,11 @@ class SFDMUValidator:
             uncovered = sorted(passes - covered.get(obj_name, set()))
             if uncovered:
                 # Flattened: a pass index maps to a *list* of declarations, since one objectSet may
-                # declare the object more than once. Deduped on what `_validate_csv_file` reads, so
-                # passes differing only in their SELECT do not report the same CSV defect twice.
+                # declare the object more than once. Deduped on the union of what every consumer of
+                # this list reads — see `_READING_CONFIG_KEYS`; narrowing it to one consumer's fields
+                # silently disabled the other's check.
                 declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]]
-                owed[obj_name] = self._dedup_configs(declarations, self._CSV_CHECK_KEYS)
+                owed[obj_name] = self._dedup_configs(declarations, self._READING_CONFIG_KEYS)
         return owed
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
@@ -656,11 +663,20 @@ class SFDMUValidator:
         reads `fields` (the parsed SELECT), so handing it a raw declaration makes `fields` empty and
         every externalId component read as absent from the query. That produced 241 spurious High
         findings when this was first written by passing raw declarations through.
+
+        `externalId` is coerced to `str` here, which is the single point that makes the file total
+        against a malformed plan. Four sites downstream call `external_id.split(";")`, and a
+        non-string value — a JSON list or object, easy to produce by hand-editing an `export.json` —
+        raised `AttributeError` straight out of `main()` and aborted **all 39 plans with no report**,
+        rather than reporting the one that is broken. The `str()` renders it visibly wrong
+        (`['a', 'b']` matches no field name), so the plan gets reported instead of taking the run
+        down with it. Same reasoning as the total dedup key in `_dedup_configs`; both are the
+        threat model the other `str()` coercions in this file were written for.
         """
         return {
             "pass_index": idx,
             "operation": obj.get("operation", "Upsert"),
-            "externalId": obj.get("externalId", "Id"),
+            "externalId": str(obj.get("externalId", "Id")),
             "query": query,
             "fields": self._parse_select_fields(query),
             "excluded": obj.get("excluded", False),
@@ -676,7 +692,13 @@ class SFDMUValidator:
 
         Returns:
             Object API name, or empty string if not found
+
+        Non-string `query` returns "" rather than raising. `re.search` on a list raises `TypeError`
+        out of `main()`, taking all 39 plans down over one malformed declaration; returning "" makes
+        the caller skip the declaration, which the callers already handle (`if not obj_name`).
         """
+        if not isinstance(query, str):
+            return ""
         match = re.search(r'\sFROM\s+(\w+)', query, re.IGNORECASE)
         return match.group(1) if match else ""
 
@@ -892,11 +914,11 @@ class SFDMUValidator:
         # inherited composite externalId, so validating every declaration reported 241 High findings
         # against correct plans — a 34x false-positive rate, the same class of noise pack 123 fixed.
         # Scoped to the passes that read the root file; objects owing no root file keep the single
-        # merged-config check they have always had. Re-deduped on this check's own keys because it
-        # reads `fields` (the parsed SELECT), which the CSV check does not: two reading passes with
-        # the same key and different SELECTs are one CSV case but two externalId cases.
+        # merged-config check they have always had. No re-dedup: the list arrives deduped on the union
+        # of what its consumers read, this check included. A narrower re-dedup here would be
+        # redundant, and a *wider* one upstream is what the union prevents.
         reading_configs = objects_owing_root_csv.get(obj_name) or [obj_config]
-        for cfg in self._dedup_configs(reading_configs, self._EXTERNAL_ID_CHECK_KEYS):
+        for cfg in reading_configs:
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire

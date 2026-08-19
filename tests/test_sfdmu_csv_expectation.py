@@ -358,18 +358,31 @@ MERGED_CONFIG = [
                         "externalId": "Id"}]],
          {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
          if "composite key column" in i]),
-    # Dedup keyed on the wrong fields inflated real plans: `query` was in the key but
-    # `_validate_csv_file` never reads it, so two reading passes differing only in their SELECT
-    # reported the same CSV defect twice (2x on q3-billing, 3x on qb-prm-pricing). The counters that
-    # inflates are the ones BASELINE pins, so a one-defect regression would read as two findings.
-    ("one CSV defect across two passes differing only in SELECT is reported once, not twice",
-     False, [i for i in issues(
+    # Deduping the reading list on a key narrower than one of its consumers reads truncates the list
+    # before that consumer runs, and a dedup can only remove, never restore. Keying it on the CSV
+    # check's fields — which exclude the parsed SELECT — dropped later passes before the externalId
+    # SELECT-coverage check saw them: 96 lost findings across a 59,400-plan sweep, and a downstream
+    # re-dedup on a wider key could not bring them back. Here pass 2 upserts on `Name;Code` while
+    # selecting only `Name`, so its coverage gap is reportable only if pass 2 survives dedup.
+    # Deliberately NOT a multiplicity assertion: the earlier version of this case asserted "reported
+    # once, not twice", which two independent mechanisms could each satisfy alone, so it could not
+    # detect a regression in either — which is how the truncation above shipped.
+    ("a later pass's SELECT coverage is checked, not dropped by dedup on a narrower key",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
             "externalId": "Name;Code"}],
-          [{"query": "SELECT Id, Name, Code, Extra__c FROM Widget__c", "operation": "Upsert",
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
             "externalId": "Name;Code"}]],
-         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
-         if "composite key column" in i][1:]),
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "'Code' not found in query SELECT clause" in i]),
+    # A one-level `tuple()` in the dedup key left a list-of-list unhashable, so one malformed plan
+    # raised TypeError out of main() and killed the whole 39-plan run with no report — the failure the
+    # str() coercions elsewhere in the file exist to prevent. Asserts the malformed plan is *reported*.
+    ("a nested-list config value is reported, not raised as TypeError over the whole run",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": [["x"]], "externalId": "Name"}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "operation" in i]),
     # ...and the inverse: `deleteOldData` was NOT in the key but IS read (it waives the composite-key
     # requirement), so two passes differing only in it collapsed to whichever came first and the
     # verdict flipped with declaration order. The waiving declaration is first here; the other must
