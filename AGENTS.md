@@ -206,10 +206,12 @@ non-zero on a clean tree — though for a different reason than before. Its two 
 the validator's own false positives, and pack 123 fixed them: a `Readonly` object is queried from the
 target org and owes no CSV, and a per-pass object's CSV lives under `objectset_source/`, which is an
 alternative location rather than an extra requirement. What remains is **seven High** findings, all
-zero-byte `Upsert` CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real defect in a plan
-that is **unwired** (no `cumulusci.yml` reference), so it is dormant rather than live. Either bucket
-fails the validator, so the check goes gating when that plan is removed, which is pack 110's job and
-follows the precedent that `q3-multicurrency` was split into `q3-pcm`/`q3-pricing`. (Pack
+zero-byte `Upsert` CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real defect, but a
+dormant one: `grep -ic mfg cumulusci.yml` returns **0**, so that plan and its eleven `mfg` siblings
+are all unwired. Either bucket fails the validator, so the check goes gating when the plan is
+removed, which is pack 110's job. Its precedent is `q3-multicurrency`, deleted in `dab545ab`
+carrying zero-byte `CostBook`/`CostBookEntry` CSVs of its own — the same finding, disposed of the
+same way. (Pack
 numbers refer to entries in the durable todo tracker under `.agents/artifacts/todos/`, which is
 gitignored — the reference resolves only from a tree that carries it.) The checklists below remain
 the reference for *what* each check means and for the judgement steps no gate can make.

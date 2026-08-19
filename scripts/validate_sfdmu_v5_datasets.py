@@ -311,11 +311,9 @@ class SFDMUValidator:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
-        per_pass_objects = {obj_name for obj_name, _ in objectset_source_overrides}
-        writable_in_any_pass = self._objects_writable_in_any_pass(export_data)
+        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides)
         for obj_name, obj_config in object_configs.items():
-            self._validate_object(dataset_path, obj_name, obj_config, result,
-                                  per_pass_objects, writable_in_any_pass)
+            self._validate_object(dataset_path, obj_name, obj_config, result, objects_owing_root_csv)
 
         # Validate per-pass CSV overrides
         if objectset_source_overrides:
@@ -397,26 +395,59 @@ class SFDMUValidator:
 
         return data
 
-    def _objects_writable_in_any_pass(self, export_data: dict) -> Set[str]:
-        """Objects this plan writes from a file in at least one pass.
+    def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
+        """Map each object to the 0-based passes in which this plan writes it from a file.
 
         Distinct from the merged config `_parse_object_configs` returns, which keeps only the
-        *first* declaration: an object may be Readonly in pass 1 and Upsert in pass 2, and it is
-        the union that decides whether a source CSV is owed.
+        *first* declaration: an object may be Readonly in one pass and Upsert in another, and it
+        is the per-pass detail — not the union, and not the first entry — that decides which
+        source files are owed. Keeping the pass numbers is what lets a caller ask whether *this*
+        pass has a file, rather than whether the object has one somewhere.
         """
-        writable: Set[str] = set()
+        writable: Dict[str, Set[int]] = {}
         object_sets = export_data.get("objectSets", [])
         if not object_sets and "objects" in export_data:
             object_sets = [{"objects": export_data["objects"]}]
 
-        for obj_set in object_sets:
+        for idx, obj_set in enumerate(object_sets):
             for obj in obj_set.get("objects", []):
                 obj_name = self._extract_object_name(obj.get("query", ""))
                 if not obj_name or obj.get("excluded"):
                     continue
                 if (obj.get("operation") or "Upsert").lower() != "readonly":
-                    writable.add(obj_name)
+                    writable.setdefault(obj_name, set()).add(idx)
         return writable
+
+    def _objects_owing_root_csv(self, export_data: dict,
+                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]]) -> Set[str]:
+        """Objects that must have a CSV at the plan root.
+
+        A plan reads a writable pass's records from `objectset_source/object-set-N/<Object>.csv`
+        when that file exists, and from `<plan>/<Object>.csv` otherwise. So the root file is owed
+        as soon as *any* writable pass lacks an override — which is why this is keyed on the pass
+        and not on the object name.
+
+        Keying on the name is a live false negative, not a hypothetical one: `BillingPolicy` in
+        `qb/en-US/qb-billing` is `Upsert` in pass 1 and `Update` in pass 3, and only pass 3 has an
+        override. Exempting the object because *an* override exists means pass 1 — which reads the
+        root file — stops being checked, and deleting that file leaves the plan reporting PASS.
+        Sixteen objects across seven wired plans have this shape; exactly one object in the repo
+        (`procedure-plans/ProcedurePlanOption`) is declared in a single pass, which is the only
+        shape a name-keyed gate gets right.
+
+        An override only counts as coverage when it resolves to a declaration in *its own* pass. A
+        CSV misfiled into the wrong `object-set-N/` directory is reported separately (and never
+        read), so treating it as coverage would suppress the root-CSV Critical in exchange for a
+        High about the misfiling — a downgrade on the one automated check over this repo's data.
+        """
+        writable_passes = self._writable_passes_by_object(export_data)
+        covered: Dict[str, Set[int]] = {}
+        for (obj_name, pass_index) in objectset_source_overrides:
+            if self._get_object_config_for_pass(export_data, obj_name, pass_index):
+                covered.setdefault(obj_name, set()).add(pass_index)
+
+        return {obj_name for obj_name, passes in writable_passes.items()
+                if passes - covered.get(obj_name, set())}
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
         """Parse export.json into object name -> config mapping.
@@ -590,8 +621,7 @@ class SFDMUValidator:
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
-                         per_pass_objects: Optional[Set[str]] = None,
-                         writable_in_any_pass: Optional[Set[str]] = None):
+                         objects_owing_root_csv: Optional[Set[str]] = None):
         """Validate a single object's CSV and configuration.
 
         Args:
@@ -599,11 +629,9 @@ class SFDMUValidator:
             obj_name: Object API name
             obj_config: Object configuration from export.json
             result: ValidationResult to add issues to
-            per_pass_objects: Objects whose CSV lives under objectset_source/object-set-N/
-                and is validated by _validate_per_pass_csv instead of at the plan root
-            writable_in_any_pass: Objects with a non-Readonly operation in at least one pass.
-                `None` means "unknown", which asks for the CSV — the safe direction for a
-                caller that did not supply it.
+            objects_owing_root_csv: Objects that must have a CSV at the plan root, per
+                `_objects_owing_root_csv`. `None` means the caller did not work it out, which
+                asks for the CSV — the safe direction.
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
@@ -622,37 +650,21 @@ class SFDMUValidator:
         external_id = obj_config.get("externalId", "")
         self._validate_external_id(obj_name, external_id, obj_config, result)
 
-        # A root-level CSV is owed only by objects this plan writes from a file at the plan root.
-        # Two shapes correctly have none, and asking them for one was this check's entire
-        # false-positive rate — one instance each, repo-wide (#264-51 / pack 123):
+        # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire
+        # false-positive rate (#264-51 / pack 123) — two Criticals on correct data, which is enough
+        # to make a validator ignored. `_objects_owing_root_csv` carries the reasoning and the two
+        # shapes that owe nothing: Readonly in every pass (queried from the target org), and every
+        # writable pass already supplied under objectset_source/ (an alternative location for the
+        # same file, validated by _validate_per_pass_csv below).
         #
-        #   Readonly in every pass — the records are queried from the target org, so there is no
-        #   source file to read. Adding an empty CSV to silence the check would be the wrong fix.
-        #   Read across *all* passes rather than from the merged config, which keeps only the first
-        #   declaration: an object Readonly in pass 1 and Upsert in pass 2 presents as Readonly
-        #   here, and a gate reading that would excuse a pass that does write from a file. No plan
-        #   declares that shape today (0 of the 76 export.json files under datasets/sfdmu, a superset
-        #   of the 39 tracked plans) — which is the reason to pin it rather
-        #   than to depend on it.
-        #
-        #   supplied per-pass — the file lives at objectset_source/object-set-N/<Object>.csv and is
-        #   validated by _validate_per_pass_csv below. The root path is an *alternative* location
-        #   for the same file, not an additional requirement. Keyed on this object having such a
-        #   file: keyed on the plan merely containing one, a single override would excuse every
-        #   missing CSV in the plan.
-        #
-        # Each gate stays conditional on its own reason, so an Upsert object with no CSV anywhere
-        # still fails Critical — the finding this check exists for. tests/test_sfdmu_csv_expectation.py
-        # pins both directions.
-        if not (writable_in_any_pass is None or obj_name in writable_in_any_pass):
-            self.log(f"  No root CSV expected: {obj_name} is Readonly in every pass "
-                     f"(queried from the target org)", level="DEBUG")
-        elif per_pass_objects and obj_name in per_pass_objects:
-            self.log(f"  No root CSV expected: {obj_name} is supplied per-pass under "
-                     f"objectset_source/ and validated there", level="DEBUG")
-        else:
+        # `None` means the caller did not work it out, which asks — the safe direction, since a
+        # spurious Critical is visible and a missing one is not.
+        if objects_owing_root_csv is None or obj_name in objects_owing_root_csv:
             csv_path = dataset_path / f"{obj_name}.csv"
             self._validate_csv_file(csv_path, obj_name, obj_config, result)
+        else:
+            self.log(f"  No root CSV owed by {obj_name} — Readonly, or every writable pass is "
+                     f"supplied under objectset_source/", level="DEBUG")
 
         # Check deleteOldData usage
         if obj_config.get("deleteOldData"):

@@ -152,12 +152,15 @@ CHECKS = [
         cmd=["python", "tests/test_sfdmu_csv_expectation.py"],
         # Gating even though the validator it guards is only advisory, and the distinction is the
         # point: the advisory label is about the validator's *findings* on this repo's data, while
-        # this suite is about whether the validator still asks for a CSV where one is owed. It runs
-        # on synthetic fixtures, so it is green on a clean tree and can gate. `datasets/sfdmu/` is a
-        # trigger because a plan that newly adopts an objectset_source/ layout or a Readonly pass is
-        # exactly what the two gates read.
+        # this suite is about whether the validator still asks for a root CSV where one is owed. It
+        # runs on synthetic fixtures, so it is green on a clean tree and can gate.
+        #
+        # `datasets/sfdmu/` is deliberately NOT a trigger. The suite reads nothing there — tempdirs
+        # only — so selecting it on a dataset edit could not report anything about that edit, and
+        # over-selection is drift in a matrix whose job is preventing drift (see erd_doc_counts).
+        # The dataset-facing check is `sfdmu_datasets`, which already triggers on `datasets/`.
         triggers=["scripts/validate_sfdmu_v5_datasets.py",
-                  "tests/test_sfdmu_csv_expectation.py", "datasets/sfdmu/"],
+                  "tests/test_sfdmu_csv_expectation.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -309,9 +312,10 @@ CHECKS = [
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
         triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
         deps=[], gating=False,
-        note="advisory: 9 findings on a clean tree are validator false positives. Pack 123 covers "
-             "the 2 Criticals (Readonly CSV demand, objectset_source layout) — landing it alone "
-             "does not make this gating",
+        note="advisory: 7 High findings on a clean tree, real but dormant — zero-byte Upsert CSVs "
+             "in mfg-multicurrency, a plan nothing in cumulusci.yml wires. Pack 123 fixed the 2 "
+             "Criticals (both were this validator's own false positives); goes gating when pack "
+             "110 removes the plan",
     ),
 ]
 

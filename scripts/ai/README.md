@@ -298,11 +298,13 @@ file rather than an additional requirement. Both gates stay conditional on their
 directions, and one of its six cases failed the first version of the fix (a `Readonly` first pass
 silenced a writable later pass, because the merged config keeps only the first declaration).
 Seven **High** findings remain — zero-byte `Upsert` CSVs under
-`datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but the plan is
-**unwired**: nothing in `cumulusci.yml` references it, and its `q3` sibling was split into
-`q3-pcm`/`q3-pricing` while this one was left behind. So the finding is dormant, the fix is deletion
-(pack 110) rather than seven header rows, and *either* bucket fails the validator — which is why
-landing 123 alone does not turn this check green (pack 123 — "pack N" throughout this file
+`datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but dormant, and
+the reason is broader than that one plan: `grep -ic mfg cumulusci.yml` returns **0**, so all twelve
+`mfg` plans are unwired. This one was not singled out. Deleting it (pack 110) rather than adding
+seven header rows follows `q3-multicurrency`, which was deleted in `dab545ab` carrying zero-byte
+`CostBook`/`CostBookEntry` CSVs of its own — the identical finding, disposed of by removing the plan.
+*Either* severity bucket fails the validator, which is why landing 123 alone does not turn this
+check green (pack 123 — "pack N" throughout this file
 means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
 so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
 N" means a round of review on the pull request that added this workflow). A check that always fails
@@ -493,7 +495,7 @@ selection is a couple of seconds. That timing is measured on a machine where two
 is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (678 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (679 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the

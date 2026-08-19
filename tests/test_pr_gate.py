@@ -586,8 +586,18 @@ advisory = [c for c in pr_gate.CHECKS if not c["gating"]]
 check("exactly one check is advisory", len(advisory) == 1, [c["name"] for c in advisory])
 check("the advisory one is the SFDMU validator",
       advisory and advisory[0]["name"] == "sfdmu_datasets")
+# 110, not 123: pack 123 fixed the two Criticals that *were* false positives, and what keeps this
+# check advisory now is the seven remaining High findings in the plan pack 110 removes. Pinning the
+# pack that no longer blocks is how the note went stale in the first place — it kept citing 123 as
+# pending after 123 landed, while telling operators the findings were false positives that the same
+# commit had reclassified as real.
 check("its note cites the pack that keeps it advisory",
-      advisory and "123" in advisory[0]["note"], advisory[0]["note"] if advisory else "")
+      advisory and "110" in advisory[0]["note"], advisory[0]["note"] if advisory else "")
+# The note is the only text an operator sees at the point of decision, so it must not contradict
+# the module docstring about whether the remaining findings are real.
+check("its note does not call the remaining findings false positives",
+      advisory and "findings on a clean tree are validator false positives" not in advisory[0]["note"],
+      advisory[0]["note"] if advisory else "")
 
 print("\nA failure in one command does not hide the commands after it")
 code, out, _ = pr_gate.run_sequence([["python", "-c", "print('first')"],
@@ -5040,7 +5050,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 678
+EXPECTED = 679
 cited = README_COUNT.search(
     pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
