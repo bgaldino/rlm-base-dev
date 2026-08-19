@@ -74,6 +74,29 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None):
                 if severity is None or i.severity == severity]
 
 
+def raw_issues(body, root_files=None, per_pass_files=None):
+    """Like `issues()`, but takes the whole `export.json` body verbatim.
+
+    `issues()` wraps its argument in a well-formed `objectSets`, which is exactly what the
+    malformed-container cases have to bypass: the shapes that aborted the whole run are wrong *at*
+    the container level (`"objects": ["SELECT …"]`), so they cannot be expressed through a helper
+    that builds the container for you.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps(body))
+        for name, contents in (root_files or {}).items():
+            (plan / name).write_text(contents)
+        for pass_number, files in (per_pass_files or {}).items():
+            d = plan / "objectset_source" / f"object-set-{pass_number}"
+            d.mkdir(parents=True, exist_ok=True)
+            for name, contents in files.items():
+                (d / name).write_text(contents)
+        result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
+
+
 def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags):
     """Run a fix mode over a synthetic plan and return the bytes of every CSV afterwards.
 
@@ -313,6 +336,19 @@ FIX_MODES = [
     ("an object-set-0 directory is REPORTED, so a mistyped directory name is not invisible",
      True, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
             if "maps to no pass" in i]),
+    # `writerow([])` emits only a line terminator, so an empty `fields` list left the file empty by
+    # `_is_csv_empty` while returning True. Harmless while the next declaration re-fixed it; a real
+    # regression once `header_written` trusted that return value, which suppressed a later pass's
+    # correct header and left `b"\r\n"` on disk — a file SFDMU cannot read where a usable one had
+    # been. Pass 1 here has no SELECT list, so only pass 2 can supply the header.
+    ("--fix-headers takes the header from a later pass when the first has no SELECT fields",
+     True, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": " FROM Widget__c", "operation": "Upsert", "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]}]},
+         {"Widget__c.csv": ""}, fix_headers=True).items()
+         if n == "Widget__c.csv" and b.strip() == b"Id,Name"]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it
@@ -447,6 +483,49 @@ MERGED_CONFIG = [
             "externalId": ["Name", "Code"]}]],
          {"Widget__c.csv": "Id,Name\n1,a\n"})
          if "externalId is not a string" in i]),
+    # The malformed-value guards protect *values*; these shapes are wrong at the *container* level and
+    # survived every one of them, aborting `main()` and losing all 39 plans with no report at all —
+    # nine shapes did. One case per distinct failing site: `.get()` on a non-dict element at the top
+    # level, at the nested level, and `len()` on a non-list `objects`. The lesson the file keeps
+    # relearning is that a guard written against one shape of a defect does not cover its class.
+    ("a non-dict element in objects[] is reported Critical, not raised out of the whole run",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objects": ["SELECT Id FROM Account"]})
+            if i.startswith("Critical/") and "not an object" in i]),
+    ("a non-dict element in objectSets[].objects[] is reported Critical",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": [7]}]})
+            if i.startswith("Critical/") and "not an object" in i]),
+    ("a non-list objectSets[].objects is reported Critical",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": 7}]})
+            if i.startswith("Critical/") and "not an array" in i]),
+    # Placement, not logic. Both per-declaration sweeps sat after an early return that reads the
+    # *merged* config, so an object excluded in pass 1 but live in pass 2 exited before them whenever
+    # pass 2 was covered by an override. For the malformed check that was the worse of the two
+    # failures: the same plan aborted the run before the coercion landed and was silent after it.
+    ("a malformed externalId on a LIVE later declaration is reported even when pass 1 is excluded",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "Name",
+            "excluded": True}],
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": ["Name", "Code"]}]],
+         None, {2: {"Widget__c.csv": "Id,Name\n1,a\n"}})
+         if "externalId is not a string" in i]),
+    # The other half of the same inversion: inert declarations were reported while live ones were
+    # skipped. SFDMU never processes an excluded declaration, so its externalId cannot matter — the
+    # stance the operation check six lines above already took.
+    ("a malformed externalId on an EXCLUDED declaration is not reported",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+            "externalId": ["Name", "Code"], "excluded": True}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "externalId is not a string" in i]),
+    # The repr alone cannot distinguish `1` from `"1"`, which is the one case where the reader needs
+    # to be told which they have — and `str()` has already destroyed the type by then.
+    ("the malformed-externalId finding names the type, not just the coerced value",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": 1}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "it is int: 1" in i]),
     # A non-string `query` reached `re.search` and raised TypeError out of main(), same whole-run abort.
     # The declaration is skipped (its object name is unknowable), so the assertion is that the run
     # completes — which for this plan means the *other* object is still validated rather than lost.

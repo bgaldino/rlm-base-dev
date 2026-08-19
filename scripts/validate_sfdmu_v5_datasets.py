@@ -413,6 +413,48 @@ class SFDMUValidator:
             ))
             return None
 
+        # Element types, not just the container's. Everything below assumes each element is a dict and
+        # calls `.get()` on it, so `"objects": ["SELECT Id FROM Account"]` raised `AttributeError`
+        # straight out of `main()` and lost **all 39 plans with no report at all** — nine such shapes
+        # did. That is the same failure the `str()` coercion and the total dedup key were written to
+        # prevent, surviving them because those guard *values* while these are *containers*: a guard
+        # written against one shape of a defect does not cover the class. Reported as Critical and the
+        # plan abandoned, which is what "report the broken plan, do not abort the run" means.
+        for key in ("objects", "objectSets"):
+            for i, element in enumerate(data.get(key) or []):
+                if not isinstance(element, dict):
+                    result.add_issue(Issue(
+                        severity=Severity.CRITICAL,
+                        object_name="N/A",
+                        message=(f"'{key}[{i}]' is {type(element).__name__}, not an object — "
+                                 f"export.json entries must be JSON objects"),
+                        file_path=self._make_relative_path(export_json_path)
+                    ))
+                    return None
+        # One level deeper: `objectSets: [{"objects": 7}]` reached `len()` on an int, and
+        # `{"objects": {...}}` iterated a dict's *keys* as declarations, so every one of them was
+        # silently dropped and the plan reported nothing.
+        for i, obj_set in enumerate(data.get("objectSets") or []):
+            objects = obj_set.get("objects")
+            if objects is not None and not isinstance(objects, list):
+                result.add_issue(Issue(
+                    severity=Severity.CRITICAL,
+                    object_name="N/A",
+                    message=(f"'objectSets[{i}].objects' is {type(objects).__name__}, not an array"),
+                    file_path=self._make_relative_path(export_json_path)
+                ))
+                return None
+            for j, element in enumerate(objects or []):
+                if not isinstance(element, dict):
+                    result.add_issue(Issue(
+                        severity=Severity.CRITICAL,
+                        object_name="N/A",
+                        message=(f"'objectSets[{i}].objects[{j}]' is {type(element).__name__}, not "
+                                 f"an object — export.json entries must be JSON objects"),
+                        file_path=self._make_relative_path(export_json_path)
+                    ))
+                    return None
+
         self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(obj_set.get('objects', [])) for obj_set in data.get('objectSets', []))} object configurations")
 
         return data
@@ -703,8 +745,11 @@ class SFDMUValidator:
             "operation": obj.get("operation", "Upsert"),
             "externalId": str(raw_external_id),
             # Recorded rather than reported here: this function has no `result` to add an issue to,
-            # and threading one in would make a pure normalizer a validator.
+            # and threading one in would make a pure normalizer a validator. The type name is carried
+            # alongside the flag because `str()` destroys it, and the reported repr of `1` is
+            # indistinguishable from that of `"1"` — the one case where the reader needs the type.
             "externalId_malformed": not isinstance(raw_external_id, str),
+            "externalId_type": type(raw_external_id).__name__,
             "query": query,
             "fields": self._parse_select_fields(query),
             "excluded": obj.get("excluded", False),
@@ -911,6 +956,47 @@ class SFDMUValidator:
         # a `Dict[str, List[dict]]` now rather than the `Set[str]` an earlier version passed — and
         # worse than dead: it read as if `None` were still reachable, which the docstring above
         # explicitly says it is not.
+        # Both per-declaration sweeps run BEFORE the excluded early return below, because that return
+        # reads the *merged* config and these do not. An object excluded in its first-declaring pass
+        # but live and writable in a later one exits there whenever the later pass is covered by an
+        # `objectset_source/` override — the `qb/en-US/qb-billing` shape — so a defect on the live
+        # declaration was unreportable. For the malformed-externalId check that was the worse of the
+        # two failures this file is built to avoid: the same plan *aborted* the whole run before the
+        # coercion landed, and was silent after it. Placement, not logic, was the defect.
+        live_declarations = [cfg for by_pass in [all_pass_configs.get(obj_name, {})]
+                             for cfgs in by_pass.values() for cfg in cfgs
+                             if not cfg.get("excluded")]
+
+        # `operation` per declaration, not per merged config: reading the merged config validates
+        # pass 1 and exempts passes 2..n, so a bogus operation introduced in a later pass was
+        # unreportable. Readonly declarations are included, since a Readonly operation is exactly the
+        # kind that resolves to `undefined` unnoticed; `excluded` ones are not, because SFDMU does not
+        # process them, so their operation is inert and reporting it is a false positive.
+        for cfg in self._dedup_configs(live_declarations, self._OPERATION_CHECK_KEYS):
+            self._validate_operation_value(obj_name, cfg, result)
+
+        # A non-string `externalId` is reported rather than silently accepted. Coercing it to `str` in
+        # `_normalize_object_config` is what stops it aborting the whole run, but the coerced repr
+        # matches no downstream gate, so without this the plan reports nothing.
+        #
+        # Filtered to live declarations, like the operation check above it. The first version was not,
+        # which inverted the treatment of `excluded` inside one commit: inert declarations reported,
+        # live ones skipped. Deduped only to avoid repeated work — `ValidationResult.add_issue`
+        # already collapses identical findings, and this message is a pure function of the value, so
+        # removing the dedup changes no count.
+        for cfg in self._dedup_configs([c for c in live_declarations
+                                        if c.get("externalId_malformed")], ("externalId",)):
+            value = cfg.get("externalId")
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name=obj_name,
+                # Names the type as well as the value: the repr alone cannot distinguish `1` from
+                # `"1"`, which is the one case where a reader needs to be told which they have.
+                message=(f"externalId is not a string, it is {cfg.get('externalId_type')}: {value} — "
+                         f"SFDMU expects a ';'-delimited field list, so this declaration cannot "
+                         f"match target records"),
+            ))
+
         if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
             self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
             if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
@@ -920,34 +1006,6 @@ class SFDMUValidator:
                     message=f"Object is excluded but not in known excluded list"
                 ))
             return
-
-        # `operation` per declaration, not per merged config: same trap as `excluded` above and the
-        # root CSV below — reading the merged config validates pass 1 and exempts passes 2..n, so a
-        # bogus operation introduced in a later pass was unreportable. Readonly declarations are
-        # included, since a Readonly operation is exactly the kind that resolves to `undefined`
-        # unnoticed; `excluded` ones are not, because SFDMU does not process them, so their operation
-        # is inert and reporting it is a false positive the merged-config version never produced.
-        # Every other site in this file takes that stance already.
-        declarations = [cfg for by_pass in [all_pass_configs.get(obj_name, {})]
-                        for cfgs in by_pass.values() for cfg in cfgs
-                        if not cfg.get("excluded")]
-        for cfg in self._dedup_configs(declarations, self._OPERATION_CHECK_KEYS):
-            self._validate_operation_value(obj_name, cfg, result)
-
-        # A non-string `externalId` is reported rather than silently accepted. Coercing it to `str`
-        # in `_normalize_object_config` is what stops it aborting the whole run, but the coerced repr
-        # matches no downstream gate, so without this the plan reports nothing — the trade the
-        # normalizer's docstring first claimed it had avoided. Swept across every declaration, since
-        # any pass can carry one, and deduped on the value so one malformed declaration is one issue.
-        for cfg in self._dedup_configs(
-                [c for by in [all_pass_configs.get(obj_name, {})] for cs in by.values() for c in cs
-                 if c.get("externalId_malformed")], ("externalId",)):
-            result.add_issue(Issue(
-                severity=Severity.HIGH,
-                object_name=obj_name,
-                message=(f"externalId is not a string: {cfg.get('externalId')} — SFDMU expects a "
-                         f"';'-delimited field list, so this declaration cannot match target records"),
-            ))
 
         # externalId is *not* swept across every declaration, and the honest reason is narrower than
         # the one that was written here first. **Measured on this tree, scoping makes no difference:**
@@ -1225,6 +1283,17 @@ class SFDMUValidator:
             True if header was added (or would be added in dry-run), False otherwise
         """
         if not self._is_csv_empty(csv_path):
+            return False
+
+        # An empty header list is not writable. `writer.writerow([])` emits only a line terminator, so
+        # the file stays empty by `_is_csv_empty`, SFDMU still cannot read it, and returning True
+        # counted a fix that did not happen. Harmless while the caller re-fixed on the next
+        # declaration; a real defect once `header_written` began trusting the return value, which
+        # turned a later pass's correct header into a suppressed one and left `"\r\n"` on disk where a
+        # usable header had been. Guarded here rather than at that call site so both callers get it.
+        if not headers:
+            self.log(f"  Cannot add header to {csv_path.name}: no SELECT fields to write",
+                     level="WARN")
             return False
 
         if self.dry_run:
