@@ -9,22 +9,31 @@ not the offline suites, not the dataset validators, not the doc-step or ERD-coun
 Every one of those was enforced only by an agent reading a checklist, which is the
 enforcement that failed in #264-27, #264-55 and #264-56: all three found by hand, late.
 
-**Why a driver instead of `paths:` filters and `if:` conditions in the workflow.** A path
-filter makes the job *skip*, and a skipped job is not a failed job — it cannot serve as a
-required status check, and in a PR summary it reads exactly like a pass. Same for a skipped
-step. So selection happens here, in one job that always runs, and every check is reported
-with an explicit status. A check that did not run says so on its own line.
+**Why a driver instead of `paths:` filters and `if:` conditions in the workflow.** The two
+fail in *opposite* directions, and this was documented backwards until a review caught it. A
+workflow skipped by path filtering never reports at all: a check required on it stays
+**Pending**, and a PR needing it is blocked from merging forever — so a `paths:` filter would
+wedge every PR that happens not to touch the paths. A job or step skipped by an `if:`
+condition is the reverse: it reports **success**, so it reads exactly like a pass. Selection
+therefore happens here, in one job that always runs, with every check reported under an
+explicit status. A check that did not run says so on its own line.
 
-Three statuses that are easy to conflate and must not be:
+Four statuses that are easy to conflate and must not be:
 
 * `SKIPPED` — not selected, because nothing the check covers changed. Benign, but printed.
 * `MISSING-DEP` — selected, but its interpreter or a package is absent. **This fails the
   gate.** Treating it as a skip is how a broken install silently turns a gate green; the
   same absence hole that let a documentation check pass by finding nothing to check.
+* `ADVISORY-DEP` — the same absence on an advisory check, which does *not* fail the gate.
+  A separate label because the two differ only in consequence, and reading one as the
+  other is the mistake this list exists to prevent.
 * `ADVISORY` — runs, reports, and never fails the gate. Exactly one check is advisory:
-  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today, on two known
-  false positives (pack 123). A check that always fails gets ignored, and an ignored
-  check is worse than an absent one — so it is labelled, with the reason, until 123 lands.
+  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today. Two of its findings
+  are the Critical false positives pack 123 covers; seven more are High severity (empty
+  CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket
+  fails the validator — so landing 123 alone will not turn this check green. A check that
+  always fails gets ignored, and an ignored check is worse than an absent one, so it is
+  labelled with the reason until both are resolved.
 
 Exit codes follow `check_branch_scope.py`, so a tool error is never read as a verdict:
 0 = every selected gating check passed · 1 = at least one failed · 2 = usage or tool error.
@@ -170,15 +179,37 @@ CHECKS = [
     ),
     dict(
         name="stdlib_offline_suites",
-        cmd=None,  # expanded at runtime — see stdlib_suites()
-        # The last two are non-code inputs these suites read and assert against: the
-        # usage-consumption skill's stated check count, and the shipped overlay example that
-        # test_expression_set_schema.py validates. Editing either could invalidate a suite
-        # that was not selected to notice.
+        cmd=None,  # expanded at runtime — see STDLIB_SUITES
+        # `docs/references/` is a non-code input one of these suites reads and asserts against (the
+        # usage-consumption skill's stated check count), so editing it could invalidate a suite that
+        # was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
                   ".cursor/skills/usage-consumption/", "docs/references/"],
         deps=[], gating=True,
+    ),
+    dict(
+        name="requests_offline_suites",
+        cmd=None,  # expanded at runtime — see REQUESTS_SUITES
+        # The modules these two suites exercise, plus the non-code inputs they read and assert
+        # against — the shipped overlay examples and the export fixture. The paths are the ones the
+        # trigger-coverage rule named when this check was first added with guessed ones: a suite that
+        # reads a file no trigger selects is a suite that can be invalidated without being run.
+        # `tasks/expression_set_schema.py` is imported directly by
+        # `tests/test_expression_set_schema.py:21`, and was missing here: a change to the module was
+        # covered by no check that runs its own tests. The trigger-coverage rule this comment cites
+        # reads the paths a suite *opens*, not the modules it *imports*, which is the whole reason the
+        # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
+        # found this to be the only instance.
+        triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
+                  "tasks/expression_set_schema.py",
+                  "scripts/expression_sets/", "scripts/cml/",
+                  "tests/test_expression_set_schema.py",
+                  "tests/test_rlm_cml_import_failure.py",
+                  "tests/data/expression_set/",
+                  "datasets/expression_set_overlays/",
+                  "docs/references/expression-set-overlay-examples/"],
+        deps=["requests"], gating=True,
     ),
     dict(
         name="yaml_offline_suites",
@@ -248,7 +279,14 @@ CHECKS = [
         # trigger, and the one check that would have caught the omission never ran. The suite
         # runs the gate as a subprocess, so this widening risks nesting — bounded by the
         # fixtures it feeds those runs, which main_with() asserts never select this check.
-        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml"],
+        #
+        # pr-checks.yml is the job that runs this gate on a pull request, and the suite asserts
+        # it cannot be defanged (no paths filter, full history, pins from --requirements). That
+        # guarantee has to hold from this side too: an edit to the workflow alone must run the
+        # suite that judges it. The enumeration gate below demanded this trigger the moment the
+        # assertion was written, which is the intended order.
+        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml",
+                  ".github/workflows/pr-checks.yml"],
         deps=[], gating=True,
     ),
     dict(
@@ -256,8 +294,9 @@ CHECKS = [
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
         triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
         deps=[], gating=False,
-        note="advisory until pack 123: 2 Criticals on a clean tree are validator "
-             "false positives (Readonly CSV demand, objectset_source layout)",
+        note="advisory: 9 findings on a clean tree are validator false positives. Pack 123 covers "
+             "the 2 Criticals (Readonly CSV demand, objectset_source layout) — landing it alone "
+             "does not make this gating",
     ),
 ]
 
@@ -274,29 +313,64 @@ STDLIB_SUITES = [
     "tests/test_context_runtime.py",
     "tests/test_decision_tables_client.py",
     "tests/test_decision_tables_toolkit.py",
-    "tests/test_expression_set_schema.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_rlm_apex_file.py",
-    "tests/test_rlm_cml_import_failure.py",
     "tests/test_snapshot_dev_guide.py",
 ]
 
-CLAIMED_SUITES = set(STDLIB_SUITES) | {
-    "tests/test_decision_table_tasks.py",
-    "tests/test_fulfillment_scope_tolerance.py",
-    "tests/test_skill_manifest_audit.py",
-    "tests/test_doc_build_steps.py",
-    "tests/test_docgen_helpers.py",
-    "tests/test_pr_gate.py",
-    # Run as whole directories by harness_suites rather than file by file.
-    "tests/build_harness/",
-    "tests/txn_data_harness/",
-    # Its own check; also a member of no bulk list, so it is not run twice.
-    "tests/test_branch_scope.py",
-    "tests/test_erd_doc_counts.py",
+# Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
+# dependency is declared and installed rather than inherited by luck from another check's transitive
+# tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
+REQUESTS_SUITES = [
+    "tests/test_expression_set_schema.py",
+    "tests/test_rlm_cml_import_failure.py",
+]
+
+# Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and
+# `_claimed_suites()` (to account for it). Two readers of an implicit pairing is how the accounting
+# came apart: `resolve` keyed on the check name while the claim unioned both lists unconditionally, so
+# a deleted check kept its claim.
+SPLICED_SUITES = {
+    "stdlib_offline_suites": STDLIB_SUITES,
+    "requests_offline_suites": REQUESTS_SUITES,
 }
+
+def _claimed_suites():
+    """Every suite some check actually runs — read off `CHECKS`, never restated beside it.
+
+    This was a hand-maintained set listing the same paths a second time, and the two lists did not
+    have to agree. So deleting a whole check from `CHECKS`, or dropping one path from a check's
+    `cmd`, stopped running that suite while discovery still reported "none unclaimed" — the suite
+    went silent and the accounting said everything was accounted for. Three separate mutations
+    exploited that, and no rule could have caught them: the invariant they broke was one nothing
+    stated.
+
+    Derived, the invariant holds by construction. A path stops being claimed at the moment a check
+    stops naming it, and `unlisted_suites()` reports it on the next run.
+    """
+    # The two bulk checks carry `cmd=None` and get their argv spliced in by `resolve()`, so their
+    # suites cannot be read off `cmd` like everyone else's. Keyed on the check *name* rather than
+    # unioned in unconditionally, because unconditional is the same restatement this function was
+    # written to delete: deleting the whole `requests_offline_suites` check left its two suites
+    # claimed by nobody running them, discovery printed "none unclaimed", and the guard suite stayed
+    # green — the exact accounting lie, surviving inside its own fix.
+    claimed = set()
+    for check in CHECKS:
+        claimed |= set(SPLICED_SUITES.get(check["name"], ()))
+    for check in CHECKS:
+        for arg in check["cmd"] or ():
+            if not arg.startswith("tests/"):
+                continue
+            # A directory argument to pytest claims the .py files under it, and the claim is
+            # matched by prefix, so it needs its separator.
+            is_dir = os.path.isdir(os.path.join(REPO_ROOT, arg))
+            claimed.add(arg.rstrip("/") + "/" if is_dir else arg)
+    return claimed
+
+
+CLAIMED_SUITES = _claimed_suites()
 
 # Suites deliberately outside the gate, each with the reason. Separate from CLAIMED_SUITES so
 # "nothing runs it" and "we decided not to run it" cannot be confused, and so neither can
@@ -371,12 +445,26 @@ def changed_files(base):
     # indistinguishable from a clean tree, so an unreadable index would otherwise drop every
     # uncommitted path from the selection and still exit 0.
     status = git(["status", "--porcelain", "--untracked-files=all", "-z"], "status")
-    # -z separates entries with NUL and, for a rename, emits "XY new\0old\0" — both
-    # halves are wanted here, so every non-status token is taken as a path.
-    for entry in status.split("\0"):
-        if not entry:
-            continue
-        files.append(entry[3:] if len(entry) > 3 and entry[2] == " " else entry)
+    # -z separates entries with NUL and, for a rename or copy, emits "XY new\0old\0" — both halves
+    # are wanted here. Read positionally rather than by guessing: a status entry always begins with
+    # two status characters and a space, and R/C are the only ones followed by a bare path entry.
+    # Sniffing for a space in the third column instead truncated any old path that happened to have
+    # one (`ab cd/x.md` became `cd/x.md`), which both invents a path and loses the real one.
+    entries = [e for e in status.split("\0") if e]
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) > 3 and entry[2] == " ":
+            files.append(entry[3:])
+            if entry[0] in ("R", "C") or entry[1] in ("R", "C"):
+                if i < len(entries):
+                    files.append(entries[i])
+                    i += 1
+        else:
+            # Not a status entry and not consumed as a rename source: keep it rather than reshape it,
+            # since dropping a path here silently narrows the selection.
+            files.append(entry)
     return sorted(set(files))
 
 
@@ -433,7 +521,12 @@ def have_module(name):
 def run(cmd):
     """Run one command from the repo root, streaming nothing but returning everything."""
     argv = list(cmd)
-    if argv and argv[0] == "python":
+    # Both spellings, because the suite's argv whitelist admitted `python3` while this normalised only
+    # `python` — so a check spelled that way ran under whatever `python3` resolved to, while its `deps`
+    # were probed against `sys.executable` and its `min_python` against this interpreter's version. The
+    # guarantee, not the verdict, is what that voided. The whitelist no longer admits `python3`; this
+    # keeps the two from disagreeing again if it is ever re-added.
+    if argv and argv[0] in ("python", "python3"):
         argv[0] = sys.executable
     started = time.time()
     try:
@@ -446,7 +539,18 @@ def run(cmd):
         return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"), time.time() - started
     except OSError as exc:
         die(f"could not run {argv[0]!r}: {exc}")
-    return proc.returncode, proc.stdout + proc.stderr, time.time() - started
+    # `subprocess` reports a child killed by a signal as *negative* (-9 for SIGKILL). Left negative
+    # it loses every ordering comparison against 0, so an OOM-killed suite ranked below a clean one
+    # and reported a pass. Normalised here rather than at each caller: a signal kill produced no
+    # verdict, which is the definition of a tool error in this file's 0/1/2 contract.
+    #
+    # This line alone did not deliver that contract, and the sentence above used to imply it did. It
+    # fixed the *ranking* — a signal kill no longer sorts below a clean run — while `main()`'s booking
+    # loop still sent 1 and 2 down one branch, so the job exited 1 and published a code verdict on a
+    # check that never reached one. The contract is kept where the exit code is chosen; the two halves
+    # are noted in each other's comments because neither is sufficient alone.
+    code = 2 if proc.returncode < 0 else proc.returncode
+    return code, proc.stdout + proc.stderr, time.time() - started
 
 
 def run_cci_reference_drift():
@@ -477,8 +581,9 @@ def run_cci_reference_drift():
 def resolve(check):
     if check["name"] == "cci_reference_drift":
         return run_cci_reference_drift
-    if check["name"] == "stdlib_offline_suites":
-        return lambda: run_sequence([["python", s] for s in STDLIB_SUITES])
+    if check["name"] in SPLICED_SUITES:
+        suites = SPLICED_SUITES[check["name"]]
+        return lambda: run_sequence([["python", s] for s in suites])
     if check["name"] == "yaml_offline_suites":
         return lambda: run_sequence([["python", s] for s in check["cmd"][1:]])
     if check["cmd"] is None:
@@ -490,12 +595,21 @@ def resolve(check):
 
 
 def run_sequence(cmds):
-    """Run every command even after one fails, so a single failure does not hide the rest."""
+    """Run every command even after one fails, so a single failure does not hide the rest.
+
+    `worst` means worst: a tool error (2) outranks a verdict failure (1), which outranks success.
+    Spelled `worst = worst or code` it kept the *first* non-zero, so a suite that could not run at
+    all was reported as a suite that ran and disagreed — the one conflation this script exists to
+    prevent everywhere else.
+    """
     worst, chunks, total = 0, [], 0.0
     for cmd in cmds:
         code, out, secs = run(cmd)
         total += secs
-        worst = worst or code
+        # Ranked, not `max()`d: any negative code is normalised to 2 in `run()`, but ranking states
+        # the intended order (tool error beats verdict beats clean) instead of relying on 0 < 1 < 2
+        # happening to hold for the values that reach here.
+        worst = max(worst, code, key=lambda c: (c == 2, c != 0))
         chunks.append(f"$ {' '.join(cmd)}  -> exit {code} ({secs:.1f}s)\n{out}")
     return worst, "\n".join(chunks), total
 
@@ -559,7 +673,15 @@ def main():
         print(f"{len(files)} changed path(s) vs {args.base or 'file'}; "
               f"{len(selected)} of {len(CHECKS)} checks selected\n")
 
-    results, failures, advisory_failures = [], [], []
+    # `tool_errors` is separate from `failures` because the two mean different things and this script's
+    # exit contract turns on the difference. `run()` normalises a signal-killed child to 2 and its
+    # comment there calls that "the definition of a tool error in this file's 0/1/2 contract" — but the
+    # booking loop below used to send 1 and 2 down the same branch, so an OOM-killed suite was appended
+    # to `failures` and published as exit 1: a code verdict on a check that never produced one. Verified
+    # before the fix — a runner returning 2 made `main()` return 1. The normalisation achieved its
+    # *ranking* purpose (a signal kill no longer sorts below a clean run) and none of its contract
+    # purpose, and the comment claimed both.
+    results, failures, advisory_failures, tool_errors = [], [], [], []
     for check in CHECKS:
         if check not in selected:
             results.append((check, "SKIPPED", "", 0.0))
@@ -576,6 +698,15 @@ def main():
         code, out, secs = resolve(check)()
         if code == 0:
             results.append((check, "PASS", "", secs))
+        elif code == 2:
+            # No verdict, so not a failure. A gating check that could not run makes the whole gate a
+            # tool error (exit 2); an *advisory* one does not, because an advisory check exists
+            # precisely so that nothing it reports can block a merge, and turning its broken
+            # environment into the one exit code that blocks would invert that. It is still printed
+            # and still named in the summary, so it cannot pass silently either way.
+            status = "ERROR" if check["gating"] else "ADVISORY-ERROR"
+            results.append((check, status, out, secs))
+            (tool_errors if check["gating"] else advisory_failures).append(check["name"])
         elif check["gating"]:
             results.append((check, "FAIL", out, secs))
             failures.append(check["name"])
@@ -596,11 +727,12 @@ def main():
     for check, status, out, _ in results:
         # Every non-passing check gets a section, including one that failed silently:
         # "[FAIL]" with no detail anywhere is indistinguishable from a reporting bug.
-        if status in ("FAIL", "MISSING-DEP", "ADVISORY", "ADVISORY-DEP"):
+        if status in ("FAIL", "ERROR", "MISSING-DEP", "ADVISORY", "ADVISORY-ERROR",
+                      "ADVISORY-DEP"):
             body = out.rstrip() or "(the check produced no output)"
             # A gating failure is echoed whole — it has to be diagnosable from the log
             # alone. An advisory one is informational, and the SFDMU validator prints a
-            # ~100-line report every run, so it is truncated to its HEAD (where the summary
+            # ~280-line report every run, so it is truncated to its HEAD (where the summary
             # and the Critical counts are) rather than allowed to bury
             # the failures above it.
             if not check["gating"]:
@@ -613,7 +745,7 @@ def main():
 
     if orphans:
         print(f"\n[FAIL       ] suites no check runs: {', '.join(orphans)}\n"
-              "              add each to a check in CHECKS, or to CLAIMED_SUITES with a "
+              "              add each to a check in CHECKS, or to EXCLUDED_SUITES with a "
               "reason — an unrun suite is not a passing suite")
         failures.append("unlisted_suites")
 
@@ -621,15 +753,40 @@ def main():
     # MISSING-DEP previously fell out of both counts, so a reader reconciling "11 executed,
     # 0 skipped" against 12 checks found one unaccounted for — the shape this file exists
     # to eliminate.
-    executed = sum(1 for _, s, _, _ in results if s in ("PASS", "FAIL", "ADVISORY"))
+    # A check killed by a signal *ran* — it just produced no verdict — so it belongs in `executed`,
+    # not in a fourth bucket. Leaving it out of all three broke the assert below, which is the
+    # accounting this block exists to keep honest.
+    executed = sum(1 for _, s, _, _ in results
+                   if s in ("PASS", "FAIL", "ERROR", "ADVISORY", "ADVISORY-ERROR"))
     skipped = sum(1 for _, s, _, _ in results if s == "SKIPPED")
     blocked = sum(1 for _, s, _, _ in results if s in ("MISSING-DEP", "ADVISORY-DEP"))
     assert executed + skipped + blocked == len(CHECKS), "a check fell out of the summary"
+    # Three disjoint buckets that sum to the total, then failures in their own sentence. `failed` is
+    # not a bucket: it overlaps all three (a gating check blocked on a missing dependency is both), and
+    # `unlisted_suites` is in it without being a check at all. Listed as a fourth peer it read as a
+    # fourth bucket — `6 + 7 + 1 + 1` against 14 checks, one too many. Attached with "of which" it read
+    # as a subset of the *nearest* bucket, which produced the flat contradiction
+    # "0 blocked on a missing dependency, of which 1 failed". Both spellings were trying to avoid a
+    # second sentence; the second sentence is the fix.
     print(f"\n{len(CHECKS)} checks: {executed} executed, {skipped} skipped, "
-          f"{blocked} blocked on a missing dependency, {len(failures)} failed"
-          + (f", {len(advisory_failures)} advisory failure(s): "
-             f"{', '.join(advisory_failures)}" if advisory_failures else ""))
+          f"{blocked} blocked on a missing dependency."
+          + (f" {len(failures)} failed (a count across those buckets, not a fourth one)"
+             if failures else " Nothing failed.")
+          + (f" {len(advisory_failures)} advisory failure(s): "
+             f"{', '.join(advisory_failures)}" if advisory_failures else "")
+          + (f" {len(tool_errors)} produced no verdict: {', '.join(tool_errors)}"
+             if tool_errors else ""))
 
+    # Before `failures`, and deliberately: a run with both a real failure and a check that could not
+    # run is not a clean verdict on the change, so the tool error is the honest answer. Reporting exit 1
+    # there would tell a reader the gate reached a conclusion it did not reach.
+    if tool_errors:
+        print(f"\nNO VERDICT: {', '.join(tool_errors)}\n"
+              "These checks did not run to completion — a signal kill (OOM is the usual cause) or an "
+              "interpreter that could not start. Exit 2 says so: this is not a verdict on the change, "
+              f"and it is not the same answer as a failure."
+              + (f" Also failing: {', '.join(failures)}." if failures else ""))
+        return 2
     if failures:
         print(f"\nFAILED: {', '.join(failures)}")
         return 1
