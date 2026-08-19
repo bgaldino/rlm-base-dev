@@ -96,8 +96,9 @@ CASES = [
      True, criticals([UPSERT], None, {"Unrelated__c.csv": HEADER})),
     # `_parse_object_configs` keeps the first declaration, so a Readonly first pass decides the
     # merged operation. No plan in the repo declares that shape
-    # (surveyed: 0 of the 76 export.json files under datasets/sfdmu, a superset of the 39 tracked
-    # plans), and if one appears the Readonly gate would silence a writable pass — so pin it now.
+    # (surveyed: 0 of the 76 export.json files under datasets/sfdmu, a superset of the 39 the
+    # validator scans — it skips test/ and *.bak via _SKIP_SEGMENTS), and if one appears the gate
+    # would silence a writable pass — so pin it now.
     ("a Readonly first pass followed by an Upsert pass for the same object is NOT silenced",
      True, criticals([dict(READONLY), dict(UPSERT, query="SELECT Id, Name FROM Gadget__c")])),
 
@@ -132,10 +133,46 @@ PER_PASS_IS_VALIDATED = [
 ]
 
 
+def live_baseline():
+    """The validator's findings on the real tree, by severity.
+
+    Four documents state this baseline so a reader can tell a regression from the known state, and
+    an unpinned number in prose drifts — `pr_gate.py`'s advisory note said "9 findings ... are
+    validator false positives" for one commit past the point where that became false, while the
+    adjacent `678` figure stayed correct because a test forces it. This is that forcing function
+    for the baseline: when pack 110 deletes `mfg-multicurrency` the count goes to zero, this fails,
+    and the four documents get updated in the same change rather than a later one.
+    """
+    validator = V.SFDMUValidator(base_dir=str(REPO), verbose=False)
+    by_sev, plans = {}, set()
+    for plan in validator.find_sfdmu_datasets():
+        res = validator.validate_dataset(plan)
+        for issue in res.issues:
+            if issue.severity in (V.Severity.CRITICAL, V.Severity.HIGH):
+                by_sev[issue.severity.value] = by_sev.get(issue.severity.value, 0) + 1
+                plans.add(res.dataset_name)
+    return by_sev, plans
+
+
+_sev, _plans = live_baseline()
+BASELINE = [
+    # Stated in AGENTS.md, scripts/ai/README.md, pr_gate.py's docstring and its runtime note.
+    ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
+     False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
+    ("the live tree has exactly 7 High findings, the documented baseline",
+     True, [f"High={_sev.get(V.Severity.HIGH.value, 0)}"]
+           if _sev.get(V.Severity.HIGH.value, 0) == 7 else []),
+    ("all of them are in mfg-multicurrency, so the baseline names one plan and not a scatter",
+     True, [p for p in _plans if "multicurrency" in p] if _plans and all(
+         "multicurrency" in p for p in _plans) else []),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [("root-CSV expectation", CASES),
-                 ("per-pass validation actually runs", PER_PASS_IS_VALIDATED)]
+                 ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
+                 ("the documented live baseline still holds", BASELINE)]
     total = sum(len(c) for _, c in all_cases)
     print("=" * 100)
     for group, cases in all_cases:

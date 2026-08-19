@@ -295,20 +295,25 @@ a `Readonly` object is queried from the target org and owes no source CSV, and a
 CSV lives at `objectset_source/object-set-N/<Object>.csv`, an *alternative* location for the same
 file rather than an additional requirement. Both gates stay conditional on their own reason, so an
 `Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
-directions, and one of its six cases failed the first version of the fix (a `Readonly` first pass
-silenced a writable later pass, because the merged config keeps only the first declaration).
+directions in 13 cases. Two mechanisms make that pinning necessary rather than decorative.
+`_parse_object_configs` keeps only the *first* declaration, so reading the operation from the merged
+config would let a `Readonly` first pass silence a writable later pass. And the exemption has to be
+keyed on the **pass**, not the object: `BillingPolicy` in `qb-billing` is `Upsert` in pass 1 and
+`Update` in pass 3 with an override only for pass 3, so a name-keyed exemption stops checking the
+root CSV that pass 1 reads — 16 objects across 7 wired plans have that shape, against exactly one
+(`procedure-plans/ProcedurePlanOption`) declared in a single pass.
 Seven **High** findings remain — zero-byte `Upsert` CSVs under
 `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but dormant, and
 the reason is broader than that one plan: `grep -ic mfg cumulusci.yml` returns **0**, so all twelve
 `mfg` plans are unwired. This one was not singled out. Deleting it (pack 110) rather than adding
 seven header rows follows `q3-multicurrency`, which was deleted in `dab545ab` carrying zero-byte
-`CostBook`/`CostBookEntry` CSVs of its own — the identical finding, disposed of by removing the plan.
-*Either* severity bucket fails the validator, which is why landing 123 alone does not turn this
-check green (pack 123 — "pack N" throughout this file
-means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
-so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
-N" means a round of review on the pull request that added this workflow). A check that always fails
-gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
+`CostBook`/`CostBookEntry` CSVs of its own — the identical finding, disposed of by removing the
+plan. *Either* severity bucket fails the validator, which is why landing 123 alone does not turn
+this check green (pack 123 — "pack N" throughout this file means an entry in the durable todo
+tracker under `.agents/artifacts/todos/`, which is gitignored, so the reference resolves for whoever
+holds that tree and not from a fresh clone; likewise "round N" means a round of review on the pull
+request that added this workflow). A check that always fails gets ignored, and an ignored check is
+worse than an absent one, so it is labelled with its
 reason instead of being dropped or allowed to fail every PR touching `datasets/`.
 
 Three details worth knowing before editing the matrix.
