@@ -99,6 +99,32 @@ def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags
                 for p in sorted(plan.rglob("*.csv"))}
 
 
+def merged_config_fix_converges():
+    """Findings still standing after `--fix-all` on the merged-config shape — empty means converged.
+
+    Report/fix parity, which is not the same property as either half working. The validation half was
+    taught to check the root CSV against the passes that *read* it while the fix half kept reading the
+    merged config, so with pass 1 `Readonly`/`Name` and pass 2 `Upsert`/`Name;Code` the validator asked
+    for a `$$Name$Code` column and the fixer, seeing no `;` in `Name`, wrote nothing. Both halves
+    self-consistent, `--fix-all` non-convergent.
+
+    Returns findings rather than a bool so a failure prints what survived.
+    """
+    body = {"apiVersion": "68.0", "objectSets": [{"objects": [_RO_FIRST]}, {"objects": [_UP_SECOND]}]}
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps(body))
+        (plan / "Widget__c.csv").write_text("Name,Code\nwidget-a,c1\n")
+        before = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
+        if not any("composite key column" in i.message for i in before.issues):
+            return ["precondition failed: the fixture no longer reports the finding it is fixing"]
+        V.SFDMUValidator(base_dir=str(plan.parent), verbose=False,
+                         fix_headers=True, fix_composite_keys=True).validate_dataset(plan)
+        after = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in after.issues]
+
+
 def criticals(objects, root_files=None, per_pass_files=None):
     """Criticals for a single-pass plan — the common case, kept short."""
     return issues([objects], root_files,
@@ -314,9 +340,75 @@ MERGED_CONFIG = [
     # And the reason a raw declaration cannot be substituted for a normalized one: the checks read
     # derived keys (`fields`, the parsed SELECT), not the raw JSON. Passing raw declarations made
     # `fields` empty and every externalId component read as absent — the mechanism behind those 241.
-    ("per-pass configs carry the derived `fields` key the checks actually read",
-     True, [k for k in V.SFDMUValidator(base_dir=".")._all_pass_configs(
-         {"objectSets": [{"objects": [_UP_SECOND]}]})["Widget__c"][0] if k == "fields"]),
+    # Asserts the parsed *value*, not the key's presence: a raw declaration has no `fields` key at
+    # all, so a presence check passes for a normalized config carrying an empty list — which is
+    # exactly the broken state — and the case would read green while proving nothing.
+    ("per-pass configs carry `fields` parsed from the SELECT, not an empty or absent one",
+     True, [c for c in [V.SFDMUValidator(base_dir=".")._all_pass_configs(
+         {"objectSets": [{"objects": [_UP_SECOND]}]})["Widget__c"][0][0]]
+         if set(c.get("fields") or []) >= {"Name", "Code"}]),
+    # One `objectSet` may declare the same object twice. Indexing per-pass configs by pass number
+    # made the second declaration overwrite the first, so the merged view kept the first and the
+    # per-pass view kept the LAST — and a defect in the overwritten declaration went silent. Here the
+    # Upsert declaration (whose composite key the CSV does not satisfy) comes first and a Readonly
+    # one second, so a last-wins collection reports nothing.
+    ("a defect in the first of two same-pass declarations is still reported",
+     True, [i for i in issues(
+         [[_UP_SECOND, {"query": "SELECT Id FROM Widget__c", "operation": "Readonly",
+                        "externalId": "Id"}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+    # Dedup keyed on the wrong fields inflated real plans: `query` was in the key but
+    # `_validate_csv_file` never reads it, so two reading passes differing only in their SELECT
+    # reported the same CSV defect twice (2x on q3-billing, 3x on qb-prm-pricing). The counters that
+    # inflates are the ones BASELINE pins, so a one-defect regression would read as two findings.
+    ("one CSV defect across two passes differing only in SELECT is reported once, not twice",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"}],
+          [{"query": "SELECT Id, Name, Code, Extra__c FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i][1:]),
+    # ...and the inverse: `deleteOldData` was NOT in the key but IS read (it waives the composite-key
+    # requirement), so two passes differing only in it collapsed to whichever came first and the
+    # verdict flipped with declaration order. The waiving declaration is first here; the other must
+    # still be checked.
+    ("a deleteOldData pass does not waive the composite-key check for a sibling pass that lacks it",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code", "deleteOldData": True}],
+          [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+    # The shape no config-dedup key can fix, and the one that bit real plans: two declarations that
+    # genuinely differ (`Upsert` vs `Update`) produce a finding that does not depend on how they
+    # differ, because "CSV file not found" depends only on the path. `qb-prm-pricing/Account` emitted
+    # three identical Criticals this way. Deduped at `ValidationResult.add_issue` instead, which is
+    # what makes per-declaration loops safe by construction rather than by key choice.
+    ("a missing CSV is one finding however many passes read it",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Update", "externalId": "Name"}]],
+         None)
+         if "not found" in i][1:]),
+    # Report/fix parity for the class this PR added. The fixer read the merged config while validation
+    # read the reading passes, so `--fix-all` wrote nothing and left the finding standing — a checker
+    # reporting what its own fixer cannot clear is one people learn to ignore. Asserts convergence:
+    # validate, fix, re-validate clean.
+    ("--fix-all clears the pass-2 composite-key finding rather than leaving it standing",
+     False, merged_config_fix_converges()),
+    # SFDMU does not process an excluded declaration, so its `operation` is inert. Sweeping every
+    # declaration reported one anyway — a false positive the merged-config version never produced,
+    # and the only new one this refactor introduced.
+    ("a bogus operation on an excluded declaration is not reported",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id FROM Widget__c", "operation": "Upsurt", "externalId": "Name",
+            "excluded": True}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "is not one SFDMU can resolve" in i]),
 ]
 
 

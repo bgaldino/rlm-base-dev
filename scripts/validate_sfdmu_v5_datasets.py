@@ -82,7 +82,25 @@ class ValidationResult:
     objects_validated: int = 0
 
     def add_issue(self, issue: Issue):
-        """Add an issue to the result."""
+        """Add an issue, ignoring one identical to an issue already recorded.
+
+        Identical means same object, severity, message and file — indistinguishable to a reader, so
+        two of them read as two defects when there is one. The dedup lives here rather than at the
+        call sites because the checks now run **per declaration**: an object declared in several
+        passes is validated once per pass, and a finding that does not depend on the differing field
+        is emitted once per pass. `qb-prm-pricing/Account` produced two identical
+        `CSV file not found` Criticals that way, and no choice of config-dedup key can prevent it —
+        the two declarations genuinely differ, while the *finding* does not depend on how.
+
+        That matters beyond tidiness: the High count is pinned by `tests/test_sfdmu_csv_expectation.py`
+        and quoted in several documents, so a count that scales with pass multiplicity stops counting
+        defects. Deduping here makes every future per-declaration loop safe by construction instead of
+        correct by inspection.
+        """
+        if any(i.severity == issue.severity and i.object_name == issue.object_name
+               and i.message == issue.message and i.file_path == issue.file_path
+               for i in self.issues):
+            return
         self.issues.append(issue)
         if issue.severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM):
             self.passed = False
@@ -281,7 +299,9 @@ class SFDMUValidator:
             self.log(f"\n{'='*60}")
             self.log(f"Applying fixes to: {dataset_name}")
             self.log(f"{'='*60}")
-            headers_fixed, composite_keys_fixed = self.fix_dataset_issues(dataset_path, object_configs)
+            headers_fixed, composite_keys_fixed = self.fix_dataset_issues(
+                dataset_path, object_configs,
+                self._objects_owing_root_csv(export_data, objectset_source_overrides))
 
             # Also fix per-pass CSVs
             if objectset_source_overrides:
@@ -423,36 +443,59 @@ class SFDMUValidator:
             return [{"objects": export_data["objects"]}]
         return object_sets
 
-    def _all_pass_configs(self, export_data: dict) -> Dict[str, Dict[int, dict]]:
-        """Map each object to `{pass index: that pass's own declaration}`, every pass.
+    def _all_pass_configs(self, export_data: dict) -> Dict[str, Dict[int, List[dict]]]:
+        """Map each object to `{pass index: [that pass's declarations]}`, every pass.
 
         The counterpart to `_parse_object_configs`, which merges an object's declarations down to
         the *first* one. Every check that reads the merged config therefore validates pass 1 and
         silently exempts passes 2..n — a shape this file has now hit three times (`operation`,
         `excluded`, and the root-CSV `externalId`/query), so the per-pass view is a primitive rather
         than a special case.
+
+        A **list** per index, not one config, because a single `objectSet` may declare the same
+        object twice. Assigning by index made the second declaration overwrite the first, so the
+        merged view kept the first and this view kept the *last* — and a real defect in the
+        overwritten one went silent (a missing composite-key column, or an `operation` SFDMU cannot
+        resolve, both reproduced). No shipped plan has that shape and SFDMU 5.8.0 does not reject
+        it, so it was a latent regression on a loadable plan rather than a live false green; a
+        collection whose size depends on declaration order is the kind of thing to fix while it is
+        still latent.
         """
-        by_pass: Dict[str, Dict[int, dict]] = {}
+        by_pass: Dict[str, Dict[int, List[dict]]] = {}
         for idx, obj_set in enumerate(self._normalized_object_sets(export_data)):
             for obj in obj_set.get("objects", []):
                 query = obj.get("query", "")
                 obj_name = self._extract_object_name(query)
                 if obj_name:
-                    by_pass.setdefault(obj_name, {})[idx] = \
-                        self._normalize_object_config(obj, query, idx)
+                    by_pass.setdefault(obj_name, {}).setdefault(idx, []).append(
+                        self._normalize_object_config(obj, query, idx))
         return by_pass
 
+    # The config keys each check actually reads, so dedup can be keyed on those and nothing else.
+    # A single fixed key tuple was wrong in both directions at once: it *included* `query`, which
+    # `_validate_csv_file` never looks at, so two reading passes differing only in their SELECT both
+    # survived and reported the same CSV defect twice — 2x on `q3-billing`, 3x on `qb-prm-pricing`,
+    # both real plans, inflating the very counters the baseline test pins. And it *omitted*
+    # `deleteOldData`, which `_validate_csv_file` does read to waive the composite-key requirement,
+    # so two passes differing only in that collapsed to whichever came first and the verdict flipped
+    # with declaration order. Dedup by what the consumer reads; anything else is a guess.
+    _CSV_CHECK_KEYS = ("externalId", "operation", "deleteOldData")
+    _OPERATION_CHECK_KEYS = ("operation",)
+    _EXTERNAL_ID_CHECK_KEYS = ("externalId", "operation", "fields")
+
     @staticmethod
-    def _dedup_configs(configs: List[dict]) -> List[dict]:
-        """Distinct declarations by the fields the per-pass checks read.
+    def _dedup_configs(configs: List[dict], keys: Tuple[str, ...]) -> List[dict]:
+        """Distinct declarations by `keys` — the config fields the *consuming check* reads.
 
         Two passes commonly declare an object identically; validating both would report the same
-        defect twice, which reads as two defects.
+        defect twice, which reads as two defects. `keys` is required rather than defaulted so a new
+        call site has to state what its check reads instead of inheriting someone else's answer.
         """
         seen, out = set(), []
         for cfg in configs:
-            key = (cfg.get("query", ""), cfg.get("externalId", ""),
-                   str(cfg.get("operation", "")), bool(cfg.get("excluded")))
+            key = tuple(
+                tuple(cfg[k]) if isinstance(cfg.get(k), list) else str(cfg.get(k))
+                for k in keys)
             if key not in seen:
                 seen.add(key)
                 out.append(cfg)
@@ -568,8 +611,11 @@ class SFDMUValidator:
         for obj_name, passes in writable_passes.items():
             uncovered = sorted(passes - covered.get(obj_name, set()))
             if uncovered:
-                owed[obj_name] = self._dedup_configs(
-                    [all_configs[obj_name][i] for i in uncovered])
+                # Flattened: a pass index maps to a *list* of declarations, since one objectSet may
+                # declare the object more than once. Deduped on what `_validate_csv_file` reads, so
+                # passes differing only in their SELECT do not report the same CSV defect twice.
+                declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]]
+                owed[obj_name] = self._dedup_configs(declarations, self._CSV_CHECK_KEYS)
         return owed
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
@@ -789,7 +835,7 @@ class SFDMUValidator:
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
                          objects_owing_root_csv: Dict[str, List[dict]],
-                         all_pass_configs: Dict[str, Dict[int, dict]]):
+                         all_pass_configs: Dict[str, Dict[int, List[dict]]]):
         """Validate a single object's CSV and configuration.
 
         Args:
@@ -829,21 +875,28 @@ class SFDMUValidator:
 
         # `operation` per declaration, not per merged config: same trap as `excluded` above and the
         # root CSV below — reading the merged config validates pass 1 and exempts passes 2..n, so a
-        # bogus operation introduced in a later pass was unreportable. All passes, including Readonly
-        # ones, since a Readonly declaration's operation is exactly the kind that resolves to
-        # `undefined` unnoticed. Deduped so an object declared identically twice yields one issue.
-        for cfg in self._dedup_configs(list(all_pass_configs.get(obj_name, {}).values())) or [obj_config]:
+        # bogus operation introduced in a later pass was unreportable. Readonly declarations are
+        # included, since a Readonly operation is exactly the kind that resolves to `undefined`
+        # unnoticed; `excluded` ones are not, because SFDMU does not process them, so their operation
+        # is inert and reporting it is a false positive the merged-config version never produced.
+        # Every other site in this file takes that stance already.
+        declarations = [cfg for by_pass in [all_pass_configs.get(obj_name, {})]
+                        for cfgs in by_pass.values() for cfg in cfgs
+                        if not cfg.get("excluded")]
+        for cfg in self._dedup_configs(declarations, self._OPERATION_CHECK_KEYS):
             self._validate_operation_value(obj_name, cfg, result)
 
         # externalId is *not* swept the same way, and the reason is worth stating because sweeping it
         # is the obvious move: its SELECT-coverage check is only meaningful for a pass that reads a
         # file. Later passes are commonly activations with a deliberately narrow `SELECT` and an
-        # inherited composite externalId, so validating every declaration reported 258 High findings
-        # against correct plans — a 36x false-positive rate, the same class of noise pack 123 fixed.
-        # Scoped below to the passes that read the root file; objects owing no root file keep the
-        # single merged-config check they have always had.
+        # inherited composite externalId, so validating every declaration reported 241 High findings
+        # against correct plans — a 34x false-positive rate, the same class of noise pack 123 fixed.
+        # Scoped to the passes that read the root file; objects owing no root file keep the single
+        # merged-config check they have always had. Re-deduped on this check's own keys because it
+        # reads `fields` (the parsed SELECT), which the CSV check does not: two reading passes with
+        # the same key and different SELECTs are one CSV case but two externalId cases.
         reading_configs = objects_owing_root_csv.get(obj_name) or [obj_config]
-        for cfg in reading_configs:
+        for cfg in self._dedup_configs(reading_configs, self._EXTERNAL_ID_CHECK_KEYS):
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire
@@ -1221,12 +1274,18 @@ class SFDMUValidator:
             print(f"  ❌ Error writing {csv_path.name}: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
-    def fix_dataset_issues(self, dataset_path: Path, object_configs: Dict[str, dict]) -> Tuple[int, int]:
+    def fix_dataset_issues(self, dataset_path: Path, object_configs: Dict[str, dict],
+                           objects_owing_root_csv: Optional[Dict[str, List[dict]]] = None) -> Tuple[int, int]:
         """Fix issues in a dataset (headers and/or composite keys).
 
         Args:
             dataset_path: Path to dataset directory
             object_configs: Object configurations from export.json
+            objects_owing_root_csv: Per `_objects_owing_root_csv` — the declarations validation checks
+                each root CSV against, so the fixer writes what validation asks for. Optional only
+                because this is a public entry point; the one internal call site always supplies it,
+                and omitting it restores the merged-config behavior that made `--fix-all`
+                non-convergent.
 
         Returns:
             Tuple of (headers_fixed, composite_keys_fixed)
@@ -1242,23 +1301,35 @@ class SFDMUValidator:
             if not csv_path.exists():
                 continue
 
-            # Fix missing headers
-            if self.fix_headers and self._is_csv_empty(csv_path):
-                headers = obj_config.get("fields", [])
-                if self._fix_empty_csv_header(csv_path, headers, obj_name):
-                    headers_fixed += 1
+            # The same declarations validation checks this file against, so what is reportable is
+            # fixable. Reading the merged config here while validation read the reading passes made
+            # `--fix-all` non-convergent for exactly the class this file just started reporting: with
+            # pass 1 `Readonly`/`externalId: Name` and pass 2 `Upsert`/`Name;Code`, validation asked
+            # for a `$$Name$Code` column and the fixer saw no `;` in `Name` and wrote nothing, so a
+            # fix run left the finding standing. A checker that reports what its own fixer cannot
+            # clear teaches people to ignore it.
+            #
+            # Empty-CSV headers are written from whichever reading pass comes first, since the file
+            # stops being empty after that and the remaining declarations no-op. Composite-key fixes
+            # are idempotent via `_csv_missing_composite_key`, so iterating cannot double-write.
+            for cfg in (objects_owing_root_csv or {}).get(obj_name) or [obj_config]:
+                # Fix missing headers
+                if self.fix_headers and self._is_csv_empty(csv_path):
+                    headers = cfg.get("fields", [])
+                    if self._fix_empty_csv_header(csv_path, headers, obj_name):
+                        headers_fixed += 1
 
-            # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
-            if self.fix_composite_keys and not self._is_csv_empty(csv_path):
-                external_id = obj_config.get("externalId", "")
-                if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
-                    fields = [f.strip() for f in external_id.split(";")]
-                    composite_col_name = self._build_composite_key_column_name(fields)
+                # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
+                if self.fix_composite_keys and not self._is_csv_empty(csv_path):
+                    external_id = cfg.get("externalId", "")
+                    if ";" in external_id and not external_id.startswith("$$") and not cfg.get("deleteOldData"):
+                        fields = [f.strip() for f in external_id.split(";")]
+                        composite_col_name = self._build_composite_key_column_name(fields)
 
-                    # Check if column is missing using helper method
-                    if self._csv_missing_composite_key(csv_path, composite_col_name):
-                        if self._fix_missing_composite_key(csv_path, fields, obj_name):
-                            composite_keys_fixed += 1
+                        # Check if column is missing using helper method
+                        if self._csv_missing_composite_key(csv_path, composite_col_name):
+                            if self._fix_missing_composite_key(csv_path, fields, obj_name):
+                                composite_keys_fixed += 1
 
         return headers_fixed, composite_keys_fixed
 
