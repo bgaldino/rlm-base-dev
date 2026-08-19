@@ -473,7 +473,9 @@ selection is a couple of seconds. That timing is measured on a machine where two
 is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (601 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (640 checks, throwaway repos, no network — hermetic for all but
+one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
+resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -556,8 +558,8 @@ one-job rule below retired it, and the entry is named rather than deleted becaus
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and sixty-seven of these guards were vacuous on the first
-attempt**, in twenty-four waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5, 7, 7 and 11 — each wave a narrower version
+The doubled shapes are there because **a hundred and seventy-eight of these guards were vacuous on the first
+attempt**, in twenty-five waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5, 7, 7, 11 and 11 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs skip two of the tally's terms: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -983,7 +985,7 @@ package. Two characters of reordering, and CI installs the gate's dependencies f
 attacker-controlled index — arbitrary code execution in the job whose purpose is to be trusted. The
 suite already asserted, in eighteen table rows — one of them asserting exactly this `-ihttps://…` form — that a re-pointed index is refused. Every one of those rows
 called `pip_tail_ok` **directly**. The authorising path called something else. A table that tests a
-helper in isolation says nothing about the decision the workflow actually gets, and the seventeen rows
+helper in isolation says nothing about the decision the workflow actually gets, and the eighteen rows
 made the surface look thoroughly covered, which is worse than looking uncovered.
 
 The fix is not to harden `self_upgrade` — whoever writes the next classifier will reuse it as an
@@ -1101,13 +1103,16 @@ if os.environ.get("GITHUB_ACTIONS"): return []      # CI selects nothing, prints
 
 Both pass locally and both defeat CI completely, and no fixture can catch them, because the fixture is
 the laptop. Enumerating the runner's variables is the losing game, so the property asserted instead is
-that the gate reads *no* environment variable at all — behaviour that cannot differ between the two
-places has no room for a discrepancy. It is the first rule here aimed at the suite's own blind spot
-rather than at the code.
+that the gate reads *no* environment variable at all — a decision it never makes cannot be made
+differently in the two places. Two limits are worth stating rather than implying: the rule covers the
+gate's own source, not the checks it spawns, which are subprocesses that inherit the environment (one of
+them reads `FOUNDATIONS_REPO_ROOT` deliberately); and reading the environment is only one way to ask
+"am I in CI", which is why a later wave had to add `sys.argv` and absolute-path literals to the same
+property. It is the first rule here aimed at the suite's own blind spot rather than at the code.
 
 The wave's other four were narrower versions of things this file already knew. A tree-exclusion filter
 can key on a suffix, a basename or a dot-prefix, and the fixture written a wave earlier committed one
-file per top-level *tree* — twelve of twenty trigger roots, dropping every dot-directory, so
+file per top-level *tree* — twelve of twenty-three trigger roots, dropping every dot-directory, so
 `not f.startswith(".github/")` stopped a workflow edit from selecting the checks that guard the
 workflow. It now commits one file per *trigger*, using the trigger's own path so that a filter keyed on
 a basename cannot tell the probe from the real thing. The `DIFF_ARGV` pin was a substring match whose
@@ -1173,8 +1178,34 @@ it, the last because the tokenizer read the `&` of `2>&1` as a separator and inv
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and sixty-seven were caught by the mutation sweep, a hundred and fifty-three by review —
-the last thirty-four of those by local persona passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
+The twenty-fifth wave is the only one whose subject was not the workflow, and it is the largest single
+finding in the set: **eleven edits to `pr_gate.py` itself that leave the suite green and disable CI.**
+Twenty-two waves of probes had mutated `pr-checks.yml`, because that is where the early holes were, and
+the gate script was guarded instead by *source scans* — "no check is named inside `run()`", "the gate
+reads no environment variable". A scan is a whitelist of spellings, so each one was a function or a
+spelling away from being silent: a filter one function past the one the fixture reaches
+(`selects(c, [f for f in files if not f.startswith(".github/")])`), a suffix filter inside
+`changed_files()` that hides every dataset edit, `from os import environ` instead of `os.environ`,
+`os.path.basename(sys.argv[0]) != "pr_gate.py"` — a CI detector that reads no variable at all, because
+the workflow runs this file by path and every fixture imports it — and an exemption moved from the
+booking loop to `main()`'s return, where the region the scan read stopped one statement short.
+
+Three of the eleven were already dead, killed by the per-check behavioural rule from the wave before,
+which is the shape of the answer: what closed the other eight was not a longer whitelist of spellings but
+behaviour. Selection is now asserted per trigger *and* per extension through `main()` itself, so a filter
+anywhere between the changed-file list and the selected list shows up as a check that was skipped;
+`changed_files()` is exercised over one real committed file per extension; the resolver's whole argv is
+compared, not its last word; and the payload is checked under both selectors. Two survivors admit no
+behavioural refutation at all — `os.path.isdir("/opt/hostedtoolcache")` is true on a runner and false
+everywhere else, so no local observation contradicts it. For those the answer is a smaller surface rather
+than a cleverer rule: the three regions that decide a verdict are fingerprinted, and any edit to them
+fails until a reader re-approves it, on the same reasoning as `EXPECTED`. The general lesson is the one
+the sweep corpus was built on and had never been applied here: a rule about an artifact needs a mutation
+of that artifact to have any evidence behind it, and for twenty-two waves the artifact under test was the
+wrong one.
+
+Two of the hundred and seventy-eight were caught by the mutation sweep, a hundred and sixty-four by review —
+the last forty-five of those by local persona passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
@@ -1211,8 +1242,8 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 97 loosening probes and 47
-correct-edit assertions across five files — but **not in
+The corpus is kept for that reason — 147 mutations, 97 loosening probes, 47
+correct-edit assertions and 15 gate-script probes across six files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible from any checkout that carries the

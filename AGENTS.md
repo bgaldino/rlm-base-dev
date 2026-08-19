@@ -210,8 +210,9 @@ the reference for
 *what* each check means and for the judgement steps no gate can make.
 
 **The same gate now runs in CI** on every pull request
-(`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs the PR number
-and so can only run there). Run it locally anyway — a local failure costs seconds, a CI one
+(`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs a PR number, so only
+CI can supply it automatically — run it locally by passing `--pr <n>`, as *Merges and unintended
+diffs* below instructs). Run the gate locally anyway — a local failure costs seconds, a CI one
 costs a round trip — but a change that skips it is no longer *unchecked*. The workflow is
 deliberately **not** path-filtered, though not for the reason usually given: a path-skipped
 workflow reports *nothing*, so a required check on it sits **Pending** and blocks every PR that
