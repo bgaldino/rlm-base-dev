@@ -209,15 +209,14 @@ gitignored — the reference resolves only from a tree that carries it.) The che
 the reference for
 *what* each check means and for the judgement steps no gate can make.
 
-**The same gate now runs in CI** on every pull request
-(`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs a PR number, so only
-CI can supply it automatically — run it locally by passing `--pr <n>`, as *Merges and unintended
-diffs* below instructs). Run the gate locally anyway — a local failure costs seconds, a CI one
-costs a round trip. The workflow is
-deliberately **not** path-filtered, though not for the reason usually given: a path-skipped
-workflow reports *nothing*, so a required check on it sits **Pending** and blocks every PR that
-misses the paths. (What reports success is a *job-level* `if:` skip, which is a different
-mechanism.) Either way selection is the driver's job and never the trigger's.
+**The same gate now runs in CI** on every pull request (`.github/workflows/pr-checks.yml`, plus
+`check_branch_scope.py`, which needs a PR number, so only CI can supply it automatically — run it
+locally by passing `--pr <n>`, as *Merges and unintended diffs* below instructs). Run the gate
+locally anyway — a local failure costs seconds, a CI one costs a round trip. The workflow is
+deliberately **not** path-filtered, though not for the reason usually given: a path-skipped workflow
+reports *nothing*, so a required check on it sits **Pending** and blocks every PR that misses the
+paths. (What reports success is a *job-level* `if:` skip, which is a different mechanism.) Either
+way selection is the driver's job and never the trigger's.
 
 **Running is blocking, and a skipped run is too.** `Mechanical checks` is a **required status
 check** on `main`, `264` and `release/*` — the `Approvals` ruleset requires the context from the

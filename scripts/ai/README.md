@@ -724,17 +724,17 @@ permitted `SEL` spellings untouched. Dropping `pull-requests: read` from `permis
 is a regression this workflow has already had once. So the action inputs, both steps' `env` mappings and
 the token scopes are now pinned beside the identities.
 
-Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they are.
-`runs-on: self-hosted` moves the gate onto a machine the repository does not control, which makes the
-verdict meaningless — a real hole. The job *name* is load-bearing for a different reason: it is the
-string a branch ruleset matches, so renaming the job silently un-requires the check. That was a
-hypothetical when the rule was written and is now the live failure mode: the check **is** required, so a
-rename does not merely rename it — it removes the requirement, and nothing reports that it did. The
-concurrency group is
-the weakest of the three and is pinned on principle rather than a demonstrated bypass — made constant,
-one PR's run cancels another's, and a cancelled run is not a pass but it is also not a verdict. Naming
-which of the three is which matters more than pinning all three, because a list of rules that does not
-say what each one buys is how the vacuous ones survived this long.
+Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they
+are. `runs-on: self-hosted` moves the gate onto a machine the repository does not control, which
+makes the verdict meaningless — a real hole. The job *name* is load-bearing for a different reason:
+it is the string a branch ruleset matches, so renaming the job silently un-requires the check. That
+was a hypothetical when the rule was written and is now the live failure mode: the check **is**
+required, so a rename does not merely rename it — it removes the requirement, and nothing reports
+that it did. The concurrency group is the weakest of the three and is pinned on principle rather
+than a demonstrated bypass — made constant, one PR's run cancels another's, and a cancelled run is
+not a pass but it is also not a verdict. Naming which of the three is which matters more than
+pinning all three, because a list of rules that does not say what each one buys is how the vacuous
+ones survived this long.
 
 **The last eight are the same lesson one level down: a whitelist of words is not a whitelist of
 commands.** The job-scope vocabulary admitted `git` with the subcommands `fetch` and `rev-parse` and
