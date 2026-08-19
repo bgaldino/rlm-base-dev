@@ -23,6 +23,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -112,9 +113,15 @@ CASES = [
      False, criticals([UPSERT], None, {"Widget__c.csv": HEADER})),
     # The gate keys on *this* object having a per-pass file, not on the plan having any. Keyed
     # on the plan, one override would excuse every missing CSV in it.
+    #
+    # The other object must be one the plan DECLARES in that pass. Written with an undeclared
+    # `Unrelated__c`, this passed without ever constructing plan-wide coverage — the override was
+    # discarded upstream, so the condition the label refutes never existed, and mutating the gate
+    # to key on the plan left the case green.
     ("an Upsert object whose per-pass CSV is absent still fails, even though a *different* "
-     "object has one",
-     True, criticals([UPSERT], None, {"Unrelated__c.csv": HEADER})),
+     "object in the same pass has one",
+     True, issues([[UPSERT, dict(UPSERT, query="SELECT Id, Name FROM Other__c")]], None,
+                  {1: {"Other__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
     # `_parse_object_configs` keeps the first declaration, so a Readonly first pass decides the
     # merged operation. No plan in the repo declares that shape
     # (surveyed: 0 of the 76 export.json files under datasets/sfdmu, a superset of the 39 the
@@ -163,10 +170,12 @@ CASES = [
      False, issues([[UPSERT], [dict(UPSERT, operation="Update")]], None,
                    {1: {"Widget__c.csv": HEADER}, 2: {"Widget__c.csv": HEADER}},
                    severity=V.Severity.CRITICAL)),
-    # A CSV in the wrong object-set-N/ is never read, so counting it as coverage trades a Critical
-    # for a High about the misfiling — a downgrade on the only automated check over this data.
-    ("a per-pass CSV misfiled into a pass that does not declare the object does not excuse the "
-     "root CSV",
+    # Relabelled to what it proves. It previously claimed to pin a filter against misfiled
+    # overrides; it passed on pass arithmetic alone and the filter turned out to be inert — a
+    # coverage index cancels only its own pass, which is the property below and the reason no
+    # filter is needed.
+    ("a coverage index cancels only its own pass, so an override for a pass that does not declare "
+     "the object leaves the declaring pass owing its root CSV",
      True, issues([[READONLY], [UPSERT]], None, {1: {"Widget__c.csv": HEADER}},
                   severity=V.Severity.CRITICAL)),
 ]
@@ -195,17 +204,19 @@ PER_PASS_IS_VALIDATED = [
 def live_baseline():
     """The validator's findings on the real tree, by severity.
 
-    Seven sites across five files state this baseline so a reader can tell a regression from the
-    known state — `AGENTS.md`, `scripts/ai/README.md`, `pr_gate.py` twice (trigger comment and the
-    runtime `note=`), `.cursor/skills/doc-consistency/SKILL.md` twice, and
-    `docs/features/composable-quote-approvals.md`. Counting them was itself wrong once ("four
-    documents", written while adding two of the seven), which is the argument for the pin below
-    rather than against it. And
-    an unpinned number in prose drifts — `pr_gate.py`'s advisory note said "9 findings ... are
+    Several files state this baseline so a reader can tell a regression from the known state. The
+    set is **discovered** by `baseline_sites()` below rather than listed here, because listing it
+    was wrong twice: "four documents" was written while adding two more, and the recount to "seven
+    sites across five files" missed three (`AGENTS.md`'s checklist item, `pr_gate.py`'s module
+    docstring, and `sfdmu-data-plans/SKILL.md`, whose file the list omitted entirely) and
+    double-counted one file's pair while counting another's as one. A hand-maintained list of the
+    places a number must be swept is itself a number that must be swept.
+
+    An unpinned number in prose drifts — `pr_gate.py`'s advisory note said "9 findings ... are
     validator false positives" for one commit past the point where that became false, while the
     adjacent `678` figure stayed correct because a test forces it. This is that forcing function
     for the baseline: when pack 110 deletes `mfg-multicurrency` the count goes to zero, this fails,
-    and the four documents get updated in the same change rather than a later one.
+    and every site gets updated in the same change rather than a later one.
     """
     validator = V.SFDMUValidator(base_dir=str(REPO), verbose=False)
     by_sev, plans = {}, set()
@@ -218,9 +229,47 @@ def live_baseline():
     return by_sev, plans
 
 
+def baseline_sites():
+    """Every tracked file that states the High-findings baseline, discovered rather than listed.
+
+    Matches the count as `7`/`seven` (with optional bold markers) followed by any of the nouns the
+    repo attaches it to. That list is wider than it looks necessary, and deliberately: a first
+    version matched only `High` and missed `sfdmu-data-plans/SKILL.md`, which spells the same
+    baseline "7 zero-byte `Upsert` CSVs" — reproducing, in the detector, the exact omission the
+    detector exists to prevent. `findings` is *not* in the list, though every real site does end
+    "…High findings": as a standalone noun it also matches unrelated review narration ("five of its
+    seven findings"), and a sweep set with a false member sends a reader to edit a line that must
+    not change. A noun the repo has not used yet is the remaining gap in the other direction; that
+    is why the assertion below prints the set rather than trusting it silently.
+
+    Deliberately *not* keyed on `mfg-multicurrency` alone: `plan-dependency-graph.md` names the
+    plan and its pack-110 removal without quoting a count, so it needs no edit when the count
+    changes and including it would send a reader to a file with nothing to sweep.
+    """
+    pattern = re.compile(
+        r"\b(?:7|seven)\b[\s\-*`]*(?:high|zero-byte)", re.IGNORECASE)
+    roots = ["AGENTS.md", "scripts/ai", "docs/features", ".cursor/skills", "tests"]
+    sites = {}
+    for root in roots:
+        base = REPO / root
+        paths = [base] if base.is_file() else [
+            p for p in base.rglob("*") if p.suffix in (".md", ".py") and p.is_file()]
+        for path in paths:
+            if path.name == pathlib.Path(__file__).name:
+                continue  # this file describes the mechanism; it is not a site to sweep
+            try:
+                lines = path.read_text(encoding="utf-8").splitlines()
+            except (UnicodeDecodeError, OSError):
+                continue
+            hits = [n for n, line in enumerate(lines, 1) if pattern.search(line)]
+            if hits:
+                sites[path.relative_to(REPO).as_posix()] = hits
+    return sites
+
+
 _sev, _plans = live_baseline()
+_sites = baseline_sites()
 BASELINE = [
-    # Stated in AGENTS.md, scripts/ai/README.md, pr_gate.py's docstring and its runtime note.
     ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
      False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
     ("the live tree has exactly 7 High findings, the documented baseline",
@@ -229,7 +278,31 @@ BASELINE = [
     ("all of them are in mfg-multicurrency, so the baseline names one plan and not a scatter",
      True, [p for p in _plans if "multicurrency" in p] if _plans and all(
          "multicurrency" in p for p in _plans) else []),
+    # Not an assertion about *how many* sites there are — that number went stale twice as prose and
+    # would go stale again as a literal here. It asserts only that the sweep set is non-empty, and
+    # prints it, so the failure above arrives with the list of files to edit attached.
+    (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across "
+     f"{len(_sites)} file(s), swept together: "
+     + ", ".join(f"{f}:{','.join(map(str, ls))}" for f, ls in sorted(_sites.items())),
+     True, sorted(_sites)),
 ]
+
+
+def own_case_count_is_quoted_correctly(total):
+    """`scripts/ai/README.md` quotes this suite's size; pin it where the size is known.
+
+    It went stale twice in a row — two commits each raised the suite and each said the new number
+    in its own message while leaving the sentence reading 13. The adjacent `680` in that same
+    paragraph never drifted, because a test forces it, which is the whole argument. Pinned here
+    rather than in `tests/test_pr_gate.py` next to the other two figures: this suite already knows
+    its own total, so the check costs nothing, while over there it would mean importing this module
+    and paying for a full validator run to learn a number.
+    """
+    quoted = re.search(r"pins both\s*\n?directions in (\d+) cases",
+                       (REPO / "scripts/ai/README.md").read_text(encoding="utf-8"))
+    if quoted is None:
+        return ["the sentence in scripts/ai/README.md quoting this suite's size is gone"]
+    return [] if int(quoted.group(1)) == total else [f"README says {quoted.group(1)}, suite has {total}"]
 
 
 def main() -> int:
@@ -237,7 +310,11 @@ def main() -> int:
     all_cases = [("root-CSV expectation", CASES),
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
                  ("the documented live baseline still holds", BASELINE)]
-    total = sum(len(c) for _, c in all_cases)
+    # +1 for the self-count check appended below, which needs the total it asserts against.
+    total = sum(len(c) for _, c in all_cases) + 1
+    all_cases.append(("this suite's own size, as quoted in prose", [
+        (f"scripts/ai/README.md says this suite pins both directions in {total} cases",
+         False, own_case_count_is_quoted_correctly(total))]))
     print("=" * 100)
     for group, cases in all_cases:
         print(f"-- {group}")

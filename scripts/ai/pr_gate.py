@@ -158,14 +158,22 @@ CHECKS = [
         # `datasets/sfdmu/` IS a trigger, and the reason is worth keeping because it was wrong once
         # in each direction. The suite began hermetic — synthetic tempdirs only — so the trigger was
         # over-selection and was dropped. Then it gained `live_baseline()`, which asserts the real
-        # tree's finding counts (0 Critical, 7 High, all in mfg-multicurrency) so the four documents
+        # tree's finding counts (0 Critical, 7 High, all in mfg-multicurrency) so the sites
         # quoting those numbers cannot drift. That made the suite dataset-reading, and left the two
         # halves contradicting each other: the change that breaks the baseline is a `datasets/` edit,
         # and pack 110 deleting mfg-multicurrency would not have selected the suite it fails. A
         # forcing function that its own triggering change cannot reach is worse than none — the red
         # is not avoided, only deferred onto the next unrelated PR that touches the validator.
+        #
+        # The doc trees below are triggers for that same reason, one round later and found by the
+        # `no suite reads a file that cannot select it` guard rather than by review: the suite now
+        # discovers every site quoting the baseline and pins the case count quoted in
+        # `scripts/ai/README.md`, so a prose edit in any of those trees is exactly a change that can
+        # fail it. Broad selection is the honest cost of asserting over prose; the alternative is an
+        # assertion whose triggering edit does not run it.
         triggers=["scripts/validate_sfdmu_v5_datasets.py",
-                  "tests/test_sfdmu_csv_expectation.py", "datasets/sfdmu/"],
+                  "tests/test_sfdmu_csv_expectation.py", "datasets/sfdmu/",
+                  "AGENTS.md", "scripts/ai/", "docs/features/", ".cursor/skills/"],
         deps=[], gating=True,
     ),
     dict(

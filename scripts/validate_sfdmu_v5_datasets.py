@@ -451,16 +451,18 @@ class SFDMUValidator:
         (`procedure-plans/ProcedurePlanOption`) is declared in a single pass, which is the only
         shape a name-keyed gate gets right.
 
-        An override only counts as coverage when it resolves to a declaration in *its own* pass. A
-        CSV misfiled into the wrong `object-set-N/` directory is reported separately (and never
-        read), so treating it as coverage would suppress the root-CSV Critical in exchange for a
-        High about the misfiling — a downgrade on the one automated check over this repo's data.
+        A misfiled override — a CSV in an `object-set-N/` whose pass does not declare the object —
+        needs no filtering here, and an earlier version's check for one was inert. Keying on the
+        pass already handles it: a coverage index can only cancel the same index, and a misfiled
+        override's index is by definition one where the object is not declared, so it is not in
+        `writable_passes[obj]` and cancels nothing. (Verified exhaustively over every 1–2 pass plan
+        with two objects across all operation/`excluded` combinations and all override sets up to
+        size 2 — 0 disagreements. It is reported separately as a High, by the per-pass loop.)
         """
         writable_passes = self._writable_passes_by_object(export_data)
         covered: Dict[str, Set[int]] = {}
         for (obj_name, pass_index) in objectset_source_overrides:
-            if self._get_object_config_for_pass(export_data, obj_name, pass_index):
-                covered.setdefault(obj_name, set()).add(pass_index)
+            covered.setdefault(obj_name, set()).add(pass_index)
 
         return {obj_name for obj_name, passes in writable_passes.items()
                 if passes - covered.get(obj_name, set())}
