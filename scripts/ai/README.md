@@ -295,14 +295,15 @@ a `Readonly` object is queried from the target org and owes no source CSV, and a
 CSV lives at `objectset_source/object-set-N/<Object>.csv`, an *alternative* location for the same
 file rather than an additional requirement. Both gates stay conditional on their own reason, so an
 `Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
-directions in 42 cases. Two mechanisms make that pinning necessary rather than decorative.
+directions in 51 cases. Two mechanisms make that pinning necessary rather than decorative.
 `_parse_object_configs` keeps only the *first* declaration, so reading the operation from the merged
 config would let a `Readonly` first pass silence a writable later pass. And the exemption has to be
 keyed on the **pass**, not the object: `BillingPolicy` in `qb-billing` is `Upsert` in pass 1 and
 `Update` in pass 3 with an override only for pass 3, so a name-keyed exemption stops checking the
 root CSV that pass 1 reads — 16 objects across 7 scanned plans have that shape (11 in the 5 that
-`cumulusci.yml` wires), against exactly one
-(`procedure-plans/ProcedurePlanOption`) declared in a single pass.
+`cumulusci.yml` wires), against exactly one of the 17 objects carrying an override
+(`procedure-plans/ProcedurePlanOption`) declared in a single pass. Repo-wide 399 objects are
+single-pass, so the comparison only holds among the objects a name-keyed gate would exempt.
 Seven **High** findings remain — zero-byte `Upsert` CSVs under
 `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but dormant, and
 the reason is broader than that one plan: `grep -ic mfg cumulusci.yml` returns **0**, so all twelve

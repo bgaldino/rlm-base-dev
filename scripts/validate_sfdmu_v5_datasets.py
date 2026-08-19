@@ -595,9 +595,11 @@ class SFDMUValidator:
         override. Exempting the object because *an* override exists means pass 1 — which reads the
         root file — stops being checked, and deleting that file leaves the plan reporting PASS.
         Sixteen objects across seven scanned plans have this shape — eleven of them in the five that
-        `cumulusci.yml` wires, the other five in `mfg-billing`/`mfg-tax`, which it does not; exactly one object in the repo
-        (`procedure-plans/ProcedurePlanOption`) is declared in a single pass, which is the only
-        shape a name-keyed gate gets right.
+        `cumulusci.yml` wires, the other five in `mfg-billing`/`mfg-tax`, which it does not. Of the
+        **seventeen objects that carry a per-pass override**, exactly one
+        (`procedure-plans/ProcedurePlanOption`) is declared in a single pass, which is the only shape
+        a name-keyed gate gets right. The domain restriction matters: repo-wide, 399 objects are
+        single-pass, so "exactly one" is only true among the objects a name-keyed gate would exempt.
 
         A misfiled override — a CSV in an `object-set-N/` whose pass does not declare the object —
         needs no filtering here, and an earlier version's check for one was inert. Keying on the
@@ -621,8 +623,23 @@ class SFDMUValidator:
                 # declare the object more than once. Deduped on the union of what every consumer of
                 # this list reads — see `_READING_CONFIG_KEYS`; narrowing it to one consumer's fields
                 # silently disabled the other's check.
-                declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]]
-                owed[obj_name] = self._dedup_configs(declarations, self._READING_CONFIG_KEYS)
+                # `excluded` declarations dropped here, not just at the pass level. `writable_passes`
+                # already excludes a pass whose *only* declaration is excluded, but a pass declaring
+                # the object twice — once excluded — contributed the excluded one to this list, and
+                # widening the dedup key to include `fields` stopped it collapsing into its sibling.
+                # SFDMU never processes an excluded declaration, so a SELECT gap in one is not a
+                # defect; the operation check has taken that stance all along.
+                declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]
+                                if not cfg.get("excluded")]
+                # Only when non-empty. Membership in this mapping is what makes `_validate_object` ask
+                # for the file at all, so a key with an empty list would claim the CSV is owed and
+                # then validate it against nothing — dropping the missing-file Critical silently. It
+                # cannot currently happen (`_writable_passes_by_object` records a pass only if some
+                # declaration there is both writable and non-excluded, and that declaration survives
+                # the filter above), so this is an invariant guard rather than live handling; it is
+                # here because the filter above is what put the invariant at risk.
+                if declarations:
+                    owed[obj_name] = self._dedup_configs(declarations, self._READING_CONFIG_KEYS)
         return owed
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
@@ -661,22 +678,33 @@ class SFDMUValidator:
         Shared with `_all_pass_configs` so a per-pass config is indistinguishable from a merged one.
         Not cosmetic: the checks read *derived* keys, not the raw declaration — `_validate_external_id`
         reads `fields` (the parsed SELECT), so handing it a raw declaration makes `fields` empty and
-        every externalId component read as absent from the query. That produced 241 spurious High
-        findings when this was first written by passing raw declarations through.
+        every externalId component read as absent from the query. Measured: forcing `fields` empty
+        takes the tree from 7 High to **252 High**, 245 of them spurious SELECT-coverage findings. So
+        this normalizer, not the reading-pass scoping below it, is what holds that back — the two were
+        conflated in earlier notes quoting 241 and 258, neither of which reproduces.
 
-        `externalId` is coerced to `str` here, which is the single point that makes the file total
-        against a malformed plan. Four sites downstream call `external_id.split(";")`, and a
-        non-string value — a JSON list or object, easy to produce by hand-editing an `export.json` —
-        raised `AttributeError` straight out of `main()` and aborted **all 39 plans with no report**,
-        rather than reporting the one that is broken. The `str()` renders it visibly wrong
-        (`['a', 'b']` matches no field name), so the plan gets reported instead of taking the run
-        down with it. Same reasoning as the total dedup key in `_dedup_configs`; both are the
-        threat model the other `str()` coercions in this file were written for.
+        `externalId` is coerced to `str` here — the single point that does so, now that all three
+        config builders route through this function. Four sites downstream call
+        `external_id.split(";")`, and a non-string value (a JSON list or object, easy to produce by
+        hand-editing an `export.json`) raised `AttributeError` straight out of `main()` and aborted
+        **all 39 plans with no report**, rather than reporting the one that is broken. Same threat
+        model as the total dedup key in `_dedup_configs` and the other `str()` coercions here.
+
+        Coercion alone was not enough, and the first version of this docstring claimed otherwise: it
+        said the `str()` "renders it visibly wrong … so the plan gets reported". It does not. The repr
+        contains no `;`, no `$$` and no second `.`, so every downstream gate is skipped and the plan
+        reports **nothing at all** — loud failure traded for silent acceptance, which is the worse of
+        the two. Hence `externalId_malformed`: the coercion loses the type, so the type is recorded
+        here and reported by `_validate_object`.
         """
+        raw_external_id = obj.get("externalId", "Id")
         return {
             "pass_index": idx,
             "operation": obj.get("operation", "Upsert"),
-            "externalId": str(obj.get("externalId", "Id")),
+            "externalId": str(raw_external_id),
+            # Recorded rather than reported here: this function has no `result` to add an issue to,
+            # and threading one in would make a pure normalizer a validator.
+            "externalId_malformed": not isinstance(raw_external_id, str),
             "query": query,
             "fields": self._parse_select_fields(query),
             "excluded": obj.get("excluded", False),
@@ -815,17 +843,14 @@ class SFDMUValidator:
         for obj in object_sets[pass_index].get("objects", []):
             query = obj.get("query", "")
             if self._extract_object_name(query) == obj_name:
-                # Parse the config similar to _parse_object_configs
-                return {
-                    "pass_index": pass_index,
-                    "operation": obj.get("operation", "Upsert"),
-                    "externalId": obj.get("externalId", "Id"),
-                    "query": query,
-                    "fields": self._parse_select_fields(query),
-                    "excluded": obj.get("excluded", False),
-                    "deleteOldData": obj.get("deleteOldData", False),
-                    "skipExistingRecords": obj.get("skipExistingRecords", False),
-                }
+                # Through the shared normalizer, not a hand-rolled copy of it. This was the copy, and
+                # it is why "the single point that makes the file total" was a false claim when it was
+                # written: the normalizer grew a `str(externalId)` coercion and this sibling, 143
+                # lines away, did not — so a non-string externalId still aborted the whole run for any
+                # plan with an `objectset_source/` override, which `qb/en-US/qb-billing` has. Three
+                # config builders drifting is the shape of the bug; two were already merged, this is
+                # the third.
+                return self._normalize_object_config(obj, query, pass_index)
 
         return None
 
@@ -882,7 +907,8 @@ class SFDMUValidator:
         # than Info. Same merged-config trap as `operation`, which `_objects_owing_root_csv` exists
         # to avoid, so defer to it — it enumerates passes and already skips the excluded ones.
         # `objects_owing_root_csv and` used to guard this, left over from the `Optional` signature.
-        # Dead once the parameter became a required set — an empty set already fails the `in` — and
+        # Dead once the parameter became required — an empty mapping already fails the `in`, and it is
+        # a `Dict[str, List[dict]]` now rather than the `Set[str]` an earlier version passed — and
         # worse than dead: it read as if `None` were still reachable, which the docstring above
         # explicitly says it is not.
         if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
@@ -908,15 +934,43 @@ class SFDMUValidator:
         for cfg in self._dedup_configs(declarations, self._OPERATION_CHECK_KEYS):
             self._validate_operation_value(obj_name, cfg, result)
 
-        # externalId is *not* swept the same way, and the reason is worth stating because sweeping it
-        # is the obvious move: its SELECT-coverage check is only meaningful for a pass that reads a
-        # file. Later passes are commonly activations with a deliberately narrow `SELECT` and an
-        # inherited composite externalId, so validating every declaration reported 241 High findings
-        # against correct plans — a 34x false-positive rate, the same class of noise pack 123 fixed.
-        # Scoped to the passes that read the root file; objects owing no root file keep the single
-        # merged-config check they have always had. No re-dedup: the list arrives deduped on the union
-        # of what its consumers read, this check included. A narrower re-dedup here would be
-        # redundant, and a *wider* one upstream is what the union prevents.
+        # A non-string `externalId` is reported rather than silently accepted. Coercing it to `str`
+        # in `_normalize_object_config` is what stops it aborting the whole run, but the coerced repr
+        # matches no downstream gate, so without this the plan reports nothing — the trade the
+        # normalizer's docstring first claimed it had avoided. Swept across every declaration, since
+        # any pass can carry one, and deduped on the value so one malformed declaration is one issue.
+        for cfg in self._dedup_configs(
+                [c for by in [all_pass_configs.get(obj_name, {})] for cs in by.values() for c in cs
+                 if c.get("externalId_malformed")], ("externalId",)):
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name=obj_name,
+                message=(f"externalId is not a string: {cfg.get('externalId')} — SFDMU expects a "
+                         f"';'-delimited field list, so this declaration cannot match target records"),
+            ))
+
+        # externalId is *not* swept across every declaration, and the honest reason is narrower than
+        # the one that was written here first. **Measured on this tree, scoping makes no difference:**
+        # sweeping every normalized declaration leaves High at 7 and produces 0 SELECT-coverage
+        # findings, identical to the scoped form. The earlier claim — that sweeping "reported 241 High
+        # findings against correct plans" because later passes are narrow-SELECT activations — is
+        # false, and worth correcting rather than deleting, because it would tell a future reader this
+        # line is holding back a flood and make them refuse a simplification on evidence that does not
+        # exist. No later-pass declaration in this repo has that shape.
+        #
+        # The flood was real but came from somewhere else: **un-normalized** declarations, whose
+        # derived `fields` is absent, so every externalId component reads as missing from the SELECT.
+        # Forcing `fields` empty gives 252 High / 245 SELECT-coverage findings — and gives the *same*
+        # 252 whether scoped or swept, which is the proof that normalization fixed it and scoping did
+        # not. (Earlier notes said 241 and 258; both are unreproducible artifacts of intermediate
+        # trees. The number depends on the reconstruction, which is why the mechanism above is stated
+        # instead of a figure alone.)
+        #
+        # Scoping stays because it is semantically right, not because it is load-bearing: a pass that
+        # reads no file cannot have a SELECT-coverage defect. That property is real in the abstract
+        # and pinned by a synthetic case (a Readonly later pass with a narrow SELECT), since no plan
+        # in the tree exercises it. No re-dedup here: the list arrives deduped on the union of what
+        # its consumers read, this check included.
         reading_configs = objects_owing_root_csv.get(obj_name) or [obj_config]
         for cfg in reading_configs:
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
@@ -1334,12 +1388,21 @@ class SFDMUValidator:
             # Empty-CSV headers are written from whichever reading pass comes first, since the file
             # stops being empty after that and the remaining declarations no-op. Composite-key fixes
             # are idempotent via `_csv_missing_composite_key`, so iterating cannot double-write.
+            # Tracked across declarations because `--dry-run` does not mutate the file, so the
+            # `_is_csv_empty` / `_csv_missing_composite_key` probes that make a real run's second
+            # iteration a no-op stay true — two passes then proposed two headers for one file (only
+            # the first of which a real run writes) and double-counted every composite column. A real
+            # run's byte output was always correct; the dry-run *report* was not, which is worse than
+            # a wrong count, because the dry run is what people read before deciding to apply it.
+            header_written = False
+            columns_written = set()
             for cfg in (objects_owing_root_csv or {}).get(obj_name) or [obj_config]:
                 # Fix missing headers
-                if self.fix_headers and self._is_csv_empty(csv_path):
+                if self.fix_headers and not header_written and self._is_csv_empty(csv_path):
                     headers = cfg.get("fields", [])
                     if self._fix_empty_csv_header(csv_path, headers, obj_name):
                         headers_fixed += 1
+                        header_written = True
 
                 # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
                 if self.fix_composite_keys and not self._is_csv_empty(csv_path):
@@ -1349,9 +1412,11 @@ class SFDMUValidator:
                         composite_col_name = self._build_composite_key_column_name(fields)
 
                         # Check if column is missing using helper method
-                        if self._csv_missing_composite_key(csv_path, composite_col_name):
+                        if (composite_col_name not in columns_written
+                                and self._csv_missing_composite_key(csv_path, composite_col_name)):
                             if self._fix_missing_composite_key(csv_path, fields, obj_name):
                                 composite_keys_fixed += 1
+                                columns_written.add(composite_col_name)
 
         return headers_fixed, composite_keys_fixed
 

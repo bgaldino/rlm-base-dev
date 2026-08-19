@@ -20,7 +20,9 @@ Run: `python tests/test_sfdmu_csv_expectation.py` (offline, no org).
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import pathlib
 import re
@@ -97,6 +99,28 @@ def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags
         V.SFDMUValidator(base_dir=str(plan.parent), verbose=False, **fix_flags).validate_dataset(plan)
         return {p.relative_to(plan).as_posix(): p.read_bytes()
                 for p in sorted(plan.rglob("*.csv"))}
+
+
+def fix_mode_proposals(plan_body, root_files=None, **fix_flags):
+    """`--dry-run` proposal lines from a fix run — what an operator reads before applying it.
+
+    `fix_mode_writes` cannot see this: a dry run writes nothing, so byte comparison is blind to a
+    report that proposes two conflicting headers for one file, or double-counts a column. That is
+    exactly what per-declaration iteration produced, because the `_is_csv_empty` /
+    `_csv_missing_composite_key` probes that make a real run's second iteration a no-op stay true when
+    nothing is written.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps(plan_body))
+        for name, body in (root_files or {}).items():
+            (plan / name).write_text(body)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
+                             dry_run=True, **fix_flags).validate_dataset(plan)
+        return [ln.strip() for ln in buf.getvalue().splitlines() if "Would add" in ln]
 
 
 def merged_config_fix_converges():
@@ -275,6 +299,15 @@ FIX_MODES = [
      False, [n for n, b in fix_mode_writes(
          {"objectSets": [{"objects": [UPSERT]}]}, {"Widget__c.csv": ""}, None,
          fix_headers=True, dry_run=True).items() if b.strip()]),
+    # The positive the case above needs. On its own, "--dry-run writes nothing" also passes when the
+    # root-CSV fixer stops running at all — stubbing `fix_dataset_issues` to return `(0, 0)` left it
+    # green — because its fixture has only a root CSV and it cannot tell "dry_run honored" from
+    # "nothing attempted". The one other positive in this group exercises the *per-pass* fix loop, so
+    # `fix_dataset_issues`, the root-CSV writer, had no positive coverage anywhere.
+    ("--fix-headers writes a header into an empty ROOT CSV, so the root-CSV fixer has a positive",
+     True, [n for n, b in fix_mode_writes(
+         {"objectSets": [{"objects": [UPSERT]}]}, {"Widget__c.csv": ""}, None,
+         fix_headers=True).items() if n == "Widget__c.csv" and b.strip()]),
     # The directory that maps to no pass is now a finding, not just a WARN suppressed at default
     # verbosity — before this, a mistyped name meant every CSV under it was silently never read.
     ("an object-set-0 directory is REPORTED, so a mistyped directory name is not invisible",
@@ -300,6 +333,23 @@ PER_PASS_IS_VALIDATED = [
     ("an object-set-0 directory is not silently attributed to the last pass",
      False, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
              if "no matching object" in i]),
+    # The positive that negative needs. Nothing required the `no matching object` message to fire, so
+    # renaming it left the case above green — a control that cannot distinguish "correctly silent" from
+    # "the check is gone". Here the object is declared only in pass 1 while an override sits in
+    # `object-set-2`, which is the misfiled-override shape that message exists to report.
+    ("a misfiled override — a CSV in a pass that does not declare the object — is reported",
+     True, [i for i in issues([[UPSERT], [{"query": "SELECT Id, Name FROM Other__c",
+                                           "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": HEADER, "Other__c.csv": HEADER},
+                              {2: {"Widget__c.csv": HEADER}})
+            if "no matching object" in i]),
+    # Severity, not just presence. The empty-CSV case above filters on the message alone, so demoting
+    # every empty CSV from Critical to High — `if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:` → `if
+    # True:` — left it green, and the live baseline cannot see it either because the 7 mfg findings are
+    # already High. `Widget__c` is not a known-empty object, so its empty CSV must be Critical.
+    ("an empty CSV for an object NOT on the known-empty list is Critical, not merely reported",
+     True, [i for i in issues([[UPSERT]], {"Widget__c.csv": ""})
+            if i.startswith("Critical/") and "empty" in i.lower()]),
 ]
 
 
@@ -324,12 +374,15 @@ MERGED_CONFIG = [
      False, [i for i in issues([[_RO_FIRST], [_UP_SECOND]],
                                {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
              if "apiVersion" not in i]),
-    # The guard on the fix's own blast radius, in the direction that actually bit. Applying the
-    # externalId/SELECT-coverage check to declarations that do *not* read the root file reported 241
-    # spurious High findings on correct plans. A Readonly later pass is the clearest case: it reads
-    # nothing from a file, and commonly carries a narrow SELECT with an inherited composite key, so
-    # it must contribute no coverage finding. (The blunt guard on the whole 241 is the live-tree
-    # baseline below — a synthetic cannot stand in for 39 real plans, and should not pretend to.)
+    # A pass that reads no file cannot have a SELECT-coverage defect, and a Readonly later pass is the
+    # clearest case: it carries a narrow SELECT with an inherited composite key. Synthetic because it
+    # has to be — **measured, no plan in this repo has that shape**, and sweeping every normalized
+    # declaration on the live tree changes nothing (High stays 7, 0 coverage findings). An earlier
+    # version of this comment claimed the scoping held back 241 spurious findings on real plans; it
+    # does not, and the figure does not reproduce. What produces the flood is *un-normalized*
+    # declarations, whose empty `fields` makes every component read as missing — 252 High / 245
+    # coverage findings, identically whether scoped or swept. So this case guards a real property that
+    # the live baseline cannot see, which is the reason it exists; it is not a proxy for a live count.
     ("a Readonly later pass with a narrow SELECT contributes no externalId coverage finding",
      False, [i for i in issues(
          [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
@@ -339,7 +392,8 @@ MERGED_CONFIG = [
          if "not found in query SELECT clause" in i]),
     # And the reason a raw declaration cannot be substituted for a normalized one: the checks read
     # derived keys (`fields`, the parsed SELECT), not the raw JSON. Passing raw declarations made
-    # `fields` empty and every externalId component read as absent — the mechanism behind those 241.
+    # `fields` empty and every externalId component read as absent — 252 High on the live tree against
+    # 7, which is the real mechanism behind the flood earlier notes misattributed to pass scoping.
     # Asserts the parsed *value*, not the key's presence: a raw declaration has no `fields` key at
     # all, so a presence check passes for a normalized config carrying an empty list — which is
     # exactly the broken state — and the case would read green while proving nothing.
@@ -383,6 +437,25 @@ MERGED_CONFIG = [
          [[{"query": "SELECT Id, Name FROM Widget__c", "operation": [["x"]], "externalId": "Name"}]],
          {"Widget__c.csv": "Id,Name\n1,a\n"})
          if "operation" in i]),
+    # Coercing externalId to str stops four downstream `.split(";")` sites aborting the whole run, but
+    # the coerced repr matches no gate, so coercion alone traded a crash for silence — the plan reported
+    # nothing. Both halves need pinning: dropping the `str()` reintroduces the crash, dropping the
+    # report reintroduces the silence, and neither was detectable before.
+    ("a non-string externalId is reported rather than silently accepted or raised",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": ["Name", "Code"]}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "externalId is not a string" in i]),
+    # A non-string `query` reached `re.search` and raised TypeError out of main(), same whole-run abort.
+    # The declaration is skipped (its object name is unknowable), so the assertion is that the run
+    # completes — which for this plan means the *other* object is still validated rather than lost.
+    ("a non-string query skips its declaration instead of aborting the run",
+     True, [i for i in issues(
+         [[{"query": ["SELECT Id FROM Widget__c"], "operation": "Upsert", "externalId": "Name"},
+           {"query": "SELECT Id, Name FROM Other__c", "operation": "Upsert", "externalId": "Name"}]],
+         None)
+         if "Other__c" in i]),
     # ...and the inverse: `deleteOldData` was NOT in the key but IS read (it waives the composite-key
     # requirement), so two passes differing only in it collapsed to whichever came first and the
     # verdict flipped with declaration order. The waiving declaration is first here; the other must
@@ -412,6 +485,41 @@ MERGED_CONFIG = [
     # validate, fix, re-validate clean.
     ("--fix-all clears the pass-2 composite-key finding rather than leaving it standing",
      False, merged_config_fix_converges()),
+    # The same `excluded` stance, one layer down and reached by a different route. `writable_passes`
+    # drops a pass whose *only* declaration is excluded, but a pass declaring the object twice — once
+    # excluded — contributed the excluded one to the reading list, and widening the dedup key to
+    # include `fields` stopped it collapsing into its sibling. The non-excluded declaration here
+    # selects `Code`, so a coverage finding can only come from the excluded one.
+    ("an excluded declaration sharing a pass contributes no externalId coverage finding",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"},
+           {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "Name;Code",
+            "excluded": True}]],
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "not found in query SELECT clause" in i]),
+    # One file, one header proposal. Two reading passes with different SELECTs proposed two — and only
+    # the first is what a real run writes, so the dry run described an outcome that would not happen.
+    # Worse than a wrong count: the dry run is what an operator reads before deciding to apply it.
+    ("--dry-run proposes one header per file, not one per reading pass",
+     False, fix_mode_proposals(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name;Code"}]},
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name;Code"}]}]},
+         {"Widget__c.csv": ""}, fix_headers=True)[1:]),
+    # Same defect on the composite-key half, which the case above cannot reach: an empty CSV skips the
+    # composite fix entirely (`not _is_csv_empty`), so it takes a populated file missing the column.
+    # Both passes differ in SELECT, so both survive dedup on the reading key and both would propose.
+    ("--dry-run proposes one composite column per file, not one per reading pass",
+     False, fix_mode_proposals(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name;Code"}]},
+             {"objects": [{"query": "SELECT Id, Name, Code, X__c FROM Widget__c",
+                           "operation": "Upsert", "externalId": "Name;Code"}]}]},
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"}, fix_composite_keys=True)[1:]),
     # SFDMU does not process an excluded declaration, so its `operation` is inert. Sweeping every
     # declaration reported one anyway — a false positive the merged-config version never produced,
     # and the only new one this refactor introduced.
@@ -455,8 +563,34 @@ def live_baseline():
 
 # The count words the repo actually writes, plus every neighbour of 7 — a wrong claim is most
 # likely to be off by one, and a detector that only knows the right word cannot see a wrong one.
-_WORD_COUNTS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
-                "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+# `no`/`none` are in the table because "no High findings remain" is the most likely wording the day
+# pack 110 lands, which is the exact moment this sweep exists for.
+_WORD_COUNTS = {"zero": 0, "no": 0, "none": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+
+# The files that state the baseline, pinned as a literal. Not a count — a *set*, which is a different
+# thing and does not have the staleness problem the count had, because a file entering or leaving this
+# list is a deliberate act rather than a side effect of an edit elsewhere.
+#
+# Pinned because validating the discovered values cannot defend discovery itself. With only a
+# non-empty assertion downstream, a site left the sweep silently whenever its wording stopped
+# matching, and its now-stale claim went unread: `**seven High**` → `**eight remaining High**` passed
+# green (one ordinary word between count and noun), as did moving the number after the noun
+# ("High findings remaining: eight") and dropping the count altogether. Every one of those is a
+# natural edit. Broadening the pattern helps and is not sufficient — two of those three used words the
+# table already had — because the failure is structural: a regex-discovered set has no floor.
+_EXPECTED_BASELINE_FILES = frozenset({
+    ".cursor/skills/doc-consistency/SKILL.md",
+    ".cursor/skills/sfdmu-data-plans/SKILL.md",
+    "AGENTS.md",
+    "docs/features/composable-quote-approvals.md",
+    "scripts/ai/README.md",
+    "scripts/ai/pr_gate.py",
+    # Found only after the pattern was loosened to allow words between the count and the noun
+    # ("the seven remaining High findings"). It had been stating the baseline outside the sweep the
+    # whole time, which is the failure mode the pin above exists to make loud.
+    "tests/test_pr_gate.py",
+})
 
 
 def baseline_sites():
@@ -486,8 +620,12 @@ def baseline_sites():
     Returns `{path: [(line_number, claimed_count), ...]}`.
     """
     counts = "|".join(_WORD_COUNTS)
+    # Up to two intervening words between the count and the anchor noun, because "eight remaining
+    # High findings" is an ordinary sentence and the tighter `[\s\-*`]*` form missed it — dropping the
+    # site from the sweep rather than failing. Bounded rather than open-ended so the count and the noun
+    # still have to be in the same clause; an unbounded gap matches across unrelated sentences.
     pattern = re.compile(
-        rf"\b(\d+|{counts})\b[\s\-*`]*(?:high|zero-byte)", re.IGNORECASE)
+        rf"\b(\d+|{counts})\b[\s\-*`]*(?:\w+[\s\-*`]+){{0,2}}(?:high|zero-byte)", re.IGNORECASE)
     roots = ["AGENTS.md", "scripts/ai", "docs/features", ".cursor/skills", "tests"]
     sites = {}
     for root in roots:
@@ -513,6 +651,9 @@ def baseline_sites():
 
 _sev, _plans = live_baseline()
 _sites = baseline_sites()
+# Symmetric difference, so both directions fail with the offending file named: a site that stopped
+# matching the pattern (the silent-drop failure this pin exists for) and a new one nobody pinned.
+_site_drift = set(_sites) ^ _EXPECTED_BASELINE_FILES
 BASELINE = [
     ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
      False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
@@ -526,13 +667,17 @@ BASELINE = [
     ("all 7 are in mfg/en-US/mfg-multicurrency exactly, so the docs name the plan that has them",
      True, sorted(_plans) if _plans == {"mfg/en-US/mfg-multicurrency"} else []),
     # Not an assertion about *how many* sites there are — that number went stale twice as prose and
-    # would go stale again as a literal here. It asserts that the sweep set is non-empty and that
-    # every site claims the real baseline, and prints them, so a failure arrives with the list of
-    # files to edit attached.
-    (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across "
-     f"{len(_sites)} file(s), swept together: "
+    # would go stale again as a literal here. The *set of files* is pinned instead, which a count
+    # cannot be: this is what gives discovery a floor, so a site that stops matching the pattern fails
+    # here rather than leaving the sweep with its stale claim unread. Prints the symmetric difference,
+    # so a failure names the file that appeared or vanished rather than just the totals.
+    (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across exactly the "
+     f"{len(_EXPECTED_BASELINE_FILES)} pinned file(s): "
      + ", ".join(f"{f}:{','.join(str(n) for n, _ in ls)}" for f, ls in sorted(_sites.items())),
-     True, sorted(_sites)),
+     True, sorted(_sites) if not _site_drift else []),
+    (f"...and the pinned file set matches discovery exactly"
+     + (f" — DRIFT: {sorted(_site_drift)}" if _site_drift else ""),
+     False, sorted(_site_drift)),
     (f"...and every one of them claims {_sev.get(V.Severity.HIGH.value, 0)}, the live High count",
      True, [f"{f}:{n}={c}" for f, ls in sorted(_sites.items()) for n, c in ls]
            if _sites and all(c == _sev.get(V.Severity.HIGH.value, 0)

@@ -3987,10 +3987,34 @@ def named_paths(py_file, joins_only=False):
     # each one is a valid rooted path — reporting the prefixes as separate reads.
     partial = {id(n.left) for n in ast.walk(tree)
                if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)}
+    # Constants that are *segments* of a path built elsewhere — `os.path.join(REPO, "docs", "erds",
+    # "README.md")`, `tmp_path / "cumulusci.yml"`. The chain branches below already resolve those,
+    # correctly and with their prefix. Only a standalone constant is a repo-relative path, so the
+    # slash-free branch has to exclude segments or it reads the last one as a root-level file:
+    # `docs/erds/README.md` became a claimed read of `README.md`, four times over.
+    segments = {id(a) for n in ast.walk(tree) if isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute) and n.func.attr == "join" for a in n.args}
+    segments |= {id(n.right) for n in ast.walk(tree)
+                 if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)}
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and not joins_only:
             if "/" in node.value and not node.value.startswith(("/", "http")):
                 found.add(node.value.strip("/"))
+            # A slash-free constant naming a real repo entry — `"AGENTS.md"`, `"tests"`. The
+            # slash-only rule made these invisible, so a file reading them appeared to read nothing
+            # there and its trigger could be deleted with this suite green: three of
+            # `sfdmu_csv_expectation`'s survived exactly that way. Existence-gated, and restricted to
+            # a name with a suffix or a directory, so an arbitrary word is not promoted to a path
+            # because the repo happens to contain something spelled like it.
+            # Shape-gated *before* touching the filesystem: every docstring in the file is a string
+            # constant too, and passing one to `Path.exists()` raises `OSError: File name too long`
+            # rather than returning False.
+            elif (id(node) not in segments
+                    and re.fullmatch(r"[\w.\-]{1,64}", node.value)
+                    and not node.value.startswith(".")):
+                target = pathlib.Path(REPO) / node.value
+                if target.exists() and (target.is_dir() or target.suffix):
+                    found.add(node.value)
         elif isinstance(node, ast.BinOp):
             # repo_root / "tui-cci" — a single root-level segment carries no slash to
             # recognise it by, so this read stayed invisible: the launcher had no trigger at

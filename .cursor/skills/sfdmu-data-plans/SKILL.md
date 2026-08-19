@@ -294,9 +294,10 @@ identical finding (`CostBook`, `CostBookEntry`) and was resolved by removal in `
 `datasets/sfdmu/test/` is a developer-local scratch area for experimental and throwaway plans. It is:
 
 - **Gitignored** — `datasets/sfdmu/test/**` in `.gitignore`; never committed or pushed
-- **Excluded from validation** — `validate_sfdmu_v5_datasets.py` skips `test/` and `*.bak` (and
+- **Excluded from validation** — `validate_sfdmu_v5_datasets.py` skips `test/` (and
   `objectset_source/`, `processed/`, `source/`, `logs/`) when *discovering* plans, via
-  `_SKIP_SEGMENTS`. Note that `objectset_source/` is skipped only as a plan root: within a plan the
+  `_SKIP_SEGMENTS`, plus `*.bak` via a separate suffix branch in `_is_skippable_export` — named
+  because grepping `_SKIP_SEGMENTS` for the `.bak` behavior does not find it. Note that `objectset_source/` is skipped only as a plan root: within a plan the
   validator reads it as a first-class CSV location — see *Where a plan's CSVs live*
 - **Not referenced** by any shipped task, flow, CI job, or test
 
