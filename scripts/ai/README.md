@@ -727,8 +727,10 @@ the token scopes are now pinned beside the identities.
 Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they are.
 `runs-on: self-hosted` moves the gate onto a machine the repository does not control, which makes the
 verdict meaningless — a real hole. The job *name* is load-bearing for a different reason: it is the
-string a branch ruleset matches, so renaming the job silently un-requires the check, which is precisely
-the failure mode of the still-open carry-out that the check is not yet required. The concurrency group is
+string a branch ruleset matches, so renaming the job silently un-requires the check. That was a
+hypothetical when the rule was written and is now the live failure mode: the check **is** required, so a
+rename does not merely rename it — it removes the requirement, and nothing reports that it did. The
+concurrency group is
 the weakest of the three and is pinned on principle rather than a demonstrated bypass — made constant,
 one PR's run cancels another's, and a cancelled run is not a pass but it is also not a verdict. Naming
 which of the three is which matters more than pinning all three, because a list of rules that does not
@@ -1384,8 +1386,8 @@ either would have merged unexercised. And the gate's own unclaimed-suite check c
 suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
-`.github/workflows/pr-checks.yml`, added by `#264-58`; making it a *required* check is repository
-settings and remains open (pack 125).
+`.github/workflows/pr-checks.yml`, added by `#264-58`; `Mechanical checks` is a **required** status
+check on `main`, `264` and `release/*` (repository settings, applied separately from the workflow).
 
 ---
 
