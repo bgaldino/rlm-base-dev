@@ -727,14 +727,21 @@ the token scopes are now pinned beside the identities.
 Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they
 are. `runs-on: self-hosted` moves the gate onto a machine the repository does not control, which
 makes the verdict meaningless — a real hole. The job *name* is load-bearing for a different reason:
-it is the string a branch ruleset matches, so renaming the job silently un-requires the check. That
-was a hypothetical when the rule was written and is now the live failure mode: the check **is**
-required, so a rename does not merely rename it — it removes the requirement, and nothing reports
-that it did. The concurrency group is the weakest of the three and is pinned on principle rather
-than a demonstrated bypass — made constant, one PR's run cancels another's, and a cancelled run is
-not a pass but it is also not a verdict. Naming which of the three is which matters more than
-pinning all three, because a list of rules that does not say what each one buys is how the vacuous
-ones survived this long.
+it is the string a branch ruleset matches, and that ruleset lives outside this repo. The consequence
+was stated backwards here until #387's review caught it: a rename does **not** un-require the check.
+The ruleset keeps requiring the old context, nothing publishes it, and it sits **Pending** on every
+PR to a protected branch — so a rename fails *closed*, as a repo-wide merge outage rather than a
+silent bypass. Verifiable rather than asserted: the ruleset stores the requirement as the literal
+string `{"context": "Mechanical checks", "integration_id": 15368}` (`gh api
+repos/<owner>/<repo>/rulesets/<id>`), so nothing about it changes when the workflow does. #387
+demonstrated the identical end state by accident when a skip directive produced no run: required
+context unreported, `mergeStateStatus=BLOCKED`. The bypass hazard has the opposite shape and is
+covered separately below — a *second* job publishing the same name, because the requirement is
+satisfied by the most recent check run bearing it. The concurrency group is the weakest of the three
+and is pinned on principle rather than a demonstrated bypass — made constant, one PR's run cancels
+another's, and a cancelled run is not a pass but it is also not a verdict. Naming which of the three
+is which matters more than pinning all three, because a list of rules that does not say what each
+one buys is how the vacuous ones survived this long.
 
 **The last eight are the same lesson one level down: a whitelist of words is not a whitelist of
 commands.** The job-scope vocabulary admitted `git` with the subcommands `fetch` and `rev-parse` and

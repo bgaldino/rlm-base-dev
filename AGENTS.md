@@ -232,9 +232,14 @@ quotes one skips every workflow — and the commits most likely to quote one are
 paragraph. Name the directives in commit messages; never write their bracketed form there. File
 contents are unaffected, which is why the list above is safe here.
 
-The requirement is matched on the **job's published name**, so renaming `name: Mechanical checks` in
-the workflow silently un-requires it; the guard suite pins that string for this reason, and the pin is
-not cosmetic.
+The requirement is matched on the **job's published name**, and the ruleset lives outside this repo,
+so renaming `name: Mechanical checks` does not un-require anything — the ruleset goes on waiting for
+a context nobody publishes, which leaves it **Pending** on every PR to `main`, `264` and `release/*`
+at once. That is the same mechanism as a skipped run, and it fails *closed*: a rename is a repo-wide
+merge outage, not a bypass. The guard suite pins that string for this reason, and the pin is not
+cosmetic. (The bypass hazard is the opposite shape — a *second* job publishing the same name, since
+the requirement is satisfied by the most recent check run bearing it. The suite pins the published
+set for that.)
 
 And admins keep `always` bypass, unchanged from the ruleset's three pre-existing rules, so a red gate
 can still be overridden deliberately. Treat doing so as a decision to record, not a workaround.
