@@ -236,9 +236,8 @@ The requirement is matched on the **job's published name**, so renaming `name: M
 the workflow silently un-requires it; the guard suite pins that string for this reason, and the pin is
 not cosmetic.
 
-And admins keep `always` bypass, unchanged from the ruleset's three pre-existing rules — so a red gate
-can still be merged past. Treat doing so as a decision to record, not a workaround. Admins retain `always` bypass, so a red
-gate can still be overridden deliberately — treat doing so as a decision, not a workaround.
+And admins keep `always` bypass, unchanged from the ruleset's three pre-existing rules, so a red gate
+can still be overridden deliberately. Treat doing so as a decision to record, not a workaround.
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
