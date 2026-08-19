@@ -155,12 +155,17 @@ CHECKS = [
         # this suite is about whether the validator still asks for a root CSV where one is owed. It
         # runs on synthetic fixtures, so it is green on a clean tree and can gate.
         #
-        # `datasets/sfdmu/` is deliberately NOT a trigger. The suite reads nothing there — tempdirs
-        # only — so selecting it on a dataset edit could not report anything about that edit, and
-        # over-selection is drift in a matrix whose job is preventing drift (see erd_doc_counts).
-        # The dataset-facing check is `sfdmu_datasets`, which already triggers on `datasets/`.
+        # `datasets/sfdmu/` IS a trigger, and the reason is worth keeping because it was wrong once
+        # in each direction. The suite began hermetic — synthetic tempdirs only — so the trigger was
+        # over-selection and was dropped. Then it gained `live_baseline()`, which asserts the real
+        # tree's finding counts (0 Critical, 7 High, all in mfg-multicurrency) so the four documents
+        # quoting those numbers cannot drift. That made the suite dataset-reading, and left the two
+        # halves contradicting each other: the change that breaks the baseline is a `datasets/` edit,
+        # and pack 110 deleting mfg-multicurrency would not have selected the suite it fails. A
+        # forcing function that its own triggering change cannot reach is worse than none — the red
+        # is not avoided, only deferred onto the next unrelated PR that touches the validator.
         triggers=["scripts/validate_sfdmu_v5_datasets.py",
-                  "tests/test_sfdmu_csv_expectation.py"],
+                  "tests/test_sfdmu_csv_expectation.py", "datasets/sfdmu/"],
         deps=[], gating=True,
     ),
     dict(

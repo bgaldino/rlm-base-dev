@@ -5050,13 +5050,30 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 679
+EXPECTED = 680
 cited = README_COUNT.search(
     pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
       "from the suite (README_COUNT is the sentence it reads)",
       cited is not None and int(cited.group(1)) == EXPECTED,
       cited.group(1) if cited else "the sentence README_COUNT matches is gone")
+
+# The *matrix* size is a second hand-maintained figure and drifted the same way: adding one check
+# left five sentences saying "fourteen"/"14 checks", found by review rather than here. Word form as
+# well as digits, because four of the five spell it out. Only sentences about the matrix count —
+# `MATRIX_SIZE_PROSE` deliberately anchors on phrases that describe CHECKS, since "fourteen" also
+# appears in unrelated incident narration that must not be rewritten.
+_NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
+              18: "eighteen", 19: "nineteen", 20: "twenty"}
+_readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
+_actual = len(pr_gate.CHECKS)
+_stale = [w for n, w in _NUM_WORDS.items() if n != _actual
+          for pat in (f"of {w} validators", f"two of the {w}", f"all {w} ran",
+                      f"each of the {w} trigger lists", f"run is {n} checks")
+          if pat in _readme_text]
+check(f"no sentence in scripts/ai/README.md describes the CHECKS matrix with a size other than "
+      f"{_actual} ({_NUM_WORDS.get(_actual, _actual)})",
+      not _stale, _stale)
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

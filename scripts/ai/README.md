@@ -266,7 +266,7 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of fourteen validators a given diff should have run.
+of fifteen validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
@@ -300,7 +300,8 @@ directions in 13 cases. Two mechanisms make that pinning necessary rather than d
 config would let a `Readonly` first pass silence a writable later pass. And the exemption has to be
 keyed on the **pass**, not the object: `BillingPolicy` in `qb-billing` is `Upsert` in pass 1 and
 `Update` in pass 3 with an override only for pass 3, so a name-keyed exemption stops checking the
-root CSV that pass 1 reads — 16 objects across 7 wired plans have that shape, against exactly one
+root CSV that pass 1 reads — 16 objects across 7 scanned plans have that shape (11 in the 5 that
+`cumulusci.yml` wires), against exactly one
 (`procedure-plans/ProcedurePlanOption`) declared in a single pass.
 Seven **High** findings remain — zero-byte `Upsert` CSVs under
 `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but dormant, and
@@ -492,15 +493,15 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 14 checks in about 17 seconds, of which the branch-scope *suite*
+A full `--all` run is 15 checks in about 17 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the fourteen
+selection is a couple of seconds. That timing is measured on a machine where two of the fifteen
 (`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
+is worth naming rather than leaving the reader to assume all fifteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (679 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (680 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -520,7 +521,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the fourteen trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the fifteen trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted

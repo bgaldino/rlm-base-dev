@@ -78,6 +78,27 @@ def criticals(objects, root_files=None, per_pass_files=None):
                   severity=V.Severity.CRITICAL)
 
 
+def flat_plan(per_pass=None):
+    """Criticals for a plan using the flat `objects` key rather than `objectSets`.
+
+    Both older plans and hand-written ones use this shape, and it is the shape the three
+    pass-resolving functions disagreed about. `per_pass` is keyed by directory number, so `{0: ...}`
+    writes a literal `object-set-0/` — a name that maps to pass_index -1.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps({"objects": [UPSERT]}))
+        for n, files in (per_pass or {}).items():
+            d = plan / "objectset_source" / f"object-set-{n}"
+            d.mkdir(parents=True, exist_ok=True)
+            for name, body in files.items():
+                (d / name).write_text(body)
+        result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
+        return [f"{i.object_name}: {i.message}" for i in result.issues
+                if i.severity == V.Severity.CRITICAL]
+
+
 CASES = [
     # (label, expect_critical, criticals)
     ("an Upsert object with no CSV anywhere still fails — the finding worth keeping",
@@ -108,6 +129,21 @@ CASES = [
     # Same merged-config trap, different key: `excluded` is also read from the first declaration.
     ("an object excluded in pass 1 but Upsert in pass 2, with no CSV, still fails",
      True, issues([[dict(UPSERT, excluded=True)], [UPSERT]], severity=V.Severity.CRITICAL)),
+    # The converse, and the direction a surviving mutation showed was unpinned: dropping the
+    # `excluded` skip in _writable_passes_by_object makes pass 2 count as writable, so the pass-1
+    # override no longer covers every writable pass and a spurious Critical appears.
+    ("an object Upsert in pass 1 with an override, excluded in pass 2, owes nothing",
+     False, issues([[UPSERT], [dict(UPSERT, excluded=True)]], None,
+                   {1: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
+    # A flat `objects` plan (no objectSets) with per-pass CSVs: three functions disagreed about
+    # normalizing that shape, so the CSVs were silently discarded behind a WARN suppressed at
+    # default verbosity. And `object-set-0` maps to pass_index -1, which an upper-bound-only check
+    # let through into a negative index — an IndexError aborting the whole run rather than
+    # reporting the one bad plan.
+    ("a flat objects-key plan supplies its CSV per-pass and owes nothing at the root",
+     False, flat_plan(per_pass={1: {"Widget__c.csv": HEADER}})),
+    ("a flat objects-key plan with an object-set-0 directory does not treat it as coverage",
+     True, flat_plan(per_pass={0: {"Widget__c.csv": HEADER}})),
     # A malformed plan must be reported, not crash the run — `.lower()` on a non-string aborts
     # every plan after it, which converts one bad plan into no validation at all.
     ("a non-string operation does not abort the run",
@@ -116,7 +152,8 @@ CASES = [
 
     # ---- the shape that shipped broken, and the reason it shipped: nothing modelled a writable
     # pass with no override. This is `BillingPolicy` in qb/en-US/qb-billing (Upsert in pass 1,
-    # Update in pass 3, override only for pass 3) and 15 other objects across 7 wired plans.
+    # Update in pass 3, override only for pass 3) and 15 other objects across 7 scanned plans — 11 of
+    # them in the 5 plans cumulusci.yml wires.
     # Keyed on the object name, pass 1's root CSV stops being checked and the plan reports PASS
     # with it deleted — verified against the real plan, not only here.
     ("an object writable in two passes with an override for only ONE still owes its root CSV",
@@ -142,13 +179,28 @@ PER_PASS_IS_VALIDATED = [
      "the file merely existing",
      True, [i for i in issues([[UPSERT]], None, {1: {"Widget__c.csv": ""}})
             if "empty" in i.lower()]),
+    # `object-set-0` maps to pass_index -1. An upper-bound-only check (`pass_index >= len`) admits
+    # it, and the negative index then resolves to the LAST pass — so a misnamed directory is
+    # silently attributed to a real pass, and the per-pass loop reports the object as missing from
+    # "pass 0". Pinning the absence of that phantom report is the only externally visible
+    # difference the bounds fix makes, now that normalizing flat plans removed the IndexError it
+    # also used to cause. Known gap, deliberately not fixed here: a directory that maps to no pass
+    # still produces only a WARN, suppressed at default verbosity, rather than a finding.
+    ("an object-set-0 directory is not silently attributed to the last pass",
+     False, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
+             if "no matching object" in i]),
 ]
 
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
 
-    Four documents state this baseline so a reader can tell a regression from the known state, and
+    Seven sites across five files state this baseline so a reader can tell a regression from the
+    known state — `AGENTS.md`, `scripts/ai/README.md`, `pr_gate.py` twice (trigger comment and the
+    runtime `note=`), `.cursor/skills/doc-consistency/SKILL.md` twice, and
+    `docs/features/composable-quote-approvals.md`. Counting them was itself wrong once ("four
+    documents", written while adding two of the seven), which is the argument for the pin below
+    rather than against it. And
     an unpinned number in prose drifts — `pr_gate.py`'s advisory note said "9 findings ... are
     validator false positives" for one commit past the point where that became false, while the
     adjacent `678` figure stayed correct because a test forces it. This is that forcing function

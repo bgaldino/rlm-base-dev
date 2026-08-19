@@ -395,6 +395,22 @@ class SFDMUValidator:
 
         return data
 
+    @staticmethod
+    def _normalized_object_sets(export_data: dict) -> List[dict]:
+        """The plan's passes, with a flat `objects` plan presented as a single pass.
+
+        Three call sites need to agree on this and used to disagree: the writable-pass map
+        normalized flat plans, `_get_object_config_for_pass` read `objectSets` raw (so it resolved
+        nothing for a flat plan), and `_find_objectset_source_overrides` bounds-checked against the
+        raw list (so it discarded every per-pass CSV in a flat plan, reporting only a WARN that is
+        suppressed at default verbosity). Any two of those disagreeing is a silent wrong answer
+        rather than an error, so the normalization lives in one place.
+        """
+        object_sets = export_data.get("objectSets") or []
+        if not object_sets and "objects" in export_data:
+            return [{"objects": export_data["objects"]}]
+        return object_sets
+
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
 
@@ -405,11 +421,7 @@ class SFDMUValidator:
         pass has a file, rather than whether the object has one somewhere.
         """
         writable: Dict[str, Set[int]] = {}
-        object_sets = export_data.get("objectSets", [])
-        if not object_sets and "objects" in export_data:
-            object_sets = [{"objects": export_data["objects"]}]
-
-        for idx, obj_set in enumerate(object_sets):
+        for idx, obj_set in enumerate(self._normalized_object_sets(export_data)):
             for obj in obj_set.get("objects", []):
                 obj_name = self._extract_object_name(obj.get("query", ""))
                 if not obj_name or obj.get("excluded"):
@@ -434,7 +446,8 @@ class SFDMUValidator:
         `qb/en-US/qb-billing` is `Upsert` in pass 1 and `Update` in pass 3, and only pass 3 has an
         override. Exempting the object because *an* override exists means pass 1 — which reads the
         root file — stops being checked, and deleting that file leaves the plan reporting PASS.
-        Sixteen objects across seven wired plans have this shape; exactly one object in the repo
+        Sixteen objects across seven scanned plans have this shape — eleven of them in the five that
+        `cumulusci.yml` wires, the other five in `mfg-billing`/`mfg-tax`, which it does not; exactly one object in the repo
         (`procedure-plans/ProcedurePlanOption`) is declared in a single pass, which is the only
         shape a name-keyed gate gets right.
 
@@ -551,9 +564,11 @@ class SFDMUValidator:
             pass_number = int(match.group(1))  # 1-based
             pass_index = pass_number - 1  # Convert to 0-based index for objectSets array
 
-            # Check if this pass exists in export.json
-            object_sets = export_data.get("objectSets", [])
-            if pass_index >= len(object_sets):
+            # Check if this pass exists in export.json. Normalized, so a flat `objects` plan counts
+            # as one pass and its per-pass CSVs are read rather than silently discarded; and both
+            # bounds, so `object-set-0` (pass_index -1) is rejected instead of indexing from the end.
+            object_sets = self._normalized_object_sets(export_data)
+            if not 0 <= pass_index < len(object_sets):
                 self.log(f"Warning: {obj_set_dir.name} has no corresponding pass in export.json", level="WARN")
                 continue
 
@@ -576,8 +591,17 @@ class SFDMUValidator:
         Returns:
             Object configuration dict, or None if not found
         """
-        object_sets = export_data.get("objectSets", [])
-        if pass_index >= len(object_sets):
+        object_sets = self._normalized_object_sets(export_data)
+        # Both bounds, because `object-set-0` maps to pass_index -1 and an upper-bound-only check
+        # admits it, resolving the negative index against the LAST pass.
+        #
+        # Redundant today, and said plainly rather than left to look load-bearing: all three callers
+        # take `pass_index` from `_find_objectset_source_overrides`, which now applies the same
+        # check, so no input reaches here out of range and mutating this line kills no test. It
+        # stays as an argument-validity check on a helper that accepts an arbitrary int — but a
+        # guard no mutation can kill is exactly what this repo keeps learning to distrust, so it is
+        # labelled instead of counted as coverage.
+        if not 0 <= pass_index < len(object_sets):
             return None
 
         for obj in object_sets[pass_index].get("objects", []):
@@ -624,7 +648,7 @@ class SFDMUValidator:
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
-                         objects_owing_root_csv: Optional[Set[str]] = None):
+                         objects_owing_root_csv: Set[str]):
         """Validate a single object's CSV and configuration.
 
         Args:
@@ -633,8 +657,10 @@ class SFDMUValidator:
             obj_config: Object configuration from export.json
             result: ValidationResult to add issues to
             objects_owing_root_csv: Objects that must have a CSV at the plan root, per
-                `_objects_owing_root_csv`. `None` means the caller did not work it out, which
-                asks for the CSV — the safe direction.
+                `_objects_owing_root_csv`. Required, not defaulted: there is one call site and it
+                always computes the set, so an `Optional` default would be unreachable code —
+                including the two paragraphs that justified `None` as "the safe direction", which
+                no input exercised.
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
@@ -665,10 +691,7 @@ class SFDMUValidator:
         # shapes that owe nothing: Readonly in every pass (queried from the target org), and every
         # writable pass already supplied under objectset_source/ (an alternative location for the
         # same file, validated by _validate_per_pass_csv below).
-        #
-        # `None` means the caller did not work it out, which asks — the safe direction, since a
-        # spurious Critical is visible and a missing one is not.
-        if objects_owing_root_csv is None or obj_name in objects_owing_root_csv:
+        if obj_name in objects_owing_root_csv:
             csv_path = dataset_path / f"{obj_name}.csv"
             self._validate_csv_file(csv_path, obj_name, obj_config, result)
         else:
