@@ -1242,7 +1242,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 97 loosening probes, 47
+The corpus is kept for that reason — 147 mutations, 101 loosening probes, 47
 correct-edit assertions and 15 gate-script probes across six files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
