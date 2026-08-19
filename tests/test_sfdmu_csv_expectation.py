@@ -124,7 +124,7 @@ def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags
                 for p in sorted(plan.rglob("*.csv"))}
 
 
-def fix_mode_proposals(plan_body, root_files=None, **fix_flags):
+def fix_mode_proposals(plan_body, root_files=None, expect=None, **fix_flags):
     """`--dry-run` proposal lines from a fix run — what an operator reads before applying it.
 
     `fix_mode_writes` cannot see this: a dry run writes nothing, so byte comparison is blind to a
@@ -132,6 +132,14 @@ def fix_mode_proposals(plan_body, root_files=None, **fix_flags):
     exactly what per-declaration iteration produced, because the `_is_csv_empty` /
     `_csv_missing_composite_key` probes that make a real run's second iteration a no-op stay true when
     nothing is written.
+
+    `expect` makes the count assertable. Without it a caller could only test `[1:]` for emptiness,
+    which holds when there is one proposal *and* when this probe observes nothing — so renaming the
+    log line it greps for, or silencing the proposal, passed. Any stdout probe has that failure mode
+    by construction; the fix is to assert the exact count rather than the absence of extras. In
+    `expect` mode the return is inverted into the usual no-findings shape — empty on a match, and a
+    line naming both numbers on a mismatch — so an over-count *and* a probe that observed nothing both
+    fail, and the failure prints which it was.
     """
     with tempfile.TemporaryDirectory() as td:
         plan = pathlib.Path(td) / "plan"
@@ -143,7 +151,12 @@ def fix_mode_proposals(plan_body, root_files=None, **fix_flags):
         with contextlib.redirect_stdout(buf):
             V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
                              dry_run=True, **fix_flags).validate_dataset(plan)
-        return [ln.strip() for ln in buf.getvalue().splitlines() if "Would add" in ln]
+        lines = [ln.strip() for ln in buf.getvalue().splitlines() if "Would add" in ln]
+    if expect is None:
+        return lines
+    if len(lines) == expect:
+        return []
+    return [f"expected exactly {expect} proposal(s), observed {len(lines)}: {lines or 'nothing'}"]
 
 
 def merged_config_fix_converges():
@@ -580,25 +593,29 @@ MERGED_CONFIG = [
     # One file, one header proposal. Two reading passes with different SELECTs proposed two — and only
     # the first is what a real run writes, so the dry run described an outcome that would not happen.
     # Worse than a wrong count: the dry run is what an operator reads before deciding to apply it.
-    ("--dry-run proposes one header per file, not one per reading pass",
+    # Asserted as "exactly one", not as "nothing after the first". `[1:]` on the probe's output is
+    # empty both when there is one proposal and when the probe sees *nothing at all*, so renaming the
+    # log line or silencing the proposal entirely left this green — an unpaired negative of exactly the
+    # kind the round that added it claimed to have eliminated. `== 1` fails in both directions.
+    ("--dry-run proposes exactly one header per file, not one per reading pass",
      False, fix_mode_proposals(
          {"apiVersion": "68.0", "objectSets": [
              {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
                            "externalId": "Name;Code"}]},
              {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
                            "externalId": "Name;Code"}]}]},
-         {"Widget__c.csv": ""}, fix_headers=True)[1:]),
+         {"Widget__c.csv": ""}, fix_headers=True, expect=1)),
     # Same defect on the composite-key half, which the case above cannot reach: an empty CSV skips the
     # composite fix entirely (`not _is_csv_empty`), so it takes a populated file missing the column.
     # Both passes differ in SELECT, so both survive dedup on the reading key and both would propose.
-    ("--dry-run proposes one composite column per file, not one per reading pass",
+    ("--dry-run proposes exactly one composite column per file, not one per reading pass",
      False, fix_mode_proposals(
          {"apiVersion": "68.0", "objectSets": [
              {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
                            "externalId": "Name;Code"}]},
              {"objects": [{"query": "SELECT Id, Name, Code, X__c FROM Widget__c",
                            "operation": "Upsert", "externalId": "Name;Code"}]}]},
-         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"}, fix_composite_keys=True)[1:]),
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"}, fix_composite_keys=True, expect=1)),
     # SFDMU does not process an excluded declaration, so its `operation` is inert. Sweeping every
     # declaration reported one anyway — a false positive the merged-config version never produced,
     # and the only new one this refactor introduced.
@@ -647,29 +664,44 @@ def live_baseline():
 _WORD_COUNTS = {"zero": 0, "no": 0, "none": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
                 "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
 
-# The files that state the baseline, pinned as a literal. Not a count — a *set*, which is a different
-# thing and does not have the staleness problem the count had, because a file entering or leaving this
-# list is a deliberate act rather than a side effect of an edit elsewhere.
+# The plan holding the whole High baseline, written **repo-root-relative** rather than as the
+# `mfg/en-US/mfg-multicurrency` the validator reports. The suffix is what the assertion below needs;
+# the prefix is what makes this suite's dependency on `datasets/sfdmu/` visible to
+# `tests/test_pr_gate.py`, whose path enumerator reads string constants and cannot see a path built
+# inside `find_sfdmu_datasets()`. `pr_gate.py` argues at length that the `datasets/sfdmu/` trigger is
+# essential — pack 110 deleting this plan must select the suite that fails on it — and nothing
+# enforced the argument: the trigger could be deleted with all 680 pr_gate checks green. It cannot now.
+_BASELINE_PLAN = "datasets/sfdmu/mfg/en-US/mfg-multicurrency"
+
+# The baseline sites, pinned as `{file: how many times it states the baseline}`.
 #
 # Pinned because validating the discovered values cannot defend discovery itself. With only a
 # non-empty assertion downstream, a site left the sweep silently whenever its wording stopped
 # matching, and its now-stale claim went unread: `**seven High**` → `**eight remaining High**` passed
 # green (one ordinary word between count and noun), as did moving the number after the noun
-# ("High findings remaining: eight") and dropping the count altogether. Every one of those is a
-# natural edit. Broadening the pattern helps and is not sufficient — two of those three used words the
-# table already had — because the failure is structural: a regex-discovered set has no floor.
-_EXPECTED_BASELINE_FILES = frozenset({
-    ".cursor/skills/doc-consistency/SKILL.md",
-    ".cursor/skills/sfdmu-data-plans/SKILL.md",
-    "AGENTS.md",
-    "docs/features/composable-quote-approvals.md",
-    "scripts/ai/README.md",
-    "scripts/ai/pr_gate.py",
+# ("High findings remaining: eight") and dropping the count altogether. Broadening the pattern helps
+# and is not sufficient — two of those three used words the table already had — because the failure is
+# structural: a regex-discovered set has no floor.
+#
+# **Per-file counts, not a set of files**, and the distinction is the whole guard. The first version
+# pinned `frozenset(files)`, which defended only the four single-hit files: three of these state the
+# baseline more than once, and a multi-hit file keeps its dict key while *any* one of its hits
+# survives, so 7 of the 11 sites could be deleted outright with the suite green — including the
+# after-the-noun reword this comment names as one of the failures the pin exists to catch. The count
+# needed to see it was already being computed and printed in the passing message, then discarded.
+# That is the same shape as the defect, one level up: a guard whose own coverage nobody measured.
+_EXPECTED_BASELINE_SITES = {
+    ".cursor/skills/doc-consistency/SKILL.md": 2,
+    ".cursor/skills/sfdmu-data-plans/SKILL.md": 1,
+    "AGENTS.md": 2,
+    "docs/features/composable-quote-approvals.md": 1,
+    "scripts/ai/README.md": 1,
+    "scripts/ai/pr_gate.py": 3,
     # Found only after the pattern was loosened to allow words between the count and the noun
     # ("the seven remaining High findings"). It had been stating the baseline outside the sweep the
-    # whole time, which is the failure mode the pin above exists to make loud.
-    "tests/test_pr_gate.py",
-})
+    # whole time, which is the failure mode this pin exists to make loud.
+    "tests/test_pr_gate.py": 1,
+}
 
 
 def baseline_sites():
@@ -732,7 +764,11 @@ _sev, _plans = live_baseline()
 _sites = baseline_sites()
 # Symmetric difference, so both directions fail with the offending file named: a site that stopped
 # matching the pattern (the silent-drop failure this pin exists for) and a new one nobody pinned.
-_site_drift = set(_sites) ^ _EXPECTED_BASELINE_FILES
+_observed_sites = {f: len(hits) for f, hits in _sites.items()}
+_site_drift = sorted(
+    f"{f}: {_observed_sites.get(f, 0)} site(s), pinned {_EXPECTED_BASELINE_SITES.get(f, 0)}"
+    for f in set(_observed_sites) | set(_EXPECTED_BASELINE_SITES)
+    if _observed_sites.get(f, 0) != _EXPECTED_BASELINE_SITES.get(f, 0))
 BASELINE = [
     ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
      False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
@@ -743,20 +779,21 @@ BASELINE = [
     # `q3-multicurrency` — the very plan `dab545ab` deleted for carrying zero-byte CSVs of its own —
     # so the loose form would report the documentation green while the findings had moved to a
     # different plan than every one of those documents names.
-    ("all 7 are in mfg/en-US/mfg-multicurrency exactly, so the docs name the plan that has them",
-     True, sorted(_plans) if _plans == {"mfg/en-US/mfg-multicurrency"} else []),
-    # Not an assertion about *how many* sites there are — that number went stale twice as prose and
-    # would go stale again as a literal here. The *set of files* is pinned instead, which a count
-    # cannot be: this is what gives discovery a floor, so a site that stops matching the pattern fails
-    # here rather than leaving the sweep with its stale claim unread. Prints the symmetric difference,
-    # so a failure names the file that appeared or vanished rather than just the totals.
-    (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across exactly the "
-     f"{len(_EXPECTED_BASELINE_FILES)} pinned file(s): "
+    (f"all 7 are in {_BASELINE_PLAN} exactly, so the docs name the plan that has them",
+     True, sorted(_plans) if _plans == {_BASELINE_PLAN.split("datasets/sfdmu/", 1)[1]} else []),
+    # The per-file site counts are pinned, which is what gives discovery a floor: a site reworded out
+    # of the pattern, or deleted outright, fails here rather than leaving the sweep with its stale
+    # claim unread. Counts rather than a file set because three of these files state the baseline more
+    # than once, and a file set stays satisfied by any one surviving hit.
+    (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across "
+     f"{len(_EXPECTED_BASELINE_SITES)} pinned file(s): "
      + ", ".join(f"{f}:{','.join(str(n) for n, _ in ls)}" for f, ls in sorted(_sites.items())),
      True, sorted(_sites) if not _site_drift else []),
-    (f"...and the pinned file set matches discovery exactly"
-     + (f" — DRIFT: {sorted(_site_drift)}" if _site_drift else ""),
-     False, sorted(_site_drift)),
+    # Prints the per-file delta with both numbers, so a failure names the file and the direction rather
+    # than leaving a maintainer to diff two lists by eye.
+    ("...and every pinned file states it exactly as many times as pinned"
+     + (f" — DRIFT: {_site_drift}" if _site_drift else ""),
+     False, _site_drift),
     (f"...and every one of them claims {_sev.get(V.Severity.HIGH.value, 0)}, the live High count",
      True, [f"{f}:{n}={c}" for f, ls in sorted(_sites.items()) for n, c in ls]
            if _sites and all(c == _sev.get(V.Severity.HIGH.value, 0)
