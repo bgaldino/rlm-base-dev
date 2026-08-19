@@ -1128,7 +1128,8 @@ from writing into the checkout extracted a redirection's target with `(?<![0-9<>
 all. `echo x 2> scripts/ai/pr_gate.py` in the installer step passed every one of the suite's 370
 workflow assertions and truncates the script the next step runs, which then exits 0 having checked
 nothing; `1>`, `2>>` and `>&` did the same. Every row of the rule's own refusal table used a plain `>`,
-which is how it went eleven waves unnoticed — and the fix is to *consume* the descriptor rather than
+which is how it survived every wave from the one that introduced it to the twenty-fourth — the earlier
+figure here counted from the wrong end — and the fix is to *consume* the descriptor rather than
 exclude it. This one also lent its authority elsewhere: a second rule justified limiting its own subject
 set with "`redirections()` already refuses every other target", so an under-reading rule quietly
 weakened the rule that cited it. **A rule that cites another rule inherits its blind spot.**
@@ -1170,6 +1171,63 @@ is refused, and should be: `tee` is a write channel with a command's spelling, s
 scripts/ai/pr_gate.py` rewrites the script the job runs. Refusing it is the redirection ban applied to
 its command form. When the suite rejects an edit, the question is which of the two is wrong, and here it
 was the edit — it moved to the probe corpus, where it belongs.
+
+**The twenty-fifth wave's three holes were all the same shape: a whitelist that stopped short of the
+values it was written to control.** The `set` reader whitelisted the single-letter flags — the paragraph
+explaining why names `-n` (noexec) and `-t` (onecmd) as the two that defuse a step outright — and then
+collected `-o`'s *values* and asked only whether `pipefail` was among them. So `set -euo pipefail -o
+noexec` kept every required letter, turned on the exact option the letter whitelist exists to refuse,
+and passed: the step prints nothing and exits 0, so the gate never runs. `-o onecmd` is the same hole
+one word over. The long spelling walked straight through the door the short spelling was bolted shut on,
+which is what a vocabulary with two answers always does. The control table had a row for this — `set -eu
+-o noclobber` — and it passed for the wrong reason, because `pipefail` was absent from that row and the
+`-o` value was never read at all: **a fifth misattributed kill, and this one was hiding a live hole.**
+Folding the long names onto their letters closed it and also fixed the mirror-image false rejection,
+`set -o errexit -o nounset -o pipefail`, which turns on exactly what is required and was refused under
+the message this rule's own docstring calls the worst one to get wrong.
+
+The second is the first rule here that could not be written as a vocabulary rule at all. Bash exempts a
+failing left-hand side of an `&&` list from `set -e`, so the list returns non-zero *without* aborting and
+the step's status becomes whatever runs next:
+
+```
+false && echo hi                 → exit 1   # as the step's last command: the failure is the verdict
+false && echo hi   ; echo x      → exit 0   # one line earlier: a failing gate, reported green
+```
+
+The same text is correct in one position and catastrophic in the other, and the second needs no `exit`
+and no second operator — so refusing terminators on the `&&` branch, which is what the tail rule already
+did, does not touch it. The property is *lastness*, which is a step-level fact, and it is now asserted
+for every step. It also had to stay permissive: `gate && echo "::notice::gate green"` is a shape a
+maintainer plausibly writes and this file already blesses it as a correct edit, so refusing `&&` outright
+would have traded a hole for a false rejection.
+
+The third was both readers of nesting agreeing and both being wrong. A block that opens *and closes* on
+one line — `if [ -n "${HOME}" ]; then :; fi; exit 0` — put the terminator after the `fi`, at top level,
+reachable, and unconditional; the walk pushed an opener no dedent then popped, and `terminates()` refused
+to read the line for a second reason (it saw an opener). Two independent readers, one blind spot, which
+is why neither the nesting probes nor the reachability probes found it. The repair had to be narrower
+than the first attempt: reading the *whole* line once the closer was accounted for called four genuinely
+guarded exits unconditional, because `if C; then exit 0; fi` and `if C; then :; fi; exit 0` differ only
+in which side of the closer the terminator falls on. The closer is the boundary, and the rule now reads
+only what follows it.
+
+Two of this wave's other findings are worth recording for method rather than for content. One assertion
+had been proving something different on every machine: the per-check verdict loop stubbed the runner but
+not dependency detection, so on an interpreter missing pytest, PyYAML, textual or cumulusci, six of the
+fourteen checks were asserted through the MISSING-DEP path while the message named the run path — and
+*which* six varied with the machine, so a maintainer's local green proved strictly less than CI's. And
+the crash class appeared for a fourth time in five waves: a check dict missing `gating`, `deps`,
+`triggers` or `name` raised a `KeyError` about a hundred lines *above* the rule written to report a
+missing trigger. The shape is now reported and then backfilled with inert defaults, so the reader gets
+one finding naming the check and the key instead of a traceback, and every assertion after it still runs.
+Reporting a defect and then tripping over the same data is worse than either alone.
+
+The sixth misattributed kill came from this wave's own probe. The one-line-block mutation, applied to the
+gate step, died on "every other command is a bare echo" — a neighbouring vocabulary rule — while the
+reachability hole it was written for stayed open. Respelled into the branch-scope step, whose vocabulary
+already admits `if`, `[`, `:`, `fi` and `exit`, it is killed by the rule under test and names it.
+**Six instances now: a kill is evidence of nothing until you read which rule did the killing.**
 
 **Two findings from an earlier wave were false rejections rather than holes, and they matter as much.**
 The argv pins stripped only the glued, fd-less redirection, so `> /dev/null`, `2>/dev/null` and
@@ -1242,7 +1300,7 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 101 loosening probes, 47
+The corpus is kept for that reason — 147 mutations, 106 loosening probes, 47
 correct-edit assertions and 15 gate-script probes across six files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very

