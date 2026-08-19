@@ -72,6 +72,33 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None):
                 if severity is None or i.severity == severity]
 
 
+def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags):
+    """Run a fix mode over a synthetic plan and return the bytes of every CSV afterwards.
+
+    The repo had no fix-mode coverage at all — nothing referenced `fix_headers` or
+    `fix_composite_keys` — so a change to pass resolution could silently start or stop writing to a
+    file. That is not hypothetical: normalizing flat plans made `--fix-headers` newly write into
+    `objectset_source/object-set-1/` for a plan shape no shipped dataset happens to have, and
+    both-bounds stopped it mutating an `object-set-0/` file it used to resolve against the last pass.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps(plan_body))
+        for name, body in (root_files or {}).items():
+            (plan / name).write_text(body)
+        for pass_number, files in (per_pass_files or {}).items():
+            d = plan / "objectset_source" / f"object-set-{pass_number}"
+            d.mkdir(parents=True, exist_ok=True)
+            for name, body in files.items():
+                (d / name).write_text(body)
+        # Through `validate_dataset`, which is what the CLI drives — the fix loop runs from there
+        # when the flags are set, so this exercises the same path a `--fix-all` run takes.
+        V.SFDMUValidator(base_dir=str(plan.parent), verbose=False, **fix_flags).validate_dataset(plan)
+        return {p.relative_to(plan).as_posix(): p.read_bytes()
+                for p in sorted(plan.rglob("*.csv"))}
+
+
 def criticals(objects, root_files=None, per_pass_files=None):
     """Criticals for a single-pass plan — the common case, kept short."""
     return issues([objects], root_files,
@@ -178,6 +205,55 @@ CASES = [
      "the object leaves the declaring pass owing its root CSV",
      True, issues([[READONLY], [UPSERT]], None, {1: {"Widget__c.csv": HEADER}},
                   severity=V.Severity.CRITICAL)),
+]
+
+# What SFDMU can actually resolve, which is not what the first version of this check assumed.
+# `ScriptLoader._resolveOperation` trims and case-folds; `ScriptObject.getOperation` does neither,
+# and reading the wrong one made the repo's nine `"ReadOnly"` declarations look like defects. These
+# cases pin the rule to the loader, so the next reader cannot re-derive it from the other function.
+OPERATION_RESOLUTION = [
+    ("a case variant SFDMU resolves is accepted — 'ReadOnly' appears 9 times in this repo",
+     False, [i for i in issues([[dict(READONLY, operation="ReadOnly")]], {"Gadget__c.csv": HEADER})
+             if "resolve" in i]),
+    ("...and so is a whitespace-padded value, which the loader trims",
+     False, [i for i in issues([[dict(READONLY, operation=" Readonly ")]], {"Gadget__c.csv": HEADER})
+             if "resolve" in i]),
+    ("a word outside the enum is reported: SFDMU drops the declaration and silently uses its "
+     "default operation instead",
+     True, [i for i in issues([[dict(UPSERT, operation="Upser")]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+    ("a non-string is reported rather than crashing the run",
+     True, [i for i in issues([[dict(UPSERT, operation=True)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+    ("an absent operation is legal — SFDMU applies its own default",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "externalId": "Name"}]],
+                               {"Widget__c.csv": HEADER}) if "resolve" in i]),
+]
+
+# Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
+# start or stop writing to a file with nothing to notice.
+FIX_MODES = [
+    ("--fix-headers writes a header into a flat plan's object-set-1 CSV, a file the pre-normalization "
+     "version left untouched",
+     True, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "objects": [UPSERT]}, {"Widget__c.csv": HEADER},
+         {1: {"Widget__c.csv": ""}}, fix_headers=True).items()
+         if n.endswith("object-set-1/Widget__c.csv") and b.strip()]),
+    ("--fix-headers does NOT write into an object-set-0 directory, which maps to no pass and which "
+     "an upper-bound-only check resolved against the last one",
+     False, [n for n, b in fix_mode_writes(
+         {"objectSets": [{"objects": [UPSERT]}, {"objects": [UPSERT]}]}, {"Widget__c.csv": HEADER},
+         {0: {"Widget__c.csv": ""}}, fix_headers=True).items()
+         if "object-set-0" in n and b.strip()]),
+    ("--dry-run writes nothing",
+     False, [n for n, b in fix_mode_writes(
+         {"objectSets": [{"objects": [UPSERT]}]}, {"Widget__c.csv": ""}, None,
+         fix_headers=True, dry_run=True).items() if b.strip()]),
+    # The directory that maps to no pass is now a finding, not just a WARN suppressed at default
+    # verbosity — before this, a mistyped name meant every CSV under it was silently never read.
+    ("an object-set-0 directory is REPORTED, so a mistyped directory name is not invisible",
+     True, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
+            if "maps to no pass" in i]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it
@@ -309,6 +385,8 @@ def main() -> int:
     failures = []
     all_cases = [("root-CSV expectation", CASES),
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
+                 ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
+                 ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

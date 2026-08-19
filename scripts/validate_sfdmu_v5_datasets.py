@@ -274,7 +274,7 @@ class SFDMUValidator:
         result.objects_validated = len(object_configs)
 
         # Find per-pass CSV overrides
-        objectset_source_overrides = self._find_objectset_source_overrides(dataset_path, export_data)
+        objectset_source_overrides = self._find_objectset_source_overrides(dataset_path, export_data, result)
 
         # Apply fixes if requested (before validation)
         if self.fix_headers or self.fix_composite_keys:
@@ -405,6 +405,16 @@ class SFDMUValidator:
         raw list (so it discarded every per-pass CSV in a flat plan, reporting only a WARN that is
         suppressed at default verbosity). Any two of those disagreeing is a silent wrong answer
         rather than an error, so the normalization lives in one place.
+
+        It changes what the fix modes *write*, not only what validation reads, and that is easy to
+        miss because every justification above is about reading. A flat `objects` plan with an
+        `objectset_source/object-set-1/` directory previously had those CSVs discarded before the
+        fix loop saw them; now `--fix-headers` writes a header row into them. That is the intended
+        behavior — the file is one SFDMU reads — but no shipped plan has that shape (flat `objects`
+        plus `objectset_source/`: zero, and no `object-set-1/` exists anywhere in the tree), so real
+        `--fix-all` output is byte-identical either way and nothing would have caught a mistake here.
+        Pinned by the fix-mode cases in `tests/test_sfdmu_csv_expectation.py`, which are the repo's
+        only fix-mode coverage.
         """
         object_sets = export_data.get("objectSets") or []
         if not object_sets and "objects" in export_data:
@@ -429,9 +439,52 @@ class SFDMUValidator:
                 # str() because a malformed plan can carry a non-string here (`"operation": true`).
                 # This runs for every object in every plan, so an AttributeError would abort the
                 # whole run and turn a reportable defect in one plan into no report at all.
+                #
+                # `.strip().lower()` matches SFDMU, and the authoritative function is worth naming
+                # because there are two and they disagree. `ScriptLoader._resolveOperation` is the
+                # one that loads export.json (v5.8.0): it does `operation.trim().toLowerCase()` and
+                # matches enum keys case-insensitively, so `" ReadOnly "` resolves to Readonly.
+                # `ScriptObject.getOperation` is a secondary path doing a raw `OPERATION[operation]`
+                # lookup with neither. Reading the latter as authoritative makes this look too
+                # lenient and argues for dropping the normalization — which would then report the
+                # nine `"ReadOnly"` declarations in this repo as defects. SFDMU accepts them.
                 if str(obj.get("operation") or "Upsert").strip().lower() != "readonly":
                     writable.setdefault(obj_name, set()).add(idx)
         return writable
+
+    # SFDMU's `OPERATION` enum as spelled in `Enumerations.js` (v5.8.0), lowercased because that is
+    # how `ScriptLoader._resolveOperation` compares. `Unknown` is the enum's own fallback rather
+    # than something a plan declares, so it is not accepted.
+    SFDMU_OPERATIONS = frozenset({"insert", "update", "upsert", "readonly", "delete",
+                                  "deletesource", "deletehierarchy", "harddelete"})
+
+    def _validate_operation_value(self, obj_name: str, obj_config: dict, result: ValidationResult):
+        """Report an `operation` SFDMU cannot resolve.
+
+        Mirrors `ScriptLoader._resolveOperation` (v5.8.0), the function that loads export.json:
+        strings are matched `trim().toLowerCase()` against the enum keys, so `" ReadOnly "` is fine;
+        anything else — a non-string, or a word not in the enum — resolves to `undefined` and the
+        declaration is silently dropped, leaving the object on SFDMU's default rather than the
+        operation the plan asked for.
+
+        Written first against `ScriptObject.getOperation`, which does a raw `OPERATION[operation]`
+        lookup with no trimming or case folding. That reading made the nine `"ReadOnly"`
+        declarations in this repo look like defects, which is how the wrong function was caught:
+        they are accepted, because the loader is the code path a plan actually goes through.
+        """
+        if "operation" not in obj_config:
+            return  # absent is legal; SFDMU's script default applies
+        operation = obj_config["operation"]
+        if isinstance(operation, str) and operation.strip().lower() in self.SFDMU_OPERATIONS:
+            return
+        result.add_issue(Issue(
+            severity=Severity.HIGH,
+            object_name=obj_name,
+            message=(f"operation {operation!r} is not one SFDMU can resolve; it matches "
+                     f"trim()/case-insensitively against {', '.join(sorted(self.SFDMU_OPERATIONS))} "
+                     f"and silently ignores anything else, leaving the object on the default "
+                     f"operation instead of the one declared")
+        ))
 
     def _objects_owing_root_csv(self, export_data: dict,
                                 objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]]) -> Set[str]:
@@ -536,12 +589,16 @@ class SFDMUValidator:
         fields = [f.strip() for f in fields_str.split(',')]
         return fields
 
-    def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict) -> Dict[Tuple[str, int], Tuple[Path, int]]:
+    def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict,
+                                         result: Optional[ValidationResult] = None) -> Dict[Tuple[str, int], Tuple[Path, int]]:
         """Find per-pass CSV overrides in objectset_source/object-set-N/.
 
         Args:
             dataset_path: Path to dataset directory
             export_data: Parsed export.json data
+            result: Optional result to report a directory that maps to no pass. Optional because
+                the fix modes call this to locate files and have no result to report into; when it
+                is omitted the condition is still logged.
 
         Returns:
             Dictionary mapping (object_name, pass_index) -> (csv_path, pass_index)
@@ -572,6 +629,24 @@ class SFDMUValidator:
             object_sets = self._normalized_object_sets(export_data)
             if not 0 <= pass_index < len(object_sets):
                 self.log(f"Warning: {obj_set_dir.name} has no corresponding pass in export.json", level="WARN")
+                # Reported, not only logged. A WARN is suppressed at default verbosity, so before
+                # this a mistyped directory name was invisible: every CSV under it is silently
+                # never read, which is the same end state as not having written them at all.
+                # `object-set-0` is the likely typo — the directories are 1-based, so it maps to
+                # pass_index -1 and used to be resolved against the *last* pass and mutated by the
+                # fix modes.
+                if result is not None:
+                    csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name=obj_set_dir.name,
+                        message=(f"objectset_source/{obj_set_dir.name}/ maps to no pass in "
+                                 f"export.json (directories are 1-based, and this plan has "
+                                 f"{len(object_sets)} pass(es)), so SFDMU never reads the "
+                                 f"{len(csv_names)} CSV(s) in it"
+                                 + (f": {', '.join(csv_names)}" if csv_names else "")),
+                        file_path=str(obj_set_dir)
+                    ))
                 continue
 
             # Find all CSVs in this directory
@@ -672,8 +747,11 @@ class SFDMUValidator:
         # file: excluded in pass 1 and Upsert in pass 2 with no CSV anywhere reported nothing worse
         # than Info. Same merged-config trap as `operation`, which `_objects_owing_root_csv` exists
         # to avoid, so defer to it — it enumerates passes and already skips the excluded ones.
-        if obj_config.get("excluded") and not (objects_owing_root_csv
-                                               and obj_name in objects_owing_root_csv):
+        # `objects_owing_root_csv and` used to guard this, left over from the `Optional` signature.
+        # Dead once the parameter became a required set — an empty set already fails the `in` — and
+        # worse than dead: it read as if `None` were still reachable, which the docstring above
+        # explicitly says it is not.
+        if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
             self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
             if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
                 result.add_issue(Issue(
@@ -682,6 +760,8 @@ class SFDMUValidator:
                     message=f"Object is excluded but not in known excluded list"
                 ))
             return
+
+        self._validate_operation_value(obj_name, obj_config, result)
 
         # Validate externalId format
         external_id = obj_config.get("externalId", "")
@@ -728,6 +808,8 @@ class SFDMUValidator:
         # str() for the same reason as `_writable_passes_by_object`: a malformed plan can carry a
         # non-string here, and an AttributeError aborts every remaining plan rather than reporting
         # the one that is broken. Both sites read `operation`, so both need it.
+        # `.strip().lower()` mirrors `ScriptLoader._resolveOperation` — see the other site for why
+        # that function and not `ScriptObject.getOperation`.
         operation = str(obj_config.get("operation") or "Upsert")
         is_insert = operation.strip().lower() == "insert"
 
