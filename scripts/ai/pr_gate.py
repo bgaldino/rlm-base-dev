@@ -195,7 +195,14 @@ CHECKS = [
         # against — the shipped overlay examples and the export fixture. The paths are the ones the
         # trigger-coverage rule named when this check was first added with guessed ones: a suite that
         # reads a file no trigger selects is a suite that can be invalidated without being run.
+        # `tasks/expression_set_schema.py` is imported directly by
+        # `tests/test_expression_set_schema.py:21`, and was missing here: a change to the module was
+        # covered by no check that runs its own tests. The trigger-coverage rule this comment cites
+        # reads the paths a suite *opens*, not the modules it *imports*, which is the whole reason the
+        # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
+        # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
+                  "tasks/expression_set_schema.py",
                   "scripts/expression_sets/", "scripts/cml/",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",

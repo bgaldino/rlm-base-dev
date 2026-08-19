@@ -213,7 +213,11 @@ the reference for
 (`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs a PR number, so only
 CI can supply it automatically — run it locally by passing `--pr <n>`, as *Merges and unintended
 diffs* below instructs). Run the gate locally anyway — a local failure costs seconds, a CI one
-costs a round trip — but a change that skips it is no longer *unchecked*. The workflow is
+costs a round trip — and do not read a green CI run as coverage on its own: while `Mechanical checks`
+is optional, a `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, or a
+`skip-checks: true` trailer) in the head commit message produces **no run at all**, needing no
+permissions — a complete self-service bypass. Once the check is required that same case leaves it
+Pending, which correctly blocks; until then, the local run is the one that happened. The workflow is
 deliberately **not** path-filtered, though not for the reason usually given: a path-skipped
 workflow reports *nothing*, so a required check on it sits **Pending** and blocks every PR that
 misses the paths. (What reports success is a *job-level* `if:` skip, which is a different

@@ -393,6 +393,46 @@ unselected = sorted({f"{c['name']} does not run on {s}"
                      for c in pr_gate.CHECKS for s in suites_of(c)
                      if not any(selects(t, s) for t in c["triggers"])})
 check("editing a suite selects the check that runs it", unselected == [], unselected)
+
+
+def first_party_imports(suite):
+    """The repo's own modules a suite imports, as repo-relative paths.
+
+    The third question in this family, and the one nothing asked. The rule above covers the suite
+    *file*; the trigger-coverage rule covers the paths a suite *opens*. Neither reads its `import`
+    statements, so `tests/test_expression_set_schema.py` could import `tasks/expression_set_schema.py`
+    while no check triggering on that module ran the tests for it — a change to the code was covered by
+    a selection that excluded the suite exercising it. Editing the module selected `skill_manifest`,
+    `stdlib_offline_suites` and `yaml_offline_suites`, none of which runs it.
+
+    Read from the AST rather than by regex, so a commented-out or string-mentioned import is not
+    counted and an aliased one still is.
+    """
+    try:
+        tree = ast.parse(pathlib.Path(os.path.join(REPO, suite)).read_text())
+    except (OSError, SyntaxError):
+        return set()
+    named = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            named.add(node.module)
+        elif isinstance(node, ast.Import):
+            named |= {a.name for a in node.names}
+    return {m.replace(".", "/") + ".py" for m in named
+            if os.path.exists(os.path.join(REPO, m.replace(".", "/") + ".py"))}
+
+
+uncovered = sorted({f"{c['name']} runs {s}, which imports {m}, but triggers on neither"
+                    for c in pr_gate.CHECKS for s in suites_of(c)
+                    for m in first_party_imports(s)
+                    if not any(selects(t, m) for t in c["triggers"])})
+check("a check triggers on the modules its own suites import, so a change to the code cannot select "
+      "a set of checks that excludes the suite testing it",
+      uncovered == [], uncovered)
+check("that rule can see an uncovered import, rather than passing because the trigger lists happen "
+      "to be complete today",
+      first_party_imports("tests/test_expression_set_schema.py")
+      >= {"tasks/expression_set_schema.py"})
 # Discovery must recurse. A flat listing missed 30 suites in tests/build_harness/ and
 # tests/txn_data_harness/ while reporting "none unclaimed".
 nested = [s for s in pr_gate.CLAIMED_SUITES if s.endswith("/")]
@@ -4928,7 +4968,18 @@ if FAILED:
 # spelled `run: curl -s http://host/x | bash` produced no [FAIL] at all, just a request to bump an
 # integer. (It now fails a whitelist too, since `raw_shell_of` reads inline scalars — but the
 # message had to stop inviting that response either way.)
-EXPECTED = 666
+# Cited in prose too, and prose does not recount itself: the figure in `scripts/ai/README.md` went
+# stale the moment this one moved, and was caught by a reviewer rather than by anything here — the
+# fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
+# updating the sentence that quotes it is a failure rather than a reader's problem.
+README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
+EXPECTED = 669
+cited = README_COUNT.search(
+    pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
+check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
+      "from the suite (README_COUNT is the sentence it reads)",
+      cited is not None and int(cited.group(1)) == EXPECTED,
+      cited.group(1) if cited else "the sentence README_COUNT matches is gone")
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "
