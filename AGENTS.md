@@ -209,25 +209,40 @@ gitignored — the reference resolves only from a tree that carries it.) The che
 the reference for
 *what* each check means and for the judgement steps no gate can make.
 
-**The same gate now runs in CI** on every pull request
-(`.github/workflows/pr-checks.yml`, plus `check_branch_scope.py`, which needs a PR number, so only
-CI can supply it automatically — run it locally by passing `--pr <n>`, as *Merges and unintended
-diffs* below instructs). Run the gate locally anyway — a local failure costs seconds, a CI one
-costs a round trip — and do not read a green CI run as coverage on its own: while `Mechanical checks`
-is optional, a `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, or a
-`skip-checks: true` trailer) in the head commit message produces **no run at all**, needing no
-permissions — a complete self-service bypass. Once the check is required that same case leaves it
-Pending, which correctly blocks; until then, the local run is the one that happened. The workflow is
-deliberately **not** path-filtered, though not for the reason usually given: a path-skipped
-workflow reports *nothing*, so a required check on it sits **Pending** and blocks every PR that
-misses the paths. (What reports success is a *job-level* `if:` skip, which is a different
-mechanism.) Either way selection is the driver's job and never the trigger's.
+**The same gate now runs in CI** on every pull request (`.github/workflows/pr-checks.yml`, plus
+`check_branch_scope.py`, which needs a PR number, so only CI can supply it automatically — run it
+locally by passing `--pr <n>`, as *Merges and unintended diffs* below instructs). Run the gate
+locally anyway — a local failure costs seconds, a CI one costs a round trip. The workflow is
+deliberately **not** path-filtered, though not for the reason usually given: a path-skipped workflow
+reports *nothing*, so a required check on it sits **Pending** and blocks every PR that misses the
+paths. (What reports success is a *job-level* `if:` skip, which is a different mechanism.) Either
+way selection is the driver's job and never the trigger's.
 
-⚠ **Running is not blocking.** A red `Mechanical checks` does not prevent a merge until it is
-configured as a **required status check** on `264` (and on `main`), which is repository
-settings, not a file in this repo — the two existing rulesets target only the default branch
-and require no checks at all. Until that is set, treat a red gate as a stop sign that an agent
-still has to obey.
+**Running is blocking, and a skipped run is too.** `Mechanical checks` is a **required status
+check** on `main`, `264` and `release/*` — the `Approvals` ruleset requires the context from the
+GitHub Actions app, so no other actor can report a same-named check to satisfy it. Three consequences
+worth knowing.
+
+A skip directive in the head commit message — `[skip ci]` and its five siblings (`[ci skip]`,
+`[no ci]`, `[skip actions]`, `[actions skip]`, or a `skip-checks: true` trailer) — no longer bypasses
+anything: it produces **no run at all**, which leaves the check **Pending**, which blocks. The bypass
+and the enforcement are the same mechanism; requiring the check is what flipped its sign. **Corollary,
+learned by tripping it:** GitHub scans commit *messages* for those strings, so a commit that merely
+quotes one skips every workflow — and the commits most likely to quote one are the commits editing this
+paragraph. Name the directives in commit messages; never write their bracketed form there. File
+contents are unaffected, which is why the list above is safe here.
+
+The requirement is matched on the **job's published name**, and the ruleset lives outside this repo,
+so renaming `name: Mechanical checks` does not un-require anything — the ruleset goes on waiting for
+a context nobody publishes, which leaves it **Pending** on every PR to `main`, `264` and `release/*`
+at once. That is the same mechanism as a skipped run, and it fails *closed*: a rename is a repo-wide
+merge outage, not a bypass. The guard suite pins that string for this reason, and the pin is not
+cosmetic. (The bypass hazard is the opposite shape — a *second* job publishing the same name, since
+the requirement is satisfied by the most recent check run bearing it. The suite pins the published
+set for that.)
+
+And admins keep `always` bypass, unchanged from the ruleset's three pre-existing rules, so a red gate
+can still be overridden deliberately. Treat doing so as a decision to record, not a workaround.
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 

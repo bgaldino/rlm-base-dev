@@ -405,9 +405,10 @@ takes a PR number and talks to GitHub, so it belongs in the workflow (which has
 
 That workflow is `.github/workflows/pr-checks.yml`, and it runs on every pull request: it asks
 `--requirements` what the selection needs, installs exactly that, runs the gate, then runs the
-per-PR branch scope. Note what running does *not* mean — a red job blocks nothing until
-`Mechanical checks` is configured as a **required status check**, which is repository settings
-rather than anything in this repo.
+per-PR branch scope. `Mechanical checks` **is** a required status check, on `main`, `264` and
+`release/*`, pinned to the GitHub Actions app so no other actor can report a same-named check to
+satisfy it. That was a separate act from writing the workflow — repository settings, not a file here —
+and until it happened every guard below was advice.
 
 Four platform behaviours sit outside every guard in that file and are worth knowing before
 trusting a green:
@@ -415,8 +416,17 @@ trusting a green:
 * **`[skip ci]` skips the whole thing.** A head commit whose message contains `[skip ci]`,
   `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, or a `skip-checks: true` trailer
   produces no run at
-  all. While the check is not required that is a complete, self-service bypass needing no
-  permissions; once it *is* required the same case leaves it Pending, which correctly blocks.
+  all. That *was* a complete, self-service bypass needing no permissions. Now that the check is
+  required the identical case leaves it **Pending**, which blocks — same mechanism, opposite sign,
+  and the clearest illustration of why requiring the check was the load-bearing step rather than a
+  formality. **Demonstrated the hard way:** the commit that made the check required had one of those
+  strings in its message *because it was describing this bullet*, and GitHub skipped every workflow
+  on it — zero runs, no check run on the head SHA, and the PR correctly unmergeable with no merge
+  conflict. So the trap is not only a bypass an author might reach for deliberately: **a commit
+  message that quotes a skip directive triggers it**, and the commits most likely to quote one are
+  the commits that edit this file. Refer to the directives by name in commit messages, never in
+  their bracketed form. File contents are unaffected — the scan reads commit messages only, which
+  is why the bracketed list above is safe to keep here.
 * **The two actions may be pinned by tag, and are.** `actions/checkout@v6` and
   `actions/setup-python@v6` both move with every 6.x release — the suite accepts either a release tag
   or a full 40-hex commit SHA, so switching to a SHA is a one-line edit that needs no rule change
@@ -714,15 +724,24 @@ permitted `SEL` spellings untouched. Dropping `pull-requests: read` from `permis
 is a regression this workflow has already had once. So the action inputs, both steps' `env` mappings and
 the token scopes are now pinned beside the identities.
 
-Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they are.
-`runs-on: self-hosted` moves the gate onto a machine the repository does not control, which makes the
-verdict meaningless — a real hole. The job *name* is load-bearing for a different reason: it is the
-string a branch ruleset matches, so renaming the job silently un-requires the check, which is precisely
-the failure mode of the still-open carry-out that the check is not yet required. The concurrency group is
-the weakest of the three and is pinned on principle rather than a demonstrated bypass — made constant,
-one PR's run cancels another's, and a cancelled run is not a pass but it is also not a verdict. Naming
-which of the three is which matters more than pinning all three, because a list of rules that does not
-say what each one buys is how the vacuous ones survived this long.
+Sweeping that rule found three more unpinned inputs, and they are worth separating by how bad they
+are. `runs-on: self-hosted` moves the gate onto a machine the repository does not control, which
+makes the verdict meaningless — a real hole. The job *name* is load-bearing for a different reason:
+it is the string a branch ruleset matches, and that ruleset lives outside this repo. The consequence
+was stated backwards here until #387's review caught it: a rename does **not** un-require the check.
+The ruleset keeps requiring the old context, nothing publishes it, and it sits **Pending** on every
+PR to a protected branch — so a rename fails *closed*, as a repo-wide merge outage rather than a
+silent bypass. Verifiable rather than asserted: the ruleset stores the requirement as the literal
+string `{"context": "Mechanical checks", "integration_id": 15368}` (`gh api
+repos/<owner>/<repo>/rulesets/<id>`), so nothing about it changes when the workflow does. #387
+demonstrated the identical end state by accident when a skip directive produced no run: required
+context unreported, `mergeStateStatus=BLOCKED`. The bypass hazard has the opposite shape and is
+covered separately below — a *second* job publishing the same name, because the requirement is
+satisfied by the most recent check run bearing it. The concurrency group is the weakest of the three
+and is pinned on principle rather than a demonstrated bypass — made constant, one PR's run cancels
+another's, and a cancelled run is not a pass but it is also not a verdict. Naming which of the three
+is which matters more than pinning all three, because a list of rules that does not say what each
+one buys is how the vacuous ones survived this long.
 
 **The last eight are the same lesson one level down: a whitelist of words is not a whitelist of
 commands.** The job-scope vocabulary admitted `git` with the subcommands `fetch` and `rev-parse` and
@@ -1374,8 +1393,8 @@ either would have merged unexercised. And the gate's own unclaimed-suite check c
 suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
-`.github/workflows/pr-checks.yml`, added by `#264-58`; making it a *required* check is repository
-settings and remains open (pack 125).
+`.github/workflows/pr-checks.yml`, added by `#264-58`; `Mechanical checks` is a **required** status
+check on `main`, `264` and `release/*` (repository settings, applied separately from the workflow).
 
 ---
 

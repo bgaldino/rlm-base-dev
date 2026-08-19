@@ -1196,7 +1196,8 @@ if os.path.exists(workflow):
     # Broader than the hazard, deliberately: a job named `Docs lint` publishes `Docs lint` and
     # cannot satisfy `Mechanical checks`, so a second unrelated job is harmless *today*. What this
     # pins is that the set of check-run names this workflow publishes stays reviewed, because the
-    # string a branch ruleset matches lives outside this repo and a rename here is invisible there.
+    # string a branch ruleset matches lives outside this repo: the ruleset never learns of a rename
+    # here, so it goes on requiring a context nobody publishes and every PR blocks.
     # Adding a job is therefore allowed — by editing this list, which is the review.
     PUBLISHED = ["Mechanical checks"]
     published = [(j.get("name") or key) for key, j in (doc.get("jobs") or {}).items()]
@@ -3374,8 +3375,12 @@ if os.path.exists(workflow):
     # Three more unpinned inputs, found by sweeping the rules above rather than by review. The runner
     # is the clearest: `runs-on: self-hosted` moves the gate onto a machine this repo does not control,
     # and a verdict from there means nothing. The job *name* is load-bearing for a different reason —
-    # it is the string a branch ruleset matches when this check is made required, so renaming the job
-    # silently un-requires it, which is the failure mode of the carry-out that is still open. The
+    # it is the string the branch ruleset matches, and that ruleset lives outside this repo. Renaming
+    # the job therefore does not un-require the check: the ruleset keeps requiring the old context,
+    # nothing publishes it, and it sits Pending on every PR to a protected branch. The rename fails
+    # closed — a repo-wide merge outage, not a bypass — which is why the name is pinned here. (The
+    # bypass shape is the opposite one, a second job publishing the same name; `PUBLISHED` pins that.)
+    # The
     # concurrency group is the weakest of the three and is pinned on principle rather than on a
     # demonstrated bypass: made constant, one PR's run cancels another's, and a cancelled run is not a
     # pass but it is also not a verdict.
