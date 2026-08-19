@@ -311,8 +311,11 @@ class SFDMUValidator:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
+        per_pass_objects = {obj_name for obj_name, _ in objectset_source_overrides}
+        writable_in_any_pass = self._objects_writable_in_any_pass(export_data)
         for obj_name, obj_config in object_configs.items():
-            self._validate_object(dataset_path, obj_name, obj_config, result)
+            self._validate_object(dataset_path, obj_name, obj_config, result,
+                                  per_pass_objects, writable_in_any_pass)
 
         # Validate per-pass CSV overrides
         if objectset_source_overrides:
@@ -393,6 +396,27 @@ class SFDMUValidator:
         self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(obj_set.get('objects', [])) for obj_set in data.get('objectSets', []))} object configurations")
 
         return data
+
+    def _objects_writable_in_any_pass(self, export_data: dict) -> Set[str]:
+        """Objects this plan writes from a file in at least one pass.
+
+        Distinct from the merged config `_parse_object_configs` returns, which keeps only the
+        *first* declaration: an object may be Readonly in pass 1 and Upsert in pass 2, and it is
+        the union that decides whether a source CSV is owed.
+        """
+        writable: Set[str] = set()
+        object_sets = export_data.get("objectSets", [])
+        if not object_sets and "objects" in export_data:
+            object_sets = [{"objects": export_data["objects"]}]
+
+        for obj_set in object_sets:
+            for obj in obj_set.get("objects", []):
+                obj_name = self._extract_object_name(obj.get("query", ""))
+                if not obj_name or obj.get("excluded"):
+                    continue
+                if (obj.get("operation") or "Upsert").lower() != "readonly":
+                    writable.add(obj_name)
+        return writable
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
         """Parse export.json into object name -> config mapping.
@@ -565,7 +589,9 @@ class SFDMUValidator:
         # Validate CSV file with pass context
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
-    def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult):
+    def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
+                         per_pass_objects: Optional[Set[str]] = None,
+                         writable_in_any_pass: Optional[Set[str]] = None):
         """Validate a single object's CSV and configuration.
 
         Args:
@@ -573,6 +599,11 @@ class SFDMUValidator:
             obj_name: Object API name
             obj_config: Object configuration from export.json
             result: ValidationResult to add issues to
+            per_pass_objects: Objects whose CSV lives under objectset_source/object-set-N/
+                and is validated by _validate_per_pass_csv instead of at the plan root
+            writable_in_any_pass: Objects with a non-Readonly operation in at least one pass.
+                `None` means "unknown", which asks for the CSV — the safe direction for a
+                caller that did not supply it.
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
@@ -591,9 +622,37 @@ class SFDMUValidator:
         external_id = obj_config.get("externalId", "")
         self._validate_external_id(obj_name, external_id, obj_config, result)
 
-        # Validate CSV file
-        csv_path = dataset_path / f"{obj_name}.csv"
-        self._validate_csv_file(csv_path, obj_name, obj_config, result)
+        # A root-level CSV is owed only by objects this plan writes from a file at the plan root.
+        # Two shapes correctly have none, and asking them for one was this check's entire
+        # false-positive rate — one instance each, repo-wide (#264-51 / pack 123):
+        #
+        #   Readonly in every pass — the records are queried from the target org, so there is no
+        #   source file to read. Adding an empty CSV to silence the check would be the wrong fix.
+        #   Read across *all* passes rather than from the merged config, which keeps only the first
+        #   declaration: an object Readonly in pass 1 and Upsert in pass 2 presents as Readonly
+        #   here, and a gate reading that would excuse a pass that does write from a file. No plan
+        #   declares that shape today (0 of the 76 export.json files under datasets/sfdmu, a superset
+        #   of the 39 tracked plans) — which is the reason to pin it rather
+        #   than to depend on it.
+        #
+        #   supplied per-pass — the file lives at objectset_source/object-set-N/<Object>.csv and is
+        #   validated by _validate_per_pass_csv below. The root path is an *alternative* location
+        #   for the same file, not an additional requirement. Keyed on this object having such a
+        #   file: keyed on the plan merely containing one, a single override would excuse every
+        #   missing CSV in the plan.
+        #
+        # Each gate stays conditional on its own reason, so an Upsert object with no CSV anywhere
+        # still fails Critical — the finding this check exists for. tests/test_sfdmu_csv_expectation.py
+        # pins both directions.
+        if not (writable_in_any_pass is None or obj_name in writable_in_any_pass):
+            self.log(f"  No root CSV expected: {obj_name} is Readonly in every pass "
+                     f"(queried from the target org)", level="DEBUG")
+        elif per_pass_objects and obj_name in per_pass_objects:
+            self.log(f"  No root CSV expected: {obj_name} is supplied per-pass under "
+                     f"objectset_source/ and validated there", level="DEBUG")
+        else:
+            csv_path = dataset_path / f"{obj_name}.csv"
+            self._validate_csv_file(csv_path, obj_name, obj_config, result)
 
         # Check deleteOldData usage
         if obj_config.get("deleteOldData"):

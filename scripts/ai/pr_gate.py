@@ -28,12 +28,14 @@ Four statuses that are easy to conflate and must not be:
   A separate label because the two differ only in consequence, and reading one as the
   other is the mistake this list exists to prevent.
 * `ADVISORY` — runs, reports, and never fails the gate. Exactly one check is advisory:
-  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today. Two of its findings
-  are the Critical false positives pack 123 covers; seven more are High severity (empty
-  CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket
-  fails the validator — so landing 123 alone will not turn this check green. A check that
-  always fails gets ignored, and an ignored check is worse than an absent one, so it is
-  labelled with the reason until both are resolved.
+  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today. Its two Criticals
+  were the validator's own false positives and pack 123 fixed them (a `Readonly` object owes
+  no source CSV; a per-pass CSV lives under `objectset_source/`). Seven High findings remain
+  — zero-byte `Upsert` CSVs under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — and they
+  are real but dormant, because that plan is unwired. *Either* bucket fails the validator, so
+  this check goes gating when the plan is removed (pack 110). A check that always fails gets
+  ignored, and an ignored check is worse than an absent one, so it is labelled with the
+  reason until then.
 
 Exit codes follow `check_branch_scope.py`, so a tool error is never read as a verdict:
 0 = every selected gating check passed · 1 = at least one failed · 2 = usage or tool error.
@@ -143,6 +145,19 @@ CHECKS = [
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
                   ".cursor/skills/schema-validation/",
                   "scripts/ai/README.md", "tests/test_erd_doc_counts.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="sfdmu_csv_expectation",
+        cmd=["python", "tests/test_sfdmu_csv_expectation.py"],
+        # Gating even though the validator it guards is only advisory, and the distinction is the
+        # point: the advisory label is about the validator's *findings* on this repo's data, while
+        # this suite is about whether the validator still asks for a CSV where one is owed. It runs
+        # on synthetic fixtures, so it is green on a clean tree and can gate. `datasets/sfdmu/` is a
+        # trigger because a plan that newly adopts an objectset_source/ layout or a Readonly pass is
+        # exactly what the two gates read.
+        triggers=["scripts/validate_sfdmu_v5_datasets.py",
+                  "tests/test_sfdmu_csv_expectation.py", "datasets/sfdmu/"],
         deps=[], gating=True,
     ),
     dict(

@@ -290,9 +290,19 @@ not.) The same care drives four statuses that are easy to conflate:
 | `ADVISORY-DEP` | advisory, and its dependency is absent too | no — an advisory check cannot fail for a missing dep either |
 
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
-tree today. Two of its findings are the Criticals pack 123 covers; seven more are High severity
-(empty CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket fails
-the validator, so landing 123 alone will not turn this check green (pack 123 — "pack N" throughout this file
+tree today. Its two **Criticals were the validator's own false positives** and pack 123 fixed them —
+a `Readonly` object is queried from the target org and owes no source CSV, and a per-pass object's
+CSV lives at `objectset_source/object-set-N/<Object>.csv`, an *alternative* location for the same
+file rather than an additional requirement. Both gates stay conditional on their own reason, so an
+`Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
+directions, and one of its six cases failed the first version of the fix (a `Readonly` first pass
+silenced a writable later pass, because the merged config keeps only the first declaration).
+Seven **High** findings remain — zero-byte `Upsert` CSVs under
+`datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but the plan is
+**unwired**: nothing in `cumulusci.yml` references it, and its `q3` sibling was split into
+`q3-pcm`/`q3-pricing` while this one was left behind. So the finding is dormant, the fix is deletion
+(pack 110) rather than seven header rows, and *either* bucket fails the validator — which is why
+landing 123 alone does not turn this check green (pack 123 — "pack N" throughout this file
 means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
 so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
 N" means a round of review on the pull request that added this workflow). A check that always fails
@@ -483,7 +493,7 @@ selection is a couple of seconds. That timing is measured on a machine where two
 is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (675 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (678 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
