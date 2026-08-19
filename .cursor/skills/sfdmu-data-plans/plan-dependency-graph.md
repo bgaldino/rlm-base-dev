@@ -81,5 +81,5 @@ Delete order (for full teardown):
 | Family | Plans | Notes |
 |--------|-------|-------|
 | Q3 | q3-pcm, q3-pricing, q3-billing, q3-dro, q3-tax, q3-rating, q3-rates | Parallel product line, mirrors qb plan shapes; same dependency ordering (q3-multicurrency was split into q3-pcm + q3-pricing) |
-| Manufacturing | mfg-configflow, mfg-constraints-p, mfg-constraints-prc, mfg-multicurrency | Configuration and constraints |
+| Manufacturing | mfg-aaf, mfg-billing, mfg-configflow, mfg-constraints-p, mfg-constraints-prc, mfg-dro, mfg-guidedselling, mfg-multicurrency, mfg-pcm, mfg-pricing, mfg-rebates, mfg-tax | **12 plans, none wired** — `grep -ic mfg cumulusci.yml` returns 0. Wiring is tracked separately; `mfg-multicurrency` is slated for removal (pack 110) |
 | Procedure Plans | procedure-plans | Depends on expression sets metadata, not on QB data |

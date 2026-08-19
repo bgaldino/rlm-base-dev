@@ -414,7 +414,10 @@ class SFDMUValidator:
                 obj_name = self._extract_object_name(obj.get("query", ""))
                 if not obj_name or obj.get("excluded"):
                     continue
-                if (obj.get("operation") or "Upsert").lower() != "readonly":
+                # str() because a malformed plan can carry a non-string here (`"operation": true`).
+                # This runs for every object in every plan, so an AttributeError would abort the
+                # whole run and turn a reportable defect in one plan into no report at all.
+                if str(obj.get("operation") or "Upsert").strip().lower() != "readonly":
                     writable.setdefault(obj_name, set()).add(idx)
         return writable
 
@@ -635,8 +638,14 @@ class SFDMUValidator:
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
-        # Skip excluded objects
-        if obj_config.get("excluded"):
+        # Skip excluded objects — but `obj_config` is the *merged* view, which keeps only the first
+        # declaration, so `excluded` here means "excluded in the first pass that declared it" and
+        # not "excluded everywhere". Returning on that hides a later pass that does write from a
+        # file: excluded in pass 1 and Upsert in pass 2 with no CSV anywhere reported nothing worse
+        # than Info. Same merged-config trap as `operation`, which `_objects_owing_root_csv` exists
+        # to avoid, so defer to it — it enumerates passes and already skips the excluded ones.
+        if obj_config.get("excluded") and not (objects_owing_root_csv
+                                               and obj_name in objects_owing_root_csv):
             self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
             if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
                 result.add_issue(Issue(
@@ -691,8 +700,11 @@ class SFDMUValidator:
         # traversal, SELECT-coverage) need to skip Insert mode, where externalId
         # is used for CSV composite-key matching within the dataset rather than
         # SOQL behavior.
-        operation = obj_config.get("operation", "Upsert")
-        is_insert = operation.lower() == "insert"
+        # str() for the same reason as `_writable_passes_by_object`: a malformed plan can carry a
+        # non-string here, and an AttributeError aborts every remaining plan rather than reporting
+        # the one that is broken. Both sites read `operation`, so both need it.
+        operation = str(obj_config.get("operation") or "Upsert")
+        is_insert = operation.strip().lower() == "insert"
 
         # Check for legacy $$ notation in externalId definition
         if "$$" in external_id:

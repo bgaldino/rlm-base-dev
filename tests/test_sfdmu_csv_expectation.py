@@ -99,8 +99,20 @@ CASES = [
     # (surveyed: 0 of the 76 export.json files under datasets/sfdmu, a superset of the 39 the
     # validator scans — it skips test/ and *.bak via _SKIP_SEGMENTS), and if one appears the gate
     # would silence a writable pass — so pin it now.
+    # Two objectSets, not two entries in one — the label says "pass" and the case has to mean it.
+    # Written as a single set, this passed for the wrong reason and left the multi-pass path it
+    # advertises untested.
     ("a Readonly first pass followed by an Upsert pass for the same object is NOT silenced",
-     True, criticals([dict(READONLY), dict(UPSERT, query="SELECT Id, Name FROM Gadget__c")])),
+     True, issues([[READONLY], [dict(UPSERT, query="SELECT Id, Name FROM Gadget__c")]],
+                  severity=V.Severity.CRITICAL)),
+    # Same merged-config trap, different key: `excluded` is also read from the first declaration.
+    ("an object excluded in pass 1 but Upsert in pass 2, with no CSV, still fails",
+     True, issues([[dict(UPSERT, excluded=True)], [UPSERT]], severity=V.Severity.CRITICAL)),
+    # A malformed plan must be reported, not crash the run — `.lower()` on a non-string aborts
+    # every plan after it, which converts one bad plan into no validation at all.
+    ("a non-string operation does not abort the run",
+     False, issues([[{"query": "SELECT Id FROM Widget__c", "operation": True, "externalId": "Name"}]],
+                   {"Widget__c.csv": HEADER}, severity=V.Severity.CRITICAL)),
 
     # ---- the shape that shipped broken, and the reason it shipped: nothing modelled a writable
     # pass with no override. This is `BillingPolicy` in qb/en-US/qb-billing (Upsert in pass 1,
