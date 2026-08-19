@@ -201,10 +201,12 @@ checks your diff actually needs, runs them, and prints a status for **every** ch
 including the ones it skipped and why. That is the point: the checks below already existed
 and were enforced only by an agent reading this list, which is the enforcement that failed
 in `#264-27`, `#264-55` and `#264-56`. A missing dependency **fails** the gate rather than
-skipping, and one check (`validate_sfdmu_v5_datasets.py`) is advisory until pack 123 lands
-because it exits non-zero on a clean tree (pack 123 is an entry in the durable todo tracker under
-`.agents/artifacts/todos/`, which is gitignored — the reference resolves only from a tree that
-carries it). The checklists below remain the reference for
+skipping, and one check (`validate_sfdmu_v5_datasets.py`) is **advisory**, because it exits non-zero
+on a clean tree. Pack 123 covers two of its findings but not the other seven, so landing 123 alone
+will not make it gating — that needs the validator's remaining false positives fixed too. (Pack
+numbers refer to entries in the durable todo tracker under `.agents/artifacts/todos/`, which is
+gitignored — the reference resolves only from a tree that carries it.) The checklists below remain
+the reference for
 *what* each check means and for the judgement steps no gate can make.
 
 **The same gate now runs in CI** on every pull request

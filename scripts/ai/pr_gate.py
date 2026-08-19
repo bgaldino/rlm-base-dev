@@ -287,8 +287,9 @@ CHECKS = [
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
         triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
         deps=[], gating=False,
-        note="advisory until pack 123: 2 Criticals on a clean tree are validator "
-             "false positives (Readonly CSV demand, objectset_source layout)",
+        note="advisory: 9 findings on a clean tree are validator false positives. Pack 123 covers "
+             "the 2 Criticals (Readonly CSV demand, objectset_source layout) — landing it alone "
+             "does not make this gating",
     ),
 ]
 
@@ -513,7 +514,12 @@ def have_module(name):
 def run(cmd):
     """Run one command from the repo root, streaming nothing but returning everything."""
     argv = list(cmd)
-    if argv and argv[0] == "python":
+    # Both spellings, because the suite's argv whitelist admitted `python3` while this normalised only
+    # `python` — so a check spelled that way ran under whatever `python3` resolved to, while its `deps`
+    # were probed against `sys.executable` and its `min_python` against this interpreter's version. The
+    # guarantee, not the verdict, is what that voided. The whitelist no longer admits `python3`; this
+    # keeps the two from disagreeing again if it is ever re-added.
+    if argv and argv[0] in ("python", "python3"):
         argv[0] = sys.executable
     started = time.time()
     try:

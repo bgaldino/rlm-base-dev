@@ -27,7 +27,7 @@ staled every copy at once — the 262→264 pass missed this file, and `stats` p
 
 | File | Carries | Gated by `tests/test_erd_doc_counts.py` |
 |---|---|---|
-| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields — the only copy** | the triple, yes; `1,148`, **no** |
+| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields** | the triple, yes; `1,148`, **no** |
 | `docs/erds/README.md` | objects, fields, relationships | yes, prose **and** the Statistics bullets |
 | `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships | yes |
 | `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships | yes |
@@ -37,8 +37,10 @@ rather than in aggregate, so a file that reworded or renamed its citation fails 
 of quietly leaving the audit. The wrapped citation above — `263` on one line, `objects,
 4,252 platform fields…` on the next — is exactly the shape that escaped the first
 version of that check, so keep the phrase within three lines. Still unchecked, and
-still needing the manual sweep: the **`1,148` reference-field total** here, the
-org-describe pair (254 objects / 3,913 fields), and the orphan/gap baselines.
+still needing the manual sweep: the **`1,148` reference-field total**, which this file
+and `.cursor/skills/schema-validation/SKILL.md` both carry (the table above used to call
+this file its only copy — it is not, and a reader who trusted that would sweep one of the
+two); the org-describe pair (254 objects / 3,913 fields); and the orphan/gap baselines.
 
 `query_erd.py stats` is the generated source for all of them — reconcile against it,
 not against another doc.
@@ -466,9 +468,12 @@ made the first version of three separate guards vacuous.
 A full `--all` run is 14 checks in about 17 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds.
+selection is a couple of seconds. That timing is measured on a machine where two of the fourteen
+(`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
+is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
+number is higher.
 
-Verified by `tests/test_pr_gate.py` (547 checks, hermetic throwaway repos, no network), which
+Verified by `tests/test_pr_gate.py` (601 checks, hermetic throwaway repos, no network), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
 suite: a prefix trigger loosened to a substring match, a two-dot diff, a runtime failure
 reclassified as advisory, a gating failure that still exits 0, a missing dependency counted
@@ -544,15 +549,15 @@ call, `--no-fetch` moved onto the invocation instead of the argument list, a `ty
 spellings the rule permits. Two of those six had no control until a review went looking: the superset
 `types:` passed only because the live workflow happens to carry one, and the `::notice::` only because
 the annotation alternation names it — "separately confirmed" was, for those two, a claim about a
-coincidence. Thirty-seven more are applied to the real workflow by a second harness (below), which is a
+coincidence. Forty-seven more are applied to the real workflow by a second harness (below), which is a
 different question from a control: it asks whether the *file* still passes after the edit, not whether
 one predicate does. A seventh used to be "a second job that carries its own `if:`" — the
 one-job rule below retired it, and the entry is named rather than deleted because the cost of that
 rule is exactly this: a second job now needs the rule updated, and a reader who finds the old claim
 in a diff should know it was withdrawn deliberately.
 
-The doubled shapes are there because **a hundred and fifty-six of these guards were vacuous on the first
-attempt**, in twenty-three waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5, 7 and 7 — each wave a narrower version
+The doubled shapes are there because **a hundred and sixty-seven of these guards were vacuous on the first
+attempt**, in twenty-four waves of 7, 5, 26, 2, 14, 3, 3, 6, 5, 2, 1, 6, 8, 11, 6, 9, 2, 5, 12, 4, 5, 7, 7 and 11 — each wave a narrower version
 of one mistake, and each found *after* the previous wave's fix was reported complete. Not every wave
 gets a paragraph below, and the paragraphs skip two of the tally's terms: the numbers count waves,
 the prose keeps the instructive ones, and two of the small waves appear only in the count.
@@ -1059,7 +1064,8 @@ times `code` is written, and in shell the last write wins, so a second `code=$?`
 the assertion, so the whitelist had been widened for a caller that does not exist.
 
 That last one also produced the wave's method finding, which is the kill-attribution lesson (stated in
-full under "One corollary is worth stating separately", below) recurring for a third time. A probe rewriting a check's argv to `python -c pass`
+full under "**The kill-attribution corollary**", below — the reference used to point at a paragraph
+about a different lesson entirely) recurring for a third time. A probe rewriting a check's argv to `python -c pass`
 *was* killed while `-c` and `pass` were still whitelisted — by the orphan-suite rule, which noticed the
 suite the new argv stopped naming. The sweep reported a kill; the whitelist went on admitting a no-op
 check. Six of this wave's eight probes died to a neighbouring rule rather than the one written for them,
@@ -1111,6 +1117,49 @@ and must be a single list literal. And a check's failure could be printed and th
 accounting by naming it — `if check["name"] != "pr_gate_suite": failures.append(...)` prints `[FAIL]`
 and exits 0, which makes every guard in this file unenforceable at once.
 
+**The twenty-fourth wave's worst finding was one character of lookbehind.** The rule that keeps a step
+from writing into the checkout extracted a redirection's target with `(?<![0-9<>])>>?\s*(…)` — a
+*negative* lookbehind, so a digit before the `>` discarded the whole match and no target was read at
+all. `echo x 2> scripts/ai/pr_gate.py` in the installer step passed every one of the suite's 370
+workflow assertions and truncates the script the next step runs, which then exits 0 having checked
+nothing; `1>`, `2>>` and `>&` did the same. Every row of the rule's own refusal table used a plain `>`,
+which is how it went eleven waves unnoticed — and the fix is to *consume* the descriptor rather than
+exclude it. This one also lent its authority elsewhere: a second rule justified limiting its own subject
+set with "`redirections()` already refuses every other target", so an under-reading rule quietly
+weakened the rule that cited it. **A rule that cites another rule inherits its blind spot.**
+
+Four more were the reachability rules being asked at one spelling. The decidedness apparatus — the
+machinery that tells `if [ -z "${BASE_REF:-}" ]; then` (a real test) from `if true; then` (not one) — was
+reached only when the terminator sat on the *opener's own line*, because the caller filtered to lines at
+the step's base indentation and a block body is indented deeper. Multi-line is the spelling the real
+workflow uses everywhere, so rewriting the resolver's test to `if true; then` ended that step before
+`git rev-parse` verified anything, with the suite green. A `case` opens a block and carries no test at
+all, so `case true in *) exit 0;; esac` read as guarded twice over — once for the opener, once because
+the arm's pattern label `*)` sits where the command goes, so the terminator behind it was never seen.
+And the exemption for a terminator *after* an invocation was handed one segment at a time, stripped of
+the operator that decides whether that segment runs — which is the only thing the predicate swapped in
+two waves earlier could see that its predecessor could not — so `true || python …check_branch_scope.py
+"$@"; exit 0` disarmed it with an invocation bash never runs.
+
+Two were the same class of asymmetry this file keeps producing, now on its sixth and seventh instances:
+one reader normalises a spelling and the comparison beside it does not. `permitted_job` recognised two
+pip spellings where `runs_pip` recognised seven, so `pip install ${reqs}` — a perfectly ordinary
+respelling — was refused as a *foreign command*, diagnosing the wrong problem; the two are now one
+reader with a `strict` flag, because the detecting caller must see `sudo pip` while the authorising one
+must never accept it. And the argv whitelist admitted `python3` while the gate substituted
+`sys.executable` for `python` only, so a check spelled that way would run under a different interpreter
+from the one its `deps` and `min_python` were verified against. Both halves are closed at once, which is
+the point: fixing one and leaving the other is how the asymmetry got here.
+
+Five were controls that passed without exercising the rule they named — including one that had been
+diagnosed and fixed *one screen away* and not swept: four pin-table controls compared a literal to a
+literal, and `inputs_of` has a masking branch, so adding `"ref": None` to the table the failure message
+tells you to edit makes the rule accept the redirection it exists to stop while the control still
+passes. The gate-step key control claimed a kill that belonged to the value rule beside it (the
+kill-attribution lesson, fourth instance), and the `shell: bash` control was a literal tautology —
+`all(v == "bash" for v in {"shell": "bash"}.values())` — which passed with its rule deleted, inverted,
+or narrowed to no steps.
+
 One listed "correct edit" turned out to be wrong, which is worth as much as a hole. `| tee gate.log`
 is refused, and should be: `tee` is a write channel with a command's spelling, so `| tee
 scripts/ai/pr_gate.py` rewrites the script the job runs. Refusing it is the redirection ban applied to
@@ -1124,8 +1173,8 @@ it, the last because the tokenizer read the `&` of `2>&1` as a separator and inv
 rule that fires on correct code is how rules get deleted rather than fixed, so the redirection tail is
 now normalised and four spellings are asserted to pass.
 
-Two of the hundred and forty-two were caught by the mutation sweep, a hundred and twenty-eight by review —
-thirty-five of those by local passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
+Two of the hundred and sixty-seven were caught by the mutation sweep, a hundred and fifty-three by review —
+the last thirty-four of those by local persona passes rather than hosted ones — and twelve by adversarially sweeping a new rule *before*
 shipping it. The split inside "by review" is the useful
 number: eleven rounds of hosted review preceded a **local** review pass, and the local pass immediately
 found the one live false green in the set. Sweeping your own new rule catches respellings of the hole
@@ -1145,20 +1194,32 @@ and then, once *that* rule landed, the scope it was asked at, since a shell that
 skips a command no condition guards.
 The durable lesson is not any one of those shapes; it
 is that "all mutations killed" is evidence about the sweep, and a guard is only as good as the
-narrowest question it asks. Round 5 also retired a claim this file used to make — that the job "may
+narrowest question it asks.
+
+**The kill-attribution corollary**, which has now recurred four times and is the thing to read if you
+read only one sentence here: *a mutation can die for a reason unrelated to the property it probes, so
+attribution for a kill must be checked rather than assumed.* Instances: five controls whose fixtures
+spliced onto the real gate step, so renaming that step made them assert nothing; a probe killed because
+naming `scripts/ai/pr_gate.py` in another step tripped "exactly one step runs the gate", while the
+property itself sailed through when respelled to name nothing; a `python -c pass` probe killed by the
+orphan-suite rule while the whitelist went on admitting a no-op check; and a control table asserting
+that the gate-step *key* rule rejects `shell: "cat {0}"` when the refusal actually came from the value
+rule beside it. Prefer synthetic fixtures, and prefer mutations that do not name the artifact. Round 5 also retired a claim this file used to make — that the job "may
 not be conditional" — because two mutations disproved it at the time: documentation asserting a
 property the code does not have is worse than silence, since it is what the next reviewer trusts
 instead of re-deriving. That claim is true again, by a different mechanism: `JOB_KEYS` whitelists the
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
-The corpus is kept for that reason — 147 mutations, 89 loosening probes and 40
+The corpus is kept for that reason — 147 mutations, 97 loosening probes and 47
 correct-edit assertions across five files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
-workflow CI runs. So that figure is a local result, reproducible by whoever holds that tree and not
-from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open question rather
-than an oversight. Keeping it only helps if it still runs, and all three of the mutation files named a virtualenv under
+workflow CI runs. So that figure is a local result, reproducible from any checkout that carries the
+corpus and not from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open
+question rather than an oversight. ("Any checkout" is a round-24 repair: four of the five harnesses
+hardcoded one machine's absolute repo root, so the sentence above was false even for a second checkout
+on that machine — the same durability defect as the virtualenv path below, and found the same way.) Keeping it only helps if it still runs, and all three of the mutation files named a virtualenv under
 `/tmp` that the OS had since reaped, so the corpus was unrunnable at the exact moment a later round
 needed it. They now default to the interpreter running them (`SWEEP_PY` overrides).
 
