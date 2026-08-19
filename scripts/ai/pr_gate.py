@@ -543,6 +543,12 @@ def run(cmd):
     # it loses every ordering comparison against 0, so an OOM-killed suite ranked below a clean one
     # and reported a pass. Normalised here rather than at each caller: a signal kill produced no
     # verdict, which is the definition of a tool error in this file's 0/1/2 contract.
+    #
+    # This line alone did not deliver that contract, and the sentence above used to imply it did. It
+    # fixed the *ranking* — a signal kill no longer sorts below a clean run — while `main()`'s booking
+    # loop still sent 1 and 2 down one branch, so the job exited 1 and published a code verdict on a
+    # check that never reached one. The contract is kept where the exit code is chosen; the two halves
+    # are noted in each other's comments because neither is sufficient alone.
     code = 2 if proc.returncode < 0 else proc.returncode
     return code, proc.stdout + proc.stderr, time.time() - started
 
@@ -667,7 +673,15 @@ def main():
         print(f"{len(files)} changed path(s) vs {args.base or 'file'}; "
               f"{len(selected)} of {len(CHECKS)} checks selected\n")
 
-    results, failures, advisory_failures = [], [], []
+    # `tool_errors` is separate from `failures` because the two mean different things and this script's
+    # exit contract turns on the difference. `run()` normalises a signal-killed child to 2 and its
+    # comment there calls that "the definition of a tool error in this file's 0/1/2 contract" — but the
+    # booking loop below used to send 1 and 2 down the same branch, so an OOM-killed suite was appended
+    # to `failures` and published as exit 1: a code verdict on a check that never produced one. Verified
+    # before the fix — a runner returning 2 made `main()` return 1. The normalisation achieved its
+    # *ranking* purpose (a signal kill no longer sorts below a clean run) and none of its contract
+    # purpose, and the comment claimed both.
+    results, failures, advisory_failures, tool_errors = [], [], [], []
     for check in CHECKS:
         if check not in selected:
             results.append((check, "SKIPPED", "", 0.0))
@@ -684,6 +698,15 @@ def main():
         code, out, secs = resolve(check)()
         if code == 0:
             results.append((check, "PASS", "", secs))
+        elif code == 2:
+            # No verdict, so not a failure. A gating check that could not run makes the whole gate a
+            # tool error (exit 2); an *advisory* one does not, because an advisory check exists
+            # precisely so that nothing it reports can block a merge, and turning its broken
+            # environment into the one exit code that blocks would invert that. It is still printed
+            # and still named in the summary, so it cannot pass silently either way.
+            status = "ERROR" if check["gating"] else "ADVISORY-ERROR"
+            results.append((check, status, out, secs))
+            (tool_errors if check["gating"] else advisory_failures).append(check["name"])
         elif check["gating"]:
             results.append((check, "FAIL", out, secs))
             failures.append(check["name"])
@@ -704,7 +727,8 @@ def main():
     for check, status, out, _ in results:
         # Every non-passing check gets a section, including one that failed silently:
         # "[FAIL]" with no detail anywhere is indistinguishable from a reporting bug.
-        if status in ("FAIL", "MISSING-DEP", "ADVISORY", "ADVISORY-DEP"):
+        if status in ("FAIL", "ERROR", "MISSING-DEP", "ADVISORY", "ADVISORY-ERROR",
+                      "ADVISORY-DEP"):
             body = out.rstrip() or "(the check produced no output)"
             # A gating failure is echoed whole — it has to be diagnosable from the log
             # alone. An advisory one is informational, and the SFDMU validator prints a
@@ -729,7 +753,11 @@ def main():
     # MISSING-DEP previously fell out of both counts, so a reader reconciling "11 executed,
     # 0 skipped" against 12 checks found one unaccounted for — the shape this file exists
     # to eliminate.
-    executed = sum(1 for _, s, _, _ in results if s in ("PASS", "FAIL", "ADVISORY"))
+    # A check killed by a signal *ran* — it just produced no verdict — so it belongs in `executed`,
+    # not in a fourth bucket. Leaving it out of all three broke the assert below, which is the
+    # accounting this block exists to keep honest.
+    executed = sum(1 for _, s, _, _ in results
+                   if s in ("PASS", "FAIL", "ERROR", "ADVISORY", "ADVISORY-ERROR"))
     skipped = sum(1 for _, s, _, _ in results if s == "SKIPPED")
     blocked = sum(1 for _, s, _, _ in results if s in ("MISSING-DEP", "ADVISORY-DEP"))
     assert executed + skipped + blocked == len(CHECKS), "a check fell out of the summary"
@@ -745,8 +773,20 @@ def main():
           + (f" {len(failures)} failed (a count across those buckets, not a fourth one)"
              if failures else " Nothing failed.")
           + (f" {len(advisory_failures)} advisory failure(s): "
-             f"{', '.join(advisory_failures)}" if advisory_failures else ""))
+             f"{', '.join(advisory_failures)}" if advisory_failures else "")
+          + (f" {len(tool_errors)} produced no verdict: {', '.join(tool_errors)}"
+             if tool_errors else ""))
 
+    # Before `failures`, and deliberately: a run with both a real failure and a check that could not
+    # run is not a clean verdict on the change, so the tool error is the honest answer. Reporting exit 1
+    # there would tell a reader the gate reached a conclusion it did not reach.
+    if tool_errors:
+        print(f"\nNO VERDICT: {', '.join(tool_errors)}\n"
+              "These checks did not run to completion — a signal kill (OOM is the usual cause) or an "
+              "interpreter that could not start. Exit 2 says so: this is not a verdict on the change, "
+              f"and it is not the same answer as a failure."
+              + (f" Also failing: {', '.join(failures)}." if failures else ""))
+        return 2
     if failures:
         print(f"\nFAILED: {', '.join(failures)}")
         return 1

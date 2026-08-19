@@ -473,7 +473,7 @@ selection is a couple of seconds. That timing is measured on a machine where two
 is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (669 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (675 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -1300,8 +1300,28 @@ instead of re-deriving. That claim is true again, by a different mechanism: `JOB
 job's keys, so an `if:` on the job fails wherever it is placed, before or after `steps:`. The
 withdrawal outlived its reason — the same defect one turn further on, and the reason this paragraph
 now names the rule that makes the claim true instead of asserting the claim.
+**The twenty-sixth wave found the other half of a fix this file had already described.** `run()`
+normalises a signal-killed child from a negative code to `2`, and the comment there called that "the
+definition of a tool error in this file's 0/1/2 contract" — which the module docstring backs with "a tool
+error is never read as a verdict". Both were true about `run()` and neither was true about the gate:
+`main()`'s booking loop sent `1` and `2` down one branch, appended the check to `failures`, and returned
+`1`. An OOM-killed suite was therefore published as a code verdict on a check that never reached one,
+which is the single conflation the exit contract exists to prevent. Two source-level rules asserted the
+normalisation and the deliberate timeout choice beside it, and neither could see this, because the defect
+was in the *consumer* of the value rather than its producer — the same shape as the name-keyed exemption
+two waves earlier, and the reason the new rule drives `main()` and reads its return code instead of
+reading the source. A tool error now exits `2`, before `failures` is consulted (a run with both has not
+reached a verdict, so `1` would overstate it) and is reported in its own sentence. The advisory checks
+are the deliberate exception: an advisory check exists so that nothing it reports can block a merge, so
+its broken environment must not become the one exit code that does — it is booked, printed and named
+without changing the exit. Two things carry forward. The `MISSING-DEP` and timeout paths still exit `1`
+and are *not* instances of this class: both are documented decisions with reasons in place, and a
+dependency the workflow itself installs is a repo-controlled failure rather than an absent verdict.
+And the region fingerprint did its job here for the first time — it failed on the booking-loop edit and
+forced this paragraph, which is what "changes only by updating `VERDICT_REGIONS` deliberately" was for.
+
 The corpus is kept for that reason — 147 mutations, 106 loosening probes, 47
-correct-edit assertions and 15 gate-script probes across six files — but **not in
+correct-edit assertions and 17 gate-script probes across six files — but **not in
 this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible from any checkout that carries the

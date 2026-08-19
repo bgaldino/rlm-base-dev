@@ -4461,6 +4461,7 @@ check("a failing gating check reaches the FAILED line and a non-zero exit, so a 
 # failure accounting and turn the gate red.
 real_run, real_seq, real_git = pr_gate.run, pr_gate.run_sequence, pr_gate.git
 real_changed, real_argv, real_deps = pr_gate.changed_files, sys.argv, pr_gate.missing_deps
+real_unlisted = pr_gate.unlisted_suites
 
 
 def gate_verdict(probe, failing):
@@ -4509,6 +4510,40 @@ def gate_verdict(probe, failing):
 
 def probe_path(trig, ext=".md"):
     return trig.rstrip("/") + "/probe_reaches_verdict" + ext if trig.endswith("/") else trig
+
+
+def gate_verdict_all(runner_code, only=None):
+    """Run `main()` with every selected runner returning `runner_code`, and report the exit code.
+
+    Distinct from `gate_verdict` above, which fails one runner at a time to make the exit code an
+    assertion about a single check's *booking*. This asks the other question — what the gate's exit code
+    means — which needs the outcome uniform. `only` narrows the selection so the advisory exception can
+    be exercised without a gating check deciding the answer first.
+    """
+    buf = io.StringIO()
+    keep = [c for c in pr_gate.CHECKS if only is None or only(c)]
+    try:
+        pr_gate.run = lambda cmd: (runner_code, f"stub exit {runner_code}", 0.1)
+        pr_gate.run_sequence = lambda cmds: (runner_code, f"stub exit {runner_code}", 0.1)
+        pr_gate.missing_deps = lambda check: []
+        pr_gate.unlisted_suites = lambda: []
+        # `CHECKS` is narrowed, not just the changed paths. Selecting by path could not isolate the
+        # advisory check: `sfdmu_datasets` triggers on `datasets/sfdmu/` and so does the gating
+        # `plan_readme_consistency`, so any path reaching one reached the other and the gating check
+        # decided the exit code — the fixture would have reported the advisory exception as broken while
+        # the exception worked.
+        pr_gate.CHECKS = keep
+        pr_gate.changed_files = lambda base: [probe_path((c["triggers"] or ["x/"])[0])
+                                              for c in keep]
+        sys.argv = ["pr_gate.py", "--base", "HEAD"]
+        with redirect_stdout(buf):
+            rc = pr_gate.main()
+    finally:
+        pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+        pr_gate.changed_files, sys.argv = real_changed, real_argv
+        pr_gate.missing_deps, pr_gate.unlisted_suites = real_deps, real_unlisted
+        pr_gate.CHECKS = real_checks
+    return rc, buf.getvalue()
 
 
 for spec in list(pr_gate.CHECKS):
@@ -4641,7 +4676,10 @@ VERDICT_REGIONS = {
     # region: (fingerprint, what it decides)
     "run()": ("0085e7acf27b", "the exit code, stdout and duration of one command"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
-    "the booking loop and main()'s return": ("bdc243221dae", "which verdicts reach the exit code"),
+    # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
+    # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
+    # made that a deliberate edit rather than a quiet one, which is exactly its purpose.
+    "the booking loop and main()'s return": ("a88508e61f7f", "which verdicts reach the exit code"),
 }
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
@@ -4925,6 +4963,30 @@ check("an unspawnable command is a tool error (exit 2), not a traceback",
 check("a timeout stays a check failure, since a hanging check is the change's own doing",
       re.search(r'except subprocess\.TimeoutExpired:.*?return 1,', source, re.S) is not None)
 
+# And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
+# signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
+# 0/1/2 contract" — but the booking loop sent 1 and 2 down one branch, so an OOM-killed suite was
+# appended to `failures` and the job exited 1: a code verdict on a check that never reached one, in the
+# script whose module docstring promises "a tool error is never read as a verdict". Two source-level
+# rules above assert the normalisation and the timeout choice, and neither could see this, because the
+# defect was in the consumer rather than the producer. Asserted through `main()`'s return value for that
+# reason — the same lesson as the name-keyed exemption two waves back.
+for runner_code, want, label in ((2, 2, "a signal-killed check is a tool error, not a failure"),
+                                 (1, 1, "a real failure is still exit 1"),
+                                 (0, 0, "and a clean run is still exit 0")):
+    rc, printed = gate_verdict_all(runner_code)
+    check(f"{label} — main() exits {want}", rc == want, f"exit {rc}: {printed.strip()[-160:]}")
+check("a tool error is named in its own sentence rather than folded into FAILED, so a reader cannot "
+      "mistake it for a verdict",
+      "NO VERDICT" in gate_verdict_all(2)[1] and "FAILED:" not in gate_verdict_all(2)[1])
+# An advisory check is the deliberate exception: it exists so nothing it reports can block a merge, so
+# its broken environment must not become the one exit code that does. Still printed and still named.
+advisory_only = gate_verdict_all(2, only=lambda c: not c["gating"])
+check("an advisory check that cannot run does not turn into a blocking tool error",
+      advisory_only[0] == 0, advisory_only[0])
+check("but it is still reported rather than passing silently",
+      "ADVISORY-ERROR" in advisory_only[1])
+
 broken_git = tempfile.mkdtemp()
 try:
     # An unreadable repo: `git status` cannot succeed, so the gate must be a tool error
@@ -4973,7 +5035,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 669
+EXPECTED = 675
 cited = README_COUNT.search(
     pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
