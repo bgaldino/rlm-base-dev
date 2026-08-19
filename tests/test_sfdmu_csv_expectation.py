@@ -277,6 +277,49 @@ PER_PASS_IS_VALIDATED = [
 ]
 
 
+"""Same object, `Readonly` in pass 1 and `Upsert` with a composite key in pass 2."""
+_RO_FIRST = {"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly", "externalId": "Name"}
+_UP_SECOND = {"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+              "externalId": "Name;Code"}
+
+MERGED_CONFIG = [
+    # `_parse_object_configs` keeps an object's FIRST declaration, so every check reading the merged
+    # config validated pass 1 and exempted passes 2..n. The root file is read by pass 2 here, whose
+    # composite key needs a `$$Name$Code` column; against pass 1's config a CSV carrying only `Name`
+    # passed. This is the third instance of the same trap in this file (`operation` and `excluded`
+    # were the first two), which is why the per-pass view is now a primitive.
+    ("a pass-2 composite key is required of the root CSV, not just pass 1's simple key",
+     True, [i for i in issues([[_RO_FIRST], [_UP_SECOND]], {"Widget__c.csv": "Name\nwidget-a\n"})
+            if "composite key column" in i]),
+    # `apiVersion` is filtered rather than supplied: `issues()` writes a minimal plan without one, so
+    # an unfiltered control asserts "no findings at all" and fails on an unrelated High — a control
+    # that passes for the wrong reason in one direction and fails for the wrong reason in the other.
+    ("...and is silent when that column is present — control for the case above",
+     False, [i for i in issues([[_RO_FIRST], [_UP_SECOND]],
+                               {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+             if "apiVersion" not in i]),
+    # The guard on the fix's own blast radius, in the direction that actually bit. Applying the
+    # externalId/SELECT-coverage check to declarations that do *not* read the root file reported 241
+    # spurious High findings on correct plans. A Readonly later pass is the clearest case: it reads
+    # nothing from a file, and commonly carries a narrow SELECT with an inherited composite key, so
+    # it must contribute no coverage finding. (The blunt guard on the whole 241 is the live-tree
+    # baseline below — a synthetic cannot stand in for 39 real plans, and should not pretend to.)
+    ("a Readonly later pass with a narrow SELECT contributes no externalId coverage finding",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"}],
+          [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly", "externalId": "Name;Code"}]],
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "not found in query SELECT clause" in i]),
+    # And the reason a raw declaration cannot be substituted for a normalized one: the checks read
+    # derived keys (`fields`, the parsed SELECT), not the raw JSON. Passing raw declarations made
+    # `fields` empty and every externalId component read as absent — the mechanism behind those 241.
+    ("per-pass configs carry the derived `fields` key the checks actually read",
+     True, [k for k in V.SFDMUValidator(base_dir=".")._all_pass_configs(
+         {"objectSets": [{"objects": [_UP_SECOND]}]})["Widget__c"][0] if k == "fields"]),
+]
+
+
 def live_baseline():
     """The validator's findings on the real tree, by severity.
 
@@ -305,25 +348,41 @@ def live_baseline():
     return by_sev, plans
 
 
-def baseline_sites():
-    """Every tracked file that states the High-findings baseline, discovered rather than listed.
+# The count words the repo actually writes, plus every neighbour of 7 — a wrong claim is most
+# likely to be off by one, and a detector that only knows the right word cannot see a wrong one.
+_WORD_COUNTS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+                "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
 
-    Matches the count as `7`/`seven` (with optional bold markers) followed by any of the nouns the
-    repo attaches it to. That list is wider than it looks necessary, and deliberately: a first
-    version matched only `High` and missed `sfdmu-data-plans/SKILL.md`, which spells the same
-    baseline "7 zero-byte `Upsert` CSVs" — reproducing, in the detector, the exact omission the
-    detector exists to prevent. `findings` is *not* in the list, though every real site does end
-    "…High findings": as a standalone noun it also matches unrelated review narration ("five of its
-    seven findings"), and a sweep set with a false member sends a reader to edit a line that must
-    not change. A noun the repo has not used yet is the remaining gap in the other direction; that
-    is why the assertion below prints the set rather than trusting it silently.
+
+def baseline_sites():
+    """Every tracked file that states the High-findings baseline, with the value each one claims.
+
+    Discovery is deliberately **independent of the expected number**, and that is the whole design.
+    An earlier version matched only `7`/`seven`, which inverted the guard: editing a site to say
+    "8 High" removed it from the result set rather than failing, and the only assertion downstream
+    was that the set is non-empty — so the one edit the sweep exists to catch was the one edit it
+    could not see. Matching *any* count and validating the captured values afterwards is what makes
+    a wrong claim a failure instead of a disappearance.
+
+    Anchored on the nouns the repo attaches the count to. That list is wider than it looks
+    necessary, and deliberately: a first version matched only `High` and missed
+    `sfdmu-data-plans/SKILL.md`, which spells the same baseline "7 zero-byte `Upsert` CSVs" —
+    reproducing, in the detector, the exact omission the detector exists to prevent. `findings` is
+    *not* in the list, though every real site does end "…High findings": as a standalone noun it
+    also matches unrelated review narration ("five of its seven findings"), and a sweep set with a
+    false member sends a reader to edit a line that must not change. A noun the repo has not used
+    yet is the remaining gap in the other direction; that is why the assertion below prints the set
+    rather than trusting it silently.
 
     Deliberately *not* keyed on `mfg-multicurrency` alone: `plan-dependency-graph.md` names the
     plan and its pack-110 removal without quoting a count, so it needs no edit when the count
     changes and including it would send a reader to a file with nothing to sweep.
+
+    Returns `{path: [(line_number, claimed_count), ...]}`.
     """
+    counts = "|".join(_WORD_COUNTS)
     pattern = re.compile(
-        r"\b(?:7|seven)\b[\s\-*`]*(?:high|zero-byte)", re.IGNORECASE)
+        rf"\b(\d+|{counts})\b[\s\-*`]*(?:high|zero-byte)", re.IGNORECASE)
     roots = ["AGENTS.md", "scripts/ai", "docs/features", ".cursor/skills", "tests"]
     sites = {}
     for root in roots:
@@ -337,7 +396,11 @@ def baseline_sites():
                 lines = path.read_text(encoding="utf-8").splitlines()
             except (UnicodeDecodeError, OSError):
                 continue
-            hits = [n for n, line in enumerate(lines, 1) if pattern.search(line)]
+            hits = []
+            for n, line in enumerate(lines, 1):
+                for raw in pattern.findall(line):
+                    token = raw.lower()
+                    hits.append((n, int(token) if token.isdigit() else _WORD_COUNTS.get(token)))
             if hits:
                 sites[path.relative_to(REPO).as_posix()] = hits
     return sites
@@ -351,16 +414,24 @@ BASELINE = [
     ("the live tree has exactly 7 High findings, the documented baseline",
      True, [f"High={_sev.get(V.Severity.HIGH.value, 0)}"]
            if _sev.get(V.Severity.HIGH.value, 0) == 7 else []),
-    ("all of them are in mfg-multicurrency, so the baseline names one plan and not a scatter",
-     True, [p for p in _plans if "multicurrency" in p] if _plans and all(
-         "multicurrency" in p for p in _plans) else []),
+    # The exact dataset name, not a substring. `"multicurrency" in p` also accepts a restored
+    # `q3-multicurrency` — the very plan `dab545ab` deleted for carrying zero-byte CSVs of its own —
+    # so the loose form would report the documentation green while the findings had moved to a
+    # different plan than every one of those documents names.
+    ("all 7 are in mfg/en-US/mfg-multicurrency exactly, so the docs name the plan that has them",
+     True, sorted(_plans) if _plans == {"mfg/en-US/mfg-multicurrency"} else []),
     # Not an assertion about *how many* sites there are — that number went stale twice as prose and
-    # would go stale again as a literal here. It asserts only that the sweep set is non-empty, and
-    # prints it, so the failure above arrives with the list of files to edit attached.
+    # would go stale again as a literal here. It asserts that the sweep set is non-empty and that
+    # every site claims the real baseline, and prints them, so a failure arrives with the list of
+    # files to edit attached.
     (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across "
      f"{len(_sites)} file(s), swept together: "
-     + ", ".join(f"{f}:{','.join(map(str, ls))}" for f, ls in sorted(_sites.items())),
+     + ", ".join(f"{f}:{','.join(str(n) for n, _ in ls)}" for f, ls in sorted(_sites.items())),
      True, sorted(_sites)),
+    (f"...and every one of them claims {_sev.get(V.Severity.HIGH.value, 0)}, the live High count",
+     True, [f"{f}:{n}={c}" for f, ls in sorted(_sites.items()) for n, c in ls]
+           if _sites and all(c == _sev.get(V.Severity.HIGH.value, 0)
+                             for ls in _sites.values() for _, c in ls) else []),
 ]
 
 
@@ -387,6 +458,7 @@ def main() -> int:
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
                  ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
+                 ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

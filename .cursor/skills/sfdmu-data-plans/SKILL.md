@@ -232,8 +232,6 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 - [ ] All-traversal externalIds use `Upsert` on the 5.6.4+ floor (Bugs 3/5 fixed); any residual `Insert` + `deleteOldData: true` is a pre-5.6.4 plan awaiting the gated `sfdmu-v5-optimization` migration
 
-## Developer-Local Scratch Directory
-
 ## Where a plan's CSVs live
 
 Two locations, and which one a plan owes a file in depends on the **pass**, not on the object:
@@ -252,7 +250,19 @@ reports it (High) rather than loading it.
 Two shapes owe no root CSV at all:
 
 - **`operation: Readonly` in every pass** — the records are queried from the *target org*, so there
-  is no source file. Do not add an empty CSV to satisfy a checker.
+  is no source file. Do not add an empty CSV to satisfy a checker. **Verified live, not inferred**,
+  because the inference cuts the other way and a reviewer raised it: every load runs
+  `--sourceusername CSVFILE`, so it looks as though a Readonly object's rows must come from a CSV
+  too. They do not. `procedure-plans` declares `ExpressionSetDefinition` as `Readonly` with **no
+  CSV at either location**, while `ProcedurePlanOption.csv` traverses it
+  (`ExpressionSetDefinition.DeveloperName`) — and `ProcedurePlanOption.ExpressionSetDefinitionId`
+  is populated with real ids in both fresh 264 orgs. The traversal resolved against the target org
+  with no source rows in existence.
+  - Corollary worth knowing before you "fix" one: a Readonly CSV that *does* exist, such as
+    `inapp/RecordType.csv`, is maintained but not required for resolution. Its README record count
+    describes org records rather than file rows — which is exactly how `procedure-plans/README.md`
+    documents `ExpressionSetDefinition` (`Readonly`, 2 records, no file). Neither the validator nor
+    `check_plan_readme_consistency.py` reports such a file's deletion, and that is correct.
 - **every writable pass supplied per-pass** — the root path is an alternative location for the same
   file, not an additional requirement.
 

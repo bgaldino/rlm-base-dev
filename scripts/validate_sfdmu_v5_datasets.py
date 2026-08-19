@@ -312,8 +312,10 @@ class SFDMUValidator:
 
         # Validate each object's CSV and composite key configuration
         objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides)
+        all_pass_configs = self._all_pass_configs(export_data)
         for obj_name, obj_config in object_configs.items():
-            self._validate_object(dataset_path, obj_name, obj_config, result, objects_owing_root_csv)
+            self._validate_object(dataset_path, obj_name, obj_config, result,
+                                  objects_owing_root_csv, all_pass_configs)
 
         # Validate per-pass CSV overrides
         if objectset_source_overrides:
@@ -421,6 +423,41 @@ class SFDMUValidator:
             return [{"objects": export_data["objects"]}]
         return object_sets
 
+    def _all_pass_configs(self, export_data: dict) -> Dict[str, Dict[int, dict]]:
+        """Map each object to `{pass index: that pass's own declaration}`, every pass.
+
+        The counterpart to `_parse_object_configs`, which merges an object's declarations down to
+        the *first* one. Every check that reads the merged config therefore validates pass 1 and
+        silently exempts passes 2..n — a shape this file has now hit three times (`operation`,
+        `excluded`, and the root-CSV `externalId`/query), so the per-pass view is a primitive rather
+        than a special case.
+        """
+        by_pass: Dict[str, Dict[int, dict]] = {}
+        for idx, obj_set in enumerate(self._normalized_object_sets(export_data)):
+            for obj in obj_set.get("objects", []):
+                query = obj.get("query", "")
+                obj_name = self._extract_object_name(query)
+                if obj_name:
+                    by_pass.setdefault(obj_name, {})[idx] = \
+                        self._normalize_object_config(obj, query, idx)
+        return by_pass
+
+    @staticmethod
+    def _dedup_configs(configs: List[dict]) -> List[dict]:
+        """Distinct declarations by the fields the per-pass checks read.
+
+        Two passes commonly declare an object identically; validating both would report the same
+        defect twice, which reads as two defects.
+        """
+        seen, out = set(), []
+        for cfg in configs:
+            key = (cfg.get("query", ""), cfg.get("externalId", ""),
+                   str(cfg.get("operation", "")), bool(cfg.get("excluded")))
+            if key not in seen:
+                seen.add(key)
+                out.append(cfg)
+        return out
+
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
 
@@ -487,8 +524,17 @@ class SFDMUValidator:
         ))
 
     def _objects_owing_root_csv(self, export_data: dict,
-                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]]) -> Set[str]:
-        """Objects that must have a CSV at the plan root.
+                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]]) -> Dict[str, List[dict]]:
+        """Objects that must have a CSV at the plan root -> the declarations that read it.
+
+        Returns a mapping rather than a set so membership (`obj_name in ...`) still answers "is a
+        root CSV owed", while the value carries **which** passes read it. The root file has to be
+        validated against those, not against the merged config: `_parse_object_configs` keeps the
+        first declaration, so a pass-1 `Readonly`/excluded declaration followed by a writable pass 2
+        had the file checked against pass 1's `query` and `externalId`. A pass-2 composite key needing
+        a `$$A$B` column in that same file was then never asked for, and a CSV carrying only pass 1's
+        single column passed. Verified by the `MERGED CONFIG` cases in
+        `tests/test_sfdmu_csv_expectation.py`.
 
         A plan reads a writable pass's records from `objectset_source/object-set-N/<Object>.csv`
         when that file exists, and from `<plan>/<Object>.csv` otherwise. So the root file is owed
@@ -513,12 +559,18 @@ class SFDMUValidator:
         size 2 — 0 disagreements. It is reported separately as a High, by the per-pass loop.)
         """
         writable_passes = self._writable_passes_by_object(export_data)
+        all_configs = self._all_pass_configs(export_data)
         covered: Dict[str, Set[int]] = {}
         for (obj_name, pass_index) in objectset_source_overrides:
             covered.setdefault(obj_name, set()).add(pass_index)
 
-        return {obj_name for obj_name, passes in writable_passes.items()
-                if passes - covered.get(obj_name, set())}
+        owed: Dict[str, List[dict]] = {}
+        for obj_name, passes in writable_passes.items():
+            uncovered = sorted(passes - covered.get(obj_name, set()))
+            if uncovered:
+                owed[obj_name] = self._dedup_configs(
+                    [all_configs[obj_name][i] for i in uncovered])
+        return owed
 
     def _parse_object_configs(self, export_data: dict) -> Dict[str, dict]:
         """Parse export.json into object name -> config mapping.
@@ -546,18 +598,29 @@ class SFDMUValidator:
 
                 # Store first pass configuration (later passes may be activations)
                 if obj_name not in configs:
-                    configs[obj_name] = {
-                        "pass_index": idx,
-                        "operation": obj.get("operation", "Upsert"),
-                        "externalId": obj.get("externalId", "Id"),
-                        "query": query,
-                        "fields": self._parse_select_fields(query),
-                        "excluded": obj.get("excluded", False),
-                        "deleteOldData": obj.get("deleteOldData", False),
-                        "skipExistingRecords": obj.get("skipExistingRecords", False),
-                    }
+                    configs[obj_name] = self._normalize_object_config(obj, query, idx)
 
         return configs
+
+    def _normalize_object_config(self, obj: dict, query: str, idx: int) -> dict:
+        """One export.json declaration in the shape every check downstream expects.
+
+        Shared with `_all_pass_configs` so a per-pass config is indistinguishable from a merged one.
+        Not cosmetic: the checks read *derived* keys, not the raw declaration — `_validate_external_id`
+        reads `fields` (the parsed SELECT), so handing it a raw declaration makes `fields` empty and
+        every externalId component read as absent from the query. That produced 241 spurious High
+        findings when this was first written by passing raw declarations through.
+        """
+        return {
+            "pass_index": idx,
+            "operation": obj.get("operation", "Upsert"),
+            "externalId": obj.get("externalId", "Id"),
+            "query": query,
+            "fields": self._parse_select_fields(query),
+            "excluded": obj.get("excluded", False),
+            "deleteOldData": obj.get("deleteOldData", False),
+            "skipExistingRecords": obj.get("skipExistingRecords", False),
+        }
 
     def _extract_object_name(self, query: str) -> str:
         """Extract object API name from SOQL query.
@@ -725,7 +788,8 @@ class SFDMUValidator:
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
-                         objects_owing_root_csv: Set[str]):
+                         objects_owing_root_csv: Dict[str, List[dict]],
+                         all_pass_configs: Dict[str, Dict[int, dict]]):
         """Validate a single object's CSV and configuration.
 
         Args:
@@ -733,11 +797,13 @@ class SFDMUValidator:
             obj_name: Object API name
             obj_config: Object configuration from export.json
             result: ValidationResult to add issues to
-            objects_owing_root_csv: Objects that must have a CSV at the plan root, per
-                `_objects_owing_root_csv`. Required, not defaulted: there is one call site and it
-                always computes the set, so an `Optional` default would be unreachable code —
-                including the two paragraphs that justified `None` as "the safe direction", which
-                no input exercised.
+            objects_owing_root_csv: Objects that must have a CSV at the plan root, mapped to the
+                declarations that read it, per `_objects_owing_root_csv`. Required, not defaulted:
+                there is one call site and it always computes the mapping, so an `Optional` default
+                would be unreachable code — including the two paragraphs that justified `None` as
+                "the safe direction", which no input exercised.
+            all_pass_configs: Every declaration of every object, per `_all_pass_configs`, so the
+                `operation` and `externalId` checks can run per pass instead of on the merged view.
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
@@ -761,11 +827,24 @@ class SFDMUValidator:
                 ))
             return
 
-        self._validate_operation_value(obj_name, obj_config, result)
+        # `operation` per declaration, not per merged config: same trap as `excluded` above and the
+        # root CSV below — reading the merged config validates pass 1 and exempts passes 2..n, so a
+        # bogus operation introduced in a later pass was unreportable. All passes, including Readonly
+        # ones, since a Readonly declaration's operation is exactly the kind that resolves to
+        # `undefined` unnoticed. Deduped so an object declared identically twice yields one issue.
+        for cfg in self._dedup_configs(list(all_pass_configs.get(obj_name, {}).values())) or [obj_config]:
+            self._validate_operation_value(obj_name, cfg, result)
 
-        # Validate externalId format
-        external_id = obj_config.get("externalId", "")
-        self._validate_external_id(obj_name, external_id, obj_config, result)
+        # externalId is *not* swept the same way, and the reason is worth stating because sweeping it
+        # is the obvious move: its SELECT-coverage check is only meaningful for a pass that reads a
+        # file. Later passes are commonly activations with a deliberately narrow `SELECT` and an
+        # inherited composite externalId, so validating every declaration reported 258 High findings
+        # against correct plans — a 36x false-positive rate, the same class of noise pack 123 fixed.
+        # Scoped below to the passes that read the root file; objects owing no root file keep the
+        # single merged-config check they have always had.
+        reading_configs = objects_owing_root_csv.get(obj_name) or [obj_config]
+        for cfg in reading_configs:
+            self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire
         # false-positive rate (#264-51 / pack 123) — two Criticals on correct data, which is enough
@@ -775,7 +854,10 @@ class SFDMUValidator:
         # same file, validated by _validate_per_pass_csv below).
         if obj_name in objects_owing_root_csv:
             csv_path = dataset_path / f"{obj_name}.csv"
-            self._validate_csv_file(csv_path, obj_name, obj_config, result)
+            # Against every pass that reads this file, not the merged config — see
+            # `_objects_owing_root_csv`. A pass-2 composite key went unasked-for otherwise.
+            for cfg in objects_owing_root_csv[obj_name]:
+                self._validate_csv_file(csv_path, obj_name, cfg, result)
         else:
             self.log(f"  No root CSV owed by {obj_name} — Readonly, or every writable pass is "
                      f"supplied under objectset_source/", level="DEBUG")
