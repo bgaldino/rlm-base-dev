@@ -405,9 +405,10 @@ takes a PR number and talks to GitHub, so it belongs in the workflow (which has
 
 That workflow is `.github/workflows/pr-checks.yml`, and it runs on every pull request: it asks
 `--requirements` what the selection needs, installs exactly that, runs the gate, then runs the
-per-PR branch scope. Note what running does *not* mean — a red job blocks nothing until
-`Mechanical checks` is configured as a **required status check**, which is repository settings
-rather than anything in this repo.
+per-PR branch scope. `Mechanical checks` **is** a required status check, on `main`, `264` and
+`release/*`, pinned to the GitHub Actions app so no other actor can report a same-named check to
+satisfy it. That was a separate act from writing the workflow — repository settings, not a file here —
+and until it happened every guard below was advice.
 
 Four platform behaviours sit outside every guard in that file and are worth knowing before
 trusting a green:
@@ -415,8 +416,17 @@ trusting a green:
 * **`[skip ci]` skips the whole thing.** A head commit whose message contains `[skip ci]`,
   `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, or a `skip-checks: true` trailer
   produces no run at
-  all. While the check is not required that is a complete, self-service bypass needing no
-  permissions; once it *is* required the same case leaves it Pending, which correctly blocks.
+  all. That *was* a complete, self-service bypass needing no permissions. Now that the check is
+  required the identical case leaves it **Pending**, which blocks — same mechanism, opposite sign,
+  and the clearest illustration of why requiring the check was the load-bearing step rather than a
+  formality. **Demonstrated the hard way:** the commit that made the check required had one of those
+  strings in its message *because it was describing this bullet*, and GitHub skipped every workflow
+  on it — zero runs, no check run on the head SHA, and the PR correctly unmergeable with no merge
+  conflict. So the trap is not only a bypass an author might reach for deliberately: **a commit
+  message that quotes a skip directive triggers it**, and the commits most likely to quote one are
+  the commits that edit this file. Refer to the directives by name in commit messages, never in
+  their bracketed form. File contents are unaffected — the scan reads commit messages only, which
+  is why the bracketed list above is safe to keep here.
 * **The two actions may be pinned by tag, and are.** `actions/checkout@v6` and
   `actions/setup-python@v6` both move with every 6.x release — the suite accepts either a release tag
   or a full 40-hex commit SHA, so switching to a SHA is a one-line edit that needs no rule change
