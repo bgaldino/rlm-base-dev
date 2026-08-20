@@ -307,8 +307,7 @@ class SFDMUValidator:
             if objectset_source_overrides:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                    obj_config = self._get_object_config_for_pass(export_data, obj_name, pass_index)
-                    if obj_config:
+                    for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
                         # Apply header fix if needed
                         if self.fix_headers and self._is_csv_empty(csv_path):
                             headers = obj_config.get("fields", [])
@@ -341,16 +340,17 @@ class SFDMUValidator:
         if objectset_source_overrides:
             self.log(f"\nValidating {len(objectset_source_overrides)} per-pass CSV override(s)")
             for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                obj_config = self._get_object_config_for_pass(export_data, obj_name, pass_index)
-                if obj_config:
-                    self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
-                else:
+                declared = self._get_object_configs_for_pass(export_data, obj_name, pass_index)
+                if not declared:
                     result.add_issue(Issue(
                         severity=Severity.HIGH,
                         object_name=obj_name,
                         message=f"Per-pass CSV found but no matching object in pass {pass_index + 1}",
                         file_path=self._make_relative_path(csv_path)
                     ))
+                    continue
+                for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
+                    self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
 
         self.log(f"\nValidation complete for {dataset_name}")
         self.log(f"Objects validated: {result.objects_validated}")
@@ -400,9 +400,27 @@ class SFDMUValidator:
                 file_path=self._make_relative_path(export_json_path)
             ))
 
+        # Present container types, not just "is either a list". A sibling being a valid list used to
+        # skip the other: `{"objects": 7, "objectSets": []}` passed the either-array check (objectSets
+        # is a list) then `enumerate(data.get("objects") or [])` raised `TypeError` — `7 or []` is 7 —
+        # and `main()` does not catch per-plan exceptions, so later plans were never validated. The
+        # element-type loop below cannot save it. Reported as Critical and the plan abandoned.
+        for key in ("objects", "objectSets"):
+            if key not in data:
+                continue
+            value = data[key]
+            if not isinstance(value, list):
+                result.add_issue(Issue(
+                    severity=Severity.CRITICAL,
+                    object_name="N/A",
+                    message=f"'{key}' is {type(value).__name__}, not an array",
+                    file_path=self._make_relative_path(export_json_path)
+                ))
+                return None
+
         # Must have either objects or objectSets
-        has_objects = "objects" in data and isinstance(data["objects"], list)
-        has_object_sets = "objectSets" in data and isinstance(data["objectSets"], list)
+        has_objects = "objects" in data
+        has_object_sets = "objectSets" in data
 
         if not has_objects and not has_object_sets:
             result.add_issue(Issue(
@@ -455,6 +473,35 @@ class SFDMUValidator:
                     ))
                     return None
 
+        # A non-string `query` is reported rather than only skipped. `_extract_object_name` returns
+        # "" for one so the declaration never enters any config map — which is what stops
+        # `re.search` aborting the run — and every caller already treats "" as "not an object".
+        # Without a finding here a plan of only `{"query": [...]}` plus a valid `apiVersion` returned
+        # `passed=True` with zero objects validated, even though SFDMU cannot execute it. The object
+        # is unknowable, so the finding is keyed on the index. The plan is not abandoned: a sibling
+        # declaration is still worth validating.
+        for j, obj in enumerate(data.get("objects") or []):
+            query = obj.get("query")
+            if query is not None and not isinstance(query, str):
+                result.add_issue(Issue(
+                    severity=Severity.HIGH,
+                    object_name="N/A",
+                    message=(f"'objects[{j}].query' is {type(query).__name__}, not a string — "
+                             f"the declaration cannot be identified and is skipped"),
+                    file_path=self._make_relative_path(export_json_path)
+                ))
+        for i, obj_set in enumerate(data.get("objectSets") or []):
+            for j, obj in enumerate(obj_set.get("objects") or []):
+                query = obj.get("query")
+                if query is not None and not isinstance(query, str):
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name="N/A",
+                        message=(f"'objectSets[{i}].objects[{j}].query' is {type(query).__name__}, "
+                                 f"not a string — the declaration cannot be identified and is skipped"),
+                        file_path=self._make_relative_path(export_json_path)
+                    ))
+
         self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(obj_set.get('objects', [])) for obj_set in data.get('objectSets', []))} object configurations")
 
         return data
@@ -464,7 +511,7 @@ class SFDMUValidator:
         """The plan's passes, with a flat `objects` plan presented as a single pass.
 
         Three call sites need to agree on this and used to disagree: the writable-pass map
-        normalized flat plans, `_get_object_config_for_pass` read `objectSets` raw (so it resolved
+        normalized flat plans, `_get_object_configs_for_pass` read `objectSets` raw (so it resolved
         nothing for a flat plan), and `_find_objectset_source_overrides` bounds-checked against the
         raw list (so it discarded every per-pass CSV in a flat plan, reporting only a WARN that is
         suppressed at default verbosity). Any two of those disagreeing is a silent wrong answer
@@ -549,6 +596,28 @@ class SFDMUValidator:
                 out.append(cfg)
         return out
 
+    @staticmethod
+    def _is_live_writable(cfg: dict) -> bool:
+        """True if SFDMU will write this declaration from a source file.
+
+        `excluded` declarations are skipped entirely; `Readonly` ones are queried from the target
+        org. Both owe no CSV, and a High on either is a false positive — including when they share
+        a pass with a writable sibling, which is the shape `_objects_owing_root_csv` used to miss
+        because it filtered only `excluded`.
+        """
+        if cfg.get("excluded"):
+            return False
+        # str() because a malformed plan can carry a non-string here (`"operation": true`).
+        # `.strip().lower()` matches SFDMU, and the authoritative function is worth naming because
+        # there are two and they disagree. `ScriptLoader._resolveOperation` is the one that loads
+        # export.json (v5.8.0): it does `operation.trim().toLowerCase()` and matches enum keys
+        # case-insensitively, so `" ReadOnly "` resolves to Readonly. `ScriptObject.getOperation` is
+        # a secondary path doing a raw `OPERATION[operation]` lookup with neither. Reading the latter
+        # as authoritative makes this look too lenient and argues for dropping the normalization —
+        # which would then report the nine `"ReadOnly"` declarations in this repo as defects. SFDMU
+        # accepts them.
+        return str(cfg.get("operation") or "Upsert").strip().lower() != "readonly"
+
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
 
@@ -562,21 +631,7 @@ class SFDMUValidator:
         for idx, obj_set in enumerate(self._normalized_object_sets(export_data)):
             for obj in obj_set.get("objects", []):
                 obj_name = self._extract_object_name(obj.get("query", ""))
-                if not obj_name or obj.get("excluded"):
-                    continue
-                # str() because a malformed plan can carry a non-string here (`"operation": true`).
-                # This runs for every object in every plan, so an AttributeError would abort the
-                # whole run and turn a reportable defect in one plan into no report at all.
-                #
-                # `.strip().lower()` matches SFDMU, and the authoritative function is worth naming
-                # because there are two and they disagree. `ScriptLoader._resolveOperation` is the
-                # one that loads export.json (v5.8.0): it does `operation.trim().toLowerCase()` and
-                # matches enum keys case-insensitively, so `" ReadOnly "` resolves to Readonly.
-                # `ScriptObject.getOperation` is a secondary path doing a raw `OPERATION[operation]`
-                # lookup with neither. Reading the latter as authoritative makes this look too
-                # lenient and argues for dropping the normalization — which would then report the
-                # nine `"ReadOnly"` declarations in this repo as defects. SFDMU accepts them.
-                if str(obj.get("operation") or "Upsert").strip().lower() != "readonly":
+                if obj_name and self._is_live_writable(obj):
                     writable.setdefault(obj_name, set()).add(idx)
         return writable
 
@@ -665,14 +720,15 @@ class SFDMUValidator:
                 # declare the object more than once. Deduped on the union of what every consumer of
                 # this list reads — see `_READING_CONFIG_KEYS`; narrowing it to one consumer's fields
                 # silently disabled the other's check.
-                # `excluded` declarations dropped here, not just at the pass level. `writable_passes`
-                # already excludes a pass whose *only* declaration is excluded, but a pass declaring
-                # the object twice — once excluded — contributed the excluded one to this list, and
-                # widening the dedup key to include `fields` stopped it collapsing into its sibling.
-                # SFDMU never processes an excluded declaration, so a SELECT gap in one is not a
-                # defect; the operation check has taken that stance all along.
+                # `excluded` *and* `Readonly` dropped here, not just at the pass level.
+                # `writable_passes` already excludes a pass whose *only* declaration is excluded or
+                # Readonly, but a pass declaring the object twice — once either — contributed the
+                # inert one to this list, and widening the dedup key to include `fields` stopped it
+                # collapsing into its sibling. SFDMU never writes either, so a SELECT gap or
+                # composite-key requirement on one is not a defect of the root CSV. The first version
+                # filtered only `excluded`; a Readonly sibling in the same pass was still checked.
                 declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]
-                                if not cfg.get("excluded")]
+                                if self._is_live_writable(cfg)]
                 # Only when non-empty. Membership in this mapping is what makes `_validate_object` ask
                 # for the file at all, so a key with an empty list would claim the CSV is owed and
                 # then validate it against nothing — dropping the missing-file Critical silently. It
@@ -784,6 +840,8 @@ class SFDMUValidator:
         Returns:
             List of field names (including relationship traversals like Product.Name)
         """
+        if not isinstance(query, str):
+            return []
         match = re.search(r'SELECT\s+(.+?)\s+FROM', query, re.IGNORECASE | re.DOTALL)
         if not match:
             return []
@@ -861,16 +919,18 @@ class SFDMUValidator:
 
         return overrides
 
-    def _get_object_config_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> Optional[dict]:
-        """Get object configuration for a specific pass.
+    def _get_object_configs_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> List[dict]:
+        """Every declaration of `obj_name` in this pass, including Readonly and excluded.
 
-        Args:
-            export_data: Parsed export.json data
-            obj_name: Object API name
-            pass_index: 0-based pass index
+        A list, not the first match. `_all_pass_configs` was changed to keep same-pass duplicates;
+        this helper was not, so a per-pass override was still validated against whichever
+        declaration came first. Readonly or simple-key first, writable composite second: the
+        override was accepted without the required column.
 
-        Returns:
-            Object configuration dict, or None if not found
+        Callers that need "was this object declared here?" use this; callers that need "which
+        declarations write the CSV?" use `_writable_configs_for_pass`. The two questions used to
+        be one return, which is why a Readonly-only object with a per-pass CSV would have been
+        reported as misfiled if this filtered.
         """
         object_sets = self._normalized_object_sets(export_data)
         # Both bounds, because `object-set-0` maps to pass_index -1 and an upper-bound-only check
@@ -883,8 +943,9 @@ class SFDMUValidator:
         # guard no mutation can kill is exactly what this repo keeps learning to distrust, so it is
         # labelled instead of counted as coverage.
         if not 0 <= pass_index < len(object_sets):
-            return None
+            return []
 
+        matched = []
         for obj in object_sets[pass_index].get("objects", []):
             query = obj.get("query", "")
             if self._extract_object_name(query) == obj_name:
@@ -895,9 +956,15 @@ class SFDMUValidator:
                 # plan with an `objectset_source/` override, which `qb/en-US/qb-billing` has. Three
                 # config builders drifting is the shape of the bug; two were already merged, this is
                 # the third.
-                return self._normalize_object_config(obj, query, pass_index)
+                matched.append(self._normalize_object_config(obj, query, pass_index))
+        return matched
 
-        return None
+    def _writable_configs_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> List[dict]:
+        """Live writable declarations of `obj_name` in this pass — what a source CSV is checked against."""
+        return self._dedup_configs(
+            [c for c in self._get_object_configs_for_pass(export_data, obj_name, pass_index)
+             if self._is_live_writable(c)],
+            self._READING_CONFIG_KEYS)
 
     def _validate_per_pass_csv(self, csv_path: Path, obj_name: str, pass_index: int,
                                obj_config: dict, result: ValidationResult):
@@ -1439,7 +1506,14 @@ class SFDMUValidator:
         composite_keys_fixed = 0
 
         for obj_name, obj_config in object_configs.items():
-            if obj_config.get("excluded"):
+            # The merged first declaration is the wrong skip: an object excluded (or Readonly) in
+            # pass 1 and writable in pass 2 has `excluded=True` here, so the per-reading-config loop
+            # below never ran and `--fix-all` left pass 2's composite-key finding standing. Skip on
+            # whether anything *reads* the root CSV, which is the same question validation asks.
+            reading = ((objects_owing_root_csv or {}).get(obj_name)
+                       if objects_owing_root_csv is not None
+                       else ([obj_config] if self._is_live_writable(obj_config) else []))
+            if not reading:
                 continue
 
             csv_path = dataset_path / f"{obj_name}.csv"
@@ -1465,7 +1539,7 @@ class SFDMUValidator:
             # a wrong count, because the dry run is what people read before deciding to apply it.
             header_written = False
             columns_written = set()
-            for cfg in (objects_owing_root_csv or {}).get(obj_name) or [obj_config]:
+            for cfg in reading:
                 # Fix missing headers
                 if self.fix_headers and not header_written and self._is_csv_empty(csv_path):
                     headers = cfg.get("fields", [])

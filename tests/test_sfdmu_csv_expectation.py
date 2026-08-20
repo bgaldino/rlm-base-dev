@@ -159,7 +159,7 @@ def fix_mode_proposals(plan_body, root_files=None, expect=None, **fix_flags):
     return [f"expected exactly {expect} proposal(s), observed {len(lines)}: {lines or 'nothing'}"]
 
 
-def merged_config_fix_converges():
+def merged_config_fix_converges(pass1=None):
     """Findings still standing after `--fix-all` on the merged-config shape — empty means converged.
 
     Report/fix parity, which is not the same property as either half working. The validation half was
@@ -168,9 +168,14 @@ def merged_config_fix_converges():
     for a `$$Name$Code` column and the fixer, seeing no `;` in `Name`, wrote nothing. Both halves
     self-consistent, `--fix-all` non-convergent.
 
+    `pass1` defaults to Readonly. The excluded-in-pass-1 shape is a different skip: `fix_dataset_issues`
+    used to `continue` on the merged first declaration before the per-reading-config loop, so even
+    after the inner loop was taught the reading list, pass 1 `excluded=True` bypassed it entirely.
+
     Returns findings rather than a bool so a failure prints what survived.
     """
-    body = {"apiVersion": "68.0", "objectSets": [{"objects": [_RO_FIRST]}, {"objects": [_UP_SECOND]}]}
+    first = _RO_FIRST if pass1 is None else pass1
+    body = {"apiVersion": "68.0", "objectSets": [{"objects": [first]}, {"objects": [_UP_SECOND]}]}
     with tempfile.TemporaryDirectory() as td:
         plan = pathlib.Path(td) / "plan"
         plan.mkdir()
@@ -406,6 +411,8 @@ PER_PASS_IS_VALIDATED = [
 _RO_FIRST = {"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly", "externalId": "Name"}
 _UP_SECOND = {"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
               "externalId": "Name;Code"}
+_EX_FIRST = {"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+             "externalId": "Name", "excluded": True}
 
 MERGED_CONFIG = [
     # `_parse_object_configs` keeps an object's FIRST declaration, so every check reading the merged
@@ -461,6 +468,26 @@ MERGED_CONFIG = [
                         "externalId": "Id"}]],
          {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
          if "composite key column" in i]),
+    # Inverse of the excluded same-pass case: filter excluded, forget Readonly. A Readonly sibling
+    # in a writable pass was still checked against the root CSV, so a SELECT gap on a declaration
+    # that reads the target org became a High. The Upsert sibling here selects what it keys on, so
+    # a coverage finding can only come from the Readonly one.
+    ("a Readonly declaration sharing a pass contributes no externalId coverage finding",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"},
+           {"query": "SELECT Id FROM Widget__c", "operation": "Readonly",
+            "externalId": "Name;Code"}]],
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "not found in query SELECT clause" in i]),
+    # Per-pass overrides still resolved the *first* declaration in the pass. Readonly/simple-key
+    # first, writable composite second: the override was accepted without the required column.
+    ("a per-pass override is checked against every writable declaration in the pass, not the first",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly", "externalId": "Name"},
+           _UP_SECOND]],
+         None, {1: {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"}})
+         if "composite key column" in i]),
     # Deduping the reading list on a key narrower than one of its consumers reads truncates the list
     # before that consumer runs, and a dedup can only remove, never restore. Keying it on the CSV
     # check's fields — which exclude the parsed SELECT — dropped later passes before the externalId
@@ -510,6 +537,15 @@ MERGED_CONFIG = [
     ("a non-list objectSets[].objects is reported Critical",
      True, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": 7}]})
             if i.startswith("Critical/") and "not an array" in i]),
+    # A sibling being a valid list used to skip the other's type check: `{"objects": 7, "objectSets":
+    # []}` passed "either array exists" then `enumerate(7)` aborted the whole run. Same class as the
+    # three cases above — a guard written against one shape of a container defect does not cover it.
+    ("a non-list objects next to a valid objectSets is reported Critical, not raised",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objects": 7, "objectSets": []})
+            if i.startswith("Critical/") and "'objects' is int" in i]),
+    ("a non-list objectSets next to a valid objects is reported Critical, not raised",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objects": [], "objectSets": 7})
+            if i.startswith("Critical/") and "'objectSets' is int" in i]),
     # Placement, not logic. Both per-declaration sweeps sat after an early return that reads the
     # *merged* config, so an object excluded in pass 1 but live in pass 2 exited before them whenever
     # pass 2 was covered by an override. For the malformed check that was the worse of the two
@@ -548,6 +584,13 @@ MERGED_CONFIG = [
            {"query": "SELECT Id, Name FROM Other__c", "operation": "Upsert", "externalId": "Name"}]],
          None)
          if "Other__c" in i]),
+    # The skip alone is not a finding. A plan of only the malformed declaration plus a valid
+    # `apiVersion` used to return passed=True with zero objects validated.
+    ("a non-string query is reported as High, not only skipped",
+     True, [i for i in issues(
+         [[{"query": ["SELECT Id FROM Widget__c"], "operation": "Upsert", "externalId": "Name"}]],
+         None)
+         if "query" in i and "not a string" in i]),
     # ...and the inverse: `deleteOldData` was NOT in the key but IS read (it waives the composite-key
     # requirement), so two passes differing only in it collapsed to whichever came first and the
     # verdict flipped with declaration order. The waiving declaration is first here; the other must
@@ -577,6 +620,12 @@ MERGED_CONFIG = [
     # validate, fix, re-validate clean.
     ("--fix-all clears the pass-2 composite-key finding rather than leaving it standing",
      False, merged_config_fix_converges()),
+    # Same skip, different flag: the merged first declaration is `excluded`, so the `if excluded:
+    # continue` at the top of `fix_dataset_issues` returned before the reading-config loop. Inner
+    # loop taught, outer skip still merged — `--fix-all` non-convergent for pass 1 excluded / pass 2
+    # writable, which is the `qb-billing` shape.
+    ("--fix-all still converges when pass 1 is excluded rather than Readonly",
+     False, merged_config_fix_converges(_EX_FIRST)),
     # The same `excluded` stance, one layer down and reached by a different route. `writable_passes`
     # drops a pass whose *only* declaration is excluded, but a pass declaring the object twice — once
     # excluded — contributed the excluded one to the reading list, and widening the dedup key to
