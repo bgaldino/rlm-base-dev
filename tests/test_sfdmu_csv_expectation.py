@@ -124,7 +124,7 @@ def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags
                 for p in sorted(plan.rglob("*.csv"))}
 
 
-def fix_mode_proposals(plan_body, root_files=None, expect=None, **fix_flags):
+def fix_mode_proposals(plan_body, root_files=None, expect=None, per_pass_files=None, **fix_flags):
     """`--dry-run` proposal lines from a fix run — what an operator reads before applying it.
 
     `fix_mode_writes` cannot see this: a dry run writes nothing, so byte comparison is blind to a
@@ -147,6 +147,11 @@ def fix_mode_proposals(plan_body, root_files=None, expect=None, **fix_flags):
         (plan / "export.json").write_text(json.dumps(plan_body))
         for name, body in (root_files or {}).items():
             (plan / name).write_text(body)
+        for pass_number, files in (per_pass_files or {}).items():
+            d = plan / "objectset_source" / f"object-set-{pass_number}"
+            d.mkdir(parents=True, exist_ok=True)
+            for name, body in files.items():
+                (d / name).write_text(body)
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
@@ -546,6 +551,23 @@ MERGED_CONFIG = [
     ("a non-list objectSets next to a valid objects is reported Critical, not raised",
      True, [i for i in raw_issues({"apiVersion": "68.0", "objects": [], "objectSets": 7})
             if i.startswith("Critical/") and "'objectSets' is int" in i]),
+    # JSON `null` is a present value, not a missing key. `get(k, [])` ignores the default when the
+    # key exists, `is not None` treats null as absent, and `"x" not in 7` TypeErrors. Same class:
+    # a guard written against one non-list shape does not cover null or a non-object root.
+    ("a JSON-null export.json root is reported Critical, not raised out of the whole run",
+     True, [i for i in raw_issues(None)
+            if i.startswith("Critical/") and "root is" in i]),
+    ("a JSON-scalar export.json root is reported Critical, not raised out of the whole run",
+     True, [i for i in raw_issues(7)
+            if i.startswith("Critical/") and "root is" in i]),
+    ("a present objectSets[].objects null is reported Critical, not treated as an empty pass",
+     True, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": None}]})
+            if i.startswith("Critical/") and "NoneType" in i]),
+    ("a present query null is reported as High, not treated as absent",
+     True, [i for i in issues(
+         [[{"query": None, "operation": "Upsert", "externalId": "Name"}]],
+         None)
+         if "query" in i and "not a string" in i]),
     # Placement, not logic. Both per-declaration sweeps sat after an early return that reads the
     # *merged* config, so an object excluded in pass 1 but live in pass 2 exited before them whenever
     # pass 2 was covered by an override. For the malformed check that was the worse of the two
@@ -665,6 +687,18 @@ MERGED_CONFIG = [
              {"objects": [{"query": "SELECT Id, Name, Code, X__c FROM Widget__c",
                            "operation": "Upsert", "externalId": "Name;Code"}]}]},
          {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"}, fix_composite_keys=True, expect=1)),
+    # Same bookkeeping, other write path. The per-pass fixer gained per-declaration iteration and
+    # did not gain the header/column tracking the root fixer already had, so two same-pass
+    # declarations proposed twice against one override file.
+    ("--dry-run proposes exactly one header per per-pass file, not one per same-pass declaration",
+     False, fix_mode_proposals(
+         {"apiVersion": "68.0", "objectSets": [{"objects": [
+             {"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+              "externalId": "Name;Code"},
+             {"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+              "externalId": "Name;Code"}]}]},
+         per_pass_files={1: {"Widget__c.csv": ""}},
+         fix_headers=True, expect=1)),
     # SFDMU does not process an excluded declaration, so its `operation` is inert. Sweeping every
     # declaration reported one anyway — a false positive the merged-config version never produced,
     # and the only new one this refactor introduced.

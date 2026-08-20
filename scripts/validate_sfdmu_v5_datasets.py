@@ -307,24 +307,29 @@ class SFDMUValidator:
             if objectset_source_overrides:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
+                    # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
+                    # `_is_csv_empty` / `_csv_missing_composite_key` stay true across same-pass
+                    # duplicate declarations and each one printed/counted a proposal a real run
+                    # would apply only once.
+                    header_written = False
+                    columns_written = set()
                     for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
-                        # Apply header fix if needed
-                        if self.fix_headers and self._is_csv_empty(csv_path):
+                        if self.fix_headers and not header_written and self._is_csv_empty(csv_path):
                             headers = obj_config.get("fields", [])
                             if self._fix_empty_csv_header(csv_path, headers, obj_name):
                                 headers_fixed += 1
+                                header_written = True
 
-                        # Apply composite key fix if needed (skip deleteOldData objects)
                         if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                             external_id = obj_config.get("externalId", "")
                             if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
                                 fields = [f.strip() for f in external_id.split(";")]
                                 composite_col_name = self._build_composite_key_column_name(fields)
-
-                                # Check if column is missing using helper method
-                                if self._csv_missing_composite_key(csv_path, composite_col_name):
+                                if (composite_col_name not in columns_written
+                                        and self._csv_missing_composite_key(csv_path, composite_col_name)):
                                     if self._fix_missing_composite_key(csv_path, fields, obj_name):
                                         composite_keys_fixed += 1
+                                        columns_written.add(composite_col_name)
 
             if headers_fixed > 0 or composite_keys_fixed > 0:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
@@ -391,6 +396,16 @@ class SFDMUValidator:
             ))
             return None
 
+        if not isinstance(data, dict):
+            result.add_issue(Issue(
+                severity=Severity.CRITICAL,
+                object_name="N/A",
+                message=(f"export.json root is {type(data).__name__}, not an object — "
+                         f"a JSON object is required"),
+                file_path=self._make_relative_path(export_json_path)
+            ))
+            return None
+
         # Check required fields
         if "apiVersion" not in data:
             result.add_issue(Issue(
@@ -453,15 +468,21 @@ class SFDMUValidator:
         # `{"objects": {...}}` iterated a dict's *keys* as declarations, so every one of them was
         # silently dropped and the plan reported nothing.
         for i, obj_set in enumerate(data.get("objectSets") or []):
-            objects = obj_set.get("objects")
-            if objects is not None and not isinstance(objects, list):
+            # Present `null` is not "missing". `get` returns None either way, and
+            # `if objects is not None` treated an explicit `"objects": null` as an empty pass, then
+            # the log below did `len(obj_set.get("objects", []))` — the default is ignored when the
+            # key is present — and aborted the whole run. Same class as the top-level type check:
+            # a present non-list is a defect; only an absent key is an empty default.
+            if "objects" in obj_set and not isinstance(obj_set["objects"], list):
                 result.add_issue(Issue(
                     severity=Severity.CRITICAL,
                     object_name="N/A",
-                    message=(f"'objectSets[{i}].objects' is {type(objects).__name__}, not an array"),
+                    message=(f"'objectSets[{i}].objects' is {type(obj_set['objects']).__name__}, "
+                             f"not an array"),
                     file_path=self._make_relative_path(export_json_path)
                 ))
                 return None
+            objects = obj_set["objects"] if "objects" in obj_set else []
             for j, element in enumerate(objects or []):
                 if not isinstance(element, dict):
                     result.add_issue(Issue(
@@ -481,30 +502,40 @@ class SFDMUValidator:
         # is unknowable, so the finding is keyed on the index. The plan is not abandoned: a sibling
         # declaration is still worth validating.
         for j, obj in enumerate(data.get("objects") or []):
-            query = obj.get("query")
-            if query is not None and not isinstance(query, str):
-                result.add_issue(Issue(
-                    severity=Severity.HIGH,
-                    object_name="N/A",
-                    message=(f"'objects[{j}].query' is {type(query).__name__}, not a string — "
-                             f"the declaration cannot be identified and is skipped"),
-                    file_path=self._make_relative_path(export_json_path)
-                ))
+            self._report_non_string_query(f"objects[{j}]", obj, result, export_json_path)
         for i, obj_set in enumerate(data.get("objectSets") or []):
             for j, obj in enumerate(obj_set.get("objects") or []):
-                query = obj.get("query")
-                if query is not None and not isinstance(query, str):
-                    result.add_issue(Issue(
-                        severity=Severity.HIGH,
-                        object_name="N/A",
-                        message=(f"'objectSets[{i}].objects[{j}].query' is {type(query).__name__}, "
-                                 f"not a string — the declaration cannot be identified and is skipped"),
-                        file_path=self._make_relative_path(export_json_path)
-                    ))
+                self._report_non_string_query(f"objectSets[{i}].objects[{j}]", obj, result,
+                                              export_json_path)
 
-        self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(obj_set.get('objects', [])) for obj_set in data.get('objectSets', []))} object configurations")
+        objects_n = len(data["objects"]) if isinstance(data.get("objects"), list) else 0
+        sets_n = sum(len(s["objects"]) if isinstance(s.get("objects"), list) else 0
+                     for s in (data.get("objectSets") or []) if isinstance(s, dict))
+        self.log(f"export.json structure valid, contains {objects_n + sets_n} object configurations")
 
         return data
+
+    def _report_non_string_query(self, loc: str, obj: dict, result: ValidationResult,
+                                 export_json_path: Path) -> None:
+        """Report a present `query` that is not a string — including JSON `null`.
+
+        `obj.get("query") is not None` treated an explicit `"query": null` as absent, after which
+        `_extract_object_name` returned "" and the declaration vanished. A plan of only that
+        declaration plus a valid `apiVersion` still reported success. Key presence, not truthiness:
+        missing is skippable (the object is unknowable either way); present and not a string is not.
+        """
+        if "query" not in obj:
+            return
+        query = obj["query"]
+        if isinstance(query, str):
+            return
+        result.add_issue(Issue(
+            severity=Severity.HIGH,
+            object_name="N/A",
+            message=(f"'{loc}.query' is {type(query).__name__}, not a string — "
+                     f"the declaration cannot be identified and is skipped"),
+            file_path=self._make_relative_path(export_json_path)
+        ))
 
     @staticmethod
     def _normalized_object_sets(export_data: dict) -> List[dict]:
