@@ -5522,7 +5522,13 @@
                     <name>formula-section-0-input</name>
                     <output>false</output>
                     <type>Formula</type>
-                    <value>NetUnitPrice +  NetUnitPrice * ItemUnitPriceUplift__std</value>
+                    <!-- Compound branch raises the base by the uplift once per elapsed segment
+                         (segment n = base * (1+u)^(n-1)); exact only when the uplift is uniform
+                         across segments, since a formula cannot read a sibling segment's price.
+                         ItemSegmentIdentifier is Text, hence VALUE(); ROUND absorbs POWER's
+                         floating-point drift. Standard keeps the flat off-base uplift, so
+                         pre-compounded per-segment percentages entered by hand still work. -->
+                    <value>IF(ItemRampUpliftType__std == "Compound", ROUND(NetUnitPrice * POWER(1 + ItemUnitPriceUplift__std, VALUE(ItemSegmentIdentifier) - 1), 6), NetUnitPrice + NetUnitPrice * ItemUnitPriceUplift__std)</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
