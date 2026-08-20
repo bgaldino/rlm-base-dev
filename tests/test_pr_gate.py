@@ -586,8 +586,18 @@ advisory = [c for c in pr_gate.CHECKS if not c["gating"]]
 check("exactly one check is advisory", len(advisory) == 1, [c["name"] for c in advisory])
 check("the advisory one is the SFDMU validator",
       advisory and advisory[0]["name"] == "sfdmu_datasets")
+# 110, not 123: pack 123 fixed the two Criticals that *were* false positives, and what keeps this
+# check advisory now is the seven remaining High findings in the plan pack 110 removes. Pinning the
+# pack that no longer blocks is how the note went stale in the first place — it kept citing 123 as
+# pending after 123 landed, while telling operators the findings were false positives that the same
+# commit had reclassified as real.
 check("its note cites the pack that keeps it advisory",
-      advisory and "123" in advisory[0]["note"], advisory[0]["note"] if advisory else "")
+      advisory and "110" in advisory[0]["note"], advisory[0]["note"] if advisory else "")
+# The note is the only text an operator sees at the point of decision, so it must not contradict
+# the module docstring about whether the remaining findings are real.
+check("its note does not call the remaining findings false positives",
+      advisory and "findings on a clean tree are validator false positives" not in advisory[0]["note"],
+      advisory[0]["note"] if advisory else "")
 
 print("\nA failure in one command does not hide the commands after it")
 code, out, _ = pr_gate.run_sequence([["python", "-c", "print('first')"],
@@ -3977,10 +3987,40 @@ def named_paths(py_file, joins_only=False):
     # each one is a valid rooted path — reporting the prefixes as separate reads.
     partial = {id(n.left) for n in ast.walk(tree)
                if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)}
+    # Constants that are *segments* of a path built elsewhere — `os.path.join(REPO, "docs", "erds",
+    # "README.md")`, `tmp_path / "cumulusci.yml"`. The chain branches below already resolve those,
+    # correctly and with their prefix. Only a standalone constant is a repo-relative path, so the
+    # slash-free branch has to exclude segments or it reads the last one as a root-level file:
+    # `docs/erds/README.md` became a claimed read of `README.md`, four times over.
+    segments = {id(a) for n in ast.walk(tree) if isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute) and n.func.attr == "join" for a in n.args}
+    segments |= {id(n.right) for n in ast.walk(tree)
+                 if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)}
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and not joins_only:
             if "/" in node.value and not node.value.startswith(("/", "http")):
                 found.add(node.value.strip("/"))
+            # A slash-free constant naming a real root-level **file** — `"AGENTS.md"`. The slash-only
+            # rule made these invisible, so a suite reading one appeared to read nothing there and its
+            # trigger could be deleted with this suite green. Measured worth: of the 95 triggers
+            # across all checks, 14 were deletable-green before this branch and 13 after, so it fixed
+            # exactly **one** (`sfdmu_csv_expectation` → `AGENTS.md`). An earlier version of this
+            # comment said three; that number does not reproduce, and the remaining 13 are tracked
+            # rather than claimed fixed.
+            #
+            # Files only. A directory was admitted here and then dropped by the return filter below,
+            # which keeps a slash-free path only when it names a file — so `"tests"`, which this
+            # comment once offered as an example, is not collected and cannot be. Naming the dead
+            # half was worse than omitting it: it described a capability the function does not have.
+            #
+            # Shape-gated *before* touching the filesystem: every docstring in the file is a string
+            # constant too, and `Path.exists()` on one raises `OSError: File name too long` rather
+            # than returning False. The 64-char bound is load-bearing for that reason, not tidiness.
+            # `.exists()` reads the working tree, so an untracked root file would be enumerated here
+            # and not in CI; nothing names one today, and `git ls-files` is the fix if that changes.
+            elif id(node) not in segments and re.fullmatch(r"[\w.\-]{1,64}", node.value):
+                if (pathlib.Path(REPO) / node.value).is_file():
+                    found.add(node.value)
         elif isinstance(node, ast.BinOp):
             # repo_root / "tui-cci" — a single root-level segment carries no slash to
             # recognise it by, so this read stayed invisible: the launcher had no trigger at
@@ -5040,13 +5080,30 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 675
+EXPECTED = 680
 cited = README_COUNT.search(
     pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
       "from the suite (README_COUNT is the sentence it reads)",
       cited is not None and int(cited.group(1)) == EXPECTED,
       cited.group(1) if cited else "the sentence README_COUNT matches is gone")
+
+# The *matrix* size is a second hand-maintained figure and drifted the same way: adding one check
+# left five sentences saying "fourteen"/"14 checks", found by review rather than here. Word form as
+# well as digits, because four of the five spell it out. Only sentences about the matrix count —
+# `MATRIX_SIZE_PROSE` deliberately anchors on phrases that describe CHECKS, since "fourteen" also
+# appears in unrelated incident narration that must not be rewritten.
+_NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
+              18: "eighteen", 19: "nineteen", 20: "twenty"}
+_readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
+_actual = len(pr_gate.CHECKS)
+_stale = [w for n, w in _NUM_WORDS.items() if n != _actual
+          for pat in (f"of {w} validators", f"two of the {w}", f"all {w} ran",
+                      f"each of the {w} trigger lists", f"run is {n} checks")
+          if pat in _readme_text]
+check(f"no sentence in scripts/ai/README.md describes the CHECKS matrix with a size other than "
+      f"{_actual} ({_NUM_WORDS.get(_actual, _actual)})",
+      not _stale, _stale)
 REACHED = PASSED + len(FAILED)
 if REACHED < EXPECTED:
     print(f"only {REACHED} of {EXPECTED} checks reached a verdict — a rule stopped running, which is "

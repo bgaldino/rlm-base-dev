@@ -266,7 +266,7 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of fourteen validators a given diff should have run.
+of fifteen validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
@@ -290,13 +290,32 @@ not.) The same care drives four statuses that are easy to conflate:
 | `ADVISORY-DEP` | advisory, and its dependency is absent too | no — an advisory check cannot fail for a missing dep either |
 
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
-tree today. Two of its findings are the Criticals pack 123 covers; seven more are High severity
-(empty CSVs tracked under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`), and *either* bucket fails
-the validator, so landing 123 alone will not turn this check green (pack 123 — "pack N" throughout this file
-means an entry in the durable todo tracker under `.agents/artifacts/todos/`, which is gitignored,
-so the reference resolves for whoever holds that tree and not from a fresh clone; likewise "round
-N" means a round of review on the pull request that added this workflow). A check that always fails
-gets ignored, and an ignored check is worse than an absent one, so it is labelled with its
+tree today. Its two **Criticals were the validator's own false positives** and pack 123 fixed them —
+a `Readonly` object is queried from the target org and owes no source CSV, and a per-pass object's
+CSV lives at `objectset_source/object-set-N/<Object>.csv`, an *alternative* location for the same
+file rather than an additional requirement. Both gates stay conditional on their own reason, so an
+`Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
+directions in 69 cases. Two mechanisms make that pinning necessary rather than decorative.
+`_parse_object_configs` keeps only the *first* declaration, so reading the operation from the merged
+config would let a `Readonly` first pass silence a writable later pass. And the exemption has to be
+keyed on the **pass**, not the object: `BillingPolicy` in `qb-billing` is `Upsert` in pass 1 and
+`Update` in pass 3 with an override only for pass 3, so a name-keyed exemption stops checking the
+root CSV that pass 1 reads — 16 objects across 7 scanned plans have that shape (11 in the 5 that
+`cumulusci.yml` wires), against exactly one of the 17 objects carrying an override
+(`procedure-plans/ProcedurePlanOption`) declared in a single pass. Repo-wide 399 objects are
+single-pass, so the comparison only holds among the objects a name-keyed gate would exempt.
+Seven **High** findings remain — zero-byte `Upsert` CSVs under
+`datasets/sfdmu/mfg/en-US/mfg-multicurrency/`, which load nothing. Those are real, but dormant, and
+the reason is broader than that one plan: `grep -ic mfg cumulusci.yml` returns **0**, so all twelve
+`mfg` plans are unwired. This one was not singled out. Deleting it (pack 110) rather than adding
+seven header rows follows `q3-multicurrency`, which was deleted in `dab545ab` carrying zero-byte
+`CostBook`/`CostBookEntry` CSVs of its own — the identical finding, disposed of by removing the
+plan. *Either* severity bucket fails the validator, which is why landing 123 alone does not turn
+this check green (pack 123 — "pack N" throughout this file means an entry in the durable todo
+tracker under `.agents/artifacts/todos/`, which is gitignored, so the reference resolves for whoever
+holds that tree and not from a fresh clone; likewise "round N" means a round of review on the pull
+request that added this workflow). A check that always fails gets ignored, and an ignored check is
+worse than an absent one, so it is labelled with its
 reason instead of being dropped or allowed to fail every PR touching `datasets/`.
 
 Three details worth knowing before editing the matrix.
@@ -475,15 +494,15 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 14 checks in about 17 seconds, of which the branch-scope *suite*
+A full `--all` run is 15 checks in about 17 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the fourteen
+selection is a couple of seconds. That timing is measured on a machine where two of the fifteen
 (`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all fourteen ran: with those installed the
+is worth naming rather than leaving the reader to assume all fifteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (675 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (680 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -503,7 +522,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the fourteen trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the fifteen trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted
