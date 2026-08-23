@@ -16,6 +16,8 @@
       ".cursor/skills/context-service/data-model-and-api.md",
       ".cursor/skills/context-service/runtime-and-persistence.md",
       ".cursor/skills/decision-tables/SKILL.md",
+      ".cursor/skills/decision-tables/authoring-and-data-model.md",
+      ".cursor/skills/decision-tables/lifecycle-and-refresh.md",
       ".cursor/skills/doc-consistency/SKILL.md",
       ".cursor/skills/document-generation/SKILL.md",
       ".cursor/skills/document-generation/data-mapper-authoring.md",
@@ -60,7 +62,7 @@
     "missing": []
   },
   "counts": {
-    "agents_skill_references": 55,
+    "agents_skill_references": 57,
     "cursor_rules": 12,
     "errors": 0,
     "generated_cci_reference_files_present": 3,
@@ -68,7 +70,7 @@
     "missing_agents_skill_references": 0,
     "required_files_present": 6,
     "required_files_total": 6,
-    "skills_markdown_files": 65,
+    "skills_markdown_files": 67,
     "warnings": 0
   },
   "errors": [],
@@ -253,6 +255,8 @@
     ".cursor/skills/context-service/data-model-and-api.md",
     ".cursor/skills/context-service/runtime-and-persistence.md",
     ".cursor/skills/decision-tables/SKILL.md",
+    ".cursor/skills/decision-tables/authoring-and-data-model.md",
+    ".cursor/skills/decision-tables/lifecycle-and-refresh.md",
     ".cursor/skills/doc-consistency/SKILL.md",
     ".cursor/skills/document-generation/SKILL.md",
     ".cursor/skills/document-generation/data-mapper-authoring.md",
