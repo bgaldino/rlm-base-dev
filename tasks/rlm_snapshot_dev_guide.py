@@ -816,6 +816,11 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     raise TaskOptionsError(
                         "doc_version unknown; run mode=discover or pass -o doc_version"
                     )
+            # An explicit -o doc_version always overrides the manifest, including
+            # in capture-only mode (no discover this run) — keep the manifest's
+            # record in sync so it doesn't keep reporting the stale discovered
+            # version while the articles on disk are actually a different one.
+            manifest["doc_version"] = self.options["doc_version"]
 
             # Capture
             if mode in ("capture", "all", "refresh"):
