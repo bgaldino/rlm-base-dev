@@ -767,6 +767,10 @@ class SnapshotSalesforceDevGuide(BaseTask):
         manifest_path = self._manifest_path(output_dir)
         articles_dir = output_dir / "articles"
         manifest = self._load_or_init_manifest(manifest_path)
+        # Captured before anything below mutates it, so the guard further down can
+        # tell "the version this manifest's articles were actually fetched at" from
+        # "the version we're about to claim" — those two can diverge (see guard).
+        previous_doc_version = manifest.get("doc_version")
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=self.options["headless"])
@@ -797,7 +801,6 @@ class SnapshotSalesforceDevGuide(BaseTask):
                 version = (meta.get("version") or {})
                 if not self.options.get("doc_version"):
                     self.options["doc_version"] = version.get("doc_version")
-                manifest["doc_version"] = self.options.get("doc_version")
                 manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
                 discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
                 self.logger.info(
@@ -816,10 +819,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     raise TaskOptionsError(
                         "doc_version unknown; run mode=discover or pass -o doc_version"
                     )
-            # An explicit -o doc_version always overrides the manifest, including
-            # in capture-only mode (no discover this run) — keep the manifest's
-            # record in sync so it doesn't keep reporting the stale discovered
-            # version while the articles on disk are actually a different one.
+            self._check_doc_version_change(manifest, previous_doc_version, mode)
             manifest["doc_version"] = self.options["doc_version"]
 
             # Capture
@@ -855,6 +855,29 @@ class SnapshotSalesforceDevGuide(BaseTask):
             return json.loads(res.get("text") or "{}")
         except json.JSONDecodeError as e:
             raise CommandException(f"TOC response was not JSON: {e}")
+
+    def _check_doc_version_change(
+        self, manifest: Dict[str, Any], previous_doc_version: Optional[str], mode: str
+    ) -> None:
+        """Refuse a doc_version change that mode=capture/all would not honor.
+
+        _select_to_capture skips already-captured pages for every mode except
+        `refresh`, so recording a new doc_version on the manifest without refetching
+        would mislabel old-version files as the new one. `discover` never fetches
+        page bodies at all, so it's exempt too — it's meant to be a safe preview.
+        """
+        requested = self.options["doc_version"]
+        if not previous_doc_version or requested == previous_doc_version:
+            return
+        if mode not in ("capture", "all"):
+            return
+        if not any(p.get("status") == "captured" for p in manifest.get("pages", [])):
+            return
+        raise TaskOptionsError(
+            f"doc_version changed ({previous_doc_version!r} -> {requested!r}) but "
+            f"mode={mode!r} would not recapture already-captured pages, mislabeling "
+            "their content as the new version. Use mode=refresh to force a re-fetch."
+        )
 
     def _select_to_capture(self, manifest: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
