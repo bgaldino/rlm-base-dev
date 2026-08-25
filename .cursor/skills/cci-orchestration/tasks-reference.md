@@ -916,6 +916,7 @@
 - `release_version`: `264`
 - `release_name`: `Winter '27`
 - `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `doc_version`: `264.0`
 - `mode`: `all`
 
 ---
@@ -984,6 +985,7 @@
 - `deliverable`: `industries_reference`
 - `output_dir`: `docs/salesforce/264/dev-guide-industries`
 - `sections`: `business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer,...`
+- `doc_version`: `264.0`
 - `mode`: `all`
 
 ---

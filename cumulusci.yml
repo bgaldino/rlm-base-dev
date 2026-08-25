@@ -3703,6 +3703,7 @@ tasks:
       release_version: "264"
       release_name: "Winter '27"
       deliverable: revenue_lifecycle_management_dev_guide
+      doc_version: "264.0"
       mode: all
 
   snapshot_industries_dev_guide_264:
@@ -3719,6 +3720,7 @@ tasks:
       deliverable: industries_reference
       output_dir: docs/salesforce/264/dev-guide-industries
       sections: "business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer, collections_objects, action_launcher, timeline"
+      doc_version: "264.0"
       mode: all
 
   snapshot_pcm_help_264:

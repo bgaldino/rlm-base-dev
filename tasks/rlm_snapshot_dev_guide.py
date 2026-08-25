@@ -801,16 +801,35 @@ class SnapshotSalesforceDevGuide(BaseTask):
                 version = (meta.get("version") or {})
                 if not self.options.get("doc_version"):
                     self.options["doc_version"] = version.get("doc_version")
-                manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
-                discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
-                self.logger.info(
-                    f"TOC: {len(discovered)} page(s)"
-                    + (f" in section(s) {', '.join(self.options['section_filters'])}"
-                       if self.options["section_filters"] else "")
-                    + f" (doc_version={self.options['doc_version']})"
-                )
-                manifest = self._merge_discovered(manifest, discovered)
-                self._save_manifest(manifest_path, manifest)
+                # Validate the resolved version BEFORE mutating the manifest:
+                # capture/all raise outright on a mislabeling conflict (see
+                # _check_doc_version_change); discover is allowed to preview
+                # without raising but must not merge/save the other version's
+                # TOC in the same conflict case it already defers the
+                # doc_version write for (see _may_record_doc_version) — else the
+                # foreign-version pages land as 'pending' even though the label
+                # doesn't change.
+                self._check_doc_version_change(manifest, previous_doc_version, mode)
+                if mode != "discover" or self._may_record_doc_version(
+                    manifest, previous_doc_version, mode
+                ):
+                    manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
+                    discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
+                    self.logger.info(
+                        f"TOC: {len(discovered)} page(s)"
+                        + (f" in section(s) {', '.join(self.options['section_filters'])}"
+                           if self.options["section_filters"] else "")
+                        + f" (doc_version={self.options['doc_version']})"
+                    )
+                    manifest = self._merge_discovered(manifest, discovered)
+                    self._save_manifest(manifest_path, manifest)
+                else:
+                    self.logger.warning(
+                        f"Skipping discovery merge: doc_version would change "
+                        f"({previous_doc_version!r} -> {self.options['doc_version']!r}) "
+                        "over already-captured pages. Re-run mode=refresh to force a "
+                        "re-fetch, or pass -o doc_version to confirm the intended version."
+                    )
 
             if not self.options.get("doc_version"):
                 # capture-only mode relies on a previously-discovered version
