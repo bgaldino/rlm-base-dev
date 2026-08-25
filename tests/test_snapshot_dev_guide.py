@@ -150,6 +150,21 @@ def main():
     check("no previously-recorded version is a first run, not a change",
           t3._check_doc_version_change(captured_manifest, None, "capture") is None)
 
+    # _may_record_doc_version: discover must NOT launder a version bump past the
+    # guard by writing it to the manifest while old-version pages sit captured —
+    # that would make a later capture/all run see "no change" and skip them.
+    check("discover defers recording a version bump over captured pages",
+          t3._may_record_doc_version(captured_manifest, "262.0", "discover") is False)
+    check("discover may record when nothing is captured yet",
+          t3._may_record_doc_version(pending_only, "262.0", "discover") is True)
+    check("discover may record the same version",
+          t3._may_record_doc_version(captured_manifest, "264.0", "discover") is True)
+    check("discover may record on a first-ever run",
+          t3._may_record_doc_version(captured_manifest, None, "discover") is True)
+    check("capture/all/refresh always record (guard already vetted them)",
+          all(t3._may_record_doc_version(captured_manifest, "262.0", m)
+              for m in ("capture", "all", "refresh")))
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 

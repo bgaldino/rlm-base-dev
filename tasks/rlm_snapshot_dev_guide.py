@@ -820,7 +820,8 @@ class SnapshotSalesforceDevGuide(BaseTask):
                         "doc_version unknown; run mode=discover or pass -o doc_version"
                     )
             self._check_doc_version_change(manifest, previous_doc_version, mode)
-            manifest["doc_version"] = self.options["doc_version"]
+            if self._may_record_doc_version(manifest, previous_doc_version, mode):
+                manifest["doc_version"] = self.options["doc_version"]
 
             # Capture
             if mode in ("capture", "all", "refresh"):
@@ -878,6 +879,25 @@ class SnapshotSalesforceDevGuide(BaseTask):
             f"mode={mode!r} would not recapture already-captured pages, mislabeling "
             "their content as the new version. Use mode=refresh to force a re-fetch."
         )
+
+    def _may_record_doc_version(
+        self, manifest: Dict[str, Any], previous_doc_version: Optional[str], mode: str
+    ) -> bool:
+        """Whether it's safe to stamp the resolved doc_version onto the manifest now.
+
+        `discover` is exempt from _check_doc_version_change's raise (it never
+        fetches bodies), but writing the new version to the manifest here would
+        still launder it past that guard: a later capture/all run reads the
+        manifest as `previous_doc_version`, sees no change, and skips already-
+        captured pages that were never refetched. So discover defers the write
+        in the same conflict case the guard would otherwise raise on.
+        """
+        if mode != "discover":
+            return True
+        requested = self.options["doc_version"]
+        if not previous_doc_version or requested == previous_doc_version:
+            return True
+        return not any(p.get("status") == "captured" for p in manifest.get("pages", []))
 
     def _select_to_capture(self, manifest: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
