@@ -908,9 +908,33 @@ class SFDMUValidator:
             if not obj_set_dir.is_dir():
                 continue
 
-            # Extract pass number from directory name (object-set-2 -> pass_index 1)
-            match = re.match(r"object-set-(\d+)", obj_set_dir.name)
+            # Extract pass number from directory name (object-set-2 -> pass_index 1). Anchored at
+            # both ends and no leading zero on a multi-digit number: `re.match` alone accepts
+            # `object-set-1-backup` as a match on the `object-set-1` prefix, and unrestricted `\d+`
+            # accepts `object-set-01` as if it were `object-set-1` — both are non-canonical names
+            # the runtime sync in `tasks/rlm_sfdmu.py` does not special-case (it string-compares
+            # against the literal `object-set-1` and otherwise preserves the directory name as-is),
+            # so a plan with such a directory has its CSVs silently never read at runtime while a
+            # loose match here would have credited it as covering the pass. `0|[1-9]\d*` still
+            # admits the bare `object-set-0` typo below it, which does not carry a leading zero and
+            # is reported through the existing out-of-range path instead.
+            match = re.fullmatch(r"object-set-(0|[1-9]\d*)", obj_set_dir.name)
             if not match:
+                self.log(f"Warning: {obj_set_dir.name} is not a canonical object-set-N directory",
+                          level="WARN")
+                if result is not None:
+                    csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name=obj_set_dir.name,
+                        message=(f"objectset_source/{obj_set_dir.name}/ is not a canonical "
+                                 f"object-set-N directory (expected 'object-set-' followed by a "
+                                 f"positive integer with no leading zero, and nothing else) — "
+                                 f"SFDMU never reads it, so the {len(csv_names)} CSV(s) in it are "
+                                 f"silently never loaded"
+                                 + (f": {', '.join(csv_names)}" if csv_names else "")),
+                        file_path=str(obj_set_dir)
+                    ))
                 continue
 
             pass_number = int(match.group(1))  # 1-based

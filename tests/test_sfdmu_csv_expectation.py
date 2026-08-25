@@ -359,6 +359,23 @@ FIX_MODES = [
     ("an object-set-0 directory is REPORTED, so a mistyped directory name is not invisible",
      True, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
             if "maps to no pass" in i]),
+    # `re.match` alone accepts `object-set-1-backup` as a match on the `object-set-1` prefix (no
+    # end anchor), which would have credited a stray directory as covering pass 1. Fullmatch fixes
+    # that; this pins the report and, separately below, that the root Critical it would have
+    # suppressed still fires.
+    ("a non-canonical object-set-1-backup directory is REPORTED, not silently matched as object-set-1",
+     True, [i for i in issues([[UPSERT]], None, {"1-backup": {"Widget__c.csv": HEADER}})
+            if "not a canonical object-set-N directory" in i]),
+    ("a non-canonical object-set-1-backup directory does NOT suppress the root-CSV Critical it "
+     "would otherwise satisfy",
+     True, [i for i in issues([[UPSERT]], None, {"1-backup": {"Widget__c.csv": HEADER}},
+                               severity=V.Severity.CRITICAL) if "Widget__c" in i]),
+    # `\d+` alone accepts a leading zero (`object-set-01`), a name the runtime sync in
+    # `tasks/rlm_sfdmu.py` also does not special-case — it string-compares against the literal
+    # `object-set-1`. `[1-9]\d*` rejects it the same way it rejects the `-backup` suffix above.
+    ("a non-canonical object-set-01 directory (leading zero) is REPORTED, not treated as pass 1",
+     True, [i for i in issues([[UPSERT]], None, {"01": {"Widget__c.csv": HEADER}})
+            if "not a canonical object-set-N directory" in i]),
     # `writerow([])` emits only a line terminator, so an empty `fields` list left the file empty by
     # `_is_csv_empty` while returning True. Harmless while the next declaration re-fixed it; a real
     # regression once `header_written` trusted that return value, which suppressed a later pass's
