@@ -933,7 +933,7 @@ class SFDMUValidator:
                                  f"SFDMU never reads it, so the {len(csv_names)} CSV(s) in it are "
                                  f"silently never loaded"
                                  + (f": {', '.join(csv_names)}" if csv_names else "")),
-                        file_path=str(obj_set_dir)
+                        file_path=self._make_relative_path(obj_set_dir)
                     ))
                 continue
 
@@ -962,7 +962,7 @@ class SFDMUValidator:
                                  f"{len(object_sets)} pass(es)), so SFDMU never reads the "
                                  f"{len(csv_names)} CSV(s) in it"
                                  + (f": {', '.join(csv_names)}" if csv_names else "")),
-                        file_path=str(obj_set_dir)
+                        file_path=self._make_relative_path(obj_set_dir)
                     ))
                 continue
 
