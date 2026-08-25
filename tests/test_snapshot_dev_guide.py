@@ -118,6 +118,53 @@ def main():
     check("_select_to_capture refresh re-includes captured requested-section pages",
           "context_service_overview.htm" in sel_refresh and "noise.htm" not in sel_refresh)
 
+    # _check_doc_version_change: a version bump on a manifest with captured pages
+    # must be rejected under capture/all (they'd skip those pages and mislabel
+    # them), allowed under refresh (recaptures everything), and allowed under
+    # discover (never fetches page bodies).
+    captured_manifest = {"pages": [
+        {"page_id": "a.htm", "status": "captured"},
+        {"page_id": "b.htm", "status": "pending"},
+    ]}
+    t3 = _task()
+    t3.options = {"doc_version": "264.0"}
+    for mode in ("capture", "all"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change raises under mode={mode}", False)
+        except TaskOptionsError:
+            check(f"doc_version change raises under mode={mode}", True)
+    for mode in ("refresh", "discover"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change allowed under mode={mode}", True)
+        except TaskOptionsError:
+            check(f"doc_version change allowed under mode={mode}", False)
+    # Same version requested, or nothing captured yet, or no prior version at
+    # all (first-ever run): none of these are a "change", so never raise.
+    check("same doc_version is not a change",
+          t3._check_doc_version_change(captured_manifest, "264.0", "capture") is None)
+    pending_only = {"pages": [{"page_id": "a.htm", "status": "pending"}]}
+    check("no captured pages yet is not a mislabel risk",
+          t3._check_doc_version_change(pending_only, "262.0", "capture") is None)
+    check("no previously-recorded version is a first run, not a change",
+          t3._check_doc_version_change(captured_manifest, None, "capture") is None)
+
+    # _may_record_doc_version: discover must NOT launder a version bump past the
+    # guard by writing it to the manifest while old-version pages sit captured —
+    # that would make a later capture/all run see "no change" and skip them.
+    check("discover defers recording a version bump over captured pages",
+          t3._may_record_doc_version(captured_manifest, "262.0", "discover") is False)
+    check("discover may record when nothing is captured yet",
+          t3._may_record_doc_version(pending_only, "262.0", "discover") is True)
+    check("discover may record the same version",
+          t3._may_record_doc_version(captured_manifest, "264.0", "discover") is True)
+    check("discover may record on a first-ever run",
+          t3._may_record_doc_version(captured_manifest, None, "discover") is True)
+    check("capture/all/refresh always record (guard already vetted them)",
+          all(t3._may_record_doc_version(captured_manifest, "262.0", m)
+              for m in ("capture", "all", "refresh")))
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 

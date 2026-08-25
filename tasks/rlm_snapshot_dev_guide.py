@@ -767,6 +767,10 @@ class SnapshotSalesforceDevGuide(BaseTask):
         manifest_path = self._manifest_path(output_dir)
         articles_dir = output_dir / "articles"
         manifest = self._load_or_init_manifest(manifest_path)
+        # Captured before anything below mutates it, so the guard further down can
+        # tell "the version this manifest's articles were actually fetched at" from
+        # "the version we're about to claim" — those two can diverge (see guard).
+        previous_doc_version = manifest.get("doc_version")
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=self.options["headless"])
@@ -797,17 +801,35 @@ class SnapshotSalesforceDevGuide(BaseTask):
                 version = (meta.get("version") or {})
                 if not self.options.get("doc_version"):
                     self.options["doc_version"] = version.get("doc_version")
-                manifest["doc_version"] = self.options.get("doc_version")
-                manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
-                discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
-                self.logger.info(
-                    f"TOC: {len(discovered)} page(s)"
-                    + (f" in section(s) {', '.join(self.options['section_filters'])}"
-                       if self.options["section_filters"] else "")
-                    + f" (doc_version={self.options['doc_version']})"
-                )
-                manifest = self._merge_discovered(manifest, discovered)
-                self._save_manifest(manifest_path, manifest)
+                # Validate the resolved version BEFORE mutating the manifest:
+                # capture/all raise outright on a mislabeling conflict (see
+                # _check_doc_version_change); discover is allowed to preview
+                # without raising but must not merge/save the other version's
+                # TOC in the same conflict case it already defers the
+                # doc_version write for (see _may_record_doc_version) — else the
+                # foreign-version pages land as 'pending' even though the label
+                # doesn't change.
+                self._check_doc_version_change(manifest, previous_doc_version, mode)
+                if mode != "discover" or self._may_record_doc_version(
+                    manifest, previous_doc_version, mode
+                ):
+                    manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
+                    discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
+                    self.logger.info(
+                        f"TOC: {len(discovered)} page(s)"
+                        + (f" in section(s) {', '.join(self.options['section_filters'])}"
+                           if self.options["section_filters"] else "")
+                        + f" (doc_version={self.options['doc_version']})"
+                    )
+                    manifest = self._merge_discovered(manifest, discovered)
+                    self._save_manifest(manifest_path, manifest)
+                else:
+                    self.logger.warning(
+                        f"Skipping discovery merge: doc_version would change "
+                        f"({previous_doc_version!r} -> {self.options['doc_version']!r}) "
+                        "over already-captured pages. Re-run mode=refresh to force a "
+                        "re-fetch, or pass -o doc_version to confirm the intended version."
+                    )
 
             if not self.options.get("doc_version"):
                 # capture-only mode relies on a previously-discovered version
@@ -816,6 +838,9 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     raise TaskOptionsError(
                         "doc_version unknown; run mode=discover or pass -o doc_version"
                     )
+            self._check_doc_version_change(manifest, previous_doc_version, mode)
+            if self._may_record_doc_version(manifest, previous_doc_version, mode):
+                manifest["doc_version"] = self.options["doc_version"]
 
             # Capture
             if mode in ("capture", "all", "refresh"):
@@ -850,6 +875,48 @@ class SnapshotSalesforceDevGuide(BaseTask):
             return json.loads(res.get("text") or "{}")
         except json.JSONDecodeError as e:
             raise CommandException(f"TOC response was not JSON: {e}")
+
+    def _check_doc_version_change(
+        self, manifest: Dict[str, Any], previous_doc_version: Optional[str], mode: str
+    ) -> None:
+        """Refuse a doc_version change that mode=capture/all would not honor.
+
+        _select_to_capture skips already-captured pages for every mode except
+        `refresh`, so recording a new doc_version on the manifest without refetching
+        would mislabel old-version files as the new one. `discover` never fetches
+        page bodies at all, so it's exempt too — it's meant to be a safe preview.
+        """
+        requested = self.options["doc_version"]
+        if not previous_doc_version or requested == previous_doc_version:
+            return
+        if mode not in ("capture", "all"):
+            return
+        if not any(p.get("status") == "captured" for p in manifest.get("pages", [])):
+            return
+        raise TaskOptionsError(
+            f"doc_version changed ({previous_doc_version!r} -> {requested!r}) but "
+            f"mode={mode!r} would not recapture already-captured pages, mislabeling "
+            "their content as the new version. Use mode=refresh to force a re-fetch."
+        )
+
+    def _may_record_doc_version(
+        self, manifest: Dict[str, Any], previous_doc_version: Optional[str], mode: str
+    ) -> bool:
+        """Whether it's safe to stamp the resolved doc_version onto the manifest now.
+
+        `discover` is exempt from _check_doc_version_change's raise (it never
+        fetches bodies), but writing the new version to the manifest here would
+        still launder it past that guard: a later capture/all run reads the
+        manifest as `previous_doc_version`, sees no change, and skips already-
+        captured pages that were never refetched. So discover defers the write
+        in the same conflict case the guard would otherwise raise on.
+        """
+        if mode != "discover":
+            return True
+        requested = self.options["doc_version"]
+        if not previous_doc_version or requested == previous_doc_version:
+            return True
+        return not any(p.get("status") == "captured" for p in manifest.get("pages", []))
 
     def _select_to_capture(self, manifest: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
