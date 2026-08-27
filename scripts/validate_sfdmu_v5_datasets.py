@@ -517,23 +517,35 @@ class SFDMUValidator:
 
     def _report_non_string_query(self, loc: str, obj: dict, result: ValidationResult,
                                  export_json_path: Path) -> None:
-        """Report a present `query` that is not a string — including JSON `null`.
+        """Report a `query` SFDMU cannot use: absent, non-string, or blank.
 
         `obj.get("query") is not None` treated an explicit `"query": null` as absent, after which
         `_extract_object_name` returned "" and the declaration vanished. A plan of only that
-        declaration plus a valid `apiVersion` still reported success. Key presence, not truthiness:
-        missing is skippable (the object is unknowable either way); present and not a string is not.
+        declaration plus a valid `apiVersion` still reported success.
+
+        An outright-missing key is not skippable either, despite `query` being unknowable in both
+        cases. `ScriptLoader`'s loader (`ScriptLoader.ts:437-444`, v5.8.0) treats "absent" and
+        "present but not a non-empty string" identically: `object.query` becomes `''` and the
+        declaration is dropped with an `objectIsExcluded` warning rather than executed. A plan of
+        `{"apiVersion": "68.0", "objects": [{"operation": "Upsert"}]}` — no `query` at all —
+        reported `passed=True` with zero objects validated before this branch covered the missing
+        case, exactly the silent-success gap the non-string branch already existed to close for
+        the sibling shape.
         """
+        query = obj.get("query")
+        if isinstance(query, str) and query.strip():
+            return
         if "query" not in obj:
-            return
-        query = obj["query"]
-        if isinstance(query, str):
-            return
+            message = f"'{loc}.query' is missing — SFDMU requires it; the declaration is excluded, not executed"
+        elif isinstance(query, str):
+            message = f"'{loc}.query' is blank — SFDMU requires a non-empty query; the declaration is excluded, not executed"
+        else:
+            message = (f"'{loc}.query' is {type(query).__name__}, not a string — "
+                       f"the declaration cannot be identified and is skipped")
         result.add_issue(Issue(
             severity=Severity.HIGH,
             object_name="N/A",
-            message=(f"'{loc}.query' is {type(query).__name__}, not a string — "
-                     f"the declaration cannot be identified and is skipped"),
+            message=message,
             file_path=self._make_relative_path(export_json_path)
         ))
 
@@ -731,9 +743,15 @@ class SFDMUValidator:
         `tests/test_sfdmu_csv_expectation.py`.
 
         A plan reads a writable pass's records from `objectset_source/object-set-N/<Object>.csv`
-        when that file exists, and from `<plan>/<Object>.csv` otherwise. So the root file is owed
-        as soon as *any* writable pass lacks an override — which is why this is keyed on the pass
-        and not on the object name.
+        when that file exists, and from `<plan>/<Object>.csv` otherwise — except pass 1, which
+        SFDMU always reads from the plan root regardless of an `object-set-1/` file: `Script.ts`'s
+        `rawSourceDirectoryPath` returns `basePath` whenever `objectSetIndex` is falsy (index 0),
+        with no `useSeparatedCSVFiles` escape hatch. `objectset_source/object-set-1/` becomes
+        readable only through this repo's opt-in `sync_objectset_source_to_source` step
+        (`tasks/rlm_sfdmu.py:187-205,390-391`), which copies it onto the root before SFDMU runs —
+        it is never a substitute for the root file itself. So the root file is owed as soon as
+        *any* writable pass lacks an override, pass 1 always included; keyed on the pass and not on
+        the object name for the same reason.
 
         Keying on the name is a live false negative, not a hypothetical one: `BillingPolicy` in
         `qb/en-US/qb-billing` is `Upsert` in pass 1 and `Update` in pass 3, and only pass 3 has an
@@ -758,6 +776,12 @@ class SFDMUValidator:
         all_configs = self._all_pass_configs(export_data)
         covered: Dict[str, Set[int]] = {}
         for (obj_name, pass_index) in objectset_source_overrides:
+            if pass_index == 0:
+                # object-set-1 never relieves pass 1's root-CSV requirement — see the docstring
+                # above. Left in `objectset_source_overrides` itself (not filtered at the source)
+                # so the fix/validate loops over that dict still check the file's own header and
+                # composite-key shape; only its use as *coverage* here is excluded.
+                continue
             covered.setdefault(obj_name, set()).add(pass_index)
 
         owed: Dict[str, List[dict]] = {}
@@ -910,6 +934,11 @@ class SFDMUValidator:
     def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict,
                                          result: Optional[ValidationResult] = None) -> Dict[Tuple[str, int], Tuple[Path, int]]:
         """Find per-pass CSV overrides in objectset_source/object-set-N/.
+
+        Includes `object-set-1` (pass_index 0) in the returned mapping — its file still gets
+        header/composite-key validation — but `_objects_owing_root_csv` deliberately drops
+        pass_index 0 when deciding what counts as *coverage*, since SFDMU always reads pass 1 from
+        the plan root regardless of this directory. See that function's docstring.
 
         Args:
             dataset_path: Path to dataset directory

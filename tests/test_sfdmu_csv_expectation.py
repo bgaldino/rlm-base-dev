@@ -231,9 +231,16 @@ CASES = [
      False, criticals([UPSERT], {"Widget__c.csv": HEADER})),
     ("a Readonly object with no CSV is silent: it is queried from the target org",
      False, criticals([READONLY])),
-    ("an Upsert object supplied per-pass is silent at the root: the file lives under "
-     "objectset_source/ and is validated there",
-     False, criticals([UPSERT], None, {"Widget__c.csv": HEADER})),
+    # SFDMU's `rawSourceDirectoryPath` (Script.ts) returns the plan root whenever `objectSetIndex`
+    # is falsy, with no `useSeparatedCSVFiles` escape hatch — pass 1 never reads
+    # `objectset_source/object-set-1/`. That directory becomes readable at all only through this
+    # repo's opt-in `sync_objectset_source_to_source` step (`tasks/rlm_sfdmu.py:187-205,390-391`),
+    # which copies it onto the root before a run — it is not a substitute for the root file. This
+    # case used to pin the opposite (silent at the root), which protected the false negative
+    # instead of catching it.
+    ("an Upsert object supplied only under object-set-1/ still owes its root CSV — pass 1 is "
+     "always root-backed, override or not",
+     True, criticals([UPSERT], None, {"Widget__c.csv": HEADER})),
     # The gate keys on *this* object having a per-pass file, not on the plan having any. Keyed
     # on the plan, one override would excuse every missing CSV in it.
     #
@@ -241,10 +248,14 @@ CASES = [
     # `Unrelated__c`, this passed without ever constructing plan-wide coverage — the override was
     # discarded upstream, so the condition the label refutes never existed, and mutating the gate
     # to key on the plan left the case green.
+    #
+    # Pass 1 is left empty and both objects moved to pass 2: an object-set-1 override no longer
+    # grants coverage at all (see the case above), so a same-pass override for a *different*
+    # object has to live in a pass where coverage is possible for this case to isolate anything.
     ("an Upsert object whose per-pass CSV is absent still fails, even though a *different* "
      "object in the same pass has one",
-     True, issues([[UPSERT, dict(UPSERT, query="SELECT Id, Name FROM Other__c")]], None,
-                  {1: {"Other__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
+     True, issues([[], [UPSERT, dict(UPSERT, query="SELECT Id, Name FROM Other__c")]], None,
+                  {2: {"Other__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
     # `_parse_object_configs` keeps the first declaration, so a Readonly first pass decides the
     # merged operation. No plan in the repo declares that shape
     # (surveyed: 0 of the 76 export.json files under datasets/sfdmu, a superset of the 39 the
@@ -260,18 +271,27 @@ CASES = [
     ("an object excluded in pass 1 but Upsert in pass 2, with no CSV, still fails",
      True, issues([[dict(UPSERT, excluded=True)], [UPSERT]], severity=V.Severity.CRITICAL)),
     # The converse, and the direction a surviving mutation showed was unpinned: dropping the
-    # `excluded` skip in _writable_passes_by_object makes pass 2 count as writable, so the pass-1
+    # `excluded` skip in _writable_passes_by_object makes pass 3 count as writable, so the pass-2
     # override no longer covers every writable pass and a spurious Critical appears.
-    ("an object Upsert in pass 1 with an override, excluded in pass 2, owes nothing",
-     False, issues([[UPSERT], [dict(UPSERT, excluded=True)]], None,
-                   {1: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
+    #
+    # Pass 1 here is a filler `excluded` declaration, and the writable/covered pass is pushed to
+    # pass 2: an object-set-1 override cannot demonstrate "owes nothing" any more (pass 1 is
+    # always root-backed — see the CASES above), so proving a covered writable pass stays silent
+    # needs a pass index of 1 or higher.
+    ("an object excluded in pass 1, Upsert in pass 2 with an override, owes nothing",
+     False, issues([[dict(UPSERT, excluded=True)], [UPSERT]], None,
+                   {2: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
     # A flat `objects` plan (no objectSets) with per-pass CSVs: three functions disagreed about
     # normalizing that shape, so the CSVs were silently discarded behind a WARN suppressed at
     # default verbosity. And `object-set-0` maps to pass_index -1, which an upper-bound-only check
     # let through into a negative index — an IndexError aborting the whole run rather than
     # reporting the one bad plan.
-    ("a flat objects-key plan supplies its CSV per-pass and owes nothing at the root",
-     False, flat_plan(per_pass={1: {"Widget__c.csv": HEADER}})),
+    #
+    # A flat plan normalizes to exactly one pass (pass 1), so this shape can never use a pass 2+
+    # override — object-set-1/ is the only directory a flat plan could ever have, and it never
+    # grants coverage. Was pinned as silent; fixed to match `criticals()`'s case above.
+    ("a flat objects-key plan's object-set-1 CSV does not relieve the root requirement",
+     True, flat_plan(per_pass={1: {"Widget__c.csv": HEADER}})),
     ("a flat objects-key plan with an object-set-0 directory does not treat it as coverage",
      True, flat_plan(per_pass={0: {"Widget__c.csv": HEADER}})),
     # A malformed plan must be reported, not crash the run — `.lower()` on a non-string aborts
@@ -289,9 +309,12 @@ CASES = [
     ("an object writable in two passes with an override for only ONE still owes its root CSV",
      True, issues([[UPSERT], [dict(UPSERT, operation="Update")]], None,
                   {2: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
+    # A third, filler `excluded` pass 1 pushes both writable passes to indices 1 and 2 (object-set
+    # directories 2 and 3): pass 1's own override can never grant coverage (see above), so proving
+    # "silent once EVERY writable pass is covered" needs both real writable passes at index >= 1.
     ("...and is silent once EVERY writable pass is supplied per-pass",
-     False, issues([[UPSERT], [dict(UPSERT, operation="Update")]], None,
-                   {1: {"Widget__c.csv": HEADER}, 2: {"Widget__c.csv": HEADER}},
+     False, issues([[dict(UPSERT, excluded=True)], [UPSERT], [dict(UPSERT, operation="Update")]],
+                   None, {2: {"Widget__c.csv": HEADER}, 3: {"Widget__c.csv": HEADER}},
                    severity=V.Severity.CRITICAL)),
     # Relabelled to what it proves. It previously claimed to pin a filter against misfiled
     # overrides; it passed on pass arithmetic alone and the filter turned out to be inert — a
