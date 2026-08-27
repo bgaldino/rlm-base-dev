@@ -47,13 +47,16 @@ READONLY = {"query": "SELECT Id, Name FROM Gadget__c", "operation": "Readonly", 
 HEADER = "Id,Name\n1,a\n"
 
 
-def issues(passes, root_files=None, per_pass_files=None, severity=None):
+def issues(passes, root_files=None, per_pass_files=None, severity=None, use_separated_csv_files=None):
     """Validate a synthetic plan and return its issue strings, optionally filtered by severity.
 
     `passes` is a list of objectSets, each a list of object configs, so a case can put the same
     object in more than one pass — the shape the whole per-pass question turns on.
     `per_pass_files` maps a 1-based pass number to `{filename: body}` under
     `objectset_source/object-set-N/`.
+    `use_separated_csv_files`, when not `None`, is written as the plan's top-level
+    `useSeparatedCSVFiles` — the flag `Script.js`'s `rawSourceDirectoryPath` gates
+    `objectset_source/object-set-N/` substitution on for every pass but the first.
 
     Synthetic rather than a copy of a real plan: a fixture carved out of one passes or fails for
     reasons the case did not choose, which is how a control ends up vacuous.
@@ -61,7 +64,10 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None):
     with tempfile.TemporaryDirectory() as td:
         plan = pathlib.Path(td) / "plan"
         plan.mkdir()
-        (plan / "export.json").write_text(json.dumps({"objectSets": [{"objects": p} for p in passes]}))
+        export_data = {"objectSets": [{"objects": p} for p in passes]}
+        if use_separated_csv_files is not None:
+            export_data["useSeparatedCSVFiles"] = use_separated_csv_files
+        (plan / "export.json").write_text(json.dumps(export_data))
         for name, body in (root_files or {}).items():
             (plan / name).write_text(body)
         for pass_number, files in (per_pass_files or {}).items():
@@ -277,10 +283,14 @@ CASES = [
     # Pass 1 here is a filler `excluded` declaration, and the writable/covered pass is pushed to
     # pass 2: an object-set-1 override cannot demonstrate "owes nothing" any more (pass 1 is
     # always root-backed — see the CASES above), so proving a covered writable pass stays silent
-    # needs a pass index of 1 or higher.
+    # needs a pass index of 1 or higher. `useSeparatedCSVFiles: true` is required alongside it —
+    # see the USE_SEPARATED_CSV_FILES cases below — so every case in this file demonstrating a
+    # pass 2+ override as real coverage sets it explicitly rather than relying on the flag's
+    # absence being harmless.
     ("an object excluded in pass 1, Upsert in pass 2 with an override, owes nothing",
      False, issues([[dict(UPSERT, excluded=True)], [UPSERT]], None,
-                   {2: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL)),
+                   {2: {"Widget__c.csv": HEADER}}, severity=V.Severity.CRITICAL,
+                   use_separated_csv_files=True)),
     # A flat `objects` plan (no objectSets) with per-pass CSVs: three functions disagreed about
     # normalizing that shape, so the CSVs were silently discarded behind a WARN suppressed at
     # default verbosity. And `object-set-0` maps to pass_index -1, which an upper-bound-only check
@@ -315,7 +325,7 @@ CASES = [
     ("...and is silent once EVERY writable pass is supplied per-pass",
      False, issues([[dict(UPSERT, excluded=True)], [UPSERT], [dict(UPSERT, operation="Update")]],
                    None, {2: {"Widget__c.csv": HEADER}, 3: {"Widget__c.csv": HEADER}},
-                   severity=V.Severity.CRITICAL)),
+                   severity=V.Severity.CRITICAL, use_separated_csv_files=True)),
     # Relabelled to what it proves. It previously claimed to pin a filter against misfiled
     # overrides; it passed on pass arithmetic alone and the filter turned out to be inert — a
     # coverage index cancels only its own pass, which is the property below and the reason no
@@ -324,6 +334,36 @@ CASES = [
      "the object leaves the declaring pass owing its root CSV",
      True, issues([[READONLY], [UPSERT]], None, {1: {"Widget__c.csv": HEADER}},
                   severity=V.Severity.CRITICAL)),
+]
+
+# `Script.js`'s `rawSourceDirectoryPath` substitutes `objectset_source/object-set-N/` (N > 1) only
+# when the plan's top-level `useSeparatedCSVFiles` is `true`; otherwise every pass — pass 1
+# included — reads the plan root regardless of what that directory holds. Crediting a pass-2+
+# override as coverage without checking the flag let a plan with only
+# `objectset_source/object-set-2/<Object>.csv` and no root CSV report clean while SFDMU, unable to
+# find the flag, still reads (and fails to find) the root file at runtime — a false negative on
+# the one finding (missing root CSV) this file exists to keep real. #264-review.
+#
+# Filler `excluded` pass 1 pushes both writable passes to indices 1 and 2 (object-set directories
+# 2 and 3), same as the MERGED_CONFIG case this mirrors: pass 1's own override can never grant
+# coverage regardless of the flag, so isolating what the flag controls needs both real writable
+# passes at index >= 1.
+_EXCLUDED_FILLER = dict(UPSERT, excluded=True)
+_TWO_WRITABLE_PASSES_COVERED = [[_EXCLUDED_FILLER], [UPSERT], [dict(UPSERT, operation="Update")]]
+_BOTH_OVERRIDES = {2: {"Widget__c.csv": HEADER}, 3: {"Widget__c.csv": HEADER}}
+
+USE_SEPARATED_CSV_FILES = [
+    ("pass-2/3 overrides with no `useSeparatedCSVFiles` key do not relieve the root requirement "
+     "— SFDMU still reads the root for every pass without the flag",
+     True, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
+                  severity=V.Severity.CRITICAL)),
+    ("...and neither does `useSeparatedCSVFiles: false` — explicit-false and absent must agree",
+     True, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
+                  severity=V.Severity.CRITICAL, use_separated_csv_files=False)),
+    ("...and `useSeparatedCSVFiles: true` is what actually relieves it — control for both cases "
+     "above",
+     False, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
+                   severity=V.Severity.CRITICAL, use_separated_csv_files=True)),
 ]
 
 # What SFDMU can actually resolve, which is not what the first version of this check assumed.
@@ -1009,6 +1049,7 @@ def own_case_count_is_quoted_correctly(total):
 def main() -> int:
     failures = []
     all_cases = [("root-CSV expectation", CASES),
+                 ("useSeparatedCSVFiles gates pass-2+ override coverage", USE_SEPARATED_CSV_FILES),
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
                  ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
                  ("fix modes write where they should and nowhere else", FIX_MODES),

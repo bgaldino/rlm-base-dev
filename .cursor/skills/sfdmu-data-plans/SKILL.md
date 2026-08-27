@@ -239,7 +239,16 @@ Two locations, and which one a plan owes a file in depends on the **pass**, not 
 | Location | Read when |
 |----------|-----------|
 | `<plan>/<Object>.csv` | the default for any pass that writes the object from a file |
-| `<plan>/objectset_source/object-set-N/<Object>.csv` | overrides the root file **for pass N only** (`object-set-N` is 1-based; pass indexes are 0-based) |
+| `<plan>/objectset_source/object-set-N/<Object>.csv` | overrides the root file **for pass N only**, and only when the plan's top-level `useSeparatedCSVFiles` is `true` (`object-set-N` is 1-based; pass indexes are 0-based) |
+
+Two prerequisites, not one. `useSeparatedCSVFiles: true` at the plan's top level is what makes SFDMU
+substitute `objectset_source/object-set-N/` at all — without it, every pass reads the plan root
+regardless of what that directory holds, so a plan whose only CSV for an object lives under
+`object-set-2/` and never sets the flag silently never loads it. And even with the flag set, pass 1
+is never substituted: `Script.ts`'s `rawSourceDirectoryPath` returns the plan root whenever
+`objectSetIndex` is falsy (index 0), flag or no flag — `object-set-1/` becomes readable only through
+this repo's opt-in `sync_objectset_source_to_source` step, which copies it onto the root before SFDMU
+runs. `_objects_owing_root_csv` checks the flag before crediting a pass-2+ override as coverage.
 
 An object declared in several passes needs a file for **each** writable pass. `BillingPolicy` in
 `qb-billing` is `Upsert` in pass 1 and `Update` in pass 3 with an override for pass 3 only, so it

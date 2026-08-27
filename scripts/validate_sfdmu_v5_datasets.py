@@ -743,15 +743,17 @@ class SFDMUValidator:
         `tests/test_sfdmu_csv_expectation.py`.
 
         A plan reads a writable pass's records from `objectset_source/object-set-N/<Object>.csv`
-        when that file exists, and from `<plan>/<Object>.csv` otherwise — except pass 1, which
-        SFDMU always reads from the plan root regardless of an `object-set-1/` file: `Script.ts`'s
-        `rawSourceDirectoryPath` returns `basePath` whenever `objectSetIndex` is falsy (index 0),
-        with no `useSeparatedCSVFiles` escape hatch. `objectset_source/object-set-1/` becomes
-        readable only through this repo's opt-in `sync_objectset_source_to_source` step
+        when that file exists AND the plan's top-level `useSeparatedCSVFiles` is `true`, and from
+        `<plan>/<Object>.csv` otherwise — except pass 1, which SFDMU always reads from the plan
+        root regardless of an `object-set-1/` file or the flag: `Script.ts`'s
+        `rawSourceDirectoryPath` returns `basePath` whenever `objectSetIndex` is falsy (index 0) OR
+        `useSeparatedCSVFiles` is falsy — pass 1 has no `useSeparatedCSVFiles` escape hatch, and
+        passes 2..n have no escape hatch *without* the flag. `objectset_source/object-set-1/`
+        becomes readable only through this repo's opt-in `sync_objectset_source_to_source` step
         (`tasks/rlm_sfdmu.py:187-205,390-391`), which copies it onto the root before SFDMU runs —
         it is never a substitute for the root file itself. So the root file is owed as soon as
-        *any* writable pass lacks an override, pass 1 always included; keyed on the pass and not on
-        the object name for the same reason.
+        *any* writable pass lacks a flag-gated override, pass 1 always included; keyed on the pass
+        and not on the object name for the same reason.
 
         Keying on the name is a live false negative, not a hypothetical one: `BillingPolicy` in
         `qb/en-US/qb-billing` is `Upsert` in pass 1 and `Update` in pass 3, and only pass 3 has an
@@ -774,6 +776,13 @@ class SFDMUValidator:
         """
         writable_passes = self._writable_passes_by_object(export_data)
         all_configs = self._all_pass_configs(export_data)
+        # SFDMU's `rawSourceDirectoryPath` (`Script.js`) substitutes the object-set-N subdirectory
+        # only when `objectSetIndex` is truthy AND `useSeparatedCSVFiles` is true; either condition
+        # false, and every pass — not just pass 1 — reads the plan root. Without this gate, a plan
+        # with an `objectset_source/object-set-2/<Object>.csv` but no (or a false) top-level
+        # `useSeparatedCSVFiles` credited that file as coverage, so a missing root CSV — which SFDMU
+        # still needs at runtime — silently passed instead of failing Critical.
+        use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
         covered: Dict[str, Set[int]] = {}
         for (obj_name, pass_index) in objectset_source_overrides:
             if pass_index == 0:
@@ -781,6 +790,8 @@ class SFDMUValidator:
                 # above. Left in `objectset_source_overrides` itself (not filtered at the source)
                 # so the fix/validate loops over that dict still check the file's own header and
                 # composite-key shape; only its use as *coverage* here is excluded.
+                continue
+            if not use_separated_csv_files:
                 continue
             covered.setdefault(obj_name, set()).add(pass_index)
 
