@@ -1203,12 +1203,22 @@ class SFDMUValidator:
         # trees. The number depends on the reconstruction, which is why the mechanism above is stated
         # instead of a figure alone.)
         #
-        # Scoping stays because it is semantically right, not because it is load-bearing: a pass that
-        # reads no file cannot have a SELECT-coverage defect. That property is real in the abstract
-        # and pinned by a synthetic case (a Readonly later pass with a narrow SELECT), since no plan
-        # in the tree exercises it. No re-dedup here: the list arrives deduped on the union of what
-        # its consumers read, this check included.
-        reading_configs = objects_owing_root_csv.get(obj_name) or [obj_config]
+        # Scoping IS load-bearing, and the `or [obj_config]` fallback used to undercut it: a pass that
+        # reads no file cannot have a SELECT-coverage defect, but the fallback fired for *any* object
+        # absent from `objects_owing_root_csv` — which is also the shape a writable pass takes once
+        # every one of its declarations is covered by an `objectset_source/` override. That object's
+        # merged config is still pass 1, so a Readonly-with-narrow-SELECT pass 1 got validated even
+        # though the pass that actually reads a file (the covered writable one) is already checked by
+        # `_validate_per_pass_csv`. The fallback is only correct for the *other* reason an object is
+        # absent from the map: it never had a writable pass at all, where the merged config — the
+        # object's only declaration — is the one live SOQL query and does need its externalId
+        # SELECT-covered. `all_pass_configs` distinguishes the two without a new parameter.
+        reading_configs = objects_owing_root_csv.get(obj_name)
+        if reading_configs is None:
+            has_writable_pass = any(self._is_live_writable(cfg)
+                                     for pass_cfgs in all_pass_configs.get(obj_name, {}).values()
+                                     for cfg in pass_cfgs)
+            reading_configs = [] if has_writable_pass else [obj_config]
         for cfg in reading_configs:
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 

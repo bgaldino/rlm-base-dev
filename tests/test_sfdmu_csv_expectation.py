@@ -491,6 +491,21 @@ MERGED_CONFIG = [
           [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly", "externalId": "Name;Code"}]],
          {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
          if "not found in query SELECT clause" in i]),
+    # The inverse ordering of the case above, and the one that actually occurs on real plans: a
+    # Readonly *first* pass with a narrow SELECT, followed by a writable pass fully supplied under
+    # `objectset_source/`. The object is then absent from `objects_owing_root_csv` (nothing reads
+    # the root), so the `or [obj_config]` fallback used to validate pass 1's merged config instead —
+    # reporting a SELECT-coverage gap against a pass that reads no file, on an object whose writable
+    # pass (checked by `_validate_per_pass_csv`) already selects everything it keys on. #264-review.
+    ("a Readonly first pass with a narrow SELECT, fully covered by an override in a later pass, "
+     "contributes no externalId coverage finding",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
+            "externalId": "Name;Code"}],
+          [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code"}]],
+         None, {2: {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"}})
+         if "not found in query SELECT clause" in i]),
     # And the reason a raw declaration cannot be substituted for a normalized one: the checks read
     # derived keys (`fields`, the parsed SELECT), not the raw JSON. Passing raw declarations made
     # `fields` empty and every externalId component read as absent — 252 High on the live tree against
