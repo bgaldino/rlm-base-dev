@@ -726,6 +726,23 @@ MERGED_CONFIG = [
             "excluded": True}]],
          {"Widget__c.csv": "Id,Name\n1,a\n"})
          if "is not one SFDMU can resolve" in i]),
+    # An unresolvable operation string is not a "not readonly" free pass. `_resolveOperation`
+    # rejects "Upser" the same way it rejects an absent key — it returns undefined and
+    # `ScriptObject.operation` stays on its Readonly default — so SFDMU never reads a CSV for
+    # this declaration either. `_is_live_writable` checking only `!= "readonly"` treated the typo
+    # as writable and demanded a root CSV that will never exist for this plan: a false Critical
+    # alongside the correct malformed-operation High. Every existing malformed-operation case
+    # supplies a root CSV, so none of them exposed this — this one supplies none. Two assertions,
+    # not one `or`-ed list: the High must still fire and the Critical must not, and collapsing
+    # them into one list would pass on "neither fired" as readily as on "both fired".
+    ("a bogus operation with no CSV anywhere still reports the malformed-operation High",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Upser", "externalId": "Name"}]])
+         if "is not one SFDMU can resolve" in i]),
+    ("...and does not also report a missing-CSV Critical for that same declaration",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Upser", "externalId": "Name"}]])
+         if "CSV file not found" in i]),
 ]
 
 

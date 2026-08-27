@@ -653,7 +653,18 @@ class SFDMUValidator:
         # undefined and leaves the field untouched (ScriptLoader.ts:433-436). Defaulting to Upsert
         # here treated an operation-less, CSV-less declaration as writable and reported the missing
         # CSV Critical — the exact Readonly false positive this validator exists to avoid.
-        return str(cfg.get("operation") or "Readonly").strip().lower() != "readonly"
+        #
+        # An unresolvable value (a typo like "Upser", or a non-string like `true`) hits the same
+        # code path: `_resolveOperation` returns undefined for it too, so `object.operation` is
+        # left on the Readonly default rather than becoming writable. Checking only `!= "readonly"`
+        # missed this — `"Upser" != "readonly"` is True, so a malformed operation was reported as
+        # writable and its missing CSV demanded, even though SFDMU will never read one. Resolve
+        # against the accepted enum (`SFDMU_OPERATIONS`, same set `_validate_operation_value` uses)
+        # before deciding an object is writable; unresolvable is Readonly, not "not readonly".
+        operation = str(cfg.get("operation") or "Readonly").strip().lower()
+        if operation not in SFDMUValidator.SFDMU_OPERATIONS:
+            return False
+        return operation != "readonly"
 
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
