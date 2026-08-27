@@ -647,7 +647,13 @@ class SFDMUValidator:
         # as authoritative makes this look too lenient and argues for dropping the normalization —
         # which would then report the nine `"ReadOnly"` declarations in this repo as defects. SFDMU
         # accepts them.
-        return str(cfg.get("operation") or "Upsert").strip().lower() != "readonly"
+        # Absent defaults to Readonly, not Upsert: `ScriptObject.operation` is initialized to
+        # `OPERATION.Readonly` (ScriptObject.ts:162, v5.8.0), and `ScriptLoader` overwrites it only
+        # when the property is present and resolvable — `_resolveOperation(undefined)` returns
+        # undefined and leaves the field untouched (ScriptLoader.ts:433-436). Defaulting to Upsert
+        # here treated an operation-less, CSV-less declaration as writable and reported the missing
+        # CSV Critical — the exact Readonly false positive this validator exists to avoid.
+        return str(cfg.get("operation") or "Readonly").strip().lower() != "readonly"
 
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
@@ -829,7 +835,10 @@ class SFDMUValidator:
         raw_external_id = obj.get("externalId", "Id")
         return {
             "pass_index": idx,
-            "operation": obj.get("operation", "Upsert"),
+            # Readonly, not Upsert: SFDMU leaves `ScriptObject.operation` at its Readonly class
+            # default when export.json omits it (see `_is_live_writable`). Baking Upsert in here
+            # would defeat that fix for every consumer reading the normalized config.
+            "operation": obj.get("operation", "Readonly"),
             "externalId": str(raw_external_id),
             # Recorded rather than reported here: this function has no `result` to add an issue to,
             # and threading one in would make a pure normalizer a validator. The type name is carried
@@ -1201,7 +1210,9 @@ class SFDMUValidator:
         # the one that is broken. Both sites read `operation`, so both need it.
         # `.strip().lower()` mirrors `ScriptLoader._resolveOperation` — see the other site for why
         # that function and not `ScriptObject.getOperation`.
-        operation = str(obj_config.get("operation") or "Upsert")
+        # Readonly is SFDMU's absent-operation default (see `_is_live_writable`); the choice is
+        # inert here since only `insert` gates the checks below, but the default is kept correct.
+        operation = str(obj_config.get("operation") or "Readonly")
         is_insert = operation.strip().lower() == "insert"
 
         # Check for legacy $$ notation in externalId definition
