@@ -825,9 +825,14 @@ class SFDMUValidator:
         Not cosmetic: the checks read *derived* keys, not the raw declaration — `_validate_external_id`
         reads `fields` (the parsed SELECT), so handing it a raw declaration makes `fields` empty and
         every externalId component read as absent from the query. Measured: forcing `fields` empty
-        takes the tree from 7 High to **252 High**, 245 of them spurious SELECT-coverage findings. So
-        this normalizer, not the reading-pass scoping below it, is what holds that back — the two were
-        conflated in earlier notes quoting 241 and 258, neither of which reproduces.
+        adds 245 spurious SELECT-coverage findings on top of the documented High baseline, landing
+        at 252 High overall. So this normalizer, not the reading-pass scoping below it, is what
+        holds that back — the two were conflated in earlier notes quoting 241 and 258, neither of
+        which reproduces. Deliberately not spelled as "N High to 252 High": the baseline number
+        belongs to `tests/test_sfdmu_csv_expectation.py`'s pinned sites, which is what a reader
+        should update when it changes; restating it bare here, next to "High", would read as a
+        second live claim that sweep neither discovers (this file is not one of its roots) nor
+        keeps in sync — the exact drift its pinning exists to prevent, one document over.
 
         `externalId` is coerced to `str` here — the single point that does so, now that all three
         config builders route through this function. Four sites downstream call
@@ -1151,12 +1156,15 @@ class SFDMUValidator:
 
         # externalId is *not* swept across every declaration, and the honest reason is narrower than
         # the one that was written here first. **Measured on this tree, scoping makes no difference:**
-        # sweeping every normalized declaration leaves High at 7 and produces 0 SELECT-coverage
-        # findings, identical to the scoped form. The earlier claim — that sweeping "reported 241 High
-        # findings against correct plans" because later passes are narrow-SELECT activations — is
-        # false, and worth correcting rather than deleting, because it would tell a future reader this
-        # line is holding back a flood and make them refuse a simplification on evidence that does not
-        # exist. No later-pass declaration in this repo has that shape.
+        # sweeping every normalized declaration leaves the documented High baseline unchanged and
+        # produces 0 SELECT-coverage findings, identical to the scoped form. (Not spelled as a bare
+        # count here on purpose — that number is `tests/test_sfdmu_csv_expectation.py`'s pinned
+        # baseline site, and this file is not one of that sweep's roots, so restating it would be a
+        # second, unswept claim of the same fact.) The earlier claim — that sweeping "reported 241
+        # High findings against correct plans" because later passes are narrow-SELECT activations —
+        # is false, and worth correcting rather than deleting, because it would tell a future reader
+        # this line is holding back a flood and make them refuse a simplification on evidence that
+        # does not exist. No later-pass declaration in this repo has that shape.
         #
         # The flood was real but came from somewhere else: **un-normalized** declarations, whose
         # derived `fields` is absent, so every externalId component reads as missing from the SELECT.

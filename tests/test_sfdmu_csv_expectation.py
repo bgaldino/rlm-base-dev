@@ -852,9 +852,39 @@ def baseline_sites():
     # High findings" is an ordinary sentence and the tighter `[\s\-*`]*` form missed it — dropping the
     # site from the sweep rather than failing. Bounded rather than open-ended so the count and the noun
     # still have to be in the same clause; an unbounded gap matches across unrelated sentences.
+    #
+    # Two alternatives, not one: `scripts/validate_sfdmu_v5_datasets.py:1154` writes "leaves High
+    # at 7" — the anchor before the count, which the count-before-anchor form above cannot match
+    # and would drop from the sweep silently, the same failure mode this whole function exists to
+    # avoid. Named groups because `findall` on a two-group pattern returns a tuple per match, and
+    # the single `raw.lower()` below expects a string; whichever branch fires leaves the other
+    # group `None`.
     pattern = re.compile(
-        rf"\b(\d+|{counts})\b[\s\-*`]*(?:\w+[\s\-*`]+){{0,2}}(?:high|zero-byte)", re.IGNORECASE)
-    roots = ["AGENTS.md", "scripts/ai", "docs/features", ".cursor/skills", "tests"]
+        rf"(?:\b(?P<count_before>\d+|{counts})\b[\s\-*`]*(?:\w+[\s\-*`]+){{0,2}}(?:high|zero-byte)"
+        rf"|(?:high|zero-byte)[\s\-*`]*(?:\w+[\s\-*`]+){{0,2}}\b(?P<count_after>\d+|{counts})\b)",
+        re.IGNORECASE)
+    # `"tests"` (no slash) named a directory here, and `tests/test_pr_gate.py`'s trigger-coverage
+    # sweep (`named_paths()`) keeps a slash-free constant only when it names a *file* — a directory
+    # is admitted then dropped by its own return filter. So this suite's dependency on `tests/` was
+    # invisible to "no suite reads a file that cannot select it": narrowing `tests` back to just
+    # this file would have stayed green. A trailing slash does not fix it either —
+    # `named_paths()`'s slash branch does `.strip("/")` before its own return filter re-checks
+    # `"/" in p`, so `"tests/"` becomes `"tests"` and is filtered out exactly as before; only a
+    # *multi*-segment root (`"scripts/ai"` etc.) survives that round trip. `tests/test_pr_gate.py`
+    # is the only file this root exists to reach (verified: nothing else under `tests/` matches
+    # `pattern`), so naming it directly is both the fix and a narrower, more precise root than
+    # rglobbing the whole directory for every `.py`/`.md` file ever added there.
+    #
+    # `scripts/validate_sfdmu_v5_datasets.py` is deliberately not a root, even though two of its
+    # docstrings once stated the live baseline ("7 High", "High at 7") — see the rewording at the
+    # cited lines instead. Adding it would not just find those two: `_normalize_object_config`'s
+    # docstring also says "252 High" and "245", the measured result of a *hypothetical* regression
+    # this file is not tracking, sitting on the same line as the real "7". A generic count-before/
+    # after-"High" pattern cannot tell "the current baseline" from "what breaks if you remove this
+    # normalizer" — both are "NUMBER High" — and including them would fail "every hit claims 7"
+    # below for a reason that has nothing to do with drift. Better to stop stating the bare number
+    # there (the fix actually applied) than to teach this sweep the difference.
+    roots = ["AGENTS.md", "scripts/ai", "docs/features", ".cursor/skills", "tests/test_pr_gate.py"]
     sites = {}
     for root in roots:
         base = REPO / root
@@ -869,8 +899,11 @@ def baseline_sites():
                 continue
             hits = []
             for n, line in enumerate(lines, 1):
-                for raw in pattern.findall(line):
-                    token = raw.lower()
+                # `finditer`, not `findall`: two named groups now share the pattern (count-before
+                # and count-after), so a match carries one populated group and one `None` rather
+                # than a single string `findall` could return directly.
+                for m in pattern.finditer(line):
+                    token = (m.group("count_before") or m.group("count_after")).lower()
                     hits.append((n, int(token) if token.isdigit() else _WORD_COUNTS.get(token)))
             if hits:
                 sites[path.relative_to(REPO).as_posix()] = hits
