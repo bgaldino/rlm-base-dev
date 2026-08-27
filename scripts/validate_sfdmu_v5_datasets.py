@@ -1194,43 +1194,19 @@ class SFDMUValidator:
                 ))
             return
 
-        # externalId is *not* swept across every declaration, and the honest reason is narrower than
-        # the one that was written here first. **Measured on this tree, scoping makes no difference:**
-        # sweeping every normalized declaration leaves the documented High baseline unchanged and
-        # produces 0 SELECT-coverage findings, identical to the scoped form. (Not spelled as a bare
-        # count here on purpose — that number is `tests/test_sfdmu_csv_expectation.py`'s pinned
-        # baseline site, and this file is not one of that sweep's roots, so restating it would be a
-        # second, unswept claim of the same fact.) The earlier claim — that sweeping "reported 241
-        # High findings against correct plans" because later passes are narrow-SELECT activations —
-        # is false, and worth correcting rather than deleting, because it would tell a future reader
-        # this line is holding back a flood and make them refuse a simplification on evidence that
-        # does not exist. No later-pass declaration in this repo has that shape.
-        #
-        # The flood was real but came from somewhere else: **un-normalized** declarations, whose
-        # derived `fields` is absent, so every externalId component reads as missing from the SELECT.
-        # Forcing `fields` empty gives 252 High / 245 SELECT-coverage findings — and gives the *same*
-        # 252 whether scoped or swept, which is the proof that normalization fixed it and scoping did
-        # not. (Earlier notes said 241 and 258; both are unreproducible artifacts of intermediate
-        # trees. The number depends on the reconstruction, which is why the mechanism above is stated
-        # instead of a figure alone.)
-        #
-        # Scoping IS load-bearing, and the `or [obj_config]` fallback used to undercut it: a pass that
-        # reads no file cannot have a SELECT-coverage defect, but the fallback fired for *any* object
-        # absent from `objects_owing_root_csv` — which is also the shape a writable pass takes once
-        # every one of its declarations is covered by an `objectset_source/` override. That object's
-        # merged config is still pass 1, so a Readonly-with-narrow-SELECT pass 1 got validated even
-        # though the pass that actually reads a file (the covered writable one) is already checked by
-        # `_validate_per_pass_csv`. The fallback is only correct for the *other* reason an object is
-        # absent from the map: it never had a writable pass at all, where the merged config — the
-        # object's only declaration — is the one live SOQL query and does need its externalId
-        # SELECT-covered. `all_pass_configs` distinguishes the two without a new parameter.
-        reading_configs = objects_owing_root_csv.get(obj_name)
-        if reading_configs is None:
-            has_writable_pass = any(self._is_live_writable(cfg)
-                                     for pass_cfgs in all_pass_configs.get(obj_name, {}).values()
-                                     for cfg in pass_cfgs)
-            reading_configs = [] if has_writable_pass else [obj_config]
-        for cfg in reading_configs:
+        # Scoped to `objects_owing_root_csv` once, on the theory that a pass reading no file cannot
+        # have a SELECT-coverage defect. Wrong: a `Readonly` declaration reads no *file* but still
+        # executes its SOQL against the target org in every pass, so its externalId fields still need
+        # to be in that pass's SELECT clause — a requirement that has nothing to do with whether some
+        # *other* declaration of the same object owes a CSV. Scoping by CSV-reading status meant that
+        # adding a writable sibling pass (or covering every writable pass under `objectset_source/`)
+        # made an unrelated Readonly pass's own SELECT gap stop being validated — reachable identically
+        # whether the Readonly declaration shared a pass with a writable one or lived in its own pass.
+        # `live_declarations` (computed above, for the `operation`/malformed-externalId sweeps) is
+        # already every non-excluded declaration across every pass, so it is reused here too — CSV
+        # existence/header checks stay scoped to `objects_owing_root_csv` below, where "which pass
+        # reads the file" is the actual question.
+        for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire

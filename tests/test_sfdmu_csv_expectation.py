@@ -515,31 +515,27 @@ MERGED_CONFIG = [
      False, [i for i in issues([[_RO_FIRST], [_UP_SECOND]],
                                {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
              if "apiVersion" not in i]),
-    # A pass that reads no file cannot have a SELECT-coverage defect, and a Readonly later pass is the
-    # clearest case: it carries a narrow SELECT with an inherited composite key. Synthetic because it
-    # has to be — **measured, no plan in this repo has that shape**, and sweeping every normalized
-    # declaration on the live tree changes nothing (High stays 7, 0 coverage findings). An earlier
-    # version of this comment claimed the scoping held back 241 spurious findings on real plans; it
-    # does not, and the figure does not reproduce. What produces the flood is *un-normalized*
-    # declarations, whose empty `fields` makes every component read as missing — 252 High / 245
-    # coverage findings, identically whether scoped or swept. So this case guards a real property that
-    # the live baseline cannot see, which is the reason it exists; it is not a proxy for a live count.
-    ("a Readonly later pass with a narrow SELECT contributes no externalId coverage finding",
-     False, [i for i in issues(
+    # A `Readonly` declaration reads no *file*, but it still executes its own SOQL against the target
+    # org in every pass, so its externalId fields still have to be in that pass's SELECT clause — a
+    # requirement that has nothing to do with whether the object owes a root CSV. Scoping the
+    # SELECT-coverage sweep to `objects_owing_root_csv` used to exempt this Readonly pass the moment
+    # its Upsert sibling made the object CSV-covered; adding a writable sibling pass must not silence
+    # an unrelated defect in this one. Pass 2 selects neither `Name` nor `Code`.
+    ("a Readonly later pass's own narrow SELECT is still checked against its externalId",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
             "externalId": "Name;Code"}],
           [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly", "externalId": "Name;Code"}]],
          {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
          if "not found in query SELECT clause" in i]),
-    # The inverse ordering of the case above, and the one that actually occurs on real plans: a
-    # Readonly *first* pass with a narrow SELECT, followed by a writable pass fully supplied under
-    # `objectset_source/`. The object is then absent from `objects_owing_root_csv` (nothing reads
-    # the root), so the `or [obj_config]` fallback used to validate pass 1's merged config instead —
-    # reporting a SELECT-coverage gap against a pass that reads no file, on an object whose writable
-    # pass (checked by `_validate_per_pass_csv`) already selects everything it keys on. #264-review.
-    ("a Readonly first pass with a narrow SELECT, fully covered by an override in a later pass, "
-     "contributes no externalId coverage finding",
-     False, [i for i in issues(
+    # The inverse ordering of the case above: a Readonly *first* pass with a narrow SELECT, followed by
+    # a writable pass fully supplied under `objectset_source/`. The object is then absent from
+    # `objects_owing_root_csv` (nothing reads the root) — which used to mean nothing validated pass 1's
+    # own SELECT either, even though pass 1 still runs that SOQL every time regardless of what a later
+    # pass does or where its CSV lives. Pass 1 selects `Name` but not `Code`.
+    ("a Readonly first pass's own narrow SELECT is checked even when a later pass is fully covered "
+     "by an override",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
             "externalId": "Name;Code"}],
           [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
@@ -568,12 +564,12 @@ MERGED_CONFIG = [
                         "externalId": "Id"}]],
          {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
          if "composite key column" in i]),
-    # Inverse of the excluded same-pass case: filter excluded, forget Readonly. A Readonly sibling
-    # in a writable pass was still checked against the root CSV, so a SELECT gap on a declaration
-    # that reads the target org became a High. The Upsert sibling here selects what it keys on, so
-    # a coverage finding can only come from the Readonly one.
-    ("a Readonly declaration sharing a pass contributes no externalId coverage finding",
-     False, [i for i in issues(
+    # Same pass, not just a later one: a Readonly sibling still runs its own SOQL, so sharing a pass
+    # with a covered Upsert declaration does not exempt it either. The Upsert sibling here selects
+    # everything it keys on, so both findings below are attributable to the Readonly one.
+    ("a Readonly declaration's own narrow SELECT is checked even when it shares a pass with a "
+     "covered Upsert sibling",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
             "externalId": "Name;Code"},
            {"query": "SELECT Id FROM Widget__c", "operation": "Readonly",
