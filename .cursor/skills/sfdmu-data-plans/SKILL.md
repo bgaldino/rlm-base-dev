@@ -277,8 +277,9 @@ Two shapes owe no root CSV at all:
 
 `validate_sfdmu_v5_datasets.py` enforces exactly this (`_objects_owing_root_csv`), and
 `tests/test_sfdmu_csv_expectation.py` pins both directions. Read the operation from the pass, never
-from the merged config: SFDMU keeps only the **first** declaration, so an object Readonly or
-`excluded` in pass 1 and `Upsert` in pass 2 looks exempt when it is not.
+from the merged config: the validator's own `_parse_object_configs` keeps only the **first**
+declaration, so an object Readonly or `excluded` in pass 1 and `Upsert` in pass 2 looks exempt when
+it is not — SFDMU itself processes each pass independently at runtime.
 
 ## Which empty-CSV remedy
 
