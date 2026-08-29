@@ -292,8 +292,10 @@ not.) The same care drives four statuses that are easy to conflate:
 Exactly one check is advisory: `validate_sfdmu_v5_datasets.py` exits non-zero on a clean
 tree today. Its two **Criticals were the validator's own false positives** and pack 123 fixed them —
 a `Readonly` object is queried from the target org and owes no source CSV, and a per-pass object's
-CSV lives at `objectset_source/object-set-N/<Object>.csv`, an *alternative* location for the same
-file rather than an additional requirement. Both gates stay conditional on their own reason, so an
+CSV can live at `objectset_source/object-set-N/<Object>.csv`, an *alternative* to the root CSV **for
+that pass only** — and only when the plan's top-level `useSeparatedCSVFiles` is `true`; pass 1 always
+reads the root regardless of the flag. Neither qualifier met, the root CSV is still owed. Both gates
+stay conditional on their own reason, so an
 `Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
 directions in 88 cases. Two mechanisms make that pinning necessary rather than decorative.
 `_parse_object_configs` keeps only the *first* declaration, so reading the operation from the merged

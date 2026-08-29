@@ -204,8 +204,10 @@ by an agent reading this list, which is the enforcement that failed in `#264-27`
 (`validate_sfdmu_v5_datasets.py`) is **advisory**, because it still exits non-zero on a clean tree —
 though for a different reason than before. Its two Critical findings were the validator's own false
 positives, and pack 123 fixed them: a `Readonly` object is queried from the target org and owes no
-CSV, and a per-pass object's CSV lives under `objectset_source/`, which is an alternative location
-rather than an extra requirement. What remains is **seven High** findings, all zero-byte `Upsert`
+CSV, and a per-pass object's CSV can live under `objectset_source/object-set-N/`, an alternative to
+its root CSV **for that pass only** — and only when the plan sets `useSeparatedCSVFiles: true`; pass
+1 always reads the root regardless of the flag. Absent either qualifier, the root CSV is still owed.
+What remains is **seven High** findings, all zero-byte `Upsert`
 CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real defect, but a dormant one: `grep -ic
 mfg cumulusci.yml` returns **0**, so that plan and its eleven `mfg` siblings are all unwired. Either
 bucket fails the validator, so the check goes gating when the plan is removed, which is pack 110's
