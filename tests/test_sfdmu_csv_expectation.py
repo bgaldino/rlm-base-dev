@@ -1054,6 +1054,71 @@ QUERY_EXCLUDED_EXEMPTION = [
             if "query' is missing" in i]),
 ]
 
+UNSTRIPPED_EXTERNAL_ID = [
+    # `_validate_external_id` used to split `externalId` on `;` without stripping, unlike every
+    # other splitting site in this file (the fixer, and the composite-column-name builder below).
+    # "Name; Code" (a space after the delimiter — easy to type by hand) left ' Code', which never
+    # matches the parsed (trimmed) SELECT-field set even when the query correctly selects Code —
+    # a false HIGH on correct data.
+    ("a space after the externalId delimiter does not cause a false SELECT-coverage finding when "
+     "the query selects every component",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name; Code"}]])
+         if "not found in query SELECT clause" in i]),
+    # Control for the case above: a genuinely missing SELECT component is still caught once
+    # stripped, proving the fix did not just silence the check.
+    ("...but a genuinely missing SELECT component is still reported — control for the case above",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name; Code"}]])
+         if "not found in query SELECT clause" in i]),
+    # `_validate_csv_file`'s composite-column-name construction had the same unstripped-split bug,
+    # independently: "Name; Code" built the expected column as '$$Name$ Code' (an embedded space),
+    # which a correctly-written CSV header ('$$Name$Code') never has — a false "missing composite
+    # key column" HIGH on a CSV the fixer itself would never flag.
+    ("a space after the externalId delimiter does not cause a false missing-composite-key-column "
+     "finding when the CSV header is correct",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name; Code"}]],
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "composite key column" in i]),
+    # Control for the case above: a CSV genuinely missing the composite column is still caught.
+    ("...but a CSV genuinely missing the composite column is still reported — control for the "
+     "case above",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name; Code"}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+]
+
+EXCLUDED_INFO_MESSAGE = [
+    # The excluded-early-return's own Info message read the merged (first-declaration)
+    # `obj_config.get("excluded")`, so an object excluded in pass 1 but genuinely live (Readonly,
+    # owing no root CSV) in pass 2 got a spurious "excluded but not in known excluded list" —
+    # the same merged-config trap already fixed above for what each check *validates*, here in a
+    # check's own message instead. `not live_declarations` — every non-excluded declaration
+    # across every pass — is the correct "excluded everywhere" test, so a live pass-2 declaration
+    # must suppress it.
+    ("an object excluded in pass 1 but live in pass 2 does not get the 'excluded but not in "
+     "known excluded list' Info",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name", "excluded": True}],
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
+            "externalId": "Name"}]])
+         if "excluded but not in known excluded list" in i]),
+    # Control for the case above: an object excluded in every pass — no live declaration anywhere
+    # — must still get it.
+    ("...but an object excluded in every pass still does — control for the case above",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name", "excluded": True}]])
+         if "excluded but not in known excluded list" in i]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1288,6 +1353,10 @@ def main() -> int:
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),
+                 ("an unstripped externalId delimiter does not cause false SELECT/composite-key findings",
+                  UNSTRIPPED_EXTERNAL_ID),
+                 ("the excluded-object Info message tracks live_declarations, not merged excluded",
+                  EXCLUDED_INFO_MESSAGE),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

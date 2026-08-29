@@ -565,6 +565,18 @@ class SFDMUValidator:
         asked for. Flagging a bad query there is the same false positive already fixed for
         `operation`/`externalId`/`deleteOldData`: an excluded declaration's content is inert, so a
         defect in it changes nothing SFDMU does.
+
+        Deliberately not aware of `_normalized_object_sets`'s dominance rule (non-empty
+        `objectSets` wins outright; a sibling top-level `objects` is never read). That rule is
+        about deriving what SFDMU's *runtime* will do — the right lens for `_is_live_writable`/
+        `_all_pass_configs`, which answer "what does this pass write" — not about whether the file
+        is well-formed. The two callers here (lines ~531-536) mirror the container-type sweep
+        immediately above them in this same function (lines 483-493), which also walks both
+        `objects` and `objectSets` unconditionally: a malformed element in a container SFDMU
+        happens to ignore right now is still an authoring mistake — e.g. a leftover flat `objects`
+        array from before a plan migrated to `objectSets` — and dominance can flip with an edit to
+        either container, so validating only the "live" one would make correctness depend on
+        which one is currently winning.
         """
         if obj.get("excluded"):
             return
@@ -719,7 +731,7 @@ class SFDMUValidator:
             return False
         return resolved != "readonly"
 
-    def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
+    def _writable_passes_by_object(self, all_pass_configs: Dict[str, Dict[int, List[dict]]]) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
 
         Distinct from the merged config `_parse_object_configs` returns, which keeps only the
@@ -727,12 +739,20 @@ class SFDMUValidator:
         is the per-pass detail — not the union, and not the first entry — that decides which
         source files are owed. Keeping the pass numbers is what lets a caller ask whether *this*
         pass has a file, rather than whether the object has one somewhere.
+
+        Takes `all_pass_configs` rather than `export_data`. An earlier version re-walked
+        `_normalized_object_sets(export_data)` on its own — a second, independent traversal of
+        the same input `_all_pass_configs` already walks for this method's sole caller
+        (`_objects_owing_root_csv`, which is handed `all_pass_configs` specifically to avoid
+        recomputing it). The two walks agreed only because `_is_live_writable`'s own
+        `operation`/`excluded` handling happens to mirror `_normalize_object_config`'s
+        defaulting — a coincidence to maintain by hand, not a guarantee, and one more place for
+        the two to silently diverge the next time either changes.
         """
         writable: Dict[str, Set[int]] = {}
-        for idx, obj_set in enumerate(self._normalized_object_sets(export_data)):
-            for obj in obj_set.get("objects", []):
-                obj_name = self._extract_object_name(obj.get("query", ""))
-                if obj_name and self._is_live_writable(obj):
+        for obj_name, by_pass in all_pass_configs.items():
+            for idx, cfgs in by_pass.items():
+                if any(self._is_live_writable(cfg) for cfg in cfgs):
                     writable.setdefault(obj_name, set()).add(idx)
         return writable
 
@@ -859,7 +879,7 @@ class SFDMUValidator:
         with two objects across all operation/`excluded` combinations and all override sets up to
         size 2 — 0 disagreements. It is reported separately as a High, by the per-pass loop.)
         """
-        writable_passes = self._writable_passes_by_object(export_data)
+        writable_passes = self._writable_passes_by_object(all_pass_configs)
         all_configs = all_pass_configs
         # SFDMU's `rawSourceDirectoryPath` (`Script.js`) substitutes the object-set-N subdirectory
         # only when `objectSetIndex` is truthy AND `useSeparatedCSVFiles` is true; either condition
@@ -1189,6 +1209,10 @@ class SFDMUValidator:
         `add_issue`'s exact-message dedup; a pass-specific message on either side would double the
         finding for one declaration.
 
+        No `excluded` guard: the sole caller draws `obj_config` from `_writable_configs_for_pass`,
+        which already filters through `_is_live_writable` — the same dead-guard class already
+        removed from `_validate_operation_value` in this PR.
+
         Args:
             csv_path: Path to the CSV file
             obj_name: Object API name
@@ -1198,13 +1222,6 @@ class SFDMUValidator:
         """
         pass_name = f"Pass {pass_index + 1}"
         self.log(f"\nValidating {pass_name} override: {obj_name} ({csv_path.name})", level="DEBUG")
-
-        # Skip excluded objects
-        if obj_config.get("excluded"):
-            self.log(f"  Skipping excluded object in {pass_name}: {obj_name}", level="DEBUG")
-            return
-
-        # Validate CSV file with pass context
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
@@ -1316,7 +1333,18 @@ class SFDMUValidator:
                     message=f"Object uses 'deleteOldData: true' but not in documented list"
                 ))
 
-        if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
+        # `not live_declarations`, not the merged `obj_config.get("excluded")`: the merged view
+        # means "excluded in the first pass that declared it", so an object excluded in pass 1 but
+        # live (e.g. Readonly, or Upsert covered under objectset_source/) in a later pass hit this
+        # branch and got a spurious "excluded but not in known excluded list" Info — the same
+        # merged-config trap fixed above for operation/externalId/deleteOldData, here in this
+        # check's own message rather than in what it validates. `live_declarations` is already
+        # every non-excluded declaration across every pass, so "no live declarations" is the
+        # correct "excluded everywhere" test; a live-but-excluded-first-pass object is never in it.
+        # This also makes the old `and obj_name not in objects_owing_root_csv` guard redundant:
+        # `_is_live_writable`/`_writable_passes_by_object` already treat `excluded` as non-writable,
+        # so an object with no live declarations can never appear in `objects_owing_root_csv` either.
+        if not live_declarations:
             self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
             if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
                 result.add_issue(Issue(
@@ -1336,6 +1364,16 @@ class SFDMUValidator:
             csv_path = dataset_path / f"{obj_name}.csv"
             # Against every pass that reads this file, not the merged config — see
             # `_objects_owing_root_csv`. A pass-2 composite key went unasked-for otherwise.
+            #
+            # Deliberately not passing `pass_index` here (unlike the per-pass override call
+            # below): the root file is one shared path read by every pass in this list, not a
+            # per-pass artifact, so "CSV file not found" is a property of the *path*, not of
+            # whichever pass's declaration happens to trigger it first. A local `/code-review`
+            # pass flagged the omission as an inconsistency and threading `cfg["pass_index"]`
+            # through was tried — it broke "a missing CSV is one finding however many passes read
+            # it" immediately: the message became "Pass 1: ... not found" vs "Pass 2: ... not
+            # found" for the identical missing file, and `add_issue`'s message-keyed dedup no
+            # longer collapsed them. Reverted; the omission is intentional.
             for cfg in objects_owing_root_csv[obj_name]:
                 self._validate_csv_file(csv_path, obj_name, cfg, result)
         else:
@@ -1377,7 +1415,12 @@ class SFDMUValidator:
         # Check for nested relationship paths (v5 flattening issue).
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
-        fields = external_id.split(";")
+        #
+        # Stripped like every other externalId-splitting site (the fixer at lines 339/1784): an
+        # unstripped "Field1; Field2" leaves ' Field2', which never matches the parsed (trimmed)
+        # SELECT-field set below even when the query correctly selects Field2 — a false HIGH on
+        # correct data, the exact class this PR exists to eliminate.
+        fields = [f.strip() for f in external_id.split(";")]
         if not is_insert:
             for field in fields:
                 # Count dots (more than 1 = nested relationship)
@@ -1470,8 +1513,13 @@ class SFDMUValidator:
                 # Skip objects with deleteOldData: true (delete-then-insert strategy doesn't need composite key)
                 external_id = obj_config.get("externalId", "")
                 if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
-                    # This is a composite key - check if CSV has the $$ column
-                    expected_composite_col = "$$" + "$".join(external_id.split(";"))
+                    # This is a composite key - check if CSV has the $$ column. Stripped fields,
+                    # same as the fixer that writes this column (lines 339/1784) — an unstripped
+                    # "Field1; Field2" expects a column with an embedded space that the fixer,
+                    # which does strip, never writes, so --fix-composite-keys and re-validating
+                    # the same plan would never converge.
+                    expected_composite_col = self._build_composite_key_column_name(
+                        [f.strip() for f in external_id.split(";")])
 
                     if expected_composite_col not in headers:
                         result.add_issue(Issue(
