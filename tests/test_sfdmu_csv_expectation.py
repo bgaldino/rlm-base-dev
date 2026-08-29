@@ -1119,6 +1119,37 @@ EXCLUDED_INFO_MESSAGE = [
          if "excluded but not in known excluded list" in i]),
 ]
 
+EXCLUDED_JS_TRUTHINESS = [
+    # `excluded` was read with plain Python truthiness at every site that checks it, but SFDMU
+    # reads `object.excluded` with JS truthiness, and the two disagree on empty containers: `[]`/
+    # `{}` are truthy in JS (SFDMU drops the declaration as excluded) but falsy in Python (these
+    # sites read it as live/writable and demanded a CSV SFDMU never asks for).
+    # `_is_live_writable` — writability -> CSV owed:
+    ("an object excluded via an empty list (`excluded: []`) owes no CSV — SFDMU reads it as "
+     "truthy/excluded, not the Python-falsy empty container it looks like",
+     False, criticals([dict(UPSERT, excluded=[])])),
+    ("...same for an empty dict (`excluded: {}`)",
+     False, criticals([dict(UPSERT, excluded={})])),
+    ("control: `excluded: false` still owes its CSV, same as the unset default",
+     True, criticals([dict(UPSERT, excluded=False)])),
+    # The reverse mismatch: JSON's `NaN` extension decodes to a Python-truthy `float('nan')`,
+    # but JS treats NaN as falsy — the one direction where a naive "containers only" fix would
+    # have left the old (accidentally-correct) Python truthiness silently flipped.
+    ("control: `excluded: NaN` (JSON's NaN extension) does not count as excluded — JS treats it "
+     "as falsy",
+     True, criticals([dict(UPSERT, excluded=float("nan"))])),
+    # `_report_non_string_query` — the missing-query exemption:
+    ("a missing query on a declaration excluded via `excluded: []` is not reported, same "
+     "exemption as `excluded: true`",
+     False, [i for i in issues([[{"operation": "Upsert", "externalId": "Name", "excluded": []}]])
+            if "query' is missing" in i]),
+    # `live_declarations` — the excluded-object Info message:
+    ("an object excluded via `excluded: []` in every pass still gets the 'excluded but not in "
+     "known excluded list' Info — same live_declarations test as `excluded: true`",
+     True, [i for i in issues([[dict(UPSERT, excluded=[])]])
+            if "excluded but not in known excluded list" in i]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1357,6 +1388,8 @@ def main() -> int:
                   UNSTRIPPED_EXTERNAL_ID),
                  ("the excluded-object Info message tracks live_declarations, not merged excluded",
                   EXCLUDED_INFO_MESSAGE),
+                 ("excluded is read with JS truthiness, not Python's, at every call site",
+                  EXCLUDED_JS_TRUTHINESS),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

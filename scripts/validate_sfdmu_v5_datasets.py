@@ -578,7 +578,7 @@ class SFDMUValidator:
         either container, so validating only the "live" one would make correctness depend on
         which one is currently winning.
         """
-        if obj.get("excluded"):
+        if self._is_js_truthy(obj.get("excluded")):
             return
         query = obj.get("query")
         if isinstance(query, str) and query.strip():
@@ -691,6 +691,22 @@ class SFDMUValidator:
         return out
 
     @staticmethod
+    def _is_js_truthy(value) -> bool:
+        """Python truthiness corrected to match SFDMU's JS truthiness for a JSON-decoded value.
+
+        Diverges from Python's own truthiness in both directions: `[]`/`{}` are falsy in Python
+        but truthy in JS, so an `"excluded": []`/`{}` declaration is dropped by SFDMU (JS reads
+        `object.excluded` as truthy) while a plain `if cfg.get("excluded")` read it as
+        live/writable — a false missing-CSV Critical. And Python's `json` module accepts the
+        `NaN` extension, decoding it to a Python-truthy `float('nan')`, which JS treats as falsy.
+        """
+        if isinstance(value, float) and value != value:  # NaN: the only value unequal to itself
+            return False
+        if isinstance(value, (list, dict)):
+            return True
+        return bool(value)
+
+    @staticmethod
     def _is_live_writable(cfg: dict) -> bool:
         """True if SFDMU will write this declaration from a source file.
 
@@ -699,7 +715,7 @@ class SFDMUValidator:
         a pass with a writable sibling, which is the shape `_objects_owing_root_csv` used to miss
         because it filtered only `excluded`.
         """
-        if cfg.get("excluded"):
+        if SFDMUValidator._is_js_truthy(cfg.get("excluded")):
             return False
         # str() because a malformed plan can carry a non-string here (`"operation": true`).
         # `.strip().lower()` matches SFDMU, and the authoritative function is worth naming because
@@ -1264,7 +1280,7 @@ class SFDMUValidator:
         # coercion landed, and was silent after it. Placement, not logic, was the defect.
         live_declarations = [cfg for by_pass in [all_pass_configs.get(obj_name, {})]
                              for cfgs in by_pass.values() for cfg in cfgs
-                             if not cfg.get("excluded")]
+                             if not self._is_js_truthy(cfg.get("excluded"))]
 
         # `operation` per declaration, not per merged config: reading the merged config validates
         # pass 1 and exempts passes 2..n, so a bogus operation introduced in a later pass was
