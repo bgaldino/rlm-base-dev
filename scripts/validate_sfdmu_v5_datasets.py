@@ -565,7 +565,10 @@ class SFDMUValidator:
         miss because every justification above is about reading. A flat `objects` plan with an
         `objectset_source/object-set-1/` directory previously had those CSVs discarded before the
         fix loop saw them; now `--fix-headers` writes a header row into them. That is the intended
-        behavior — the file is one SFDMU reads — but no shipped plan has that shape (flat `objects`
+        behavior — native SFDMU never reads `object-set-1/` itself (pass 1 always reads the plan
+        root, per `_objects_owing_root_csv`'s docstring), but this repo's opt-in
+        `sync_objectset_source_to_source` task copies it onto the root before SFDMU runs, so a
+        correct header there still matters — but no shipped plan has that shape (flat `objects`
         plus `objectset_source/`: zero, and no `object-set-1/` exists anywhere in the tree), so real
         `--fix-all` output is byte-identical either way and nothing would have caught a mistake here.
         Pinned by the fix-mode cases in `tests/test_sfdmu_csv_expectation.py`, which are the repo's

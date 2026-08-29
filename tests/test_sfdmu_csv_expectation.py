@@ -604,8 +604,9 @@ PER_PASS_IS_VALIDATED = [
     # silently attributed to a real pass, and the per-pass loop reports the object as missing from
     # "pass 0". Pinning the absence of that phantom report is the only externally visible
     # difference the bounds fix makes, now that normalizing flat plans removed the IndexError it
-    # also used to cause. Known gap, deliberately not fixed here: a directory that maps to no pass
-    # still produces only a WARN, suppressed at default verbosity, rather than a finding.
+    # also used to cause. A directory that maps to no pass is a separate, now-fixed gap — see "an
+    # object-set-0 directory is REPORTED" above, which pins the High finding
+    # `_find_objectset_source_overrides` reports for it.
     ("an object-set-0 directory is not silently attributed to the last pass",
      False, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER}, {0: {"Widget__c.csv": HEADER}})
              if "no matching object" in i]),
