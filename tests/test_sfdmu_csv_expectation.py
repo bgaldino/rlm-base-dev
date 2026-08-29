@@ -103,6 +103,21 @@ def raw_issues(body, root_files=None, per_pass_files=None):
         return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
 
 
+def method_survives(method_name, *args):
+    """True if calling `method_name` on a fresh validator does not raise.
+
+    `raw_issues` cannot exercise this: the shapes it probes are already intercepted, gracefully, by
+    `validate_dataset`'s own container-type checks before they would reach a lower-level method — so
+    a case that only calls through `validate_dataset` would pass whether or not that lower method
+    still has the bug. This calls the method directly instead.
+    """
+    try:
+        getattr(V.SFDMUValidator(base_dir="."), method_name)(*args)
+        return True
+    except Exception:
+        return False
+
+
 def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags):
     """Run a fix mode over a synthetic plan and return the bytes of every CSV afterwards.
 
@@ -650,6 +665,21 @@ MERGED_CONFIG = [
           [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly", "externalId": "Name;Code"}]],
          {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
          if "not found in query SELECT clause" in i]),
+    # `obj_config` in `_validate_object` is the merged (first-declaration) config, so `excluded` there
+    # means "excluded in the first pass that declared it", not "excluded everywhere". The early return
+    # gating on that flag used to sit BEFORE the SELECT-coverage loop, so an object excluded in pass 1
+    # and genuinely live (Readonly, owing no root CSV) in pass 2 returned before pass 2's own SELECT
+    # gap was ever checked — regardless of root-CSV coverage, since the early return's own
+    # `obj_name not in objects_owing_root_csv` half is already true for a Readonly-only object. Pass 2
+    # selects neither `Name` nor `Code`.
+    ("a live later pass's own narrow SELECT is checked even when the first (merged) declaration is "
+     "excluded",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name", "excluded": True}],
+          [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly",
+            "externalId": "Name;Code"}]])
+         if "not found in query SELECT clause" in i]),
     # The inverse ordering of the case above: a Readonly *first* pass with a narrow SELECT, followed by
     # a writable pass fully supplied under `objectset_source/`. The object is then absent from
     # `objects_owing_root_csv` (nothing reads the root) — which used to mean nothing validated pass 1's
@@ -776,6 +806,18 @@ MERGED_CONFIG = [
     ("a present objectSets[].objects null is reported Critical, not treated as an empty pass",
      True, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": None}]})
             if i.startswith("Critical/") and "NoneType" in i]),
+    # `_parse_object_configs` reimplemented `_normalized_object_sets`'s flat-vs-objectSets logic
+    # separately rather than calling it — the fourth call site to do so, after the three
+    # `_normalized_object_sets`'s own docstring names as having disagreed before it existed — and
+    # disagreed on one edge: `export_data.get("objectSets", [])` only substitutes `[]` when the key
+    # is *absent*, so a present `"objectSets": null` left `object_sets` as `None` and
+    # `enumerate(None)` raised `TypeError`. `validate_dataset` already rejects this exact shape one
+    # step earlier (a present non-list `objectSets` is Critical, case above), so the crash was latent
+    # rather than live through the CLI — but `_parse_object_configs` is called directly here, and a
+    # private reimplementation of a helper built for exactly this problem is one more place to
+    # disagree the next time either changes.
+    ("_parse_object_configs does not raise on a present objectSets: null",
+     True, [True for _ in [1] if method_survives("_parse_object_configs", {"objectSets": None})]),
     ("a present query null is reported as High, not treated as absent",
      True, [i for i in issues(
          [[{"query": None, "operation": "Upsert", "externalId": "Name"}]],

@@ -873,10 +873,14 @@ class SFDMUValidator:
         """
         configs = {}
 
-        # Handle both objectSets (multi-pass) and flat objects (single-pass)
-        object_sets = export_data.get("objectSets", [])
-        if not object_sets and "objects" in export_data:
-            object_sets = [{"objects": export_data["objects"]}]
+        # A fifth reimplementation of the same flat-vs-objectSets normalization would have been a
+        # fifth place to disagree — see `_normalized_object_sets`'s docstring for the three that
+        # already did. This one additionally crashed outright: `export_data.get("objectSets", [])`
+        # only substitutes `[]` when the key is *absent*, so `{"objectSets": null}` (a malformed but
+        # syntactically valid export.json) left `object_sets` as `None`, and `enumerate(None)` raised
+        # `TypeError` out of `main()` — the same "one broken plan takes down all 39" shape this file
+        # exists to avoid for `query` and `operation`.
+        object_sets = self._normalized_object_sets(export_data)
 
         for idx, obj_set in enumerate(object_sets):
             for obj in obj_set.get("objects", []):
@@ -1223,16 +1227,6 @@ class SFDMUValidator:
                          f"match target records"),
             ))
 
-        if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
-            self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
-            if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
-                result.add_issue(Issue(
-                    severity=Severity.INFO,
-                    object_name=obj_name,
-                    message=f"Object is excluded but not in known excluded list"
-                ))
-            return
-
         # Scoped to `objects_owing_root_csv` once, on the theory that a pass reading no file cannot
         # have a SELECT-coverage defect. Wrong: a `Readonly` declaration reads no *file* but still
         # executes its SOQL against the target org in every pass, so its externalId fields still need
@@ -1245,8 +1239,23 @@ class SFDMUValidator:
         # already every non-excluded declaration across every pass, so it is reused here too — CSV
         # existence/header checks stay scoped to `objects_owing_root_csv` below, where "which pass
         # reads the file" is the actual question.
+        #
+        # Run BEFORE the excluded early return below, for the same reason the operation and
+        # malformed-externalId sweeps above are: that return reads the *merged* config, so an object
+        # excluded in its first-declaring pass but live (e.g. Readonly) in a later one exited before
+        # this loop ever ran, silently dropping that live declaration's own SELECT-coverage check.
         for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
+
+        if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
+            self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
+            if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
+                result.add_issue(Issue(
+                    severity=Severity.INFO,
+                    object_name=obj_name,
+                    message=f"Object is excluded but not in known excluded list"
+                ))
+            return
 
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire
         # false-positive rate (#264-51 / pack 123) — two Criticals on correct data, which is enough
