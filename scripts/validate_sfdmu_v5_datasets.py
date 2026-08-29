@@ -294,10 +294,13 @@ class SFDMUValidator:
         # Find per-pass CSV overrides
         objectset_source_overrides = self._find_objectset_source_overrides(dataset_path, export_data, result)
 
-        # Computed once and reused below for validation: `export_data`/`objectset_source_overrides`
-        # are both already fixed at this point, so a second call here re-walked the same
-        # deterministic per-pass traversal for an identical answer.
-        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides)
+        # Computed once and reused below for both the fixer and the main validate loop:
+        # `export_data`/`objectset_source_overrides` are both already fixed at this point, so a
+        # second call to either would re-walk the same deterministic per-pass traversal for an
+        # identical answer.
+        all_pass_configs = self._all_pass_configs(export_data)
+        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides,
+                                                              all_pass_configs)
 
         # Apply fixes if requested (before validation)
         if self.fix_headers or self.fix_composite_keys:
@@ -310,7 +313,12 @@ class SFDMUValidator:
             # Also fix per-pass CSVs
             if objectset_source_overrides:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
+                # Same gate as the validation loop below: a pass 2+ override is inert without
+                # `useSeparatedCSVFiles`, so writing into it is a fix nothing reads.
+                use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
+                    if pass_index > 0 and not use_separated_csv_files:
+                        continue
                     writable_cfgs = self._writable_configs_for_pass(export_data, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
                     # `_is_csv_empty` / `_csv_missing_composite_key` stay true across same-pass
@@ -340,7 +348,6 @@ class SFDMUValidator:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
-        all_pass_configs = self._all_pass_configs(export_data)
         for obj_name, obj_config in object_configs.items():
             self._validate_object(dataset_path, obj_name, obj_config, result,
                                   objects_owing_root_csv, all_pass_configs)
@@ -348,6 +355,18 @@ class SFDMUValidator:
         # Validate per-pass CSV overrides
         if objectset_source_overrides:
             self.log(f"\nValidating {len(objectset_source_overrides)} per-pass CSV override(s)")
+            # `_objects_owing_root_csv` applies the same flag to *coverage*: SFDMU substitutes
+            # object-set-N (N>1) for the plan root only when it is true (`Script.js`'s
+            # `rawSourceDirectoryPath`) — pass 1's own object-set-1 directory has no such gate. Below,
+            # the gate is scoped to the CONTENT check only (empty file, missing composite key), not
+            # to the directory-to-pass mapping sanity checks above it: a misfiled override — a CSV
+            # sitting in a pass that does not even declare the object — is a naming/authoring mistake
+            # worth flagging regardless of whether this flag happens to be set right now, the same
+            # reason the object-set-0 and non-canonical-directory checks elsewhere are unconditional.
+            # A pass 2+ override without the flag is never read by SFDMU at runtime, so validating
+            # its *content* against a file nothing loads is the false positive pack 123 exists to
+            # eliminate — but the directory being wrong is not a fact about runtime reads.
+            use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
             for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
                 declared = self._get_object_configs_for_pass(export_data, obj_name, pass_index)
                 if not declared:
@@ -357,6 +376,10 @@ class SFDMUValidator:
                         message=f"Per-pass CSV found but no matching object in pass {pass_index + 1}",
                         file_path=self._make_relative_path(csv_path)
                     ))
+                    continue
+                if pass_index > 0 and not use_separated_csv_files:
+                    self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
+                             f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
                 for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
                     self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
@@ -535,7 +558,16 @@ class SFDMUValidator:
         reported `passed=True` with zero objects validated before this branch covered the missing
         case, exactly the silent-success gap the non-string branch already existed to close for
         the sibling shape.
+
+        `excluded: true` is exempted, plain-truthy like `_is_live_writable`'s check on the same
+        field: the outcome this check exists to catch — SFDMU dropping the declaration with an
+        `objectIsExcluded` warning instead of executing it — is exactly what the author already
+        asked for. Flagging a bad query there is the same false positive already fixed for
+        `operation`/`externalId`/`deleteOldData`: an excluded declaration's content is inert, so a
+        defect in it changes nothing SFDMU does.
         """
+        if obj.get("excluded"):
+            return
         query = obj.get("query")
         if isinstance(query, str) and query.strip():
             return
@@ -758,9 +790,11 @@ class SFDMUValidator:
         lookup with no trimming or case folding. That reading made the nine `"ReadOnly"`
         declarations in this repo look like defects, which is how the wrong function was caught:
         they are accepted, because the loader is the code path a plan actually goes through.
+
+        `obj_config` always carries an `operation` key here: the sole caller passes a declaration
+        from `_normalize_object_config`, which injects `obj.get("operation", "Readonly")`
+        unconditionally, so an absent declared value already arrives as the string `"Readonly"`.
         """
-        if "operation" not in obj_config:
-            return  # absent is legal; SFDMU's script default applies
         operation = obj_config["operation"]
         if self._resolve_operation(operation) is not None:
             return
@@ -775,8 +809,14 @@ class SFDMUValidator:
         ))
 
     def _objects_owing_root_csv(self, export_data: dict,
-                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]]) -> Dict[str, List[dict]]:
+                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]],
+                                all_pass_configs: Dict[str, Dict[int, List[dict]]]) -> Dict[str, List[dict]]:
         """Objects that must have a CSV at the plan root -> the declarations that read it.
+
+        `all_pass_configs`: per `_all_pass_configs`, supplied rather than recomputed here — the one
+        call site already builds it for the main validate loop, and `export_data` does not change
+        between the two, so a second call re-walked the same per-pass SELECT-field parse for an
+        identical answer.
 
         Returns a mapping rather than a set so membership (`obj_name in ...`) still answers "is a
         root CSV owed", while the value carries **which** passes read it. The root file has to be
@@ -820,7 +860,7 @@ class SFDMUValidator:
         size 2 — 0 disagreements. It is reported separately as a High, by the per-pass loop.)
         """
         writable_passes = self._writable_passes_by_object(export_data)
-        all_configs = self._all_pass_configs(export_data)
+        all_configs = all_pass_configs
         # SFDMU's `rawSourceDirectoryPath` (`Script.js`) substitutes the object-set-N subdirectory
         # only when `objectSetIndex` is truthy AND `useSeparatedCSVFiles` is true; either condition
         # false, and every pass — not just pass 1 — reads the plan root. Without this gate, a plan
@@ -1259,6 +1299,23 @@ class SFDMUValidator:
         for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
+        # Check deleteOldData usage — per declaration, not the merged `obj_config`: reading the
+        # merged view here validates only the first pass and exempts passes 2..n, the same
+        # merged-config trap already fixed above for `operation`/excluded/externalId. `add_issue`'s
+        # exact-message dedup keeps a shared flag across passes from reporting twice.
+        #
+        # Run BEFORE the excluded early return below, same reason as the three sweeps above it: an
+        # object excluded in its first-declaring pass but live and writable in a later one — the
+        # later pass fully covered by an `objectset_source/` override — exits at that return before
+        # ever reaching a loop placed after it, silently dropping the later pass's own flag.
+        for cfg in self._dedup_configs(live_declarations, ("deleteOldData",)):
+            if cfg.get("deleteOldData") and obj_name not in self.DELETE_OLD_DATA_OBJECTS:
+                result.add_issue(Issue(
+                    severity=Severity.INFO,
+                    object_name=obj_name,
+                    message=f"Object uses 'deleteOldData: true' but not in documented list"
+                ))
+
         if obj_config.get("excluded") and obj_name not in objects_owing_root_csv:
             self.log(f"  Skipping excluded object: {obj_name}", level="DEBUG")
             if obj_name not in self.KNOWN_EXCLUDED_OBJECTS:
@@ -1284,18 +1341,6 @@ class SFDMUValidator:
         else:
             self.log(f"  No root CSV owed by {obj_name} — Readonly, or every writable pass is "
                      f"supplied under objectset_source/", level="DEBUG")
-
-        # Check deleteOldData usage — per declaration, not the merged `obj_config`: reading the
-        # merged view here validates only the first pass and exempts passes 2..n, the same
-        # merged-config trap already fixed above for `operation`/excluded/externalId. `add_issue`'s
-        # exact-message dedup keeps a shared flag across passes from reporting twice.
-        for cfg in self._dedup_configs(live_declarations, ("deleteOldData",)):
-            if cfg.get("deleteOldData") and obj_name not in self.DELETE_OLD_DATA_OBJECTS:
-                result.add_issue(Issue(
-                    severity=Severity.INFO,
-                    object_name=obj_name,
-                    message=f"Object uses 'deleteOldData: true' but not in documented list"
-                ))
 
     def _validate_external_id(self, obj_name: str, external_id: str, obj_config: dict, result: ValidationResult):
         """Validate externalId format and structure.
@@ -1519,14 +1564,9 @@ class SFDMUValidator:
         `B` are already headers, so building from a single declaration silently stranded any
         field only a *different* declaration in the same `reading`/pass group selects.
         """
-        seen: Set[str] = set()
-        out: List[str] = []
-        for cfg in configs:
-            for field in cfg.get("fields", []):
-                if field not in seen:
-                    seen.add(field)
-                    out.append(field)
-        return out
+        return list(dict.fromkeys(
+            field for cfg in configs for field in cfg.get("fields", [])
+        ))
 
     def _fix_empty_csv_header(self, csv_path: Path, headers: List[str], obj_name: str) -> bool:
         """Add header row to an empty CSV file.

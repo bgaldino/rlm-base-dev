@@ -413,6 +413,19 @@ USE_SEPARATED_CSV_FILES = [
      "above",
      False, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
                    severity=V.Severity.CRITICAL, use_separated_csv_files=True)),
+    # The same gate applies to *content* validation, not just coverage credit: a pass-2+ override
+    # SFDMU never reads without the flag is inert, so validating what's in it reported a finding
+    # (here, an empty file) against a file nothing loads.
+    ("an empty pass-2 override's content is not validated when useSeparatedCSVFiles is not set "
+     "— SFDMU never reads that file",
+     False, [i for i in issues([[UPSERT], [dict(UPSERT, operation="Update")]],
+                               {"Widget__c.csv": HEADER}, {2: {"Widget__c.csv": ""}})
+            if "empty" in i.lower()]),
+    ("...and IS validated once useSeparatedCSVFiles is true — control for the case above",
+     True, [i for i in issues([[UPSERT], [dict(UPSERT, operation="Update")]],
+                              {"Widget__c.csv": HEADER}, {2: {"Widget__c.csv": ""}},
+                              use_separated_csv_files=True)
+            if "empty" in i.lower()]),
 ]
 
 # What SFDMU can actually resolve, which is not what the first version of this check assumed.
@@ -589,6 +602,26 @@ FIX_MODES = [
                            "externalId": "Name"}]}]},
          per_pass_files={1: {"Widget__c.csv": ""}}, fix_headers=True,
      ) if "no SELECT fields" in ln or "Cannot add header" in ln]),
+    # The same useSeparatedCSVFiles gate applies to the per-pass FIXER, not just the validator:
+    # writing a header into a pass-2+ override SFDMU never reads is a fix nothing reads either.
+    ("--fix-headers does not write into a pass-2 override when useSeparatedCSVFiles is not set",
+     False, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Update",
+                           "externalId": "Name"}]}]},
+         {"Widget__c.csv": HEADER}, {2: {"Widget__c.csv": ""}}, fix_headers=True).items()
+         if n.endswith("object-set-2/Widget__c.csv") and b.strip()]),
+    ("...and DOES write into it once useSeparatedCSVFiles is true — control for the case above",
+     True, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "useSeparatedCSVFiles": True, "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Update",
+                           "externalId": "Name"}]}]},
+         {"Widget__c.csv": HEADER}, {2: {"Widget__c.csv": ""}}, fix_headers=True).items()
+         if n.endswith("object-set-2/Widget__c.csv") and b.strip()]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it
@@ -992,6 +1025,33 @@ MERGED_CONFIG = [
             "deleteOldData": True}]],
          {"Widget__c.csv": "Id,Name\n1,a\n"})
          if "deleteOldData: true' but not in documented list" in i]),
+    # The fix above put the new sweep AFTER the excluded-merged-config early return — the same
+    # placement bug already fixed for operation/externalId/SELECT-coverage. An object excluded in
+    # its first-declaring pass and owing no root CSV in its second (Readonly here) exits at that
+    # return before a loop placed after it, so the live pass's own deleteOldData flag went
+    # unreported.
+    ("a deleteOldData flag on a live later pass is still reported when the first (merged) "
+     "declaration is excluded and the object owes no root CSV",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name", "excluded": True}],
+          [{"query": "SELECT Id FROM Widget__c", "operation": "Readonly",
+            "externalId": "Name", "deleteOldData": True}]])
+         if "deleteOldData: true' but not in documented list" in i]),
+]
+
+
+# `_report_non_string_query` runs on the raw declaration, before `_all_pass_configs` filters
+# `excluded` ones out — so it is the one query-validity check that can see the field at all.
+QUERY_EXCLUDED_EXEMPTION = [
+    ("a missing query on an already-excluded declaration is not reported — SFDMU already drops "
+     "it with an objectIsExcluded warning, the outcome the author asked for",
+     False, [i for i in issues([[{"operation": "Upsert", "externalId": "Name", "excluded": True}]])
+            if "query' is missing" in i]),
+    ("...but a missing query on a live (non-excluded) declaration still is — control for the "
+     "case above",
+     True, [i for i in issues([[{"operation": "Upsert", "externalId": "Name"}]])
+            if "query' is missing" in i]),
 ]
 
 
@@ -1227,6 +1287,7 @@ def main() -> int:
                   NUMERIC_OPERATION_GATING),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
+                 ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1
