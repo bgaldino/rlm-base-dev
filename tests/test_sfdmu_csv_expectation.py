@@ -503,6 +503,37 @@ FIX_MODES = [
                            "externalId": "Name"}]}]},
          {"Widget__c.csv": ""}, fix_headers=True).items()
          if n == "Widget__c.csv" and b.strip() == b"Id,Name"]),
+    # The case above has pass 1 contribute NOTHING, so "later wins" and "union of all" cannot be
+    # told apart. Here pass 1 selects real fields of its own (`Id,Name`), so a header built from
+    # its fields alone is non-empty and looks fixed — until pass 2's composite `externalId:
+    # Name;Code` tries to add its `$$Name$Code` column and finds `Code` missing, leaving that
+    # High standing after a `--fix-all` that reported success. Only the union of both declarations'
+    # fields carries `Code` into the header at all.
+    ("--fix-headers unions an empty ROOT CSV's header across every reading pass, not just the "
+     "first that has fields, so a later pass's composite externalId is not stranded",
+     True, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name;Code"}]}]},
+         {"Widget__c.csv": ""}, fix_headers=True, fix_composite_keys=True).items()
+         if n == "Widget__c.csv" and b.strip() == b"$$Name$Code,Id,Name,Code"]),
+    # Same shape, but the two declarations sit in ONE pass and the CSV lives under
+    # `objectset_source/object-set-1/` — the per-pass fixer's own header-write loop, a separate
+    # code path from the root fixer above and the one the two Copilot comments cited by line.
+    ("--fix-headers unions an empty PER-PASS CSV's header across every writable declaration in "
+     "that pass, not just the first",
+     True, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [
+                 {"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"},
+                 {"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+                  "externalId": "Name;Code"},
+             ]}]},
+         {"Widget__c.csv": "Id,Name\n"}, {1: {"Widget__c.csv": ""}},
+         fix_headers=True, fix_composite_keys=True).items()
+         if n.endswith("object-set-1/Widget__c.csv") and b.strip() == b"$$Name$Code,Id,Name,Code"]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it

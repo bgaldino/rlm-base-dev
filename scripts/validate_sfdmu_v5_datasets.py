@@ -307,19 +307,20 @@ class SFDMUValidator:
             if objectset_source_overrides:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
+                    writable_cfgs = self._writable_configs_for_pass(export_data, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
                     # `_is_csv_empty` / `_csv_missing_composite_key` stay true across same-pass
                     # duplicate declarations and each one printed/counted a proposal a real run
-                    # would apply only once.
-                    header_written = False
+                    # would apply only once. The header is written once, from the union of every
+                    # writable declaration's fields — see `_union_fields` for why a single
+                    # declaration's fields are not enough.
                     columns_written = set()
-                    for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
-                        if self.fix_headers and not header_written and self._is_csv_empty(csv_path):
-                            headers = obj_config.get("fields", [])
-                            if self._fix_empty_csv_header(csv_path, headers, obj_name):
-                                headers_fixed += 1
-                                header_written = True
+                    if self.fix_headers and self._is_csv_empty(csv_path):
+                        headers = self._union_fields(writable_cfgs)
+                        if self._fix_empty_csv_header(csv_path, headers, obj_name):
+                            headers_fixed += 1
 
+                    for obj_config in writable_cfgs:
                         if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                             external_id = obj_config.get("externalId", "")
                             if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
@@ -1485,6 +1486,24 @@ class SFDMUValidator:
         except Exception:
             return False
 
+    @staticmethod
+    def _union_fields(configs: List[dict]) -> List[str]:
+        """Ordered union of every config's `fields`, first-seen order, no duplicates.
+
+        An empty CSV's header must satisfy every declaration that reads it, not just the first:
+        a composite-key fix for a later declaration can only add its `$$A$B` column when `A` and
+        `B` are already headers, so building from a single declaration silently stranded any
+        field only a *different* declaration in the same `reading`/pass group selects.
+        """
+        seen: Set[str] = set()
+        out: List[str] = []
+        for cfg in configs:
+            for field in cfg.get("fields", []):
+                if field not in seen:
+                    seen.add(field)
+                    out.append(field)
+        return out
+
     def _fix_empty_csv_header(self, csv_path: Path, headers: List[str], obj_name: str) -> bool:
         """Add header row to an empty CSV file.
 
@@ -1675,25 +1694,25 @@ class SFDMUValidator:
             # fix run left the finding standing. A checker that reports what its own fixer cannot
             # clear teaches people to ignore it.
             #
-            # Empty-CSV headers are written from whichever reading pass comes first, since the file
-            # stops being empty after that and the remaining declarations no-op. Composite-key fixes
-            # are idempotent via `_csv_missing_composite_key`, so iterating cannot double-write.
-            # Tracked across declarations because `--dry-run` does not mutate the file, so the
-            # `_is_csv_empty` / `_csv_missing_composite_key` probes that make a real run's second
-            # iteration a no-op stay true — two passes then proposed two headers for one file (only
-            # the first of which a real run writes) and double-counted every composite column. A real
-            # run's byte output was always correct; the dry-run *report* was not, which is worse than
-            # a wrong count, because the dry run is what people read before deciding to apply it.
-            header_written = False
+            # The empty-CSV header is written once, from the union of every reading declaration's
+            # fields — not just the first, which stranded a later declaration's composite-key fix:
+            # with an empty CSV, pass 1 selecting `Id,Name` and pass 2's externalId `Name;Code`,
+            # writing pass 1's header alone left `Code` absent, so pass 2's `$$Name$Code` fix could
+            # never run and `--fix-all` left its own High finding standing. See `_union_fields`.
+            # Composite-key fixes are idempotent via `_csv_missing_composite_key`, so iterating
+            # cannot double-write. Tracked across declarations because `--dry-run` does not mutate
+            # the file, so the `_csv_missing_composite_key` probe that makes a real run's second
+            # iteration a no-op stays true — iterating without `columns_written` then proposed the
+            # same composite column once per declaration that shares it. A real run's byte output
+            # was always correct; the dry-run *report* was not, which is worse than a wrong count,
+            # because the dry run is what people read before deciding to apply it.
             columns_written = set()
-            for cfg in reading:
-                # Fix missing headers
-                if self.fix_headers and not header_written and self._is_csv_empty(csv_path):
-                    headers = cfg.get("fields", [])
-                    if self._fix_empty_csv_header(csv_path, headers, obj_name):
-                        headers_fixed += 1
-                        header_written = True
+            if self.fix_headers and self._is_csv_empty(csv_path):
+                headers = self._union_fields(reading)
+                if self._fix_empty_csv_header(csv_path, headers, obj_name):
+                    headers_fixed += 1
 
+            for cfg in reading:
                 # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
                 if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                     external_id = cfg.get("externalId", "")

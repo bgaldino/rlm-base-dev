@@ -171,11 +171,17 @@ CHECKS = [
         # `scripts/ai/README.md`, so a prose edit in any of those trees is exactly a change that can
         # fail it. Broad selection is the honest cost of asserting over prose; the alternative is an
         # assertion whose triggering edit does not run it.
-        # `tests/` rather than this suite's own file: `baseline_sites()` scans the whole tree, so a
-        # baseline quotation added or edited in a *sibling* suite is an edit that can fail this check
-        # while — under the narrower trigger — not selecting it. That is the unreachable
-        # forcing-function shape twice over, and the second time in the same check.
-        triggers=["scripts/validate_sfdmu_v5_datasets.py", "tests/", "datasets/sfdmu/",
+        # `baseline_sites()`'s `roots` once rglobbed the whole `tests/` tree, which is why a bare
+        # `tests/` prefix lived here — a baseline quotation added or edited in a *sibling* suite had
+        # to be reachable, or it would be the unreachable forcing-function shape twice over in the
+        # same check. `roots` has since been narrowed to the one file under `tests/` it actually
+        # reads (`tests/test_pr_gate.py` — verified nothing else there matches its pattern), so the
+        # bare prefix now over-selects: it runs this check for every unrelated edit under `tests/`,
+        # the same matrix drift the `erd_doc_counts` trigger comment above names. Listed explicitly
+        # instead — this suite's own file, so self-edits still select it (nothing else does that for
+        # a suite that names no path of its own), plus the one sibling `baseline_sites()` reads.
+        triggers=["scripts/validate_sfdmu_v5_datasets.py", "tests/test_sfdmu_csv_expectation.py",
+                  "tests/test_pr_gate.py", "datasets/sfdmu/",
                   "AGENTS.md", "scripts/ai/", "docs/features/", ".cursor/skills/"],
         deps=[], gating=True,
     ),
