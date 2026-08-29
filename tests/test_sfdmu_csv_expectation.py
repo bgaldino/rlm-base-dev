@@ -982,6 +982,16 @@ MERGED_CONFIG = [
      False, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Upser", "externalId": "Name"}]])
          if "CSV file not found" in i]),
+    # The deleteOldData check read the merged `obj_config`, so a flag set only in pass 2 — with
+    # pass 1 declaring none — was always answered by pass 1's absence: the same merged-config trap
+    # already fixed above for `operation`/excluded/externalId, one check later.
+    ("a deleteOldData flag set only in a later (non-merged) pass is still reported",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name",
+            "deleteOldData": True}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "deleteOldData: true' but not in documented list" in i]),
 ]
 
 

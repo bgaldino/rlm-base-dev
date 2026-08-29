@@ -294,14 +294,18 @@ class SFDMUValidator:
         # Find per-pass CSV overrides
         objectset_source_overrides = self._find_objectset_source_overrides(dataset_path, export_data, result)
 
+        # Computed once and reused below for validation: `export_data`/`objectset_source_overrides`
+        # are both already fixed at this point, so a second call here re-walked the same
+        # deterministic per-pass traversal for an identical answer.
+        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides)
+
         # Apply fixes if requested (before validation)
         if self.fix_headers or self.fix_composite_keys:
             self.log(f"\n{'='*60}")
             self.log(f"Applying fixes to: {dataset_name}")
             self.log(f"{'='*60}")
             headers_fixed, composite_keys_fixed = self.fix_dataset_issues(
-                dataset_path, object_configs,
-                self._objects_owing_root_csv(export_data, objectset_source_overrides))
+                dataset_path, object_configs, objects_owing_root_csv)
 
             # Also fix per-pass CSVs
             if objectset_source_overrides:
@@ -336,7 +340,6 @@ class SFDMUValidator:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
-        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides)
         all_pass_configs = self._all_pass_configs(export_data)
         for obj_name, obj_config in object_configs.items():
             self._validate_object(dataset_path, obj_name, obj_config, result,
@@ -1014,6 +1017,10 @@ class SFDMUValidator:
         if not objectset_source_dir.exists():
             return overrides
 
+        # Hoisted out of the loop below: `export_data` does not change per directory, so a call per
+        # iteration re-walked the same normalization once for every object-set-N directory.
+        object_sets = self._normalized_object_sets(export_data)
+
         # Find all object-set-N directories
         for obj_set_dir in sorted(objectset_source_dir.glob("object-set-*")):
             if not obj_set_dir.is_dir():
@@ -1054,7 +1061,6 @@ class SFDMUValidator:
             # Check if this pass exists in export.json. Normalized, so a flat `objects` plan counts
             # as one pass and its per-pass CSVs are read rather than silently discarded; and both
             # bounds, so `object-set-0` (pass_index -1) is rejected instead of indexing from the end.
-            object_sets = self._normalized_object_sets(export_data)
             if not 0 <= pass_index < len(object_sets):
                 self.log(f"Warning: {obj_set_dir.name} has no corresponding pass in export.json", level="WARN")
                 # Reported, not only logged. A WARN is suppressed at default verbosity, so before
@@ -1136,6 +1142,13 @@ class SFDMUValidator:
                                obj_config: dict, result: ValidationResult):
         """Validate a per-pass CSV override in objectset_source/object-set-N/.
 
+        externalId is not re-validated here: `_validate_object`'s `live_declarations` sweep already
+        runs `_validate_external_id` on every non-excluded declaration in every pass, drawn from the
+        same `_normalized_object_sets` source as `obj_config` — including this exact declaration.
+        A second call here duplicated that check via an independent code path, made safe only by
+        `add_issue`'s exact-message dedup; a pass-specific message on either side would double the
+        finding for one declaration.
+
         Args:
             csv_path: Path to the CSV file
             obj_name: Object API name
@@ -1150,10 +1163,6 @@ class SFDMUValidator:
         if obj_config.get("excluded"):
             self.log(f"  Skipping excluded object in {pass_name}: {obj_name}", level="DEBUG")
             return
-
-        # Validate externalId format (reuse existing method)
-        external_id = obj_config.get("externalId", "")
-        self._validate_external_id(obj_name, external_id, obj_config, result)
 
         # Validate CSV file with pass context
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
@@ -1276,9 +1285,12 @@ class SFDMUValidator:
             self.log(f"  No root CSV owed by {obj_name} — Readonly, or every writable pass is "
                      f"supplied under objectset_source/", level="DEBUG")
 
-        # Check deleteOldData usage
-        if obj_config.get("deleteOldData"):
-            if obj_name not in self.DELETE_OLD_DATA_OBJECTS:
+        # Check deleteOldData usage — per declaration, not the merged `obj_config`: reading the
+        # merged view here validates only the first pass and exempts passes 2..n, the same
+        # merged-config trap already fixed above for `operation`/excluded/externalId. `add_issue`'s
+        # exact-message dedup keeps a shared flag across passes from reporting twice.
+        for cfg in self._dedup_configs(live_declarations, ("deleteOldData",)):
+            if cfg.get("deleteOldData") and obj_name not in self.DELETE_OLD_DATA_OBJECTS:
                 result.add_issue(Issue(
                     severity=Severity.INFO,
                     object_name=obj_name,
