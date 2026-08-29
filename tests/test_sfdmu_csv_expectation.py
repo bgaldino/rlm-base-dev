@@ -412,6 +412,32 @@ OPERATION_RESOLUTION = [
      "the loader drops it rather than reading it as numeric Insert",
      True, [i for i in issues([[dict(UPSERT, operation=False)]], {"Widget__c.csv": HEADER})
             if "resolve" in i]),
+    # `json.load` decodes a bare `2.0` literal as Python `float`, but JS has one numeric type —
+    # `OPERATION[2.0]` is the same lookup as `OPERATION[2]` and resolves to Upsert. Rejecting the
+    # float here would report a valid plan's operation as unresolvable.
+    ("an integral float operation SFDMU resolves the same as its int is accepted — 2.0 is Upsert",
+     False, [i for i in issues([[dict(UPSERT, operation=2.0)]], {"Widget__c.csv": HEADER})
+             if "resolve" in i]),
+    ("a non-integral float is reported: OPERATION[2.5] is undefined in SFDMU too",
+     True, [i for i in issues([[dict(UPSERT, operation=2.5)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+]
+
+# `_validate_external_id` reads `operation` a second time to decide whether to skip the
+# nested-path/SELECT-coverage checks for Insert mode. A raw `str(op or "Readonly")` there bypassed
+# `_resolve_operation` entirely, so numeric Insert (index 0) was coerced to Readonly by Python's
+# `0 or "Readonly"` and wrongly received checks string Insert correctly skips.
+NUMERIC_OPERATION_GATING = [
+    ("a numeric Insert operation (0) skips the nested-relationship-path check, same as string "
+     "Insert — the false positive `0 or \"Readonly\"` used to produce",
+     False, [i for i in issues([[dict(UPSERT, operation=0, externalId="A.B.C")]],
+                                {"Widget__c.csv": HEADER})
+             if "nested relationship path" in i]),
+    ("...and a numeric Upsert (2) with the same nested path IS flagged — control proving the "
+     "skip above is operation-gated, not a blanket exemption",
+     True, [i for i in issues([[dict(UPSERT, operation=2, externalId="A.B.C")]],
+                               {"Widget__c.csv": HEADER})
+            if "nested relationship path" in i]),
 ]
 
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
@@ -1073,6 +1099,8 @@ def main() -> int:
                  ("useSeparatedCSVFiles gates pass-2+ override coverage", USE_SEPARATED_CSV_FILES),
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
                  ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
+                 ("a numeric operation gates the externalId Insert-mode skip, not just a string one",
+                  NUMERIC_OPERATION_GATING),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("the documented live baseline still holds", BASELINE)]

@@ -719,12 +719,19 @@ class SFDMUValidator:
         Order matters: `bool` is checked before `int` because Python's `isinstance(True, int)` is
         `True` and `False == 0` — but JS `typeof true === 'boolean'` fails the loader's `typeof
         operation === 'number'` check, so a Boolean is *always* dropped, never read as 0/1.
+
+        An integral `float` (e.g. `2.0`, which `json.load` produces for that literal) is accepted
+        alongside `int`: JS has one numeric type, so `OPERATION[2.0]` is the same property lookup
+        as `OPERATION[2]` and resolves to Upsert — rejecting the float here would report a valid
+        plan's operation as unresolvable. `is_integer()` is `False` for `2.5` (out of the loader's
+        reach — `OPERATION[2.5]` is `undefined`) and for `nan`/`inf`, so both still fall through.
         """
         if isinstance(value, bool):
             return None
-        if isinstance(value, int):
-            return (SFDMUValidator.SFDMU_OPERATION_BY_INDEX[value]
-                    if 0 <= value < len(SFDMUValidator.SFDMU_OPERATION_BY_INDEX) else None)
+        if isinstance(value, int) or (isinstance(value, float) and value.is_integer()):
+            idx = int(value)
+            return (SFDMUValidator.SFDMU_OPERATION_BY_INDEX[idx]
+                    if 0 <= idx < len(SFDMUValidator.SFDMU_OPERATION_BY_INDEX) else None)
         if isinstance(value, str):
             normalized = value.strip().lower()
             return normalized if normalized in SFDMUValidator.SFDMU_OPERATIONS else None
@@ -1281,15 +1288,13 @@ class SFDMUValidator:
         # traversal, SELECT-coverage) need to skip Insert mode, where externalId
         # is used for CSV composite-key matching within the dataset rather than
         # SOQL behavior.
-        # str() for the same reason as `_writable_passes_by_object`: a malformed plan can carry a
-        # non-string here, and an AttributeError aborts every remaining plan rather than reporting
-        # the one that is broken. Both sites read `operation`, so both need it.
-        # `.strip().lower()` mirrors `ScriptLoader._resolveOperation` — see the other site for why
-        # that function and not `ScriptObject.getOperation`.
-        # Readonly is SFDMU's absent-operation default (see `_is_live_writable`); the choice is
-        # inert here since only `insert` gates the checks below, but the default is kept correct.
-        operation = str(obj_config.get("operation") or "Readonly")
-        is_insert = operation.strip().lower() == "insert"
+        # `_resolve_operation` mirrors `ScriptLoader._resolveOperation`, resolving string,
+        # numeric-index and integral-float operations alike and returning `None` (kept off
+        # `insert`, same as an absent/malformed operation) for anything SFDMU would drop. A raw
+        # `str(obj_config.get("operation") or "Readonly")` used to bypass this: `0 or "Readonly"`
+        # treats numeric Insert (index 0) as falsy, coercing it to Readonly and wrongly running
+        # the nested-path/SELECT-coverage checks below that string Insert correctly skips.
+        is_insert = self._resolve_operation(obj_config.get("operation")) == "insert"
 
         # Check for legacy $$ notation in externalId definition
         if "$$" in external_id:
