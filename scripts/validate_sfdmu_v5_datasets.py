@@ -666,17 +666,19 @@ class SFDMUValidator:
         # here treated an operation-less, CSV-less declaration as writable and reported the missing
         # CSV Critical — the exact Readonly false positive this validator exists to avoid.
         #
-        # An unresolvable value (a typo like "Upser", or a non-string like `true`) hits the same
-        # code path: `_resolveOperation` returns undefined for it too, so `object.operation` is
-        # left on the Readonly default rather than becoming writable. Checking only `!= "readonly"`
-        # missed this — `"Upser" != "readonly"` is True, so a malformed operation was reported as
-        # writable and its missing CSV demanded, even though SFDMU will never read one. Resolve
-        # against the accepted enum (`SFDMU_OPERATIONS`, same set `_validate_operation_value` uses)
-        # before deciding an object is writable; unresolvable is Readonly, not "not readonly".
-        operation = str(cfg.get("operation") or "Readonly").strip().lower()
-        if operation not in SFDMUValidator.SFDMU_OPERATIONS:
+        # An unresolvable value (a typo like "Upser", a Boolean, or an out-of-range/Unknown index)
+        # hits the same code path: `_resolveOperation` returns undefined for it too, so
+        # `object.operation` is left on the Readonly default rather than becoming writable. A raw
+        # `str(cfg.get("operation") or "Readonly")` coercion missed two things: `str(2) == "2"`
+        # is never in the enum, so a valid *numeric* Upsert/Insert was reported non-writable; and
+        # Python's `0 or "Readonly"` treats numeric `0` (Insert) as falsy, silently coercing it to
+        # Readonly before the enum check ever ran. `_resolve_operation` mirrors the loader (numeric
+        # index or trimmed/case-folded name) so both numeric and string operations resolve the same
+        # way `_validate_operation_value` reports them; unresolvable is Readonly, not "not readonly".
+        resolved = SFDMUValidator._resolve_operation(cfg.get("operation"))
+        if resolved is None:
             return False
-        return operation != "readonly"
+        return resolved != "readonly"
 
     def _writable_passes_by_object(self, export_data: dict) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.
@@ -701,14 +703,42 @@ class SFDMUValidator:
     SFDMU_OPERATIONS = frozenset({"insert", "update", "upsert", "readonly", "delete",
                                   "deletesource", "deletehierarchy", "harddelete"})
 
+    # Numeric enum indices `ScriptLoader._resolveOperation` also resolves via `OPERATION[value]`
+    # (Enumerations.js, v5.8.0): 0 Insert .. 7 HardDelete, in this order. Index 8 is `Unknown` —
+    # the enum's own fallback, not a value a plan declares — so it is deliberately absent here,
+    # the same way the string `"unknown"` is absent from `SFDMU_OPERATIONS`.
+    SFDMU_OPERATION_BY_INDEX = ("insert", "update", "upsert", "readonly", "delete",
+                                "deletesource", "deletehierarchy", "harddelete")
+
+    @staticmethod
+    def _resolve_operation(value) -> Optional[str]:
+        """Mirror `ScriptLoader._resolveOperation` (v5.8.0): the canonical lowercase enum name
+        SFDMU would resolve `value` to, or `None` if SFDMU drops the declaration and leaves the
+        object on its default.
+
+        Order matters: `bool` is checked before `int` because Python's `isinstance(True, int)` is
+        `True` and `False == 0` — but JS `typeof true === 'boolean'` fails the loader's `typeof
+        operation === 'number'` check, so a Boolean is *always* dropped, never read as 0/1.
+        """
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return (SFDMUValidator.SFDMU_OPERATION_BY_INDEX[value]
+                    if 0 <= value < len(SFDMUValidator.SFDMU_OPERATION_BY_INDEX) else None)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            return normalized if normalized in SFDMUValidator.SFDMU_OPERATIONS else None
+        return None
+
     def _validate_operation_value(self, obj_name: str, obj_config: dict, result: ValidationResult):
         """Report an `operation` SFDMU cannot resolve.
 
         Mirrors `ScriptLoader._resolveOperation` (v5.8.0), the function that loads export.json:
-        strings are matched `trim().toLowerCase()` against the enum keys, so `" ReadOnly "` is fine;
-        anything else — a non-string, or a word not in the enum — resolves to `undefined` and the
-        declaration is silently dropped, leaving the object on SFDMU's default rather than the
-        operation the plan asked for.
+        strings are matched `trim().toLowerCase()` against the enum keys (so `" ReadOnly "` is
+        fine) and numeric enum indices 0-7 resolve directly (`OPERATION[value]`); anything else —
+        a Boolean, an out-of-range/`Unknown` index, or a word not in the enum — resolves to
+        `undefined` and the declaration is silently dropped, leaving the object on SFDMU's default
+        rather than the operation the plan asked for.
 
         Written first against `ScriptObject.getOperation`, which does a raw `OPERATION[operation]`
         lookup with no trimming or case folding. That reading made the nine `"ReadOnly"`
@@ -718,15 +748,16 @@ class SFDMUValidator:
         if "operation" not in obj_config:
             return  # absent is legal; SFDMU's script default applies
         operation = obj_config["operation"]
-        if isinstance(operation, str) and operation.strip().lower() in self.SFDMU_OPERATIONS:
+        if self._resolve_operation(operation) is not None:
             return
         result.add_issue(Issue(
             severity=Severity.HIGH,
             object_name=obj_name,
             message=(f"operation {operation!r} is not one SFDMU can resolve; it matches "
                      f"trim()/case-insensitively against {', '.join(sorted(self.SFDMU_OPERATIONS))} "
-                     f"and silently ignores anything else, leaving the object on the default "
-                     f"operation instead of the one declared")
+                     f"or a numeric enum index 0-7 (0 Insert .. 7 HardDelete), and silently "
+                     f"ignores anything else — including a Boolean — leaving the object on the "
+                     f"default operation instead of the one declared")
         ))
 
     def _objects_owing_root_csv(self, export_data: dict,

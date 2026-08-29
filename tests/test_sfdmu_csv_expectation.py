@@ -237,6 +237,15 @@ CASES = [
      False, criticals([UPSERT], {"Widget__c.csv": HEADER})),
     ("a Readonly object with no CSV is silent: it is queried from the target org",
      False, criticals([READONLY])),
+    # `_is_live_writable` used to coerce `cfg.get("operation") or "Readonly"` before checking the
+    # enum — Python's `0 or "Readonly"` treats numeric Insert (enum index 0) as falsy, silently
+    # replacing it with Readonly and exempting its CSV. `_resolve_operation` fixes this by checking
+    # for `None` (absent/unresolvable) rather than truthiness.
+    ("a numeric Insert operation (enum index 0) with no CSV anywhere still fails — the false "
+     "negative `0 or \"Readonly\"` used to produce",
+     True, criticals([dict(UPSERT, operation=0)])),
+    ("...and with its root CSV present it passes — control for the case above",
+     False, criticals([dict(UPSERT, operation=0)], {"Widget__c.csv": HEADER})),
     # SFDMU's `rawSourceDirectoryPath` (Script.ts) returns the plan root whenever `objectSetIndex`
     # is falsy, with no `useSeparatedCSVFiles` escape hatch — pass 1 never reads
     # `objectset_source/object-set-1/`. That directory becomes readable at all only through this
@@ -387,6 +396,22 @@ OPERATION_RESOLUTION = [
     ("an absent operation is legal — SFDMU applies its own default",
      False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "externalId": "Name"}]],
                                {"Widget__c.csv": HEADER}) if "resolve" in i]),
+    # `ScriptLoader._resolveOperation` also resolves numeric enum indices (`OPERATION[value]`),
+    # not just strings — the gap both Copilot review threads on PR #397 flagged. 2 is Upsert.
+    ("a numeric operation SFDMU resolves is accepted — 2 is Upsert",
+     False, [i for i in issues([[dict(UPSERT, operation=2)]], {"Widget__c.csv": HEADER})
+             if "resolve" in i]),
+    ("an out-of-range numeric operation is reported: there is no enum member at that index",
+     True, [i for i in issues([[dict(UPSERT, operation=99)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+    ("numeric 8 (Unknown, the enum's own fallback) is reported — not a value a plan can declare, "
+     "same as the string \"unknown\" being absent from SFDMU_OPERATIONS",
+     True, [i for i in issues([[dict(UPSERT, operation=8)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+    ("a Boolean is reported even though False == 0 in Python — JS typeof false is 'boolean', so "
+     "the loader drops it rather than reading it as numeric Insert",
+     True, [i for i in issues([[dict(UPSERT, operation=False)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
 ]
 
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
