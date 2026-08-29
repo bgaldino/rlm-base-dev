@@ -315,7 +315,7 @@ class SFDMUValidator:
                     # writable declaration's fields — see `_union_fields` for why a single
                     # declaration's fields are not enough.
                     columns_written = set()
-                    if self.fix_headers and self._is_csv_empty(csv_path):
+                    if self.fix_headers and writable_cfgs and self._is_csv_empty(csv_path):
                         headers = self._union_fields(writable_cfgs)
                         if self._fix_empty_csv_header(csv_path, headers, obj_name):
                             headers_fixed += 1

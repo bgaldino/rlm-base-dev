@@ -170,6 +170,31 @@ def fix_mode_proposals(plan_body, root_files=None, expect=None, per_pass_files=N
     return [f"expected exactly {expect} proposal(s), observed {len(lines)}: {lines or 'nothing'}"]
 
 
+def verbose_log_lines(plan_body, root_files=None, per_pass_files=None, **fix_flags):
+    """All verbose-mode stdout lines from a real (non-dry-run) fix run.
+
+    `fix_mode_proposals` is dry-run-only and filters to "Would add" lines, so it is blind to a WARN
+    a real run logs on a path `--dry-run` never exercises — the fixer skipping a non-writable
+    declaration, say. This is the same capture without either restriction.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "plan"
+        plan.mkdir()
+        (plan / "export.json").write_text(json.dumps(plan_body))
+        for name, body in (root_files or {}).items():
+            (plan / name).write_text(body)
+        for pass_number, files in (per_pass_files or {}).items():
+            d = plan / "objectset_source" / f"object-set-{pass_number}"
+            d.mkdir(parents=True, exist_ok=True)
+            for name, body in files.items():
+                (d / name).write_text(body)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
+                             **fix_flags).validate_dataset(plan)
+        return [ln.strip() for ln in buf.getvalue().splitlines()]
+
+
 def merged_config_fix_converges(pass1=None):
     """Findings still standing after `--fix-all` on the merged-config shape — empty means converged.
 
@@ -534,6 +559,21 @@ FIX_MODES = [
          {"Widget__c.csv": "Id,Name\n"}, {1: {"Widget__c.csv": ""}},
          fix_headers=True, fix_composite_keys=True).items()
          if n.endswith("object-set-1/Widget__c.csv") and b.strip() == b"$$Name$Code,Id,Name,Code"]),
+    # Hoisting the header write out of the per-declaration loop (the fix above) moved it outside
+    # the `for obj_config in writable_cfgs` loop too, so it now runs even when `writable_cfgs` is
+    # empty — a misfiled override: a per-pass CSV exists for an object that is Readonly in that
+    # pass. `_union_fields([])` is `[]`, and `_fix_empty_csv_header` logs a "no SELECT fields to
+    # write" WARN for that, which is new noise on a case the diff had no reason to touch. Guarded
+    # on `writable_cfgs` being non-empty, same as the root fixer's pre-existing `if not reading:
+    # continue`.
+    ("--fix-headers does not touch (or warn about) a per-pass CSV override for an object that "
+     "is Readonly in that pass",
+     False, [ln for ln in verbose_log_lines(
+         {"apiVersion": "68.0", "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
+                           "externalId": "Name"}]}]},
+         per_pass_files={1: {"Widget__c.csv": ""}}, fix_headers=True,
+     ) if "no SELECT fields" in ln or "Cannot add header" in ln]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it

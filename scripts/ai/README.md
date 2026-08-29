@@ -297,7 +297,7 @@ that pass only** — and only when the plan's top-level `useSeparatedCSVFiles` i
 reads the root regardless of the flag. Neither qualifier met, the root CSV is still owed. Both gates
 stay conditional on their own reason, so an
 `Upsert` object with no CSV anywhere still fails; `tests/test_sfdmu_csv_expectation.py` pins both
-directions in 90 cases. Two mechanisms make that pinning necessary rather than decorative.
+directions in 91 cases. Two mechanisms make that pinning necessary rather than decorative.
 `_parse_object_configs` keeps only the *first* declaration, so reading the operation from the merged
 config would let a `Readonly` first pass silence a writable later pass. And the exemption has to be
 keyed on the **pass**, not the object: `BillingPolicy` in `qb-billing` is `Upsert` in pass 1 and
