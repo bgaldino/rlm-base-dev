@@ -258,8 +258,15 @@ reports it (High) rather than loading it.
 
 Two shapes owe no root CSV at all:
 
-- **`operation: Readonly` in every pass** — the records are queried from the *target org*, so there
-  is no source file. Do not add an empty CSV to satisfy a checker. **Verified live, not inferred**,
+- **no live writable declaration in any pass** — `excluded: true`, plain `Delete`, and `Readonly`
+  are all source-free, for different reasons: an `excluded` declaration is skipped entirely; a
+  `Delete` one is skipped by the exact same runtime gate as `Readonly`
+  (`MigrationJobTask.updateRecordsAsync`'s early return for `operation === Readonly ||
+  === Delete`, verified against the installed `sfdmu@5.8.0` source); and a `Readonly` one is
+  queried from the *target org* instead. None of the three ever reads a source file, and a mix
+  across passes counts too — an object `excluded` in pass 1 and `Delete` in pass 2 still owes
+  nothing. Do not add an empty CSV to satisfy a checker. **The `Readonly` case is verified live,
+  not inferred**,
   because the inference cuts the other way and a reviewer raised it: every load runs
   `--sourceusername CSVFILE`, so it looks as though a Readonly object's rows must come from a CSV
   too. They do not. `procedure-plans` declares `ExpressionSetDefinition` as `Readonly` with **no
