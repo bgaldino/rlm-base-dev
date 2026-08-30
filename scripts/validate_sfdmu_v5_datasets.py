@@ -1733,7 +1733,9 @@ class SFDMUValidator:
                     # same as the fixer that writes this column — an unstripped "Field1; Field2"
                     # expects a column with an embedded space that the fixer, which does strip,
                     # never writes, so --fix-composite-keys and re-validating the same plan would
-                    # never converge.
+                    # never converge. A trailing/doubled ';' gets the same treatment for the same
+                    # reason (dropped empty segment) — see `_split_external_id_fields` for why
+                    # this convergence-over-SFDMU-byte-parity trade-off is accepted for both.
                     expected_composite_col = self._build_composite_key_column_name(
                         self._split_external_id_fields(external_id))
 
@@ -1889,8 +1891,20 @@ class SFDMUValidator:
         Empty segments are dropped: a trailing or doubled `;` (`"Field1;Field2;"`,
         `"Field1;;Field2"`) otherwise yields a `""` field that flows into every consumer as a
         component to check, reporting a confusing `externalId component '' not found in query
-        SELECT clause` instead of leaving the malformed-externalId detection in
-        `_normalize_object_config` to name the actual problem.
+        SELECT clause`. Nothing else names this specific typo either — `_normalize_object_config`'s
+        `externalId_malformed` flag only catches a non-string `externalId` (a list/dict/bool), not
+        a syntactically malformed *string* — so a trailing/doubled `;` is tolerated silently by
+        every SELECT-coverage/nested-path consumer of this helper, by design.
+
+        The composite-key-column sites (`_owes_composite_key_column` and its callers) share this
+        same drop for a different reason: SFDMU's own `Common.getComplexField` builds the column
+        name by a literal `;`→`$` character replace with no stripping or empty-segment handling, so
+        neither this helper's stripping (see above) nor its empty-segment drop byte-matches what
+        SFDMU computes for a malformed/whitespace-padded externalId. That gap is accepted, same as
+        the whitespace one documented at the `_validate_csv_file` call site: the fixer and validator
+        both read this same helper, so they stay convergent with *each other* — a real run's second
+        pass sees the same drop and confirms nothing missing — even on input this malformed. Getting
+        that to exactly match SFDMU's runtime behavior for a typo'd externalId is not attempted.
         """
         return [f for f in (segment.strip() for segment in external_id.split(";")) if f]
 

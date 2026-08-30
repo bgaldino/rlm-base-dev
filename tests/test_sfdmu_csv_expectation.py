@@ -1346,6 +1346,42 @@ TRAILING_SEMICOLON_EMPTY_SEGMENT = [
          if "externalId component 'Bogus__c' not found" in i]),
 ]
 
+# Copilot (comment 3888968386, review summary — no inline thread): the same dropped empty segment
+# also feeds `_owes_composite_key_column`'s callers, which build/expect a composite CSV column name
+# from the same (empty-segment-dropped) field list. SFDMU's own `Common.getComplexField` builds that
+# name with a literal ';'->'$' character replace and no empty-segment handling, so for "Name;;Code"
+# it would produce '$$Name$$Code' (doubled '$'), not this helper's '$$Name$Code' — a real gap from
+# exact SFDMU byte-parity, documented at `_split_external_id_fields` and the `_validate_csv_file`
+# call site rather than closed, because closing it would require *not* stripping either (see
+# UNSTRIPPED_EXTERNAL_ID above), and that trade-off was made deliberately for validator/fixer
+# convergence, not for this typo shape specifically. These cases pin that the convergence itself
+# still holds for a doubled ';': the fixer and validator agree on the same (dropped) column name,
+# so a real run's second pass is a no-op, the same guarantee UNSTRIPPED_EXTERNAL_ID already pins
+# for a stray space.
+TRAILING_SEMICOLON_COMPOSITE_KEY = [
+    ("a doubled ';' in externalId does not cause a false missing-composite-key-column finding "
+     "when the CSV header already has the dropped-empty-segment column name",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;;Code"}]],
+         {"Widget__c.csv": "$$Name$Code,Name,Code\nwidget-a;c1,widget-a,c1\n"})
+         if "composite key column" in i]),
+    ("...but a CSV genuinely missing that composite column is still reported — control",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;;Code"}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+    ("--fix-composite-keys writes the same dropped-empty-segment column name the validator "
+     "above expects, not SFDMU's literal (doubled-'$') one",
+     True, [n for n, b in fix_mode_writes(
+         {"objectSets": [{"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c",
+                                        "operation": "Upsert", "externalId": "Name;;Code"}]}]},
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"},
+         None, fix_composite_keys=True).items()
+         if n == "Widget__c.csv" and b.splitlines()[:1] == [b"$$Name$Code,Name,Code"]]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1621,6 +1657,9 @@ def main() -> int:
                   DEDUP_KEY_MALFORMED_VS_WELLFORMED_EXTERNAL_ID),
                  ("a trailing/doubled ';' in externalId does not yield an empty-component finding",
                   TRAILING_SEMICOLON_EMPTY_SEGMENT),
+                 ("a doubled ';' in externalId does not break composite-key-column convergence "
+                  "between the fixer and the validator",
+                  TRAILING_SEMICOLON_COMPOSITE_KEY),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1
