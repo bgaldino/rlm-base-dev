@@ -387,14 +387,15 @@ class SFDMUValidator:
                     continue
                 writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                 if not writable_cfgs:
-                    # `declared` is non-empty but every declaration in this pass is Readonly/excluded
-                    # — SFDMU queries a Readonly object from the target org and never reads a file
-                    # for it, so this override is dead weight, not a defect worth a finding. Logged
-                    # rather than silently falling out of the loop: the "flag not true" skip above
-                    # gets a DEBUG line, and a reader diagnosing "0 issues" for a suspicious file
-                    # deserves the same signal for this skip, not silence indistinguishable from
-                    # "nothing to check here."
-                    self.log(f"  Skipping content check on Readonly/excluded override (no live "
+                    # `declared` is non-empty but every declaration in this pass is source-free —
+                    # excluded, Readonly (queried from the target org), or Delete (skipped by the
+                    # same write-dispatch gate as Readonly, see `_is_live_writable`) — so this
+                    # override is dead weight, not a defect worth a finding. Logged rather than
+                    # silently falling out of the loop: the "flag not true" skip above gets a
+                    # DEBUG line, and a reader diagnosing "0 issues" for a suspicious file deserves
+                    # the same signal for this skip, not silence indistinguishable from "nothing to
+                    # check here."
+                    self.log(f"  Skipping content check on source-free override (no live "
                              f"writable declaration): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
                 for obj_config in writable_cfgs:
@@ -1571,9 +1572,10 @@ class SFDMUValidator:
         # Ask for a root CSV only where one is owed. Asking unconditionally was this check's entire
         # false-positive rate (#264-51 / pack 123) — two Criticals on correct data, which is enough
         # to make a validator ignored. `_objects_owing_root_csv` carries the reasoning and the two
-        # shapes that owe nothing: Readonly in every pass (queried from the target org), and every
-        # writable pass already supplied under objectset_source/ (an alternative location for the
-        # same file, validated by _validate_per_pass_csv below).
+        # shapes that owe nothing: no live writable declaration in any pass (excluded, Readonly —
+        # queried from the target org — or Delete, all source-free per `_is_live_writable`), and
+        # every writable pass already supplied under objectset_source/ (an alternative location
+        # for the same file, validated by _validate_per_pass_csv below).
         if obj_name in objects_owing_root_csv:
             csv_path = dataset_path / f"{obj_name}.csv"
             # Against every pass that reads this file, not the merged config — see
@@ -1591,8 +1593,8 @@ class SFDMUValidator:
             for cfg in objects_owing_root_csv[obj_name]:
                 self._validate_csv_file(csv_path, obj_name, cfg, result)
         else:
-            self.log(f"  No root CSV owed by {obj_name} — Readonly, or every writable pass is "
-                     f"supplied under objectset_source/", level="DEBUG")
+            self.log(f"  No root CSV owed by {obj_name} — no live writable declaration in any "
+                     f"pass, or every writable pass is supplied under objectset_source/", level="DEBUG")
 
     def _validate_external_id(self, obj_name: str, external_id: str, obj_config: dict, result: ValidationResult):
         """Validate externalId format and structure.
