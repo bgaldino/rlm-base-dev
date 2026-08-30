@@ -353,8 +353,8 @@ class SFDMUValidator:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
-        for obj_name, obj_config in object_configs.items():
-            self._validate_object(dataset_path, obj_name, obj_config, result,
+        for obj_name in object_configs:
+            self._validate_object(dataset_path, obj_name, result,
                                   objects_owing_root_csv, all_pass_configs)
 
         # Validate per-pass CSV overrides
@@ -1333,7 +1333,7 @@ class SFDMUValidator:
         self.log(f"\nValidating {pass_name} override: {obj_name} ({csv_path.name})", level="DEBUG")
         self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
-    def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult,
+    def _validate_object(self, dataset_path: Path, obj_name: str, result: ValidationResult,
                          objects_owing_root_csv: Dict[str, List[dict]],
                          all_pass_configs: Dict[str, Dict[int, List[dict]]]):
         """Validate a single object's CSV and configuration.
@@ -1341,7 +1341,6 @@ class SFDMUValidator:
         Args:
             dataset_path: Path to dataset directory
             obj_name: Object API name
-            obj_config: Object configuration from export.json
             result: ValidationResult to add issues to
             objects_owing_root_csv: Objects that must have a CSV at the plan root, mapped to the
                 declarations that read it, per `_objects_owing_root_csv`. Required, not defaulted:
@@ -1353,9 +1352,9 @@ class SFDMUValidator:
         """
         self.log(f"\nValidating object: {obj_name}", level="DEBUG")
 
-        # Skip excluded objects — but `obj_config` is the *merged* view, which keeps only the first
-        # declaration, so `excluded` here means "excluded in the first pass that declared it" and
-        # not "excluded everywhere". Returning on that hides a later pass that does write from a
+        # Skip excluded objects — but the merged config (`object_configs`'s value, kept only for the
+        # first declaration) would make `excluded` mean "excluded in the first pass that declared it"
+        # and not "excluded everywhere". Returning on that hides a later pass that does write from a
         # file: excluded in pass 1 and Upsert in pass 2 with no CSV anywhere reported nothing worse
         # than Info. Same merged-config trap as `operation`, which `_objects_owing_root_csv` exists
         # to avoid, so defer to it — it enumerates passes and already skips the excluded ones.
@@ -1426,12 +1425,20 @@ class SFDMUValidator:
         # a coerced repr that happens to contain ';' would otherwise be split and checked for
         # SELECT-clause coverage component-by-component, piling extra HIGHs onto the dedicated
         # malformed-externalId HIGH for the same root cause.
-        for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
+        #
+        # Dedup key adds `externalId_malformed` to `_READING_CONFIG_KEYS`: the coercion in
+        # `_normalize_object_config` means a malformed declaration's `externalId` string can equal a
+        # well-formed sibling's (e.g. int `123` coerces to `"123"`, same as a literal `"123"`), so with
+        # `_READING_CONFIG_KEYS` alone the two collapse into one entry. If the malformed one sorts
+        # first, the `continue` above then skips the *kept* entry — silently dropping the well-formed
+        # sibling's SELECT-coverage check instead of just skipping the malformed one, as intended.
+        for cfg in self._dedup_configs(live_declarations,
+                                        self._READING_CONFIG_KEYS + ("externalId_malformed",)):
             if cfg.get("externalId_malformed"):
                 continue
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
-        # Check deleteOldData usage — per declaration, not the merged `obj_config`: reading the
+        # Check deleteOldData usage — per declaration, not the merged config: reading the
         # merged view here validates only the first pass and exempts passes 2..n, the same
         # merged-config trap already fixed above for `operation`/excluded/externalId. `add_issue`'s
         # exact-message dedup keeps a shared flag across passes from reporting twice.
@@ -1448,7 +1455,7 @@ class SFDMUValidator:
                     message=f"Object uses 'deleteOldData: true' but not in documented list"
                 ))
 
-        # `not live_declarations`, not the merged `obj_config.get("excluded")`: the merged view
+        # `not live_declarations`, not the merged config's own `excluded`: the merged view
         # means "excluded in the first pass that declared it", so an object excluded in pass 1 but
         # live (e.g. Readonly, or Upsert covered under objectset_source/) in a later pass hit this
         # branch and got a spurious "excluded but not in known excluded list" Info — the same
@@ -1784,8 +1791,14 @@ class SFDMUValidator:
         composite-column-name check) — stripped, unlike a bare `.split(";")`, because an
         unstripped `"Field1; Field2"` leaves `" Field2"`, which matches neither a parsed SELECT
         field nor the fixer's own (stripped) composite-key column name.
+
+        Empty segments are dropped: a trailing or doubled `;` (`"Field1;Field2;"`,
+        `"Field1;;Field2"`) otherwise yields a `""` field that flows into every consumer as a
+        component to check, reporting a confusing `externalId component '' not found in query
+        SELECT clause` instead of leaving the malformed-externalId detection in
+        `_normalize_object_config` to name the actual problem.
         """
-        return [f.strip() for f in external_id.split(";")]
+        return [f for f in (segment.strip() for segment in external_id.split(";")) if f]
 
     def _owes_composite_key_column(self, external_id: str, cfg: dict) -> bool:
         """Whether a declaration's CSV must carry a `$$`-prefixed composite key column.

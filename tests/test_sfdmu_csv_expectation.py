@@ -1255,6 +1255,42 @@ MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
          if "externalId is not a string" in i]),
 ]
 
+# A malformed declaration's `externalId` coerces via `str()` (`_normalize_object_config`) and can
+# equal a well-formed sibling's string value in a later pass — a dict `{"A.B.C": 1}` coerces to
+# `"{'A.B.C': 1}"`, same as a literal string of that exact text. `_READING_CONFIG_KEYS` alone
+# (externalId/operation/deleteOldData/fields) does not distinguish the two, so `_dedup_configs`
+# collapsed them into one entry; when the malformed one sorted first (its declaring pass ran
+# earlier), the SELECT-coverage loop's own `if cfg.get("externalId_malformed"): continue` then
+# skipped the *kept* entry — silently dropping the well-formed sibling's own checks (here, the
+# nested-relationship-path MEDIUM: the coerced text has two dots) instead of skipping only the
+# malformed one.
+DEDUP_KEY_MALFORMED_VS_WELLFORMED_EXTERNAL_ID = [
+    ("a malformed externalId does not shadow a same-coerced-string well-formed sibling's "
+     "own checks",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
+            "externalId": {"A.B.C": 1}}],
+          [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Readonly",
+            "externalId": "{'A.B.C': 1}"}]])
+         if "nested relationship path" in i]),
+]
+
+# `_split_external_id_fields` split on ';' with no empty-segment filter: a trailing or doubled ';'
+# (an authoring typo, not a structural error `_normalize_object_config` flags) yielded a `""` field
+# that flowed into the SELECT-coverage check as a component to look for, reporting a confusing
+# `externalId component '' not found in query SELECT clause` HIGH instead of nothing.
+TRAILING_SEMICOLON_EMPTY_SEGMENT = [
+    ("a trailing ';' in externalId does not produce an empty-component SELECT-coverage finding",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name;"}]])
+         if "externalId component '' not found" in i]),
+    ("...but a genuinely missing component in the same externalId is still caught — control",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Bogus__c"}]])
+         if "externalId component 'Bogus__c' not found" in i]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1503,6 +1539,11 @@ def main() -> int:
                   UNPARSEABLE_QUERY_REPORTED),
                  ("a malformed externalId is not double-reported by the SELECT-coverage sweep too",
                   MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED),
+                 ("a malformed externalId does not shadow a same-coerced-string well-formed "
+                  "sibling's own SELECT-coverage check",
+                  DEDUP_KEY_MALFORMED_VS_WELLFORMED_EXTERNAL_ID),
+                 ("a trailing/doubled ';' in externalId does not yield an empty-component finding",
+                  TRAILING_SEMICOLON_EMPTY_SEGMENT),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1
