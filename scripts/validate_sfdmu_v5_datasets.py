@@ -762,7 +762,9 @@ class SFDMUValidator:
         `excluded` declarations are skipped entirely; `Readonly` ones are queried from the target
         org. Both owe no CSV, and a High on either is a false positive — including when they share
         a pass with a writable sibling, which is the shape `_objects_owing_root_csv` used to miss
-        because it filtered only `excluded`.
+        because it filtered only `excluded`. An unresolvable or `Unknown` `operation` is the other
+        direction: it is NOT exempted like `Readonly` — SFDMU still writes it from source (see the
+        inline comment below), so a missing CSV for it is a real Critical, not a false positive.
         """
         if SFDMUValidator._is_js_truthy(cfg.get("excluded")):
             return False

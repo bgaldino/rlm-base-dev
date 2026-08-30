@@ -544,6 +544,17 @@ FIX_MODES = [
      True, [n for n, b in fix_mode_writes(
          {"objectSets": [{"objects": [UPSERT]}]}, {"Widget__c.csv": ""}, None,
          fix_headers=True).items() if n == "Widget__c.csv" and b.strip()]),
+    # The writability flip (`_is_live_writable` now treats an unresolvable/"Unknown" operation as
+    # writable, not exempt like Readonly — see OPERATION_RESOLUTION/NUMERIC_OPERATION_GATING above)
+    # also changes `_writable_configs_for_pass`, which every fix mode reads through. Before the flip
+    # this object was excluded from `writable_cfgs`, so an empty CSV for it was left untouched;
+    # pinning the fix-mode side of the same flip so a future revert of only the validator half (or
+    # only this half) would be caught here, not just in the Critical-finding cases above.
+    ("--fix-headers ALSO writes a header for an \"Unknown\"-operation object's empty ROOT CSV, "
+     "since the flip makes it writable too, not exempt like Readonly",
+     True, [n for n, b in fix_mode_writes(
+         {"objectSets": [{"objects": [dict(UPSERT, operation="Unknown")]}]}, {"Widget__c.csv": ""},
+         None, fix_headers=True).items() if n == "Widget__c.csv" and b.strip()]),
     # The directory that maps to no pass is now a finding, not just a WARN suppressed at default
     # verbosity — before this, a mistyped name meant every CSV under it was silently never read.
     ("an object-set-0 directory is REPORTED, so a mistyped directory name is not invisible",
