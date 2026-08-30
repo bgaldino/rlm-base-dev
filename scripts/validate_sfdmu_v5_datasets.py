@@ -303,7 +303,7 @@ class SFDMUValidator:
         # per-pass validate loop below recomputed this identical `bool(...)` independently, and
         # `_objects_owing_root_csv` recomputed it a third time internally — three places to
         # disagree if this flag's interpretation ever grows a second condition.
-        use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
+        use_separated_csv_files = self._is_js_truthy(export_data.get("useSeparatedCSVFiles"))
         objects_owing_root_csv = self._objects_owing_root_csv(objectset_source_overrides,
                                                               all_pass_configs,
                                                               use_separated_csv_files)
@@ -340,8 +340,8 @@ class SFDMUValidator:
                     for obj_config in writable_cfgs:
                         if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                             external_id = obj_config.get("externalId", "")
-                            if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
-                                fields = [f.strip() for f in external_id.split(";")]
+                            if self._owes_composite_key_column(external_id, obj_config):
+                                fields = self._split_external_id_fields(external_id)
                                 composite_col_name = self._build_composite_key_column_name(fields)
                                 if (composite_col_name not in columns_written
                                         and self._csv_missing_composite_key(csv_path, composite_col_name)):
@@ -728,7 +728,9 @@ class SFDMUValidator:
         Diverges from Python's own truthiness for containers: `[]`/`{}` are falsy in Python but
         truthy in JS, so an `"excluded": []`/`{}` declaration is dropped by SFDMU (JS reads
         `object.excluded` as truthy) while a plain `if cfg.get("excluded")` read it as
-        live/writable — a false missing-CSV Critical.
+        live/writable — a false missing-CSV Critical. Every other boolean-like field SFDMU also
+        reads with plain JS truthiness (`deleteOldData`, top-level `useSeparatedCSVFiles`) is
+        swept through this same helper for the identical reason, not just `excluded`.
 
         Does NOT special-case `NaN`: Python's `json` module can decode the `NaN` extension to a
         Python-truthy `float('nan')`, which JS treats as falsy, but a value reaches this function
@@ -1420,7 +1422,13 @@ class SFDMUValidator:
         # malformed-externalId sweeps above are: that return reads the *merged* config, so an object
         # excluded in its first-declaring pass but live (e.g. Readonly) in a later one exited before
         # this loop ever ran, silently dropping that live declaration's own SELECT-coverage check.
+        # Excludes an already-malformed externalId (`str()`-coerced non-string, flagged above):
+        # a coerced repr that happens to contain ';' would otherwise be split and checked for
+        # SELECT-clause coverage component-by-component, piling extra HIGHs onto the dedicated
+        # malformed-externalId HIGH for the same root cause.
         for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
+            if cfg.get("externalId_malformed"):
+                continue
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
 
         # Check deleteOldData usage — per declaration, not the merged `obj_config`: reading the
@@ -1433,7 +1441,7 @@ class SFDMUValidator:
         # later pass fully covered by an `objectset_source/` override — exits at that return before
         # ever reaching a loop placed after it, silently dropping the later pass's own flag.
         for cfg in self._dedup_configs(live_declarations, ("deleteOldData",)):
-            if cfg.get("deleteOldData") and obj_name not in self.DELETE_OLD_DATA_OBJECTS:
+            if self._is_js_truthy(cfg.get("deleteOldData")) and obj_name not in self.DELETE_OLD_DATA_OBJECTS:
                 result.add_issue(Issue(
                     severity=Severity.INFO,
                     object_name=obj_name,
@@ -1523,11 +1531,11 @@ class SFDMUValidator:
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         #
-        # Stripped like every other externalId-splitting site (the fixer at lines 339/1784): an
+        # Shared with every other externalId-splitting site via `_split_external_id_fields`: an
         # unstripped "Field1; Field2" leaves ' Field2', which never matches the parsed (trimmed)
         # SELECT-field set below even when the query correctly selects Field2 — a false HIGH on
         # correct data, the exact class this PR exists to eliminate.
-        fields = [f.strip() for f in external_id.split(";")]
+        fields = self._split_external_id_fields(external_id)
         if not is_insert:
             for field in fields:
                 # Count dots (more than 1 = nested relationship)
@@ -1619,14 +1627,14 @@ class SFDMUValidator:
                 # Validate composite key columns for objects with multi-field externalId
                 # Skip objects with deleteOldData: true (delete-then-insert strategy doesn't need composite key)
                 external_id = obj_config.get("externalId", "")
-                if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
+                if self._owes_composite_key_column(external_id, obj_config):
                     # This is a composite key - check if CSV has the $$ column. Stripped fields,
-                    # same as the fixer that writes this column (lines 339/1784) — an unstripped
-                    # "Field1; Field2" expects a column with an embedded space that the fixer,
-                    # which does strip, never writes, so --fix-composite-keys and re-validating
-                    # the same plan would never converge.
+                    # same as the fixer that writes this column — an unstripped "Field1; Field2"
+                    # expects a column with an embedded space that the fixer, which does strip,
+                    # never writes, so --fix-composite-keys and re-validating the same plan would
+                    # never converge.
                     expected_composite_col = self._build_composite_key_column_name(
-                        [f.strip() for f in external_id.split(";")])
+                        self._split_external_id_fields(external_id))
 
                     if expected_composite_col not in headers:
                         result.add_issue(Issue(
@@ -1766,6 +1774,32 @@ class SFDMUValidator:
         except Exception as e:
             print(f"  ❌ Error writing {csv_path.name}: {type(e).__name__}: {e}", file=sys.stderr)
             return False
+
+    @staticmethod
+    def _split_external_id_fields(external_id: str) -> List[str]:
+        """Split a ';'-delimited externalId into stripped field names.
+
+        Centralizes a pattern that was hand-copied at four sites (the two composite-key
+        fixer loops, `_validate_external_id`'s nested-path check, and `_validate_csv_file`'s
+        composite-column-name check) — stripped, unlike a bare `.split(";")`, because an
+        unstripped `"Field1; Field2"` leaves `" Field2"`, which matches neither a parsed SELECT
+        field nor the fixer's own (stripped) composite-key column name.
+        """
+        return [f.strip() for f in external_id.split(";")]
+
+    def _owes_composite_key_column(self, external_id: str, cfg: dict) -> bool:
+        """Whether a declaration's CSV must carry a `$$`-prefixed composite key column.
+
+        Centralizes a predicate hand-copied at three sites (both fixer loops and
+        `_validate_csv_file`): a multi-field, non-`$$`-notation externalId needs the column
+        UNLESS `deleteOldData` makes SFDMU delete-then-insert instead of upsert-matching against
+        it. `deleteOldData` is read via `_is_js_truthy`, not plain Python truthiness, for the same
+        reason `excluded` is — SFDMU reads it with JS truthiness, so `deleteOldData: []`/`{}`
+        (JS-truthy) would otherwise be misread as Python-falsy and wrongly demand a column
+        SFDMU's delete-then-insert path doesn't need.
+        """
+        return (";" in external_id and not external_id.startswith("$$")
+                and not self._is_js_truthy(cfg.get("deleteOldData")))
 
     def _build_composite_key_column_name(self, fields: List[str]) -> str:
         """Build the $$Field1$Field2 column name from field list.
@@ -1933,8 +1967,8 @@ class SFDMUValidator:
                 # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
                 if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                     external_id = cfg.get("externalId", "")
-                    if ";" in external_id and not external_id.startswith("$$") and not cfg.get("deleteOldData"):
-                        fields = [f.strip() for f in external_id.split(";")]
+                    if self._owes_composite_key_column(external_id, cfg):
+                        fields = self._split_external_id_fields(external_id)
                         composite_col_name = self._build_composite_key_column_name(fields)
 
                         # Check if column is missing using helper method

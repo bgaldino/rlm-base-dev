@@ -428,6 +428,20 @@ USE_SEPARATED_CSV_FILES = [
             if "empty" in i.lower()]),
 ]
 
+# `useSeparatedCSVFiles` used to be read with plain `bool()`, not `_is_js_truthy` — the same
+# Python/JS container-truthiness mismatch already fixed for `excluded`. `[]`/`{}` are JS-truthy
+# (SFDMU reads the override) but Python-falsy, so `bool()` denied override coverage credit and
+# produced a false missing-root-CSV Critical for a plan SFDMU runs correctly.
+USE_SEPARATED_CSV_FILES_JS_TRUTHINESS = [
+    ("`useSeparatedCSVFiles: []` relieves the root requirement like `true` does — SFDMU reads "
+     "the flag with JS truthiness, not Python's",
+     False, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
+                   severity=V.Severity.CRITICAL, use_separated_csv_files=[])),
+    ("...same for `useSeparatedCSVFiles: {}`",
+     False, issues(_TWO_WRITABLE_PASSES_COVERED, None, _BOTH_OVERRIDES,
+                   severity=V.Severity.CRITICAL, use_separated_csv_files={})),
+]
+
 # What SFDMU can actually resolve, which is not what the first version of this check assumed.
 # `ScriptLoader._resolveOperation` trims and case-folds; `ScriptObject.getOperation` does neither,
 # and reading the wrong one made the repo's nine `"ReadOnly"` declarations look like defects. These
@@ -914,6 +928,28 @@ MERGED_CONFIG = [
             "externalId": "Name;Code"}]],
          {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
          if "composite key column" in i]),
+    # `deleteOldData` used to be read with plain Python truthiness at every site that checks it,
+    # but SFDMU reads it with JS truthiness — same mismatch already fixed for `excluded`: `[]`/
+    # `{}` waive the composite-key check (JS-truthy, delete-then-insert needs no upsert match)
+    # while Python reads them as falsy and wrongly demands the column.
+    ("`deleteOldData: []` waives the composite-key check like `true` does",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code", "deleteOldData": []}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+    ("...same for `deleteOldData: {}`",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code", "deleteOldData": {}}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
+    ("control: `deleteOldData: false` still requires the composite-key column",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+            "externalId": "Name;Code", "deleteOldData": False}]],
+         {"Widget__c.csv": "Name,Code\nwidget-a,c1\n"})
+         if "composite key column" in i]),
     # The shape no config-dedup key can fix, and the one that bit real plans: two declarations that
     # genuinely differ (`Upsert` vs `Update`) produce a finding that does not depend on how they
     # differ, because "CSV file not found" depends only on the path. `qb-prm-pricing/Account` emitted
@@ -1198,6 +1234,27 @@ UNPARSEABLE_QUERY_REPORTED = [
             if "no parseable" in i]),
 ]
 
+MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
+    # The SELECT-coverage sweep used to run on every live declaration unconditionally, including
+    # one already flagged malformed (non-string, `str()`-coerced). A coerced repr that happens to
+    # contain ';' (e.g. a list) was then split and checked component-by-component against the
+    # SELECT clause, piling extra HIGHs onto the dedicated malformed-externalId HIGH for the same
+    # one root cause.
+    ("a malformed (list) externalId that stringifies with a ';' is not also split for "
+     "SELECT-coverage — one finding for the root cause, not one per side effect",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": ["Name;Code"]}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "not found in query SELECT clause" in i]),
+    ("...the dedicated malformed-externalId finding still fires — control for the case above",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+            "externalId": ["Name;Code"]}]],
+         {"Widget__c.csv": "Id,Name\n1,a\n"})
+         if "externalId is not a string" in i]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1425,6 +1482,8 @@ def main() -> int:
     failures = []
     all_cases = [("root-CSV expectation", CASES),
                  ("useSeparatedCSVFiles gates pass-2+ override coverage", USE_SEPARATED_CSV_FILES),
+                 ("useSeparatedCSVFiles is read with JS truthiness, not Python's",
+                  USE_SEPARATED_CSV_FILES_JS_TRUTHINESS),
                  ("per-pass validation actually runs", PER_PASS_IS_VALIDATED),
                  ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
                  ("a numeric operation gates the externalId Insert-mode skip, not just a string one",
@@ -1442,6 +1501,8 @@ def main() -> int:
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),
+                 ("a malformed externalId is not double-reported by the SELECT-coverage sweep too",
+                  MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1
