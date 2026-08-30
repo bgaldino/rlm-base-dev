@@ -14,7 +14,7 @@ review-loop fixes ("fix stale description", "update README task name",
 5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the `README.md` Custom Tasks table, and any `docs/` guide that names it.
 6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and the `README.md` troubleshooting section.
 7. **If you created a new skill or sub-file** — follow `.cursor/skills/skill-authoring/SKILL.md`: add top-level skills to `AGENTS.md`, `.cursor/skills/README.md`, and `.claude/skill-manifest.yml` when cross-repo discoverability applies; register sub-files in the parent `SKILL.md`, which is their only registry — `AGENTS.md` carries no second-level index.
-8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py` and then `git diff` to confirm only intended changes appear. Run `python scripts/validate_sfdmu_v5_datasets.py` — expect **7 High** findings from `mfg/en-US/mfg-multicurrency` (zero-byte CSVs in an unwired plan, removed by pack 110) and treat anything else as new.
+8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py` and then `git diff` to confirm only intended changes appear. Run `python scripts/validate_sfdmu_v5_datasets.py` — expect **0 Critical, 0 High** on a clean tree (the `mfg/en-US/mfg-multicurrency` plan that used to fail this check was removed, pack 110) and treat any Critical or High as new.
 
 ## DO NOT
 
@@ -189,7 +189,7 @@ Understanding where truth lives prevents duplication drift.
 python scripts/ai/pr_gate.py --base origin/264            # all of the below, selected by your diff
 python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
-python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — 7 High from mfg-multicurrency is the baseline, not a regression
+python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should PASS (0 Critical, 0 High) on a clean tree
 python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
 python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
 python tests/test_erd_doc_counts.py                      # ERD object/field/domain counts in docs ↔ erd-data.json

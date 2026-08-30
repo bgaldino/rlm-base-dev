@@ -299,12 +299,13 @@ header row with fields from query") is only one of them. Pick by *why* the file 
 | The object genuinely has no data for this dataset, in a **wired** plan | `excluded: true` — prevents a destructive wipe on a `deleteOldData` plan, and is why rule 4 exists |
 | The whole plan is unwired and unmaintained | Delete the plan — `excluded: true` would make a checker green while leaving a plan nobody loads |
 
-The third row is `mfg/en-US/mfg-multicurrency` (7 zero-byte `Upsert` CSVs, pack 110). `excluded:
-true` on those seven **would** turn the validator green in one line, and that is the honest tension:
-it is cheaper than a deletion and matches rule 4's letter. It is not taken because it changes load
-semantics on a plan that may later be wired — an excluded object silently does not load — in
-exchange for suppressing a signal rather than removing its cause. `q3-multicurrency` carried the
-identical finding (`CostBook`, `CostBookEntry`) and was resolved by removal in `dab545ab`.
+The third row's precedent is `q3-multicurrency`, an unwired plan with zero-byte `CostBook`/
+`CostBookEntry` CSVs, resolved by removal in `dab545ab`. `mfg/en-US/mfg-multicurrency` carried the
+identical finding (zero-byte `Upsert` CSVs, all unwired) and was removed the same way (pack 110)
+rather than `excluded: true`-ing the seven — `excluded: true` **would** have turned the validator
+green in one line and matched rule 4's letter, but it changes load semantics on a plan that may
+later be wired (an excluded object silently does not load), suppressing the signal rather than
+removing its cause.
 
 ## Developer scratch area
 
