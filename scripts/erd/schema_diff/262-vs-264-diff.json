@@ -2099,7 +2099,6 @@
     "AttributeBasedAdjustment": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pricing",
         "q3/en-US/q3-pricing",
         "qb/en-US/qb-pricing",
@@ -2122,7 +2121,6 @@
     "BundleBasedAdjustment": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pricing",
         "q3/en-US/q3-pricing",
         "qb/en-US/qb-pricing",
@@ -2554,7 +2552,6 @@
     "PriceAdjustmentSchedule": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pricing",
         "q3/en-US/q3-pricing",
         "qb/en-US/qb-pricing",
@@ -2571,7 +2568,6 @@
     "PriceAdjustmentTier": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pricing",
         "q3/en-US/q3-pricing",
         "qb/en-US/qb-pricing",
@@ -2597,7 +2593,6 @@
         "mfg/en-US/mfg-aaf",
         "mfg/en-US/mfg-billing",
         "mfg/en-US/mfg-dro",
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pcm",
         "mfg/en-US/mfg-pricing",
         "mfg/en-US/mfg-tax",
@@ -2631,7 +2626,6 @@
     "ProductAttributeDefinition": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pcm",
         "q3/en-US/q3-pcm",
         "qb/en-US/qb-pcm",
@@ -2648,7 +2642,6 @@
     "ProductClassificationAttr": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pcm",
         "q3/en-US/q3-pcm",
         "qb/en-US/qb-pcm",
@@ -2699,7 +2692,6 @@
     "ProductRelationshipType": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pcm",
         "q3/en-US/q3-pcm",
         "qb/en-US/qb-pcm",
@@ -2716,7 +2708,6 @@
     "ProductSellingModel": {
       "change": "modified",
       "plans": [
-        "mfg/en-US/mfg-multicurrency",
         "mfg/en-US/mfg-pcm",
         "mfg/en-US/mfg-pricing",
         "q3/en-US/q3-pcm",
