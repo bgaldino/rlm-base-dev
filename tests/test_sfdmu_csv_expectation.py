@@ -1511,8 +1511,27 @@ def baseline_sites():
     return sites
 
 
+def mfg_case_insensitive_hits():
+    """Case-insensitive `mfg` occurrences in `cumulusci.yml` — mirrors AGENTS.md's own check.
+
+    The advisory-not-gating rationale for `sfdmu_datasets` (`scripts/ai/pr_gate.py`'s note on that
+    check, and `AGENTS.md`'s "grep -ic mfg cumulusci.yml returns 0") rests entirely on
+    `mfg-multicurrency` being unwired — the 7 High findings are real but dormant *because* nothing
+    runs that plan. Found by Copilot (comment 3888912429): neither `sfdmu_datasets` nor this suite
+    was triggered by a `cumulusci.yml` edit, so a future PR could wire the plan while both checks
+    stayed unselected, silently turning 7 dormant Highs live under an advisory label nobody
+    re-examined. This is the forcing function for the other direction from `live_baseline()`'s
+    docstring: that one catches the plan being *deleted* (count goes to zero); this one catches it
+    being *wired* (this returns non-empty). `scripts/ai/pr_gate.py`'s `sfdmu_csv_expectation` check
+    lists `cumulusci.yml` as a trigger for the same reason `datasets/sfdmu/` is listed there — a
+    forcing function whose own triggering edit cannot reach it is worse than none.
+    """
+    return re.findall(r"mfg", (REPO / "cumulusci.yml").read_text(encoding="utf-8"), re.IGNORECASE)
+
+
 _sev, _plans = live_baseline()
 _sites = baseline_sites()
+_mfg_hits = mfg_case_insensitive_hits()
 # Symmetric difference, so both directions fail with the offending file named: a site that stopped
 # matching the pattern (the silent-drop failure this pin exists for) and a new one nobody pinned.
 _observed_sites = {f: len(hits) for f, hits in _sites.items()}
@@ -1549,6 +1568,9 @@ BASELINE = [
      True, [f"{f}:{n}={c}" for f, ls in sorted(_sites.items()) for n, c in ls]
            if _sites and all(c == _sev.get(V.Severity.HIGH.value, 0)
                              for ls in _sites.values() for _, c in ls) else []),
+    ("...and cumulusci.yml does not wire mfg-multicurrency, which is the whole reason the 7 High "
+     "findings above are dormant rather than gating",
+     False, _mfg_hits),
 ]
 
 

@@ -180,8 +180,16 @@ CHECKS = [
         # the same matrix drift the `erd_doc_counts` trigger comment above names. Listed explicitly
         # instead — this suite's own file, so self-edits still select it (nothing else does that for
         # a suite that names no path of its own), plus the one sibling `baseline_sites()` reads.
+        #
+        # `cumulusci.yml` joined for the same reason `datasets/sfdmu/` did, found by Copilot
+        # (comment 3888912429) reviewing this file: the advisory-not-gating status for
+        # `sfdmu_datasets` below rests on `mfg-multicurrency` being unwired, and this suite now
+        # asserts that (`mfg_case_insensitive_hits()`) — but without this trigger, a PR that wires
+        # the plan into `cumulusci.yml` without touching any other trigger here would never run the
+        # assertion that catches it, the unreachable-forcing-function shape this comment already
+        # names twice over.
         triggers=["scripts/validate_sfdmu_v5_datasets.py", "tests/test_sfdmu_csv_expectation.py",
-                  "tests/test_pr_gate.py", "datasets/sfdmu/",
+                  "tests/test_pr_gate.py", "datasets/sfdmu/", "cumulusci.yml",
                   "AGENTS.md", "scripts/ai/", "docs/features/", ".cursor/skills/"],
         deps=[], gating=True,
     ),
