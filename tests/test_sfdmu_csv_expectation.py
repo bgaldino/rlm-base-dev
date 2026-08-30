@@ -47,6 +47,31 @@ READONLY = {"query": "SELECT Id, Name FROM Gadget__c", "operation": "Readonly", 
 HEADER = "Id,Name\n1,a\n"
 
 
+def _write_plan(td, plan_body, root_files=None, per_pass_files=None):
+    """Materialize a synthetic plan directory: export.json, root CSVs, and per-pass overrides.
+
+    Every fixture-building helper in this file wrote this same scaffold independently — mkdir,
+    write export.json, write `root_files`, write `per_pass_files` under
+    `objectset_source/object-set-N/` — which is how three of them (`fix_mode_writes`,
+    `fix_mode_proposals`, `verbose_log_lines`) drifted to byte-identical bodies with nothing left
+    to distinguish them but the code that runs after the write. `plan_body` is taken as the exact
+    already-built `export.json` dict, not built here: callers disagree on that part (`issues()`
+    wraps a list of passes in `objectSets`, `raw_issues()` takes the container verbatim to reach
+    malformed-container shapes), which is exactly the part that must stay their own.
+    """
+    plan = pathlib.Path(td) / "plan"
+    plan.mkdir()
+    (plan / "export.json").write_text(json.dumps(plan_body))
+    for name, body in (root_files or {}).items():
+        (plan / name).write_text(body)
+    for pass_number, files in (per_pass_files or {}).items():
+        d = plan / "objectset_source" / f"object-set-{pass_number}"
+        d.mkdir(parents=True, exist_ok=True)
+        for name, body in files.items():
+            (d / name).write_text(body)
+    return plan
+
+
 def issues(passes, root_files=None, per_pass_files=None, severity=None, use_separated_csv_files=None):
     """Validate a synthetic plan and return its issue strings, optionally filtered by severity.
 
@@ -62,19 +87,10 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
     reasons the case did not choose, which is how a control ends up vacuous.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
         export_data = {"objectSets": [{"objects": p} for p in passes]}
         if use_separated_csv_files is not None:
             export_data["useSeparatedCSVFiles"] = use_separated_csv_files
-        (plan / "export.json").write_text(json.dumps(export_data))
-        for name, body in (root_files or {}).items():
-            (plan / name).write_text(body)
-        for pass_number, files in (per_pass_files or {}).items():
-            d = plan / "objectset_source" / f"object-set-{pass_number}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, body in files.items():
-                (d / name).write_text(body)
+        plan = _write_plan(td, export_data, root_files, per_pass_files)
         result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
         return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues
                 if severity is None or i.severity == severity]
@@ -89,16 +105,7 @@ def raw_issues(body, root_files=None, per_pass_files=None):
     that builds the container for you.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
-        (plan / "export.json").write_text(json.dumps(body))
-        for name, contents in (root_files or {}).items():
-            (plan / name).write_text(contents)
-        for pass_number, files in (per_pass_files or {}).items():
-            d = plan / "objectset_source" / f"object-set-{pass_number}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, contents in files.items():
-                (d / name).write_text(contents)
+        plan = _write_plan(td, body, root_files, per_pass_files)
         result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
         return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
 
@@ -128,16 +135,7 @@ def fix_mode_writes(plan_body, root_files=None, per_pass_files=None, **fix_flags
     both-bounds stopped it mutating an `object-set-0/` file it used to resolve against the last pass.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
-        (plan / "export.json").write_text(json.dumps(plan_body))
-        for name, body in (root_files or {}).items():
-            (plan / name).write_text(body)
-        for pass_number, files in (per_pass_files or {}).items():
-            d = plan / "objectset_source" / f"object-set-{pass_number}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, body in files.items():
-                (d / name).write_text(body)
+        plan = _write_plan(td, plan_body, root_files, per_pass_files)
         # Through `validate_dataset`, which is what the CLI drives — the fix loop runs from there
         # when the flags are set, so this exercises the same path a `--fix-all` run takes.
         V.SFDMUValidator(base_dir=str(plan.parent), verbose=False, **fix_flags).validate_dataset(plan)
@@ -163,16 +161,7 @@ def fix_mode_proposals(plan_body, root_files=None, expect=None, per_pass_files=N
     fail, and the failure prints which it was.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
-        (plan / "export.json").write_text(json.dumps(plan_body))
-        for name, body in (root_files or {}).items():
-            (plan / name).write_text(body)
-        for pass_number, files in (per_pass_files or {}).items():
-            d = plan / "objectset_source" / f"object-set-{pass_number}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, body in files.items():
-                (d / name).write_text(body)
+        plan = _write_plan(td, plan_body, root_files, per_pass_files)
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
@@ -193,16 +182,7 @@ def verbose_log_lines(plan_body, root_files=None, per_pass_files=None, **fix_fla
     declaration, say. This is the same capture without either restriction.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
-        (plan / "export.json").write_text(json.dumps(plan_body))
-        for name, body in (root_files or {}).items():
-            (plan / name).write_text(body)
-        for pass_number, files in (per_pass_files or {}).items():
-            d = plan / "objectset_source" / f"object-set-{pass_number}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, body in files.items():
-                (d / name).write_text(body)
+        plan = _write_plan(td, plan_body, root_files, per_pass_files)
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             V.SFDMUValidator(base_dir=str(plan.parent), verbose=True,
@@ -256,14 +236,7 @@ def flat_plan(per_pass=None):
     writes a literal `object-set-0/` — a name that maps to pass_index -1.
     """
     with tempfile.TemporaryDirectory() as td:
-        plan = pathlib.Path(td) / "plan"
-        plan.mkdir()
-        (plan / "export.json").write_text(json.dumps({"objects": [UPSERT]}))
-        for n, files in (per_pass or {}).items():
-            d = plan / "objectset_source" / f"object-set-{n}"
-            d.mkdir(parents=True, exist_ok=True)
-            for name, body in files.items():
-                (d / name).write_text(body)
+        plan = _write_plan(td, {"objects": [UPSERT]}, None, per_pass)
         result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
         return [f"{i.object_name}: {i.message}" for i in result.issues
                 if i.severity == V.Severity.CRITICAL]
@@ -471,9 +444,17 @@ OPERATION_RESOLUTION = [
     ("an out-of-range numeric operation is reported: there is no enum member at that index",
      True, [i for i in issues([[dict(UPSERT, operation=99)]], {"Widget__c.csv": HEADER})
             if "resolve" in i]),
-    ("numeric 8 (Unknown, the enum's own fallback) is reported — not a value a plan can declare, "
-     "same as the string \"unknown\" being absent from SFDMU_OPERATIONS",
+    # TypeScript numeric enums are bidirectional at runtime, so SFDMU's own `_resolveOperation`
+    # commits index 8 and the string "Unknown" to the same value 8 rather than dropping them —
+    # confirmed by reading the installed sfdmu@5.8.0 source directly. Still reported (it is not a
+    # real operation a plan should declare), but as its own case, not lumped in with a dropped
+    # declaration like "Upser" or 99 above.
+    ("numeric 8 (Unknown, the enum's own fallback) is reported — SFDMU resolves and commits it, "
+     "it just isn't a real operation",
      True, [i for i in issues([[dict(UPSERT, operation=8)]], {"Widget__c.csv": HEADER})
+            if "resolve" in i]),
+    ("...and so is the string \"Unknown\", which SFDMU resolves to the same committed value 8",
+     True, [i for i in issues([[dict(UPSERT, operation="Unknown")]], {"Widget__c.csv": HEADER})
             if "resolve" in i]),
     ("a Boolean is reported even though False == 0 in Python — JS typeof false is 'boolean', so "
      "the loader drops it rather than reading it as numeric Insert",
@@ -505,6 +486,14 @@ NUMERIC_OPERATION_GATING = [
      True, [i for i in issues([[dict(UPSERT, operation=2, externalId="A.B.C")]],
                                {"Widget__c.csv": HEADER})
             if "nested relationship path" in i]),
+    # `_is_live_writable` treats a resolved-but-"unknown" operation (index 8 / the string
+    # "Unknown") as not-writable, the same practical bucket as unresolvable — no write-dispatch
+    # path in SFDMU acts on that value, so demanding a CSV for it would be its own false Critical.
+    ("an object declared operation \"Unknown\" with no CSV anywhere is not flagged missing-CSV "
+     "Critical — SFDMU commits the value but never writes from a file for it",
+     False, issues([[dict(UPSERT, operation="Unknown")]], severity=V.Severity.CRITICAL)),
+    ("...control — the same object declared plain Upsert with no CSV IS flagged Critical",
+     True, issues([[UPSERT]], severity=V.Severity.CRITICAL)),
 ]
 
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
@@ -1216,6 +1205,27 @@ EXPLICIT_NULL_DEFAULTS = [
      "finding",
      False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
                                   "externalId": None}]])
+            if "not a string" in i]),
+    # SFDMU's `this.externalId || DEFAULT_EXTERNAL_ID_FIELD_NAME` is a full JS falsy-OR, not a
+    # null-only check — `0`, `false`, and `""` are exactly as falsy as `null` in JS and default the
+    # same way. An earlier version here checked only `is None`, so these three fell through
+    # unchanged and were reported malformed instead of silently defaulted to "Id".
+    ("an explicit `externalId: 0` defaults to \"Id\" like null — 0 is falsy in JS too",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": 0}]])
+            if "not a string" in i]),
+    ("...same for `externalId: false`",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": False}]])
+            if "not a string" in i]),
+    ("...same for `externalId: \"\"`",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": ""}]])
+            if "not a string" in i]),
+    ("control — `externalId: []` is JS-truthy (an empty array is still an object), so it is NOT "
+     "defaulted and IS reported malformed, same as any other non-string",
+     True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                 "externalId": []}]])
             if "not a string" in i]),
 ]
 

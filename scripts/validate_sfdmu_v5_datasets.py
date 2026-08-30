@@ -385,7 +385,19 @@ class SFDMUValidator:
                     self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
                              f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
-                for obj_config in self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index):
+                writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
+                if not writable_cfgs:
+                    # `declared` is non-empty but every declaration in this pass is Readonly/excluded
+                    # — SFDMU queries a Readonly object from the target org and never reads a file
+                    # for it, so this override is dead weight, not a defect worth a finding. Logged
+                    # rather than silently falling out of the loop: the "flag not true" skip above
+                    # gets a DEBUG line, and a reader diagnosing "0 issues" for a suspicious file
+                    # deserves the same signal for this skip, not silence indistinguishable from
+                    # "nothing to check here."
+                    self.log(f"  Skipping content check on Readonly/excluded override (no live "
+                             f"writable declaration): {obj_name} pass {pass_index + 1}", level="DEBUG")
+                    continue
+                for obj_config in writable_cfgs:
                     self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
 
         self.log(f"\nValidation complete for {dataset_name}")
@@ -770,17 +782,23 @@ class SFDMUValidator:
         # here treated an operation-less, CSV-less declaration as writable and reported the missing
         # CSV Critical — the exact Readonly false positive this validator exists to avoid.
         #
-        # An unresolvable value (a typo like "Upser", a Boolean, or an out-of-range/Unknown index)
-        # hits the same code path: `_resolveOperation` returns undefined for it too, so
-        # `object.operation` is left on the Readonly default rather than becoming writable. A raw
+        # An unresolvable value (a typo like "Upser", a Boolean, or an out-of-range index) hits the
+        # same code path: `_resolveOperation` returns undefined for it, so `object.operation` is
+        # left on the Readonly default rather than becoming writable. A raw
         # `str(cfg.get("operation") or "Readonly")` coercion missed two things: `str(2) == "2"`
         # is never in the enum, so a valid *numeric* Upsert/Insert was reported non-writable; and
         # Python's `0 or "Readonly"` treats numeric `0` (Insert) as falsy, silently coercing it to
         # Readonly before the enum check ever ran. `_resolve_operation` mirrors the loader (numeric
         # index or trimmed/case-folded name) so both numeric and string operations resolve the same
         # way `_validate_operation_value` reports them; unresolvable is Readonly, not "not readonly".
+        #
+        # Index 8 / the string "Unknown" is a third case: SFDMU *does* resolve it (to its own inert
+        # enum fallback, not undefined — see `SFDMU_OPERATION_BY_INDEX`), so it is not "unresolvable"
+        # in SFDMU's own terms. But no write-dispatch path in SFDMU acts on that value, so it is
+        # still not-writable here — checked separately from `resolved is None` because a future
+        # caller distinguishing "declared nothing usable" from "declared Unknown" needs the signal.
         resolved = SFDMUValidator._resolve_operation(cfg.get("operation"))
-        if resolved is None:
+        if resolved is None or resolved == "unknown":
             return False
         return resolved != "readonly"
 
@@ -811,16 +829,22 @@ class SFDMUValidator:
 
     # SFDMU's `OPERATION` enum as spelled in `Enumerations.js` (v5.8.0), lowercased because that is
     # how `ScriptLoader._resolveOperation` compares. `Unknown` is the enum's own fallback rather
-    # than something a plan declares, so it is not accepted.
+    # than a value a plan should declare, so it is deliberately absent here — `_resolve_operation`
+    # still resolves it (via `SFDMU_OPERATION_BY_INDEX` below), it is just never a *legal* choice.
     SFDMU_OPERATIONS = frozenset({"insert", "update", "upsert", "readonly", "delete",
                                   "deletesource", "deletehierarchy", "harddelete"})
 
-    # Numeric enum indices `ScriptLoader._resolveOperation` also resolves via `OPERATION[value]`
-    # (Enumerations.js, v5.8.0): 0 Insert .. 7 HardDelete, in this order. Index 8 is `Unknown` —
-    # the enum's own fallback, not a value a plan declares — so it is deliberately absent here,
-    # the same way the string `"unknown"` is absent from `SFDMU_OPERATIONS`.
+    # Numeric enum indices `ScriptLoader._resolveOperation` resolves via `OPERATION[value]`
+    # (Enumerations.js, v5.8.0): 0 Insert .. 7 HardDelete .. 8 Unknown. TypeScript numeric enums are
+    # bidirectional at runtime (`OPERATION[8] === "Unknown"` and `OPERATION["Unknown"] === 8`), so
+    # SFDMU resolves index 8 *and* the string `"Unknown"` to the committed value 8 — it does not
+    # drop the declaration the way an out-of-range index or unrecognized word does. Index 8 is
+    # included here (unlike the earlier, source-unverified assumption that it was dropped) so
+    # `_resolve_operation` returns `"unknown"` rather than `None` for it; callers then treat
+    # `"unknown"` as its own state — resolved, but not a real operation — rather than lumping it
+    # in with a genuinely-dropped declaration.
     SFDMU_OPERATION_BY_INDEX = ("insert", "update", "upsert", "readonly", "delete",
-                                "deletesource", "deletehierarchy", "harddelete")
+                                "deletesource", "deletehierarchy", "harddelete", "unknown")
 
     @staticmethod
     def _resolve_operation(value) -> Optional[str]:
@@ -837,6 +861,12 @@ class SFDMUValidator:
         as `OPERATION[2]` and resolves to Upsert — rejecting the float here would report a valid
         plan's operation as unresolvable. `is_integer()` is `False` for `2.5` (out of the loader's
         reach — `OPERATION[2.5]` is `undefined`) and for `nan`/`inf`, so both still fall through.
+
+        The string branch matches against `SFDMU_OPERATION_BY_INDEX`, not `SFDMU_OPERATIONS`: the
+        enum's numeric keys are bidirectional at runtime, so the loader's `Object.keys(OPERATION)`
+        also matches the literal string `"Unknown"` and resolves it to `8` — the same committed,
+        non-dropped value a numeric `8` resolves to. Returning `"unknown"` here (rather than
+        `None`) lets callers distinguish that from a genuinely-dropped declaration.
         """
         if isinstance(value, bool):
             return None
@@ -846,18 +876,23 @@ class SFDMUValidator:
                     if 0 <= idx < len(SFDMUValidator.SFDMU_OPERATION_BY_INDEX) else None)
         if isinstance(value, str):
             normalized = value.strip().lower()
-            return normalized if normalized in SFDMUValidator.SFDMU_OPERATIONS else None
+            return (normalized if normalized in SFDMUValidator.SFDMU_OPERATION_BY_INDEX
+                    else None)
         return None
 
     def _validate_operation_value(self, obj_name: str, obj_config: dict, result: ValidationResult):
-        """Report an `operation` SFDMU cannot resolve.
+        """Report an `operation` SFDMU cannot act on — dropped entirely, or resolved to its own
+        inert fallback.
 
         Mirrors `ScriptLoader._resolveOperation` (v5.8.0), the function that loads export.json:
         strings are matched `trim().toLowerCase()` against the enum keys (so `" ReadOnly "` is
-        fine) and numeric enum indices 0-7 resolve directly (`OPERATION[value]`); anything else —
-        a Boolean, an out-of-range/`Unknown` index, or a word not in the enum — resolves to
-        `undefined` and the declaration is silently dropped, leaving the object on SFDMU's default
-        rather than the operation the plan asked for.
+        fine) and numeric enum indices 0-8 resolve directly (`OPERATION[value]`, bidirectional at
+        runtime for a TypeScript numeric enum, so the string `"Unknown"` resolves the same way as
+        numeric `8`); anything else — a Boolean, an out-of-range index, or a word not in the enum —
+        resolves to `undefined` and the declaration is silently dropped, leaving the object on
+        SFDMU's default rather than the operation the plan asked for. Index 8 / `"Unknown"` is
+        reported separately below: SFDMU commits that value rather than dropping it, but it is the
+        enum's own fallback, not a real operation a plan should declare.
 
         Written first against `ScriptObject.getOperation`, which does a raw `OPERATION[operation]`
         lookup with no trimming or case folding. That reading made the nine `"ReadOnly"`
@@ -869,7 +904,19 @@ class SFDMUValidator:
         unconditionally, so an absent declared value already arrives as the string `"Readonly"`.
         """
         operation = obj_config["operation"]
-        if self._resolve_operation(operation) is not None:
+        resolved = self._resolve_operation(operation)
+        if resolved is not None and resolved != "unknown":
+            return
+        if resolved == "unknown":
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name=obj_name,
+                message=(f"operation {operation!r} resolves to SFDMU's own enum fallback, Unknown "
+                         f"(index 8) — SFDMU commits this value rather than dropping the "
+                         f"declaration, but it is not a real operation the plan can act on; "
+                         f"declare one of {', '.join(sorted(self.SFDMU_OPERATIONS))} or a numeric "
+                         f"index 0-7")
+            ))
             return
         result.add_issue(Issue(
             severity=Severity.HIGH,
@@ -959,7 +1006,6 @@ class SFDMUValidator:
         size 2 — 0 disagreements. It is reported separately as a High, by the per-pass loop.)
         """
         writable_passes = self._writable_passes_by_object(all_pass_configs)
-        all_configs = all_pass_configs
         # SFDMU's `rawSourceDirectoryPath` (`Script.js`) substitutes the object-set-N subdirectory
         # only when `objectSetIndex` is truthy AND `useSeparatedCSVFiles` is true; either condition
         # false, and every pass — not just pass 1 — reads the plan root. Without this gate, a plan
@@ -1002,7 +1048,7 @@ class SFDMUValidator:
                 # `_writable_configs_for_pass`, but a duplicate spanning two different `uncovered`
                 # passes is only caught by deduping again across all of them together.
                 declarations = [cfg for i in uncovered
-                                for cfg in self._writable_configs_for_pass(all_configs, obj_name, i)]
+                                for cfg in self._writable_configs_for_pass(all_pass_configs, obj_name, i)]
                 # Only when non-empty. Membership in this mapping is what makes `_validate_object` ask
                 # for the file at all, so a key with an empty list would claim the CSV is owed and
                 # then validate it against nothing — dropping the missing-file Critical silently. It
@@ -1078,12 +1124,20 @@ class SFDMUValidator:
         the two. Hence `externalId_malformed`: the coercion loses the type, so the type is recorded
         here and reported by `_validate_object`.
         """
-        # `externalId` gets `obj.get(key)` + a `None` check rather than `obj.get(key, default)`,
-        # because SFDMU's own runtime does not draw the absent-vs-explicit-null line for this
-        # field: `ScriptObject.js`'s init path ends with `this.externalId = this.externalId ||
-        # DEFAULT_EXTERNAL_ID_FIELD_NAME` — a falsy-OR fallback that defaults an explicit `null`
-        # exactly like an absent key (both falsy). Confirmed against the installed `sfdmu@5.8.0`
-        # source, `ScriptObject.js` (init method around the "Setup start" log line).
+        # `externalId` gets `obj.get(key)` + a JS-truthiness check rather than `obj.get(key,
+        # default)`, because SFDMU's own runtime does not draw the absent-vs-explicit-null line for
+        # this field, or even the null-vs-other-falsy line: `ScriptObject.js`'s init path ends with
+        # `this.externalId = this.externalId || DEFAULT_EXTERNAL_ID_FIELD_NAME` — a JS falsy-OR
+        # fallback that defaults an explicit `null`, `0`, `false`, or `""` exactly like an absent
+        # key (all falsy in JS). Confirmed against the installed `sfdmu@5.8.0` source,
+        # `ScriptObject.js` (init method around the "Setup start" log line). An earlier version
+        # here checked only `is None`, so `"externalId": 0`/`false`/`""` fell through unchanged
+        # instead of defaulting to `"Id"`, then got `str()`-coerced and reported malformed below —
+        # a false High for a declaration SFDMU accepts and quietly redirects to `Id`. Routed
+        # through `_is_js_truthy` rather than a second bespoke falsy check, for the same reason
+        # `excluded`/`deleteOldData` are: a list/dict is JS-truthy (`[]`/`{}` are objects, not
+        # falsy), so an `externalId: []` still falls through to the malformed report instead of
+        # being silently defaulted — only the scalar falsy values redirect.
         #
         # `operation` does NOT get the same treatment, and used to here — a prior version of this
         # normalizer coalesced `"operation": null` to `"Readonly"` on the theory that
@@ -1105,7 +1159,7 @@ class SFDMUValidator:
         # `operation` value — not silently defaulted.
         raw_operation = obj.get("operation", "Readonly")
         raw_external_id = obj.get("externalId")
-        if raw_external_id is None:
+        if not self._is_js_truthy(raw_external_id):
             raw_external_id = "Id"
         return {
             "pass_index": idx,
@@ -1169,7 +1223,7 @@ class SFDMUValidator:
         return fields
 
     def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict,
-                                         result: Optional[ValidationResult] = None) -> Dict[Tuple[str, int], Tuple[Path, int]]:
+                                         result: ValidationResult) -> Dict[Tuple[str, int], Tuple[Path, int]]:
         """Find per-pass CSV overrides in objectset_source/object-set-N/.
 
         Includes `object-set-1` (pass_index 0) in the returned mapping — its file still gets
@@ -1180,9 +1234,10 @@ class SFDMUValidator:
         Args:
             dataset_path: Path to dataset directory
             export_data: Parsed export.json data
-            result: Optional result to report a directory that maps to no pass. Optional because
-                the fix modes call this to locate files and have no result to report into; when it
-                is omitted the condition is still logged.
+            result: Result to report a directory that maps to no pass into. Required, not
+                defaulted: the sole caller (`validate_dataset`) always has one in scope, and an
+                `Optional[...] = None` here invited a second, dead code path — no caller has ever
+                passed `None` — that duplicated every `if result is not None:` guard below it.
 
         Returns:
             Dictionary mapping (object_name, pass_index) -> (csv_path, pass_index)
@@ -1217,19 +1272,18 @@ class SFDMUValidator:
             if not match:
                 self.log(f"Warning: {obj_set_dir.name} is not a canonical object-set-N directory",
                           level="WARN")
-                if result is not None:
-                    csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
-                    result.add_issue(Issue(
-                        severity=Severity.HIGH,
-                        object_name=obj_set_dir.name,
-                        message=(f"objectset_source/{obj_set_dir.name}/ is not a canonical "
-                                 f"object-set-N directory (expected 'object-set-' followed by a "
-                                 f"positive integer with no leading zero, and nothing else) — "
-                                 f"SFDMU never reads it, so the {len(csv_names)} CSV(s) in it are "
-                                 f"silently never loaded"
-                                 + (f": {', '.join(csv_names)}" if csv_names else "")),
-                        file_path=self._make_relative_path(obj_set_dir)
-                    ))
+                csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
+                result.add_issue(Issue(
+                    severity=Severity.HIGH,
+                    object_name=obj_set_dir.name,
+                    message=(f"objectset_source/{obj_set_dir.name}/ is not a canonical "
+                             f"object-set-N directory (expected 'object-set-' followed by a "
+                             f"positive integer with no leading zero, and nothing else) — "
+                             f"SFDMU never reads it, so the {len(csv_names)} CSV(s) in it are "
+                             f"silently never loaded"
+                             + (f": {', '.join(csv_names)}" if csv_names else "")),
+                    file_path=self._make_relative_path(obj_set_dir)
+                ))
                 continue
 
             pass_number = int(match.group(1))  # 1-based
@@ -1246,18 +1300,17 @@ class SFDMUValidator:
                 # `object-set-0` is the likely typo — the directories are 1-based, so it maps to
                 # pass_index -1 and used to be resolved against the *last* pass and mutated by the
                 # fix modes.
-                if result is not None:
-                    csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
-                    result.add_issue(Issue(
-                        severity=Severity.HIGH,
-                        object_name=obj_set_dir.name,
-                        message=(f"objectset_source/{obj_set_dir.name}/ maps to no pass in "
-                                 f"export.json (directories are 1-based, and this plan has "
-                                 f"{len(object_sets)} pass(es)), so SFDMU never reads the "
-                                 f"{len(csv_names)} CSV(s) in it"
-                                 + (f": {', '.join(csv_names)}" if csv_names else "")),
-                        file_path=self._make_relative_path(obj_set_dir)
-                    ))
+                csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
+                result.add_issue(Issue(
+                    severity=Severity.HIGH,
+                    object_name=obj_set_dir.name,
+                    message=(f"objectset_source/{obj_set_dir.name}/ maps to no pass in "
+                             f"export.json (directories are 1-based, and this plan has "
+                             f"{len(object_sets)} pass(es)), so SFDMU never reads the "
+                             f"{len(csv_names)} CSV(s) in it"
+                             + (f": {', '.join(csv_names)}" if csv_names else "")),
+                    file_path=self._make_relative_path(obj_set_dir)
+                ))
                 continue
 
             # Find all CSVs in this directory
@@ -1937,7 +1990,7 @@ class SFDMUValidator:
         headers_fixed = 0
         composite_keys_fixed = 0
 
-        for obj_name, obj_config in object_configs.items():
+        for obj_name in object_configs:
             # The merged first declaration is the wrong skip: an object excluded (or Readonly) in
             # pass 1 and writable in pass 2 has `excluded=True` here, so the per-reading-config loop
             # below never ran and `--fix-all` left pass 2's composite-key finding standing. Skip on

@@ -5081,8 +5081,8 @@ if FAILED:
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
 EXPECTED = 680
-cited = README_COUNT.search(
-    pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text())
+_readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
+cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
       "from the suite (README_COUNT is the sentence it reads)",
       cited is not None and int(cited.group(1)) == EXPECTED,
@@ -5095,7 +5095,6 @@ check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the p
 # appears in unrelated incident narration that must not be rewritten.
 _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
               18: "eighteen", 19: "nineteen", 20: "twenty"}
-_readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 _actual = len(pr_gate.CHECKS)
 _stale = [w for n, w in _NUM_WORDS.items() if n != _actual
           for pat in (f"of {w} validators", f"two of the {w}", f"all {w} ran",
