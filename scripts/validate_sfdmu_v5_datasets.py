@@ -759,12 +759,14 @@ class SFDMUValidator:
     def _is_live_writable(cfg: dict) -> bool:
         """True if SFDMU will write this declaration from a source file.
 
-        `excluded` declarations are skipped entirely; `Readonly` ones are queried from the target
-        org. Both owe no CSV, and a High on either is a false positive — including when they share
-        a pass with a writable sibling, which is the shape `_objects_owing_root_csv` used to miss
-        because it filtered only `excluded`. An unresolvable or `Unknown` `operation` is the other
-        direction: it is NOT exempted like `Readonly` — SFDMU still writes it from source (see the
-        inline comment below), so a missing CSV for it is a real Critical, not a false positive.
+        `excluded` declarations are skipped entirely; `Readonly` and plain `Delete` ones are both
+        skipped by the same runtime gate (`MigrationJobTask.updateRecordsAsync`'s early return —
+        see the inline comment below) without ever reading a source file. All three owe no CSV,
+        and a High on any of them is a false positive — including when one shares a pass with a
+        writable sibling, which is the shape `_objects_owing_root_csv` used to miss because it
+        filtered only `excluded`. An unresolvable or `Unknown` `operation` is the other direction:
+        it is NOT exempted like `Readonly`/`Delete` — SFDMU still writes it from source, so a
+        missing CSV for it is a real Critical, not a false positive.
         """
         if SFDMUValidator._is_js_truthy(cfg.get("excluded")):
             return False
@@ -813,7 +815,14 @@ class SFDMUValidator:
         resolved = SFDMUValidator._resolve_operation(cfg.get("operation"))
         if resolved is None or resolved == "unknown":
             return True
-        return resolved != "readonly"
+        # Plain `delete` hits the exact same early return as `readonly` at that gate
+        # (`this.scriptObject.operation === OPERATION.Readonly || ... === OPERATION.Delete`) —
+        # found by Copilot (comment 3888882830) after this docstring/comment block already named
+        # the gate but the code below it excluded only "readonly". The other delete-family values
+        # (`deletesource`, `deletehierarchy`, `harddelete`) are distinct enum members that gate does
+        # not match, so they are deliberately left out of this exclusion — verified they fall
+        # through to the normal dispatch instead, so they still owe a CSV.
+        return resolved not in ("readonly", "delete")
 
     def _writable_passes_by_object(self, all_pass_configs: Dict[str, Dict[int, List[dict]]]) -> Dict[str, Set[int]]:
         """Map each object to the 0-based passes in which this plan writes it from a file.

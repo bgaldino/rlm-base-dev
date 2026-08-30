@@ -44,6 +44,7 @@ V = load_validator()
 
 UPSERT = {"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}
 READONLY = {"query": "SELECT Id, Name FROM Gadget__c", "operation": "Readonly", "externalId": "Name"}
+DELETE = {"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Delete", "externalId": "Name"}
 HEADER = "Id,Name\n1,a\n"
 
 
@@ -514,6 +515,14 @@ NUMERIC_OPERATION_GATING = [
     ("...and the control the other direction still holds — a real Readonly declaration with no "
      "CSV is NOT flagged Critical, since Readonly really does hit the write-dispatch skip",
      False, issues([[READONLY]], severity=V.Severity.CRITICAL)),
+    # Copilot (comment 3888882830) caught that this exclusion list named the write-dispatch gate's
+    # exact pair (Readonly(3) *or* Delete(4)) in its own comments but only excluded "readonly" in
+    # code — a plain `Delete` object with no CSV was wrongly flagged missing-CSV Critical, since
+    # `updateRecordsAsync` returns 0 for Delete unconditionally (MigrationJobTask.js:456), before
+    # ever reading a source file (retrieveRecordsAsync also skips it — see _is_live_writable).
+    ("a plain Delete declaration with no CSV is NOT flagged Critical, since Delete hits the same "
+     "write-dispatch skip as Readonly",
+     False, issues([[DELETE]], severity=V.Severity.CRITICAL)),
 ]
 
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
