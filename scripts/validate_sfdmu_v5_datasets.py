@@ -1618,7 +1618,21 @@ class SFDMUValidator:
         # `str(obj_config.get("operation") or "Readonly")` used to bypass this: `0 or "Readonly"`
         # treats numeric Insert (index 0) as falsy, coercing it to Readonly and wrongly running
         # the nested-path/SELECT-coverage checks below that string Insert correctly skips.
-        is_insert = self._resolve_operation(obj_config.get("operation")) == "insert"
+        resolved_operation = self._resolve_operation(obj_config.get("operation"))
+        is_insert = resolved_operation == "insert"
+        # Plain Delete needs the same skip, for a stronger reason than Insert's: Insert's query
+        # still runs (against source), just not for externalId matching; Delete's query never runs
+        # at all — confirmed against the installed sfdmu@5.8.0 source, `retrieveRecordsAsync`'s
+        # `shouldSkipDeleteRetrieve` skips retrieval unconditionally (source AND target) for plain
+        # Delete before it even inspects `queryMode`, and `deleteRecordsAsync()` (the one path that
+        # does query+delete a target) only runs for `isHierarchicalDeleteOperation`, not plain
+        # Delete. So a plain Delete's externalId components have no SELECT clause to be missing
+        # from — found by Copilot's review summary (comment on commit 03bacac7c, no inline thread)
+        # after `_is_live_writable`'s own Delete fix (28ffda4f) already established the "never
+        # reads a source file" half of this; this is the "never runs its query either" other half,
+        # unlike Readonly (see the comment above this method's only caller) whose query DOES run,
+        # against the target org, so Readonly keeps both checks.
+        is_delete = resolved_operation == "delete"
 
         # Check for legacy $$ notation in externalId definition
         if "$$" in external_id:
@@ -1631,13 +1645,15 @@ class SFDMUValidator:
         # Check for nested relationship paths (v5 flattening issue).
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
+        # Skip for plain Delete too, for a stronger reason: its query never runs at all
+        # (see the is_delete comment above), so there is no SOQL traversal to fail either.
         #
         # Shared with every other externalId-splitting site via `_split_external_id_fields`: an
         # unstripped "Field1; Field2" leaves ' Field2', which never matches the parsed (trimmed)
         # SELECT-field set below even when the query correctly selects Field2 — a false HIGH on
         # correct data, the exact class this PR exists to eliminate.
         fields = self._split_external_id_fields(external_id)
-        if not is_insert:
+        if not is_insert and not is_delete:
             for field in fields:
                 # Count dots (more than 1 = nested relationship)
                 dot_count = field.count(".")
@@ -1652,7 +1668,10 @@ class SFDMUValidator:
         # Skip for Insert operations: externalId is used only for CSV composite key
         # matching within the dataset, not for SOQL record matching, so the fields
         # do not need to appear in the SELECT clause.
-        if ";" in external_id and not is_insert:
+        # Skip for plain Delete for a stronger reason: its query never executes at all
+        # (source or target — see the is_delete comment above), so there is no SELECT
+        # clause for these fields to be missing from.
+        if ";" in external_id and not is_insert and not is_delete:
             query_fields = set(obj_config.get("fields", []))
             for field in fields:
                 # Require that each externalId component is explicitly present in the query

@@ -525,6 +525,29 @@ NUMERIC_OPERATION_GATING = [
      False, issues([[DELETE]], severity=V.Severity.CRITICAL)),
 ]
 
+# Copilot review-summary finding (no inline thread, on commit 03bacac7): plain Delete's query
+# never executes at all — source or target (see the is_delete comment in _validate_external_id,
+# citing sfdmu@5.8.0's retrieveRecordsAsync/deleteRecordsAsync) — so a composite or nested
+# externalId whose components are absent from the SELECT clause is not a defect; there is no
+# SELECT clause for them to be missing from. Mirrors NUMERIC_OPERATION_GATING's Insert-skip pins.
+DELETE_EXTERNAL_ID_SKIP = [
+    ("a plain Delete with a composite externalId whose components are NOT in the query SELECT "
+     "clause is NOT flagged — Delete's query never runs, so there is no SELECT clause to check",
+     False, [i for i in issues([[dict(DELETE, externalId="Name;Code")]], {"Gizmo__c.csv": HEADER})
+             if "SELECT clause" in i]),
+    ("...control — the same composite externalId on an Upsert declaration IS flagged, proving the "
+     "skip above is operation-gated, not a parsing quirk",
+     True, [i for i in issues([[dict(UPSERT, externalId="Name;Code")]], {"Widget__c.csv": HEADER})
+            if "SELECT clause" in i]),
+    ("a plain Delete with a nested relationship path in its externalId is NOT flagged, same reason "
+     "— no SOQL traversal ever happens for it",
+     False, [i for i in issues([[dict(DELETE, externalId="A.B.C")]], {"Gizmo__c.csv": HEADER})
+             if "nested relationship path" in i]),
+    ("...control — the same nested path on an Upsert declaration IS flagged",
+     True, [i for i in issues([[dict(UPSERT, externalId="A.B.C")]], {"Widget__c.csv": HEADER})
+            if "nested relationship path" in i]),
+]
+
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
 # start or stop writing to a file with nothing to notice.
 FIX_MODES = [
@@ -1637,6 +1660,9 @@ def main() -> int:
                  ("operation values SFDMU can and cannot resolve", OPERATION_RESOLUTION),
                  ("a numeric operation gates the externalId Insert-mode skip, not just a string one",
                   NUMERIC_OPERATION_GATING),
+                 ("plain Delete skips the externalId SELECT-coverage and nested-path checks too, "
+                  "since its query never runs at all",
+                  DELETE_EXTERNAL_ID_SKIP),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),
