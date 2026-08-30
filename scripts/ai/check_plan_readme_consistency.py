@@ -42,6 +42,7 @@ import csv
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import Counter
 
@@ -313,21 +314,36 @@ def check_plan(plan_dir: str):
     return errors, warns, parsed_anything
 
 
-def find_plan_dirs(targets: list[str]) -> list[str]:
+def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
+    """Discover on export.json ALONE, so a plan missing its README is reported by
+    name (second return value) instead of never entering the walk — the gate used
+    to require both files to co-exist before a plan was even visible, which let a
+    plan with no README pass by absence rather than by being audited."""
     if targets:
-        dirs = []
+        dirs, no_readme = [], []
         for t in targets:
             t = os.path.abspath(t)
-            if os.path.isfile(os.path.join(t, "export.json")) and os.path.isfile(os.path.join(t, "README.md")):
+            if not os.path.isfile(os.path.join(t, "export.json")):
+                print(f"skip {os.path.relpath(t, REPO_ROOT)} — no export.json", file=sys.stderr)
+            elif os.path.isfile(os.path.join(t, "README.md")):
                 dirs.append(t)
             else:
-                print(f"skip {os.path.relpath(t, REPO_ROOT)} — no export.json + README.md", file=sys.stderr)
-        return dirs
-    dirs = []
+                no_readme.append(t)
+        return dirs, no_readme
+    dirs, no_readme = [], []
     for root, _d, files in os.walk(SFDMU_ROOT):
-        if "export.json" in files and "README.md" in files:
-            dirs.append(root)
-    return sorted(dirs)
+        if "export.json" not in files:
+            continue
+        (dirs if "README.md" in files else no_readme).append(root)
+    return sorted(dirs), sorted(no_readme)
+
+
+def is_tracked(export_json: str) -> bool:
+    """A README is required for every REPO-tracked plan — not for local/gitignored
+    scratch dirs (e.g. datasets/sfdmu/test/) that happen to carry an export.json."""
+    r = subprocess.run(["git", "ls-files", "--error-unmatch", export_json],
+                        cwd=REPO_ROOT, capture_output=True)
+    return r.returncode == 0
 
 
 def main() -> int:
@@ -336,7 +352,7 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true", help="Exit non-zero on warnings too")
     args = ap.parse_args()
 
-    plan_dirs = find_plan_dirs(args.targets)
+    plan_dirs, no_readme = find_plan_dirs(args.targets)
     total_err = total_warn = 0
     skipped = []
     for d in plan_dirs:
@@ -355,6 +371,21 @@ def main() -> int:
             print(f"### OK   {rel}")
         total_err += len(errors)
         total_warn += len(warns)
+
+    # A plan with export.json and no README used to never enter the walk above, so
+    # "0 errors" could mean "nothing drifted" or "the plan was never looked at" —
+    # indistinguishable. Report it by name; a tracked plan missing a README is an
+    # ERROR (a README is required for every tracked plan), a local/untracked scratch
+    # dir is a note only.
+    tracked_no_readme = [d for d in no_readme if is_tracked(os.path.join(d, "export.json"))]
+    untracked_no_readme = [d for d in no_readme if d not in tracked_no_readme]
+    if tracked_no_readme:
+        rels = ", ".join(os.path.relpath(d, REPO_ROOT) for d in tracked_no_readme)
+        print(f"\nERROR  {len(tracked_no_readme)} tracked plan(s) have no README — not audited: {rels}")
+        total_err += len(tracked_no_readme)
+    if untracked_no_readme:
+        rels = ", ".join(os.path.relpath(d, REPO_ROOT) for d in untracked_no_readme)
+        print(f"\n(untracked, no README, not required: {rels})")
 
     print(f"\n{'='*60}")
     print(f"Checked {len(plan_dirs) - len(skipped)} plan READMEs: {total_err} error(s), {total_warn} warning(s)")
