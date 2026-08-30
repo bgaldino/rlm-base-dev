@@ -130,7 +130,11 @@ CHECKS = [
     ),
     dict(
         name="plan_readme_consistency",
-        cmd=["python", "scripts/ai/check_plan_readme_consistency.py"],
+        # --strict: without it, operation/externalId mismatches and missing-object
+        # rows are WARN-only and exit 0 — a stale object table would pass the gate
+        # silently, the same "passes by absence" defect class this check exists to
+        # catch in the first place (pack 147).
+        cmd=["python", "scripts/ai/check_plan_readme_consistency.py", "--strict"],
         # The validator itself, not only the data it validates: a semantic regression in it
         # otherwise merges with only `agent_tooling`'s syntax scan having looked at the file,
         # and nothing having run it.

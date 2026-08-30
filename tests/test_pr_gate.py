@@ -331,13 +331,17 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 # an interpreter, `-m pytest`, `-q`, and paths. Anything else is a deliberate edit here.
 # `check` and `--check` are the read-only subcommands of two gate scripts (analyze_agent_tooling.py,
 # skill_manifest.py), not pytest options.
+# `--strict` is check_plan_readme_consistency.py's own flag — it fails WARN-level findings too,
+# not just ERROR-level, closing the gap where an operation/externalId mismatch or missing-object
+# row would otherwise gate silently (pack 147 / PR #406 review). It only widens what
+# plan_readme_consistency's own argv is allowed to add to itself, not what any check can do.
 # `-c` and `pass` were in here, and they are how a check becomes a no-op that always exits 0:
 # `cmd=["python", "-c", "pass"]` is built entirely from whitelisted words, so rewriting any check's
 # argv to it passed. Nothing in `CHECKS` needs them — the only argvs that use `-c pass` are this
 # suite's own synthetic probes, and they are appended to `CHECKS` *below* the assertion, so the
 # whitelist never had to admit them. A whitelist widened for a caller that does not exist is a
 # whitelist widened for the attacker only.
-CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check"}
+CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check", "--strict"}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     if w not in CMD_WORDS and not w.startswith(("tests/", "scripts/"))})
 check("no check's argv carries a word outside CMD_WORDS — nothing that could collect without "
