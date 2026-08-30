@@ -156,4 +156,4 @@ Run these checks before treating an approval-flow change as ready:
 - `python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors after notification dataset changes.
 - `python scripts/validate_sfdmu_v5_datasets.py` reports no findings against the composable-approvals
-  plans after dataset changes (the run as a whole still carries the 7-High `mfg-multicurrency` baseline).
+  plans after dataset changes (the run as a whole should PASS clean — 0 Critical, 0 High).

@@ -200,22 +200,22 @@ Use these before opening or updating a PR. They complement the **PR Review Focus
 checks your diff actually needs, runs them, and prints a status for **every** check — including the
 ones it skipped and why. That is the point: the checks below already existed and were enforced only
 by an agent reading this list, which is the enforcement that failed in `#264-27`, `#264-55` and
-`#264-56`. A missing dependency **fails** the gate rather than skipping, and one check
-(`validate_sfdmu_v5_datasets.py`) is **advisory**, because it still exits non-zero on a clean tree —
-though for a different reason than before. Its two Critical findings were the validator's own false
-positives, and pack 123 fixed them: a `Readonly` object is queried from the target org and owes no
-CSV, and a per-pass object's CSV can live under `objectset_source/object-set-N/`, an alternative to
-its root CSV **for that pass only** — and only when the plan sets `useSeparatedCSVFiles: true`; pass
-1 always reads the root regardless of the flag. Absent either qualifier, the root CSV is still owed.
-What remains is **seven High** findings, all zero-byte `Upsert`
-CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real defect, but a dormant one: `grep -ic
-mfg cumulusci.yml` returns **0**, so that plan and its eleven `mfg` siblings are all unwired. Either
-bucket fails the validator, so the check goes gating when the plan is removed, which is pack 110's
-job. Its precedent is `q3-multicurrency`, deleted in `dab545ab` carrying zero-byte
-`CostBook`/`CostBookEntry` CSVs of its own — the same finding, disposed of the same way. (Pack
-numbers refer to entries in the durable todo tracker under `.agents/artifacts/todos/`, which is
-gitignored — the reference resolves only from a tree that carries it.) The checklists below remain
-the reference for *what* each check means and for the judgement steps no gate can make.
+`#264-56`. A missing dependency **fails** the gate rather than skipping, and every check gates —
+including `validate_sfdmu_v5_datasets.py`, which used to be **advisory** because it exited non-zero
+on a clean tree for two reasons. Two Critical findings were the validator's own false positives, and
+pack 123 fixed them: a `Readonly` object is queried from the target org and owes no CSV, and a
+per-pass object's CSV can live under `objectset_source/object-set-N/`, an alternative to its root CSV
+**for that pass only** — and only when the plan sets `useSeparatedCSVFiles: true`; pass 1 always
+reads the root regardless of the flag. Absent either qualifier, the root CSV is still owed. The other
+findings were High — zero-byte `Upsert` CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real
+defect, but a dormant one: `grep -ic mfg cumulusci.yml` returned **0**, so that plan and its eleven
+`mfg` siblings were all unwired. Pack 110 removed the plan rather than adding header rows,
+following its precedent `q3-multicurrency`, deleted in `dab545ab` carrying zero-byte
+`CostBook`/`CostBookEntry` CSVs of its own — the same finding, disposed of the same way. With both
+fixes landed the check now gates like every other one. (Pack numbers refer to entries in the durable
+todo tracker under `.agents/artifacts/todos/`, which is gitignored — the reference resolves only from
+a tree that carries it.) The checklists below remain the reference for *what* each check means and for
+the judgement steps no gate can make.
 
 **The same gate now runs in CI** on every pull request (`.github/workflows/pr-checks.yml`, plus
 `check_branch_scope.py`, which needs a PR number, so only CI can supply it automatically — run it
@@ -254,7 +254,7 @@ can still be overridden deliberately. Treat doing so as a decision to record, no
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
-1. Run `python scripts/validate_sfdmu_v5_datasets.py`. It does **not** exit 0 on a clean tree — expect **7 High** findings from `mfg/en-US/mfg-multicurrency` (zero-byte CSVs in an unwired plan, removed by pack 110) and treat anything else as new. Do not "fix" the seven by adding header rows; the plan is being deleted.
+1. Run `python scripts/validate_sfdmu_v5_datasets.py`. It exits 0 on a clean tree (0 Critical, 0 High) — the former `mfg/en-US/mfg-multicurrency` baseline (zero-byte CSVs in an unwired plan) was resolved by deleting that plan (pack 110). Treat any Critical or High as new.
 2. Keep **`externalId`** (`;` delimiters) and CSV `$$` columns aligned with the skill rules in this file — do not change `Upsert` to `Insert` + `deleteOldData: true` without explicit user approval.
 3. If the plan’s behavior or objects changed, update the plan’s **README** in the same change, then run `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` — it fails if the README's object table or `# N records` listings drift from the actual `export.json`/CSVs (record counts, operations, externalIds, phantom/missing objects). Must report **0 errors**.
 

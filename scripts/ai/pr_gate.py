@@ -27,15 +27,16 @@ Four statuses that are easy to conflate and must not be:
 * `ADVISORY-DEP` — the same absence on an advisory check, which does *not* fail the gate.
   A separate label because the two differ only in consequence, and reading one as the
   other is the mistake this list exists to prevent.
-* `ADVISORY` — runs, reports, and never fails the gate. Exactly one check is advisory:
-  `validate_sfdmu_v5_datasets.py` exits non-zero on a clean tree today. Its two Criticals
-  were the validator's own false positives and pack 123 fixed them (a `Readonly` object owes
-  no source CSV; a per-pass CSV lives under `objectset_source/`). Seven High findings remain
-  — zero-byte `Upsert` CSVs under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — and they
-  are real but dormant, because that plan is unwired. *Either* bucket fails the validator, so
-  this check goes gating when the plan is removed (pack 110). A check that always fails gets
-  ignored, and an ignored check is worse than an absent one, so it is labelled with the
-  reason until then.
+* `ADVISORY` — runs, reports, and never fails the gate. No check currently uses it.
+  `validate_sfdmu_v5_datasets.py` was the one exception, exiting non-zero on a clean tree:
+  two Criticals that were the validator's own false positives (pack 123 fixed them — a
+  `Readonly` object owes no source CSV; a per-pass CSV lives under `objectset_source/`), plus
+  High findings standing — zero-byte `Upsert` CSVs under `datasets/sfdmu/mfg/en-US/mfg-multicurrency/`
+  — real but dormant, because that plan was unwired. *Either* bucket failed the validator, so
+  fixing only the Criticals could not turn it gating; pack 110 removed the plan too, and the
+  check now gates like every other. The status stays defined for the next check that earns it:
+  a check that always fails gets ignored, and an ignored check is worse than an absent one, so
+  it gets labelled with the reason instead.
 
 Exit codes follow `check_branch_scope.py`, so a tool error is never read as a verdict:
 0 = every selected gating check passed · 1 = at least one failed · 2 = usage or tool error.
@@ -150,20 +151,20 @@ CHECKS = [
     dict(
         name="sfdmu_csv_expectation",
         cmd=["python", "tests/test_sfdmu_csv_expectation.py"],
-        # Gating even though the validator it guards is only advisory, and the distinction is the
-        # point: the advisory label is about the validator's *findings* on this repo's data, while
-        # this suite is about whether the validator still asks for a root CSV where one is owed. It
-        # runs on synthetic fixtures, so it is green on a clean tree and can gate.
+        # Gating for its own reason, independent of `sfdmu_datasets` below: this suite is about
+        # whether the validator still asks for a root CSV where one is owed. It runs on synthetic
+        # fixtures, so it is green on a clean tree and can gate regardless of what the live
+        # validator finds.
         #
         # `datasets/sfdmu/` IS a trigger, and the reason is worth keeping because it was wrong once
         # in each direction. The suite began hermetic — synthetic tempdirs only — so the trigger was
         # over-selection and was dropped. Then it gained `live_baseline()`, which asserts the real
-        # tree's finding counts (0 Critical, 7 High, all in mfg-multicurrency) so the sites
-        # quoting those numbers cannot drift. That made the suite dataset-reading, and left the two
-        # halves contradicting each other: the change that breaks the baseline is a `datasets/` edit,
-        # and pack 110 deleting mfg-multicurrency would not have selected the suite it fails. A
-        # forcing function that its own triggering change cannot reach is worse than none — the red
-        # is not avoided, only deferred onto the next unrelated PR that touches the validator.
+        # tree's finding counts (0 Critical, 0 High, since pack 110 removed the unwired
+        # mfg-multicurrency plan that carried the last High findings) so the sites quoting those
+        # numbers cannot drift. That made the suite dataset-reading: a `datasets/` edit that changes
+        # the live baseline (say, reintroducing an unwired plan with zero-byte CSVs) has to select
+        # the suite that would fail on it, or the red is only deferred onto the next unrelated PR
+        # that touches the validator.
         #
         # The doc trees below are triggers for that same reason, one round later and found by the
         # `no suite reads a file that cannot select it` guard rather than by review: the suite now
@@ -180,16 +181,8 @@ CHECKS = [
         # the same matrix drift the `erd_doc_counts` trigger comment above names. Listed explicitly
         # instead — this suite's own file, so self-edits still select it (nothing else does that for
         # a suite that names no path of its own), plus the one sibling `baseline_sites()` reads.
-        #
-        # `cumulusci.yml` joined for the same reason `datasets/sfdmu/` did, found by Copilot
-        # (comment 3888912429) reviewing this file: the advisory-not-gating status for
-        # `sfdmu_datasets` below rests on `mfg-multicurrency` being unwired, and this suite now
-        # asserts that (`mfg_case_insensitive_hits()`) — but without this trigger, a PR that wires
-        # the plan into `cumulusci.yml` without touching any other trigger here would never run the
-        # assertion that catches it, the unreachable-forcing-function shape this comment already
-        # names twice over.
         triggers=["scripts/validate_sfdmu_v5_datasets.py", "tests/test_sfdmu_csv_expectation.py",
-                  "tests/test_pr_gate.py", "datasets/sfdmu/", "cumulusci.yml",
+                  "tests/test_pr_gate.py", "datasets/sfdmu/",
                   "AGENTS.md", "scripts/ai/", "docs/features/", ".cursor/skills/"],
         deps=[], gating=True,
     ),
@@ -341,11 +334,7 @@ CHECKS = [
         name="sfdmu_datasets",
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
         triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
-        deps=[], gating=False,
-        note="advisory: 7 High findings on a clean tree, real but dormant — zero-byte Upsert CSVs "
-             "in mfg-multicurrency, a plan nothing in cumulusci.yml wires. Pack 123 fixed the 2 "
-             "Criticals (both were this validator's own false positives); goes gating when pack "
-             "110 removes the plan",
+        deps=[], gating=True,
     ),
 ]
 

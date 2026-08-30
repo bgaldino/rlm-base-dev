@@ -581,23 +581,16 @@ finally:
     pr_gate.CHECKS.pop()
     os.unlink(listing)
 
-print("\nThe advisory carve-out stays exactly one check, with its reason")
+print("\nNo check is currently advisory")
 advisory = [c for c in pr_gate.CHECKS if not c["gating"]]
-check("exactly one check is advisory", len(advisory) == 1, [c["name"] for c in advisory])
-check("the advisory one is the SFDMU validator",
-      advisory and advisory[0]["name"] == "sfdmu_datasets")
-# 110, not 123: pack 123 fixed the two Criticals that *were* false positives, and what keeps this
-# check advisory now is the seven remaining High findings in the plan pack 110 removes. Pinning the
-# pack that no longer blocks is how the note went stale in the first place — it kept citing 123 as
-# pending after 123 landed, while telling operators the findings were false positives that the same
-# commit had reclassified as real.
-check("its note cites the pack that keeps it advisory",
-      advisory and "110" in advisory[0]["note"], advisory[0]["note"] if advisory else "")
-# The note is the only text an operator sees at the point of decision, so it must not contradict
-# the module docstring about whether the remaining findings are real.
-check("its note does not call the remaining findings false positives",
-      advisory and "findings on a clean tree are validator false positives" not in advisory[0]["note"],
-      advisory[0]["note"] if advisory else "")
+check("zero checks are advisory", len(advisory) == 0, [c["name"] for c in advisory])
+# sfdmu_datasets was the one exception until pack 110 removed the unwired mfg-multicurrency plan
+# that carried its last High findings (pack 123 had already fixed its two false-positive
+# Criticals). With both landed the check gates like every other one; this guards the flip staying
+# put rather than a future edit quietly reintroducing the note= field along with gating=False.
+sfdmu_check = next(c for c in pr_gate.CHECKS if c["name"] == "sfdmu_datasets")
+check("the SFDMU validator gates like every other check", sfdmu_check["gating"] is True)
+check("it carries no leftover advisory note", "note" not in sfdmu_check, sfdmu_check.get("note"))
 
 print("\nA failure in one command does not hide the commands after it")
 code, out, _ = pr_gate.run_sequence([["python", "-c", "print('first')"],
@@ -4557,26 +4550,21 @@ def probe_path(trig, ext=".md"):
     return trig.rstrip("/") + "/probe_reaches_verdict" + ext if trig.endswith("/") else trig
 
 
-def gate_verdict_all(runner_code, only=None):
+def gate_verdict_all(runner_code, only=None, checks=None):
     """Run `main()` with every selected runner returning `runner_code`, and report the exit code.
 
     Distinct from `gate_verdict` above, which fails one runner at a time to make the exit code an
     assertion about a single check's *booking*. This asks the other question — what the gate's exit code
-    means — which needs the outcome uniform. `only` narrows the selection so the advisory exception can
-    be exercised without a gating check deciding the answer first.
+    means — which needs the outcome uniform. `only` narrows the selection; `checks` replaces it outright,
+    for a synthetic check no live `CHECKS` entry can stand in for.
     """
     buf = io.StringIO()
-    keep = [c for c in pr_gate.CHECKS if only is None or only(c)]
+    keep = [c for c in (checks if checks is not None else pr_gate.CHECKS) if only is None or only(c)]
     try:
         pr_gate.run = lambda cmd: (runner_code, f"stub exit {runner_code}", 0.1)
         pr_gate.run_sequence = lambda cmds: (runner_code, f"stub exit {runner_code}", 0.1)
         pr_gate.missing_deps = lambda check: []
         pr_gate.unlisted_suites = lambda: []
-        # `CHECKS` is narrowed, not just the changed paths. Selecting by path could not isolate the
-        # advisory check: `sfdmu_datasets` triggers on `datasets/sfdmu/` and so does the gating
-        # `plan_readme_consistency`, so any path reaching one reached the other and the gating check
-        # decided the exit code — the fixture would have reported the advisory exception as broken while
-        # the exception worked.
         pr_gate.CHECKS = keep
         pr_gate.changed_files = lambda base: [probe_path((c["triggers"] or ["x/"])[0])
                                               for c in keep]
@@ -5026,7 +5014,10 @@ check("a tool error is named in its own sentence rather than folded into FAILED,
       "NO VERDICT" in gate_verdict_all(2)[1] and "FAILED:" not in gate_verdict_all(2)[1])
 # An advisory check is the deliberate exception: it exists so nothing it reports can block a merge, so
 # its broken environment must not become the one exit code that does. Still printed and still named.
-advisory_only = gate_verdict_all(2, only=lambda c: not c["gating"])
+# No live check is advisory any more (pack 110 retired the one that was), so this exercises the
+# mechanism itself with a synthetic check rather than through a real `CHECKS` entry.
+synthetic_advisory_check = dict(pr_gate.CHECKS[0], name="synthetic_advisory_probe", gating=False)
+advisory_only = gate_verdict_all(2, checks=[synthetic_advisory_check])
 check("an advisory check that cannot run does not turn into a blocking tool error",
       advisory_only[0] == 0, advisory_only[0])
 check("but it is still reported rather than passing silently",
@@ -5080,7 +5071,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 680
+EXPECTED = 679
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

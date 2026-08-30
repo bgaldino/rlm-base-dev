@@ -1420,8 +1420,9 @@ def live_baseline():
     An unpinned number in prose drifts — `pr_gate.py`'s advisory note said "9 findings ... are
     validator false positives" for one commit past the point where that became false, while the
     adjacent `678` figure stayed correct because a test forces it. This is that forcing function
-    for the baseline: when pack 110 deletes `mfg-multicurrency` the count goes to zero, this fails,
-    and every site gets updated in the same change rather than a later one.
+    for the baseline: pack 110 deleted `mfg-multicurrency`, the plan carrying the last 7 High
+    findings, which drove the count to zero and failed this check until every site was updated in
+    the same change — the mechanism stays in place for whatever next changes the live count.
     """
     validator = V.SFDMUValidator(base_dir=str(REPO), verbose=False)
     by_sev, plans = {}, set()
@@ -1441,14 +1442,15 @@ def live_baseline():
 _WORD_COUNTS = {"zero": 0, "no": 0, "none": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
                 "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
 
-# The plan holding the whole High baseline, written **repo-root-relative** rather than as the
-# `mfg/en-US/mfg-multicurrency` the validator reports. The suffix is what the assertion below needs;
-# the prefix is what makes this suite's dependency on `datasets/sfdmu/` visible to
-# `tests/test_pr_gate.py`, whose path enumerator reads string constants and cannot see a path built
-# inside `find_sfdmu_datasets()`. `pr_gate.py` argues at length that the `datasets/sfdmu/` trigger is
-# essential — pack 110 deleting this plan must select the suite that fails on it — and nothing
-# enforced the argument: the trigger could be deleted with all 680 pr_gate checks green. It cannot now.
-_BASELINE_PLAN = "datasets/sfdmu/mfg/en-US/mfg-multicurrency"
+# A repo-root-relative string naming the tree `live_baseline()` reads, kept purely so this suite's
+# dependency on `datasets/sfdmu/` is visible to `tests/test_pr_gate.py`'s path enumerator, which reads
+# string constants and cannot see a path built inside `find_sfdmu_datasets()`. `pr_gate.py` argues at
+# length that the `datasets/sfdmu/` trigger is essential — a dataset edit that changes the live count
+# must select the suite that fails on it — and nothing enforced the argument until this constant
+# existed: the trigger could be deleted with every pr_gate check green. It cannot now. Used to name a
+# single plan (`mfg/en-US/mfg-multicurrency`) before pack 110 deleted it; no single plan carries the
+# baseline any more, so this now names the tree rather than one plan within it.
+_BASELINE_ROOT = "datasets/sfdmu"
 
 # The baseline sites, pinned as `{file: how many times it states the baseline}`.
 #
@@ -1469,15 +1471,10 @@ _BASELINE_PLAN = "datasets/sfdmu/mfg/en-US/mfg-multicurrency"
 # That is the same shape as the defect, one level up: a guard whose own coverage nobody measured.
 _EXPECTED_BASELINE_SITES = {
     ".cursor/skills/doc-consistency/SKILL.md": 2,
-    ".cursor/skills/sfdmu-data-plans/SKILL.md": 1,
-    "AGENTS.md": 2,
+    "AGENTS.md": 1,
     "docs/features/composable-quote-approvals.md": 1,
     "scripts/ai/README.md": 1,
-    "scripts/ai/pr_gate.py": 3,
-    # Found only after the pattern was loosened to allow words between the count and the noun
-    # ("the seven remaining High findings"). It had been stating the baseline outside the sweep the
-    # whole time, which is the failure mode this pin exists to make loud.
-    "tests/test_pr_gate.py": 1,
+    "scripts/ai/pr_gate.py": 1,
 }
 
 
@@ -1570,27 +1567,8 @@ def baseline_sites():
     return sites
 
 
-def mfg_case_insensitive_hits():
-    """Case-insensitive `mfg` occurrences in `cumulusci.yml` — mirrors AGENTS.md's own check.
-
-    The advisory-not-gating rationale for `sfdmu_datasets` (`scripts/ai/pr_gate.py`'s note on that
-    check, and `AGENTS.md`'s "grep -ic mfg cumulusci.yml returns 0") rests entirely on
-    `mfg-multicurrency` being unwired — the 7 High findings are real but dormant *because* nothing
-    runs that plan. Found by Copilot (comment 3888912429): neither `sfdmu_datasets` nor this suite
-    was triggered by a `cumulusci.yml` edit, so a future PR could wire the plan while both checks
-    stayed unselected, silently turning 7 dormant Highs live under an advisory label nobody
-    re-examined. This is the forcing function for the other direction from `live_baseline()`'s
-    docstring: that one catches the plan being *deleted* (count goes to zero); this one catches it
-    being *wired* (this returns non-empty). `scripts/ai/pr_gate.py`'s `sfdmu_csv_expectation` check
-    lists `cumulusci.yml` as a trigger for the same reason `datasets/sfdmu/` is listed there — a
-    forcing function whose own triggering edit cannot reach it is worse than none.
-    """
-    return re.findall(r"mfg", (REPO / "cumulusci.yml").read_text(encoding="utf-8"), re.IGNORECASE)
-
-
 _sev, _plans = live_baseline()
 _sites = baseline_sites()
-_mfg_hits = mfg_case_insensitive_hits()
 # Symmetric difference, so both directions fail with the offending file named: a site that stopped
 # matching the pattern (the silent-drop failure this pin exists for) and a new one nobody pinned.
 _observed_sites = {f: len(hits) for f, hits in _sites.items()}
@@ -1601,19 +1579,18 @@ _site_drift = sorted(
 BASELINE = [
     ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
      False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
-    ("the live tree has exactly 7 High findings, the documented baseline",
+    ("the live tree has 0 High findings — pack 110 deleted the plan that carried the last 7",
      True, [f"High={_sev.get(V.Severity.HIGH.value, 0)}"]
-           if _sev.get(V.Severity.HIGH.value, 0) == 7 else []),
-    # The exact dataset name, not a substring. `"multicurrency" in p` also accepts a restored
-    # `q3-multicurrency` — the very plan `dab545ab` deleted for carrying zero-byte CSVs of its own —
-    # so the loose form would report the documentation green while the findings had moved to a
-    # different plan than every one of those documents names.
-    (f"all 7 are in {_BASELINE_PLAN} exactly, so the docs name the plan that has them",
-     True, sorted(_plans) if _plans == {_BASELINE_PLAN.split("datasets/sfdmu/", 1)[1]} else []),
+           if _sev.get(V.Severity.HIGH.value, 0) == 0 else []),
+    # No plan carries any High findings any more, so the set discovered by `live_baseline()` has to
+    # be empty — not just absent the deleted plan. A future regression that adds High findings under
+    # a *different* plan would otherwise slip past a check that only excludes the one name.
+    ("no plan carries High findings, so none of the sites below need to name one",
+     False, sorted(_plans)),
     # The per-file site counts are pinned, which is what gives discovery a floor: a site reworded out
     # of the pattern, or deleted outright, fails here rather than leaving the sweep with its stale
-    # claim unread. Counts rather than a file set because three of these files state the baseline more
-    # than once, and a file set stays satisfied by any one surviving hit.
+    # claim unread. Counts rather than a file set because several of these files state the baseline
+    # more than once, and a file set stays satisfied by any one surviving hit.
     (f"the baseline is stated in {sum(len(v) for v in _sites.values())} place(s) across "
      f"{len(_EXPECTED_BASELINE_SITES)} pinned file(s): "
      + ", ".join(f"{f}:{','.join(str(n) for n, _ in ls)}" for f, ls in sorted(_sites.items())),
@@ -1627,9 +1604,6 @@ BASELINE = [
      True, [f"{f}:{n}={c}" for f, ls in sorted(_sites.items()) for n, c in ls]
            if _sites and all(c == _sev.get(V.Severity.HIGH.value, 0)
                              for ls in _sites.values() for _, c in ls) else []),
-    ("...and cumulusci.yml does not wire mfg-multicurrency, which is the whole reason the 7 High "
-     "findings above are dormant rather than gating",
-     False, _mfg_hits),
 ]
 
 
