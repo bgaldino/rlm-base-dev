@@ -776,30 +776,41 @@ class SFDMUValidator:
         # which would then report the nine `"ReadOnly"` declarations in this repo as defects. SFDMU
         # accepts them.
         # Absent defaults to Readonly, not Upsert: `ScriptObject.operation` is initialized to
-        # `OPERATION.Readonly` (ScriptObject.ts:162, v5.8.0), and `ScriptLoader` overwrites it only
-        # when the property is present and resolvable — `_resolveOperation(undefined)` returns
-        # undefined and leaves the field untouched (ScriptLoader.ts:433-436). Defaulting to Upsert
-        # here treated an operation-less, CSV-less declaration as writable and reported the missing
-        # CSV Critical — the exact Readonly false positive this validator exists to avoid.
+        # `OPERATION.Readonly` (ScriptObject.ts:162, v5.8.0), and that class-field default only
+        # survives when the `operation` key is absent from the plan — `_normalize_object_config`
+        # (the sole path a config reaches this function through) already coalesces an absent key to
+        # the string `"Readonly"` before this runs, so `resolved is None` below can never mean
+        # "absent"; it only means the key was present with a value SFDMU cannot resolve.
         #
-        # An unresolvable value (a typo like "Upser", a Boolean, or an out-of-range index) hits the
-        # same code path: `_resolveOperation` returns undefined for it, so `object.operation` is
-        # left on the Readonly default rather than becoming writable. A raw
-        # `str(cfg.get("operation") or "Readonly")` coercion missed two things: `str(2) == "2"`
-        # is never in the enum, so a valid *numeric* Upsert/Insert was reported non-writable; and
-        # Python's `0 or "Readonly"` treats numeric `0` (Insert) as falsy, silently coercing it to
-        # Readonly before the enum check ever ran. `_resolve_operation` mirrors the loader (numeric
-        # index or trimmed/case-folded name) so both numeric and string operations resolve the same
-        # way `_validate_operation_value` reports them; unresolvable is Readonly, not "not readonly".
+        # A *present* unresolvable value (a typo like "Upser", a Boolean, an out-of-range index, or
+        # an explicit `null`) does NOT fall back to that class default. Verified against the
+        # installed `sfdmu@5.8.0` source: `ScriptLoader._buildObject` builds `object` via
+        # `class-transformer`'s `plainToInstance(ScriptObject, rawObject, {exposeDefaultValues:
+        # true})` *before* `_resolveOperation` runs, and `plainToInstance` copies a *present* raw
+        # value onto the instance regardless of validity — only an absent key leaves the class
+        # default untouched. `_resolveOperation` then only overwrites `object.operation` when it
+        # resolves (`if (typeof operation !== 'undefined') { object.operation = operation; }` —
+        # ScriptLoader.js:306-309); on failure it leaves `object.operation` as whatever
+        # `plainToInstance` already put there — the raw invalid value itself, not `OPERATION.Readonly`.
+        # That raw value is `===`-checked against exactly `OPERATION.Readonly`(3) and
+        # `OPERATION.Delete`(4) at the one runtime gate that decides whether an object is written
+        # from source (`MigrationJobTask.updateRecordsAsync`, the `Readonly`/`Delete` early return);
+        # a garbage value matches neither, so it falls through to the same insert/update/upsert
+        # dispatch a real writable operation gets — the plan behaves as if the object were writable,
+        # just not with the operation the author intended. Treating it as non-writable here (this
+        # function's behavior through several earlier rounds of this PR) was itself the false
+        # negative this validator exists to catch: it silently excused such an object from the
+        # missing-CSV Critical it will actually need at runtime.
         #
-        # Index 8 / the string "Unknown" is a third case: SFDMU *does* resolve it (to its own inert
-        # enum fallback, not undefined — see `SFDMU_OPERATION_BY_INDEX`), so it is not "unresolvable"
-        # in SFDMU's own terms. But no write-dispatch path in SFDMU acts on that value, so it is
-        # still not-writable here — checked separately from `resolved is None` because a future
-        # caller distinguishing "declared nothing usable" from "declared Unknown" needs the signal.
+        # Index 8 / the string "Unknown" is the same shape: SFDMU *does* resolve it (to committed
+        # value 8, not `undefined` — see `SFDMU_OPERATION_BY_INDEX`), so `object.operation` becomes
+        # numeric `8` — still neither `Readonly`(3) nor `Delete`(4), so it hits the identical
+        # write-dispatch fallthrough. Checked separately from `resolved is None` (rather than folded
+        # into the same branch) because a future caller distinguishing "declared nothing usable" from
+        # "declared Unknown" needs the signal, even though both currently answer `True` here.
         resolved = SFDMUValidator._resolve_operation(cfg.get("operation"))
         if resolved is None or resolved == "unknown":
-            return False
+            return True
         return resolved != "readonly"
 
     def _writable_passes_by_object(self, all_pass_configs: Dict[str, Dict[int, List[dict]]]) -> Dict[str, Set[int]]:
@@ -837,20 +848,23 @@ class SFDMUValidator:
     # Numeric enum indices `ScriptLoader._resolveOperation` resolves via `OPERATION[value]`
     # (Enumerations.js, v5.8.0): 0 Insert .. 7 HardDelete .. 8 Unknown. TypeScript numeric enums are
     # bidirectional at runtime (`OPERATION[8] === "Unknown"` and `OPERATION["Unknown"] === 8`), so
-    # SFDMU resolves index 8 *and* the string `"Unknown"` to the committed value 8 — it does not
-    # drop the declaration the way an out-of-range index or unrecognized word does. Index 8 is
-    # included here (unlike the earlier, source-unverified assumption that it was dropped) so
-    # `_resolve_operation` returns `"unknown"` rather than `None` for it; callers then treat
-    # `"unknown"` as its own state — resolved, but not a real operation — rather than lumping it
-    # in with a genuinely-dropped declaration.
+    # SFDMU resolves index 8 *and* the string `"Unknown"` to the committed value 8 — unlike an
+    # out-of-range index or unrecognized word, which fail to resolve at all (see `_resolve_operation`
+    # below; neither case is written from the plan's intended operation, but neither is "dropped"
+    # from processing either — see `_is_live_writable`). Index 8 is included here (unlike the
+    # earlier, source-unverified assumption that it resolved to nothing) so `_resolve_operation`
+    # returns `"unknown"` rather than `None` for it; callers then treat `"unknown"` as its own
+    # state — resolved to a committed value, but not a real operation — rather than lumping it in
+    # with a value that fails resolution outright.
     SFDMU_OPERATION_BY_INDEX = ("insert", "update", "upsert", "readonly", "delete",
                                 "deletesource", "deletehierarchy", "harddelete", "unknown")
 
     @staticmethod
     def _resolve_operation(value) -> Optional[str]:
         """Mirror `ScriptLoader._resolveOperation` (v5.8.0): the canonical lowercase enum name
-        SFDMU would resolve `value` to, or `None` if SFDMU drops the declaration and leaves the
-        object on its default.
+        SFDMU would resolve `value` to, or `None` if SFDMU cannot resolve it. `None` does NOT mean
+        the object falls back to a safe default — the raw, unresolved value is left in place on
+        `ScriptObject.operation` instead (see `_is_live_writable`).
 
         Order matters: `bool` is checked before `int` because Python's `isinstance(True, int)` is
         `True` and `False == 0` — but JS `typeof true === 'boolean'` fails the loader's `typeof
@@ -864,9 +878,9 @@ class SFDMUValidator:
 
         The string branch matches against `SFDMU_OPERATION_BY_INDEX`, not `SFDMU_OPERATIONS`: the
         enum's numeric keys are bidirectional at runtime, so the loader's `Object.keys(OPERATION)`
-        also matches the literal string `"Unknown"` and resolves it to `8` — the same committed,
-        non-dropped value a numeric `8` resolves to. Returning `"unknown"` here (rather than
-        `None`) lets callers distinguish that from a genuinely-dropped declaration.
+        also matches the literal string `"Unknown"` and resolves it to `8` — the same committed
+        value a numeric `8` resolves to. Returning `"unknown"` here (rather than `None`) lets
+        callers distinguish that from a value that fails resolution outright.
         """
         if isinstance(value, bool):
             return None
@@ -881,18 +895,27 @@ class SFDMUValidator:
         return None
 
     def _validate_operation_value(self, obj_name: str, obj_config: dict, result: ValidationResult):
-        """Report an `operation` SFDMU cannot act on — dropped entirely, or resolved to its own
-        inert fallback.
+        """Report an `operation` declaration SFDMU cannot resolve to a real, actionable operation —
+        whether it fails to resolve at all, or resolves to the enum's own `Unknown` fallback.
 
         Mirrors `ScriptLoader._resolveOperation` (v5.8.0), the function that loads export.json:
         strings are matched `trim().toLowerCase()` against the enum keys (so `" ReadOnly "` is
         fine) and numeric enum indices 0-8 resolve directly (`OPERATION[value]`, bidirectional at
         runtime for a TypeScript numeric enum, so the string `"Unknown"` resolves the same way as
         numeric `8`); anything else — a Boolean, an out-of-range index, or a word not in the enum —
-        resolves to `undefined` and the declaration is silently dropped, leaving the object on
-        SFDMU's default rather than the operation the plan asked for. Index 8 / `"Unknown"` is
-        reported separately below: SFDMU commits that value rather than dropping it, but it is the
-        enum's own fallback, not a real operation a plan should declare.
+        resolves to `undefined`.
+
+        Neither case resets the object to a safe, inert default. Verified against the installed
+        `sfdmu@5.8.0` source: `plainToInstance` copies a *present* raw value onto the `ScriptObject`
+        instance before `_resolveOperation` ever runs; on a failed resolve, `ScriptLoader` skips its
+        own overwrite (`if (typeof operation !== 'undefined') { object.operation = operation; }`),
+        leaving that raw, invalid value in place. Index 8 / `"Unknown"` resolves, so `object.operation`
+        becomes the committed value `8` instead. Either way, the object's `operation` is neither
+        `OPERATION.Readonly`(3) nor `OPERATION.Delete`(4) — the only two values the runtime write
+        gate (`MigrationJobTask.updateRecordsAsync`) checks for before skipping a declaration — so
+        it falls through to the same insert/update/upsert dispatch a real writable operation gets.
+        The plan runs as if the object were declared writable, just not with the operation intended;
+        see `_is_live_writable`, which this reporting is kept consistent with.
 
         Written first against `ScriptObject.getOperation`, which does a raw `OPERATION[operation]`
         lookup with no trimming or case folding. That reading made the nine `"ReadOnly"`
@@ -912,10 +935,12 @@ class SFDMUValidator:
                 severity=Severity.HIGH,
                 object_name=obj_name,
                 message=(f"operation {operation!r} resolves to SFDMU's own enum fallback, Unknown "
-                         f"(index 8) — SFDMU commits this value rather than dropping the "
-                         f"declaration, but it is not a real operation the plan can act on; "
-                         f"declare one of {', '.join(sorted(self.SFDMU_OPERATIONS))} or a numeric "
-                         f"index 0-7")
+                         f"(index 8) — not a real operation the plan can act on, and SFDMU does not "
+                         f"reset it to Readonly either: the committed value 8 matches neither "
+                         f"Readonly(3) nor Delete(4) at SFDMU's write-dispatch gate, so the object "
+                         f"still falls through to the insert/update/upsert path and is written from "
+                         f"source with no real operation behind it; declare one of "
+                         f"{', '.join(sorted(self.SFDMU_OPERATIONS))} or a numeric index 0-7")
             ))
             return
         result.add_issue(Issue(
@@ -924,8 +949,11 @@ class SFDMUValidator:
             message=(f"operation {operation!r} is not one SFDMU can resolve; it matches "
                      f"trim()/case-insensitively against {', '.join(sorted(self.SFDMU_OPERATIONS))} "
                      f"or a numeric enum index 0-7 (0 Insert .. 7 HardDelete), and silently "
-                     f"ignores anything else — including a Boolean — leaving the object on the "
-                     f"default operation instead of the one declared")
+                     f"ignores anything else — including a Boolean. That does NOT reset the object "
+                     f"to Readonly: the invalid value stays on it, matches neither Readonly(3) nor "
+                     f"Delete(4) at SFDMU's write-dispatch gate, and the object still falls through "
+                     f"to the insert/update/upsert path — written from source with no real "
+                     f"operation behind it")
         ))
 
     @staticmethod

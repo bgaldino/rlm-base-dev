@@ -426,8 +426,8 @@ OPERATION_RESOLUTION = [
     ("...and so is a whitespace-padded value, which the loader trims",
      False, [i for i in issues([[dict(READONLY, operation=" Readonly ")]], {"Gadget__c.csv": HEADER})
              if "resolve" in i]),
-    ("a word outside the enum is reported: SFDMU drops the declaration and silently uses its "
-     "default operation instead",
+    ("a word outside the enum is reported: SFDMU can't resolve it, and (verified against the "
+     "installed source) does NOT reset the object to Readonly either — the raw value stays",
      True, [i for i in issues([[dict(UPSERT, operation="Upser")]], {"Widget__c.csv": HEADER})
             if "resolve" in i]),
     ("a non-string is reported rather than crashing the run",
@@ -445,10 +445,10 @@ OPERATION_RESOLUTION = [
      True, [i for i in issues([[dict(UPSERT, operation=99)]], {"Widget__c.csv": HEADER})
             if "resolve" in i]),
     # TypeScript numeric enums are bidirectional at runtime, so SFDMU's own `_resolveOperation`
-    # commits index 8 and the string "Unknown" to the same value 8 rather than dropping them —
-    # confirmed by reading the installed sfdmu@5.8.0 source directly. Still reported (it is not a
-    # real operation a plan should declare), but as its own case, not lumped in with a dropped
-    # declaration like "Upser" or 99 above.
+    # commits index 8 and the string "Unknown" to the same value 8, unlike "Upser"/99 above, which
+    # fail resolution outright — confirmed by reading the installed sfdmu@5.8.0 source directly.
+    # Still reported here (it is not a real operation a plan should declare), but as its own case,
+    # not lumped in with a value that never resolves at all.
     ("numeric 8 (Unknown, the enum's own fallback) is reported — SFDMU resolves and commits it, "
      "it just isn't a real operation",
      True, [i for i in issues([[dict(UPSERT, operation=8)]], {"Widget__c.csv": HEADER})
@@ -486,14 +486,34 @@ NUMERIC_OPERATION_GATING = [
      True, [i for i in issues([[dict(UPSERT, operation=2, externalId="A.B.C")]],
                                {"Widget__c.csv": HEADER})
             if "nested relationship path" in i]),
-    # `_is_live_writable` treats a resolved-but-"unknown" operation (index 8 / the string
-    # "Unknown") as not-writable, the same practical bucket as unresolvable — no write-dispatch
-    # path in SFDMU acts on that value, so demanding a CSV for it would be its own false Critical.
-    ("an object declared operation \"Unknown\" with no CSV anywhere is not flagged missing-CSV "
-     "Critical — SFDMU commits the value but never writes from a file for it",
-     False, issues([[dict(UPSERT, operation="Unknown")]], severity=V.Severity.CRITICAL)),
+    # A prior round of this PR treated a resolved-but-"unknown" operation (index 8 / the string
+    # "Unknown") — and a genuinely-unresolvable one (typo/Boolean/out-of-range) — as not-writable,
+    # on the theory that SFDMU resets an unresolved `operation` to its Readonly class default.
+    # Verified against the installed sfdmu@5.8.0 source that this is wrong: that Readonly default
+    # only survives when the `operation` *key* is absent. When it's present but invalid,
+    # `plainToInstance` commits the raw value onto `ScriptObject.operation` before
+    # `_resolveOperation` ever runs, and a failed resolve just skips the later overwrite — so the
+    # raw invalid value (or, for index 8/"Unknown", the committed value 8) stays there. Neither
+    # value is `===` Readonly(3) or Delete(4), the only two `MigrationJobTask.updateRecordsAsync`
+    # checks before skipping a declaration, so both fall through to the same insert/update/upsert
+    # dispatch a real writable operation gets — SFDMU *will* try to write the object from source.
+    # Not demanding a CSV for it was the false negative; found by Copilot (comment 3888828061),
+    # generalized here past the literal wording nit it raised.
+    ("an object declared operation \"Unknown\" with no CSV anywhere IS flagged missing-CSV "
+     "Critical — SFDMU commits the value, but the object still falls through to the "
+     "insert/update/upsert write path with no real operation behind it",
+     True, issues([[dict(UPSERT, operation="Unknown")]], severity=V.Severity.CRITICAL)),
+    ("...and so is a completely unresolvable operation (a typo) with no CSV anywhere — the raw "
+     "invalid value is retained on the object rather than reset to Readonly, so it is writable too",
+     True, issues([[dict(UPSERT, operation="Upser")]], severity=V.Severity.CRITICAL)),
+    ("...and an explicit `operation: null` with no CSV anywhere — same mechanism, the null value "
+     "itself is committed and never reset",
+     True, issues([[dict(UPSERT, operation=None)]], severity=V.Severity.CRITICAL)),
     ("...control — the same object declared plain Upsert with no CSV IS flagged Critical",
      True, issues([[UPSERT]], severity=V.Severity.CRITICAL)),
+    ("...and the control the other direction still holds — a real Readonly declaration with no "
+     "CSV is NOT flagged Critical, since Readonly really does hit the write-dispatch skip",
+     False, issues([[READONLY]], severity=V.Severity.CRITICAL)),
 ]
 
 # Fix modes had zero coverage anywhere in the repo, which is how a pass-resolution change could
@@ -1023,21 +1043,25 @@ MERGED_CONFIG = [
             "excluded": True}]],
          {"Widget__c.csv": "Id,Name\n1,a\n"})
          if "is not one SFDMU can resolve" in i]),
-    # An unresolvable operation string is not a "not readonly" free pass. `_resolveOperation`
-    # rejects "Upser" the same way it rejects an absent key — it returns undefined and
-    # `ScriptObject.operation` stays on its Readonly default — so SFDMU never reads a CSV for
-    # this declaration either. `_is_live_writable` checking only `!= "readonly"` treated the typo
-    # as writable and demanded a root CSV that will never exist for this plan: a false Critical
-    # alongside the correct malformed-operation High. Every existing malformed-operation case
-    # supplies a root CSV, so none of them exposed this — this one supplies none. Two assertions,
-    # not one `or`-ed list: the High must still fire and the Critical must not, and collapsing
-    # them into one list would pass on "neither fired" as readily as on "both fired".
+    # An unresolvable operation string is not a "not readonly" free pass, but it is also not a
+    # "resets to Readonly" one either. `_resolveOperation` rejects "Upser" and returns undefined,
+    # but — verified against the installed sfdmu@5.8.0 source — `ScriptObject.operation` does NOT
+    # fall back to its Readonly class default for a *present* invalid value; `plainToInstance`
+    # already committed the raw "Upser" onto the instance before `_resolveOperation` ran, and the
+    # failed resolve just means that commit is never overwritten. "Upser" matches neither
+    # Readonly(3) nor Delete(4) at SFDMU's write-dispatch gate, so the object still falls through
+    # to the insert/update/upsert path and SFDMU *will* try to read a CSV for it. Both the
+    # malformed-operation High and the missing-CSV Critical are real findings here. Two
+    # assertions, not one `or`-ed list: both must fire, and collapsing them into one list would
+    # pass on "either fired" as readily as on "both fired".
     ("a bogus operation with no CSV anywhere still reports the malformed-operation High",
      True, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Upser", "externalId": "Name"}]])
          if "is not one SFDMU can resolve" in i]),
-    ("...and does not also report a missing-CSV Critical for that same declaration",
-     False, [i for i in issues(
+    ("...and ALSO reports a missing-CSV Critical for that same declaration — the raw invalid "
+     "value is retained, not reset to Readonly, so the object still falls through to SFDMU's "
+     "write-dispatch path and needs the CSV it does not have",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Gizmo__c", "operation": "Upser", "externalId": "Name"}]])
          if "CSV file not found" in i]),
     # The deleteOldData check read the merged `obj_config`, so a flag set only in pass 2 — with
@@ -1197,10 +1221,11 @@ EXPLICIT_NULL_DEFAULTS = [
      True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
                                   "externalId": "Name"}]])
            if "is not one SFDMU can resolve" in i]),
-    ("...and so it is judged non-writable for being unresolvable, not for defaulting to "
-     "Readonly — no missing-CSV Critical either way",
-     False, criticals([{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
-                        "externalId": "Name"}])),
+    ("...and so it IS judged writable, and a missing CSV for it IS a Critical — the committed "
+     "`null` is not Readonly(3)/Delete(4) at SFDMU's write-dispatch gate either, so the object "
+     "still falls through to the insert/update/upsert path with no CSV to read",
+     True, criticals([{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
+                       "externalId": "Name"}])),
     ("an explicit `externalId: null` defaults to \"Id\" like an absent key — no 'not a string' "
      "finding",
      False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
