@@ -81,7 +81,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Name, ProductId, Product.StockKeepingUnit, RatingDelayDuration, RatingPeriod, UsageResourceId, UsageResource.Code FROM RatingFrequencyPolicy",
+          "query": "SELECT Name, RatingDelayDuration, RatingPeriod FROM RatingFrequencyPolicy",
           "operation": "Upsert",
           "externalId": "RatingPeriod",
           "excluded": false
