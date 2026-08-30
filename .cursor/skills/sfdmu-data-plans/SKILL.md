@@ -16,7 +16,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 1. externalId delimiter is `;` — NOT `$$` (that's v4).
 2. Relationship-traversal externalId matches under `Upsert` on the 5.6.4+ floor (Bugs 2/3/5 fixed) — the old `Insert` + `deleteOldData: true` workaround is pre-5.6.4. Only Bug 4 (`$$` in lookup reference columns — self-referential *and* cross-object) is still live.
 3. Never change Upsert → Insert+deleteOldData without explicit user approval.
-4. Empty CSV → set `excluded: true` (prevents destructive wipe).
+4. Empty CSV → set `excluded: true` (prevents destructive wipe). See *Which empty-CSV remedy* — three exist and they are not interchangeable.
 5. Parent → child order in `objects` array (deletion runs reverse).
 6. `$$` CSV column must match externalId fields exactly.
 7. After extraction: run `post_process_extraction.py` to add `$$` columns.
@@ -232,12 +232,90 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 - [ ] All-traversal externalIds use `Upsert` on the 5.6.4+ floor (Bugs 3/5 fixed); any residual `Insert` + `deleteOldData: true` is a pre-5.6.4 plan awaiting the gated `sfdmu-v5-optimization` migration
 
-## Developer-Local Scratch Directory
+## Where a plan's CSVs live
+
+Two locations, and which one a plan owes a file in depends on the **pass**, not on the object:
+
+| Location | Read when |
+|----------|-----------|
+| `<plan>/<Object>.csv` | the default for any pass that writes the object from a file |
+| `<plan>/objectset_source/object-set-N/<Object>.csv` | overrides the root file **for pass N only**, and only when the plan's top-level `useSeparatedCSVFiles` is `true` (`object-set-N` is 1-based; pass indexes are 0-based) |
+
+Two prerequisites, not one. `useSeparatedCSVFiles: true` at the plan's top level is what makes SFDMU
+substitute `objectset_source/object-set-N/` at all — without it, every pass reads the plan root
+regardless of what that directory holds, so a plan whose only CSV for an object lives under
+`object-set-2/` and never sets the flag silently never loads it. And even with the flag set, pass 1
+is never substituted: `Script.ts`'s `rawSourceDirectoryPath` returns the plan root whenever
+`objectSetIndex` is falsy (index 0), flag or no flag — `object-set-1/` becomes readable only through
+this repo's opt-in `sync_objectset_source_to_source` step, which copies it onto the root before SFDMU
+runs. `_objects_owing_root_csv` checks the flag before crediting a pass-2+ override as coverage.
+
+An object declared in several passes needs a file for **each** writable pass. `BillingPolicy` in
+`qb-billing` is `Upsert` in pass 1 and `Update` in pass 3 with an override for pass 3 only, so it
+needs *both* its root CSV and its per-pass one — 16 objects across 7 plans have that shape. A CSV
+placed in an `object-set-N/` whose pass does not declare the object is **never read**; the validator
+reports it (High) rather than loading it.
+
+Two shapes owe no root CSV at all:
+
+- **no live writable declaration in any pass** — `excluded: true`, plain `Delete`, and `Readonly`
+  are all source-free, for different reasons: an `excluded` declaration is skipped entirely; a
+  `Delete` one is skipped by the exact same runtime gate as `Readonly`
+  (`MigrationJobTask.updateRecordsAsync`'s early return for `operation === Readonly ||
+  === Delete`, verified against the installed `sfdmu@5.8.0` source); and a `Readonly` one is
+  queried from the *target org* instead. None of the three ever reads a source file, and a mix
+  across passes counts too — an object `excluded` in pass 1 and `Delete` in pass 2 still owes
+  nothing. Do not add an empty CSV to satisfy a checker. **The `Readonly` case is verified live,
+  not inferred**,
+  because the inference cuts the other way and a reviewer raised it: every load runs
+  `--sourceusername CSVFILE`, so it looks as though a Readonly object's rows must come from a CSV
+  too. They do not. `procedure-plans` declares `ExpressionSetDefinition` as `Readonly` with **no
+  CSV at either location**, while `ProcedurePlanOption.csv` traverses it
+  (`ExpressionSetDefinition.DeveloperName`) — and `ProcedurePlanOption.ExpressionSetDefinitionId`
+  is populated with real ids in both fresh 264 orgs. The traversal resolved against the target org
+  with no source rows in existence.
+  - Corollary worth knowing before you "fix" one: a Readonly CSV that *does* exist, such as
+    `inapp/RecordType.csv`, is maintained but not required for resolution. Its README record count
+    describes org records rather than file rows — which is exactly how `procedure-plans/README.md`
+    documents `ExpressionSetDefinition` (`Readonly`, 2 records, no file). Neither the validator nor
+    `check_plan_readme_consistency.py` reports such a file's deletion, and that is correct.
+- **every writable pass supplied per-pass** — the root path is an alternative location for the same
+  file, not an additional requirement.
+
+`validate_sfdmu_v5_datasets.py` enforces exactly this (`_objects_owing_root_csv`), and
+`tests/test_sfdmu_csv_expectation.py` pins both directions. Read the operation from the pass, never
+from the merged config: the validator's own `_parse_object_configs` keeps only the **first**
+declaration, so an object Readonly or `excluded` in pass 1 and `Upsert` in pass 2 looks exempt when
+it is not — SFDMU itself processes each pass independently at runtime.
+
+## Which empty-CSV remedy
+
+A zero-byte or header-only CSV has three possible fixes, and the validator's own message ("Add
+header row with fields from query") is only one of them. Pick by *why* the file is empty:
+
+| Situation | Remedy |
+|-----------|--------|
+| The object should load, but the CSV lost its header | Add the header row — the validator's advice, and the only one that preserves intent |
+| The object genuinely has no data for this dataset, in a **wired** plan | `excluded: true` — prevents a destructive wipe on a `deleteOldData` plan, and is why rule 4 exists |
+| The whole plan is unwired and unmaintained | Delete the plan — `excluded: true` would make a checker green while leaving a plan nobody loads |
+
+The third row is `mfg/en-US/mfg-multicurrency` (7 zero-byte `Upsert` CSVs, pack 110). `excluded:
+true` on those seven **would** turn the validator green in one line, and that is the honest tension:
+it is cheaper than a deletion and matches rule 4's letter. It is not taken because it changes load
+semantics on a plan that may later be wired — an excluded object silently does not load — in
+exchange for suppressing a signal rather than removing its cause. `q3-multicurrency` carried the
+identical finding (`CostBook`, `CostBookEntry`) and was resolved by removal in `dab545ab`.
+
+## Developer scratch area
 
 `datasets/sfdmu/test/` is a developer-local scratch area for experimental and throwaway plans. It is:
 
 - **Gitignored** — `datasets/sfdmu/test/**` in `.gitignore`; never committed or pushed
-- **Excluded from validation** — `validate_sfdmu_v5_datasets.py` skips `test/` and `*.bak` directories
+- **Excluded from validation** — `validate_sfdmu_v5_datasets.py` skips `test/` (and
+  `objectset_source/`, `processed/`, `source/`, `logs/`) when *discovering* plans, via
+  `_SKIP_SEGMENTS`, plus `*.bak` via a separate suffix branch in `_is_skippable_export` — named
+  because grepping `_SKIP_SEGMENTS` for the `.bak` behavior does not find it. Note that `objectset_source/` is skipped only as a plan root: within a plan the
+  validator reads it as a first-class CSV location — see *Where a plan's CSVs live*
 - **Not referenced** by any shipped task, flow, CI job, or test
 
 To clean up local scratch plans: `rm -rf datasets/sfdmu/test/`
