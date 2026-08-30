@@ -1132,12 +1132,18 @@ EXCLUDED_JS_TRUTHINESS = [
      False, criticals([dict(UPSERT, excluded={})])),
     ("control: `excluded: false` still owes its CSV, same as the unset default",
      True, criticals([dict(UPSERT, excluded=False)])),
-    # The reverse mismatch: JSON's `NaN` extension decodes to a Python-truthy `float('nan')`,
-    # but JS treats NaN as falsy — the one direction where a naive "containers only" fix would
-    # have left the old (accidentally-correct) Python truthiness silently flipped.
-    ("control: `excluded: NaN` (JSON's NaN extension) does not count as excluded — JS treats it "
-     "as falsy",
-     True, criticals([dict(UPSERT, excluded=float("nan"))])),
+    # The reverse mismatch this control case used to pin — JSON's `NaN` extension decodes to a
+    # Python-truthy `float('nan')`, JS treats NaN as falsy — is only worth testing if a NaN could
+    # reach `_is_js_truthy` at all. It can't: SFDMU loads export.json with JavaScript's strict
+    # `JSON.parse` (`ScriptLoader.js:54`), which rejects a bare `NaN`/`Infinity`/`-Infinity` token
+    # outright — the file never loads, so `excluded` is never evaluated for truthiness. Python's
+    # `json` module accepts those tokens by default; the validator now rejects them at load time
+    # too, matching SFDMU's real failure mode instead of assigning truthiness to an unreachable
+    # state.
+    ("a NaN JSON constant fails to load like SFDMU's own strict JSON.parse would — never "
+     "reaches excluded-truthiness at all",
+     True, [i for i in issues([[dict(UPSERT, excluded=float("nan"))]])
+           if "not valid JSON" in i]),
     # `_report_non_string_query` — the missing-query exemption:
     ("a missing query on a declaration excluded via `excluded: []` is not reported, same "
      "exemption as `excluded: true`",
@@ -1151,19 +1157,25 @@ EXCLUDED_JS_TRUTHINESS = [
 ]
 
 EXPLICIT_NULL_DEFAULTS = [
-    # `obj.get(key, default)` only substitutes when the key is *absent* — SFDMU's own resolvers
-    # draw no such line (`ScriptLoader._resolveOperation`'s `typeof operation !== 'string'` branch
-    # is `true` for both `undefined` and an explicit JSON `null`), so `"operation": null`/
-    # `"externalId": null` used to flow through as Python `None` instead of the documented
-    # default, the same class already fixed for `"objectSets": null`.
-    ("an explicit `operation: null` defaults to Readonly like an absent key — no missing-CSV "
-     "Critical",
+    # `obj.get(key, default)` only substitutes when the key is *absent*. `externalId` gets the
+    # default anyway for an explicit `null` too, because SFDMU's own runtime does the same:
+    # `ScriptObject.js`'s init path ends with `this.externalId = this.externalId ||
+    # DEFAULT_EXTERNAL_ID_FIELD_NAME`, a falsy-OR fallback that treats `null` and absent
+    # identically. `operation` gets no such fallback anywhere in `ScriptObject.js` — an absent
+    # key resolves to the class's `Readonly` default via `class-transformer`'s
+    # `exposeDefaultValues`, but an explicit `null` is committed onto the instance by that same
+    # transform step *before* `ScriptLoader._resolveOperation` ever runs, and nothing resets it
+    # afterward. So `"operation": null` and an absent `operation` key are NOT equivalent at
+    # runtime — only `externalId`'s null/absent are.
+    ("an explicit `operation: null` is reported as unresolvable, like any other bad value — it "
+     "is NOT coalesced to Readonly the way an absent key is",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
+                                  "externalId": "Name"}]])
+           if "is not one SFDMU can resolve" in i]),
+    ("...and so it is judged non-writable for being unresolvable, not for defaulting to "
+     "Readonly — no missing-CSV Critical either way",
      False, criticals([{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
                         "externalId": "Name"}])),
-    ("...and no unresolvable-operation High either — control for the case above",
-     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
-                                  "externalId": "Name"}]])
-            if "is not one SFDMU can resolve" in i]),
     ("an explicit `externalId: null` defaults to \"Id\" like an absent key — no 'not a string' "
      "finding",
      False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
@@ -1426,7 +1438,7 @@ def main() -> int:
                   EXCLUDED_INFO_MESSAGE),
                  ("excluded is read with JS truthiness, not Python's, at every call site",
                   EXCLUDED_JS_TRUTHINESS),
-                 ("an explicit null operation/externalId defaults like an absent key",
+                 ("an explicit null externalId defaults like an absent key, operation does not",
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),

@@ -322,7 +322,7 @@ class SFDMUValidator:
                 # Same gate as the validation loop below: a pass 2+ override is inert without
                 # `useSeparatedCSVFiles`, so writing into it is a fix nothing reads.
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                    if not self._override_is_read_at_runtime(pass_index, use_separated_csv_files):
+                    if not self._override_content_should_be_checked(pass_index, use_separated_csv_files):
                         continue
                     writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
@@ -381,7 +381,7 @@ class SFDMUValidator:
                         file_path=self._make_relative_path(csv_path)
                     ))
                     continue
-                if not self._override_is_read_at_runtime(pass_index, use_separated_csv_files):
+                if not self._override_content_should_be_checked(pass_index, use_separated_csv_files):
                     self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
                              f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
@@ -393,6 +393,23 @@ class SFDMUValidator:
         self.log(f"Issues found: {len(result.issues)}")
 
         return result
+
+    @staticmethod
+    def _reject_non_finite_json_constant(token: str):
+        """Reject `NaN`/`Infinity`/`-Infinity` the way SFDMU's own loader would.
+
+        SFDMU loads export.json with JavaScript's `JSON.parse` (`ScriptLoader.js:54`, confirmed
+        against the installed `sfdmu@5.8.0` source), which treats a bare `NaN`/`Infinity`/
+        `-Infinity` token as a syntax error — the file never loads. Python's `json` module accepts
+        all three as an extension by default (`json.load`'s `parse_constant`), so without this
+        guard the validator could load and evaluate a plan SFDMU itself would refuse outright.
+        Passed as `json.load`'s `parse_constant` callback; raising here surfaces as the same
+        "Error reading export.json" Critical any other unreadable file gets.
+        """
+        raise ValueError(
+            f"{token} is not valid JSON — SFDMU loads export.json with JavaScript's JSON.parse, "
+            f"which rejects non-finite numeric constants outright, unlike Python's json module"
+        )
 
     def _validate_export_json(self, export_json_path: Path, result: ValidationResult) -> Optional[dict]:
         """Validate export.json file structure and format.
@@ -408,7 +425,7 @@ class SFDMUValidator:
 
         try:
             with open(export_json_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = json.load(f, parse_constant=self._reject_non_finite_json_constant)
         except json.JSONDecodeError as e:
             result.add_issue(Issue(
                 severity=Severity.CRITICAL,
@@ -708,14 +725,18 @@ class SFDMUValidator:
     def _is_js_truthy(value) -> bool:
         """Python truthiness corrected to match SFDMU's JS truthiness for a JSON-decoded value.
 
-        Diverges from Python's own truthiness in both directions: `[]`/`{}` are falsy in Python
-        but truthy in JS, so an `"excluded": []`/`{}` declaration is dropped by SFDMU (JS reads
+        Diverges from Python's own truthiness for containers: `[]`/`{}` are falsy in Python but
+        truthy in JS, so an `"excluded": []`/`{}` declaration is dropped by SFDMU (JS reads
         `object.excluded` as truthy) while a plain `if cfg.get("excluded")` read it as
-        live/writable — a false missing-CSV Critical. And Python's `json` module accepts the
-        `NaN` extension, decoding it to a Python-truthy `float('nan')`, which JS treats as falsy.
+        live/writable — a false missing-CSV Critical.
+
+        Does NOT special-case `NaN`: Python's `json` module can decode the `NaN` extension to a
+        Python-truthy `float('nan')`, which JS treats as falsy, but a value reaches this function
+        only after `_validate_export_json`'s `json.load` already rejects that token
+        (`_reject_non_finite_json_constant`) the way SFDMU's real `JSON.parse` would — so a `NaN`
+        can no longer survive to be read here. A truthiness rule for a state the loader has
+        already ruled out would be untestable except by calling this function directly.
         """
-        if isinstance(value, float) and value != value:  # NaN: the only value unequal to itself
-            return False
         if isinstance(value, (list, dict)):
             return True
         return bool(value)
@@ -859,19 +880,28 @@ class SFDMUValidator:
         ))
 
     @staticmethod
-    def _override_is_read_at_runtime(pass_index: int, use_separated_csv_files: bool) -> bool:
-        """Whether SFDMU reads this pass's `objectset_source` override *at all* at runtime.
+    def _override_content_should_be_checked(pass_index: int, use_separated_csv_files: bool) -> bool:
+        """Whether this pass's `objectset_source` override is worth validating the *content* of.
 
-        Pass 1 (`pass_index == 0`) always reads the plan root regardless of the flag; every other
-        pass's override is inert without `useSeparatedCSVFiles`. Shared by the two content-check
-        sites that used to write `pass_index > 0 and not use_separated_csv_files` independently (and
-        cross-referenced each other in comments to stay in sync: "Same gate as ...").
+        Not "is it read by SFDMU at runtime" — native SFDMU never reads `object-set-1/` itself for
+        pass 1 either (see `_objects_owing_root_csv`'s docstring: pass 1 always reads the plan
+        root; only this repo's opt-in `sync_objectset_source_to_source` task reads `object-set-1/`
+        at all, to copy it onto the root first). Pass 1's override is still checked unconditionally
+        because that copy step, and this file's own `--fix-headers`/`--fix-all` modes, both treat
+        `object-set-1/<Object>.csv` as real output regardless of `useSeparatedCSVFiles` — see the
+        fix-mode docstring above (`_normalized_object_sets`, "It changes what the fix modes
+        *write*"). Every other pass's override is genuinely inert for native SFDMU without the
+        flag, and this validator deliberately doesn't model the sync task's independent handling of
+        those passes — same scoping decision as everywhere else in this file. Shared by the two
+        content-check sites that used to write `pass_index > 0 and not use_separated_csv_files`
+        independently (and cross-referenced each other in comments to stay in sync: "Same gate
+        as ...").
 
         Deliberately NOT reused inside `_objects_owing_root_csv`'s coverage loop below, which asks a
-        different question — "does this override *relieve the root CSV requirement*", not "is it
-        read" — and answers pass 1 the opposite way: object-set-1 IS read at runtime but never
-        relieves the root requirement (see that method's docstring). Conflating the two once already
-        broke an existing regression test in this PR; kept apart on purpose.
+        different question — "does this override *relieve the root CSV requirement*" — and answers
+        pass 1 the opposite way: pass 1's root CSV is owed regardless of `object-set-1/`'s content
+        (see that method's docstring). Conflating the two once already broke an existing regression
+        test in this PR; kept apart on purpose.
         """
         return pass_index == 0 or use_separated_csv_files
 
@@ -1046,26 +1076,44 @@ class SFDMUValidator:
         the two. Hence `externalId_malformed`: the coercion loses the type, so the type is recorded
         here and reported by `_validate_object`.
         """
-        # `obj.get(key)` then a `None` check, not `obj.get(key, default)`: the latter only
-        # substitutes when the key is *absent*, but SFDMU's own resolvers do not draw that line.
-        # `ScriptLoader._resolveOperation`'s first real branch is `typeof operation !== 'string'`
-        # (after the numeric-index check), which is `true` for both an absent key (`undefined`)
-        # and an explicit `"operation": null` — same silent Readonly default, same no-complaint,
-        # from the identical call. An explicit `null` externalId defaults the same way. Treating
-        # them differently here (`null` flows through as `None`/`"None"` and a spurious HIGH,
-        # confirmed via `_normalize_object_config({"operation": None, "externalId": None}, ...)`)
-        # is a line the validator draws that SFDMU itself does not — the same class already fixed
-        # for `objectSets: null` above, here for the two fields with a non-boolean default.
-        raw_operation = obj.get("operation")
+        # `externalId` gets `obj.get(key)` + a `None` check rather than `obj.get(key, default)`,
+        # because SFDMU's own runtime does not draw the absent-vs-explicit-null line for this
+        # field: `ScriptObject.js`'s init path ends with `this.externalId = this.externalId ||
+        # DEFAULT_EXTERNAL_ID_FIELD_NAME` — a falsy-OR fallback that defaults an explicit `null`
+        # exactly like an absent key (both falsy). Confirmed against the installed `sfdmu@5.8.0`
+        # source, `ScriptObject.js` (init method around the "Setup start" log line).
+        #
+        # `operation` does NOT get the same treatment, and used to here — a prior version of this
+        # normalizer coalesced `"operation": null` to `"Readonly"` on the theory that
+        # `ScriptLoader._resolveOperation`'s `typeof operation !== 'string'` branch treats
+        # `undefined` and `null` identically. That's true of `_resolveOperation` in isolation, but
+        # not of the pipeline around it: `ScriptLoader._buildObject` builds the object via
+        # `class-transformer`'s `plainToInstance(ScriptObject, rawObject, {exposeDefaultValues:
+        # true})` *before* `_resolveOperation` ever runs. For an absent key, `exposeDefaultValues`
+        # writes the class's own default (`OPERATION.Readonly`) onto the instance. For an explicit
+        # `null`, the key IS present in the raw object, so class-transformer commits the raw `null`
+        # onto `object.operation` instead — and `_resolveOperation(null)` resolving to `undefined`
+        # only means the *later* assignment at `object.operation = operation` is skipped, leaving
+        # that already-committed `null` in place. Unlike `externalId`, `operation` has no
+        # `this.operation || OPERATION.Readonly`-style fallback anywhere in `ScriptObject.js` to
+        # catch it afterward. So an absent key ends up `Readonly`; an explicit `null` ends up
+        # `null` — a value that matches none of the `===` comparisons the engine dispatches
+        # operations on (Insert/Upsert/Delete/Readonly all excluded), which is a genuinely broken
+        # declaration, not a clean default. Reported as unresolvable below, same as any other bad
+        # `operation` value — not silently defaulted.
+        raw_operation = obj.get("operation", "Readonly")
         raw_external_id = obj.get("externalId")
         if raw_external_id is None:
             raw_external_id = "Id"
         return {
             "pass_index": idx,
             # Readonly, not Upsert: SFDMU leaves `ScriptObject.operation` at its Readonly class
-            # default when export.json omits it (see `_is_live_writable`). Baking Upsert in here
-            # would defeat that fix for every consumer reading the normalized config.
-            "operation": "Readonly" if raw_operation is None else raw_operation,
+            # default when export.json omits the key (see `_is_live_writable`). Baking Upsert in
+            # here would defeat that fix for every consumer reading the normalized config. An
+            # explicit `"operation": null` is deliberately NOT folded into this default — see the
+            # comment above `raw_operation`'s assignment — so it passes through as `None` and
+            # `_validate_operation_value` reports it as unresolvable.
+            "operation": raw_operation,
             "externalId": str(raw_external_id),
             # Recorded rather than reported here: this function has no `result` to add an issue to,
             # and threading one in would make a pure normalizer a validator. The type name is carried
