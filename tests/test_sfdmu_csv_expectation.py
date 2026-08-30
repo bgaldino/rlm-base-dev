@@ -1150,6 +1150,42 @@ EXCLUDED_JS_TRUTHINESS = [
             if "excluded but not in known excluded list" in i]),
 ]
 
+EXPLICIT_NULL_DEFAULTS = [
+    # `obj.get(key, default)` only substitutes when the key is *absent* — SFDMU's own resolvers
+    # draw no such line (`ScriptLoader._resolveOperation`'s `typeof operation !== 'string'` branch
+    # is `true` for both `undefined` and an explicit JSON `null`), so `"operation": null`/
+    # `"externalId": null` used to flow through as Python `None` instead of the documented
+    # default, the same class already fixed for `"objectSets": null`.
+    ("an explicit `operation: null` defaults to Readonly like an absent key — no missing-CSV "
+     "Critical",
+     False, criticals([{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
+                        "externalId": "Name"}])),
+    ("...and no unresolvable-operation High either — control for the case above",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": None,
+                                  "externalId": "Name"}]])
+            if "is not one SFDMU can resolve" in i]),
+    ("an explicit `externalId: null` defaults to \"Id\" like an absent key — no 'not a string' "
+     "finding",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": None}]])
+            if "not a string" in i]),
+]
+
+UNPARSEABLE_QUERY_REPORTED = [
+    # `_extract_object_name` returns `""` for a non-blank string with no ` FROM <Object>` clause,
+    # the same silent-drop `_report_non_string_query` already exists to report for a missing,
+    # blank, or non-string query — just reached via a fourth shape it did not yet cover.
+    ("a non-blank query with no parseable ' FROM <Object>' clause is reported, not silently "
+     "dropped with zero objects validated and zero issues",
+     True, [i for i in issues([[{"query": "SELECT Id", "operation": "Upsert",
+                                 "externalId": "Id"}]])
+            if "no parseable" in i]),
+    ("...but a well-formed query does not — control for the case above",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Id"}]])
+            if "no parseable" in i]),
+]
+
 
 def live_baseline():
     """The validator's findings on the real tree, by severity.
@@ -1390,6 +1426,10 @@ def main() -> int:
                   EXCLUDED_INFO_MESSAGE),
                  ("excluded is read with JS truthiness, not Python's, at every call site",
                   EXCLUDED_JS_TRUTHINESS),
+                 ("an explicit null operation/externalId defaults like an absent key",
+                  EXPLICIT_NULL_DEFAULTS),
+                 ("a query with no parseable FROM clause is reported, not silently dropped",
+                  UNPARSEABLE_QUERY_REPORTED),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

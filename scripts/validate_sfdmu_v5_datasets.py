@@ -299,8 +299,14 @@ class SFDMUValidator:
         # second call to either would re-walk the same deterministic per-pass traversal for an
         # identical answer.
         all_pass_configs = self._all_pass_configs(export_data)
-        objects_owing_root_csv = self._objects_owing_root_csv(export_data, objectset_source_overrides,
-                                                              all_pass_configs)
+        # Hoisted alongside `all_pass_configs` for the same reason: both the fixer block and the
+        # per-pass validate loop below recomputed this identical `bool(...)` independently, and
+        # `_objects_owing_root_csv` recomputed it a third time internally — three places to
+        # disagree if this flag's interpretation ever grows a second condition.
+        use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
+        objects_owing_root_csv = self._objects_owing_root_csv(objectset_source_overrides,
+                                                              all_pass_configs,
+                                                              use_separated_csv_files)
 
         # Apply fixes if requested (before validation)
         if self.fix_headers or self.fix_composite_keys:
@@ -315,11 +321,10 @@ class SFDMUValidator:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
                 # Same gate as the validation loop below: a pass 2+ override is inert without
                 # `useSeparatedCSVFiles`, so writing into it is a fix nothing reads.
-                use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
                     if pass_index > 0 and not use_separated_csv_files:
                         continue
-                    writable_cfgs = self._writable_configs_for_pass(export_data, obj_name, pass_index)
+                    writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
                     # `_is_csv_empty` / `_csv_missing_composite_key` stay true across same-pass
                     # duplicate declarations and each one printed/counted a proposal a real run
@@ -366,9 +371,8 @@ class SFDMUValidator:
             # A pass 2+ override without the flag is never read by SFDMU at runtime, so validating
             # its *content* against a file nothing loads is the false positive pack 123 exists to
             # eliminate — but the directory being wrong is not a fact about runtime reads.
-            use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
             for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                declared = self._get_object_configs_for_pass(export_data, obj_name, pass_index)
+                declared = self._get_object_configs_for_pass(all_pass_configs, obj_name, pass_index)
                 if not declared:
                     result.add_issue(Issue(
                         severity=Severity.HIGH,
@@ -381,7 +385,7 @@ class SFDMUValidator:
                     self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
                              f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
-                for obj_config in self._writable_configs_for_pass(export_data, obj_name, pass_index):
+                for obj_config in self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index):
                     self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
 
         self.log(f"\nValidation complete for {dataset_name}")
@@ -544,7 +548,14 @@ class SFDMUValidator:
 
     def _report_non_string_query(self, loc: str, obj: dict, result: ValidationResult,
                                  export_json_path: Path) -> None:
-        """Report a `query` SFDMU cannot use: absent, non-string, or blank.
+        """Report a `query` SFDMU cannot use: absent, non-string, blank, or unparseable.
+
+        A non-blank string with no ` FROM <Object>` clause (a typo like `"SELECT Id"`) passed
+        every check above unnoticed: `_extract_object_name` returns `""` for it too, the same
+        silent-drop this function exists to report for the other three shapes, just reached via a
+        fourth one. `{"apiVersion": "68.0", "objects": [{"query": "SELECT Id", "operation":
+        "Upsert", "externalId": "Id"}]}` reported `passed=True` with zero objects validated before
+        this branch covered it.
 
         `obj.get("query") is not None` treated an explicit `"query": null` as absent, after which
         `_extract_object_name` returned "" and the declaration vanished. A plan of only that
@@ -582,8 +593,11 @@ class SFDMUValidator:
             return
         query = obj.get("query")
         if isinstance(query, str) and query.strip():
-            return
-        if "query" not in obj:
+            if self._extract_object_name(query):
+                return
+            message = (f"'{loc}.query' has no parseable ' FROM <Object>' clause — "
+                       f"the declaration's object cannot be identified and it is skipped")
+        elif "query" not in obj:
             message = f"'{loc}.query' is missing — SFDMU requires it; the declaration is excluded, not executed"
         elif isinstance(query, str):
             message = f"'{loc}.query' is blank — SFDMU requires a non-empty query; the declaration is excluded, not executed"
@@ -844,15 +858,15 @@ class SFDMUValidator:
                      f"default operation instead of the one declared")
         ))
 
-    def _objects_owing_root_csv(self, export_data: dict,
-                                objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]],
-                                all_pass_configs: Dict[str, Dict[int, List[dict]]]) -> Dict[str, List[dict]]:
+    def _objects_owing_root_csv(self, objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]],
+                                all_pass_configs: Dict[str, Dict[int, List[dict]]],
+                                use_separated_csv_files: bool) -> Dict[str, List[dict]]:
         """Objects that must have a CSV at the plan root -> the declarations that read it.
 
-        `all_pass_configs`: per `_all_pass_configs`, supplied rather than recomputed here — the one
-        call site already builds it for the main validate loop, and `export_data` does not change
-        between the two, so a second call re-walked the same per-pass SELECT-field parse for an
-        identical answer.
+        `all_pass_configs` and `use_separated_csv_files`: both per `_all_pass_configs`/
+        `export_data.get("useSeparatedCSVFiles")`, supplied rather than recomputed here — the sole
+        call site already builds both for the main validate loop and neither changes between the
+        two, so a second computation of either was the same redundant work twice over.
 
         Returns a mapping rather than a set so membership (`obj_name in ...`) still answers "is a
         root CSV owed", while the value carries **which** passes read it. The root file has to be
@@ -903,7 +917,6 @@ class SFDMUValidator:
         # with an `objectset_source/object-set-2/<Object>.csv` but no (or a false) top-level
         # `useSeparatedCSVFiles` credited that file as coverage, so a missing root CSV — which SFDMU
         # still needs at runtime — silently passed instead of failing Critical.
-        use_separated_csv_files = bool(export_data.get("useSeparatedCSVFiles"))
         covered: Dict[str, Set[int]] = {}
         for (obj_name, pass_index) in objectset_source_overrides:
             if pass_index == 0:
@@ -1008,13 +1021,26 @@ class SFDMUValidator:
         the two. Hence `externalId_malformed`: the coercion loses the type, so the type is recorded
         here and reported by `_validate_object`.
         """
-        raw_external_id = obj.get("externalId", "Id")
+        # `obj.get(key)` then a `None` check, not `obj.get(key, default)`: the latter only
+        # substitutes when the key is *absent*, but SFDMU's own resolvers do not draw that line.
+        # `ScriptLoader._resolveOperation`'s first real branch is `typeof operation !== 'string'`
+        # (after the numeric-index check), which is `true` for both an absent key (`undefined`)
+        # and an explicit `"operation": null` — same silent Readonly default, same no-complaint,
+        # from the identical call. An explicit `null` externalId defaults the same way. Treating
+        # them differently here (`null` flows through as `None`/`"None"` and a spurious HIGH,
+        # confirmed via `_normalize_object_config({"operation": None, "externalId": None}, ...)`)
+        # is a line the validator draws that SFDMU itself does not — the same class already fixed
+        # for `objectSets: null` above, here for the two fields with a non-boolean default.
+        raw_operation = obj.get("operation")
+        raw_external_id = obj.get("externalId")
+        if raw_external_id is None:
+            raw_external_id = "Id"
         return {
             "pass_index": idx,
             # Readonly, not Upsert: SFDMU leaves `ScriptObject.operation` at its Readonly class
             # default when export.json omits it (see `_is_live_writable`). Baking Upsert in here
             # would defeat that fix for every consumer reading the normalized config.
-            "operation": obj.get("operation", "Readonly"),
+            "operation": "Readonly" if raw_operation is None else raw_operation,
             "externalId": str(raw_external_id),
             # Recorded rather than reported here: this function has no `result` to add an issue to,
             # and threading one in would make a pure normalizer a validator. The type name is carried
@@ -1167,50 +1193,42 @@ class SFDMUValidator:
 
         return overrides
 
-    def _get_object_configs_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> List[dict]:
+    def _get_object_configs_for_pass(self, all_pass_configs: Dict[str, Dict[int, List[dict]]],
+                                     obj_name: str, pass_index: int) -> List[dict]:
         """Every declaration of `obj_name` in this pass, including Readonly and excluded.
+
+        Reads `all_pass_configs` (per `_all_pass_configs`) rather than re-walking
+        `_normalized_object_sets(export_data)` and re-normalizing every match — the same
+        independent-traversal class already fixed once in this PR for
+        `_writable_passes_by_object`. All three callers already have `all_pass_configs` in scope
+        for the same plan, so the old walk was pure duplicate work; it was also a fourth private
+        reimplementation of the normalizer's own logic, and reimplementations are exactly how a
+        `str(externalId)` coercion landed in `_normalize_object_config` while this sibling, 143
+        lines away, went without it — a non-string `externalId` still aborted the whole run for
+        any plan with an `objectset_source/` override, which `qb/en-US/qb-billing` has.
 
         A list, not the first match. `_all_pass_configs` was changed to keep same-pass duplicates;
         this helper was not, so a per-pass override was still validated against whichever
         declaration came first. Readonly or simple-key first, writable composite second: the
         override was accepted without the required column.
 
+        No bounds check on `pass_index`: `dict.get(key, default)` on `all_pass_configs[obj_name]`
+        already returns `[]` for any pass this object was never declared in, negative or
+        out-of-range alike — the same answer the old explicit `0 <= pass_index < len(...)` guard
+        gave, without a comparison that guard's own docstring already said no mutation could kill.
+
         Callers that need "was this object declared here?" use this; callers that need "which
         declarations write the CSV?" use `_writable_configs_for_pass`. The two questions used to
         be one return, which is why a Readonly-only object with a per-pass CSV would have been
         reported as misfiled if this filtered.
         """
-        object_sets = self._normalized_object_sets(export_data)
-        # Both bounds, because `object-set-0` maps to pass_index -1 and an upper-bound-only check
-        # admits it, resolving the negative index against the LAST pass.
-        #
-        # Redundant today, and said plainly rather than left to look load-bearing: all three callers
-        # take `pass_index` from `_find_objectset_source_overrides`, which now applies the same
-        # check, so no input reaches here out of range and mutating this line kills no test. It
-        # stays as an argument-validity check on a helper that accepts an arbitrary int — but a
-        # guard no mutation can kill is exactly what this repo keeps learning to distrust, so it is
-        # labelled instead of counted as coverage.
-        if not 0 <= pass_index < len(object_sets):
-            return []
+        return all_pass_configs.get(obj_name, {}).get(pass_index, [])
 
-        matched = []
-        for obj in object_sets[pass_index].get("objects", []):
-            query = obj.get("query", "")
-            if self._extract_object_name(query) == obj_name:
-                # Through the shared normalizer, not a hand-rolled copy of it. This was the copy, and
-                # it is why "the single point that makes the file total" was a false claim when it was
-                # written: the normalizer grew a `str(externalId)` coercion and this sibling, 143
-                # lines away, did not — so a non-string externalId still aborted the whole run for any
-                # plan with an `objectset_source/` override, which `qb/en-US/qb-billing` has. Three
-                # config builders drifting is the shape of the bug; two were already merged, this is
-                # the third.
-                matched.append(self._normalize_object_config(obj, query, pass_index))
-        return matched
-
-    def _writable_configs_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> List[dict]:
+    def _writable_configs_for_pass(self, all_pass_configs: Dict[str, Dict[int, List[dict]]],
+                                   obj_name: str, pass_index: int) -> List[dict]:
         """Live writable declarations of `obj_name` in this pass — what a source CSV is checked against."""
         return self._dedup_configs(
-            [c for c in self._get_object_configs_for_pass(export_data, obj_name, pass_index)
+            [c for c in self._get_object_configs_for_pass(all_pass_configs, obj_name, pass_index)
              if self._is_live_writable(c)],
             self._READING_CONFIG_KEYS)
 
