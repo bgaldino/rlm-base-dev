@@ -322,7 +322,7 @@ class SFDMUValidator:
                 # Same gate as the validation loop below: a pass 2+ override is inert without
                 # `useSeparatedCSVFiles`, so writing into it is a fix nothing reads.
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                    if pass_index > 0 and not use_separated_csv_files:
+                    if not self._override_is_read_at_runtime(pass_index, use_separated_csv_files):
                         continue
                     writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
@@ -381,7 +381,7 @@ class SFDMUValidator:
                         file_path=self._make_relative_path(csv_path)
                     ))
                     continue
-                if pass_index > 0 and not use_separated_csv_files:
+                if not self._override_is_read_at_runtime(pass_index, use_separated_csv_files):
                     self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
                              f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
@@ -858,6 +858,23 @@ class SFDMUValidator:
                      f"default operation instead of the one declared")
         ))
 
+    @staticmethod
+    def _override_is_read_at_runtime(pass_index: int, use_separated_csv_files: bool) -> bool:
+        """Whether SFDMU reads this pass's `objectset_source` override *at all* at runtime.
+
+        Pass 1 (`pass_index == 0`) always reads the plan root regardless of the flag; every other
+        pass's override is inert without `useSeparatedCSVFiles`. Shared by the two content-check
+        sites that used to write `pass_index > 0 and not use_separated_csv_files` independently (and
+        cross-referenced each other in comments to stay in sync: "Same gate as ...").
+
+        Deliberately NOT reused inside `_objects_owing_root_csv`'s coverage loop below, which asks a
+        different question — "does this override *relieve the root CSV requirement*", not "is it
+        read" — and answers pass 1 the opposite way: object-set-1 IS read at runtime but never
+        relieves the root requirement (see that method's docstring). Conflating the two once already
+        broke an existing regression test in this PR; kept apart on purpose.
+        """
+        return pass_index == 0 or use_separated_csv_files
+
     def _objects_owing_root_csv(self, objectset_source_overrides: Dict[Tuple[str, int], Tuple[Path, int]],
                                 all_pass_configs: Dict[str, Dict[int, List[dict]]],
                                 use_separated_csv_files: bool) -> Dict[str, List[dict]]:
@@ -944,8 +961,16 @@ class SFDMUValidator:
                 # collapsing into its sibling. SFDMU never writes either, so a SELECT gap or
                 # composite-key requirement on one is not a defect of the root CSV. The first version
                 # filtered only `excluded`; a Readonly sibling in the same pass was still checked.
-                declarations = [cfg for i in uncovered for cfg in all_configs[obj_name][i]
-                                if self._is_live_writable(cfg)]
+                #
+                # Via `_writable_configs_for_pass`, not a second hand-rolled `_is_live_writable`
+                # filter — that primitive already exists for "live writable declarations of this
+                # object in this pass," and a second copy is one more place for the two to drift the
+                # next time either's definition of "writable" changes. The outer `_dedup_configs`
+                # call below still runs on the flattened result: each pass is deduped internally by
+                # `_writable_configs_for_pass`, but a duplicate spanning two different `uncovered`
+                # passes is only caught by deduping again across all of them together.
+                declarations = [cfg for i in uncovered
+                                for cfg in self._writable_configs_for_pass(all_configs, obj_name, i)]
                 # Only when non-empty. Membership in this mapping is what makes `_validate_object` ask
                 # for the file at all, so a key with an empty list would claim the CSV is owed and
                 # then validate it against nothing — dropping the missing-file Critical silently. It
@@ -1799,17 +1824,17 @@ class SFDMUValidator:
             return False
 
     def fix_dataset_issues(self, dataset_path: Path, object_configs: Dict[str, dict],
-                           objects_owing_root_csv: Optional[Dict[str, List[dict]]] = None) -> Tuple[int, int]:
+                           objects_owing_root_csv: Dict[str, List[dict]]) -> Tuple[int, int]:
         """Fix issues in a dataset (headers and/or composite keys).
 
         Args:
             dataset_path: Path to dataset directory
             object_configs: Object configurations from export.json
             objects_owing_root_csv: Per `_objects_owing_root_csv` — the declarations validation checks
-                each root CSV against, so the fixer writes what validation asks for. Optional only
-                because this is a public entry point; the one internal call site always supplies it,
-                and omitting it restores the merged-config behavior that made `--fix-all`
-                non-convergent.
+                each root CSV against, so the fixer writes what validation asks for. Required, not
+                defaulted: the merged-config fallback an optional default would invite is the exact
+                non-convergent `--fix-all` behavior this file exists to have fixed, and the sole call
+                site already has this dict in scope — there is no real caller for a default to serve.
 
         Returns:
             Tuple of (headers_fixed, composite_keys_fixed)
@@ -1822,9 +1847,7 @@ class SFDMUValidator:
             # pass 1 and writable in pass 2 has `excluded=True` here, so the per-reading-config loop
             # below never ran and `--fix-all` left pass 2's composite-key finding standing. Skip on
             # whether anything *reads* the root CSV, which is the same question validation asks.
-            reading = ((objects_owing_root_csv or {}).get(obj_name)
-                       if objects_owing_root_csv is not None
-                       else ([obj_config] if self._is_live_writable(obj_config) else []))
+            reading = objects_owing_root_csv.get(obj_name)
             if not reading:
                 continue
 
