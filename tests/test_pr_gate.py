@@ -24,6 +24,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
 
 import pr_gate  # noqa: E402
+import check_plan_readme_consistency  # noqa: E402
 
 PASSED = 0
 FAILED = []
@@ -357,14 +358,20 @@ check("no check's argv carries a word outside CMD_WORDS — nothing that could c
 # it says nothing about whether check_plan_readme_consistency.py itself still defines --strict.
 # A future edit dropping the flag from that script's argparse would still pass every check above
 # (the word is still merely *listed* here) and only surface as a live argparse error the next time
-# pr_gate.py actually ran it — not as a signal from this suite. Probe the real script's --help
-# output instead of trusting the comment above it (round 11 of PR #406's review, pack 147).
-strict_help = subprocess.run(
-    [sys.executable, "scripts/ai/check_plan_readme_consistency.py", "--help"],
-    capture_output=True, text=True, cwd=pr_gate.REPO_ROOT)
+# pr_gate.py actually ran it — not as a signal from this suite. Parse an actual "--strict" argv
+# against the script's real parser instead of substring-matching --help text: --help output also
+# contains the literal string "--strict" in the script's own docstring/Usage block regardless of
+# whether the flag is declared, which live-reproduced as a no-op (round 13 of PR #406's review,
+# pack 147) — removing the add_argument call still left "--strict" in --help with exit 0.
+try:
+    # argparse's own error path for an unrecognized flag is exit(2), i.e. SystemExit — a future
+    # removal of --strict must not crash this suite mid-run; it must fail cleanly as one check().
+    strict_ok = check_plan_readme_consistency.build_arg_parser().parse_args(["--strict"]).strict is True
+except SystemExit:
+    strict_ok = False
 check("check_plan_readme_consistency.py's argparse still defines --strict — the flag "
       "PER_CHECK_EXTRA_WORDS admits for it above",
-      strict_help.returncode == 0 and "--strict" in strict_help.stdout, strict_help.stdout)
+      strict_ok, strict_ok)
 # The rule above is only worth its line if the whitelist actually refuses the no-op. A probe that
 # rewrote a check's argv to `python -c pass` *was* killed while `-c` and `pass` were still whitelisted
 # — by the orphan-suite rule, which noticed the suite that argv stopped naming, not by this rule at

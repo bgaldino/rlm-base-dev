@@ -312,10 +312,18 @@ def check_plan(plan_dir: str):
             continue
 
         # operation — matches if it agrees with ANY pass's operation (excluded objects are descriptive only)
+        # load_plan() guarantees "operation" is never "" or None (see its docstring), so
+        # `wants` is never empty here — an object with only the implicit Readonly default,
+        # which used to fall out of the old `or ""` coercion and skip this check entirely,
+        # is now compared against the README's claim like any other operation. Round 12's
+        # fix (distinguishing absent from unresolvable) is what enabled this; no currently
+        # tracked plan trips it, but a future README claiming a non-Readonly operation for
+        # an object that declares none in export.json now correctly WARNs instead of
+        # passing silently.
         if in_plan and not excluded and row["operation"]:
-            wants = {(v["operation"] or "").lower() for v in variants if v["operation"]}
+            wants = {v["operation"].lower() for v in variants}
             got = norm_op(row["operation"])
-            if wants and got and got not in wants:
+            if got and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` operation README={row['operation'].strip()!r} export.json={sorted(wants)}")
 
         # externalId — matches ANY pass; only when the README cell looks like a literal key, not prose
@@ -462,11 +470,22 @@ def tracked_plan_dirs(dirs: list[str]) -> list[str]:
     return [d for d in dirs if os.path.join(d, "export.json") in tracked_set]
 
 
-def main() -> int:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Split out of main() so a test can assert --strict is a real, defined flag by
+    parsing with it (tests/test_pr_gate.py) instead of substring-matching --help
+    output — which also contains the literal string "--strict" in this module's own
+    docstring/Usage block regardless of whether the flag is actually declared below,
+    making a --help-text probe a no-op against exactly the regression it exists to
+    catch (round 13 of PR #406's review, pack 147: live-reproduced by removing the
+    add_argument call and confirming --help still printed "--strict" with exit 0)."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("targets", nargs="*", help="Plan dirs to check (default: all under datasets/sfdmu)")
     ap.add_argument("--strict", action="store_true", help="Exit non-zero on warnings too")
-    args = ap.parse_args()
+    return ap
+
+
+def main() -> int:
+    args = build_arg_parser().parse_args()
 
     plan_dirs, no_readme = find_plan_dirs(args.targets)
     total_err = total_warn = 0
