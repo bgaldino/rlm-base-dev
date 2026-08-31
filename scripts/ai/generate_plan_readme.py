@@ -31,6 +31,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -72,40 +73,58 @@ FRESH_TEMPLATE = """# {title} Data Plan
 """
 
 
-def root_counts(plan_dir: str) -> dict[str, int]:
-    """name -> row count for the CSV directly in plan_dir (not an objectset_source
-    override) — the same file pass 1 always reads regardless of useSeparatedCSVFiles."""
-    out = {}
-    for name, paths in csv_index(plan_dir).items():
-        for p in paths:
-            if os.path.dirname(os.path.abspath(p)) == os.path.abspath(plan_dir):
-                out[name] = csv_row_count(p)
-    return out
+def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int):
+    """(count, path-relative-to-plan_dir) for the CSV this pass actually reads,
+    mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
+    always reads the root CSV regardless of an object-set-1/ override or the flag;
+    pass N>1 reads objectset_source/object-set-N/<name>.csv only when
+    useSeparatedCSVFiles is true and that file exists, else falls back to root.
+    Restricting to the root CSV unconditionally (the prior behavior) emitted `—`
+    for an object sourced only from an objectset_source override, e.g.
+    procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file)."""
+    by_abspath = {os.path.abspath(p): p for p in csv_idx.get(name, [])}
+    if pass_no > 1 and use_separated:
+        override = os.path.abspath(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
+        if override in by_abspath:
+            p = by_abspath[override]
+            return csv_row_count(p), os.path.relpath(p, plan_dir)
+    root = os.path.abspath(os.path.join(plan_dir, f"{name}.csv"))
+    if root in by_abspath:
+        p = by_abspath[root]
+        return csv_row_count(p), os.path.relpath(p, plan_dir)
+    return None, None
 
 
 def generate_block(plan_dir: str) -> str:
     plan = load_plan(os.path.join(plan_dir, "export.json"))
-    counts = root_counts(plan_dir)
+    with open(os.path.join(plan_dir, "export.json"), encoding="utf-8") as fh:
+        use_separated = bool(json.load(fh).get("useSeparatedCSVFiles"))
+    csv_idx = csv_index(plan_dir)
 
     rows = []
-    files = []
+    files: dict[str, int] = {}
     row_num = 0
     for name, variants in plan.items():
-        n = counts.get(name)
-        for pass_no, variant in enumerate(variants, start=1):
+        for variant in variants:
             row_num += 1
+            pass_no = variant["pass"]
             op = variant["operation"] or "—"
             ext_id = variant["externalId"] or "—"
-            records = str(n) if n is not None else "—"
+            count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no)
+            records = str(count) if count is not None else "—"
             rows.append(f"| {row_num} | {name} | {pass_no} | {op} | {ext_id} | {records} |")
-        if n is not None:
-            files.append(f"{name}.csv".ljust(40) + f"# {n} record{'s' if n != 1 else ''}")
+            if relpath is not None and relpath not in files:
+                files[relpath] = count
 
+    # A literal space precedes "#" so a path >= 40 chars (e.g. an objectset_source/
+    # object-set-N/ override) still gets a separator — ljust alone pads only when
+    # shorter, so a plain `+` concatenation ran the two together for long paths.
+    file_lines = [f"{p.ljust(40)} # {n} record{'s' if n != 1 else ''}" for p, n in files.items()]
     return BLOCK_TEMPLATE.format(
         begin=BEGIN_MARKER,
         end=END_MARKER,
         rows="\n".join(rows),
-        files="\n".join(files) if files else "(no CSVs — every object is Readonly or excluded)",
+        files="\n".join(file_lines) if file_lines else "(no CSVs — every object is Readonly or excluded)",
     )
 
 

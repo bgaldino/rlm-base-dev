@@ -72,23 +72,30 @@ def object_name(obj: dict) -> str:
 
 def load_plan(export_json: str) -> dict:
     """Return {object_name: [variant, ...]} where each variant is one pass's
-    definition {operation, externalId, deleteOldData, excluded}. An object that
-    appears in several passes (e.g. Upsert in Pass 1, Update in Pass 2) keeps a
-    variant per pass, so a README row matches if it agrees with ANY variant."""
+    definition {pass, operation, externalId, deleteOldData, excluded}. An object
+    that appears in several passes (e.g. Upsert in Pass 1, Update in Pass 2) keeps a
+    variant per pass, so a README row matches if it agrees with ANY variant.
+
+    `pass` is the object's actual 1-based objectSets index, not the occurrence
+    count within `out[name]` — an object skipping a set (e.g. declared in sets 1
+    and 3 but not 2) would otherwise have its second variant mislabeled pass 2."""
     with open(export_json, encoding="utf-8") as fh:
         data = json.load(fh)
-    objs = data.get("objects") or [
-        o for s in data.get("objectSets", []) for o in s.get("objects", [])
-    ]
+    if data.get("objects"):
+        passes = [(1, data["objects"])]
+    else:
+        passes = list(enumerate((s.get("objects", []) for s in data.get("objectSets", [])), start=1))
     out: dict[str, list[dict]] = {}
-    for o in objs:
-        name = object_name(o)
-        out.setdefault(name, []).append({
-            "operation": (o.get("operation") or "").strip(),
-            "externalId": (o.get("externalId") or "").strip(),
-            "deleteOldData": bool(o.get("deleteOldData", False)),
-            "excluded": bool(o.get("excluded", False)),
-        })
+    for pass_no, objs in passes:
+        for o in objs:
+            name = object_name(o)
+            out.setdefault(name, []).append({
+                "pass": pass_no,
+                "operation": (o.get("operation") or "").strip(),
+                "externalId": (o.get("externalId") or "").strip(),
+                "deleteOldData": bool(o.get("deleteOldData", False)),
+                "excluded": bool(o.get("excluded", False)),
+            })
     return out
 
 

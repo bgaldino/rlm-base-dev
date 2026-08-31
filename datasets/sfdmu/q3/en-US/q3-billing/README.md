@@ -16,9 +16,9 @@
 | 4 | PaymentTerm | 1 | Upsert | Name | 1 |
 | 5 | PaymentTermItem | 1 | Upsert | PaymentTerm.Name;Type | 1 |
 | 6 | BillingPolicy | 1 | Upsert | Name | 0 |
-| 7 | BillingPolicy | 2 | Update | Name | 0 |
+| 7 | BillingPolicy | 3 | Update | Name | 0 |
 | 8 | BillingTreatment | 1 | Upsert | Name | 0 |
-| 9 | BillingTreatment | 2 | Update | Name | 0 |
+| 9 | BillingTreatment | 3 | Update | Name | 0 |
 | 10 | BillingTreatmentItem | 1 | Upsert | Name;BillingTreatment.Name | 0 |
 | 11 | BillingTreatmentItem | 2 | Update | Name;BillingTreatment.Name | 0 |
 | 12 | Product2 | 1 | Update | StockKeepingUnit | 78 |

@@ -32,8 +32,10 @@
 ```
 UnitOfMeasure.csv                       # 18 records
 UnitOfMeasureClass.csv                  # 11 records
+objectset_source/object-set-2/UnitOfMeasureClass.csv# 11 records
 UsageResourceBillingPolicy.csv          # 3 records
 UsageResource.csv                       # 16 records
+objectset_source/object-set-2/UsageResource.csv# 16 records
 Product2.csv                            # 78 records
 UsageGrantRenewalPolicy.csv             # 2 records
 UsageGrantRolloverPolicy.csv            # 1 record
