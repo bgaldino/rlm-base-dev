@@ -37,6 +37,17 @@ from typing import Dict, List, Optional, Set, Tuple
 _SKIP_SEGMENTS = ("objectset_source", "processed", "source", "logs", "test")
 
 
+def _is_skip_segment(seg: str) -> bool:
+    """One path segment's worth of the skip rule — a name in _SKIP_SEGMENTS, or any
+    *.bak backup dir. Split out of _is_skippable_export so a caller that prunes an
+    os.walk() incrementally (one directory name at a time, e.g.
+    check_plan_readme_consistency.py's find_plan_dirs()) can reuse the exact same
+    per-segment predicate instead of hand-mirroring both halves of it — a second,
+    independent copy of the .bak-suffix rule specifically is what round 15 of PR #406's
+    review (pack 147) found drifting risk in."""
+    return seg in _SKIP_SEGMENTS or seg.endswith(".bak")
+
+
 def _is_skippable_export(export_json: Path, root: Path) -> bool:
     """Return True if an export.json found under ``root`` should be skipped.
 
@@ -49,9 +60,7 @@ def _is_skippable_export(export_json: Path, root: Path) -> bool:
         rel_parts = export_json.relative_to(root).parts
     except ValueError:
         rel_parts = export_json.parts
-    if any(seg in _SKIP_SEGMENTS for seg in rel_parts):
-        return True
-    return any(seg.endswith(".bak") for seg in rel_parts)
+    return any(_is_skip_segment(seg) for seg in rel_parts)
 
 
 class Severity(Enum):

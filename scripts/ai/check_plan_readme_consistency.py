@@ -55,9 +55,14 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from validate_sfdmu_v5_datasets import _SKIP_SEGMENTS, SFDMUValidator  # noqa: E402
+from validate_sfdmu_v5_datasets import _is_skip_segment, SFDMUValidator  # noqa: E402
 
-# A README line carrying this marker is skipped by every check.
+# A README line carrying this marker is skipped by every per-row check, but the row's
+# object still counts as "seen" for the missing-objects check below — an ignored row is
+# still a row that lists the object, just one whose operation/externalId/count details
+# aren't checked (round 15 of PR #406's review, pack 147: the two markers didn't compose
+# before this — an ignored row was never yielded at all, so it never reached seen_objects
+# either, and the missing-objects WARN fired for an object the README does in fact list).
 IGNORE_MARKER = "readme-check: ignore"
 # A whole-README marker declaring that named export.json objects are intentionally
 # left out of the object table — e.g. `<!-- readme-check: omit: LegacyThing, Scratch -->`.
@@ -126,7 +131,7 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
     if data is None:
         data = load_export_data(export_json)
     # Calls the validator's own centralized dominance rule instead of re-deriving it
-    # here as a fourth independent copy — this module already imports _SKIP_SEGMENTS,
+    # here as a fourth independent copy — this module already imports _is_skip_segment,
     # and generate_plan_readme.py already imports _is_js_truthy, from this same sibling
     # module for the identical drift-avoidance reason (three call sites disagreeing on
     # this exact rule is the failure _normalized_object_sets's own docstring documents).
@@ -241,9 +246,14 @@ def parse_object_tables(lines: list[str]):
                 }
                 j = i + 2
                 while j < n and lines[j].strip().startswith("|"):
-                    if IGNORE_MARKER in lines[j]:
-                        j += 1
-                        continue
+                    # An ignored row is still yielded (with ignored=True, no field data) so
+                    # the caller can record its object as "seen" — the missing-object check
+                    # (added round 14) otherwise WARNs that an ignored-but-listed object is
+                    # "absent from the README object table", since the two markers used to
+                    # not compose: IGNORE_MARKER used to skip the row entirely (never
+                    # yielded), so it never reached seen_objects either (round 15 of PR
+                    # #406's review, pack 147).
+                    ignored = IGNORE_MARKER in lines[j]
                     cells = [c.strip() for c in lines[j].strip().strip("|").split("|")]
                     if ci["object"] is not None and ci["object"] < len(cells):
                         name = cells[ci["object"]].strip(" `*")
@@ -251,9 +261,10 @@ def parse_object_tables(lines: list[str]):
                             yield {
                                 "line": j + 1,
                                 "object": name,
-                                "operation": cells[ci["operation"]] if ci["operation"] is not None and ci["operation"] < len(cells) else None,
-                                "externalId": cells[ci["externalId"]].strip(" `") if ci["externalId"] is not None and ci["externalId"] < len(cells) else None,
-                                "records": cells[ci["records"]] if ci["records"] is not None and ci["records"] < len(cells) else None,
+                                "ignored": ignored,
+                                "operation": None if ignored else (cells[ci["operation"]] if ci["operation"] is not None and ci["operation"] < len(cells) else None),
+                                "externalId": None if ignored else (cells[ci["externalId"]].strip(" `") if ci["externalId"] is not None and ci["externalId"] < len(cells) else None),
+                                "records": None if ignored else (cells[ci["records"]] if ci["records"] is not None and ci["records"] < len(cells) else None),
                             }
                     j += 1
                 i = j
@@ -317,6 +328,8 @@ def check_plan(plan_dir: str):
         object_table_found = True
         name = row["object"]
         seen_objects.add(name)
+        if row["ignored"]:
+            continue
         ln = row["line"]
         variants = plan.get(name, [])
         in_plan = bool(variants)
@@ -408,16 +421,6 @@ def check_plan(plan_dir: str):
     return errors, warns, parsed_anything
 
 
-# Reuses validate_sfdmu_v5_datasets.py's own _SKIP_SEGMENTS rather than a second,
-# independent copy of it — a hand-copied subset (this used to be just {"test"}) can
-# only drift from the canonical list as it grows. datasets/sfdmu/test/ itself is
-# entirely gitignored, developer-local scratch (zero files git-tracked, confirmed via
-# `git ls-files datasets/sfdmu/test`); without skipping it, --strict (added by this
-# same change to pr_gate.py's invocation) fails on whatever stale scratch plans a
-# developer happens to have lying around locally, unrelated to anything that ships.
-_DISCOVERY_SKIP_DIRS = set(_SKIP_SEGMENTS)
-
-
 def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
     """Discover on export.json ALONE, so a plan missing its README is reported by
     name (second return value) instead of never entering the walk — the gate used
@@ -447,15 +450,32 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
         return dirs, no_readme
     dirs, no_readme = [], []
     for root, subdirs, files in os.walk(SFDMU_ROOT):
-        # Matches validate_sfdmu_v5_datasets.py's _is_skippable_export segment rule
-        # exactly, not just the _SKIP_SEGMENTS half of it — that function also treats
-        # any *.bak segment as skippable (backup dirs, e.g. a plan copied aside during
-        # a manual edit), which pruning by name-membership alone misses.
-        subdirs[:] = [d for d in subdirs if d not in _DISCOVERY_SKIP_DIRS and not d.endswith(".bak")]
+        # Calls validate_sfdmu_v5_datasets.py's own per-segment predicate rather than
+        # hand-mirroring it (round 15 of PR #406's review, pack 147: the prior form —
+        # `d not in _DISCOVERY_SKIP_DIRS and not d.endswith(".bak")` — was a second,
+        # independent copy of _is_skip_segment's own two rules, free to drift from it).
+        subdirs[:] = [d for d in subdirs if not _is_skip_segment(d)]
         if "export.json" not in files:
             continue
         (dirs if "README.md" in files else no_readme).append(root)
     return sorted(dirs), sorted(no_readme)
+
+
+def _repo_relpath(p: str) -> str:
+    """Like os.path.relpath(p, REPO_ROOT), but treats a REPO_ROOT prefix that
+    differs from p only in case as the SAME directory — matching
+    find_plan_dirs()'s explicit-target guard, which admits such a path as
+    "inside the repo" on a case-insensitive filesystem (macOS APFS). A plain
+    relpath() on that admitted path compares components literally and returns
+    a bogus, deeply-'../'-prefixed path (round 15 of PR #406's review, pack
+    147: live-reproduced — `git ls-files` then exits 128, "outside
+    repository", which `tracked_paths()`'s `check=True` turns into an
+    uncaught crash instead of the clean skip/report this script exists to
+    give bad input)."""
+    root_len = len(REPO_ROOT)
+    if p[:root_len].lower() == REPO_ROOT.lower() and p[root_len:root_len + 1] in ("", os.sep):
+        return p[root_len:].lstrip(os.sep) or "."
+    return os.path.relpath(p, REPO_ROOT)
 
 
 def tracked_paths(paths: list[str]) -> set[str]:
@@ -474,7 +494,7 @@ def tracked_paths(paths: list[str]) -> set[str]:
     grepping doesn't turn up two same-named helpers with different shapes."""
     if not paths:
         return set()
-    rels = [os.path.relpath(p, REPO_ROOT) for p in paths]
+    rels = [_repo_relpath(p) for p in paths]
     # check=True: a git failure (e.g. run outside a checkout) must not silently yield
     # empty stdout, which would misclassify every tracked README-less plan as
     # untracked/optional — the exact silent-pass-by-absence defect this script exists
@@ -562,7 +582,15 @@ def main() -> int:
         print(f"\n(untracked, no README, not required: {rels})")
 
     print(f"\n{'='*60}")
-    print(f"Checked {len(plan_dirs) - len(skipped)} plan READMEs: {total_err} error(s), {total_warn} warning(s)")
+    # total_err/total_warn were already folded in above (the no-README ERROR print), but
+    # the "Checked N" count never included those plans — reads as if N audited READMEs
+    # produced X errors, when a no-README plan contributed to X without being one of the
+    # N (round 15 of PR #406's review, pack 147). Named separately so the count and the
+    # errors it reports stay attributable to the same set of plans.
+    summary = f"Checked {len(plan_dirs) - len(skipped)} plan README(s)"
+    if tracked_no_readme:
+        summary += f" + {len(tracked_no_readme)} tracked plan(s) with no README"
+    print(f"{summary}: {total_err} error(s), {total_warn} warning(s)")
     if skipped:
         print(f"Skipped (no parseable object table / file listing): {', '.join(skipped)}")
     if total_err or (args.strict and total_warn):
