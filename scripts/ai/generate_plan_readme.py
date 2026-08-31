@@ -150,14 +150,17 @@ def generate_block(plan_dir: str) -> str:
     # object-set-N/ override) still gets a separator — ljust alone pads only when
     # shorter, so a plain `+` concatenation ran the two together for long paths.
     file_lines = [f"{p.ljust(40)} # {n} record{'s' if n != 1 else ''}" for p, n in files.items()]
-    if file_lines:
-        files_text = "\n".join(file_lines)
-    elif writable_missing_csv:
+    if writable_missing_csv:
         # Distinct from the Readonly/excluded case below — a writable, non-excluded
         # object legitimately owes a CSV here and doesn't have one. That's a plan
         # defect for validate_sfdmu_v5_datasets.py to flag, not evidence the plan has
-        # no CSVs by design.
-        files_text = "(no CSVs found — a writable, non-excluded object is missing its CSV; see validate_sfdmu_v5_datasets.py)"
+        # no CSVs by design. Appended regardless of whether file_lines is otherwise
+        # empty — a plan with some real CSVs and one missing one previously dropped
+        # the missing object with no signal at all, since this branch only ran when
+        # file_lines was empty.
+        file_lines.append("(missing CSV — a writable, non-excluded object has none; see validate_sfdmu_v5_datasets.py)")
+    if file_lines:
+        files_text = "\n".join(file_lines)
     else:
         files_text = "(no CSVs — every object is Readonly or excluded)"
     return BLOCK_TEMPLATE.format(
