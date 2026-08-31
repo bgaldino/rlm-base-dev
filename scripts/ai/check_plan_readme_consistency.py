@@ -93,18 +93,31 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
     and 3 but not 2) would otherwise have its second variant mislabeled pass 2."""
     if data is None:
         data = load_export_data(export_json)
-    if data.get("objects"):
-        passes = [(1, data["objects"])]
+    # Mirrors validate_sfdmu_v5_datasets.py's _normalized_object_sets: non-empty
+    # objectSets wins outright over a sibling `objects` array — the real SFDMU
+    # dominance rule, e.g. a leftover flat `objects` array from before a plan
+    # migrated to objectSets. Checking `objects` truthy first (the prior order
+    # here) read the dead array instead of the live objectSets whenever both were
+    # non-empty.
+    object_sets = data.get("objectSets") or []
+    if object_sets:
+        passes = list(enumerate((s.get("objects", []) for s in object_sets), start=1))
     else:
-        passes = list(enumerate((s.get("objects", []) for s in data.get("objectSets", [])), start=1))
+        passes = [(1, data.get("objects") or [])]
     out: dict[str, list[dict]] = {}
     for pass_no, objs in passes:
         for o in objs:
             name = object_name(o)
             out.setdefault(name, []).append({
                 "pass": pass_no,
-                "operation": (o.get("operation") or "").strip(),
-                "externalId": (o.get("externalId") or "").strip(),
+                # str() before .strip(): SFDMU tolerates a malformed plan declaring
+                # operation/externalId as a boolean or number instead of a string
+                # (validate_sfdmu_v5_datasets.py's _resolve_operation guards the
+                # same shape) — `(True or "").strip()` raises AttributeError since
+                # the `or` short-circuits to the truthy bool, not the string
+                # fallback.
+                "operation": str(o.get("operation") or "").strip(),
+                "externalId": str(o.get("externalId") or "").strip(),
                 "deleteOldData": bool(o.get("deleteOldData", False)),
                 "excluded": bool(o.get("excluded", False)),
             })
@@ -396,7 +409,13 @@ def tracked_paths(paths: list[str]) -> set[str]:
     # untracked/optional — the exact silent-pass-by-absence defect this script exists
     # to close. generate_plan_readme.py has no git call of its own — it imports and
     # calls this same function, so there is nothing else to keep in sync here.
-    r = subprocess.run(["git", "ls-files", "--"] + rels, cwd=REPO_ROOT,
+    # -z: git's default core.quotepath=true C-quotes/octal-escapes non-ASCII (or
+    # otherwise "unusual") bytes in plain `ls-files` output (e.g. a tracked café/
+    # export.json is echoed as "caf\303\251/export.json"), which would never
+    # string-match the plain relpath below and misclassify a genuinely tracked path
+    # as untracked — the same silent-pass-by-absence defect this script exists to
+    # close, one level down. -z disables quoting and NUL-delimits instead.
+    r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=REPO_ROOT,
                         capture_output=True, text=True, check=True)
     # Compare case-folded, and return the CALLER's own paths rather than reconstructing
     # from git's stdout: on a case-insensitive filesystem (macOS's default APFS), a repo
@@ -404,7 +423,7 @@ def tracked_paths(paths: list[str]) -> set[str]:
     # case-insensitively but echoes it back in the INDEX's casing, which can differ from
     # the caller's/disk's casing after a case-only rename the index missed. Exact-string
     # reconstruction would then silently miss a real match.
-    tracked_rel_lower = {line.lower() for line in r.stdout.splitlines()}
+    tracked_rel_lower = {line.lower() for line in r.stdout.split("\0") if line}
     return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
 
 
