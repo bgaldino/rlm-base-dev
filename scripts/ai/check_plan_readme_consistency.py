@@ -90,7 +90,17 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
 
     `pass` is the object's actual 1-based objectSets index, not the occurrence
     count within `out[name]` — an object skipping a set (e.g. declared in sets 1
-    and 3 but not 2) would otherwise have its second variant mislabeled pass 2."""
+    and 3 but not 2) would otherwise have its second variant mislabeled pass 2.
+
+    `operation` is never "" or None: an absent key resolves to `"readonly"`
+    (SFDMU's own class-field default); a present-but-unresolvable value (wrong
+    type, out-of-range index, typo) resolves to a distinct `"Unresolvable(...)"`
+    sentinel rather than being treated as absent or as Readonly — the two read
+    identically to `_resolve_operation` alone, but SFDMU's own runtime does NOT
+    treat them alike (`_is_live_writable`'s docstring): only a genuinely absent
+    key gets the Readonly default; an unresolvable value is still written from
+    source, so it must not be silently exempted from a missing-CSV check the way
+    a real Readonly/Delete is."""
     if data is None:
         data = load_export_data(export_json)
     # Calls the validator's own centralized dominance rule instead of re-deriving it
@@ -103,15 +113,27 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
     for pass_no, objs in passes:
         for o in objs:
             name = object_name(o)
+            if "operation" not in o:
+                # ScriptObject.operation's own class-field default (ScriptObject.ts:162,
+                # v5.8.0) — an ABSENT key only. _resolve_operation(None) can't tell "key
+                # absent" apart from "key present with an unresolvable value" (both reach
+                # it as None/non-resolvable), so that distinction has to be made here,
+                # before calling it, not inside it.
+                operation = "readonly"
+            else:
+                operation = SFDMUValidator._resolve_operation(o.get("operation"))
+                if operation is None:
+                    # Present but unresolvable (wrong type, out-of-range index, typo).
+                    # _is_live_writable's docstring: SFDMU does NOT fall back to Readonly
+                    # here — it leaves the raw value in place and still writes the object
+                    # from source. A distinct non-empty sentinel (not "", not "readonly")
+                    # keeps this from being silently read as absent or as Readonly by any
+                    # downstream consumer — a missing CSV for it is a real Critical, not
+                    # a false positive the Readonly/Delete exemption should swallow.
+                    operation = f"Unresolvable({o.get('operation')!r})"
             out.setdefault(name, []).append({
                 "pass": pass_no,
-                # SFDMU tolerates a malformed plan declaring operation as a boolean or
-                # number instead of a string; _resolve_operation resolves the same enum
-                # names/indices SFDMU itself accepts and returns None for anything else
-                # (including a bare True/False, which JS drops) rather than the
-                # str(...).strip() this used to do, which just coerced a bool/number to
-                # its Python str() form instead of resolving it.
-                "operation": SFDMUValidator._resolve_operation(o.get("operation")) or "",
+                "operation": operation,
                 "externalId": str(o.get("externalId") or "").strip(),
                 # JS truthiness, not plain Python bool() — SFDMU reads these the same
                 # way it reads useSeparatedCSVFiles, where `[]`/`{}` are truthy in JS but

@@ -144,10 +144,10 @@ def generate_block(plan_dir: str) -> str:
         for variant in variants:
             row_num += 1
             pass_no = variant["pass"]
-            # SFDMU's actual default for an absent `operation` key is "Readonly"
-            # (ScriptObject.ts's class-field default), not "unspecified" — rendering
-            # "—" implied the plan declared nothing when it declared Readonly.
-            op = _OPERATION_DISPLAY.get(variant["operation"], variant["operation"]) or "Readonly"
+            # load_plan() already resolves "absent key" to "readonly" and a present-
+            # but-unresolvable value to a distinct "Unresolvable(...)" sentinel — never
+            # "" — so there is no separate absent-key fallback needed here.
+            op = _OPERATION_DISPLAY.get(variant["operation"], variant["operation"])
             ext_id = variant["externalId"] or "—"
             count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no, count_cache)
             records = str(count) if count is not None else "—"
