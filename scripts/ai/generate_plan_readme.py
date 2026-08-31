@@ -179,8 +179,12 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
     end_idx = existing.find(END_MARKER)
     # end_idx > begin_idx, not just "both present" — a README with the markers out of
     # order (bad manual edit, bad merge) must fall through to --force/skip below rather
-    # than crash trying to split a block boundary that doesn't actually exist.
-    if begin_idx != -1 and end_idx > begin_idx:
+    # than crash trying to split a block boundary that doesn't actually exist. Likewise a
+    # DUPLICATED marker (existing.count() > 1) — find() only ever sees the first
+    # occurrence, so splicing on it would silently fold any real content between a stray
+    # extra BEGIN and the real one out of the file instead of raising anything.
+    if (begin_idx != -1 and end_idx > begin_idx
+            and existing.count(BEGIN_MARKER) == 1 and existing.count(END_MARKER) == 1):
         pre = existing[:begin_idx]
         post = existing[end_idx + len(END_MARKER):]
         content = pre + block + post
@@ -212,6 +216,13 @@ def main() -> int:
     ap.add_argument("--all-missing", action="store_true", help="Generate for every tracked plan with export.json and no README.md")
     ap.add_argument("--force", action="store_true", help="Replace a marker-less existing README wholesale instead of skipping it")
     args = ap.parse_args()
+
+    if args.targets and args.all_missing:
+        # Without this check, `targets = find_missing()` below silently overwrites
+        # args.targets — a caller naming a specific plan AND passing --all-missing would
+        # get every tracked README-less plan regenerated instead of just the one named,
+        # with no warning that their explicit argument was dropped.
+        ap.error("targets and --all-missing are mutually exclusive")
 
     targets = args.targets
     if args.all_missing:
