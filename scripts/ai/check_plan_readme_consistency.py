@@ -49,6 +49,9 @@ from collections import Counter
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from validate_sfdmu_v5_datasets import _SKIP_SEGMENTS  # noqa: E402
+
 # A README line carrying this marker is skipped by every check.
 IGNORE_MARKER = "readme-check: ignore"
 
@@ -330,13 +333,14 @@ def check_plan(plan_dir: str):
     return errors, warns, parsed_anything
 
 
-# datasets/sfdmu/test/ is entirely gitignored, developer-local scratch (zero files
-# git-tracked, confirmed via `git ls-files datasets/sfdmu/test`) — validate_sfdmu_v5_
-# datasets.py's own _SKIP_SEGMENTS already excludes it for the same reason. Without
-# this, --strict (added by this same change to pr_gate.py's invocation) fails on
-# whatever stale scratch plans a developer happens to have lying around locally,
-# unrelated to anything in datasets/sfdmu/ that ships.
-_DISCOVERY_SKIP_DIRS = {"test"}
+# Reuses validate_sfdmu_v5_datasets.py's own _SKIP_SEGMENTS rather than a second,
+# independent copy of it — a hand-copied subset (this used to be just {"test"}) can
+# only drift from the canonical list as it grows. datasets/sfdmu/test/ itself is
+# entirely gitignored, developer-local scratch (zero files git-tracked, confirmed via
+# `git ls-files datasets/sfdmu/test`); without skipping it, --strict (added by this
+# same change to pr_gate.py's invocation) fails on whatever stale scratch plans a
+# developer happens to have lying around locally, unrelated to anything that ships.
+_DISCOVERY_SKIP_DIRS = set(_SKIP_SEGMENTS)
 
 
 def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
