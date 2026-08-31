@@ -353,6 +353,18 @@ bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     and not w.startswith(("tests/", "scripts/"))})
 check("no check's argv carries a word outside CMD_WORDS — nothing that could collect without "
       "running, or install, or redirect", bad_words == [], bad_words)
+# PER_CHECK_EXTRA_WORDS only proves the whitelist tolerates the word in this check's own argv —
+# it says nothing about whether check_plan_readme_consistency.py itself still defines --strict.
+# A future edit dropping the flag from that script's argparse would still pass every check above
+# (the word is still merely *listed* here) and only surface as a live argparse error the next time
+# pr_gate.py actually ran it — not as a signal from this suite. Probe the real script's --help
+# output instead of trusting the comment above it (round 11 of PR #406's review, pack 147).
+strict_help = subprocess.run(
+    [sys.executable, "scripts/ai/check_plan_readme_consistency.py", "--help"],
+    capture_output=True, text=True, cwd=pr_gate.REPO_ROOT)
+check("check_plan_readme_consistency.py's argparse still defines --strict — the flag "
+      "PER_CHECK_EXTRA_WORDS admits for it above",
+      strict_help.returncode == 0 and "--strict" in strict_help.stdout, strict_help.stdout)
 # The rule above is only worth its line if the whitelist actually refuses the no-op. A probe that
 # rewrote a check's argv to `python -c pass` *was* killed while `-c` and `pass` were still whitelisted
 # — by the orphan-suite rule, which noticed the suite that argv stopped naming, not by this rule at
@@ -5084,7 +5096,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 679
+EXPECTED = 680
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

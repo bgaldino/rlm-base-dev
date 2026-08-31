@@ -50,7 +50,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from validate_sfdmu_v5_datasets import _SKIP_SEGMENTS  # noqa: E402
+from validate_sfdmu_v5_datasets import _SKIP_SEGMENTS, SFDMUValidator  # noqa: E402
 
 # A README line carrying this marker is skipped by every check.
 IGNORE_MARKER = "readme-check: ignore"
@@ -93,33 +93,31 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
     and 3 but not 2) would otherwise have its second variant mislabeled pass 2."""
     if data is None:
         data = load_export_data(export_json)
-    # Mirrors validate_sfdmu_v5_datasets.py's _normalized_object_sets: non-empty
-    # objectSets wins outright over a sibling `objects` array — the real SFDMU
-    # dominance rule, e.g. a leftover flat `objects` array from before a plan
-    # migrated to objectSets. Checking `objects` truthy first (the prior order
-    # here) read the dead array instead of the live objectSets whenever both were
-    # non-empty.
-    object_sets = data.get("objectSets") or []
-    if object_sets:
-        passes = list(enumerate((s.get("objects", []) for s in object_sets), start=1))
-    else:
-        passes = [(1, data.get("objects") or [])]
+    # Calls the validator's own centralized dominance rule instead of re-deriving it
+    # here as a fourth independent copy — this module already imports _SKIP_SEGMENTS,
+    # and generate_plan_readme.py already imports _is_js_truthy, from this same sibling
+    # module for the identical drift-avoidance reason (three call sites disagreeing on
+    # this exact rule is the failure _normalized_object_sets's own docstring documents).
+    passes = list(enumerate((s.get("objects", []) for s in SFDMUValidator._normalized_object_sets(data)), start=1))
     out: dict[str, list[dict]] = {}
     for pass_no, objs in passes:
         for o in objs:
             name = object_name(o)
             out.setdefault(name, []).append({
                 "pass": pass_no,
-                # str() before .strip(): SFDMU tolerates a malformed plan declaring
-                # operation/externalId as a boolean or number instead of a string
-                # (validate_sfdmu_v5_datasets.py's _resolve_operation guards the
-                # same shape) — `(True or "").strip()` raises AttributeError since
-                # the `or` short-circuits to the truthy bool, not the string
-                # fallback.
-                "operation": str(o.get("operation") or "").strip(),
+                # SFDMU tolerates a malformed plan declaring operation as a boolean or
+                # number instead of a string; _resolve_operation resolves the same enum
+                # names/indices SFDMU itself accepts and returns None for anything else
+                # (including a bare True/False, which JS drops) rather than the
+                # str(...).strip() this used to do, which just coerced a bool/number to
+                # its Python str() form instead of resolving it.
+                "operation": SFDMUValidator._resolve_operation(o.get("operation")) or "",
                 "externalId": str(o.get("externalId") or "").strip(),
-                "deleteOldData": bool(o.get("deleteOldData", False)),
-                "excluded": bool(o.get("excluded", False)),
+                # JS truthiness, not plain Python bool() — SFDMU reads these the same
+                # way it reads useSeparatedCSVFiles, where `[]`/`{}` are truthy in JS but
+                # falsy in Python (validate_sfdmu_v5_datasets.py's _is_js_truthy).
+                "deleteOldData": SFDMUValidator._is_js_truthy(o.get("deleteOldData")),
+                "excluded": SFDMUValidator._is_js_truthy(o.get("excluded")),
             })
     return out
 
@@ -369,7 +367,12 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
             # tracked_paths() as a "../.."-relative pathspec and crash with a raw
             # subprocess.CalledProcessError from `git ls-files` ("fatal: ... is outside
             # repository") instead of the same clean skip message bad input gets below.
-            if os.path.relpath(t, REPO_ROOT).startswith(".."):
+            # Case-folded, like tracked_paths()'s own comparison below: on a
+            # case-insensitive filesystem (macOS APFS) a target whose path differs from
+            # REPO_ROOT only in case is still the same on-disk directory, but plain
+            # relpath() splits on the literal (differing-case) components and returns a
+            # "../"-prefixed path — wrongly reported and skipped as outside the repo.
+            if os.path.relpath(t.lower(), REPO_ROOT.lower()).startswith(".."):
                 print(f"skip {t} — outside the repo", file=sys.stderr)
             elif not os.path.isfile(os.path.join(t, "export.json")):
                 print(f"skip {os.path.relpath(t, REPO_ROOT)} — no export.json", file=sys.stderr)

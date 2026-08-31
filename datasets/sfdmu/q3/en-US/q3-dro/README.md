@@ -16,9 +16,9 @@
 | 4 | ValTfrm | 1 | Upsert | Name | 0 |
 | 5 | ProductDecompEnrichmentRule | 1 | Upsert | Name | — |
 | 6 | FulfillmentStepDefinitionGroup | 1 | Upsert | Name | 0 |
-| 7 | User | 1 | ReadOnly | Name | 0 |
-| 8 | Group | 1 | ReadOnly | Name | 0 |
-| 9 | IntegrationProviderDef | 1 | ReadOnly | DeveloperName | 0 |
+| 7 | User | 1 | Readonly | Name | 0 |
+| 8 | Group | 1 | Readonly | Name | 0 |
+| 9 | IntegrationProviderDef | 1 | Readonly | DeveloperName | 0 |
 | 10 | FulfillmentStepDefinition | 1 | Upsert | Name | 0 |
 | 11 | FulfillmentStepDependencyDef | 1 | Upsert | Name | 0 |
 | 12 | ProductFulfillmentScenario | 1 | Upsert | Name | 0 |

@@ -507,7 +507,7 @@ selection is a couple of seconds. That timing is measured on a machine where two
 is worth naming rather than leaving the reader to assume all fifteen ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (679 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (680 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
