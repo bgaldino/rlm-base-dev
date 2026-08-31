@@ -28,7 +28,7 @@ step 30) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inap
    `docs/salesforce/{release}/feature-index.md` + the Help snapshot.
 5. **Validate before every commit:** `python scripts/validate_sfdmu_v5_datasets.py
    --dataset datasets/sfdmu/inapp` and `python scripts/ai/check_plan_readme_consistency.py
-   datasets/sfdmu/inapp` — both must pass.
+   --strict datasets/sfdmu/inapp` — both must pass.
 6. **Verify behavioral changes on a live scratch org** (CLAUDE.md DO NOT #9): deploy +
    `load_inapp_dataset`, confirm `RLM_Learning_SectionBlockController.getSectionsWithBlocksByType`
    returns resolved data, and render-check the Learning Home in a browser.
@@ -150,7 +150,7 @@ flexipage/template/import graph — only remove if nothing references it (the qu
 
 ```bash
 python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/inapp   # PASS
-python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/inapp        # 0 errors
+python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/inapp  # 0 errors, 0 warnings
 python datasets/sfdmu/inapp/convert_from_legacy.py                             # regenerate after edits
 ```
 Also: `git diff --stat` for unintended churn; confirm `datasets/sfdmu/inapp/README.md` reflects any

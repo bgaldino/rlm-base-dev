@@ -43,7 +43,7 @@ from check_plan_readme_consistency import (  # noqa: E402
     find_plan_dirs,
     load_export_data,
     load_plan,
-    tracked_paths,
+    tracked_plan_dirs,
 )
 from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
 
@@ -76,7 +76,7 @@ FRESH_TEMPLATE = """# {title} Data Plan
 
 
 def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int,
-                      count_cache: dict | None = None):
+                      count_cache: dict):
     """(count, path-relative-to-plan_dir) for the CSV this pass actually reads,
     mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
     always reads the root CSV regardless of an object-set-1/ override or the flag;
@@ -95,24 +95,22 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
     `count_cache`, keyed by absolute CSV path: an object declared in two passes with
     no per-pass override (common — most objects only override the root in one pass)
     resolves to the same physical file twice; without the cache that file is
-    re-scanned by csv_row_count() once per pass instead of once per distinct file."""
-    def counted(p: str) -> int:
-        if count_cache is None:
-            return csv_row_count(p)
-        if p not in count_cache:
-            count_cache[p] = csv_row_count(p)
-        return count_cache[p]
-
+    re-scanned by csv_row_count() once per pass instead of once per distinct file. The
+    sole caller (generate_block) always passes a populated dict, so this is required
+    rather than optional."""
     by_abspath = {os.path.abspath(p): p for p in csv_idx.get(name, [])}
+    # Override candidate first (only when it applies), then root — first match wins.
+    candidates = []
     if pass_no > 1 and use_separated:
-        override = os.path.abspath(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
-        if override in by_abspath:
-            p = by_abspath[override]
-            return counted(p), os.path.relpath(p, plan_dir)
-    root = os.path.abspath(os.path.join(plan_dir, f"{name}.csv"))
-    if root in by_abspath:
-        p = by_abspath[root]
-        return counted(p), os.path.relpath(p, plan_dir)
+        candidates.append(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
+    candidates.append(os.path.join(plan_dir, f"{name}.csv"))
+    for candidate in candidates:
+        abs_candidate = os.path.abspath(candidate)
+        if abs_candidate in by_abspath:
+            p = by_abspath[abs_candidate]
+            if p not in count_cache:
+                count_cache[p] = csv_row_count(p)
+            return count_cache[p], os.path.relpath(p, plan_dir)
     return None, None
 
 
@@ -130,6 +128,7 @@ def generate_block(plan_dir: str) -> str:
     files: dict[str, int] = {}
     count_cache: dict[str, int] = {}
     row_num = 0
+    writable_missing_csv = False
     for name, variants in plan.items():
         for variant in variants:
             row_num += 1
@@ -144,16 +143,28 @@ def generate_block(plan_dir: str) -> str:
             rows.append(f"| {row_num} | {name} | {pass_no} | {op} | {ext_id} | {records} |")
             if relpath is not None and relpath not in files:
                 files[relpath] = count
+            elif relpath is None and not variant["excluded"] and op.lower() != "readonly":
+                writable_missing_csv = True
 
     # A literal space precedes "#" so a path >= 40 chars (e.g. an objectset_source/
     # object-set-N/ override) still gets a separator — ljust alone pads only when
     # shorter, so a plain `+` concatenation ran the two together for long paths.
     file_lines = [f"{p.ljust(40)} # {n} record{'s' if n != 1 else ''}" for p, n in files.items()]
+    if file_lines:
+        files_text = "\n".join(file_lines)
+    elif writable_missing_csv:
+        # Distinct from the Readonly/excluded case below — a writable, non-excluded
+        # object legitimately owes a CSV here and doesn't have one. That's a plan
+        # defect for validate_sfdmu_v5_datasets.py to flag, not evidence the plan has
+        # no CSVs by design.
+        files_text = "(no CSVs found — a writable, non-excluded object is missing its CSV; see validate_sfdmu_v5_datasets.py)"
+    else:
+        files_text = "(no CSVs — every object is Readonly or excluded)"
     return BLOCK_TEMPLATE.format(
         begin=BEGIN_MARKER,
         end=END_MARKER,
         rows="\n".join(rows),
-        files="\n".join(file_lines) if file_lines else "(no CSVs — every object is Readonly or excluded)",
+        files=files_text,
     )
 
 
@@ -166,10 +177,9 @@ def _write_fresh(readme: str, plan_dir: str, block: str) -> None:
 def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
     """Returns (wrote, message)."""
     readme = os.path.join(plan_dir, "README.md")
-    block = generate_block(plan_dir)
 
     if not os.path.isfile(readme):
-        _write_fresh(readme, plan_dir, block)
+        _write_fresh(readme, plan_dir, generate_block(plan_dir))
         return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (new)"
 
     with open(readme, encoding="utf-8") as fh:
@@ -183,8 +193,20 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
     # DUPLICATED marker (existing.count() > 1) — find() only ever sees the first
     # occurrence, so splicing on it would silently fold any real content between a stray
     # extra BEGIN and the real one out of the file instead of raising anything.
-    if (begin_idx != -1 and end_idx > begin_idx
-            and existing.count(BEGIN_MARKER) == 1 and existing.count(END_MARKER) == 1):
+    has_clean_markers = (begin_idx != -1 and end_idx > begin_idx
+                          and existing.count(BEGIN_MARKER) == 1 and existing.count(END_MARKER) == 1)
+
+    if not has_clean_markers and not force:
+        return False, (
+            f"skip {os.path.relpath(readme, REPO_ROOT)} — has no generate_plan_readme markers; "
+            "regenerating would discard hand-written content. Pass --force to replace it wholesale."
+        )
+
+    # Only reached when a write is actually about to happen — generate_block() does a
+    # full CSV directory walk plus a row-count of every referenced CSV, wasted work on
+    # the skip path above.
+    block = generate_block(plan_dir)
+    if has_clean_markers:
         pre = existing[:begin_idx]
         post = existing[end_idx + len(END_MARKER):]
         content = pre + block + post
@@ -192,14 +214,8 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
             fh.write(content)
         return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (regenerated marked block, narrative preserved)"
 
-    if force:
-        _write_fresh(readme, plan_dir, block)
-        return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (--force: replaced whole file, no markers found)"
-
-    return False, (
-        f"skip {os.path.relpath(readme, REPO_ROOT)} — has no generate_plan_readme markers; "
-        "regenerating would discard hand-written content. Pass --force to replace it wholesale."
-    )
+    _write_fresh(readme, plan_dir, block)
+    return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (--force: replaced whole file, no markers found)"
 
 
 def find_missing() -> list[str]:
@@ -228,10 +244,9 @@ def main() -> int:
     if args.all_missing:
         targets = find_missing()
         # Only tracked plans — skip local/gitignored scratch dirs (e.g. datasets/sfdmu/test/).
-        # Reuses check_plan_readme_consistency's own tracked_paths() rather than a second,
-        # independent git-tracked-ness check that could silently diverge from it.
-        tracked_set = tracked_paths([os.path.join(t, "export.json") for t in targets])
-        targets = [t for t in targets if os.path.join(t, "export.json") in tracked_set]
+        # Reuses check_plan_readme_consistency's own tracked_plan_dirs() rather than a
+        # second, independent git-tracked-ness check that could silently diverge from it.
+        targets = tracked_plan_dirs(targets)
 
     if not targets:
         print("No targets.", file=sys.stderr)

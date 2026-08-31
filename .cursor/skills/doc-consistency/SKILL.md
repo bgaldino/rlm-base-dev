@@ -9,7 +9,7 @@ review-loop fixes ("fix stale description", "update README task name",
 
 1. **If you changed `cumulusci.yml`** — run `python scripts/ai/generate_cci_reference.py` and commit the output. Verify `git diff` on `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` shows only your intended changes.
 2. **If you renamed or added a CCI task** — grep `README.md`, `AGENTS.md`, `docs/`, and `.cursor/skills/` for the **old name**; update or remove every stale reference.
-3. **If you changed an SFDMU plan** (`export.json`, CSVs, objects, operations) — update the plan's `README.md` in the **same commit**, then run `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` to confirm the README's object table and `# N records` listings still match the plan (record counts, operations, externalIds, object presence). Also run `python scripts/validate_sfdmu_v5_datasets.py`.
+3. **If you changed an SFDMU plan** (`export.json`, CSVs, objects, operations) — update the plan's `README.md` in the **same commit**, then run `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>` to confirm the README's object table and `# N records` listings still match the plan (record counts, operations, externalIds, object presence) — `--strict` is required to also gate on operation/externalId mismatches and missing-object rows, which are WARN-level and pass by exit code without it. Also run `python scripts/validate_sfdmu_v5_datasets.py`.
 4. **If you changed feature flags** (added, removed, renamed, changed default) — update the flag table in `README.md` and verify `feature-flags.md` was regenerated (rule 1).
 5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the `README.md` Custom Tasks table, and any `docs/` guide that names it.
 6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and the `README.md` troubleshooting section.
@@ -159,7 +159,7 @@ Missing one is silent until the consistency check runs, so **always run it repo-
 rather than on the plan you were editing**:
 
 ```bash
-python scripts/ai/check_plan_readme_consistency.py    # no argument = all plans
+python scripts/ai/check_plan_readme_consistency.py --strict   # no argument = all plans
 ```
 
 ⚠ The checker validates **object tables and file-tree listings only** — it does
@@ -174,7 +174,7 @@ Understanding where truth lives prevents duplication drift.
 | Layer | Location | How to keep current |
 | ----- | -------- | ------------------- |
 | Generated CCI refs | `.cursor/skills/cci-orchestration/tasks-reference.md`, `.cursor/skills/cci-orchestration/flows-reference.md`, `.cursor/skills/cci-orchestration/feature-flags.md` | `python scripts/ai/generate_cci_reference.py` |
-| SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (e.g. `datasets/sfdmu/qb/en-US/*/README.md`, `datasets/sfdmu/mfg/README.md`, `datasets/sfdmu/procedure-plans/README.md`) | Must match the plan's `export.json` + CSVs — enforce with `python scripts/ai/check_plan_readme_consistency.py` (counts, operations, externalIds, object presence) |
+| SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (e.g. `datasets/sfdmu/qb/en-US/*/README.md`, `datasets/sfdmu/mfg/README.md`, `datasets/sfdmu/procedure-plans/README.md`) | Must match the plan's `export.json` + CSVs — enforce with `python scripts/ai/check_plan_readme_consistency.py --strict` (counts, operations, externalIds, object presence) |
 | Agent instructions | `AGENTS.md` (`CLAUDE.md` is a symlink) | Single source; edit `AGENTS.md` only |
 | Human setup / reference | `README.md` | Manual — task tables, flag tables, troubleshooting |
 | Skill files | `.cursor/skills/*/SKILL.md` + sub-files | Manual — cross-references to task names, paths |
@@ -190,7 +190,7 @@ python scripts/ai/pr_gate.py --base origin/264            # all of the below, se
 python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should PASS (0 Critical, 0 High) on a clean tree
-python scripts/ai/check_plan_readme_consistency.py       # plan README ↔ export.json/CSVs — should PASS (0 errors)
+python scripts/ai/check_plan_readme_consistency.py --strict  # plan README ↔ export.json/CSVs — should PASS (0 errors, 0 warnings)
 python tests/test_doc_build_steps.py                     # doc `N.M | <flow>` step numbers ↔ cumulusci.yml
 python tests/test_erd_doc_counts.py                      # ERD object/field/domain counts in docs ↔ erd-data.json
 ```

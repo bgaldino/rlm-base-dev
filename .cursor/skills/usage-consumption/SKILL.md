@@ -260,7 +260,7 @@ progress.
 ```bash
 python tests/test_qb_multicurrency_data.py                  # the 17 offline invariants, no org
 python scripts/validate_sfdmu_v5_datasets.py                # plan v5 compliance
-python scripts/ai/check_plan_readme_consistency.py          # plan README ↔ CSVs
+python scripts/ai/check_plan_readme_consistency.py --strict  # plan README ↔ CSVs
 cci task run validate_multicurrency_rates --org <cci-alias> # live design+runtime
 sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <sf-alias>
 ```

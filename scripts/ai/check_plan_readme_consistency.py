@@ -380,7 +380,8 @@ def tracked_paths(paths: list[str]) -> set[str]:
     # check=True: a git failure (e.g. run outside a checkout) must not silently yield
     # empty stdout, which would misclassify every tracked README-less plan as
     # untracked/optional — the exact silent-pass-by-absence defect this script exists
-    # to close. Matches generate_plan_readme.py's own git ls-files call.
+    # to close. generate_plan_readme.py has no git call of its own — it imports and
+    # calls this same function, so there is nothing else to keep in sync here.
     r = subprocess.run(["git", "ls-files", "--"] + rels, cwd=REPO_ROOT,
                         capture_output=True, text=True, check=True)
     # Compare case-folded, and return the CALLER's own paths rather than reconstructing
@@ -391,6 +392,16 @@ def tracked_paths(paths: list[str]) -> set[str]:
     # reconstruction would then silently miss a real match.
     tracked_rel_lower = {line.lower() for line in r.stdout.splitlines()}
     return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
+
+
+def tracked_plan_dirs(dirs: list[str]) -> list[str]:
+    """Subset of `dirs` (plan directories, not export.json paths) whose export.json is
+    git-tracked, order preserved. Shared by this module's own no-README report and
+    generate_plan_readme.py's --all-missing filter, so the "plan dir -> export.json ->
+    tracked_paths()" idiom lives in one place rather than two call sites free to drift
+    apart on how a plan dir maps to its tracked-ness check."""
+    tracked_set = tracked_paths([os.path.join(d, "export.json") for d in dirs])
+    return [d for d in dirs if os.path.join(d, "export.json") in tracked_set]
 
 
 def main() -> int:
@@ -424,9 +435,9 @@ def main() -> int:
     # indistinguishable. Report it by name; a tracked plan missing a README is an
     # ERROR (a README is required for every tracked plan), a local/untracked scratch
     # dir is a note only.
-    tracked_set = tracked_paths([os.path.join(d, "export.json") for d in no_readme])
-    tracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") in tracked_set]
-    untracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") not in tracked_set]
+    tracked_no_readme = tracked_plan_dirs(no_readme)
+    tracked_no_readme_set = set(tracked_no_readme)
+    untracked_no_readme = [d for d in no_readme if d not in tracked_no_readme_set]
     if tracked_no_readme:
         rels = ", ".join(os.path.relpath(d, REPO_ROOT) for d in tracked_no_readme)
         print(f"\nERROR  {len(tracked_no_readme)} tracked plan(s) have no README — not audited: {rels}")

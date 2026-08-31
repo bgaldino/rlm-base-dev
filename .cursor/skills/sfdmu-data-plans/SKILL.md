@@ -154,7 +154,7 @@ records and their relationships (a throwaway script or anonymous Apex), rather t
 re-running the plan. Then:
 
 1. **Still commit the new rows to the plan CSVs** so a *fresh* build picks them up.
-2. Update the plan README and re-run `check_plan_readme_consistency.py`.
+2. Update the plan README and re-run `check_plan_readme_consistency.py --strict`.
 3. **Verify plan-level wiring on the next full `prepare_rlm_org` build** — a
    surgical load proves the *records* work, not that the *plan* creates them
    correctly. Track that verification as owed work until it runs.
@@ -335,11 +335,13 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all                 # apply f
 The validator checks the **plan** (export.json/CSV v5 compliance). To check that the
 plan's **README** still matches the plan after you edit objects/CSVs (record counts,
 operations, externalIds, phantom/missing objects), run the consistency checker — it
-fails (exit 1) on drift, so it doubles as a pre-merge gate:
+fails (exit 1) on drift, so it doubles as a pre-merge gate. Use `--strict` (what
+`pr_gate.py` actually runs) — without it, operation/externalId mismatches and
+missing-object rows are WARN-level and exit 0:
 
 ```bash
-python scripts/ai/check_plan_readme_consistency.py                                  # all plans
-python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-pricing  # one plan
+python scripts/ai/check_plan_readme_consistency.py --strict                                  # all plans
+python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-pricing  # one plan
 ```
 
 ## Additional References
