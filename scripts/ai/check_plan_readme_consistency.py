@@ -31,9 +31,9 @@ Exit code is non-zero if any ERROR is found, so this can gate a PR. WARN-only
 runs exit 0. Use `--strict` to also fail on warnings.
 
 Usage:
-  python scripts/ai/check_plan_readme_consistency.py            # all plans
+  python scripts/ai/check_plan_readme_consistency.py --strict   # all plans (pr_gate.py's own invocation)
   python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-pcm
-  python scripts/ai/check_plan_readme_consistency.py --strict
+  python scripts/ai/check_plan_readme_consistency.py            # WARN-only — exits 0 on drift a --strict run would fail
 """
 from __future__ import annotations
 
@@ -383,7 +383,14 @@ def tracked_paths(paths: list[str]) -> set[str]:
     # to close. Matches generate_plan_readme.py's own git ls-files call.
     r = subprocess.run(["git", "ls-files", "--"] + rels, cwd=REPO_ROOT,
                         capture_output=True, text=True, check=True)
-    return {os.path.join(REPO_ROOT, line) for line in r.stdout.splitlines()}
+    # Compare case-folded, and return the CALLER's own paths rather than reconstructing
+    # from git's stdout: on a case-insensitive filesystem (macOS's default APFS), a repo
+    # with core.ignorecase set (the git-init default there) matches a pathspec
+    # case-insensitively but echoes it back in the INDEX's casing, which can differ from
+    # the caller's/disk's casing after a case-only rename the index missed. Exact-string
+    # reconstruction would then silently miss a real match.
+    tracked_rel_lower = {line.lower() for line in r.stdout.splitlines()}
+    return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
 
 
 def main() -> int:
@@ -419,7 +426,7 @@ def main() -> int:
     # dir is a note only.
     tracked_set = tracked_paths([os.path.join(d, "export.json") for d in no_readme])
     tracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") in tracked_set]
-    untracked_no_readme = [d for d in no_readme if d not in tracked_no_readme]
+    untracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") not in tracked_set]
     if tracked_no_readme:
         rels = ", ".join(os.path.relpath(d, REPO_ROOT) for d in tracked_no_readme)
         print(f"\nERROR  {len(tracked_no_readme)} tracked plan(s) have no README — not audited: {rels}")

@@ -157,15 +157,19 @@ def generate_block(plan_dir: str) -> str:
     )
 
 
+def _write_fresh(readme: str, plan_dir: str, block: str) -> None:
+    content = FRESH_TEMPLATE.format(title=os.path.basename(plan_dir), block=block)
+    with open(readme, "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+
 def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
     """Returns (wrote, message)."""
     readme = os.path.join(plan_dir, "README.md")
     block = generate_block(plan_dir)
 
     if not os.path.isfile(readme):
-        content = FRESH_TEMPLATE.format(title=os.path.basename(plan_dir), block=block)
-        with open(readme, "w", encoding="utf-8") as fh:
-            fh.write(content)
+        _write_fresh(readme, plan_dir, block)
         return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (new)"
 
     with open(readme, encoding="utf-8") as fh:
@@ -185,9 +189,7 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
         return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (regenerated marked block, narrative preserved)"
 
     if force:
-        content = FRESH_TEMPLATE.format(title=os.path.basename(plan_dir), block=block)
-        with open(readme, "w", encoding="utf-8") as fh:
-            fh.write(content)
+        _write_fresh(readme, plan_dir, block)
         return True, f"wrote {os.path.relpath(readme, REPO_ROOT)} (--force: replaced whole file, no markers found)"
 
     return False, (
