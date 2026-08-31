@@ -137,8 +137,11 @@ CHECKS = [
         cmd=["python", "scripts/ai/check_plan_readme_consistency.py", "--strict"],
         # The validator itself, not only the data it validates: a semantic regression in it
         # otherwise merges with only `agent_tooling`'s syntax scan having looked at the file,
-        # and nothing having run it.
-        triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py"],
+        # and nothing having run it. Same for the generator that produces the READMEs this
+        # check reads — a PR touching only generate_plan_readme.py (no datasets/sfdmu/ file)
+        # would otherwise skip the one check that verifies its output against export.json/CSVs.
+        triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py",
+                  "scripts/ai/generate_plan_readme.py"],
         deps=[], gating=True,
     ),
     dict(

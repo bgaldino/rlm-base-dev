@@ -30,18 +30,18 @@
 ## Files
 
 ```
-AccountingPeriod.csv                    # 0 records
-LegalEntity.csv                         # 2 records
-LegalEntyAccountingPeriod.csv           # 0 records
-PaymentTerm.csv                         # 1 record
-PaymentTermItem.csv                     # 1 record
-BillingPolicy.csv                       # 0 records
-BillingTreatment.csv                    # 0 records
-BillingTreatmentItem.csv                # 0 records
-Product2.csv                            # 78 records
-GeneralLedgerAccount.csv                # 0 records
-GeneralLedgerAcctAsgntRule.csv          # 0 records
-PaymentRetryRuleSet.csv                 # 0 records
-PaymentRetryRule.csv                    # 0 records
+AccountingPeriod.csv                     # 0 records
+LegalEntity.csv                          # 2 records
+LegalEntyAccountingPeriod.csv            # 0 records
+PaymentTerm.csv                          # 1 record
+PaymentTermItem.csv                      # 1 record
+BillingPolicy.csv                        # 0 records
+BillingTreatment.csv                     # 0 records
+BillingTreatmentItem.csv                 # 0 records
+Product2.csv                             # 78 records
+GeneralLedgerAccount.csv                 # 0 records
+GeneralLedgerAcctAsgntRule.csv           # 0 records
+PaymentRetryRuleSet.csv                  # 0 records
+PaymentRetryRule.csv                     # 0 records
 ```
 <!-- generate_plan_readme:end -->

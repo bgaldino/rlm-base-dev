@@ -21,12 +21,12 @@
 ## Files
 
 ```
-ClauseCatgConfiguration.csv             # 2 records
-DocumentClauseSet.csv                   # 20 records
-ObjectStateDefinition.csv               # 2 records
-ObjectStateActionDefinition.csv         # 11 records
-ObjectStateValue.csv                    # 24 records
-ObjectStateTransition.csv               # 47 records
-ObjectStateTransitionAction.csv         # 41 records
+ClauseCatgConfiguration.csv              # 2 records
+DocumentClauseSet.csv                    # 20 records
+ObjectStateDefinition.csv                # 2 records
+ObjectStateActionDefinition.csv          # 11 records
+ObjectStateValue.csv                     # 24 records
+ObjectStateTransition.csv                # 47 records
+ObjectStateTransitionAction.csv          # 41 records
 ```
 <!-- generate_plan_readme:end -->

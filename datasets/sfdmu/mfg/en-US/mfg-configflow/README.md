@@ -16,7 +16,7 @@
 ## Files
 
 ```
-ProductConfigurationFlow.csv            # 1 record
-ProductConfigFlowAssignment.csv         # 1 record
+ProductConfigurationFlow.csv             # 1 record
+ProductConfigFlowAssignment.csv          # 1 record
 ```
 <!-- generate_plan_readme:end -->

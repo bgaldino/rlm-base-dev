@@ -19,10 +19,10 @@
 ## Files
 
 ```
-Product2.csv                            # 78 records
-RateCard.csv                            # 10 records
-PriceBookRateCard.csv                   # 9 records
-RateCardEntry.csv                       # 28 records
-RateAdjustmentByTier.csv                # 14 records
+Product2.csv                             # 78 records
+RateCard.csv                             # 10 records
+PriceBookRateCard.csv                    # 9 records
+RateCardEntry.csv                        # 28 records
+RateAdjustmentByTier.csv                 # 14 records
 ```
 <!-- generate_plan_readme:end -->

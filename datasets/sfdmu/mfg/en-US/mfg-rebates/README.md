@@ -21,12 +21,12 @@
 ## Files
 
 ```
-BatchCalcJobDefinition.csv              # 1 record
-Account.csv                             # 1 record
-RebateProgram.csv                       # 1 record
-RebateProgramPayoutPeriod.csv           # 8 records
-RebateProgramMember.csv                 # 1 record
-ProgramRebateType.csv                   # 1 record
-ProgramRebateTypeBenefit.csv            # 3 records
+BatchCalcJobDefinition.csv               # 1 record
+Account.csv                              # 1 record
+RebateProgram.csv                        # 1 record
+RebateProgramPayoutPeriod.csv            # 8 records
+RebateProgramMember.csv                  # 1 record
+ProgramRebateType.csv                    # 1 record
+ProgramRebateTypeBenefit.csv             # 3 records
 ```
 <!-- generate_plan_readme:end -->

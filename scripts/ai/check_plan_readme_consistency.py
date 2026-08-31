@@ -70,7 +70,16 @@ def object_name(obj: dict) -> str:
     return obj.get("name", "?")
 
 
-def load_plan(export_json: str) -> dict:
+def load_export_data(export_json: str) -> dict:
+    """Raw parsed export.json. Split out of load_plan() so a caller that also
+    needs a top-level flag (e.g. generate_plan_readme.py reading
+    useSeparatedCSVFiles) can pass the already-parsed dict back into load_plan()
+    instead of opening and re-parsing the same file a second time."""
+    with open(export_json, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def load_plan(export_json: str, data: dict | None = None) -> dict:
     """Return {object_name: [variant, ...]} where each variant is one pass's
     definition {pass, operation, externalId, deleteOldData, excluded}. An object
     that appears in several passes (e.g. Upsert in Pass 1, Update in Pass 2) keeps a
@@ -79,8 +88,8 @@ def load_plan(export_json: str) -> dict:
     `pass` is the object's actual 1-based objectSets index, not the occurrence
     count within `out[name]` — an object skipping a set (e.g. declared in sets 1
     and 3 but not 2) would otherwise have its second variant mislabeled pass 2."""
-    with open(export_json, encoding="utf-8") as fh:
-        data = json.load(fh)
+    if data is None:
+        data = load_export_data(export_json)
     if data.get("objects"):
         passes = [(1, data["objects"])]
     else:

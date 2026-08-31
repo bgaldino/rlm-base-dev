@@ -30,21 +30,21 @@
 ## Files
 
 ```
-CurrencyType.csv                        # 7 records
-ProrationPolicy.csv                     # 1 record
-ProductSellingModel.csv                 # 9 records
-AttributeDefinition.csv                 # 33 records
-Product2.csv                            # 316 records
-CostBook.csv                            # 1 record
-Pricebook2.csv                          # 1 record
-PriceAdjustmentTier.csv                 # 26 records
-PriceAdjustmentSchedule.csv             # 4 records
-AttributeBasedAdjRule.csv               # 3 records
-AttributeAdjustmentCondition.csv        # 2 records
-AttributeBasedAdjustment.csv            # 2 records
-BundleBasedAdjustment.csv               # 0 records
-PricebookEntry.csv                      # 344 records
-PricebookEntryDerivedPrice.csv          # 1 record
-CostBookEntry.csv                       # 314 records
+CurrencyType.csv                         # 7 records
+ProrationPolicy.csv                      # 1 record
+ProductSellingModel.csv                  # 9 records
+AttributeDefinition.csv                  # 33 records
+Product2.csv                             # 316 records
+CostBook.csv                             # 1 record
+Pricebook2.csv                           # 1 record
+PriceAdjustmentTier.csv                  # 26 records
+PriceAdjustmentSchedule.csv              # 4 records
+AttributeBasedAdjRule.csv                # 3 records
+AttributeAdjustmentCondition.csv         # 2 records
+AttributeBasedAdjustment.csv             # 2 records
+BundleBasedAdjustment.csv                # 0 records
+PricebookEntry.csv                       # 344 records
+PricebookEntryDerivedPrice.csv           # 1 record
+CostBookEntry.csv                        # 314 records
 ```
 <!-- generate_plan_readme:end -->

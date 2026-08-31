@@ -17,8 +17,8 @@
 ## Files
 
 ```
-Account.csv                             # 9 records
-Contact.csv                             # 17 records
-BillingAccount.csv                      # 1 record
+Account.csv                              # 9 records
+Contact.csv                              # 17 records
+BillingAccount.csv                       # 1 record
 ```
 <!-- generate_plan_readme:end -->

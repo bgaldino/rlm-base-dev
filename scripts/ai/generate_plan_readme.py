@@ -31,7 +31,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import subprocess
 import sys
@@ -39,9 +38,10 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from check_plan_readme_consistency import (  # noqa: E402
     REPO_ROOT,
-    SFDMU_ROOT,
     csv_index,
     csv_row_count,
+    find_plan_dirs,
+    load_export_data,
     load_plan,
 )
 
@@ -96,9 +96,10 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
 
 
 def generate_block(plan_dir: str) -> str:
-    plan = load_plan(os.path.join(plan_dir, "export.json"))
-    with open(os.path.join(plan_dir, "export.json"), encoding="utf-8") as fh:
-        use_separated = bool(json.load(fh).get("useSeparatedCSVFiles"))
+    export_json = os.path.join(plan_dir, "export.json")
+    data = load_export_data(export_json)
+    plan = load_plan(export_json, data=data)
+    use_separated = bool(data.get("useSeparatedCSVFiles"))
     csv_idx = csv_index(plan_dir)
 
     rows = []
@@ -163,11 +164,11 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
 
 
 def find_missing() -> list[str]:
-    dirs = []
-    for root, _d, filenames in os.walk(SFDMU_ROOT):
-        if "export.json" in filenames and "README.md" not in filenames:
-            dirs.append(root)
-    return sorted(dirs)
+    """Delegates to check_plan_readme_consistency's own discovery rather than
+    re-walking datasets/sfdmu here — a second independent walk could silently
+    diverge from it (e.g. an exclusion rule added to one and not the other)."""
+    _with_readme, no_readme = find_plan_dirs([])
+    return no_readme
 
 
 def main() -> int:
