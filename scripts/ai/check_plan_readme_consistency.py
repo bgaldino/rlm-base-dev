@@ -240,6 +240,7 @@ def parse_object_tables(lines: list[str]):
                     return None
                 ci = {
                     "object": col({"object"}),
+                    "pass": col({"pass"}),
                     "operation": col({"operation"}),
                     "externalId": col({"external id", "externalid"}),
                     "records": col({"records"}),
@@ -262,6 +263,7 @@ def parse_object_tables(lines: list[str]):
                                 "line": j + 1,
                                 "object": name,
                                 "ignored": ignored,
+                                "pass": None if ignored else (cells[ci["pass"]] if ci["pass"] is not None and ci["pass"] < len(cells) else None),
                                 "operation": None if ignored else (cells[ci["operation"]] if ci["operation"] is not None and ci["operation"] < len(cells) else None),
                                 "externalId": None if ignored else (cells[ci["externalId"]].strip(" `") if ci["externalId"] is not None and ci["externalId"] < len(cells) else None),
                                 "records": None if ignored else (cells[ci["records"]] if ci["records"] is not None and ci["records"] < len(cells) else None),
@@ -334,7 +336,19 @@ def check_plan(plan_dir: str):
         variants = plan.get(name, [])
         in_plan = bool(variants)
         has_csv = name in counts
-        excluded = in_plan and all(v["excluded"] for v in variants)
+        # Narrow to the ONE variant for the row's own Pass cell when it resolves to a
+        # pass the object actually has — otherwise fall back to every variant (the
+        # pre-existing ANY-variant match). Without this, a multi-pass object whose
+        # operation differs per pass (e.g. Upsert in Pass 1, Update in Pass 3 — common
+        # in this repo: BillingPolicy, TaxPolicy, etc.) had its Pass column parsed but
+        # never compared: operation/externalId matched against the union of every pass
+        # regardless of which pass the row claimed, so two rows with their Pass numbers
+        # swapped (or corrupted by a bad merge) validated cleanly (round 16 of PR #406's
+        # review, pack 147).
+        row_pass = parse_int(row["pass"]) if row["pass"] else None
+        pass_variants = [v for v in variants if v["pass"] == row_pass] if row_pass is not None else []
+        compare_variants = pass_variants or variants
+        excluded = in_plan and all(v["excluded"] for v in compare_variants)
 
         # phantom object: a load-table row that isn't an export.json object is drift —
         # the plan won't load it, even if a leftover/supporting CSV happens to exist.
@@ -365,14 +379,14 @@ def check_plan(plan_dir: str):
             # the leading operation word either way, which is all the sentinel's own
             # comparison-worthy content ever was — the raw value in parens is diagnostic,
             # not something a hand-typed README cell could ever be expected to reproduce.
-            wants = {norm_op(v["operation"]) for v in variants}
+            wants = {norm_op(v["operation"]) for v in compare_variants}
             got = norm_op(row["operation"])
             if got and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` operation README={row['operation'].strip()!r} export.json={sorted(wants)}")
 
         # externalId — matches ANY pass; only when the README cell looks like a literal key, not prose
         if in_plan and not excluded and row["externalId"] and KEYLIKE_RE.match(row["externalId"]):
-            wants = {v["externalId"].replace("`", "").strip() for v in variants if v["externalId"]}
+            wants = {v["externalId"].replace("`", "").strip() for v in compare_variants if v["externalId"]}
             got = row["externalId"].replace("`", "").strip()
             if wants and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` externalId README={got!r} export.json={sorted(wants)}")
