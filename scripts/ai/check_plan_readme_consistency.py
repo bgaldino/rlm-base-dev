@@ -364,8 +364,12 @@ def tracked_files(paths: list[str]) -> set[str]:
     if not paths:
         return set()
     rels = [os.path.relpath(p, REPO_ROOT) for p in paths]
+    # check=True: a git failure (e.g. run outside a checkout) must not silently yield
+    # empty stdout, which would misclassify every tracked README-less plan as
+    # untracked/optional — the exact silent-pass-by-absence defect this script exists
+    # to close. Matches generate_plan_readme.py's own git ls-files call.
     r = subprocess.run(["git", "ls-files", "--"] + rels, cwd=REPO_ROOT,
-                        capture_output=True, text=True)
+                        capture_output=True, text=True, check=True)
     return {os.path.join(REPO_ROOT, line) for line in r.stdout.splitlines()}
 
 

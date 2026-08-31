@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -44,6 +43,7 @@ from check_plan_readme_consistency import (  # noqa: E402
     find_plan_dirs,
     load_export_data,
     load_plan,
+    tracked_files,
 )
 from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
 
@@ -75,7 +75,8 @@ FRESH_TEMPLATE = """# {title} Data Plan
 """
 
 
-def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int):
+def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int,
+                      count_cache: dict | None = None):
     """(count, path-relative-to-plan_dir) for the CSV this pass actually reads,
     mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
     always reads the root CSV regardless of an object-set-1/ override or the flag;
@@ -83,17 +84,35 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
     useSeparatedCSVFiles is true and that file exists, else falls back to root.
     Restricting to the root CSV unconditionally (the prior behavior) emitted `—`
     for an object sourced only from an objectset_source override, e.g.
-    procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file)."""
+    procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file).
+
+    This is a deliberately simpler read-only echo of that rule for display purposes,
+    not a call into the validator itself — commit 50d7e383 changed exactly this rule
+    (excluding pass-1 overrides from the coverage set) after it had already shipped
+    once, so re-check this docstring against `_objects_owing_root_csv`'s current
+    docstring whenever that method changes.
+
+    `count_cache`, keyed by absolute CSV path: an object declared in two passes with
+    no per-pass override (common — most objects only override the root in one pass)
+    resolves to the same physical file twice; without the cache that file is
+    re-scanned by csv_row_count() once per pass instead of once per distinct file."""
+    def counted(p: str) -> int:
+        if count_cache is None:
+            return csv_row_count(p)
+        if p not in count_cache:
+            count_cache[p] = csv_row_count(p)
+        return count_cache[p]
+
     by_abspath = {os.path.abspath(p): p for p in csv_idx.get(name, [])}
     if pass_no > 1 and use_separated:
         override = os.path.abspath(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
         if override in by_abspath:
             p = by_abspath[override]
-            return csv_row_count(p), os.path.relpath(p, plan_dir)
+            return counted(p), os.path.relpath(p, plan_dir)
     root = os.path.abspath(os.path.join(plan_dir, f"{name}.csv"))
     if root in by_abspath:
         p = by_abspath[root]
-        return csv_row_count(p), os.path.relpath(p, plan_dir)
+        return counted(p), os.path.relpath(p, plan_dir)
     return None, None
 
 
@@ -109,6 +128,7 @@ def generate_block(plan_dir: str) -> str:
 
     rows = []
     files: dict[str, int] = {}
+    count_cache: dict[str, int] = {}
     row_num = 0
     for name, variants in plan.items():
         for variant in variants:
@@ -119,7 +139,7 @@ def generate_block(plan_dir: str) -> str:
             # "—" implied the plan declared nothing when it declared Readonly.
             op = variant["operation"] or "Readonly"
             ext_id = variant["externalId"] or "—"
-            count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no)
+            count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no, count_cache)
             records = str(count) if count is not None else "—"
             rows.append(f"| {row_num} | {name} | {pass_no} | {op} | {ext_id} | {records} |")
             if relpath is not None and relpath not in files:
@@ -151,9 +171,14 @@ def write_readme(plan_dir: str, force: bool = False) -> tuple[bool, str]:
     with open(readme, encoding="utf-8") as fh:
         existing = fh.read()
 
-    if BEGIN_MARKER in existing and END_MARKER in existing:
-        pre, rest = existing.split(BEGIN_MARKER, 1)
-        _, post = rest.split(END_MARKER, 1)
+    begin_idx = existing.find(BEGIN_MARKER)
+    end_idx = existing.find(END_MARKER)
+    # end_idx > begin_idx, not just "both present" — a README with the markers out of
+    # order (bad manual edit, bad merge) must fall through to --force/skip below rather
+    # than crash trying to split a block boundary that doesn't actually exist.
+    if begin_idx != -1 and end_idx > begin_idx:
+        pre = existing[:begin_idx]
+        post = existing[end_idx + len(END_MARKER):]
         content = pre + block + post
         with open(readme, "w", encoding="utf-8") as fh:
             fh.write(content)
@@ -190,11 +215,10 @@ def main() -> int:
     if args.all_missing:
         targets = find_missing()
         # Only tracked plans — skip local/gitignored scratch dirs (e.g. datasets/sfdmu/test/).
-        tracked = subprocess.run(
-            ["git", "ls-files", "datasets/sfdmu"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
-        ).stdout.splitlines()
-        tracked_dirs = {os.path.join(REPO_ROOT, os.path.dirname(f)) for f in tracked}
-        targets = [t for t in targets if t in tracked_dirs]
+        # Reuses check_plan_readme_consistency's own tracked_files() rather than a second,
+        # independent git-tracked-ness check that could silently diverge from it.
+        tracked_set = tracked_files([os.path.join(t, "export.json") for t in targets])
+        targets = [t for t in targets if os.path.join(t, "export.json") in tracked_set]
 
     if not targets:
         print("No targets.", file=sys.stderr)
