@@ -140,8 +140,16 @@ CHECKS = [
         # and nothing having run it. Same for the generator that produces the READMEs this
         # check reads — a PR touching only generate_plan_readme.py (no datasets/sfdmu/ file)
         # would otherwise skip the one check that verifies its output against export.json/CSVs.
+        # scripts/validate_sfdmu_v5_datasets.py is a trigger for the identical reason: both
+        # README scripts call directly into SFDMUValidator (_normalized_object_sets,
+        # _resolve_operation, _is_js_truthy) and _SKIP_SEGMENTS, so a semantic change there
+        # (e.g. widening _resolve_operation to numeric enum indices) can regress how this
+        # check reads real README/export.json content without touching either README script
+        # or any datasets/sfdmu/ file — `sfdmu_datasets`/`sfdmu_csv_expectation` selecting on
+        # it exercises the validator's own logic, not this check's consumption of it.
         triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py",
-                  "scripts/ai/generate_plan_readme.py"],
+                  "scripts/ai/generate_plan_readme.py",
+                  "scripts/validate_sfdmu_v5_datasets.py"],
         deps=[], gating=True,
     ),
     dict(

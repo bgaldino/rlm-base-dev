@@ -22,6 +22,11 @@ Free-form prose and dated changelog/history counts are intentionally NOT parsed,
 which keeps false positives low (the two locations above are where drift matters
 and where the data is canonical).
 
+A row can carry `<!-- readme-check: ignore -->` to skip every check on that row.
+A README that intentionally tabulates only a subset of its export.json objects
+can declare the rest with `<!-- readme-check: omit: Name1, Name2 -->` anywhere in
+the file, to opt those names out of the missing-object WARN below.
+
 Findings:
   ERROR  record-count mismatch; README references an object/CSV absent from the plan
   WARN   operation / externalId mismatch; a non-excluded plan object missing from the
@@ -54,6 +59,23 @@ from validate_sfdmu_v5_datasets import _SKIP_SEGMENTS, SFDMUValidator  # noqa: E
 
 # A README line carrying this marker is skipped by every check.
 IGNORE_MARKER = "readme-check: ignore"
+# A whole-README marker declaring that named export.json objects are intentionally
+# left out of the object table — e.g. `<!-- readme-check: omit: LegacyThing, Scratch -->`.
+# The missing-objects check (below) has no existing row to attach IGNORE_MARKER to for
+# an object that was never tabulated in the first place, so it needs its own opt-out;
+# without one, pr_gate.py's --strict wiring (pack 147) turns this check's own documented
+# "some READMEs legitimately tabulate a subset" case into an ungated-around gate failure.
+OMIT_MARKER_RE = re.compile(r"<!--\s*readme-check:\s*omit:\s*([^>]*?)\s*-->")
+
+
+def parse_omitted_objects(lines: list[str]) -> set[str]:
+    """Union of object names named by every `readme-check: omit:` marker in the file."""
+    omitted: set[str] = set()
+    for line in lines:
+        m = OMIT_MARKER_RE.search(line)
+        if m:
+            omitted.update(name.strip() for name in m.group(1).split(",") if name.strip())
+    return omitted
 
 
 def csv_row_count(path: str) -> int:
@@ -321,7 +343,16 @@ def check_plan(plan_dir: str):
         # an object that declares none in export.json now correctly WARNs instead of
         # passing silently.
         if in_plan and not excluded and row["operation"]:
-            wants = {v["operation"].lower() for v in variants}
+            # norm_op(), not a plain .lower(): an "Unresolvable(<raw value>)" sentinel's
+            # parenthesized repr (e.g. "unresolvable(true)") never matches norm_op()'s
+            # leading-word extraction from the README cell ("unresolvable") — generating a
+            # README for such a plan and immediately re-checking it produced a spurious
+            # WARN against the generator's own output, live-reproduced with a scratch
+            # object carrying `"operation": true`. norm_op() on both sides compares only
+            # the leading operation word either way, which is all the sentinel's own
+            # comparison-worthy content ever was — the raw value in parens is diagnostic,
+            # not something a hand-typed README cell could ever be expected to reproduce.
+            wants = {norm_op(v["operation"]) for v in variants}
             got = norm_op(row["operation"])
             if got and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` operation README={row['operation'].strip()!r} export.json={sorted(wants)}")
@@ -363,12 +394,15 @@ def check_plan(plan_dir: str):
     # 3) Missing objects — a non-excluded export.json object that the README's object
     # table never lists (so a README can't silently omit objects and still pass).
     # Only enforced when an object table exists, and reported as WARN since some
-    # READMEs legitimately tabulate a subset.
+    # READMEs legitimately tabulate a subset — declare that intent with a
+    # `<!-- readme-check: omit: Name1, Name2 -->` marker anywhere in the file rather
+    # than relying on WARN never being gated; pr_gate.py runs this check --strict.
     if object_table_found:
+        omitted = parse_omitted_objects(lines)
         for name, variants in plan.items():
             if all(v["excluded"] for v in variants):
                 continue
-            if name not in seen_objects:
+            if name not in seen_objects and name not in omitted:
                 warns.append(f"{rel} object `{name}` is in export.json but absent from the README object table")
 
     return errors, warns, parsed_anything
@@ -413,7 +447,11 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
         return dirs, no_readme
     dirs, no_readme = [], []
     for root, subdirs, files in os.walk(SFDMU_ROOT):
-        subdirs[:] = [d for d in subdirs if d not in _DISCOVERY_SKIP_DIRS]
+        # Matches validate_sfdmu_v5_datasets.py's _is_skippable_export segment rule
+        # exactly, not just the _SKIP_SEGMENTS half of it — that function also treats
+        # any *.bak segment as skippable (backup dirs, e.g. a plan copied aside during
+        # a manual edit), which pruning by name-membership alone misses.
+        subdirs[:] = [d for d in subdirs if d not in _DISCOVERY_SKIP_DIRS and not d.endswith(".bak")]
         if "export.json" not in files:
             continue
         (dirs if "README.md" in files else no_readme).append(root)
