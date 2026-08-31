@@ -339,7 +339,13 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
         dirs, no_readme = [], []
         for t in targets:
             t = os.path.abspath(t)
-            if not os.path.isfile(os.path.join(t, "export.json")):
+            # A target outside REPO_ROOT (typo, sibling checkout) would otherwise reach
+            # tracked_paths() as a "../.."-relative pathspec and crash with a raw
+            # subprocess.CalledProcessError from `git ls-files` ("fatal: ... is outside
+            # repository") instead of the same clean skip message bad input gets below.
+            if os.path.relpath(t, REPO_ROOT).startswith(".."):
+                print(f"skip {t} — outside the repo", file=sys.stderr)
+            elif not os.path.isfile(os.path.join(t, "export.json")):
                 print(f"skip {os.path.relpath(t, REPO_ROOT)} — no export.json", file=sys.stderr)
             elif os.path.isfile(os.path.join(t, "README.md")):
                 dirs.append(t)
@@ -354,13 +360,20 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
     return sorted(dirs), sorted(no_readme)
 
 
-def tracked_files(paths: list[str]) -> set[str]:
+def tracked_paths(paths: list[str]) -> set[str]:
     """Absolute paths of `paths` that are REPO-tracked — one batched `git ls-files`
     call for all candidates, mirroring generate_plan_readme.py's --all-missing
     approach, instead of spawning one `git ls-files --error-unmatch` subprocess per
     candidate (the prior is_tracked() shape, ~30+ processes on this repo's tree).
     A README is required for every tracked plan — not for local/gitignored scratch
-    dirs (e.g. datasets/sfdmu/test/) that happen to carry an export.json."""
+    dirs (e.g. datasets/sfdmu/test/) that happen to carry an export.json.
+
+    Deliberately not bump_api_version.py's tracked_files() (a cached, whole-repo,
+    repo-relative frozenset) — this takes a handful of specific candidate paths and
+    returns which of THOSE are tracked, not a full-repo inventory; the two scripts
+    are unrelated concern domains and importing across them for a few-item lookup
+    isn't worth the coupling. Named differently (tracked_paths, not tracked_files) so
+    grepping doesn't turn up two same-named helpers with different shapes."""
     if not paths:
         return set()
     rels = [os.path.relpath(p, REPO_ROOT) for p in paths]
@@ -404,7 +417,7 @@ def main() -> int:
     # indistinguishable. Report it by name; a tracked plan missing a README is an
     # ERROR (a README is required for every tracked plan), a local/untracked scratch
     # dir is a note only.
-    tracked_set = tracked_files([os.path.join(d, "export.json") for d in no_readme])
+    tracked_set = tracked_paths([os.path.join(d, "export.json") for d in no_readme])
     tracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") in tracked_set]
     untracked_no_readme = [d for d in no_readme if d not in tracked_no_readme]
     if tracked_no_readme:

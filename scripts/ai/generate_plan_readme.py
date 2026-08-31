@@ -43,7 +43,7 @@ from check_plan_readme_consistency import (  # noqa: E402
     find_plan_dirs,
     load_export_data,
     load_plan,
-    tracked_files,
+    tracked_paths,
 )
 from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
 
@@ -215,9 +215,9 @@ def main() -> int:
     if args.all_missing:
         targets = find_missing()
         # Only tracked plans — skip local/gitignored scratch dirs (e.g. datasets/sfdmu/test/).
-        # Reuses check_plan_readme_consistency's own tracked_files() rather than a second,
+        # Reuses check_plan_readme_consistency's own tracked_paths() rather than a second,
         # independent git-tracked-ness check that could silently diverge from it.
-        tracked_set = tracked_files([os.path.join(t, "export.json") for t in targets])
+        tracked_set = tracked_paths([os.path.join(t, "export.json") for t in targets])
         targets = [t for t in targets if os.path.join(t, "export.json") in tracked_set]
 
     if not targets:
