@@ -333,8 +333,10 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 # skill_manifest.py), not pytest options.
 # `--strict` is check_plan_readme_consistency.py's own flag — it fails WARN-level findings too,
 # not just ERROR-level, closing the gap where an operation/externalId mismatch or missing-object
-# row would otherwise gate silently (pack 147 / PR #406 review). It only widens what
-# plan_readme_consistency's own argv is allowed to add to itself, not what any check can do.
+# row would otherwise gate silently (pack 147 / PR #406 review). CMD_WORDS is checked against
+# EVERY check's cmd below, not just plan_readme_consistency's — so this admits the word
+# "--strict" for any check's argv, not only that one's. Nothing else in CHECKS uses it today,
+# so this is a real (if currently unused elsewhere) widening of the whitelist, not a scoped one.
 # `-c` and `pass` were in here, and they are how a check becomes a no-op that always exits 0:
 # `cmd=["python", "-c", "pass"]` is built entirely from whitelisted words, so rewriting any check's
 # argv to it passed. Nothing in `CHECKS` needs them — the only argvs that use `-c pass` are this

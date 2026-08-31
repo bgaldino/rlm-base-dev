@@ -33,11 +33,11 @@
 | 21 | ProductCatalog | 1 | Upsert | Code | 5 |
 | 22 | ProductCategory | 1 | Upsert | Code | 15 |
 | 23 | ProductCategoryProduct | 1 | Upsert | ProductCategory.Code;Product.StockKeepingUnit | 73 |
-| 24 | ProductQualification | 1 | — | Name | 2 |
-| 25 | ProductDisqualification | 1 | — | Name | 1 |
-| 26 | ProductCategoryDisqual | 1 | — | Name | 0 |
-| 27 | ProductCategoryQualification | 1 | — | Name | 0 |
-| 28 | ProdtAttrScope | 1 | — | Name | 3 |
+| 24 | ProductQualification | 1 | Readonly | Name | 2 |
+| 25 | ProductDisqualification | 1 | Readonly | Name | 1 |
+| 26 | ProductCategoryDisqual | 1 | Readonly | Name | 0 |
+| 27 | ProductCategoryQualification | 1 | Readonly | Name | 0 |
+| 28 | ProdtAttrScope | 1 | Readonly | Name | 3 |
 
 ## Files
 

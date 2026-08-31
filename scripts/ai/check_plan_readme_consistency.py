@@ -354,12 +354,19 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
     return sorted(dirs), sorted(no_readme)
 
 
-def is_tracked(export_json: str) -> bool:
-    """A README is required for every REPO-tracked plan — not for local/gitignored
-    scratch dirs (e.g. datasets/sfdmu/test/) that happen to carry an export.json."""
-    r = subprocess.run(["git", "ls-files", "--error-unmatch", export_json],
-                        cwd=REPO_ROOT, capture_output=True)
-    return r.returncode == 0
+def tracked_files(paths: list[str]) -> set[str]:
+    """Absolute paths of `paths` that are REPO-tracked — one batched `git ls-files`
+    call for all candidates, mirroring generate_plan_readme.py's --all-missing
+    approach, instead of spawning one `git ls-files --error-unmatch` subprocess per
+    candidate (the prior is_tracked() shape, ~30+ processes on this repo's tree).
+    A README is required for every tracked plan — not for local/gitignored scratch
+    dirs (e.g. datasets/sfdmu/test/) that happen to carry an export.json."""
+    if not paths:
+        return set()
+    rels = [os.path.relpath(p, REPO_ROOT) for p in paths]
+    r = subprocess.run(["git", "ls-files", "--"] + rels, cwd=REPO_ROOT,
+                        capture_output=True, text=True)
+    return {os.path.join(REPO_ROOT, line) for line in r.stdout.splitlines()}
 
 
 def main() -> int:
@@ -393,7 +400,8 @@ def main() -> int:
     # indistinguishable. Report it by name; a tracked plan missing a README is an
     # ERROR (a README is required for every tracked plan), a local/untracked scratch
     # dir is a note only.
-    tracked_no_readme = [d for d in no_readme if is_tracked(os.path.join(d, "export.json"))]
+    tracked_set = tracked_files([os.path.join(d, "export.json") for d in no_readme])
+    tracked_no_readme = [d for d in no_readme if os.path.join(d, "export.json") in tracked_set]
     untracked_no_readme = [d for d in no_readme if d not in tracked_no_readme]
     if tracked_no_readme:
         rels = ", ".join(os.path.relpath(d, REPO_ROOT) for d in tracked_no_readme)

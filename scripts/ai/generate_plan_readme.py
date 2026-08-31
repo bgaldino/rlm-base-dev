@@ -36,6 +36,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from check_plan_readme_consistency import (  # noqa: E402
     REPO_ROOT,
     csv_index,
@@ -44,6 +45,7 @@ from check_plan_readme_consistency import (  # noqa: E402
     load_export_data,
     load_plan,
 )
+from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
 
 BEGIN_MARKER = "<!-- generate_plan_readme:begin -->"
 END_MARKER = "<!-- generate_plan_readme:end -->"
@@ -99,7 +101,10 @@ def generate_block(plan_dir: str) -> str:
     export_json = os.path.join(plan_dir, "export.json")
     data = load_export_data(export_json)
     plan = load_plan(export_json, data=data)
-    use_separated = bool(data.get("useSeparatedCSVFiles"))
+    # JS truthiness, not plain Python bool() — SFDMU reads this the same way it reads
+    # excluded/deleteOldData, where `[]`/`{}` are truthy in JS but falsy in Python
+    # (see validate_sfdmu_v5_datasets.py's _is_js_truthy docstring).
+    use_separated = SFDMUValidator._is_js_truthy(data.get("useSeparatedCSVFiles"))
     csv_idx = csv_index(plan_dir)
 
     rows = []
@@ -109,7 +114,10 @@ def generate_block(plan_dir: str) -> str:
         for variant in variants:
             row_num += 1
             pass_no = variant["pass"]
-            op = variant["operation"] or "—"
+            # SFDMU's actual default for an absent `operation` key is "Readonly"
+            # (ScriptObject.ts's class-field default), not "unspecified" — rendering
+            # "—" implied the plan declared nothing when it declared Readonly.
+            op = variant["operation"] or "Readonly"
             ext_id = variant["externalId"] or "—"
             count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no)
             records = str(count) if count is not None else "—"
