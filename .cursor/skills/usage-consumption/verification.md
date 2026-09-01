@@ -19,7 +19,7 @@ Plus the plan-level checks that apply to any dataset change:
 
 ```bash
 python scripts/validate_sfdmu_v5_datasets.py             # v5 compliance
-python scripts/ai/check_plan_readme_consistency.py       # README ↔ export.json/CSVs, repo-wide
+python scripts/ai/check_plan_readme_consistency.py --strict  # README ↔ export.json/CSVs, repo-wide
 ```
 
 ⚠ Remember the CCI vs `sf` alias split: `--org` takes a **CCI** alias,
@@ -116,7 +116,7 @@ Before concluding the rates are wrong:
 
 - [ ] `python tests/test_qb_multicurrency_data.py` — all checks pass
 - [ ] `python scripts/validate_sfdmu_v5_datasets.py` — no new failures against the known baseline
-- [ ] `python scripts/ai/check_plan_readme_consistency.py` — **0 errors repo-wide**
+- [ ] `python scripts/ai/check_plan_readme_consistency.py --strict` — **0 errors, 0 warnings repo-wide** (the bare command exits 0 on WARN-level drift — operation/externalId mismatch, missing-object rows — `--strict` is what `pr_gate.py` actually gates on)
 - [ ] New platform rule discovered? Add an invariant *and* record it in
       `revenue-cloud-data-model/domains/usage.md`
 - [ ] Product loaded surgically into a live org? The full-build verification is still owed — say so explicitly

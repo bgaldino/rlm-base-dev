@@ -24,6 +24,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
 
 import pr_gate  # noqa: E402
+import check_plan_readme_consistency  # noqa: E402
 
 PASSED = 0
 FAILED = []
@@ -331,6 +332,12 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 # an interpreter, `-m pytest`, `-q`, and paths. Anything else is a deliberate edit here.
 # `check` and `--check` are the read-only subcommands of two gate scripts (analyze_agent_tooling.py,
 # skill_manifest.py), not pytest options.
+# `--strict` is check_plan_readme_consistency.py's own flag — it fails WARN-level findings too,
+# not just ERROR-level, closing the gap where an operation/externalId mismatch or missing-object
+# row would otherwise gate silently (pack 147 / PR #406 review). Admitted per-check via
+# PER_CHECK_EXTRA_WORDS below, not folded into CMD_WORDS — CMD_WORDS is checked against EVERY
+# check's cmd, so a global admission would let a future, unrelated check's argv carry the literal
+# word "--strict" without tripping this whitelist at all.
 # `-c` and `pass` were in here, and they are how a check becomes a no-op that always exits 0:
 # `cmd=["python", "-c", "pass"]` is built entirely from whitelisted words, so rewriting any check's
 # argv to it passed. Nothing in `CHECKS` needs them — the only argvs that use `-c pass` are this
@@ -338,10 +345,33 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 # whitelist never had to admit them. A whitelist widened for a caller that does not exist is a
 # whitelist widened for the attacker only.
 CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check"}
+# Words admitted only for the one check that declares them, not for CHECKS at large — the
+# scoping the global CMD_WORDS set cannot express.
+PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
-                    if w not in CMD_WORDS and not w.startswith(("tests/", "scripts/"))})
+                    if w not in CMD_WORDS
+                    and w not in PER_CHECK_EXTRA_WORDS.get(c["name"], set())
+                    and not w.startswith(("tests/", "scripts/"))})
 check("no check's argv carries a word outside CMD_WORDS — nothing that could collect without "
       "running, or install, or redirect", bad_words == [], bad_words)
+# PER_CHECK_EXTRA_WORDS only proves the whitelist tolerates the word in this check's own argv —
+# it says nothing about whether check_plan_readme_consistency.py itself still defines --strict.
+# A future edit dropping the flag from that script's argparse would still pass every check above
+# (the word is still merely *listed* here) and only surface as a live argparse error the next time
+# pr_gate.py actually ran it — not as a signal from this suite. Parse an actual "--strict" argv
+# against the script's real parser instead of substring-matching --help text: --help output also
+# contains the literal string "--strict" in the script's own docstring/Usage block regardless of
+# whether the flag is declared, which live-reproduced as a no-op (round 13 of PR #406's review,
+# pack 147) — removing the add_argument call still left "--strict" in --help with exit 0.
+try:
+    # argparse's own error path for an unrecognized flag is exit(2), i.e. SystemExit — a future
+    # removal of --strict must not crash this suite mid-run; it must fail cleanly as one check().
+    strict_ok = check_plan_readme_consistency.build_arg_parser().parse_args(["--strict"]).strict is True
+except SystemExit:
+    strict_ok = False
+check("check_plan_readme_consistency.py's argparse still defines --strict — the flag "
+      "PER_CHECK_EXTRA_WORDS admits for it above",
+      strict_ok, strict_ok)
 # The rule above is only worth its line if the whitelist actually refuses the no-op. A probe that
 # rewrote a check's argv to `python -c pass` *was* killed while `-c` and `pass` were still whitelisted
 # — by the orphan-suite rule, which noticed the suite that argv stopped naming, not by this rule at
@@ -3946,6 +3976,9 @@ NOT_INPUTS = {
         "orgs/ent.json": "a value in a stubbed load_cci dict, with runner.ROOT pointed at "
                          "tmp_path — never read from this repo",
     },
+    "tests/test_check_plan_readme_discovery.py": {
+        ".gitignore": "a file written inside a throwaway synthetic repo, not read from this one",
+    },
 }
 
 
@@ -4284,8 +4317,9 @@ for name in ("cci_reference_drift", "yaml_offline_suites", *sorted(pr_gate.SPLIC
 # And over every *word*, not the last one. `[c[-1] for c in built]` compares the suite path and ignores
 # everything before it, so `["python", s]` → `["python", "-c", "pass", s]` still ends in the suite path
 # while running nothing at all: pass, for every suite, in the shape the comparison was written to accept.
-# The property is that the resolver runs the argv the check declares — every word admitted by CMD_WORDS
-# or claimed as a path by the check itself, and one command per claimed suite.
+# The property is that the resolver runs the argv the check declares — every word admitted by
+# CMD_WORDS, PER_CHECK_EXTRA_WORDS for that specific check, or claimed as a path by the check
+# itself, and one command per claimed suite.
 for spec in list(pr_gate.CHECKS):
     built = []
     # `resolve()` closes over its argv and calls one of the two runners; intercepting both is the only
@@ -4301,6 +4335,7 @@ for spec in list(pr_gate.CHECKS):
     ran = [w for c in built for w in c if w in set(claimed)]
     stowaways = sorted({w for c in built for w in c
                         if w not in CMD_WORDS and w not in set(claimed)
+                        and w not in PER_CHECK_EXTRA_WORDS.get(spec["name"], set())
                         and not w.startswith(("tests/", "scripts/")) and w != sys.executable})
     check(f"{spec['name']}'s resolver runs a command for each of its {len(claimed)} claimed suite(s), "
           f"so it cannot run a slice of them while the claim still covers all",
@@ -5071,7 +5106,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 679
+EXPECTED = 689
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

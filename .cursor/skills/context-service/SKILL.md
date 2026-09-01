@@ -299,7 +299,7 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
 - **After editing `cumulusci.yml`** context tasks: regenerate the CCI reference
   (`python scripts/ai/generate_cci_reference.py`) and update any docs that name
   the old task; if a plan's objects/counts change, update its plan README and run
-  `python scripts/ai/check_plan_readme_consistency.py <plan_dir>`.
+  `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>`.
 
 ## Related Skills / references
 

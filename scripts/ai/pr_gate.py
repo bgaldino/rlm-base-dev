@@ -130,11 +130,67 @@ CHECKS = [
     ),
     dict(
         name="plan_readme_consistency",
-        cmd=["python", "scripts/ai/check_plan_readme_consistency.py"],
+        # --strict: without it, operation/externalId mismatches and missing-object
+        # rows are WARN-only and exit 0 — a stale object table would pass the gate
+        # silently, the same "passes by absence" defect class this check exists to
+        # catch in the first place (pack 147).
+        cmd=["python", "scripts/ai/check_plan_readme_consistency.py", "--strict"],
         # The validator itself, not only the data it validates: a semantic regression in it
         # otherwise merges with only `agent_tooling`'s syntax scan having looked at the file,
-        # and nothing having run it.
-        triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py"],
+        # and nothing having run it. Same for the generator that produces the READMEs this
+        # check reads — a PR touching only generate_plan_readme.py (no datasets/sfdmu/ file)
+        # would otherwise skip the one check that verifies its output against export.json/CSVs.
+        # scripts/validate_sfdmu_v5_datasets.py is a trigger for the identical reason: both
+        # README scripts call directly into SFDMUValidator (_normalized_object_sets,
+        # _resolve_operation, _is_js_truthy) and _SKIP_SEGMENTS, so a semantic change there
+        # (e.g. widening _resolve_operation to numeric enum indices) can regress how this
+        # check reads real README/export.json content without touching either README script
+        # or any datasets/sfdmu/ file — `sfdmu_datasets`/`sfdmu_csv_expectation` selecting on
+        # it exercises the validator's own logic, not this check's consumption of it.
+        triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py",
+                  "scripts/ai/generate_plan_readme.py",
+                  "scripts/validate_sfdmu_v5_datasets.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="plan_readme_parsing",
+        cmd=["python", "tests/test_check_plan_readme_consistency.py"],
+        # Synthetic-fixture suite, not a live-tree read: it pins check_plan_readme_consistency.py's
+        # own parsing semantics (Pass-column narrowing, a bogus Pass value reported rather than
+        # ANY-variant matched, IGNORE_MARKER/seen_objects composition, OMIT_MARKER, KEYLIKE_RE
+        # gating) against crafted export.json/README pairs. Before this suite existed, only
+        # `plan_readme_consistency` above ran that module — against the repo's real READMEs, which
+        # exercise whatever shape they happen to have, not every shape the module's own comments
+        # document handling (round 18 of PR #406's review, pack 147: no suite caught a regression
+        # in these semantics unless a tracked README happened to already be in that exact shape).
+        triggers=["tests/test_check_plan_readme_consistency.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="plan_readme_discovery",
+        cmd=["python", "tests/test_check_plan_readme_discovery.py"],
+        # find_plan_dirs()/tracked_plan_dirs()/tracked_paths() — this PR's (#406) headline
+        # fix, discovering a plan on export.json alone and gating the required-README set on
+        # git tracked-ness — had no test of its own before round 21's hosted review (comment
+        # 3901323028): plan_readme_parsing above only exercises check_plan()'s README-content
+        # parsing, always against a synthetic plan that already has a README. Builds an
+        # isolated synthetic git repo per case (tests/test_branch_scope.py's pattern), so it
+        # does not read this checkout's real datasets/sfdmu/ tree.
+        triggers=["tests/test_check_plan_readme_discovery.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="generate_plan_readme_writer",
+        cmd=["python", "tests/test_generate_plan_readme.py"],
+        # write_readme()/generate_block()/resolve_pass_csv() — the generator PR #406 added to
+        # close the gate's own gap — had no test of its own before round 21's hosted review
+        # (comment 3901323059): marker-preservation on regenerate, the --force wholesale-
+        # replace path, and the per-pass CSV resolution rule mirroring
+        # _objects_owing_root_csv were unguarded but for the module's own comments.
+        triggers=["tests/test_generate_plan_readme.py", "scripts/ai/generate_plan_readme.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
         deps=[], gating=True,
     ),
     dict(

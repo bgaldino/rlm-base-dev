@@ -282,5 +282,5 @@ sf sfdmu run --sourceusername csvfile --targetusername <sf_alias> \
 
 # Convention checks (must report 0 errors before merge):
 python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/inapp
-python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/inapp
+python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/inapp
 ```
