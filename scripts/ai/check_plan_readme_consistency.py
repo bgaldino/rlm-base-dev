@@ -213,6 +213,20 @@ def parse_int(text: str):
     return int(m.group(1).replace(",", "")) if m else None
 
 
+PASS_RE = re.compile(r"^\s*(\d+)\s*$")
+
+
+def parse_pass(text: str):
+    """Strict single-integer parse for the Pass column. Deliberately not parse_int()
+    (built for thousands-separated record counts, where a comma is part of the number):
+    LEADING_INT_RE's `[\\d,]*` swallows a comma in a hand-written multi-pass cell like
+    "1,3" too, misparsing it as 13 rather than treating it as unparseable — a plan with
+    no pass 13 then fails `--strict` for a README that isn't actually wrong (round 19 of
+    PR #406's review, pack 147)."""
+    m = PASS_RE.match(text.strip())
+    return int(m.group(1)) if m else None
+
+
 def parse_object_tables(lines: list[str]):
     """Yield dict rows from the canonical *load* table(s): any markdown table that
     has BOTH an 'Object' column and an 'Operation' column. Requiring 'Operation'
@@ -324,6 +338,17 @@ def check_plan(plan_dir: str):
 
     # 1) Object-table rows
     seen_objects = set()
+    # Coverage for the missing-object sweep (below) is tracked per-pass, not just per-name:
+    # a row that names a SPECIFIC pass only vouches for that pass, not the object's other
+    # passes — an object Upsert in pass 1 and excluded-Delete in pass 2, tabulated only via
+    # its pass-2 row, used to silently exempt pass 1's real, unverified Upsert declaration
+    # from every check just because SOME row for that name existed (round 19 of PR #406's
+    # review, pack 147). `seen_any_pass` covers a row with no Pass cell (ANY-variant match,
+    # deliberately ambiguous about which pass) and an IGNORE_MARKER row (no pass info at
+    # all) — both vouch for every pass of that name, matching this check's pre-round-19
+    # behavior for the common case of a single-pass or undisambiguated table.
+    seen_any_pass: set[str] = set()
+    seen_specific_passes: dict[str, set[int]] = {}
     table_count_claims: dict[str, list] = {}  # object -> [(line, claimed_count)]
     for row in parse_object_tables(lines):
         parsed_anything = True
@@ -331,6 +356,7 @@ def check_plan(plan_dir: str):
         name = row["object"]
         seen_objects.add(name)
         if row["ignored"]:
+            seen_any_pass.add(name)
             continue
         ln = row["line"]
         variants = plan.get(name, [])
@@ -360,9 +386,10 @@ def check_plan(plan_dir: str):
         # indistinguishable from "no Pass cell" without checking the raw text separately
         # (round 18 of PR #406's review, pack 147).
         has_pass_cell = bool(row["pass"])
-        row_pass = parse_int(row["pass"]) if has_pass_cell else None
+        row_pass = parse_pass(row["pass"]) if has_pass_cell else None
         if not has_pass_cell:
             compare_variants = variants
+            seen_any_pass.add(name)
         elif row_pass is None:
             compare_variants = []
             if in_plan:
@@ -373,6 +400,8 @@ def check_plan(plan_dir: str):
             if in_plan and not compare_variants:
                 warns.append(f"{rel}:{ln} `{name}` Pass={row_pass} — not a pass this object has "
                              f"(export.json passes: {sorted(v['pass'] for v in variants)})")
+            elif compare_variants:
+                seen_specific_passes.setdefault(name, set()).add(row_pass)
         excluded = in_plan and all(v["excluded"] for v in compare_variants) if compare_variants else False
 
         # phantom object: a load-table row that isn't an export.json object is drift —
@@ -385,6 +414,14 @@ def check_plan(plan_dir: str):
             errors.append(f"{rel}:{ln} object table lists `{name}` — not an object in export.json{extra}")
             continue
 
+        # Shared by the operation/externalId checks below: `in_plan` is already
+        # guaranteed True here (the `if not in_plan` block above always `continue`s),
+        # so the only remaining gate is "not excluded, and the row's Pass claim
+        # resolved to a comparable variant" (round 19 of PR #406's review, pack 147 —
+        # was duplicated inline as `in_plan and not excluded and ... and compare_variants`
+        # in both checks).
+        checkable = not excluded and bool(compare_variants)
+
         # operation — matches if it agrees with ANY pass's operation (excluded objects are descriptive only)
         # load_plan() guarantees "operation" is never "" or None (see its docstring), so
         # `wants` is never empty here — an object with only the implicit Readonly default,
@@ -394,7 +431,7 @@ def check_plan(plan_dir: str):
         # tracked plan trips it, but a future README claiming a non-Readonly operation for
         # an object that declares none in export.json now correctly WARNs instead of
         # passing silently.
-        if in_plan and not excluded and row["operation"] and compare_variants:
+        if checkable and row["operation"]:
             # norm_op(), not a plain .lower(): an "Unresolvable(<raw value>)" sentinel's
             # parenthesized repr (e.g. "unresolvable(true)") never matches norm_op()'s
             # leading-word extraction from the README cell ("unresolvable") — generating a
@@ -414,7 +451,7 @@ def check_plan(plan_dir: str):
         # row's Pass cell is bogus (checked above), `compare_variants` is already `[]` and the bogus
         # claim already has its own warn — comparing against an empty `wants` here would just add a
         # second, confusingly-worded "export.json=[]" warn for the same underlying problem.
-        if in_plan and not excluded and row["externalId"] and KEYLIKE_RE.match(row["externalId"]) and compare_variants:
+        if checkable and row["externalId"] and KEYLIKE_RE.match(row["externalId"]):
             wants = {v["externalId"].replace("`", "").strip() for v in compare_variants if v["externalId"]}
             got = row["externalId"].replace("`", "").strip()
             if wants and got not in wants:
@@ -456,10 +493,23 @@ def check_plan(plan_dir: str):
     if object_table_found:
         omitted = parse_omitted_objects(lines)
         for name, variants in plan.items():
-            if all(v["excluded"] for v in variants):
+            if name in omitted or name in seen_any_pass:
                 continue
-            if name not in seen_objects and name not in omitted:
+            # Per-pass, not per-name: a row naming one specific pass vouches for only that
+            # pass (see seen_any_pass/seen_specific_passes above) — a multi-pass object's
+            # OTHER, unlisted pass must still be caught even though the name itself was seen.
+            missing = sorted(v["pass"] for v in variants
+                              if not v["excluded"] and v["pass"] not in seen_specific_passes.get(name, ()))
+            if not missing:
+                continue
+            if not seen_specific_passes.get(name):
+                # No row at all, or only rows for passes not in `variants` (can't happen —
+                # seen_specific_passes only ever adds a real match) — same wording as before
+                # round 19, since there's no "another pass" row to distinguish this from.
                 warns.append(f"{rel} object `{name}` is in export.json but absent from the README object table")
+            else:
+                warns.append(f"{rel} object `{name}` pass(es) {missing} are in export.json but absent from "
+                              "the README object table (a row exists for another pass, but not these)")
 
     return errors, warns, parsed_anything
 

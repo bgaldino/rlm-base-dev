@@ -168,7 +168,7 @@ def generate_block(plan_dir: str) -> str:
             ext_id = _escape_cell(variant["externalId"]) or "—"
             count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no, count_cache)
             records = str(count) if count is not None else "—"
-            rows.append(f"| {row_num} | {name} | {pass_no} | {op} | {ext_id} | {records} |")
+            rows.append(f"| {row_num} | {_escape_cell(name)} | {pass_no} | {op} | {ext_id} | {records} |")
             if relpath is not None and relpath not in files:
                 files[relpath] = count
             # Calls the validator's own centralized rule instead of re-deriving it as a

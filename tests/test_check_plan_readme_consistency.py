@@ -7,8 +7,10 @@ against a crafted README/export.json pair. That left several PR #406 fixes (pack
 regression guard but the module's own comments: Pass-column narrowing to the row's own pass
 (round 16), a bogus Pass claim reported rather than silently falling back to ANY-variant match —
 for an out-of-range number (round 17) and for non-numeric garbage (round 18) — the
-IGNORE_MARKER/seen_objects composition (round 15), the OMIT_MARKER missing-object opt-out, and
-KEYLIKE_RE gating the externalId comparison to literal-looking cells only.
+IGNORE_MARKER/seen_objects composition (round 15), the OMIT_MARKER missing-object opt-out,
+KEYLIKE_RE gating the externalId comparison to literal-looking cells only, a comma-joined
+multi-pass cell rejected rather than misparsed as one larger number (round 19), and missing-
+object coverage tracked per-pass rather than per-name (round 19).
 
 Run: `python tests/test_check_plan_readme_consistency.py` (offline, no org).
 """
@@ -64,16 +66,24 @@ def _check(passes, readme_rows, extra_readme_lines=None, csvs=None):
 UPSERT_P1 = {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "Name"}
 UPDATE_P3 = {"query": "SELECT Id FROM Widget__c", "operation": "Update", "externalId": "Name"}
 
+# Widget__c has two non-excluded passes (1 and 3) — per-pass missing-object coverage
+# (round 19) means a row for only one of them leaves the other flagged missing, which
+# would add unrelated noise to these operation-matching cases. Pair each row under test
+# with a correctly-labelled row for the object's OTHER pass so only the behavior under
+# test produces a warning.
+OTHER_PASS_ROW = _row(2, "Widget__c", 3, "Update", "Name")
+OTHER_PASS_ROW_P1 = _row(2, "Widget__c", 1, "Upsert", "Name")
+
 PASS_NARROWING = [
     ("a row matching its own pass's operation is clean",
      False, _check([[UPSERT_P1], [], [UPDATE_P3]],
-                   [_row(1, "Widget__c", 1, "Upsert", "Name")])[1]),
+                   [_row(1, "Widget__c", 1, "Upsert", "Name"), OTHER_PASS_ROW])[1]),
     ("a row claiming Pass 1 but a different pass's operation is flagged, not matched ANY-variant",
      True, _check([[UPSERT_P1], [], [UPDATE_P3]],
-                   [_row(1, "Widget__c", 1, "Update", "Name")])[1]),
+                   [_row(1, "Widget__c", 1, "Update", "Name"), OTHER_PASS_ROW])[1]),
     ("the same object's OTHER pass, correctly labelled, is independently clean",
      False, _check([[UPSERT_P1], [], [UPDATE_P3]],
-                   [_row(1, "Widget__c", 3, "Update", "Name")])[1]),
+                   [_row(1, "Widget__c", 3, "Update", "Name"), OTHER_PASS_ROW_P1])[1]),
 ]
 
 NO_PASS_CELL_FALLBACK = [
@@ -94,7 +104,8 @@ BOGUS_PASS = [
                    [_row(1, "Widget__c", "N/A", "Upsert", "Name")])[1]),
     ("a bogus Pass produces exactly one warning, not a second confusing empty-wants warning",
      1, len(_check([[UPSERT_P1], [], [UPDATE_P3]],
-                    [_row(1, "Widget__c", "N/A", "Upsert", "Name")])[1])),
+                    [_row(1, "Widget__c", "N/A", "Upsert", "Name"),
+                     OTHER_PASS_ROW, OTHER_PASS_ROW_P1])[1])),
 ]
 
 IGNORE_MARKER = [
@@ -131,6 +142,36 @@ KEYLIKE_GATING = [
      False, _check([[UPSERT_P1]], [_row(1, "Widget__c", 1, "Upsert", "4-field composite")])[1]),
 ]
 
+COMMA_PASS = [
+    ("a comma-joined Pass cell ('1,3') is reported, not silently parsed as 13 (round 19)",
+     True, _check([[UPSERT_P1], [], [UPDATE_P3]],
+                   [_row(1, "Widget__c", "1,3", "Upsert", "Name"),
+                    OTHER_PASS_ROW, OTHER_PASS_ROW_P1])[1]),
+    ("the comma-Pass warning names the raw cell, not parse_int()'s comma-stripped 13",
+     True, any("1,3" in w and "13" not in w for w in
+              _check([[UPSERT_P1], [], [UPDATE_P3]],
+                     [_row(1, "Widget__c", "1,3", "Upsert", "Name"),
+                      OTHER_PASS_ROW, OTHER_PASS_ROW_P1])[1])),
+]
+
+EXCLUDED_P2 = {"query": "SELECT Id FROM Widget__c", "operation": "Delete", "externalId": "Name",
+               "excluded": True}
+
+PER_PASS_COVERAGE = [
+    ("a row for only the excluded pass doesn't vouch for the object's real, unlisted pass 1 (round 19)",
+     True, any("absent from the README object table" in w for w in
+              _check([[UPSERT_P1], [EXCLUDED_P2]],
+                     [_row(1, "Widget__c", 2, "Delete", "Name")])[1])),
+    ("...and the warning calls out pass 1 specifically, not a bare 'absent' with no pass detail",
+     True, any("[1]" in w for w in
+              _check([[UPSERT_P1], [EXCLUDED_P2]],
+                     [_row(1, "Widget__c", 2, "Delete", "Name")])[1])),
+    ("a row for each real, non-excluded pass leaves no missing-object warning",
+     False, any("absent from the README object table" in w for w in
+                _check([[UPSERT_P1], [EXCLUDED_P2]],
+                       [_row(1, "Widget__c", 1, "Upsert", "Name")])[1])),
+]
+
 
 def main() -> int:
     failures = []
@@ -141,6 +182,8 @@ def main() -> int:
         ("readme-check: ignore composes with the missing-object seen_objects check", IGNORE_MARKER),
         ("readme-check: omit opts an object out of the missing-object WARN", OMIT_MARKER),
         ("KEYLIKE_RE gates the externalId comparison to literal-looking cells", KEYLIKE_GATING),
+        ("a comma-joined Pass cell is reported, not parsed as a single larger number", COMMA_PASS),
+        ("missing-object coverage is tracked per-pass, not just per-name", PER_PASS_COVERAGE),
     ]
     print("=" * 100)
     for group, cases in all_cases:
