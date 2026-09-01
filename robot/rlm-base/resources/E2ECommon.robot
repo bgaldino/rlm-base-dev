@@ -693,12 +693,48 @@ Select Catalog By Name
     ...    The datatable uses radio buttons for single selection. Each row has
     ...    data-cell-value on the Name <th> element matching the catalog name.
     ...    Also handles a late-arriving Choose Price Book modal (race condition).
+    ...
+    ...    When a Default Catalog is configured in Product Discovery Settings (see
+    ...    configure_product_discovery_settings.robot), Browse Catalogs skips the All
+    ...    Catalogs picker entirely and opens directly into Browse Products for that
+    ...    catalog — there is no datatable to select from and no Next button. Detect
+    ...    that case up front and skip the picker interaction instead of failing.
     [Arguments]    ${catalog_name}
+    ${already_browsing}=    Set Variable    no
+    FOR    ${i}    IN RANGE    5
+        ${already_browsing}=    _Already Browsing Catalog    ${catalog_name}
+        IF    "${already_browsing}" == "yes"    BREAK
+        Sleep    1s    reason=Allow Browse Catalogs modal to finish rendering before checking state
+    END
+    IF    "${already_browsing}" == "yes"
+        Log    Catalog picker skipped — Browse Catalogs opened directly into "${catalog_name}" (Default Catalog configured).
+        RETURN
+    END
     Wait Until Keyword Succeeds    30s    3s    _Dismiss Or Select Catalog    ${catalog_name}
     Sleep    2s    reason=Allow selection to register
     # Click Next in the flow navigation bar
     Save Modal    Next
     Sleep    5s    reason=Allow catalog selection to process
+
+_Already Browsing Catalog
+    [Documentation]    Internal keyword — detects whether Browse Catalogs opened directly into
+    ...    product browsing for ${catalog_name} (skipping the All Catalogs picker), which happens
+    ...    when a Default Catalog is configured. Matches the "Catalog: <name>" modal heading.
+    [Arguments]    ${catalog_name}
+    ${result}=    Execute JavaScript
+    ...    return (function(name){
+    ...        function findHeadings(root, acc) {
+    ...            root.querySelectorAll('h1,h2').forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findHeadings(el.shadowRoot,acc);});
+    ...        }
+    ...        var heads = []; findHeadings(document, heads);
+    ...        for (var i=0;i<heads.length;i++) {
+    ...            if (heads[i].textContent.trim() === ('Catalog: ' + name)) return 'yes';
+    ...        }
+    ...        return 'no';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${catalog_name}
+    RETURN    ${result}
 
 _Dismiss Or Select Catalog
     [Documentation]    Internal keyword — dismisses any Price Book modal, then selects the catalog.
@@ -949,11 +985,50 @@ _Click Add Button For Product
     END
 
 Click Save Quote In Catalog
-    [Documentation]    Clicks the "Save Quote" button in the Browse Catalogs modal.
-    ...    Waits for the button to become enabled before clicking.
-    ...    The button has data-id="objectActionButton" and title="Save Quote".
-    Wait Until Keyword Succeeds    30s    3s    _Click Save Quote Via JS
-    Sleep    5s    reason=Allow quote to save and modal to close
+    [Documentation]    Clicks the "Save Quote" button in the Browse Catalogs modal if present.
+    ...    Waits for the button to become enabled before clicking. The button has
+    ...    data-id="objectActionButton" and title="Save Quote".
+    ...
+    ...    Newer Browse Catalogs builds auto-save each product addition immediately (the
+    ...    Quote Summary total behind the modal updates live) and have no Save Quote button
+    ...    at all — only "Close". When Save Quote never appears within a short window,
+    ...    treat the addition as already saved and close the modal instead.
+    ${saved}=    Run Keyword And Return Status
+    ...    Wait Until Keyword Succeeds    10s    2s    _Click Save Quote Via JS
+    IF    ${saved}
+        Sleep    5s    reason=Allow quote to save and modal to close
+    ELSE
+        Log    Save Quote button not present — Browse Catalogs auto-saves; closing modal instead.
+        Wait Until Keyword Succeeds    30s    3s    _Click Close Browse Catalogs Modal
+        Sleep    3s    reason=Allow modal to close and quote to reflect the addition
+    END
+
+_Click Close Browse Catalogs Modal
+    [Documentation]    Internal keyword — clicks the "Close" button in the Browse Catalogs
+    ...    modal footer via JS with shadow DOM traversal.
+    ${result}=    Execute JavaScript
+    ...    return (function(){
+    ...        function findAllButtons(root) {
+    ...            var btns = [];
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i = 0; i < all.length; i++) {
+    ...                if (all[i].tagName === 'BUTTON') btns.push(all[i]);
+    ...                if (all[i].shadowRoot) btns = btns.concat(findAllButtons(all[i].shadowRoot));
+    ...            }
+    ...            return btns;
+    ...        }
+    ...        var allBtns = findAllButtons(document);
+    ...        for (var i = 0; i < allBtns.length; i++) {
+    ...            if (allBtns[i].textContent.trim() === 'Close') {
+    ...                allBtns[i].click();
+    ...                return 'clicked';
+    ...            }
+    ...        }
+    ...        return 'not_found';
+    ...    })()
+    IF    "${result}" == "not_found"
+        Fail    msg=Close button not found in Browse Catalogs modal (will retry).
+    END
 
 _Click Save Quote Via JS
     [Documentation]    Internal keyword — finds and clicks Save Quote button via JS.
@@ -1014,7 +1089,10 @@ Configure Bundle Line
     ...    `configurator_tab_retry.png` in a results folder does NOT mean the run failed.
     [Arguments]    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}=${EMPTY}
     Navigate To Quote    ${quote_id}
+    Sleep    3s    reason=Let the ag-Grid line-items grid finish rendering before we inspect it
+    Capture Step Screenshot    before_line_action_open
     Wait Until Keyword Succeeds    60s    3s    _Open Line Action Menu    ${line_name}
+    Capture Step Screenshot    after_line_action_open
     Wait Until Keyword Succeeds    30s    2s    _Click Line Action    Configure
     Capture Step Screenshot    configurator_opened
     IF    "${tab_label}" != "${EMPTY}"
@@ -1029,13 +1107,48 @@ Configure Bundle Line
 _Open Line Action Menu
     [Documentation]    Internal keyword — opens the row-level actions dropdown for a quote line.
     ...
-    ...    The line grid is ag-Grid. The product name lives in the pinned-LEFT row container and
-    ...    the action menu in the CENTRE container; the two are joined only by a shared `row-id`,
-    ...    so we resolve the id from the name first and then find the matching centre row.
+    ...    The line grid is ag-Grid, and it is split into separate PINNED-LEFT / CENTER row
+    ...    containers per visual row — confirmed live: the `div[role="row"]` matching the product
+    ...    name's `row-id` has a bounding rect only ~250px wide (pinned-left section: checkbox,
+    ...    name, disclosure toggle only); the "+"/actions-trigger icons at the row's far right live
+    ...    in a DIFFERENT `div[role="row"]` container that does NOT share the same `row-id`/
+    ...    `row-index` attribute (or isn't reachable from the same shadow-DOM subtree) — row-id
+    ...    joining across sections does not work here, despite being standard ag-Grid behavior
+    ...    elsewhere.
+    ...    ⚠ The row-action icon is `visibility:hidden` until the row is hovered (confirmed live
+    ...    via computed style) — CSS-gated, same as ag-Grid's stock hover-reveal actions column.
+    ...    We must dispatch a genuine, trusted `Mouse Over` on the row BEFORE searching for the
+    ...    icon, not after: searching first and hovering only on success is circular (the icon
+    ...    a pre-hover search finds is never the real trigger). This is a two-phase JS call: find
+    ...    the row and stash it, hover it from Robot (trusted event), THEN search for the icon.
+    ...    ⚠ `icon-name` is NOT a reliable discriminator — the disclosure toggle AND the real
+    ...    actions-trigger icon can both report an empty `icon-name` depending on the render pass.
+    ...    Position is reliable: the disclosure toggle sits near the row's left edge (~x=110); the
+    ...    real actions trigger sits in the right ~40% of the viewport. Filter candidates on
+    ...    `left > innerWidth * 0.6`, excluding the decorative "utility:lock" icon by name, then
+    ...    take the rightmost survivor.
+    ...    ⚠ We DO NOT scope the icon search to any row container. We take the product-name row's
+    ...    vertical CENTER (`getBoundingClientRect()`, not `top`) and search the ENTIRE document
+    ...    (all shadow roots) for `lightning-icon`/`lightning-button-icon` elements whose own
+    ...    vertical center is within 15px of it — this finds icons regardless of which ag-Grid
+    ...    section container (pinned-left vs center) they're actually rendered in.
+    ...    ⚠ A raw JS `.click()` on the found element is NOT equivalent to a real click — it does
+    ...    not check visibility (so it "succeeds" against a still-hidden button) and dispatches an
+    ...    untrusted event that some LWC/Aura components reject, surfacing as an empty dropdown +
+    ...    a genuine "Sorry to interrupt / CSS Error" toast. We return the DOM element itself
+    ...    (Robot/Selenium wraps it as a real WebElement) and use native `Click Element` — a
+    ...    trusted click — after `scrollIntoView`.
+    ...    Clicking a bare `lightning-icon` does nothing — walk up to the nearest real clickable
+    ...    ancestor (`button`, `a`, a `lightning-button-icon`'s shadow-root `button`, or
+    ...    `role="button"`), crossing shadow-root boundaries via `getRootNode().host` when
+    ...    `parentElement` is null. It is not a `lightning-button-menu` any more either.
+    ...    ⚠ Previously, clicking the disclosure toggle by mistake collapsed the bundle's child
+    ...    lines AND reliably produced the same "Sorry to interrupt / CSS Error" — do not
+    ...    reintroduce a fallback that clicks the leftmost/disclosure icon.
     ...    ⚠ Hierarchy level does NOT identify the bundle parent — every row is `ag-row-level-0`,
     ...    children included. Match on the product name.
     [Arguments]    ${line_name}
-    ${result}=    Execute JavaScript
+    ${row_result}=    Execute JavaScript
     ...    return (function(name){
     ...        function deepAll(root, sel, out, depth) {
     ...            if (depth > 25) return out;
@@ -1047,34 +1160,101 @@ _Open Line Action Menu
     ...            }
     ...            return out;
     ...        }
-    ...        var rows = deepAll(document, 'div[role="row"][row-id]', [], 0);
-    ...        var rowId = null;
+    ...        var scrollers = deepAll(document, '.ag-center-cols-viewport, .ag-body-horizontal-scroll-viewport, [class*="scroll"]', [], 0);
+    ...        for (var s = 0; s < scrollers.length; s++) { scrollers[s].scrollLeft = scrollers[s].scrollWidth; }
+    ...        var rows = deepAll(document, 'div[role="row"]', [], 0);
+    ...        var targetRow = null;
     ...        for (var i = 0; i < rows.length; i++) {
-    ...            if ((rows[i].innerText || '').indexOf(name) !== -1) {
-    ...                rowId = rows[i].getAttribute('row-id');
-    ...                break;
-    ...            }
+    ...            if ((rows[i].innerText || '').indexOf(name) !== -1) { targetRow = rows[i]; break; }
     ...        }
-    ...        if (!rowId) { return 'line_not_found'; }
-    ...        for (var k = 0; k < rows.length; k++) {
-    ...            if (rows[k].getAttribute('row-id') !== rowId) { continue; }
-    ...            var action = rows[k].querySelector('industries_common-datagrid-row-action');
-    ...            if (!action || !action.shadowRoot) { continue; }
-    ...            var menu = action.shadowRoot.querySelector('lightning-button-menu');
-    ...            if (!menu || !menu.shadowRoot) { continue; }
-    ...            var btn = menu.shadowRoot.querySelector('button');
-    ...            if (!btn) { continue; }
-    ...            btn.click();
-    ...            return 'menu_opened';
-    ...        }
-    ...        return 'row_action_not_found';
+    ...        if (!targetRow) { return 'line_not_found'; }
+    ...        window.__e2eRow = targetRow;
+    ...        return 'row_found';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${line_name}
+    Log    Find quote line row: ${row_result}
+    IF    "${row_result}" != "row_found"
+        Capture Step Screenshot    line_action_menu_retry
+        Fail    msg=Could not find quote line "${line_name}" (${row_result}) (will retry).
+    END
+    ${row_element}=    Execute JavaScript    return window.__e2eRow
+    Execute JavaScript    arguments[0].scrollIntoView({block: 'center', inline: 'center'});    ARGUMENTS    ${row_element}
+    Mouse Over    ${row_element}
+    Sleep    0.3s    reason=Let the CSS :hover transition reveal the row-action icon (it is visibility:hidden until hover)
+    ${result}=    Execute JavaScript
+    ...    return (function(){
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 25) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+    ...            }
+    ...            return out;
+    ...        }
+    ...        function clickableAncestor(el) {
+    ...            var cur = el;
+    ...            var depth = 0;
+    ...            while (cur && depth < 15) {
+    ...                if (cur.tagName === 'BUTTON' || cur.tagName === 'A') { return cur; }
+    ...                if (cur.tagName === 'LIGHTNING-BUTTON-ICON' && cur.shadowRoot) {
+    ...                    var b = cur.shadowRoot.querySelector('button');
+    ...                    if (b) { return b; }
+    ...                }
+    ...                if (cur.getAttribute && cur.getAttribute('role') === 'button') { return cur; }
+    ...                var root = cur.getRootNode ? cur.getRootNode() : null;
+    ...                cur = cur.parentElement || (root && root.host) || null;
+    ...                depth++;
+    ...            }
+    ...            return null;
+    ...        }
+    ...        var targetRow = window.__e2eRow;
+    ...        var targetRect = targetRow.getBoundingClientRect();
+    ...        var targetCenterY = (targetRect.top + targetRect.bottom) / 2;
+    ...        var allClickable = deepAll(document, 'button, a, [role="button"], lightning-icon, lightning-button-icon', [], 0);
+    ...        var rowClickable = allClickable.filter(function(el){
+    ...            var r = el.getBoundingClientRect();
+    ...            if (r.width === 0 || r.height === 0) { return false; }
+    ...            var cy = (r.top + r.bottom) / 2;
+    ...            return Math.abs(cy - targetCenterY) < 15;
+    ...        });
+    ...        var candidates = rowClickable.filter(function(el){
+    ...            var r = el.getBoundingClientRect();
+    ...            var n = (el.getAttribute('icon-name') || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.title || '');
+    ...            if (n.indexOf('lock') !== -1) { return false; }
+    ...            return r.left > (window.innerWidth * 0.6);
+    ...        });
+    ...        var byRight = candidates.slice().sort(function(x, y){
+    ...            return y.getBoundingClientRect().left - x.getBoundingClientRect().left;
+    ...        });
+    ...        for (var c = 0; c < byRight.length; c++) {
+    ...            var target = clickableAncestor(byRight[c]);
+    ...            if (target) {
+    ...                window.__e2eTarget = target;
+    ...                var rr = byRight[c].getBoundingClientRect();
+    ...                return 'menu_target_found:' + byRight[c].tagName.toLowerCase() + '@' + Math.round(rr.left);
+    ...            }
+    ...        }
+    ...        var dump = rowClickable.map(function(el){
+    ...            var r = el.getBoundingClientRect();
+    ...            return el.tagName.toLowerCase() + '(' + (el.getAttribute('icon-name') || el.getAttribute('aria-label') || '?') + ')@' + Math.round(r.left);
+    ...        });
+    ...        return 'row_action_not_found:[centerY=' + Math.round(targetCenterY) + ' vw=' + window.innerWidth + ' icons=' + dump.join(',') + ']';
+    ...    })()
     Log    Open line action menu: ${result}
-    IF    "${result}" != "menu_opened"
+    IF    not $result.startswith("menu_target_found")
         Capture Step Screenshot    line_action_menu_retry
         Fail    msg=Could not open the actions menu for quote line "${line_name}" (${result}) (will retry).
     END
+    ${target_element}=    Execute JavaScript    return window.__e2eTarget
+    Execute JavaScript    arguments[0].scrollIntoView({block: 'center', inline: 'center'});    ARGUMENTS    ${target_element}
+    ${diag}=    Execute JavaScript
+    ...    var el = arguments[0]; var r = el.getBoundingClientRect(); var cs = getComputedStyle(el);
+    ...    return JSON.stringify({tag: el.tagName, rect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], display: cs.display, visibility: cs.visibility, pointerEvents: cs.pointerEvents, opacity: cs.opacity, vw: window.innerWidth, vh: window.innerHeight, elAtCenter: (document.elementFromPoint(r.left + r.width/2, r.top + r.height/2) || {}).tagName});
+    ...    ARGUMENTS    ${target_element}
+    Log    Target element diagnostic before click: ${diag}
+    Click Element    ${target_element}
 
 _Click Line Action
     [Documentation]    Internal keyword — clicks a named item in the open row-action menu.
@@ -1104,17 +1284,36 @@ _Click Line Action
     ...            var t = (a.textContent || '').trim();
     ...            seen.push(t);
     ...            if (t === label) {
-    ...                a.click();
-    ...                return 'clicked';
+    ...                window.__e2eTarget = a;
+    ...                return 'target_found';
     ...            }
     ...        }
-    ...        return 'not_found:[' + seen.join('|') + ']';
+    ...        var menuitems = deepAll(document, '[role="menuitem"]', [], 0);
+    ...        for (var m = 0; m < menuitems.length; m++) {
+    ...            var mt = (menuitems[m].textContent || '').trim();
+    ...            if (mt === label) { window.__e2eTarget = menuitems[m]; return 'target_found_via_role_menuitem'; }
+    ...        }
+    ...        var panels = deepAll(document, 'div.modal-container, section.slds-modal, div[role="dialog"], div[role="menu"], ul[role="menu"]', [], 0);
+    ...        var dump = [];
+    ...        for (var p = 0; p < panels.length; p++) {
+    ...            var kids = panels[p].querySelectorAll('*');
+    ...            var kidTags = [];
+    ...            for (var q = 0; q < Math.min(kids.length, 40); q++) { kidTags.push(kids[q].tagName.toLowerCase()); }
+    ...            dump.push(panels[p].tagName.toLowerCase() + '.' + (panels[p].className || '') + '[' + kidTags.join(',') + ']');
+    ...        }
+    ...        var errBoxes = deepAll(document, '.auraErrorBox', [], 0);
+    ...        var errText = errBoxes.map(function(e){ return (e.textContent || '').trim().slice(0, 300); }).join(' /// ');
+    ...        return 'not_found:[' + seen.join('|') + '] menuitems:[' + menuitems.map(function(e){return (e.textContent||'').trim();}).join('|') + '] panels:[' + dump.join(' ;; ') + '] err:[' + errText + ']';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${action_label}
     Log    Click line action: ${result}
-    IF    "${result}" != "clicked"
+    IF    not ("${result}" == "target_found" or "${result}" == "target_found_via_role_menuitem")
+        Capture Step Screenshot    click_line_action_retry
         Fail    msg=Row action "${action_label}" not clickable yet (${result}) (will retry).
     END
+    ${target_element}=    Execute JavaScript    return window.__e2eTarget
+    Execute JavaScript    arguments[0].scrollIntoView({block: 'center', inline: 'center'});    ARGUMENTS    ${target_element}
+    Click Element    ${target_element}
 
 _Select Configurator Tab
     [Documentation]    Internal keyword — selects an option-group tab inside the configurator by
