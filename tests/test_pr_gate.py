@@ -3976,6 +3976,9 @@ NOT_INPUTS = {
         "orgs/ent.json": "a value in a stubbed load_cci dict, with runner.ROOT pointed at "
                          "tmp_path — never read from this repo",
     },
+    "tests/test_check_plan_readme_discovery.py": {
+        ".gitignore": "a file written inside a throwaway synthetic repo, not read from this one",
+    },
 }
 
 
@@ -5103,7 +5106,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 683
+EXPECTED = 689
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

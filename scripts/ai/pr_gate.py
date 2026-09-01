@@ -168,6 +168,32 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="plan_readme_discovery",
+        cmd=["python", "tests/test_check_plan_readme_discovery.py"],
+        # find_plan_dirs()/tracked_plan_dirs()/tracked_paths() — this PR's (#406) headline
+        # fix, discovering a plan on export.json alone and gating the required-README set on
+        # git tracked-ness — had no test of its own before round 21's hosted review (comment
+        # 3901323028): plan_readme_parsing above only exercises check_plan()'s README-content
+        # parsing, always against a synthetic plan that already has a README. Builds an
+        # isolated synthetic git repo per case (tests/test_branch_scope.py's pattern), so it
+        # does not read this checkout's real datasets/sfdmu/ tree.
+        triggers=["tests/test_check_plan_readme_discovery.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="generate_plan_readme_writer",
+        cmd=["python", "tests/test_generate_plan_readme.py"],
+        # write_readme()/generate_block()/resolve_pass_csv() — the generator PR #406 added to
+        # close the gate's own gap — had no test of its own before round 21's hosted review
+        # (comment 3901323059): marker-preservation on regenerate, the --force wholesale-
+        # replace path, and the per-pass CSV resolution rule mirroring
+        # _objects_owing_root_csv were unguarded but for the module's own comments.
+        triggers=["tests/test_generate_plan_readme.py", "scripts/ai/generate_plan_readme.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="erd_doc_counts",
         cmd=["python", "tests/test_erd_doc_counts.py"],
         # Exactly the files the suite reads (its TRIPLE_SITES, docs/erds/*, domains/*.md).
