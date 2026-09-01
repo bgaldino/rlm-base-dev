@@ -338,17 +338,30 @@ def check_plan(plan_dir: str):
         has_csv = name in counts
         # Narrow to the ONE variant for the row's own Pass cell when it resolves to a
         # pass the object actually has — otherwise fall back to every variant (the
-        # pre-existing ANY-variant match). Without this, a multi-pass object whose
-        # operation differs per pass (e.g. Upsert in Pass 1, Update in Pass 3 — common
-        # in this repo: BillingPolicy, TaxPolicy, etc.) had its Pass column parsed but
-        # never compared: operation/externalId matched against the union of every pass
-        # regardless of which pass the row claimed, so two rows with their Pass numbers
-        # swapped (or corrupted by a bad merge) validated cleanly (round 16 of PR #406's
-        # review, pack 147).
+        # pre-existing ANY-variant match, used only when the row has no Pass cell at
+        # all). Without this, a multi-pass object whose operation differs per pass
+        # (e.g. Upsert in Pass 1, Update in Pass 3 — common in this repo: BillingPolicy,
+        # TaxPolicy, etc.) had its Pass column parsed but never compared: operation/
+        # externalId matched against the union of every pass regardless of which pass
+        # the row claimed, so two rows with their Pass numbers swapped (or corrupted by
+        # a bad merge) validated cleanly (round 16 of PR #406's review, pack 147).
+        #
+        # A row THAT HAS a Pass cell but whose value matches no real pass (a typo, or
+        # an out-of-range number from a bad merge) must not fall back to the ANY-variant
+        # match either — that reintroduces the exact false negative round 16 closed, just
+        # for a differently-shaped input. Report the bogus Pass claim itself instead, and
+        # compare operation/externalId against nothing (an empty `wants` never matches,
+        # so both checks correctly flag rather than silently pass) — the fallback stays
+        # reserved for "no Pass cell", not "a Pass cell with a bad value" (round 17).
         row_pass = parse_int(row["pass"]) if row["pass"] else None
-        pass_variants = [v for v in variants if v["pass"] == row_pass] if row_pass is not None else []
-        compare_variants = pass_variants or variants
-        excluded = in_plan and all(v["excluded"] for v in compare_variants)
+        if row_pass is None:
+            compare_variants = variants
+        else:
+            compare_variants = [v for v in variants if v["pass"] == row_pass]
+            if in_plan and not compare_variants:
+                warns.append(f"{rel}:{ln} `{name}` Pass={row_pass} — not a pass this object has "
+                             f"(export.json passes: {sorted(v['pass'] for v in variants)})")
+        excluded = in_plan and all(v["excluded"] for v in compare_variants) if compare_variants else False
 
         # phantom object: a load-table row that isn't an export.json object is drift —
         # the plan won't load it, even if a leftover/supporting CSV happens to exist.
@@ -369,7 +382,7 @@ def check_plan(plan_dir: str):
         # tracked plan trips it, but a future README claiming a non-Readonly operation for
         # an object that declares none in export.json now correctly WARNs instead of
         # passing silently.
-        if in_plan and not excluded and row["operation"]:
+        if in_plan and not excluded and row["operation"] and compare_variants:
             # norm_op(), not a plain .lower(): an "Unresolvable(<raw value>)" sentinel's
             # parenthesized repr (e.g. "unresolvable(true)") never matches norm_op()'s
             # leading-word extraction from the README cell ("unresolvable") — generating a
@@ -384,8 +397,12 @@ def check_plan(plan_dir: str):
             if got and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` operation README={row['operation'].strip()!r} export.json={sorted(wants)}")
 
-        # externalId — matches ANY pass; only when the README cell looks like a literal key, not prose
-        if in_plan and not excluded and row["externalId"] and KEYLIKE_RE.match(row["externalId"]):
+        # externalId — matches ANY pass; only when the README cell looks like a literal key, not prose.
+        # Both this and the operation check above require `compare_variants` non-empty: when the
+        # row's Pass cell is bogus (checked above), `compare_variants` is already `[]` and the bogus
+        # claim already has its own warn — comparing against an empty `wants` here would just add a
+        # second, confusingly-worded "export.json=[]" warn for the same underlying problem.
+        if in_plan and not excluded and row["externalId"] and KEYLIKE_RE.match(row["externalId"]) and compare_variants:
             wants = {v["externalId"].replace("`", "").strip() for v in compare_variants if v["externalId"]}
             got = row["externalId"].replace("`", "").strip()
             if wants and got not in wants:
@@ -448,12 +465,13 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
             # tracked_paths() as a "../.."-relative pathspec and crash with a raw
             # subprocess.CalledProcessError from `git ls-files` ("fatal: ... is outside
             # repository") instead of the same clean skip message bad input gets below.
-            # Case-folded, like tracked_paths()'s own comparison below: on a
-            # case-insensitive filesystem (macOS APFS) a target whose path differs from
-            # REPO_ROOT only in case is still the same on-disk directory, but plain
-            # relpath() splits on the literal (differing-case) components and returns a
-            # "../"-prefixed path — wrongly reported and skipped as outside the repo.
-            if os.path.relpath(t.lower(), REPO_ROOT.lower()).startswith(".."):
+            # Uses _repo_relpath(), not a second hand-rolled case-fold comparison — this
+            # site used to lowercase the whole path and re-derive relpath itself, a
+            # second independent implementation of the exact case-insensitive-filesystem
+            # concept _repo_relpath() already exists to centralize (round 17 of PR #406's
+            # review, pack 147; _repo_relpath()'s own docstring already named this call
+            # site as the thing it matches, but didn't actually call into it).
+            if _repo_relpath(t).startswith(".."):
                 print(f"skip {t} — outside the repo", file=sys.stderr)
             elif not os.path.isfile(os.path.join(t, "export.json")):
                 print(f"skip {os.path.relpath(t, REPO_ROOT)} — no export.json", file=sys.stderr)
@@ -477,15 +495,16 @@ def find_plan_dirs(targets: list[str]) -> tuple[list[str], list[str]]:
 
 def _repo_relpath(p: str) -> str:
     """Like os.path.relpath(p, REPO_ROOT), but treats a REPO_ROOT prefix that
-    differs from p only in case as the SAME directory — matching
-    find_plan_dirs()'s explicit-target guard, which admits such a path as
-    "inside the repo" on a case-insensitive filesystem (macOS APFS). A plain
-    relpath() on that admitted path compares components literally and returns
-    a bogus, deeply-'../'-prefixed path (round 15 of PR #406's review, pack
-    147: live-reproduced — `git ls-files` then exits 128, "outside
-    repository", which `tracked_paths()`'s `check=True` turns into an
-    uncaught crash instead of the clean skip/report this script exists to
-    give bad input)."""
+    differs from p only in case as the SAME directory — used by
+    find_plan_dirs()'s explicit-target outside-repo guard (round 17: that call
+    site used to re-derive this same case-fold logic independently rather than
+    calling in) to admit such a path as "inside the repo" on a
+    case-insensitive filesystem (macOS APFS). A plain relpath() on that
+    admitted path compares components literally and returns a bogus,
+    deeply-'../'-prefixed path (round 15 of PR #406's review, pack 147:
+    live-reproduced — `git ls-files` then exits 128, "outside repository",
+    which `tracked_paths()`'s `check=True` turns into an uncaught crash
+    instead of the clean skip/report this script exists to give bad input)."""
     root_len = len(REPO_ROOT)
     if p[:root_len].lower() == REPO_ROOT.lower() and p[root_len:root_len + 1] in ("", os.sep):
         return p[root_len:].lstrip(os.sep) or "."

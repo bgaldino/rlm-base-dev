@@ -171,11 +171,19 @@ def generate_block(plan_dir: str) -> str:
             rows.append(f"| {row_num} | {name} | {pass_no} | {op} | {ext_id} | {records} |")
             if relpath is not None and relpath not in files:
                 files[relpath] = count
-            # Readonly AND Delete owe no CSV — SFDMUValidator._is_live_writable's
-            # docstring: both are skipped by the same runtime gate
-            # (MigrationJobTask.updateRecordsAsync's early return) without ever
-            # reading a source file.
-            elif relpath is None and not variant["excluded"] and op.lower() not in ("readonly", "delete"):
+            # Calls the validator's own centralized rule instead of re-deriving it as a
+            # second, independent copy of "Readonly AND Delete owe no CSV" (round 17 of
+            # PR #406's review, pack 147) — the same drift-avoidance reason this module
+            # already imports _is_js_truthy/_resolve_operation/_normalized_object_sets.
+            # Safe to call on `variant` directly, not the raw export.json dict
+            # `_is_live_writable` normally takes: `variant["excluded"]` is already a
+            # resolved bool (via _is_js_truthy) and `variant["operation"]` is already a
+            # canonical lowercase enum name or the "Unresolvable(...)" sentinel — both are
+            # idempotent inputs to `_is_live_writable`'s own `_is_js_truthy`/
+            # `_resolve_operation` calls (verified: matches the prior inline check on
+            # every case, including excluded, Readonly, Delete, Unresolvable, and a plain
+            # writable operation).
+            elif relpath is None and SFDMUValidator._is_live_writable(variant):
                 writable_missing_csv = True
 
     # A literal space precedes "#" so a path >= 40 chars (e.g. an objectset_source/
