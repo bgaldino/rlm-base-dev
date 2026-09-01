@@ -153,6 +153,21 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="plan_readme_parsing",
+        cmd=["python", "tests/test_check_plan_readme_consistency.py"],
+        # Synthetic-fixture suite, not a live-tree read: it pins check_plan_readme_consistency.py's
+        # own parsing semantics (Pass-column narrowing, a bogus Pass value reported rather than
+        # ANY-variant matched, IGNORE_MARKER/seen_objects composition, OMIT_MARKER, KEYLIKE_RE
+        # gating) against crafted export.json/README pairs. Before this suite existed, only
+        # `plan_readme_consistency` above ran that module — against the repo's real READMEs, which
+        # exercise whatever shape they happen to have, not every shape the module's own comments
+        # document handling (round 18 of PR #406's review, pack 147: no suite caught a regression
+        # in these semantics unless a tracked README happened to already be in that exact shape).
+        triggers=["tests/test_check_plan_readme_consistency.py",
+                  "scripts/ai/check_plan_readme_consistency.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="erd_doc_counts",
         cmd=["python", "tests/test_erd_doc_counts.py"],
         # Exactly the files the suite reads (its TRIPLE_SITES, docs/erds/*, domains/*.md).

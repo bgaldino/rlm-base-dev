@@ -346,16 +346,28 @@ def check_plan(plan_dir: str):
         # the row claimed, so two rows with their Pass numbers swapped (or corrupted by
         # a bad merge) validated cleanly (round 16 of PR #406's review, pack 147).
         #
-        # A row THAT HAS a Pass cell but whose value matches no real pass (a typo, or
-        # an out-of-range number from a bad merge) must not fall back to the ANY-variant
-        # match either — that reintroduces the exact false negative round 16 closed, just
-        # for a differently-shaped input. Report the bogus Pass claim itself instead, and
-        # compare operation/externalId against nothing (an empty `wants` never matches,
-        # so both checks correctly flag rather than silently pass) — the fallback stays
-        # reserved for "no Pass cell", not "a Pass cell with a bad value" (round 17).
-        row_pass = parse_int(row["pass"]) if row["pass"] else None
-        if row_pass is None:
+        # A row THAT HAS a Pass cell but whose value matches no real pass (a typo, an
+        # out-of-range number from a bad merge, or non-numeric garbage like "N/A") must
+        # not fall back to the ANY-variant match either — that reintroduces the exact
+        # false negative round 16 closed, just for a differently-shaped input. Report the
+        # bogus Pass claim itself instead, and compare operation/externalId against
+        # nothing (an empty `wants` never matches, so both checks correctly flag rather
+        # than silently pass) — the fallback stays reserved for "no Pass cell", not "a
+        # Pass cell with a bad value" (round 17).
+        #
+        # `has_pass_cell`, not `row_pass is None` alone, is what selects the fallback: a
+        # non-numeric cell ("N/A") is truthy but parse_int() also returns None for it —
+        # indistinguishable from "no Pass cell" without checking the raw text separately
+        # (round 18 of PR #406's review, pack 147).
+        has_pass_cell = bool(row["pass"])
+        row_pass = parse_int(row["pass"]) if has_pass_cell else None
+        if not has_pass_cell:
             compare_variants = variants
+        elif row_pass is None:
+            compare_variants = []
+            if in_plan:
+                warns.append(f"{rel}:{ln} `{name}` Pass={row['pass']!r} — not a numeric pass "
+                             f"(export.json passes: {sorted(v['pass'] for v in variants)})")
         else:
             compare_variants = [v for v in variants if v["pass"] == row_pass]
             if in_plan and not compare_variants:
