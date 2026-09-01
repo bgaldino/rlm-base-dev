@@ -74,11 +74,14 @@ OMIT_MARKER_RE = re.compile(r"<!--\s*readme-check:\s*omit:\s*([^>]*?)\s*-->")
 
 
 def parse_omitted_objects(lines: list[str]) -> set[str]:
-    """Union of object names named by every `readme-check: omit:` marker in the file."""
+    """Union of object names named by every `readme-check: omit:` marker in the file.
+
+    finditer(), not search(): two markers can share one line (e.g. pasted side by
+    side rather than merged into one comma list) — search() would silently drop
+    every marker after the first (round 20 of PR #406's review, pack 147)."""
     omitted: set[str] = set()
     for line in lines:
-        m = OMIT_MARKER_RE.search(line)
-        if m:
+        for m in OMIT_MARKER_RE.finditer(line):
             omitted.update(name.strip() for name in m.group(1).split(",") if name.strip())
     return omitted
 
@@ -277,7 +280,13 @@ def parse_object_tables(lines: list[str]):
                                 "line": j + 1,
                                 "object": name,
                                 "ignored": ignored,
-                                "pass": None if ignored else (cells[ci["pass"]] if ci["pass"] is not None and ci["pass"] < len(cells) else None),
+                                # Populated even when ignored (unlike operation/externalId/records
+                                # below): the caller needs the row's own Pass claim to narrow which
+                                # SPECIFIC pass an ignored row vouches for, not every pass of the name
+                                # (round 20 of PR #406's review, pack 147 — an ignored row used to
+                                # exempt the object's every pass via seen_any_pass regardless of which
+                                # pass it actually named, reopening round 19's per-pass coverage gap).
+                                "pass": cells[ci["pass"]] if ci["pass"] is not None and ci["pass"] < len(cells) else None,
                                 "operation": None if ignored else (cells[ci["operation"]] if ci["operation"] is not None and ci["operation"] < len(cells) else None),
                                 "externalId": None if ignored else (cells[ci["externalId"]].strip(" `") if ci["externalId"] is not None and ci["externalId"] < len(cells) else None),
                                 "records": None if ignored else (cells[ci["records"]] if ci["records"] is not None and ci["records"] < len(cells) else None),
@@ -356,7 +365,18 @@ def check_plan(plan_dir: str):
         name = row["object"]
         seen_objects.add(name)
         if row["ignored"]:
-            seen_any_pass.add(name)
+            # Narrow to the row's own Pass claim, same as a checked row below — an
+            # ignored row for pass 2 of a multi-pass object must not vouch for the
+            # object's other, unchecked passes too (round 20, pack 147). Fall back to
+            # ANY-pass (prior behavior) only when the claim is absent or unresolvable;
+            # an ignored row's content is never validated, so a bogus Pass claim here
+            # doesn't warn the way a checked row's does.
+            variants = plan.get(name, [])
+            ignored_pass = parse_pass(row["pass"]) if row["pass"] else None
+            if ignored_pass is not None and any(v["pass"] == ignored_pass for v in variants):
+                seen_specific_passes.setdefault(name, set()).add(ignored_pass)
+            else:
+                seen_any_pass.add(name)
             continue
         ln = row["line"]
         variants = plan.get(name, [])

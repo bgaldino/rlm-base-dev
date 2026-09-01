@@ -116,9 +116,18 @@ IGNORE_MARKER = [
      False, any("absent from the README object table" in w for w in
                 _check([[UPSERT_P1]],
                        [_row(1, "Widget__c", 1, "Delete", "Name") + " <!-- readme-check: ignore -->"])[1])),
+    ("an ignored row for ONE pass doesn't vouch for the object's other, real pass (round 20)",
+     True, any("absent from the README object table" in w for w in
+              _check([[UPSERT_P1], [], [UPDATE_P3]],
+                     [_row(1, "Widget__c", 3, "Update", "Name") + " <!-- readme-check: ignore -->"])[1])),
+    ("...but an ignored row with no Pass cell still vouches for every pass (unchanged fallback)",
+     False, any("absent from the README object table" in w for w in
+                _check([[UPSERT_P1], [], [UPDATE_P3]],
+                       [_row(1, "Widget__c", "", "Update", "Name") + " <!-- readme-check: ignore -->"])[1])),
 ]
 
 GADGET_P1 = {"query": "SELECT Id FROM Gadget__c", "operation": "Upsert", "externalId": "Name"}
+SPROCKET_P1 = {"query": "SELECT Id FROM Sprocket__c", "operation": "Upsert", "externalId": "Name"}
 # A table with a row for some OTHER object, so object_table_found is True and the
 # missing-object sweep actually runs — with no row at all, check_plan() never sets
 # object_table_found and the sweep (correctly) doesn't fire, which would make a "no
@@ -133,6 +142,12 @@ OMIT_MARKER = [
      False, any("absent from the README object table" in w for w in
                 _check([[UPSERT_P1, GADGET_P1]], _ONE_OTHER_ROW,
                        extra_readme_lines=["<!-- readme-check: omit: Widget__c -->"])[1])),
+    ("two omit markers sharing ONE line both take effect, not just the first (round 20)",
+     False, any("absent from the README object table" in w for w in
+                _check([[UPSERT_P1, GADGET_P1, SPROCKET_P1]],
+                       [_row(1, "Sprocket__c", 1, "Upsert", "Name")],
+                       extra_readme_lines=["<!-- readme-check: omit: Widget__c --> "
+                                           "<!-- readme-check: omit: Gadget__c -->"])[1])),
 ]
 
 KEYLIKE_GATING = [
