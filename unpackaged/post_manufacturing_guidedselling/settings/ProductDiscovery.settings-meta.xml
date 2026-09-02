@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProductDiscoverySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <discoverProductsFlowNameOrgValue>RLM_DiscoverProducts</discoverProductsFlowNameOrgValue>
+    <enableGuidedSelling>true</enableGuidedSelling>
+    <prodDiscBrowseContextDefOrgValue>RLM_ProductDiscoveryContext</prodDiscBrowseContextDefOrgValue>
+    <prodDiscPricingEnabledOrgValue>true</prodDiscPricingEnabledOrgValue>
+    <prodDiscProcedureOrgValue>RLM Product Discovery Pricing Procedure</prodDiscProcedureOrgValue>
+    <prodDiscQualEnabledOrgValue>true</prodDiscQualEnabledOrgValue>
+    <prodDiscQualificationOrgValue>RLM Qualification Procedure</prodDiscQualificationOrgValue>
+</ProductDiscoverySettings>
