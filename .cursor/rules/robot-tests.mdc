@@ -12,7 +12,8 @@ globs:
 - **Commit a behavioral robot change — or its Python task wrapper — validated only
   by `robot --dryrun`.** Dryrun is syntax/keyword-resolution only; it never runs the
   browser or `Execute JavaScript`. Verify in a **live scratch org** first
-  (`cci task run <robot_task> --org <alias>`), or mark the change unverified and keep
+  (robot_* tasks reject `--org`, issue #320 — `cci org default <alias>` then
+  `cci task run <robot_task>`), or mark the change unverified and keep
   the PR blocked (`blocked: needs-live-verification`). Exempt: comment/`[Documentation]`-only
   edits, and resource files with no behavioral change. (This rule's `globs` cover the
   `robot/**` tree — both `*.robot` suites and in-tree Python `robot/**/*.py`; the same
