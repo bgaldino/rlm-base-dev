@@ -324,6 +324,8 @@ processing makes `/\s+/` ambiguous. Prefer a `charCodeAt`-based whitespace check
 |----------|---------|---------|
 | `${TEST_CATALOG_NAME}` | `QuantumBit Software` | Catalog for Browse Catalogs |
 | `${TEST_PRODUCT_NAME}` | `QuantumBit Complete Solution` | Product to add |
+| `${TEST_BUNDLE_OPTION_NAME}` | `Software Maintenance` | Bundle option ticked by `Configure Bundle Line` |
+| `${TEST_BUNDLE_OPTION_TAB}` | `Maintenance & Support` | Configurator tab holding that option |
 | `${ASYNC_TIMEOUT}` | `180s` | Max wait for async ops |
 | `${ASYNC_POLL_INTERVAL}` | `10s` | Poll interval |
 | `${HEADED}` | `false` | Browser mode |

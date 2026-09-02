@@ -90,6 +90,8 @@ tasks/
 | `TEST_ACCOUNT_NAME` | Global Media | `-v TEST_ACCOUNT_NAME:"My Account"` |
 | `TEST_CATALOG_NAME` | QuantumBit Software | `-v TEST_CATALOG_NAME:"My Catalog"` |
 | `TEST_PRODUCT_NAME` | QuantumBit Complete Solution | `-v TEST_PRODUCT_NAME:"My Product"` |
+| `TEST_BUNDLE_OPTION_NAME` | Software Maintenance | `-v TEST_BUNDLE_OPTION_NAME:"My Option"` |
+| `TEST_BUNDLE_OPTION_TAB` | Maintenance & Support | `-v TEST_BUNDLE_OPTION_TAB:"My Tab"` |
 | `ASYNC_TIMEOUT` | 180s | `-v ASYNC_TIMEOUT:300s` |
 | `ASYNC_POLL_INTERVAL` | 10s | `-v ASYNC_POLL_INTERVAL:5s` |
 

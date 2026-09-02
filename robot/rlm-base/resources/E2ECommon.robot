@@ -1175,9 +1175,11 @@ _Open Line Action Menu
     ...    take the rightmost survivor.
     ...    ⚠ We DO NOT scope the icon search to any row container. We take the product-name row's
     ...    vertical CENTER (`getBoundingClientRect()`, not `top`) and search the ENTIRE document
-    ...    (all shadow roots) for `lightning-icon`/`lightning-button-icon` elements whose own
-    ...    vertical center is within 15px of it — this finds icons regardless of which ag-Grid
-    ...    section container (pinned-left vs center) they're actually rendered in.
+    ...    (all shadow roots) for clickable elements (`button`, `a`, `[role="button"]`,
+    ...    `lightning-icon`, `lightning-button-icon` — the real trigger is a plain `button`, not
+    ...    an icon) whose own vertical center is within 15px of it — this finds the trigger
+    ...    regardless of which ag-Grid section container (pinned-left vs center) it actually
+    ...    renders in.
     ...    ⚠ A raw JS `.click()` on the found element is NOT equivalent to a real click — it does
     ...    not check visibility (so it "succeeds" against a still-hidden button) and dispatches an
     ...    untrusted event that some LWC/Aura components reject, surfacing as an empty dropdown +
