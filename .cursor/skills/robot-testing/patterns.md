@@ -256,29 +256,35 @@ Most interaction keywords try strategies in order:
 
 ---
 
-## Quote line grid (ag-Grid) — the split-container join
+## Quote line grid (ag-Grid) — vertical-position correlation, not row-id join
 
-The Quote/Order line grid is **ag-Grid**, and a single logical row is rendered as **two DOM
-rows in two different containers**:
-
-| container | carries |
-|---|---|
-| `.ag-pinned-left-cols-container` | the **product name** (`Product ID : <name>`) |
-| `.ag-center-cols-container` | the **row action menu** (`industries_common-datagrid-row-action`) |
-
-They share only `div[role="row"][row-id="<QuoteLineItem Id>"]`. To act on the row for a named
-product: resolve `row-id` from the pinned-left row, then find the row with that id that actually
-contains a row-action.
+The Quote/Order line grid is **ag-Grid**, split into separate PINNED-LEFT / CENTER row
+containers per visual row (pinned-left carries the product name; the row-action control lives
+in a different `div[role="row"]` container at the row's far right). **Row-id joining across
+those sections does not work here** — the pinned-left row's `row-id`/`row-index` is not shared
+by (or reachable from the same shadow-DOM subtree as) the far-right container, despite being
+standard ag-Grid behavior elsewhere. Instead: find the product-name row, take its **vertical
+center** (`getBoundingClientRect()`, not `top`), then search the entire document (all shadow
+roots) for a clickable element whose own vertical center is within ~15px of it — this works
+regardless of which section container the element actually renders in.
 
 ⚠ **`ag-row-level-0` does NOT identify a bundle parent — the grid is FLAT.** Every row, children
 included, is level 0. Match on the product name, never on hierarchy level.
 
-Row actions: `industries_common-datagrid-row-action` → `lightning-button-menu` → `button`
-(assistive text "Show Actions"); items are `lightning-menu-item` → `a[role="menuitem"]`
-(**View / Clone / Configure / Delete**).
+Row action trigger: a plain, hover-gated `<button>` at the row's far right (`left >
+innerWidth * 0.6`) — **not** a `lightning-button-menu`. It is `visibility:hidden` until the row
+is hovered (CSS `:hover`-gated); dispatch a genuine `Mouse Over` on the row *before* searching
+for it, not after — searching first and hovering only on success is circular. `icon-name` is
+not a reliable discriminator (the disclosure toggle can report the same empty value); position
+is. Items are `lightning-menu-item` → `a[role="menuitem"]` (**View / Clone / Configure /
+Delete**).
 
 ⚠ **Menu items render ASYNCHRONOUSLY** — querying in the same JS tick as the trigger click
 returns zero items. Opening the menu and clicking an item must be **separate retried keywords**.
+
+⚠ **A raw JS `.click()` is not equivalent to a real click** — it skips visibility checks and
+dispatches an untrusted event some LWC/Aura components reject. Return the DOM element itself
+(Robot/Selenium wraps it as a WebElement) and use native `Click Element` after `scrollIntoView`.
 
 ### Product configurator (a modal, not a navigation)
 

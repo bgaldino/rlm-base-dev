@@ -699,14 +699,20 @@ Select Catalog By Name
     ...    Catalogs picker entirely and opens directly into Browse Products for that
     ...    catalog — there is no datatable to select from and no Next button. Detect
     ...    that case up front and skip the picker interaction instead of failing.
+    ...
+    ...    The direct-browse heading and the legacy picker datatable are checked together,
+    ...    every retry, for the full window the legacy path itself gets (30s) — checking one
+    ...    for a short window and then unconditionally falling back to the other is a race: a
+    ...    slow-rendering direct-browse heading would fall through to the legacy picker wait,
+    ...    which can never succeed because no datatable exists in that build.
     [Arguments]    ${catalog_name}
-    ${already_browsing}=    Set Variable    no
-    FOR    ${i}    IN RANGE    5
-        ${already_browsing}=    _Already Browsing Catalog    ${catalog_name}
-        IF    "${already_browsing}" == "yes"    BREAK
-        Sleep    1s    reason=Allow Browse Catalogs modal to finish rendering before checking state
+    ${state}=    Set Variable    unknown
+    FOR    ${i}    IN RANGE    10
+        ${state}=    _Detect Catalog Picker State    ${catalog_name}
+        IF    "${state}" != "unknown"    BREAK
+        Sleep    3s    reason=Allow Browse Catalogs modal to finish rendering before checking state
     END
-    IF    "${already_browsing}" == "yes"
+    IF    "${state}" == "already_browsing"
         Log    Catalog picker skipped — Browse Catalogs opened directly into "${catalog_name}" (Default Catalog configured).
         RETURN
     END
@@ -716,10 +722,13 @@ Select Catalog By Name
     Save Modal    Next
     Sleep    5s    reason=Allow catalog selection to process
 
-_Already Browsing Catalog
-    [Documentation]    Internal keyword — detects whether Browse Catalogs opened directly into
-    ...    product browsing for ${catalog_name} (skipping the All Catalogs picker), which happens
-    ...    when a Default Catalog is configured. Matches the "Catalog: <name>" modal heading.
+_Detect Catalog Picker State
+    [Documentation]    Internal keyword — checks, in one pass, whether Browse Catalogs opened
+    ...    directly into product browsing for ${catalog_name} (Default Catalog configured; no
+    ...    picker datatable will ever appear) or whether the legacy All Catalogs picker
+    ...    datatable is present (rows keyed by `data-row-key-value`, same traversal
+    ...    `_Select Catalog Radio Via JS` uses). Returns 'already_browsing', 'picker_present',
+    ...    or 'unknown' if neither has rendered yet — the caller retries on 'unknown'.
     [Arguments]    ${catalog_name}
     ${result}=    Execute JavaScript
     ...    return (function(name){
@@ -729,9 +738,15 @@ _Already Browsing Catalog
     ...        }
     ...        var heads = []; findHeadings(document, heads);
     ...        for (var i=0;i<heads.length;i++) {
-    ...            if (heads[i].textContent.trim() === ('Catalog: ' + name)) return 'yes';
+    ...            if (heads[i].textContent.trim() === ('Catalog: ' + name)) return 'already_browsing';
     ...        }
-    ...        return 'no';
+    ...        function findRows(root, acc) {
+    ...            root.querySelectorAll('tr[data-row-key-value]').forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findRows(el.shadowRoot,acc);});
+    ...        }
+    ...        var rows = []; findRows(document, rows);
+    ...        if (rows.length > 0) { return 'picker_present'; }
+    ...        return 'unknown';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${catalog_name}
     RETURN    ${result}
@@ -991,17 +1006,48 @@ Click Save Quote In Catalog
     ...
     ...    Newer Browse Catalogs builds auto-save each product addition immediately (the
     ...    Quote Summary total behind the modal updates live) and have no Save Quote button
-    ...    at all — only "Close". When Save Quote never appears within a short window,
-    ...    treat the addition as already saved and close the modal instead.
-    ${saved}=    Run Keyword And Return Status
-    ...    Wait Until Keyword Succeeds    10s    2s    _Click Save Quote Via JS
-    IF    ${saved}
+    ...    at all — only "Close". Detect absence up front with a quick, retried presence probe
+    ...    (NOT the enablement wait below) before falling back to auto-save/Close — a button
+    ...    that is present but slow to enable must still get the full enablement wait, not be
+    ...    mistaken for an absent one and have its modal closed unsaved.
+    ${present}=    Set Variable    no
+    FOR    ${i}    IN RANGE    5
+        ${present}=    _Save Quote Button Present
+        IF    "${present}" == "yes"    BREAK
+        Sleep    1s    reason=Allow Browse Catalogs modal to finish rendering before checking state
+    END
+    IF    "${present}" == "yes"
+        Wait Until Keyword Succeeds    30s    2s    _Click Save Quote Via JS
         Sleep    5s    reason=Allow quote to save and modal to close
     ELSE
         Log    Save Quote button not present — Browse Catalogs auto-saves; closing modal instead.
         Wait Until Keyword Succeeds    30s    3s    _Click Close Browse Catalogs Modal
         Sleep    3s    reason=Allow modal to close and quote to reflect the addition
     END
+
+_Save Quote Button Present
+    [Documentation]    Internal keyword — quick, non-retrying check for whether the Save Quote
+    ...    button exists in the DOM at all, regardless of its enabled/disabled state.
+    ${result}=    Execute JavaScript
+    ...    return (function(){
+    ...        function findAllButtons(root) {
+    ...            var btns = [];
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i = 0; i < all.length; i++) {
+    ...                if (all[i].tagName === 'BUTTON') btns.push(all[i]);
+    ...                if (all[i].shadowRoot) btns = btns.concat(findAllButtons(all[i].shadowRoot));
+    ...            }
+    ...            return btns;
+    ...        }
+    ...        var allBtns = findAllButtons(document);
+    ...        for (var i = 0; i < allBtns.length; i++) {
+    ...            if (allBtns[i].getAttribute('title') === 'Save Quote' || allBtns[i].textContent.trim() === 'Save Quote') {
+    ...                return 'yes';
+    ...            }
+    ...        }
+    ...        return 'no';
+    ...    })()
+    RETURN    ${result}
 
 _Click Close Browse Catalogs Modal
     [Documentation]    Internal keyword — clicks the "Close" button in the Browse Catalogs
@@ -1724,13 +1770,17 @@ Verify Renewal Opportunity Includes Product
     ...    The preceding run, whose order had no maintenance line, produced 4 (28,500 vs 33,900 —
     ...    a difference of exactly 5,400).
     ...
-    ...    Relies on `Reset Test Account` having cleared prior Opportunities, so any matching
-    ...    line on this Account belongs to this run.
+    ...    Scoped to `Opportunity.Name = 'Renewal Forecast Opportunity'` — the constant
+    ...    `RLM_CreateUpdateRenewalOpportunities` sets on the Opportunity it creates (the only
+    ...    field the flow deterministically sets that this test can match on). Without this,
+    ...    the query would also match an OpportunityLineItem synced onto the SOURCE Opportunity
+    ...    from the Quote (standard Quote-Opportunity line sync), which would pass this
+    ...    assertion even if the renewal flow never fired — defeating the point of the check.
     [Arguments]    ${account_id}    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${account_id}
     ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${product_id}
     ${line_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Name = 'Renewal Forecast Opportunity' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
     RETURN    ${line_id}

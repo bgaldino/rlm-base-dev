@@ -7,9 +7,10 @@ Documentation     End-to-end Quote-to-Order flow combining setup_quote and order
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI:
-...                 cci task run robot_e2e --org beta
-...                 cci task run robot_e2e_debug --org beta   (headed + CDP debug)
+...               Run via CCI (the robot_* tasks reject --org, issue #320 — select the org first):
+...                 cci org default beta
+...                 cci task run robot_e2e
+...                 cci task run robot_e2e_debug -o pause_for_recording true   (headed + CDP debug)
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Quote To Order Test

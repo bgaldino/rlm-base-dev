@@ -363,8 +363,9 @@ robot_my_test:
 
 ⚠ The configurator is reached from the **row-level actions dropdown on the right of each line**
 ("Show Actions" → Configure) — not a gear icon. **Configure the bundle parent only.** The DOM
-contract (ag-Grid split containers joined by `row-id`, async menu render, shadow-boundary text)
-is documented in `.cursor/skills/robot-testing/patterns.md`.
+contract (ag-Grid split containers correlated by vertical position — not `row-id`, which does
+not join across them here — async menu render, shadow-boundary text) is documented in
+`.cursor/skills/robot-testing/patterns.md`.
 
 ### Async / API
 | Keyword | Arguments | Description |

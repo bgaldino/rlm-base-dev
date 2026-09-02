@@ -10,8 +10,10 @@ Documentation     Adds products to a Quote, creates and activates an Order, and 
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI (no QUOTE_ID override; will create a new Quote if needed):
-...                 cci task run robot_order_from_quote --org beta
+...               Run via CCI (no QUOTE_ID override; will create a new Quote if needed).
+...               The robot_* tasks reject --org (issue #320) — select the org first:
+...                 cci org default beta
+...                 cci task run robot_order_from_quote
 ...               Run Robot directly with an existing Quote:
 ...                 robot --variable QUOTE_ID:<id> robot/rlm-base/tests/e2e/order_from_quote.robot
 Resource          ../../resources/E2ECommon.robot

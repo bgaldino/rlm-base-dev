@@ -67,7 +67,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
 | 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 616      |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 623      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
@@ -211,7 +211,7 @@ qb-pricing/
 │
 │  Source CSVs — Cost Books
 ├── CostBook.csv                         # 1 record
-├── CostBookEntry.csv                    # 616 records
+├── CostBookEntry.csv                    # 623 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -239,8 +239,16 @@ treat those as follow-up items before relying on extraction round-trips.
 
 The `CostBookEntry` rows are part of the delete-then-insert set. The CSV resolves
 the parent CostBook through `CostBook.Name`; this preserves the idempotent load
-behavior (now 616 rows across 7 currencies) while avoiding an unnecessary
+behavior (now 623 rows across 7 currencies) while avoiding an unnecessary
 composite lookup reference to the single seeded CostBook.
+
+**QB-SUPP-2000 (Software Maintenance) added 2026-09-02** — 7 rows, one per
+currency, following the same "cost below lowest positive price" rule the other
+SKUs use: `Cost = UnitPrice × 20%` per currency (USD 1080, GBP 807.5, EUR 946.5,
+AUD 1544.6, CAD 1521.7, CHF 878.9, JPY 176134). The product went from
+derived (`UnitPrice = 0`, no cost coverage needed) to a permanent fixed price —
+see the `qb-supp-2000-fixed-price` pack — so it now qualifies for the coverage
+rule above and previously had none.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `PriceAdjustmentSchedule`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 
