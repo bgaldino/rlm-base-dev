@@ -3,7 +3,9 @@ Documentation     End-to-end Quote-to-Order flow combining setup_quote and order
 ...
 ...               Runs the full sales workflow in a single browser session:
 ...               Reset Account → Create Opportunity → Create Quote →
-...               Browse Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+...               Browse Catalogs → Add Products → Configure Bundle Line →
+...               Create Order → Activate Order → Verify Assets →
+...               Verify Renewal Opportunity Includes Product.
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
@@ -28,7 +30,9 @@ ${ORDER_ID}             ${EMPTY}
 Quote To Order
     [Documentation]    Complete Quote-to-Order flow using Browse Catalogs UI.
     ...    Resets the Account, creates Opportunity → Quote → adds products via
-    ...    Browse Catalogs → creates and activates an Order → verifies Assets.
+    ...    Browse Catalogs → configures the bundle parent → creates and
+    ...    activates an Order → verifies Assets → verifies the renewal
+    ...    Opportunity includes the configured product.
     [Tags]    e2e    requires_qb
     Skip If    "${QB}" == "false"    Requires qb=true for QuantumBit product catalog
 
