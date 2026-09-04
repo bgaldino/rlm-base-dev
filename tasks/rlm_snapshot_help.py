@@ -396,7 +396,7 @@ class SnapshotSalesforceHelp(BaseTask):
         self.options["concurrency"] = int(self.options.get("concurrency", 4))
         self.options["wait_ms"] = int(self.options.get("wait_ms", 3000))
         self.options["discover_timeout_ms"] = int(
-            self.options.get("discover_timeout_ms") or 20000
+            self.options.get("discover_timeout_ms", 20000)
         )
         self._validate_timing_options()
         expect_min = self.options.get("expect_min_articles")

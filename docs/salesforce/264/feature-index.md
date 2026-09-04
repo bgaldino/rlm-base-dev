@@ -74,7 +74,8 @@ published source.
 
 | File | Description |
 |---|---|
-| *(none yet)* | Populate as 264 release notes, Solution Overview decks, and the Help snapshot become available. |
+| [`help/`](help/) | Salesforce Help snapshot — captured for `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm` (698 articles); the other seven `snapshot_*_help_264` areas remain uncaptured. |
+| *(none yet)* | Release notes and Solution Overview decks — populate as they publish. |
 
 ## Related
 
