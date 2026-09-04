@@ -3737,6 +3737,7 @@ tasks:
       root_article_id: ind.product_catalog_introduction.htm
       article_id_prefix: ind.product_catalog
       mode: all
+      expect_min_articles: 53
 
   snapshot_pricing_help_264:
     group: Documentation
@@ -3779,6 +3780,7 @@ tasks:
       root_article_id: ind.product_configurator_introduction.htm
       article_id_prefix: ind.product_configurator
       mode: all
+      expect_min_articles: 38
 
   snapshot_transaction_mgmt_help_264:
     group: Documentation
@@ -3795,6 +3797,7 @@ tasks:
       root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
       article_id_prefix: ind.qocal
       mode: all
+      expect_min_articles: 85
 
   snapshot_dro_help_264:
     group: Documentation
@@ -3837,6 +3840,7 @@ tasks:
       root_article_id: ind.billing.htm
       article_id_prefix: ind.billing
       mode: all
+      expect_min_articles: 85
 
   snapshot_agents_help_264:
     group: Documentation
