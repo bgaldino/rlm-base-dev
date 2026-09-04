@@ -398,6 +398,7 @@ class SnapshotSalesforceHelp(BaseTask):
         self.options["discover_timeout_ms"] = int(
             self.options.get("discover_timeout_ms") or 20000
         )
+        self._validate_timing_options()
         expect_min = self.options.get("expect_min_articles")
         self.options["expect_min_articles"] = int(expect_min) if expect_min else None
         self.options["include_release_param"] = (
@@ -711,6 +712,26 @@ class SnapshotSalesforceHelp(BaseTask):
         self.logger.info(f"Manifest: {manifest_path}")
         self.logger.info(f"Index:    {index_path}")
 
+    def _validate_timing_options(self) -> None:
+        """Reject non-positive wait_ms/discover_timeout_ms before the discovery loop runs.
+
+        `_discover_articles` accumulates elapsed time as `elapsed_ms += wait_ms` each
+        read, so `wait_ms <= 0` never advances it — an empty or never-stabilizing walk
+        would then poll forever instead of reaching `discover_timeout_ms` and failing
+        loudly via `_validate_discovery`. Pure option check, no browser state needed.
+        """
+        if self.options["wait_ms"] <= 0:
+            raise TaskOptionsError(
+                f"wait_ms must be positive, got {self.options['wait_ms']!r} — "
+                "the discovery loop's elapsed-time counter is wait_ms * reads, "
+                "so a non-positive value never reaches discover_timeout_ms."
+            )
+        if self.options["discover_timeout_ms"] <= 0:
+            raise TaskOptionsError(
+                f"discover_timeout_ms must be positive, got "
+                f"{self.options['discover_timeout_ms']!r}"
+            )
+
     def _validate_discovery(self, kept_count: int, total_before_filter: int) -> None:
         """Fail loud on a thin walk instead of silently writing a partial manifest.
 
@@ -749,7 +770,11 @@ class SnapshotSalesforceHelp(BaseTask):
         catching the tree mid-hydration (1 article instead of ~80). A single
         fixed wait is therefore a race; poll every wait_ms up to
         discover_timeout_ms and stop once the prefix-matching count holds
-        steady across two consecutive reads.
+        steady across two consecutive reads — unless that count sits below
+        expect_min_articles (when set), in which case keep polling: the same
+        SPA can plateau at a partial count for a read or two before the rest
+        of the tree hydrates, and stopping there would fail a walk that just
+        needed more time within its own budget.
         """
         url = self._article_url(self.options["root_article_id"])
         self.logger.info(f"  GET {url}")
@@ -758,6 +783,7 @@ class SnapshotSalesforceHelp(BaseTask):
         prefix = self.options["article_id_prefix"]
         wait_ms = self.options["wait_ms"]
         timeout_ms = self.options["discover_timeout_ms"]
+        expect_min = self.options["expect_min_articles"]
 
         discovered: List[Dict[str, str]] = []
         prev_kept = -1
@@ -771,7 +797,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 f"  ...read at {elapsed_ms}ms: {kept} matching articles "
                 f"({len(discovered)} total)"
             )
-            if kept > 0 and kept == prev_kept:
+            if kept > 0 and kept == prev_kept and (not expect_min or kept >= expect_min):
                 break
             prev_kept = kept
             if elapsed_ms >= timeout_ms:

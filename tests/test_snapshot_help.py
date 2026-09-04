@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from tasks.rlm_snapshot_help import (  # noqa: E402
     SnapshotSalesforceHelp,
     CommandException,
+    TaskOptionsError,
 )
 
 
@@ -115,6 +116,32 @@ def main():
     check("at-or-above expect_min_articles passes",
           t2._validate_discovery(50, 60) is None)
 
+    # --- _validate_timing_options -------------------------------------------
+    t7 = _task(wait_ms=0)
+    try:
+        t7._validate_timing_options()
+        check("wait_ms=0 raises", False)
+    except TaskOptionsError:
+        check("wait_ms=0 raises", True)
+
+    t8 = _task(wait_ms=-100)
+    try:
+        t8._validate_timing_options()
+        check("negative wait_ms raises", False)
+    except TaskOptionsError:
+        check("negative wait_ms raises", True)
+
+    t9 = _task(discover_timeout_ms=0)
+    try:
+        t9._validate_timing_options()
+        check("discover_timeout_ms=0 raises", False)
+    except TaskOptionsError:
+        check("discover_timeout_ms=0 raises", True)
+
+    t10 = _task()
+    check("positive wait_ms/discover_timeout_ms passes",
+          t10._validate_timing_options() is None)
+
     # --- _discover_articles polling loop -----------------------------------
     async def run_discover(t, page):
         return await t._discover_articles(page)
@@ -161,6 +188,21 @@ def main():
     result6 = asyncio.run(run_discover(t6, page6))
     check("an always-empty walk terminates rather than looping forever",
           result6 == [])
+
+    # A stable-but-below-floor plateau must keep polling rather than stop early:
+    # 1 article holds for 2 reads (would satisfy the bare stability check), then
+    # climbs to the full 50 on read 3 and holds there — with expect_min_articles=50,
+    # the loop must not exit at the read-2 plateau.
+    t7b = _task(expect_min_articles=50, wait_ms=1, discover_timeout_ms=10)
+    page7b = _FakePage([
+        _articles(["ind.example_0.htm"]),
+        _articles(["ind.example_0.htm"]),
+        _articles([f"ind.example_{n}.htm" for n in range(50)]),
+        _articles([f"ind.example_{n}.htm" for n in range(50)]),
+    ])
+    result7b = asyncio.run(run_discover(t7b, page7b))
+    check("does not stop at a stable plateau below expect_min_articles",
+          len(result7b) == 50)
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
