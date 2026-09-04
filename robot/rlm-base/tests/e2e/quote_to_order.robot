@@ -3,13 +3,16 @@ Documentation     End-to-end Quote-to-Order flow combining setup_quote and order
 ...
 ...               Runs the full sales workflow in a single browser session:
 ...               Reset Account → Create Opportunity → Create Quote →
-...               Browse Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+...               Browse Catalogs → Add Products → Configure Bundle Line →
+...               Create Order → Activate Order → Verify Assets →
+...               Verify Renewal Opportunity Includes Product.
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI:
-...                 cci task run robot_e2e --org beta
-...                 cci task run robot_e2e_debug --org beta   (headed + CDP debug)
+...               Run via CCI (the robot_* tasks reject --org, issue #320 — select the org first):
+...                 cci org default beta
+...                 cci task run robot_e2e
+...                 cci task run robot_e2e_debug -o pause_for_recording true   (headed + CDP debug)
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Quote To Order Test
@@ -27,7 +30,9 @@ ${ORDER_ID}             ${EMPTY}
 Quote To Order
     [Documentation]    Complete Quote-to-Order flow using Browse Catalogs UI.
     ...    Resets the Account, creates Opportunity → Quote → adds products via
-    ...    Browse Catalogs → creates and activates an Order → verifies Assets.
+    ...    Browse Catalogs → configures the bundle parent → creates and
+    ...    activates an Order → verifies Assets → verifies the renewal
+    ...    Opportunity includes the configured product.
     [Tags]    e2e    requires_qb
     Skip If    "${QB}" == "false"    Requires qb=true for QuantumBit product catalog
 
@@ -60,6 +65,15 @@ Quote To Order
     Add Products Via Browse Catalogs    ${QUOTE_ID}    ${TEST_CATALOG_NAME}    ${TEST_PRODUCT_NAME}
     Capture Step Screenshot    03_products_added
 
+    # Configure the bundle PARENT and select the non-default maintenance component.
+    # Adding the bundle alone does NOT reach the configurator, which is why issue #63 —
+    # a Renewal Opportunity flow failure on a formerly derived-priced product — survived
+    # this suite. See Configure Bundle Line for the DOM contract.
+    Pause For Recording If Enabled    Products added. About to configure the bundle.
+    Configure Bundle Line    ${QUOTE_ID}    ${TEST_PRODUCT_NAME}
+    ...    ${TEST_BUNDLE_OPTION_NAME}    ${TEST_BUNDLE_OPTION_TAB}
+    Capture Step Screenshot    03b_bundle_configured
+
     # Create Order
     Pause For Recording If Enabled    Products added. About to Create Order.
     ${order_id}=    Create Order From Quote    ${QUOTE_ID}
@@ -76,6 +90,14 @@ Quote To Order
     Navigate To Account    ${ACCOUNT_ID}
     Click Record Page Tab    Assets
     Capture Step Screenshot    05_assets_tab
+
+    # ⚠ The issue-#63 detector. Must come AFTER activation, and it is not redundant with the
+    # Order status: the renewal flow is PlatformEvent-triggered, so it fails silently and the
+    # Order still reaches Activated. This assertion is the only thing here that can fail when
+    # a configured bundle component breaks the renewal flow.
+    Verify Renewal Opportunity Includes Product    ${ACCOUNT_ID}    ${TEST_BUNDLE_OPTION_NAME}
+    Capture Step Screenshot    06_renewal_opportunity_verified
+
     Pause For Recording If Enabled    Assets verified. Quote-to-Order complete.
     Log    Quote-to-Order E2E test PASSED.
 

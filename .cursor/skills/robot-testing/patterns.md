@@ -250,8 +250,71 @@ Most interaction keywords try strategies in order:
 | Flows | `Advance Through Flow Screens` |
 | Browse Catalogs | `Click Browse Catalogs`, `Select Catalog By Name`, `Search Product In Catalog`, `Add Product By Name` |
 | Composite | `Reset Test Account`, `Create Opportunity From Account`, `Create Quote From Opportunity`, `Create Order From Quote`, `Activate Order` |
-| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API` |
+| Bundle Configurator | `Configure Bundle Line` (+ internals `_Open Line Action Menu`, `_Click Line Action`, `_Select Configurator Tab`, `_Select Configurator Option`, `_Commit Configurator`) |
+| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API`, `Verify Renewal Opportunity Includes Product` |
 | Utilities | `Capture Step Screenshot`, `Dismiss Toast If Present`, `Pause For Recording If Enabled` |
+
+---
+
+## Quote line grid (ag-Grid) — vertical-position correlation, not row-id join
+
+The Quote/Order line grid is **ag-Grid**, split into separate PINNED-LEFT / CENTER row
+containers per visual row (pinned-left carries the product name; the row-action control lives
+in a different `div[role="row"]` container at the row's far right). **Row-id joining across
+those sections does not work here** — the pinned-left row's `row-id`/`row-index` is not shared
+by (or reachable from the same shadow-DOM subtree as) the far-right container, despite being
+standard ag-Grid behavior elsewhere. Instead: find the product-name row, take its **vertical
+center** (`getBoundingClientRect()`, not `top`), then search the entire document (all shadow
+roots) for a clickable element whose own vertical center is within ~15px of it — this works
+regardless of which section container the element actually renders in.
+
+⚠ **`ag-row-level-0` does NOT identify a bundle parent — the grid is FLAT.** Every row, children
+included, is level 0. Match on the product name, never on hierarchy level.
+
+Row action trigger: a plain, hover-gated `<button>` at the row's far right (`left >
+innerWidth * 0.6`) — **not** a `lightning-button-menu`. It is `visibility:hidden` until the row
+is hovered (CSS `:hover`-gated); dispatch a genuine `Mouse Over` on the row *before* searching
+for it, not after — searching first and hovering only on success is circular. `icon-name` is
+not a reliable discriminator (the disclosure toggle can report the same empty value); position
+is. Items are `lightning-menu-item` → `a[role="menuitem"]` (**View / Clone / Configure /
+Delete**).
+
+⚠ **Menu items render ASYNCHRONOUSLY** — querying in the same JS tick as the trigger click
+returns zero items. Opening the menu and clicking an item must be **separate retried keywords**.
+
+⚠ **A raw JS `.click()` is not equivalent to a real click** — it skips visibility checks and
+dispatches an untrusted event some LWC/Aura components reject. Return the DOM element itself
+(Robot/Selenium wraps it as a WebElement) and use native `Click Element` after `scrollIntoView`.
+
+### Product configurator (a modal, not a navigation)
+
+`lightning-overlay-container` → `lightning-modal` → `runtime_revenue_configurator-container`.
+
+- Tabs: `a[role="tab"][data-label="<Group Name>"]`
+- Options: `runtime_industries_cfg-option` (each has `data-option-id` and a checkbox)
+- Commit: `button` with text **`Save & Exit`** — saves *and* closes; there is no separate close
+- All tabs' options are in the DOM at once (the tab only controls visibility), but a
+  newly-selected tab's options still render async — retry after the tab click
+- A programmatic `checkbox.click()` **does** drive the LWC
+
+⚠ **`textContent` does NOT cross shadow boundaries**, and an option renders its product name
+inside a *nested* shadow root — so a plain `textContent` match finds nothing and the option looks
+absent. A shadow-walking text extractor is **required**, not defensive coding.
+
+---
+
+## ⚠ `Execute JavaScript` continuation lines are joined WITHOUT newlines
+
+SeleniumLibrary concatenates the `...` continuation arguments with **no separator**, so the whole
+JS block becomes one line. Two consequences that silently corrupt a script:
+
+1. **Use `/* */` block comments only.** A `//` comment swallows the entire rest of the script.
+2. **Semicolon-terminate every statement.** `var a = 1` followed by `var b = 2` becomes
+   `var a = 1var b = 2`.
+
+Also **avoid regex literals containing backslashes** in `.robot` arguments — Robot's own escape
+processing makes `/\s+/` ambiguous. Prefer a `charCodeAt`-based whitespace check (see
+`_Select Configurator Option`) or drop the normalisation.
 
 ---
 
@@ -261,6 +324,8 @@ Most interaction keywords try strategies in order:
 |----------|---------|---------|
 | `${TEST_CATALOG_NAME}` | `QuantumBit Software` | Catalog for Browse Catalogs |
 | `${TEST_PRODUCT_NAME}` | `QuantumBit Complete Solution` | Product to add |
+| `${TEST_BUNDLE_OPTION_NAME}` | `Software Maintenance` | Bundle option ticked by `Configure Bundle Line` |
+| `${TEST_BUNDLE_OPTION_TAB}` | `Maintenance & Support` | Configurator tab holding that option |
 | `${ASYNC_TIMEOUT}` | `180s` | Max wait for async ops |
 | `${ASYNC_POLL_INTERVAL}` | `10s` | Poll interval |
 | `${HEADED}` | `false` | Browser mode |

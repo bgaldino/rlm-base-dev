@@ -66,12 +66,13 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
 | 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
-| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 14 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 616      |
+| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 623      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
 **Other notes:**
+- ⚠ `PricebookEntryDerivedPrice.csv` is **intentionally header-only (0 records)** as of 2026-07-28. Its 14 rows all belonged to `QB-SUPP-2000` (Software Maintenance), which is now **fixed-price** instead of derived: activating an order that contained it failed with *"Your formula must contain the following fixed variables: UnitPrice, TotalPrice, ListPrice and HeaderTotal."* (issue #63). **Keep the object in `export.json`** — removing it would change the delete ordering. Two rules follow from this and must move together if derived pricing is ever restored: a derived product carries `UnitPrice = 0` in every currency (so re-adding formula rows without zeroing the prices double-counts, and deleting them without setting prices makes the product **free**), and `PricebookEntry.IsDerived` is system-maintained from this object but **evaluated at INSERT only** — a fresh build is correct by construction, an existing org needs its entries deleted and reinserted. Restoration is tracked in the private artifacts tracker as pack 089.
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Upsert` with `WHERE ContractId = NULL` on the direct-field `Name` externalId, ordered **before** the child adjustments. There is **one schedule per type** (Attribute / Bundle / Volume), USD (corporate) — exactly what the platform seeds, so Upsert matches the seeded rows (no duplicates). Do **not** create per-currency schedule variants: `PriceAdjustmentTier` / `AttributeBasedAdjustment` / `BundleBasedAdjustment` of every currency reference this single schedule by `PriceAdjustmentSchedule.Name` and are disambiguated by their own `CurrencyIsoCode` at pricing time. The pricing procedure pins each adjustment step to one schedule Id via `find_replace` (`… WHERE name = 'Standard …' LIMIT 1`), so duplicating the schedule per currency makes non-USD adjustment lookups resolve nothing
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
@@ -194,7 +195,7 @@ qb-pricing/
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
 ├── PricebookEntry.csv                   # 1862 records
-├── PricebookEntryDerivedPrice.csv       # 14 records
+├── PricebookEntryDerivedPrice.csv       # 0 records (header only — see note below)
 │
 │  Source CSVs — Price Adjustments
 ├── PriceAdjustmentSchedule.csv          # 3 records (Upsert) — one per type, USD; shared by all currencies
@@ -210,7 +211,7 @@ qb-pricing/
 │
 │  Source CSVs — Cost Books
 ├── CostBook.csv                         # 1 record
-├── CostBookEntry.csv                    # 616 records
+├── CostBookEntry.csv                    # 623 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -238,8 +239,16 @@ treat those as follow-up items before relying on extraction round-trips.
 
 The `CostBookEntry` rows are part of the delete-then-insert set. The CSV resolves
 the parent CostBook through `CostBook.Name`; this preserves the idempotent load
-behavior (now 616 rows across 7 currencies) while avoiding an unnecessary
+behavior (now 623 rows across 7 currencies) while avoiding an unnecessary
 composite lookup reference to the single seeded CostBook.
+
+**QB-SUPP-2000 (Software Maintenance) added 2026-09-02** — 7 rows, one per
+currency, following the same "cost below lowest positive price" rule the other
+SKUs use: `Cost = UnitPrice × 20%` per currency (USD 1080, GBP 807.5, EUR 946.5,
+AUD 1544.6, CAD 1521.7, CHF 878.9, JPY 176134). The product went from
+derived (`UnitPrice = 0`, no cost coverage needed) to a permanent fixed price —
+see the `qb-supp-2000-fixed-price` pack — so it now qualifies for the coverage
+rule above and previously had none.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `PriceAdjustmentSchedule`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 

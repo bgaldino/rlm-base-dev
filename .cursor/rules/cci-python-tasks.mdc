@@ -15,7 +15,8 @@ alwaysApply: false
 - **Commit a behavioral change to a wrapped Robot Framework suite — or to this wrapper
   itself — validated only by `robot --dryrun`** (applies when this task runs `robot` via
   subprocess / imports `tasks.robot_utils`). Dryrun never launches a browser — verify in a
-  **live scratch org** first (`cci task run <robot_task> --org <alias>`), or keep the PR
+  **live scratch org** first (robot_* tasks reject `--org`, issue #320 — `cci org default
+  <alias>` then `cci task run <robot_task>`), or keep the PR
   blocked (`blocked: needs-live-verification`). See AGENTS.md DO NOT #9 and
   `robot-testing/SKILL.md` → Verification.
 
