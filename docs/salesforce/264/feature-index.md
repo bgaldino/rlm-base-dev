@@ -21,32 +21,38 @@ published source.
 
 ## How to populate this file
 
-1. **Capture the Help portal corpus.** The 13 `snapshot_*_264` tasks in
-   `cumulusci.yml` are twins of the 262 tasks, but their `root_article_id`
-   values are **inherited from 262 and unverified** — Help article IDs are not
-   stable across release reorgs. Validate each area's root first:
+1. **Capture the Help portal corpus.** Four of the 13 `snapshot_*_264` tasks —
+   `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm` — are already
+   captured at `docs/salesforce/264/help/` and spot-checked byte-different from
+   their 262 twins; their `root_article_id`/`article_id_prefix` values are
+   confirmed correct. The remaining nine (pricing, rating, dro, usage, agents,
+   approvals, collections, plus the Dev Guide's own areas) inherited their
+   roots from 262 **unverified** — Help article IDs are not stable across
+   release reorgs. Validate each uncaptured area's root first:
 
    ```bash
-   cci task run snapshot_pcm_help_264 -o mode discover   # read "Discovered N unique articles"
-   cci task run snapshot_pcm_help_264                    # only if that N is non-zero
+   cci task run snapshot_pricing_help_264 -o mode discover   # read "Discovered N unique articles"
+   cci task run snapshot_pricing_help_264                    # only if that N is non-zero
    ```
 
    Captures land in `docs/salesforce/264/help/` and
    `docs/salesforce/264/dev-guide{,-industries}/`.
 
-   **`discover` does not fail on a bad root** — it exits 0 with zero discovered
-   articles, so the `Discovered N unique articles` line it logs is the only
-   signal that the root and prefix are right. Read that line out of the task's
-   own output: piping to `grep` would report `grep`'s exit status instead of the
+   Discovery now polls until the sidebar stabilizes and raises loudly on a
+   thin/empty walk (pack 146) — but the raise-below-a-floor check only fires
+   on an area with `expect_min_articles` set (currently the four captured
+   areas above). On the other nine, `discover` can still exit 0 with a
+   suspiciously low count, so read the `Discovered N unique articles` line it
+   logs: piping to `grep` would report `grep`'s exit status instead of the
    task's and hide a failure that happens after the count is logged. Don't use
    the manifest either — `stats.discovered` sums every area and keeps prior runs,
    so it stays positive through a failed re-walk (and on a first 264 run the
-   manifest does not exist yet). And even a non-zero count says nothing about
-   whether 264 content
-   was *written*: the articles behind a valid root can still be 262 text, so a
-   capture can spend 10–15 minutes writing last release's content under a 264
-   path. Per-area readiness and capture order are assessed in the private
-   artifacts repo (todo 145); check it before committing a run to an area.
+   manifest does not exist yet). And even a non-zero count on one of those nine
+   says nothing about whether 264 content was *written*: the articles behind a
+   valid root can still be 262 text, so a capture can spend 10–15 minutes
+   writing last release's content under a 264 path. Per-area readiness and
+   capture order are assessed in the private artifacts repo (todo 145); check
+   it before committing a run to an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and
