@@ -77,12 +77,13 @@ class _FakePage:
         self._sequence = evaluate_sequence
         self._i = 0
         self.evaluate_calls = 0
+        self.sleeps = []
 
     async def goto(self, url, wait_until=None):
         pass
 
     async def wait_for_timeout(self, ms):
-        pass
+        self.sleeps.append(ms)
 
     async def evaluate(self, js):
         self.evaluate_calls += 1
@@ -179,6 +180,17 @@ def main():
     result5 = asyncio.run(run_discover(t5, page5))
     check("bails out at discover_timeout_ms instead of looping forever",
           page5.evaluate_calls <= 4)  # ceil(discover_timeout_ms / wait_ms) + 1
+
+    # Non-divisible, never-stabilizing walk: wait_ms=7 into discover_timeout_ms=10
+    # must clamp the second sleep to 3ms (not the full 7ms), so total elapsed time
+    # never exceeds the documented budget — PR #408 review round 2.
+    t5b = _task(wait_ms=7, discover_timeout_ms=10)
+    page5b = _FakePage([
+        _articles([f"ind.example_{n}.htm" for n in range(n)]) for n in (1, 2, 3, 4, 5)
+    ])
+    asyncio.run(run_discover(t5b, page5b))
+    check("clamps each sleep to the remaining budget instead of overshooting it",
+          page5b.sleeps == [7, 3])
 
     # A walk that never finds anything (all reads empty) must still terminate
     # at discover_timeout_ms — this is the raw walker path pack 146's guard

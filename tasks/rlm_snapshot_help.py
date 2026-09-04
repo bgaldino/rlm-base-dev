@@ -789,8 +789,9 @@ class SnapshotSalesforceHelp(BaseTask):
         prev_kept = -1
         elapsed_ms = 0
         while True:
-            await page.wait_for_timeout(wait_ms)
-            elapsed_ms += wait_ms
+            sleep_ms = min(wait_ms, timeout_ms - elapsed_ms)
+            await page.wait_for_timeout(sleep_ms)
+            elapsed_ms += sleep_ms
             discovered = await page.evaluate(SIDEBAR_WALKER_JS) or []
             kept = len([d for d in discovered if d["id"].startswith(prefix)])
             self.logger.info(
