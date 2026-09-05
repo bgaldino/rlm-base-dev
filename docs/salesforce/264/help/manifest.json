@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "pcm",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5&release=264",
-  "root_article_id": "ind.product_catalog_introduction.htm",
-  "article_id_prefix": "ind.product_catalog",
+  "area": "dro",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264",
+  "root_article_id": "ind.dro_dynamic_revenue_orchestrator.htm",
+  "article_id_prefix": "ind.dro",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -82,6 +82,25 @@
       "last_run_discovered": {
         "kept": 142,
         "before_prefix_filter": 1371
+      }
+    },
+    {
+      "area": "dro",
+      "root_article_id": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "article_id_prefix": "ind.dro",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264",
+      "last_updated": "2026-09-05T22:36:29Z",
+      "stats": {
+        "discovered": 99,
+        "captured": 97,
+        "pending": 0,
+        "errored": 2,
+        "total_captured_body_chars": 199863
+      },
+      "snapshot_started": "2026-09-05",
+      "last_run_discovered": {
+        "kept": 99,
+        "before_prefix_filter": 1373
       }
     }
   ],
@@ -2469,6 +2488,894 @@
       "parent_article": "ind.billing_write_off_invoice_balance.htm",
       "body_length": 2451,
       "file": "articles/ind.billing_write_off_invoices_invoke_action.htm.md"
+    },
+    {
+      "article_id": "ind.dro_add_a_fulfillment_user.htm",
+      "title": "Create Fulfillment Users for Order Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_permissions_in_dynamic_revenue_orchestrator.htm",
+      "body_length": 1199,
+      "file": "articles/ind.dro_add_a_fulfillment_user.htm.md"
+    },
+    {
+      "article_id": "ind.dro_advanced_setup.htm",
+      "title": "Dynamic Revenue Orchestrator Advanced Setup",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 261,
+      "file": "articles/ind.dro_advanced_setup.htm.md"
+    },
+    {
+      "article_id": "ind.dro_assetization_in_dynamic_revenue_orchestrator.htm",
+      "title": "Fulfillment Assets",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 1416,
+      "file": "articles/ind.dro_assetization_in_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_assetization_rules_for_dynamic_revenue_orchestrator.htm",
+      "title": "Assetization Rules for Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.qocal_order_submission_for_fulfillment.htm",
+      "body_length": 1419,
+      "file": "articles/ind.dro_assetization_rules_for_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_associate_custom_context_definition_with_sales_transaction_attribute.htm",
+      "title": "Map Custom Context Definition with Sales Transaction",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_steps_to_create_a_custom_context_definition.htm",
+      "body_length": 1174,
+      "file": "articles/ind.dro_associate_custom_context_definition_with_sales_transaction_attribute.htm.md"
+    },
+    {
+      "article_id": "ind.dro_basic_set_up.htm",
+      "title": "Dynamic Revenue Orchestrator Basic Setup",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 332,
+      "file": "articles/ind.dro_basic_set_up.htm.md"
+    },
+    {
+      "article_id": "ind.dro_clone_a_fulfillment_workspace.htm",
+      "title": "Clone a Fulfillment Workspace",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_orchestration_components.htm",
+      "body_length": 1965,
+      "file": "articles/ind.dro_clone_a_fulfillment_workspace.htm.md"
+    },
+    {
+      "article_id": "ind.dro_comptibility_for_field_and_attributes_mapping.htm",
+      "title": "Data Type Compatibility for Field and Attribute Mapping",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_field_and_attribute_mapping.htm",
+      "body_length": 1302,
+      "file": "articles/ind.dro_comptibility_for_field_and_attributes_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.dro_conditions_in_dynamic_revenue_orchestrator.htm",
+      "title": "Understand Execution Conditions for Order Fulfillment",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 2038,
+      "file": "articles/ind.dro_conditions_in_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_dynamic_revenue_orchestrator_analytics_dashboards.htm",
+      "title": "Configure Dynamic Revenue Orchestrator Analytics Dashboards",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_enable_analytics.htm",
+      "body_length": 1128,
+      "file": "articles/ind.dro_configure_dynamic_revenue_orchestrator_analytics_dashboards.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_es_mapping.htm",
+      "title": "Configure Expression Set Based Mapping",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_field_and_attribute_mapping.htm",
+      "body_length": 2738,
+      "file": "articles/ind.dro_configure_es_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_fallout_rules.htm",
+      "title": "Configure Fallout Rules",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_fallout_administration.htm",
+      "body_length": 1585,
+      "file": "articles/ind.dro_configure_fallout_rules.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_fulfillment_step_jeopardy_rules.htm",
+      "title": "Configure Fulfillment Step Jeopardy Rules",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_sla_jeopardy_administration.htm",
+      "body_length": 2221,
+      "file": "articles/ind.dro_configure_fulfillment_step_jeopardy_rules.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_fulfillment_step_retries.htm",
+      "title": "Configure Fulfillment Step Retries",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_fallout_administration.htm",
+      "body_length": 2084,
+      "file": "articles/ind.dro_configure_fulfillment_step_retries.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_fulfillment_workspace_deep_cloning.htm",
+      "title": "Configure Deep Cloning for Fulfillment Workspaces",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 1975,
+      "file": "articles/ind.dro_configure_fulfillment_workspace_deep_cloning.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_inflight_plan_settings.htm",
+      "title": "Configure Inflight Plan Settings for a Fulfillment Step",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_in_flight_order_changes.htm",
+      "body_length": 1653,
+      "file": "articles/ind.dro_configure_inflight_plan_settings.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_list_mapping.htm",
+      "title": "Configure List Mapping",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_field_and_attribute_mapping.htm",
+      "body_length": 1728,
+      "file": "articles/ind.dro_configure_list_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_procedure_plan_definition_for_business_process_orchestration.htm",
+      "title": "Configure Procedure Plan Definition for Business Process Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_sales_transaction_business_processes.htm",
+      "body_length": 1674,
+      "file": "articles/ind.dro_configure_procedure_plan_definition_for_business_process_orchestration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm",
+      "title": "Configure a Fulfillment Scenario",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 5173,
+      "file": "articles/ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm.md"
+    },
+    {
+      "article_id": "ind.dro_configure_steps_for_future_execution.htm",
+      "title": "Configure Steps for Future Execution",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 2098,
+      "file": "articles/ind.dro_configure_steps_for_future_execution.htm.md"
+    },
+    {
+      "article_id": "ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm",
+      "title": "Considerations for Backdated Changes in Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 3077,
+      "file": "articles/ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_considerations_for_changing_in_flight_orders.htm",
+      "title": "Considerations for Changing In-Flight Orders",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_in_flight_order_changes.htm",
+      "body_length": 5476,
+      "file": "articles/ind.dro_considerations_for_changing_in_flight_orders.htm.md"
+    },
+    {
+      "article_id": "ind.dro_context_definitions_for_dynamic_revenue_orchestrator.htm",
+      "title": "Context Definitions for Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 1869,
+      "file": "articles/ind.dro_context_definitions_for_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_a_fulfillment_step_definition_group.htm",
+      "title": "Create a Fulfillment Step Definition Group",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_orchestration_components.htm",
+      "body_length": 636,
+      "file": "articles/ind.dro_create_a_fulfillment_step_definition_group.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_a_fulfillment_task_assignment_rule.htm",
+      "title": "Create a Fulfillment Task Assignment Rule",
+      "status": "error",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "error": "no H1 found (article may be 404 or unrendered)"
+    },
+    {
+      "article_id": "ind.dro_create_a_fulfillment_workspace.htm",
+      "title": "Create a Fulfillment Workspace",
+      "status": "error",
+      "area": "dro",
+      "parent_article": "ind.dro_define_orchestration_components.htm",
+      "error": "no H1 found (article may be 404 or unrendered)"
+    },
+    {
+      "article_id": "ind.dro_create_and_submit_standard_orders.htm",
+      "title": "Create and Submit an Order",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 1640,
+      "file": "articles/ind.dro_create_and_submit_standard_orders.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm",
+      "title": "We looked high and low\nbut couldn't find that page.",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_steps_to_create_a_custom_context_definition.htm",
+      "body_length": 59,
+      "file": "articles/ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_custom_context_definition_and_map_business_objects.htm",
+      "title": "Create Custom Context Definition and Map Business Objects",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_sales_transaction_business_processes.htm",
+      "body_length": 3227,
+      "file": "articles/ind.dro_create_custom_context_definition_and_map_business_objects.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_custom_scope_config.htm",
+      "title": "Create Custom Fulfillment Scope Configuration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 2873,
+      "file": "articles/ind.dro_create_custom_scope_config.htm.md"
+    },
+    {
+      "article_id": "ind.dro_create_queues.htm",
+      "title": "Create Queues for Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 628,
+      "file": "articles/ind.dro_create_queues.htm.md"
+    },
+    {
+      "article_id": "ind.dro_creating_a_technical_product.htm",
+      "title": "Create a Technical Product",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_technical_product_in_dro.htm",
+      "body_length": 1062,
+      "file": "articles/ind.dro_creating_a_technical_product.htm.md"
+    },
+    {
+      "article_id": "ind.dro_cross_plan_dependencies.htm",
+      "title": "Cross-Plan Dependencies",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 2531,
+      "file": "articles/ind.dro_cross_plan_dependencies.htm.md"
+    },
+    {
+      "article_id": "ind.dro_custom_scope_step_dependencies.htm",
+      "title": "Apply Custom Scopes to Fulfillment Steps and Dependencies",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 3142,
+      "file": "articles/ind.dro_custom_scope_step_dependencies.htm.md"
+    },
+    {
+      "article_id": "ind.dro_decomposition_relationship_types.htm",
+      "title": "Decomposition Relationship Types",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 3564,
+      "file": "articles/ind.dro_decomposition_relationship_types.htm.md"
+    },
+    {
+      "article_id": "ind.dro_decomposition_scope.htm",
+      "title": "Decomposition Scope",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_technical_product_in_dro.htm",
+      "body_length": 1807,
+      "file": "articles/ind.dro_decomposition_scope.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_a_fulfillment_step.htm",
+      "title": "Define a Fulfillment Step",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_define_orchestration_components.htm",
+      "body_length": 1908,
+      "file": "articles/ind.dro_define_a_fulfillment_step.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_conditions_for_a_decomposition_rule.htm",
+      "title": "Define Execution Rules for a Decomposition Rule",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 4088,
+      "file": "articles/ind.dro_define_conditions_for_a_decomposition_rule.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_conditions_for_a_fulfillment_step_to_run.htm",
+      "title": "Define Conditions for a Fulfillment Step to Run",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 1903,
+      "file": "articles/ind.dro_define_conditions_for_a_fulfillment_step_to_run.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_field_and_attribute_mapping.htm",
+      "title": "Define Field and Attribute Mapping",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 3626,
+      "file": "articles/ind.dro_define_field_and_attribute_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_how_a_product_decomposes.htm",
+      "title": "Define How a Product Decomposes",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 3500,
+      "file": "articles/ind.dro_define_how_a_product_decomposes.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_orchestration_components.htm",
+      "title": "Define Orchestration Plan Components",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 1737,
+      "file": "articles/ind.dro_define_orchestration_components.htm.md"
+    },
+    {
+      "article_id": "ind.dro_define_technical_attribute_scope.htm",
+      "title": "Define Technical Product Attribute Scope",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 2805,
+      "file": "articles/ind.dro_define_technical_attribute_scope.htm.md"
+    },
+    {
+      "article_id": "ind.dro_design_time_decomposition.htm",
+      "title": "Design Your Order Decomposition",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 3516,
+      "file": "articles/ind.dro_design_time_decomposition.htm.md"
+    },
+    {
+      "article_id": "ind.dro_design_time_orchestration.htm",
+      "title": "Design Your Order Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 3495,
+      "file": "articles/ind.dro_design_time_orchestration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "title": "Order Orchestration in Revenue Management",
+      "status": "captured",
+      "area": "dro",
+      "body_length": 3648,
+      "file": "articles/ind.dro_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "title": "Dynamic Revenue Orchestrator Concepts and References",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 179,
+      "file": "articles/ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm.md"
+    },
+    {
+      "article_id": "ind.dro_dynamic_revenue_orchestrator_limits.htm",
+      "title": "Dynamic Revenue Orchestrator Limits",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 5798,
+      "file": "articles/ind.dro_dynamic_revenue_orchestrator_limits.htm.md"
+    },
+    {
+      "article_id": "ind.dro_enable_analytics.htm",
+      "title": "Dynamic Revenue Orchestrator Analytics",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.revenue_intelligence_rev_intelligence_apps_dashboards.htm",
+      "body_length": 1276,
+      "file": "articles/ind.dro_enable_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.dro_enable_in_flight_amendments.htm",
+      "title": "Turn On In-Flight Amendments",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 656,
+      "file": "articles/ind.dro_enable_in_flight_amendments.htm.md"
+    },
+    {
+      "article_id": "ind.dro_enable_permission_for_users.htm",
+      "title": "Enable Permission for Context Service Users",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_steps_to_create_a_custom_context_definition.htm",
+      "body_length": 780,
+      "file": "articles/ind.dro_enable_permission_for_users.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fallout_administration.htm",
+      "title": "Configure Automation Failure Handling",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 454,
+      "file": "articles/ind.dro_fallout_administration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fallout_design_and_management.htm",
+      "title": "Fallout Design and Management",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 3367,
+      "file": "articles/ind.dro_fallout_design_and_management.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fulfillment_order_line_item_actions.htm",
+      "title": "Fulfillment Order Line Item Actions",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 1867,
+      "file": "articles/ind.dro_fulfillment_order_line_item_actions.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fulfillment_plan_actions_and_information.htm",
+      "title": "Monitor Fulfillment During Order Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 3676,
+      "file": "articles/ind.dro_fulfillment_plan_actions_and_information.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fulfillment_step_states.htm",
+      "title": "Fulfillment Step States",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 1547,
+      "file": "articles/ind.dro_fulfillment_step_states.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fulfillment_user.htm",
+      "title": "Fulfillment User",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 1242,
+      "file": "articles/ind.dro_fulfillment_user.htm.md"
+    },
+    {
+      "article_id": "ind.dro_fulfillment_viewer_page_failure.htm",
+      "title": "Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.rev_cloud_upgrade_known_issues.htm",
+      "body_length": 866,
+      "file": "articles/ind.dro_fulfillment_viewer_page_failure.htm.md"
+    },
+    {
+      "article_id": "ind.dro_hi_tech_order_orchestration_template.htm",
+      "title": "Design Orchestration with the High Tech Order Orchestration Template",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 2369,
+      "file": "articles/ind.dro_hi_tech_order_orchestration_template.htm.md"
+    },
+    {
+      "article_id": "ind.dro_hook_custom_logic_details.htm",
+      "title": "Configure Custom Logic between Decomposition and Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 2220,
+      "file": "articles/ind.dro_hook_custom_logic_details.htm.md"
+    },
+    {
+      "article_id": "ind.dro_how_in_flight_order_changes_decompose.htm",
+      "title": "In-Flight Order Change Example",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_in_flight_order_changes.htm",
+      "body_length": 3991,
+      "file": "articles/ind.dro_how_in_flight_order_changes_decompose.htm.md"
+    },
+    {
+      "article_id": "ind.dro_import_a_fulfillment_step_definition_group.htm",
+      "title": "Import a Fulfillment Step Definition Group",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 1464,
+      "file": "articles/ind.dro_import_a_fulfillment_step_definition_group.htm.md"
+    },
+    {
+      "article_id": "ind.dro_in_flight_order_changes.htm",
+      "title": "In-Flight Order Changes",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 2454,
+      "file": "articles/ind.dro_in_flight_order_changes.htm.md"
+    },
+    {
+      "article_id": "ind.dro_install_hi_tech_order_orchestration_template.htm",
+      "title": "Install the High Tech Order Orchestration Template",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 2029,
+      "file": "articles/ind.dro_install_hi_tech_order_orchestration_template.htm.md"
+    },
+    {
+      "article_id": "ind.dro_monitor_decomposition_during_fulfillment.htm",
+      "title": "Monitor Decomposition During Fulfillment",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 2080,
+      "file": "articles/ind.dro_monitor_decomposition_during_fulfillment.htm.md"
+    },
+    {
+      "article_id": "ind.dro_orchestrate_a_business_process.htm",
+      "title": "Dynamic Revenue Orchestrator for Business Processes",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 1696,
+      "file": "articles/ind.dro_orchestrate_a_business_process.htm.md"
+    },
+    {
+      "article_id": "ind.dro_orchestrate_non_sales_transaction_business_processes.htm",
+      "title": "Orchestrate Non-Sales Transaction Business Processes",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_a_business_process.htm",
+      "body_length": 2651,
+      "file": "articles/ind.dro_orchestrate_non_sales_transaction_business_processes.htm.md"
+    },
+    {
+      "article_id": "ind.dro_orchestrate_non_sales_transaction_business_processes_context.htm",
+      "title": "Considerations for Creating a Non-Sales Transaction Context Definition",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_non_sales_transaction_business_processes.htm",
+      "body_length": 1681,
+      "file": "articles/ind.dro_orchestrate_non_sales_transaction_business_processes_context.htm.md"
+    },
+    {
+      "article_id": "ind.dro_orchestrate_non_sales_transaction_mapping.htm",
+      "title": "Requirements for Creating Orchestration Plan Context Mapping",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_non_sales_transaction_business_processes.htm",
+      "body_length": 1397,
+      "file": "articles/ind.dro_orchestrate_non_sales_transaction_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.dro_orchestrate_sales_transaction_business_processes.htm",
+      "title": "Orchestrate Sales Transaction Business Processes",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_orchestrate_a_business_process.htm",
+      "body_length": 5097,
+      "file": "articles/ind.dro_orchestrate_sales_transaction_business_processes.htm.md"
+    },
+    {
+      "article_id": "ind.dro_order_line_item_actions.htm",
+      "title": "Order Line Item Actions",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 606,
+      "file": "articles/ind.dro_order_line_item_actions.htm.md"
+    },
+    {
+      "article_id": "ind.dro_order_submission_to_dro.htm",
+      "title": "Automate Order Submission to Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 1822,
+      "file": "articles/ind.dro_order_submission_to_dro.htm.md"
+    },
+    {
+      "article_id": "ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm",
+      "title": "Permission Sets in Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_permissions_in_dynamic_revenue_orchestrator.htm",
+      "body_length": 2383,
+      "file": "articles/ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_permissions_in_dynamic_revenue_orchestrator.htm",
+      "title": "Permissions in Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 269,
+      "file": "articles/ind.dro_permissions_in_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_point_of_no_return_state_propagation.htm",
+      "title": "Point of No Return State Propagation",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_in_flight_order_changes.htm",
+      "body_length": 2592,
+      "file": "articles/ind.dro_point_of_no_return_state_propagation.htm.md"
+    },
+    {
+      "article_id": "ind.dro_ramp_deal_decomposition.htm",
+      "title": "Decompose and Fulfill Ramp Deal Orders",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.qocal_ramp_deals_complex_long_term_multiple_products.htm",
+      "body_length": 4110,
+      "file": "articles/ind.dro_ramp_deal_decomposition.htm.md"
+    },
+    {
+      "article_id": "ind.dro_retry_or_complete_multiple_failed_fulfillment_steps.htm",
+      "title": "Retry or Complete Multiple Failed Fulfillment Steps",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 1487,
+      "file": "articles/ind.dro_retry_or_complete_multiple_failed_fulfillment_steps.htm.md"
+    },
+    {
+      "article_id": "ind.dro_run_time_administration.htm",
+      "title": "Submit Orders for Decomposition and Order Fulfillment",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 3173,
+      "file": "articles/ind.dro_run_time_administration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_set_dependencies_between_fulfillment_steps.htm",
+      "title": "Set Dependencies Between Fulfillment Steps",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_orchestration.htm",
+      "body_length": 4436,
+      "file": "articles/ind.dro_set_dependencies_between_fulfillment_steps.htm.md"
+    },
+    {
+      "article_id": "ind.dro_sla_jeopardy_administration.htm",
+      "title": "SLA Jeopardy Administration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator.htm",
+      "body_length": 1640,
+      "file": "articles/ind.dro_sla_jeopardy_administration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_steps_to_create_a_custom_context_definition.htm",
+      "title": "Create Custom Context Definitions for Order Orchestration",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 663,
+      "file": "articles/ind.dro_steps_to_create_a_custom_context_definition.htm.md"
+    },
+    {
+      "article_id": "ind.dro_submit_order_with_validation_flow.htm",
+      "title": "Handle Conflicts During Asset Date Amendments by Using Submit Order with Validation Flow",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 2365,
+      "file": "articles/ind.dro_submit_order_with_validation_flow.htm.md"
+    },
+    {
+      "article_id": "ind.dro_technical_bundles.htm",
+      "title": "Technical Bundles",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm",
+      "body_length": 1900,
+      "file": "articles/ind.dro_technical_bundles.htm.md"
+    },
+    {
+      "article_id": "ind.dro_technical_product_in_dro.htm",
+      "title": "Build Your Technical Product Catalog for Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 4195,
+      "file": "articles/ind.dro_technical_product_in_dro.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment.htm",
+      "title": "Order Fulfillment With Time-Awareness",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 3518,
+      "file": "articles/ind.dro_time_aware_fulfillment.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_actions.htm",
+      "title": "How Dynamic Revenue Orchestrator Determines Actions for Time-Aware Assets",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 877,
+      "file": "articles/ind.dro_time_aware_fulfillment_actions.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_architecture.htm",
+      "title": "How Time-Awareness Works",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 1162,
+      "file": "articles/ind.dro_time_aware_fulfillment_architecture.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_enable.htm",
+      "title": "Turn On Time-Awareness",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 1322,
+      "file": "articles/ind.dro_time_aware_fulfillment_enable.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_example_add.htm",
+      "title": "Example: Add Action with Time-Awareness Turned On",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 1822,
+      "file": "articles/ind.dro_time_aware_fulfillment_example_add.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_example_amend.htm",
+      "title": "Example: Mid-Year Amendment with Split Fulfillment Asset State Periods",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 2478,
+      "file": "articles/ind.dro_time_aware_fulfillment_example_amend.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_fulfillment_migration.htm",
+      "title": "Migrate Fulfillment Assets from Time-Agnostic to Time-Aware",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 1062,
+      "file": "articles/ind.dro_time_aware_fulfillment_migration.htm.md"
+    },
+    {
+      "article_id": "ind.dro_time_aware_plan_sequence.htm",
+      "title": "Orchestrate Orders with Time-Awareness",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_time_aware_fulfillment.htm",
+      "body_length": 2177,
+      "file": "articles/ind.dro_time_aware_plan_sequence.htm.md"
+    },
+    {
+      "article_id": "ind.dro_turn_on_dynamic_revenue_orchestrator.htm",
+      "title": "Turn On Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 706,
+      "file": "articles/ind.dro_turn_on_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "ind.dro_turn_on_feature_to_link_task_to_step_source.htm",
+      "title": "Turn On Task Linking to Step Source",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 876,
+      "file": "articles/ind.dro_turn_on_feature_to_link_task_to_step_source.htm.md"
+    },
+    {
+      "article_id": "ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm",
+      "title": "Turn On Features to Manage Fallout and Service Level Agreements",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 893,
+      "file": "articles/ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm.md"
+    },
+    {
+      "article_id": "ind.dro_turn_on_future_dated_steps.htm",
+      "title": "Turn On Future Dated Steps",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_advanced_setup.htm",
+      "body_length": 350,
+      "file": "articles/ind.dro_turn_on_future_dated_steps.htm.md"
+    },
+    {
+      "article_id": "ind.dro_unit_of_measure_inheritance_and_rounding_values.htm",
+      "title": "Unit Of Measure Inheritance and Rounding Values",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_design_time_decomposition.htm",
+      "body_length": 1091,
+      "file": "articles/ind.dro_unit_of_measure_inheritance_and_rounding_values.htm.md"
+    },
+    {
+      "article_id": "ind.dro_use_context_definitions.htm",
+      "title": "Turn On Context Definitions",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_basic_set_up.htm",
+      "body_length": 1335,
+      "file": "articles/ind.dro_use_context_definitions.htm.md"
+    },
+    {
+      "article_id": "ind.dro_view_fulfillment_step_history.htm",
+      "title": "View Fulfillment Step History",
+      "status": "captured",
+      "area": "dro",
+      "parent_article": "ind.dro_run_time_administration.htm",
+      "body_length": 736,
+      "file": "articles/ind.dro_view_fulfillment_step_history.htm.md"
     },
     {
       "article_id": "ind.product_catalog_activate_dt_for_a_product.htm",
@@ -6363,12 +7270,12 @@
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
     }
   ],
-  "last_updated": "2026-09-04T22:35:52Z",
+  "last_updated": "2026-09-05T22:36:29Z",
   "stats": {
-    "discovered": 698,
-    "captured": 698,
+    "discovered": 797,
+    "captured": 795,
     "pending": 0,
-    "errored": 0,
-    "total_captured_body_chars": 1793571
+    "errored": 2,
+    "total_captured_body_chars": 1993434
   }
 }
