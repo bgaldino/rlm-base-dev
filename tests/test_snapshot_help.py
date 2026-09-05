@@ -100,22 +100,28 @@ def main():
     # --- _validate_discovery ---------------------------------------------
     t = _task()
     try:
-        t._validate_discovery(0, 3)
+        t._validate_discovery(0, 3, True)
         check("zero kept raises", False)
     except CommandException:
         check("zero kept raises", True)
 
     check("nonzero kept with no expect_min_articles passes",
-          t._validate_discovery(1, 3) is None)
+          t._validate_discovery(1, 3, True) is None)
 
     t2 = _task(expect_min_articles=50)
     try:
-        t2._validate_discovery(10, 12)
+        t2._validate_discovery(10, 12, True)
         check("below expect_min_articles raises", False)
     except CommandException:
         check("below expect_min_articles raises", True)
     check("at-or-above expect_min_articles passes",
-          t2._validate_discovery(50, 60) is None)
+          t2._validate_discovery(50, 60, True) is None)
+
+    try:
+        t2._validate_discovery(60, 60, False)
+        check("unstabilized-at-timeout raises even above expect_min_articles", False)
+    except CommandException:
+        check("unstabilized-at-timeout raises even above expect_min_articles", True)
 
     # --- _validate_timing_options -------------------------------------------
     t7 = _task(wait_ms=0)
@@ -156,30 +162,33 @@ def main():
         _articles([f"ind.example_{n}.htm" for n in range(83)]),
         _articles([f"ind.example_{n}.htm" for n in range(83)]),
     ])
-    result = asyncio.run(run_discover(t3, page3))
+    result, stabilized3 = asyncio.run(run_discover(t3, page3))
     check("recovers from a mid-hydration partial read to the stabilized count",
           len(result) == 83)
+    check("recovered walk reports stabilized", stabilized3 is True)
 
     # Already-stable on the first read: two consecutive equal non-zero reads
     # required, so it takes exactly 2 polls even when the count never moves.
     t4 = _task()
     page4 = _FakePage([_articles([f"ind.example_{n}.htm" for n in range(5)])])
-    result4 = asyncio.run(run_discover(t4, page4))
+    result4, stabilized4 = asyncio.run(run_discover(t4, page4))
     check("stable-from-the-start still returns the full set",
           len(result4) == 5)
     check("stable-from-the-start needs only 2 reads to confirm stability",
           page4.evaluate_calls == 2)
+    check("stable-from-the-start reports stabilized", stabilized4 is True)
 
     # Never stabilizes (count keeps climbing) and never returns a bare-zero
     # count either — must bail out at discover_timeout_ms rather than loop
-    # forever, returning whatever the last read saw.
+    # forever, returning whatever the last read saw, flagged as unstabilized.
     t5 = _task(wait_ms=1, discover_timeout_ms=3)
     page5 = _FakePage([
         _articles([f"ind.example_{n}.htm" for n in range(n)]) for n in (1, 2, 3, 4, 5)
     ])
-    result5 = asyncio.run(run_discover(t5, page5))
+    result5, stabilized5 = asyncio.run(run_discover(t5, page5))
     check("bails out at discover_timeout_ms instead of looping forever",
           page5.evaluate_calls <= 4)  # ceil(discover_timeout_ms / wait_ms) + 1
+    check("never-stabilizing walk reports unstabilized", stabilized5 is False)
 
     # Non-divisible, never-stabilizing walk: wait_ms=7 into discover_timeout_ms=10
     # must clamp the second sleep to 3ms (not the full 7ms), so total elapsed time
@@ -197,7 +206,7 @@ def main():
     # then rejects via _validate_discovery, not an infinite loop here.
     t6 = _task(wait_ms=1, discover_timeout_ms=3)
     page6 = _FakePage([[]])
-    result6 = asyncio.run(run_discover(t6, page6))
+    result6, _ = asyncio.run(run_discover(t6, page6))
     check("an always-empty walk terminates rather than looping forever",
           result6 == [])
 
@@ -212,9 +221,28 @@ def main():
         _articles([f"ind.example_{n}.htm" for n in range(50)]),
         _articles([f"ind.example_{n}.htm" for n in range(50)]),
     ])
-    result7b = asyncio.run(run_discover(t7b, page7b))
+    result7b, stabilized7b = asyncio.run(run_discover(t7b, page7b))
     check("does not stop at a stable plateau below expect_min_articles",
           len(result7b) == 50)
+    check("recovered-above-floor walk reports stabilized", stabilized7b is True)
+
+    # PR #408 review round 3: a walk whose count grows on every single read
+    # (never two consecutive equal reads) but is already above
+    # expect_min_articles when discover_timeout_ms is hit must still be
+    # rejected — _validate_discovery must not accept an unstabilized count
+    # just because it clears the floor.
+    t7c = _task(expect_min_articles=3, wait_ms=1, discover_timeout_ms=3)
+    page7c = _FakePage([
+        _articles([f"ind.example_{n}.htm" for n in range(n)]) for n in (1, 2, 3, 4, 5)
+    ])
+    result7c, stabilized7c = asyncio.run(run_discover(t7c, page7c))
+    check("ever-growing walk above the floor still reports unstabilized",
+          stabilized7c is False)
+    try:
+        t7c._validate_discovery(len(result7c), len(result7c), stabilized7c)
+        check("validate_discovery rejects an unstabilized above-floor result", False)
+    except CommandException:
+        check("validate_discovery rejects an unstabilized above-floor result", True)
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

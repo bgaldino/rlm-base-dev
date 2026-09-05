@@ -664,7 +664,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 )
                 context = await browser.new_context()
                 page = await context.new_page()
-                discovered = await self._discover_articles(page)
+                discovered, stabilized = await self._discover_articles(page)
                 await context.close()
 
                 kept = [
@@ -676,9 +676,13 @@ class SnapshotSalesforceHelp(BaseTask):
                     f"Discovered {len(kept)} unique articles "
                     f"({total_before_filter} total before prefix filter)"
                 )
-                self._validate_discovery(len(kept), total_before_filter)
+                # Persist this attempt's counters before validating — a raise
+                # below must still leave `last_run_discovered` reflecting the
+                # failed walk, not a stale success from a prior run.
                 self._last_discover_kept = len(kept)
                 self._last_discover_total = total_before_filter
+                self._save_manifest(manifest_path, manifest)
+                self._validate_discovery(len(kept), total_before_filter, stabilized)
                 manifest = self._merge_discovered(manifest, kept)
                 self._save_manifest(manifest_path, manifest)
 
@@ -732,13 +736,16 @@ class SnapshotSalesforceHelp(BaseTask):
                 f"{self.options['discover_timeout_ms']!r}"
             )
 
-    def _validate_discovery(self, kept_count: int, total_before_filter: int) -> None:
-        """Fail loud on a thin walk instead of silently writing a partial manifest.
+    def _validate_discovery(
+        self, kept_count: int, total_before_filter: int, stabilized: bool
+    ) -> None:
+        """Fail loud on a thin or unstable walk instead of silently writing a partial manifest.
 
         A 1-of-83 walk previously merged fine (add-only merge) and exited 0 —
         the bug this guards against. No browser state needed, so this is a
-        pure function of the counts and options; kept separate from
-        `_discover_articles` so it's unit-testable without Playwright.
+        pure function of the counts/options plus `_discover_articles`'s
+        `stabilized` flag; kept separate from `_discover_articles` so it's
+        unit-testable without Playwright.
         """
         if not kept_count:
             raise CommandException(
@@ -760,8 +767,18 @@ class SnapshotSalesforceHelp(BaseTask):
                 "The sidebar may not have fully rendered — rerun, or raise "
                 "discover_timeout_ms."
             )
+        if not stabilized:
+            raise CommandException(
+                f"Discovery hit discover_timeout_ms with the matching-article "
+                f"count still changing between reads (last read: {kept_count} "
+                f"matching, {total_before_filter} total before prefix filter) — "
+                "the walk never went two consecutive reads without growing, so "
+                "this count is not reliably the full tree even though it clears "
+                "any configured expect_min_articles floor. Rerun, or raise "
+                "discover_timeout_ms."
+            )
 
-    async def _discover_articles(self, page) -> List[Dict[str, str]]:
+    async def _discover_articles(self, page) -> Tuple[List[Dict[str, str]], bool]:
         """Walk the sidebar, polling until the matching-article count stabilizes.
 
         The Help portal SPA hydrates the sidebar tree at variable speed —
@@ -775,6 +792,11 @@ class SnapshotSalesforceHelp(BaseTask):
         SPA can plateau at a partial count for a read or two before the rest
         of the tree hydrates, and stopping there would fail a walk that just
         needed more time within its own budget.
+
+        Returns `(discovered, stabilized)` — `stabilized` is False when the
+        loop only ended because `discover_timeout_ms` was reached without ever
+        seeing two equal consecutive reads, so the caller can distinguish "the
+        full tree" from "whatever the last, possibly-still-growing, read saw."
         """
         url = self._article_url(self.options["root_article_id"])
         self.logger.info(f"  GET {url}")
@@ -788,6 +810,7 @@ class SnapshotSalesforceHelp(BaseTask):
         discovered: List[Dict[str, str]] = []
         prev_kept = -1
         elapsed_ms = 0
+        stabilized = False
         while True:
             sleep_ms = min(wait_ms, timeout_ms - elapsed_ms)
             await page.wait_for_timeout(sleep_ms)
@@ -799,11 +822,12 @@ class SnapshotSalesforceHelp(BaseTask):
                 f"({len(discovered)} total)"
             )
             if kept > 0 and kept == prev_kept and (not expect_min or kept >= expect_min):
+                stabilized = True
                 break
             prev_kept = kept
             if elapsed_ms >= timeout_ms:
                 break
-        return discovered
+        return discovered, stabilized
 
     async def _capture_articles(
         self,
