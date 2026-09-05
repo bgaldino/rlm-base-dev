@@ -3668,10 +3668,10 @@ tasks:
   # docs/salesforce/{release}/, and the 260-vs-262 diff work depends on the
   # older tasks staying runnable.
   #
-  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for seven of
-  # the eleven areas below (pricing, rating, dro, usage, agents, approvals,
-  # collections). The other four — configurator, transaction_mgmt, pcm,
-  # billing — were verified and captured to docs/salesforce/264/help/ (see
+  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for six of
+  # the eleven areas below (pricing, rating, usage, agents, approvals,
+  # collections). The other five — configurator, transaction_mgmt, pcm,
+  # billing, dro — were verified and captured to docs/salesforce/264/help/ (see
   # `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each now
   # carries an `expect_min_articles` floor below. Help-portal article IDs are
   # not stable across release reorgs — during 262 capture both
@@ -3698,11 +3698,11 @@ tasks:
   # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
   # transaction management → ind.qocal_*).
   #
-  # Article counts are deliberately not asserted below for the seven unverified
+  # Article counts are deliberately not asserted below for the six unverified
   # areas — they are recorded after a capture, not predicted before one. The
-  # four verified areas are the exception: each carries an expect_min_articles
-  # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53) set at
-  # ~50% of its 262 twin's count, to tolerate real content growth/shrinkage
+  # five verified areas are the exception: each carries an expect_min_articles
+  # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35)
+  # set at ~50% of its 262 twin's count, to tolerate real content growth/shrinkage
   # between releases without re-flagging as unverified.
 
   snapshot_dev_guide_264:
@@ -3824,6 +3824,7 @@ tasks:
       root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
       article_id_prefix: ind.dro
       mode: all
+      expect_min_articles: 35
 
   snapshot_usage_help_264:
     group: Documentation

@@ -1,19 +1,19 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **4 functional areas** of Revenue Cloud Help: billing, configurator, pcm, transaction_mgmt.
+Captures **5 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, transaction_mgmt.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-04T22:35:52Z
+**Last updated:** 2026-09-05T22:36:29Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 698 |
-| Captured | 698 |
+| Discovered | 797 |
+| Captured | 795 |
 | Pending | 0 |
-| Errored | 0 |
-| Total captured body chars | 1,793,571 |
+| Errored | 2 |
+| Total captured body chars | 1,993,434 |
 
 ## Per-Area Coverage
 
@@ -21,6 +21,7 @@ Captures **4 functional areas** of Revenue Cloud Help: billing, configurator, pc
 |:--|:--|:--|--:|:--|
 | **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5&release=264) | `ind.billing` | 265 | 2026-09-04T21:55:21Z |
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264) | `ind.product_configurator` | 83 | 2026-09-04T21:44:25Z |
+| **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264) | `ind.dro` | 97 | 2026-09-05T22:36:29Z |
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5&release=264) | `ind.product_catalog` | 142 | 2026-09-04T22:35:52Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
 
@@ -382,6 +383,109 @@ Captures **4 functional areas** of Revenue Cloud Help: billing, configurator, pc
 | [Preference Rule](./articles/ind.product_configurator_visual_builder_preference_rule.htm.md) | `ind.product_configurator_visual_builder_preference_rule.htm` | 1,433 |
 | [Require Rule in the Visual Builder](./articles/ind.product_configurator_visual_builder_require_rule.htm.md) | `ind.product_configurator_visual_builder_require_rule.htm` | 1,109 |
 
+## Captured — dro (97)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Create Fulfillment Users for Order Orchestration](./articles/ind.dro_add_a_fulfillment_user.htm.md) | `ind.dro_add_a_fulfillment_user.htm` | 1,199 |
+| [Dynamic Revenue Orchestrator Advanced Setup](./articles/ind.dro_advanced_setup.htm.md) | `ind.dro_advanced_setup.htm` | 261 |
+| [Fulfillment Assets](./articles/ind.dro_assetization_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_assetization_in_dynamic_revenue_orchestrator.htm` | 1,416 |
+| [Assetization Rules for Dynamic Revenue Orchestrator](./articles/ind.dro_assetization_rules_for_dynamic_revenue_orchestrator.htm.md) | `ind.dro_assetization_rules_for_dynamic_revenue_orchestrator.htm` | 1,419 |
+| [Map Custom Context Definition with Sales Transaction](./articles/ind.dro_associate_custom_context_definition_with_sales_transaction_attribute.htm.md) | `ind.dro_associate_custom_context_definition_with_sales_transaction_attribute.htm` | 1,174 |
+| [Dynamic Revenue Orchestrator Basic Setup](./articles/ind.dro_basic_set_up.htm.md) | `ind.dro_basic_set_up.htm` | 332 |
+| [Clone a Fulfillment Workspace](./articles/ind.dro_clone_a_fulfillment_workspace.htm.md) | `ind.dro_clone_a_fulfillment_workspace.htm` | 1,965 |
+| [Data Type Compatibility for Field and Attribute Mapping](./articles/ind.dro_comptibility_for_field_and_attributes_mapping.htm.md) | `ind.dro_comptibility_for_field_and_attributes_mapping.htm` | 1,302 |
+| [Understand Execution Conditions for Order Fulfillment](./articles/ind.dro_conditions_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_conditions_in_dynamic_revenue_orchestrator.htm` | 2,038 |
+| [Configure Dynamic Revenue Orchestrator Analytics Dashboards](./articles/ind.dro_configure_dynamic_revenue_orchestrator_analytics_dashboards.htm.md) | `ind.dro_configure_dynamic_revenue_orchestrator_analytics_dashboards.htm` | 1,128 |
+| [Configure Expression Set Based Mapping](./articles/ind.dro_configure_es_mapping.htm.md) | `ind.dro_configure_es_mapping.htm` | 2,738 |
+| [Configure Fallout Rules](./articles/ind.dro_configure_fallout_rules.htm.md) | `ind.dro_configure_fallout_rules.htm` | 1,585 |
+| [Configure Fulfillment Step Jeopardy Rules](./articles/ind.dro_configure_fulfillment_step_jeopardy_rules.htm.md) | `ind.dro_configure_fulfillment_step_jeopardy_rules.htm` | 2,221 |
+| [Configure Fulfillment Step Retries](./articles/ind.dro_configure_fulfillment_step_retries.htm.md) | `ind.dro_configure_fulfillment_step_retries.htm` | 2,084 |
+| [Configure Deep Cloning for Fulfillment Workspaces](./articles/ind.dro_configure_fulfillment_workspace_deep_cloning.htm.md) | `ind.dro_configure_fulfillment_workspace_deep_cloning.htm` | 1,975 |
+| [Configure Inflight Plan Settings for a Fulfillment Step](./articles/ind.dro_configure_inflight_plan_settings.htm.md) | `ind.dro_configure_inflight_plan_settings.htm` | 1,653 |
+| [Configure List Mapping](./articles/ind.dro_configure_list_mapping.htm.md) | `ind.dro_configure_list_mapping.htm` | 1,728 |
+| [Configure Procedure Plan Definition for Business Process Orchestration](./articles/ind.dro_configure_procedure_plan_definition_for_business_process_orchestration.htm.md) | `ind.dro_configure_procedure_plan_definition_for_business_process_orchestration.htm` | 1,674 |
+| [Configure a Fulfillment Scenario](./articles/ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm.md) | `ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm` | 5,173 |
+| [Configure Steps for Future Execution](./articles/ind.dro_configure_steps_for_future_execution.htm.md) | `ind.dro_configure_steps_for_future_execution.htm` | 2,098 |
+| [Considerations for Backdated Changes in Dynamic Revenue Orchestrator](./articles/ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm` | 3,077 |
+| [Considerations for Changing In-Flight Orders](./articles/ind.dro_considerations_for_changing_in_flight_orders.htm.md) | `ind.dro_considerations_for_changing_in_flight_orders.htm` | 5,476 |
+| [Context Definitions for Dynamic Revenue Orchestrator](./articles/ind.dro_context_definitions_for_dynamic_revenue_orchestrator.htm.md) | `ind.dro_context_definitions_for_dynamic_revenue_orchestrator.htm` | 1,869 |
+| [Create a Fulfillment Step Definition Group](./articles/ind.dro_create_a_fulfillment_step_definition_group.htm.md) | `ind.dro_create_a_fulfillment_step_definition_group.htm` | 636 |
+| [Create and Submit an Order](./articles/ind.dro_create_and_submit_standard_orders.htm.md) | `ind.dro_create_and_submit_standard_orders.htm` | 1,640 |
+| [We looked high and low
+but couldn't find that page.](./articles/ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.md) | `ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm` | 59 |
+| [Create Custom Context Definition and Map Business Objects](./articles/ind.dro_create_custom_context_definition_and_map_business_objects.htm.md) | `ind.dro_create_custom_context_definition_and_map_business_objects.htm` | 3,227 |
+| [Create Custom Fulfillment Scope Configuration](./articles/ind.dro_create_custom_scope_config.htm.md) | `ind.dro_create_custom_scope_config.htm` | 2,873 |
+| [Create Queues for Dynamic Revenue Orchestrator](./articles/ind.dro_create_queues.htm.md) | `ind.dro_create_queues.htm` | 628 |
+| [Create a Technical Product](./articles/ind.dro_creating_a_technical_product.htm.md) | `ind.dro_creating_a_technical_product.htm` | 1,062 |
+| [Cross-Plan Dependencies](./articles/ind.dro_cross_plan_dependencies.htm.md) | `ind.dro_cross_plan_dependencies.htm` | 2,531 |
+| [Apply Custom Scopes to Fulfillment Steps and Dependencies](./articles/ind.dro_custom_scope_step_dependencies.htm.md) | `ind.dro_custom_scope_step_dependencies.htm` | 3,142 |
+| [Decomposition Relationship Types](./articles/ind.dro_decomposition_relationship_types.htm.md) | `ind.dro_decomposition_relationship_types.htm` | 3,564 |
+| [Decomposition Scope](./articles/ind.dro_decomposition_scope.htm.md) | `ind.dro_decomposition_scope.htm` | 1,807 |
+| [Define a Fulfillment Step](./articles/ind.dro_define_a_fulfillment_step.htm.md) | `ind.dro_define_a_fulfillment_step.htm` | 1,908 |
+| [Define Execution Rules for a Decomposition Rule](./articles/ind.dro_define_conditions_for_a_decomposition_rule.htm.md) | `ind.dro_define_conditions_for_a_decomposition_rule.htm` | 4,088 |
+| [Define Conditions for a Fulfillment Step to Run](./articles/ind.dro_define_conditions_for_a_fulfillment_step_to_run.htm.md) | `ind.dro_define_conditions_for_a_fulfillment_step_to_run.htm` | 1,903 |
+| [Define Field and Attribute Mapping](./articles/ind.dro_define_field_and_attribute_mapping.htm.md) | `ind.dro_define_field_and_attribute_mapping.htm` | 3,626 |
+| [Define How a Product Decomposes](./articles/ind.dro_define_how_a_product_decomposes.htm.md) | `ind.dro_define_how_a_product_decomposes.htm` | 3,500 |
+| [Define Orchestration Plan Components](./articles/ind.dro_define_orchestration_components.htm.md) | `ind.dro_define_orchestration_components.htm` | 1,737 |
+| [Define Technical Product Attribute Scope](./articles/ind.dro_define_technical_attribute_scope.htm.md) | `ind.dro_define_technical_attribute_scope.htm` | 2,805 |
+| [Design Your Order Decomposition](./articles/ind.dro_design_time_decomposition.htm.md) | `ind.dro_design_time_decomposition.htm` | 3,516 |
+| [Design Your Order Orchestration](./articles/ind.dro_design_time_orchestration.htm.md) | `ind.dro_design_time_orchestration.htm` | 3,495 |
+| [Order Orchestration in Revenue Management](./articles/ind.dro_dynamic_revenue_orchestrator.htm.md) | `ind.dro_dynamic_revenue_orchestrator.htm` | 3,648 |
+| [Dynamic Revenue Orchestrator Concepts and References](./articles/ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm.md) | `ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm` | 179 |
+| [Dynamic Revenue Orchestrator Limits](./articles/ind.dro_dynamic_revenue_orchestrator_limits.htm.md) | `ind.dro_dynamic_revenue_orchestrator_limits.htm` | 5,798 |
+| [Dynamic Revenue Orchestrator Analytics](./articles/ind.dro_enable_analytics.htm.md) | `ind.dro_enable_analytics.htm` | 1,276 |
+| [Turn On In-Flight Amendments](./articles/ind.dro_enable_in_flight_amendments.htm.md) | `ind.dro_enable_in_flight_amendments.htm` | 656 |
+| [Enable Permission for Context Service Users](./articles/ind.dro_enable_permission_for_users.htm.md) | `ind.dro_enable_permission_for_users.htm` | 780 |
+| [Configure Automation Failure Handling](./articles/ind.dro_fallout_administration.htm.md) | `ind.dro_fallout_administration.htm` | 454 |
+| [Fallout Design and Management](./articles/ind.dro_fallout_design_and_management.htm.md) | `ind.dro_fallout_design_and_management.htm` | 3,367 |
+| [Fulfillment Order Line Item Actions](./articles/ind.dro_fulfillment_order_line_item_actions.htm.md) | `ind.dro_fulfillment_order_line_item_actions.htm` | 1,867 |
+| [Monitor Fulfillment During Order Orchestration](./articles/ind.dro_fulfillment_plan_actions_and_information.htm.md) | `ind.dro_fulfillment_plan_actions_and_information.htm` | 3,676 |
+| [Fulfillment Step States](./articles/ind.dro_fulfillment_step_states.htm.md) | `ind.dro_fulfillment_step_states.htm` | 1,547 |
+| [Fulfillment User](./articles/ind.dro_fulfillment_user.htm.md) | `ind.dro_fulfillment_user.htm` | 1,242 |
+| [Dynamic Revenue Orchestrator](./articles/ind.dro_fulfillment_viewer_page_failure.htm.md) | `ind.dro_fulfillment_viewer_page_failure.htm` | 866 |
+| [Design Orchestration with the High Tech Order Orchestration Template](./articles/ind.dro_hi_tech_order_orchestration_template.htm.md) | `ind.dro_hi_tech_order_orchestration_template.htm` | 2,369 |
+| [Configure Custom Logic between Decomposition and Orchestration](./articles/ind.dro_hook_custom_logic_details.htm.md) | `ind.dro_hook_custom_logic_details.htm` | 2,220 |
+| [In-Flight Order Change Example](./articles/ind.dro_how_in_flight_order_changes_decompose.htm.md) | `ind.dro_how_in_flight_order_changes_decompose.htm` | 3,991 |
+| [Import a Fulfillment Step Definition Group](./articles/ind.dro_import_a_fulfillment_step_definition_group.htm.md) | `ind.dro_import_a_fulfillment_step_definition_group.htm` | 1,464 |
+| [In-Flight Order Changes](./articles/ind.dro_in_flight_order_changes.htm.md) | `ind.dro_in_flight_order_changes.htm` | 2,454 |
+| [Install the High Tech Order Orchestration Template](./articles/ind.dro_install_hi_tech_order_orchestration_template.htm.md) | `ind.dro_install_hi_tech_order_orchestration_template.htm` | 2,029 |
+| [Monitor Decomposition During Fulfillment](./articles/ind.dro_monitor_decomposition_during_fulfillment.htm.md) | `ind.dro_monitor_decomposition_during_fulfillment.htm` | 2,080 |
+| [Dynamic Revenue Orchestrator for Business Processes](./articles/ind.dro_orchestrate_a_business_process.htm.md) | `ind.dro_orchestrate_a_business_process.htm` | 1,696 |
+| [Orchestrate Non-Sales Transaction Business Processes](./articles/ind.dro_orchestrate_non_sales_transaction_business_processes.htm.md) | `ind.dro_orchestrate_non_sales_transaction_business_processes.htm` | 2,651 |
+| [Considerations for Creating a Non-Sales Transaction Context Definition](./articles/ind.dro_orchestrate_non_sales_transaction_business_processes_context.htm.md) | `ind.dro_orchestrate_non_sales_transaction_business_processes_context.htm` | 1,681 |
+| [Requirements for Creating Orchestration Plan Context Mapping](./articles/ind.dro_orchestrate_non_sales_transaction_mapping.htm.md) | `ind.dro_orchestrate_non_sales_transaction_mapping.htm` | 1,397 |
+| [Orchestrate Sales Transaction Business Processes](./articles/ind.dro_orchestrate_sales_transaction_business_processes.htm.md) | `ind.dro_orchestrate_sales_transaction_business_processes.htm` | 5,097 |
+| [Order Line Item Actions](./articles/ind.dro_order_line_item_actions.htm.md) | `ind.dro_order_line_item_actions.htm` | 606 |
+| [Automate Order Submission to Dynamic Revenue Orchestrator](./articles/ind.dro_order_submission_to_dro.htm.md) | `ind.dro_order_submission_to_dro.htm` | 1,822 |
+| [Permission Sets in Dynamic Revenue Orchestrator](./articles/ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm` | 2,383 |
+| [Permissions in Dynamic Revenue Orchestrator](./articles/ind.dro_permissions_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_permissions_in_dynamic_revenue_orchestrator.htm` | 269 |
+| [Point of No Return State Propagation](./articles/ind.dro_point_of_no_return_state_propagation.htm.md) | `ind.dro_point_of_no_return_state_propagation.htm` | 2,592 |
+| [Decompose and Fulfill Ramp Deal Orders](./articles/ind.dro_ramp_deal_decomposition.htm.md) | `ind.dro_ramp_deal_decomposition.htm` | 4,110 |
+| [Retry or Complete Multiple Failed Fulfillment Steps](./articles/ind.dro_retry_or_complete_multiple_failed_fulfillment_steps.htm.md) | `ind.dro_retry_or_complete_multiple_failed_fulfillment_steps.htm` | 1,487 |
+| [Submit Orders for Decomposition and Order Fulfillment](./articles/ind.dro_run_time_administration.htm.md) | `ind.dro_run_time_administration.htm` | 3,173 |
+| [Set Dependencies Between Fulfillment Steps](./articles/ind.dro_set_dependencies_between_fulfillment_steps.htm.md) | `ind.dro_set_dependencies_between_fulfillment_steps.htm` | 4,436 |
+| [SLA Jeopardy Administration](./articles/ind.dro_sla_jeopardy_administration.htm.md) | `ind.dro_sla_jeopardy_administration.htm` | 1,640 |
+| [Create Custom Context Definitions for Order Orchestration](./articles/ind.dro_steps_to_create_a_custom_context_definition.htm.md) | `ind.dro_steps_to_create_a_custom_context_definition.htm` | 663 |
+| [Handle Conflicts During Asset Date Amendments by Using Submit Order with Validation Flow](./articles/ind.dro_submit_order_with_validation_flow.htm.md) | `ind.dro_submit_order_with_validation_flow.htm` | 2,365 |
+| [Technical Bundles](./articles/ind.dro_technical_bundles.htm.md) | `ind.dro_technical_bundles.htm` | 1,900 |
+| [Build Your Technical Product Catalog for Dynamic Revenue Orchestrator](./articles/ind.dro_technical_product_in_dro.htm.md) | `ind.dro_technical_product_in_dro.htm` | 4,195 |
+| [Order Fulfillment With Time-Awareness](./articles/ind.dro_time_aware_fulfillment.htm.md) | `ind.dro_time_aware_fulfillment.htm` | 3,518 |
+| [How Dynamic Revenue Orchestrator Determines Actions for Time-Aware Assets](./articles/ind.dro_time_aware_fulfillment_actions.htm.md) | `ind.dro_time_aware_fulfillment_actions.htm` | 877 |
+| [How Time-Awareness Works](./articles/ind.dro_time_aware_fulfillment_architecture.htm.md) | `ind.dro_time_aware_fulfillment_architecture.htm` | 1,162 |
+| [Turn On Time-Awareness](./articles/ind.dro_time_aware_fulfillment_enable.htm.md) | `ind.dro_time_aware_fulfillment_enable.htm` | 1,322 |
+| [Example: Add Action with Time-Awareness Turned On](./articles/ind.dro_time_aware_fulfillment_example_add.htm.md) | `ind.dro_time_aware_fulfillment_example_add.htm` | 1,822 |
+| [Example: Mid-Year Amendment with Split Fulfillment Asset State Periods](./articles/ind.dro_time_aware_fulfillment_example_amend.htm.md) | `ind.dro_time_aware_fulfillment_example_amend.htm` | 2,478 |
+| [Migrate Fulfillment Assets from Time-Agnostic to Time-Aware](./articles/ind.dro_time_aware_fulfillment_migration.htm.md) | `ind.dro_time_aware_fulfillment_migration.htm` | 1,062 |
+| [Orchestrate Orders with Time-Awareness](./articles/ind.dro_time_aware_plan_sequence.htm.md) | `ind.dro_time_aware_plan_sequence.htm` | 2,177 |
+| [Turn On Dynamic Revenue Orchestrator](./articles/ind.dro_turn_on_dynamic_revenue_orchestrator.htm.md) | `ind.dro_turn_on_dynamic_revenue_orchestrator.htm` | 706 |
+| [Turn On Task Linking to Step Source](./articles/ind.dro_turn_on_feature_to_link_task_to_step_source.htm.md) | `ind.dro_turn_on_feature_to_link_task_to_step_source.htm` | 876 |
+| [Turn On Features to Manage Fallout and Service Level Agreements](./articles/ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm.md) | `ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm` | 893 |
+| [Turn On Future Dated Steps](./articles/ind.dro_turn_on_future_dated_steps.htm.md) | `ind.dro_turn_on_future_dated_steps.htm` | 350 |
+| [Unit Of Measure Inheritance and Rounding Values](./articles/ind.dro_unit_of_measure_inheritance_and_rounding_values.htm.md) | `ind.dro_unit_of_measure_inheritance_and_rounding_values.htm` | 1,091 |
+| [Turn On Context Definitions](./articles/ind.dro_use_context_definitions.htm.md) | `ind.dro_use_context_definitions.htm` | 1,335 |
+| [View Fulfillment Step History](./articles/ind.dro_view_fulfillment_step_history.htm.md) | `ind.dro_view_fulfillment_step_history.htm` | 736 |
+
 ## Captured — pcm (142)
 
 | Article | ID | Bytes |
@@ -742,6 +846,11 @@ Captures **4 functional areas** of Revenue Cloud Help: billing, configurator, pc
 | [View and Manage Assets in Revenue Management](./articles/ind.qocal_view_and_manage_assets_in_revenue_cloud.htm.md) | `ind.qocal_view_and_manage_assets_in_revenue_cloud.htm` | 1,213 |
 | [Zero-Quantity Quote Detail Lines Considerations](./articles/ind.qocal_zero_quantity_considerations.htm.md) | `ind.qocal_zero_quantity_considerations.htm` | 1,326 |
 
+## Errored (2)
+
+- `ind.dro_create_a_fulfillment_task_assignment_rule.htm` — Create a Fulfillment Task Assignment Rule — _no H1 found (article may be 404 or unrendered)_
+- `ind.dro_create_a_fulfillment_workspace.htm` — Create a Fulfillment Workspace — _no H1 found (article may be 404 or unrendered)_
+
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-04T22:35:52Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-05T22:36:29Z.*
