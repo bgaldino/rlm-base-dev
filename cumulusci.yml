@@ -3668,30 +3668,42 @@ tasks:
   # docs/salesforce/{release}/, and the 260-vs-262 diff work depends on the
   # older tasks staying runnable.
   #
-  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264. Help-portal
-  # article IDs are not stable across release reorgs — during 262 capture both
+  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for seven of
+  # the eleven areas below (pricing, rating, dro, usage, agents, approvals,
+  # collections). The other four — configurator, transaction_mgmt, pcm,
+  # billing — were verified and captured to docs/salesforce/264/help/ (see
+  # `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each now
+  # carries an `expect_min_articles` floor below. Help-portal article IDs are
+  # not stable across release reorgs — during 262 capture both
   # ind.usage_management.htm and ind.usage.htm 404'd before the real roots were
-  # found. Before any full capture, validate the root for that area:
+  # found. Before any full capture of one of the seven unverified areas,
+  # validate the root:
   #
   #   cci task run snapshot_{area}_help_264 -o mode discover
   #
-  # The discover phase does NOT fail on a wrong root — it exits 0 having found
-  # zero articles (a walker failure returns an empty list and an empty
-  # post-prefix result is not rejected), so the "Discovered N unique articles"
-  # line it logs is the only signal. Read that line from the task's own output:
+  # A wrong root or crashed walker now fails loudly: _validate_discovery
+  # (pack 146) raises unconditionally on a zero post-prefix result. A
+  # nonzero-but-thin result — e.g. a reorganized prefix still matching a
+  # handful of stale links — only raises if the task sets expect_min_articles;
+  # without that floor it exits 0, so read the "Discovered N unique articles"
+  # line it logs either way. Read that line from the task's own output:
   # piping to grep would report grep's exit status instead of the task's and
   # hide a failure occurring after the count is logged. Do not read
   # stats.discovered from the manifest either: it sums all areas and retains
   # prior runs, so it stays positive through a failed re-walk. If the logged
-  # count is 0, start from the
+  # count is 0 (or the task raises), start from the
   # Revenue Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
   # walk the sidebar, and copy the id= param into root_article_id /
   # article_id_prefix here. See the 262 header above for the per-area domain
   # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
   # transaction management → ind.qocal_*).
   #
-  # Article counts are deliberately not asserted below — they are recorded after
-  # a capture, not predicted before one.
+  # Article counts are deliberately not asserted below for the seven unverified
+  # areas — they are recorded after a capture, not predicted before one. The
+  # four verified areas are the exception: each carries an expect_min_articles
+  # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53) set at
+  # ~50% of its 262 twin's count, to tolerate real content growth/shrinkage
+  # between releases without re-flagging as unverified.
 
   snapshot_dev_guide_264:
     group: Documentation
@@ -3737,6 +3749,7 @@ tasks:
       root_article_id: ind.product_catalog_introduction.htm
       article_id_prefix: ind.product_catalog
       mode: all
+      expect_min_articles: 53
 
   snapshot_pricing_help_264:
     group: Documentation
@@ -3779,6 +3792,7 @@ tasks:
       root_article_id: ind.product_configurator_introduction.htm
       article_id_prefix: ind.product_configurator
       mode: all
+      expect_min_articles: 38
 
   snapshot_transaction_mgmt_help_264:
     group: Documentation
@@ -3795,6 +3809,7 @@ tasks:
       root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
       article_id_prefix: ind.qocal
       mode: all
+      expect_min_articles: 85
 
   snapshot_dro_help_264:
     group: Documentation
@@ -3837,6 +3852,7 @@ tasks:
       root_article_id: ind.billing.htm
       article_id_prefix: ind.billing
       mode: all
+      expect_min_articles: 85
 
   snapshot_agents_help_264:
     group: Documentation

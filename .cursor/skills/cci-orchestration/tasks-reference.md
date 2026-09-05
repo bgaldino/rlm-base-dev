@@ -819,6 +819,7 @@
 - `root_article_id`: `ind.billing.htm`
 - `article_id_prefix`: `ind.billing`
 - `mode`: `all`
+- `expect_min_articles`: `85`
 
 ---
 
@@ -887,6 +888,7 @@
 - `root_article_id`: `ind.product_configurator_introduction.htm`
 - `article_id_prefix`: `ind.product_configurator`
 - `mode`: `all`
+- `expect_min_articles`: `38`
 
 ---
 
@@ -1021,6 +1023,7 @@
 - `root_article_id`: `ind.product_catalog_introduction.htm`
 - `article_id_prefix`: `ind.product_catalog`
 - `mode`: `all`
+- `expect_min_articles`: `53`
 
 ---
 
@@ -1139,6 +1142,7 @@
 - `root_article_id`: `ind.qocal_sales_transactions_rev_cloud.htm`
 - `article_id_prefix`: `ind.qocal`
 - `mode`: `all`
+- `expect_min_articles`: `85`
 
 ---
 

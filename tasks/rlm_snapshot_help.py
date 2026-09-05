@@ -358,7 +358,15 @@ class SnapshotSalesforceHelp(BaseTask):
             "required": False,
         },
         "wait_ms": {
-            "description": "Milliseconds to wait after each navigation for SPA hydration. Defaults to 3000.",
+            "description": "Milliseconds to wait between sidebar hydration reads during discovery. Defaults to 3000.",
+            "required": False,
+        },
+        "discover_timeout_ms": {
+            "description": "Max total milliseconds to poll the sidebar during discovery, waiting for the matching-article count to stabilize across two consecutive reads. Defaults to 20000.",
+            "required": False,
+        },
+        "expect_min_articles": {
+            "description": "If set, discovery raises when it finds fewer than this many prefix-matching articles — guards against a partially-hydrated sidebar silently writing a thin manifest.",
             "required": False,
         },
         "include_release_param": {
@@ -387,6 +395,12 @@ class SnapshotSalesforceHelp(BaseTask):
         )
         self.options["concurrency"] = int(self.options.get("concurrency", 4))
         self.options["wait_ms"] = int(self.options.get("wait_ms", 3000))
+        self.options["discover_timeout_ms"] = int(
+            self.options.get("discover_timeout_ms", 20000)
+        )
+        self._validate_timing_options()
+        expect_min = self.options.get("expect_min_articles")
+        self.options["expect_min_articles"] = int(expect_min) if expect_min else None
         self.options["include_release_param"] = (
             str(self.options.get("include_release_param", "true")).lower() == "true"
         )
@@ -512,6 +526,15 @@ class SnapshotSalesforceHelp(BaseTask):
                 "total_captured_body_chars": sum(a.get("body_length", 0) for a in area_captured),
             },
         }
+        # Only set on runs that actually performed discovery this call;
+        # capture-only runs fall through to the "preserve existing" branch
+        # below so the field survives across a discover-then-capture pair.
+        last_kept = getattr(self, "_last_discover_kept", None)
+        if last_kept is not None:
+            area_entry["last_run_discovered"] = {
+                "kept": last_kept,
+                "before_prefix_filter": getattr(self, "_last_discover_total", None),
+            }
         # Replace existing entry for this area, or append a new one
         areas = manifest.setdefault("areas", [])
         replaced = False
@@ -522,6 +545,8 @@ class SnapshotSalesforceHelp(BaseTask):
                     area_entry["snapshot_started"] = existing["snapshot_started"]
                 else:
                     area_entry["snapshot_started"] = manifest.get("snapshot_started")
+                if "last_run_discovered" not in area_entry and "last_run_discovered" in existing:
+                    area_entry["last_run_discovered"] = existing["last_run_discovered"]
                 areas[i] = area_entry
                 replaced = True
                 break
@@ -639,17 +664,25 @@ class SnapshotSalesforceHelp(BaseTask):
                 )
                 context = await browser.new_context()
                 page = await context.new_page()
-                discovered = await self._discover_articles(page)
+                discovered, stabilized = await self._discover_articles(page)
                 await context.close()
 
                 kept = [
                     d for d in discovered
                     if d["id"].startswith(self.options["article_id_prefix"])
                 ]
+                total_before_filter = len(discovered)
                 self.logger.info(
                     f"Discovered {len(kept)} unique articles "
-                    f"({len(discovered)} total before prefix filter)"
+                    f"({total_before_filter} total before prefix filter)"
                 )
+                # Persist this attempt's counters before validating — a raise
+                # below must still leave `last_run_discovered` reflecting the
+                # failed walk, not a stale success from a prior run.
+                self._last_discover_kept = len(kept)
+                self._last_discover_total = total_before_filter
+                self._save_manifest(manifest_path, manifest)
+                self._validate_discovery(len(kept), total_before_filter, stabilized)
                 manifest = self._merge_discovered(manifest, kept)
                 self._save_manifest(manifest_path, manifest)
 
@@ -683,17 +716,118 @@ class SnapshotSalesforceHelp(BaseTask):
         self.logger.info(f"Manifest: {manifest_path}")
         self.logger.info(f"Index:    {index_path}")
 
-    async def _discover_articles(self, page) -> List[Dict[str, str]]:
+    def _validate_timing_options(self) -> None:
+        """Reject non-positive wait_ms/discover_timeout_ms before the discovery loop runs.
+
+        `_discover_articles` accumulates elapsed time as `elapsed_ms += wait_ms` each
+        read, so `wait_ms <= 0` never advances it — an empty or never-stabilizing walk
+        would then poll forever instead of reaching `discover_timeout_ms` and failing
+        loudly via `_validate_discovery`. Pure option check, no browser state needed.
+        """
+        if self.options["wait_ms"] <= 0:
+            raise TaskOptionsError(
+                f"wait_ms must be positive, got {self.options['wait_ms']!r} — "
+                "the discovery loop's elapsed-time counter is wait_ms * reads, "
+                "so a non-positive value never reaches discover_timeout_ms."
+            )
+        if self.options["discover_timeout_ms"] <= 0:
+            raise TaskOptionsError(
+                f"discover_timeout_ms must be positive, got "
+                f"{self.options['discover_timeout_ms']!r}"
+            )
+
+    def _validate_discovery(
+        self, kept_count: int, total_before_filter: int, stabilized: bool
+    ) -> None:
+        """Fail loud on a thin or unstable walk instead of silently writing a partial manifest.
+
+        A 1-of-83 walk previously merged fine (add-only merge) and exited 0 —
+        the bug this guards against. No browser state needed, so this is a
+        pure function of the counts/options plus `_discover_articles`'s
+        `stabilized` flag; kept separate from `_discover_articles` so it's
+        unit-testable without Playwright.
+        """
+        if not kept_count:
+            raise CommandException(
+                f"Discovery found 0 articles matching prefix "
+                f"{self.options['article_id_prefix']!r} under root "
+                f"{self.options['root_article_id']!r} "
+                f"({total_before_filter} links seen before prefix filter). "
+                "The sidebar likely didn't finish rendering before "
+                "discover_timeout_ms — rerun, or raise "
+                "discover_timeout_ms/wait_ms."
+            )
+        expect_min = self.options["expect_min_articles"]
+        if expect_min and kept_count < expect_min:
+            raise CommandException(
+                f"Discovery found only {kept_count} articles matching prefix "
+                f"{self.options['article_id_prefix']!r}, below "
+                f"expect_min_articles={expect_min} "
+                f"({total_before_filter} links seen before prefix filter). "
+                "The sidebar may not have fully rendered — rerun, or raise "
+                "discover_timeout_ms."
+            )
+        if not stabilized:
+            raise CommandException(
+                f"Discovery hit discover_timeout_ms with the matching-article "
+                f"count still changing between reads (last read: {kept_count} "
+                f"matching, {total_before_filter} total before prefix filter) — "
+                "the walk never went two consecutive reads without growing, so "
+                "this count is not reliably the full tree even though it clears "
+                "any configured expect_min_articles floor. Rerun, or raise "
+                "discover_timeout_ms."
+            )
+
+    async def _discover_articles(self, page) -> Tuple[List[Dict[str, str]], bool]:
+        """Walk the sidebar, polling until the matching-article count stabilizes.
+
+        The Help portal SPA hydrates the sidebar tree at variable speed —
+        live probing showed the same page taking anywhere from ~3s to >6s,
+        with 3 of 4 single-read trials at a fixed 3s wait succeeding and one
+        catching the tree mid-hydration (1 article instead of ~80). A single
+        fixed wait is therefore a race; poll every wait_ms up to
+        discover_timeout_ms and stop once the prefix-matching count holds
+        steady across two consecutive reads — unless that count sits below
+        expect_min_articles (when set), in which case keep polling: the same
+        SPA can plateau at a partial count for a read or two before the rest
+        of the tree hydrates, and stopping there would fail a walk that just
+        needed more time within its own budget.
+
+        Returns `(discovered, stabilized)` — `stabilized` is False when the
+        loop only ended because `discover_timeout_ms` was reached without ever
+        seeing two equal consecutive reads, so the caller can distinguish "the
+        full tree" from "whatever the last, possibly-still-growing, read saw."
+        """
         url = self._article_url(self.options["root_article_id"])
         self.logger.info(f"  GET {url}")
         await page.goto(url, wait_until="domcontentloaded")
-        await page.wait_for_timeout(self.options["wait_ms"])
-        try:
-            discovered = await page.evaluate(SIDEBAR_WALKER_JS)
-        except Exception as e:
-            self.logger.error(f"  Discovery JS failed: {e}")
-            return []
-        return discovered or []
+
+        prefix = self.options["article_id_prefix"]
+        wait_ms = self.options["wait_ms"]
+        timeout_ms = self.options["discover_timeout_ms"]
+        expect_min = self.options["expect_min_articles"]
+
+        discovered: List[Dict[str, str]] = []
+        prev_kept = -1
+        elapsed_ms = 0
+        stabilized = False
+        while True:
+            sleep_ms = min(wait_ms, timeout_ms - elapsed_ms)
+            await page.wait_for_timeout(sleep_ms)
+            elapsed_ms += sleep_ms
+            discovered = await page.evaluate(SIDEBAR_WALKER_JS) or []
+            kept = len([d for d in discovered if d["id"].startswith(prefix)])
+            self.logger.info(
+                f"  ...read at {elapsed_ms}ms: {kept} matching articles "
+                f"({len(discovered)} total)"
+            )
+            if kept > 0 and kept == prev_kept and (not expect_min or kept >= expect_min):
+                stabilized = True
+                break
+            prev_kept = kept
+            if elapsed_ms >= timeout_ms:
+                break
+        return discovered, stabilized
 
     async def _capture_articles(
         self,
