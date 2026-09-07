@@ -3668,15 +3668,15 @@ tasks:
   # docs/salesforce/{release}/, and the 260-vs-262 diff work depends on the
   # older tasks staying runnable.
   #
-  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for five of
-  # the eleven areas below (rating, usage, agents, approvals, collections).
-  # The other six — configurator, transaction_mgmt, pcm, billing, dro,
-  # pricing — were verified and captured to docs/salesforce/264/help/ (see
-  # `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each now
-  # carries an `expect_min_articles` floor below. Help-portal article IDs are
-  # not stable across release reorgs — during 262 capture both
+  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for four of
+  # the eleven areas below (usage, agents, approvals, collections).
+  # The other seven — configurator, transaction_mgmt, pcm, billing, dro,
+  # pricing, rating — were verified and captured to docs/salesforce/264/help/
+  # (see `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each
+  # now carries an `expect_min_articles` floor below. Help-portal article IDs
+  # are not stable across release reorgs — during 262 capture both
   # ind.usage_management.htm and ind.usage.htm 404'd before the real roots were
-  # found. Before any full capture of one of the five unverified areas,
+  # found. Before any full capture of one of the four unverified areas,
   # validate the root:
   #
   #   cci task run snapshot_{area}_help_264 -o mode discover
@@ -3698,12 +3698,12 @@ tasks:
   # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
   # transaction management → ind.qocal_*).
   #
-  # Article counts are deliberately not asserted below for the five unverified
+  # Article counts are deliberately not asserted below for the four unverified
   # areas — they are recorded after a capture, not predicted before one. The
-  # six verified areas are the exception: each carries an expect_min_articles
+  # seven verified areas are the exception: each carries an expect_min_articles
   # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35,
-  # pricing 55) set at ~50% of its 262 twin's count, to tolerate real content
-  # growth/shrinkage between releases without re-flagging as unverified.
+  # pricing 55, rating 17) set at ~50% of its 262 twin's count, to tolerate real
+  # content growth/shrinkage between releases without re-flagging as unverified.
 
   snapshot_dev_guide_264:
     group: Documentation
@@ -3779,6 +3779,7 @@ tasks:
       root_article_id: ind.rm_rate_management.htm
       article_id_prefix: ind.rm
       mode: all
+      expect_min_articles: 17
 
   snapshot_configurator_help_264:
     group: Documentation

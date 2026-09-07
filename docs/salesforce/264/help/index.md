@@ -1,19 +1,19 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **6 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, transaction_mgmt.
+Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, rating, transaction_mgmt.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T19:45:55Z
+**Last updated:** 2026-09-07T20:15:19Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 952 |
-| Captured | 949 |
+| Discovered | 1022 |
+| Captured | 1019 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 2,406,380 |
+| Total captured body chars | 2,522,139 |
 
 ## Per-Area Coverage
 
@@ -24,6 +24,7 @@ Captures **6 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264) | `ind.dro` | 96 | 2026-09-07T17:34:30Z |
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5&release=264) | `ind.product_catalog` | 142 | 2026-09-04T22:35:52Z |
 | **pricing** | [ind.pricing_salesforce_pricing.htm](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264) | `ind.pricing` | 155 | 2026-09-07T19:45:55Z |
+| **rating** | [ind.rm_rate_management.htm](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264) | `ind.rm` | 70 | 2026-09-07T20:15:19Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
 
 ## Captured — billing (265)
@@ -792,6 +793,81 @@ Captures **6 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | [Understand the Setup Objects Used for Price Waterfall](./articles/ind.pricing_view_setup_objects_price_waterfall.htm.md) | `ind.pricing_view_setup_objects_price_waterfall.htm` | 1,062 |
 | [Weekly Proration Examples](./articles/ind.pricing_weekly_proration.htm.md) | `ind.pricing_weekly_proration.htm` | 799 |
 
+## Captured — rating (70)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Add Negotiated Tier-Based Rate Adjustment](./articles/ind.rm_add_negotiated_tierbased_rate_adjustment.htm.md) | `ind.rm_add_negotiated_tierbased_rate_adjustment.htm` | 2,262 |
+| [Add Negotiated Volume-Based Rate Adjustment](./articles/ind.rm_add_negotiated_volumebased_rate_adjustment_.htm.md) | `ind.rm_add_negotiated_volumebased_rate_adjustment_.htm` | 2,345 |
+| [Add Get Rate Cards Element](./articles/ind.rm_add_rating_get_rate_cards.htm.md) | `ind.rm_add_rating_get_rate_cards.htm` | 1,315 |
+| [Clone the Default Rating Discovery Procedure](./articles/ind.rm_clone_the_default_rating_discovery_procedure.htm.md) | `ind.rm_clone_the_default_rating_discovery_procedure.htm` | 1,217 |
+| [Create a Rating Procedure by Cloning the Expression Set Template](./articles/ind.rm_clone_the_default_rating_procedure.htm.md) | `ind.rm_clone_the_default_rating_procedure.htm` | 1,189 |
+| [Commitment Rate Adjustment](./articles/ind.rm_commitment_rate_adjustment.htm.md) | `ind.rm_commitment_rate_adjustment.htm` | 1,882 |
+| [Configure Your Rating Discovery Procedure](./articles/ind.rm_configure_your_rating_discovery_procedure.htm.md) | `ind.rm_configure_your_rating_discovery_procedure.htm` | 1,456 |
+| [Create a Rate Card Entry for Base Rate Cards](./articles/ind.rm_create_a_base_rate_card_entry.htm.md) | `ind.rm_create_a_base_rate_card_entry.htm` | 1,342 |
+| [Create a Rate Card](./articles/ind.rm_create_a_rate_card.htm.md) | `ind.rm_create_a_rate_card.htm` | 721 |
+| [Create a Rate Card Entry For Tier Rate Cards](./articles/ind.rm_create_a_tier_rate_card_entry.htm.md) | `ind.rm_create_a_tier_rate_card_entry.htm` | 2,025 |
+| [Create Price Book Rate Cards](./articles/ind.rm_create_price_book_rate_cards.htm.md) | `ind.rm_create_price_book_rate_cards.htm` | 605 |
+| [Explore Rate Management in Revenue Management](./articles/ind.rm_discover_and_explore.htm.md) | `ind.rm_discover_and_explore.htm` | 1,174 |
+| [Assignment](./articles/ind.rm_element_add_assignment.htm.md) | `ind.rm_element_add_assignment.htm` | 1,874 |
+| [Add the Base Rate Element](./articles/ind.rm_element_add_base_rate_element.htm.md) | `ind.rm_element_add_base_rate_element.htm` | 1,926 |
+| [Add the Manual Rate Discount Element](./articles/ind.rm_element_add_manual_rate_discount.htm.md) | `ind.rm_element_add_manual_rate_discount.htm` | 2,300 |
+| [Add the Negotiated Base Rate Element](./articles/ind.rm_element_add_negotiated_base_rate.htm.md) | `ind.rm_element_add_negotiated_base_rate.htm` | 1,999 |
+| [Add the Negotiated Rate Card Entries Element](./articles/ind.rm_element_add_negotiated_rate_card_entries_element.htm.md) | `ind.rm_element_add_negotiated_rate_card_entries_element.htm` | 2,024 |
+| [Add the Rate Adjustment Matrix Element](./articles/ind.rm_element_add_rate_adjustment_matrix.htm.md) | `ind.rm_element_add_rate_adjustment_matrix.htm` | 1,977 |
+| [Add the Rounding Values Element](./articles/ind.rm_element_add_rounding_values.htm.md) | `ind.rm_element_add_rounding_values.htm` | 1,479 |
+| [Add the Tier-Based Rate Discount Element](./articles/ind.rm_element_add_tier_based_rate_discount.htm.md) | `ind.rm_element_add_tier_based_rate_discount.htm` | 2,601 |
+| [Add the Volume-Based Rate Discount Element](./articles/ind.rm_element_add_volume_based_rate_discount.htm.md) | `ind.rm_element_add_volume_based_rate_discount.htm` | 2,609 |
+| [Base Rate](./articles/ind.rm_element_base_rate.htm.md) | `ind.rm_element_base_rate.htm` | 741 |
+| [Base Rate Variables](./articles/ind.rm_element_base_rate_variables.htm.md) | `ind.rm_element_base_rate_variables.htm` | 1,799 |
+| [Get Binding Object Rate Adjustment](./articles/ind.rm_element_bora.htm.md) | `ind.rm_element_bora.htm` | 2,520 |
+| [Formula-Based Rating](./articles/ind.rm_element_formula_based_rating.htm.md) | `ind.rm_element_formula_based_rating.htm` | 806 |
+| [Get Binding Object Rate Card Entries](./articles/ind.rm_element_get_borce.htm.md) | `ind.rm_element_get_borce.htm` | 3,764 |
+| [Get Rate Card Entries](./articles/ind.rm_element_get_rate_card_entries.htm.md) | `ind.rm_element_get_rate_card_entries.htm` | 1,894 |
+| [Get Rate Cards](./articles/ind.rm_element_get_rate_cards.htm.md) | `ind.rm_element_get_rate_cards.htm` | 684 |
+| [Get Tier-Based Rate Adjustments](./articles/ind.rm_element_get_tier_based_rate_adjustments.htm.md) | `ind.rm_element_get_tier_based_rate_adjustments.htm` | 1,160 |
+| [List Group and List Operation](./articles/ind.rm_element_list_group_list_operation.htm.md) | `ind.rm_element_list_group_list_operation.htm` | 1,873 |
+| [Manual Rate Discount](./articles/ind.rm_element_manual_rate_discount.htm.md) | `ind.rm_element_manual_rate_discount.htm` | 1,106 |
+| [Manual Rate Discount Variables](./articles/ind.rm_element_manual_rate_discount_variables.htm.md) | `ind.rm_element_manual_rate_discount_variables.htm` | 991 |
+| [Negotiated Base Rate](./articles/ind.rm_element_negotiated_base_rate.htm.md) | `ind.rm_element_negotiated_base_rate.htm` | 1,905 |
+| [Negotiated Base Rate for Binding Object](./articles/ind.rm_element_negotiated_baserate_bindingobject.htm.md) | `ind.rm_element_negotiated_baserate_bindingobject.htm` | 1,819 |
+| [Negotiated Rate Card Entries](./articles/ind.rm_element_negotiated_rate_card_entries.htm.md) | `ind.rm_element_negotiated_rate_card_entries.htm` | 2,122 |
+| [Negotiated Tier-Based Rate Adjustment](./articles/ind.rm_element_negotiated_tierbased_adjustment.htm.md) | `ind.rm_element_negotiated_tierbased_adjustment.htm` | 1,302 |
+| [Negotiated Tier-Based Adjustment Variables](./articles/ind.rm_element_negotiated_tierbased_rate_adjustment.htm.md) | `ind.rm_element_negotiated_tierbased_rate_adjustment.htm` | 1,629 |
+| [Negotiated Tier-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm` | 1,842 |
+| [Negotiated Rate Card Entries for Binding Object](./articles/ind.rm_element_negotiatedratecardentries_bindingobject.htm.md) | `ind.rm_element_negotiatedratecardentries_bindingobject.htm` | 2,043 |
+| [Negotiated Volume-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm` | 1,804 |
+| [Rate Adjustment Matrix](./articles/ind.rm_element_rate_adjustment_matrix.htm.md) | `ind.rm_element_rate_adjustment_matrix.htm` | 832 |
+| [Rate Adjustment Matrix Variables](./articles/ind.rm_element_rate_adjustment_matrix_variables.htm.md) | `ind.rm_element_rate_adjustment_matrix_variables.htm` | 1,304 |
+| [Rating Setting](./articles/ind.rm_element_rating_setting.htm.md) | `ind.rm_element_rating_setting.htm` | 740 |
+| [Rounding Values](./articles/ind.rm_element_rounding_values.htm.md) | `ind.rm_element_rounding_values.htm` | 1,650 |
+| [Stop Rating](./articles/ind.rm_element_stop_rating.htm.md) | `ind.rm_element_stop_rating.htm` | 195 |
+| [Tier-Based Rate Discount](./articles/ind.rm_element_tier_based_rate_discount.htm.md) | `ind.rm_element_tier_based_rate_discount.htm` | 1,459 |
+| [Volume-Based Rate Discount](./articles/ind.rm_element_volume_based_rate_discount.htm.md) | `ind.rm_element_volume_based_rate_discount.htm` | 1,069 |
+| [Volume-Based Rate Discount Variables for Non-Negotiable Rates](./articles/ind.rm_element_volume_based_rate_discount_variables.htm.md) | `ind.rm_element_volume_based_rate_discount_variables.htm` | 2,146 |
+| [Volume-Based Rate Discount Variables for Negotiable Rates](./articles/ind.rm_element_volume_based_rate_discount_variables_negotiable_rates.htm.md) | `ind.rm_element_volume_based_rate_discount_variables_negotiable_rates.htm` | 1,556 |
+| [Enable Rate Management](./articles/ind.rm_enable_rate_management.htm.md) | `ind.rm_enable_rate_management.htm` | 391 |
+| [Enable Rating Waterfall Persistence](./articles/ind.rm_enable_rating_waterfall_persistence.htm.md) | `ind.rm_enable_rating_waterfall_persistence.htm` | 1,492 |
+| [External Objects Used in Rate Management](./articles/ind.rm_external_objects_used_in_rate_management.htm.md) | `ind.rm_external_objects_used_in_rate_management.htm` | 2,261 |
+| [Implementation Considerations for Rate Management](./articles/ind.rm_implementation_considerations.htm.md) | `ind.rm_implementation_considerations.htm` | 1,973 |
+| [Key Roles in Rate Management](./articles/ind.rm_key_roles_in_rate_management.htm.md) | `ind.rm_key_roles_in_rate_management.htm` | 898 |
+| [Map Line Item](./articles/ind.rm_map_line_item.htm.md) | `ind.rm_map_line_item.htm` | 789 |
+| [Negotiated Volume-Based Rate Adjustment](./articles/ind.rm_negotiated_volumebased_rate_adjustment.htm.md) | `ind.rm_negotiated_volumebased_rate_adjustment.htm` | 886 |
+| [Negotiated Volume-Based Rate Adjustment Variables](./articles/ind.rm_negotiated_volumebased_rate_adjutment_variables.htm.md) | `ind.rm_negotiated_volumebased_rate_adjutment_variables.htm` | 1,581 |
+| [Prerequisites for Building Rating Procedures](./articles/ind.rm_prereqs_to_build_rating_procedures.htm.md) | `ind.rm_prereqs_to_build_rating_procedures.htm` | 2,324 |
+| [Rate Card Entries](./articles/ind.rm_rate_card_entries.htm.md) | `ind.rm_rate_card_entries.htm` | 1,577 |
+| [Rate Cards and Rate Card Entries](./articles/ind.rm_rate_cards_and_rate_card_entries.htm.md) | `ind.rm_rate_cards_and_rate_card_entries.htm` | 1,401 |
+| [Configure Rate Pricing Calculations in Revenue Management](./articles/ind.rm_rate_management.htm.md) | `ind.rm_rate_management.htm` | 2,306 |
+| [Rate Management Permission Set Licenses](./articles/ind.rm_rate_management_psls.htm.md) | `ind.rm_rate_management_psls.htm` | 1,623 |
+| [Rate Management Setup](./articles/ind.rm_rate_management_setup.htm.md) | `ind.rm_rate_management_setup.htm` | 2,811 |
+| [Rate Management Limits](./articles/ind.rm_rate_mngmnt_limits.htm.md) | `ind.rm_rate_mngmnt_limits.htm` | 1,900 |
+| [Elements in a Rating Discovery Procedure](./articles/ind.rm_rating_discovery_procedure_elements.htm.md) | `ind.rm_rating_discovery_procedure_elements.htm` | 2,015 |
+| [Rating Discovery Procedures](./articles/ind.rm_rating_discovery_procedures.htm.md) | `ind.rm_rating_discovery_procedures.htm` | 1,766 |
+| [Get Rate Cards](./articles/ind.rm_rating_element_get_rate_cards.htm.md) | `ind.rm_rating_element_get_rate_cards.htm` | 991 |
+| [Explore Available Rating Elements in Revenue Management](./articles/ind.rm_rating_elements.htm.md) | `ind.rm_rating_elements.htm` | 4,701 |
+| [Rating Procedures](./articles/ind.rm_rating_procedures.htm.md) | `ind.rm_rating_procedures.htm` | 1,177 |
+| [Simulate and Activate Your Rating Procedure](./articles/ind.rm_simulate_activate_rating_procedure.htm.md) | `ind.rm_simulate_activate_rating_procedure.htm` | 1,819 |
+
 ## Captured — transaction_mgmt (208)
 
 | Article | ID | Bytes |
@@ -1013,4 +1089,4 @@ Captures **6 functional areas** of Revenue Cloud Help: billing, configurator, dr
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T19:45:55Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T20:15:19Z.*

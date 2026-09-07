@@ -1094,6 +1094,7 @@
 - `root_article_id`: `ind.rm_rate_management.htm`
 - `article_id_prefix`: `ind.rm`
 - `mode`: `all`
+- `expect_min_articles`: `17`
 
 ---
 
