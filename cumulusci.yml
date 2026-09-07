@@ -3676,7 +3676,7 @@ tasks:
   # carries an `expect_min_articles` floor below. Help-portal article IDs are
   # not stable across release reorgs — during 262 capture both
   # ind.usage_management.htm and ind.usage.htm 404'd before the real roots were
-  # found. Before any full capture of one of the seven unverified areas,
+  # found. Before any full capture of one of the six unverified areas,
   # validate the root:
   #
   #   cci task run snapshot_{area}_help_264 -o mode discover
