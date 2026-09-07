@@ -38,7 +38,7 @@
         "captured": 208,
         "pending": 0,
         "errored": 0,
-        "total_captured_body_chars": 527196
+        "total_captured_body_chars": 527197
       },
       "snapshot_started": "2026-09-04",
       "last_run_discovered": {
@@ -57,7 +57,7 @@
         "captured": 265,
         "pending": 0,
         "errored": 0,
-        "total_captured_body_chars": 693159
+        "total_captured_body_chars": 693160
       },
       "snapshot_started": "2026-09-04",
       "last_run_discovered": {
@@ -247,7 +247,7 @@
       "status": "captured",
       "area": "billing",
       "parent_article": "ind.billing_accounting_periods.htm",
-      "body_length": 2811,
+      "body_length": 2812,
       "file": "articles/ind.billing_accounting_periods_explain.htm.md"
     },
     {
@@ -8534,7 +8534,7 @@
       "status": "captured",
       "area": "transaction_mgmt",
       "parent_article": "ind.qocal_specialized_transaction_types.htm",
-      "body_length": 2363,
+      "body_length": 2364,
       "file": "articles/ind.qocal_swap_upgrade_downgrade_amendments.htm.md"
     },
     {
@@ -9335,6 +9335,6 @@
     "captured": 1019,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2522139
+    "total_captured_body_chars": 2522141
   }
 }
