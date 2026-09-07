@@ -226,6 +226,13 @@ ARTICLE_BODY_JS = """
 """
 
 
+# The Help portal serves this exact H1 for a broken/retired article ID
+# instead of a 404 status — it renders fine (has an H1, extracts a "body")
+# so the generic "no H1 found" guard below never sees it. Caught live on
+# ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm
+# (PR #409 review).
+NOT_FOUND_TITLE_PREFIX = "We looked high and low"
+
 PLAYWRIGHT_INSTALL_HINT = """
 Playwright is required for this task. Install it into the SAME Python
 environment that runs CCI — a plain `pip install playwright` only works
@@ -868,16 +875,25 @@ class SnapshotSalesforceHelp(BaseTask):
                     # area via render_article_markdown below).
                     record.setdefault("area", self.options["area"])
                     record.setdefault("article_id", article_id)
-                    if captured.get("error"):
+                    if captured.get("error") or not captured.get("body"):
+                        # A refresh can turn a previously-captured article into
+                        # an error (e.g. it's since become a not-found shell —
+                        # PR #409 review round 2). Drop the stale file/metadata
+                        # from the prior successful capture rather than leaving
+                        # it on disk and in the manifest, still marked
+                        # `captured`-looking except for `status`, where a
+                        # directory scan (not filtering on `status`) would
+                        # still surface it. `title` is untouched here — it's
+                        # only ever set by a successful capture (below), so on
+                        # error it already stays whatever discovery/a prior
+                        # capture last put there.
+                        error = captured.get("error") or "Empty body"
                         record["status"] = "error"
-                        record["error"] = captured["error"]
-                        self.logger.warning(
-                            f"  [skip] {article_id}: {captured['error']}"
-                        )
-                    elif not captured.get("body"):
-                        record["status"] = "error"
-                        record["error"] = "Empty body"
-                        self.logger.warning(f"  [skip] {article_id}: empty body")
+                        record["error"] = error
+                        if record.pop("file", None):
+                            (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
+                        record.pop("body_length", None)
+                        self.logger.warning(f"  [skip] {article_id}: {error}")
                     else:
                         body = captured["body"]
                         title = captured.get("title") or record.get("title") or article_id
@@ -940,6 +956,9 @@ class SnapshotSalesforceHelp(BaseTask):
 
         if not result or not result.get("title"):
             return {"error": "no H1 found (article may be 404 or unrendered)"}
+
+        if result["title"].strip().startswith(NOT_FOUND_TITLE_PREFIX):
+            return {"error": "portal returned its generic not-found page (rendered, but no article behind this id)"}
 
         return result
 

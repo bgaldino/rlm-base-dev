@@ -954,6 +954,7 @@
 - `root_article_id`: `ind.dro_dynamic_revenue_orchestrator.htm`
 - `article_id_prefix`: `ind.dro`
 - `mode`: `all`
+- `expect_min_articles`: `35`
 
 ---
 
