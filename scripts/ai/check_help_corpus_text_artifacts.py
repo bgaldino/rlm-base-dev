@@ -58,8 +58,12 @@ def main():
     for path, line_no, snippet in findings:
         print(f"  {path.relative_to(REPO_ROOT)}:{line_no}: {snippet!r}")
     print(
-        "\nThese are upstream Salesforce content typos, faithfully captured "
-        "verbatim -- hand-fix the article text, do not recapture."
+        "\nVerify each candidate against the live DOM before acting -- this "
+        "regex flags a pattern, not a confirmed defect. A genuine hit is an "
+        "upstream Salesforce content typo, faithfully captured verbatim, so "
+        "recapturing will not fix it. Hand-fix only in the active release's "
+        "corpus (e.g. docs/salesforce/264/); frozen snapshots (e.g. "
+        "docs/salesforce/262/) are left as-is by design."
     )
     return 0
 
