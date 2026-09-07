@@ -89,13 +89,13 @@
       "root_article_id": "ind.dro_dynamic_revenue_orchestrator.htm",
       "article_id_prefix": "ind.dro",
       "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264",
-      "last_updated": "2026-09-05T22:36:29Z",
+      "last_updated": "2026-09-07T17:09:51Z",
       "stats": {
         "discovered": 99,
-        "captured": 97,
+        "captured": 96,
         "pending": 0,
-        "errored": 2,
-        "total_captured_body_chars": 199863
+        "errored": 3,
+        "total_captured_body_chars": 199804
       },
       "snapshot_started": "2026-09-05",
       "last_run_discovered": {
@@ -2733,11 +2733,10 @@
     {
       "article_id": "ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm",
       "title": "We looked high and low\nbut couldn't find that page.",
-      "status": "captured",
+      "status": "error",
       "area": "dro",
       "parent_article": "ind.dro_steps_to_create_a_custom_context_definition.htm",
-      "body_length": 59,
-      "file": "articles/ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.md"
+      "error": "portal returned its generic not-found page (rendered, but no article behind this id)"
     },
     {
       "article_id": "ind.dro_create_custom_context_definition_and_map_business_objects.htm",
@@ -7270,12 +7269,12 @@
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
     }
   ],
-  "last_updated": "2026-09-05T22:36:29Z",
+  "last_updated": "2026-09-07T17:09:51Z",
   "stats": {
     "discovered": 797,
-    "captured": 795,
+    "captured": 794,
     "pending": 0,
-    "errored": 2,
-    "total_captured_body_chars": 1993434
+    "errored": 3,
+    "total_captured_body_chars": 1993375
   }
 }

@@ -226,6 +226,13 @@ ARTICLE_BODY_JS = """
 """
 
 
+# The Help portal serves this exact H1 for a broken/retired article ID
+# instead of a 404 status — it renders fine (has an H1, extracts a "body")
+# so the generic "no H1 found" guard below never sees it. Caught live on
+# ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm
+# (PR #409 review).
+NOT_FOUND_TITLE_PREFIX = "We looked high and low"
+
 PLAYWRIGHT_INSTALL_HINT = """
 Playwright is required for this task. Install it into the SAME Python
 environment that runs CCI — a plain `pip install playwright` only works
@@ -940,6 +947,9 @@ class SnapshotSalesforceHelp(BaseTask):
 
         if not result or not result.get("title"):
             return {"error": "no H1 found (article may be 404 or unrendered)"}
+
+        if result["title"].strip().startswith(NOT_FOUND_TITLE_PREFIX):
+            return {"error": "portal returned its generic not-found page (rendered, but no article behind this id)"}
 
         return result
 

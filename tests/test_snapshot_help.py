@@ -244,6 +244,47 @@ def main():
     except CommandException:
         check("validate_discovery rejects an unstabilized above-floor result", True)
 
+    # --- _capture_one not-found-shell detection (PR #409 review) -----------
+    # The Help portal renders a real H1 for a broken/retired article id
+    # instead of a 404 status, so the generic "no H1 found" guard alone
+    # doesn't catch it — live-captured on
+    # ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.
+    class _FakeCapturePage:
+        def __init__(self, eval_result):
+            self._eval_result = eval_result
+
+        async def goto(self, url, wait_until=None, timeout=None):
+            pass
+
+        async def wait_for_timeout(self, ms):
+            pass
+
+        async def evaluate(self, js):
+            return self._eval_result
+
+    async def run_capture(t, page):
+        return await t._capture_one(page, "ind.example_broken.htm")
+
+    t11 = _task()
+    page11 = _FakeCapturePage({
+        "title": "We looked high and low\nbut couldn't find that page.",
+        "body": "We looked high and low\nbut couldn't find that page.\nGo Home",
+        "breadcrumb": None,
+    })
+    result11 = asyncio.run(run_capture(t11, page11))
+    check("rejects the rendered not-found shell as an error",
+          "error" in result11 and "not-found" in result11["error"])
+
+    t12 = _task()
+    page12 = _FakeCapturePage({
+        "title": "A Real Article Title",
+        "body": "Substantive real content.",
+        "breadcrumb": None,
+    })
+    result12 = asyncio.run(run_capture(t12, page12))
+    check("a genuine article title/body is not flagged as not-found",
+          "error" not in result12)
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 
