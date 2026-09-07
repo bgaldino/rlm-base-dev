@@ -312,6 +312,7 @@ To add a new area: walk the sidebar from the Revenue Lifecycle Management parent
 - **SObject field names vs. Help labels** diverge. The schema field `ShouldCaptureTaxesAtHeader` is labeled "Capture Taxes at Header" in the Help portal. The field `TaxEngineAddress` is referenced indirectly in articles ("the address used for tax calculation"). When verifying a claim that uses a field name, search by both the field name AND the human label.
 - **Image-only content is invisible.** The capture is text-only (innerText). Diagrams, screenshots, and ERDs are not captured. If a Help article relies on an image for the substantive content, the captured markdown is thin.
 - **Some articles span multiple Help "tabs"** (notes, considerations, examples). The capture currently only walks the main article tab; secondary tabs may be missed. Re-fetch manually via Chrome MCP if a specific article seems incomplete.
+- **Rare glued-link / duplicated-label text artifacts are upstream Salesforce content typos, not extraction bugs.** Confirmed via live DOM inspection (todo 184, artifacts repo): Salesforce's own source HTML sometimes omits the space before a link (`See<a>Create a Constant Resource</a>` renders as "SeeCreate a Constant Resource") or has a callout badge whose label happens to duplicate the paragraph's own leading word ("NOTE Note: ..."). `innerText`-based capture is verbatim by design, so it faithfully reproduces these. Recapturing does not fix them — hand-edit the affected article. `python scripts/ai/check_help_corpus_text_artifacts.py` is a non-gating spot-check for the glued-link class; run it after any capture/refresh. Only 3 instances have ever been found across the whole corpus.
 
 ## Cross-reference with related skills
 
@@ -343,4 +344,5 @@ See `tasks/rlm_snapshot_help.py` module docstring for full options and alternate
 
 ## Change log
 
+- **2026-09-07** — Added the glued-link/duplicated-label text-artifact known limitation and `scripts/ai/check_help_corpus_text_artifacts.py` spot-check (todo 184).
 - **2026-05-11** — Skill created. Initial 262 Billing snapshot covers 171 articles (~440 KB).
