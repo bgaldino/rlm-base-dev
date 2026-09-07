@@ -1,19 +1,19 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, rating, transaction_mgmt.
+Captures **8 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T20:15:19Z
+**Last updated:** 2026-09-07T22:09:38Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 1022 |
-| Captured | 1019 |
+| Discovered | 1074 |
+| Captured | 1071 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 2,522,139 |
+| Total captured body chars | 2,614,207 |
 
 ## Per-Area Coverage
 
@@ -26,6 +26,7 @@ Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | **pricing** | [ind.pricing_salesforce_pricing.htm](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264) | `ind.pricing` | 155 | 2026-09-07T19:45:55Z |
 | **rating** | [ind.rm_rate_management.htm](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264) | `ind.rm` | 70 | 2026-09-07T20:15:19Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
+| **usage** | [ind.um_usage_management.htm](https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264) | `ind.um` | 52 | 2026-09-07T22:09:38Z |
 
 ## Captured — billing (265)
 
@@ -42,7 +43,7 @@ Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | [Manage Accounting Periods in Revenue Management](./articles/ind.billing_accounting_periods.htm.md) | `ind.billing_accounting_periods.htm` | 1,283 |
 | [Close an Accounting Period](./articles/ind.billing_accounting_periods_close.htm.md) | `ind.billing_accounting_periods_close.htm` | 1,326 |
 | [Create Accounting Periods](./articles/ind.billing_accounting_periods_create.htm.md) | `ind.billing_accounting_periods_create.htm` | 1,387 |
-| [What are Accounting Periods?](./articles/ind.billing_accounting_periods_explain.htm.md) | `ind.billing_accounting_periods_explain.htm` | 2,811 |
+| [What are Accounting Periods?](./articles/ind.billing_accounting_periods_explain.htm.md) | `ind.billing_accounting_periods_explain.htm` | 2,812 |
 | [Agentforce for Billing Employee Assistance](./articles/ind.billing_agentforce_billing_agent.htm.md) | `ind.billing_agentforce_billing_agent.htm` | 3,519 |
 | [Set Up Billing Employee Assistance](./articles/ind.billing_agentforce_billing_agent_setup.htm.md) | `ind.billing_agentforce_billing_agent_setup.htm` | 869 |
 | [Billing Employee Assistance Use Case](./articles/ind.billing_agentforce_billingagent_usecase.htm.md) | `ind.billing_agentforce_billingagent_usecase.htm` | 2,356 |
@@ -1061,7 +1062,7 @@ Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | [Split Quotes into Multiple Orders](./articles/ind.qocal_split_quote_into_multiple_orders.htm.md) | `ind.qocal_split_quote_into_multiple_orders.htm` | 2,516 |
 | [Considerations for Creating Multiple Orders from a Quote](./articles/ind.qocal_split_quote_to_orders_important_considerations.htm.md) | `ind.qocal_split_quote_to_orders_important_considerations.htm` | 2,213 |
 | [Generate a Quote or Order from a Contract](./articles/ind.qocal_start_quote_in_contract_to_use_contract_pricing.htm.md) | `ind.qocal_start_quote_in_contract_to_use_contract_pricing.htm` | 1,503 |
-| [Swap, Upgrade, or Downgrade Assets](./articles/ind.qocal_swap_upgrade_downgrade_amendments.htm.md) | `ind.qocal_swap_upgrade_downgrade_amendments.htm` | 2,363 |
+| [Swap, Upgrade, or Downgrade Assets](./articles/ind.qocal_swap_upgrade_downgrade_amendments.htm.md) | `ind.qocal_swap_upgrade_downgrade_amendments.htm` | 2,364 |
 | [Swap, Upgrade, and Downgrade Amendments Considerations](./articles/ind.qocal_swap_upgrade_downgrade_important_considerations.htm.md) | `ind.qocal_swap_upgrade_downgrade_important_considerations.htm` | 940 |
 | [Anchor Product with Token Commitments](./articles/ind.qocal_token_support.htm.md) | `ind.qocal_token_support.htm` | 3,403 |
 | [Transfer Assets Between Accounts](./articles/ind.qocal_transfer_assets_to_new_account.htm.md) | `ind.qocal_transfer_assets_to_new_account.htm` | 2,748 |
@@ -1081,6 +1082,63 @@ Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | [View and Manage Assets in Revenue Management](./articles/ind.qocal_view_and_manage_assets_in_revenue_cloud.htm.md) | `ind.qocal_view_and_manage_assets_in_revenue_cloud.htm` | 1,213 |
 | [Zero-Quantity Quote Detail Lines Considerations](./articles/ind.qocal_zero_quantity_considerations.htm.md) | `ind.qocal_zero_quantity_considerations.htm` | 1,326 |
 
+## Captured — usage (52)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Add Wallet Components to Record Pages](./articles/ind.um_add_wallet_components_to_record_pages.htm.md) | `ind.um_add_wallet_components_to_record_pages.htm` | 913 |
+| [Anchor Product Drawdowns](./articles/ind.um_anchor_product_drawdowns.htm.md) | `ind.um_anchor_product_drawdowns.htm` | 1,000 |
+| [Billing Schedules and Invoices for Usage-Based Products](./articles/ind.um_billing_schedules_for_usage_products.htm.md) | `ind.um_billing_schedules_for_usage_products.htm` | 3,658 |
+| [Buckets and Drawdowns](./articles/ind.um_buckets_and_drawdowns.htm.md) | `ind.um_buckets_and_drawdowns.htm` | 3,868 |
+| [Consumption Management Lifecycle](./articles/ind.um_cnsption_mngmnt_lifecycle.htm.md) | `ind.um_cnsption_mngmnt_lifecycle.htm` | 1,167 |
+| [Commitment Product Drawdowns](./articles/ind.um_commitment_product_drawdowns.htm.md) | `ind.um_commitment_product_drawdowns.htm` | 1,531 |
+| [Configure a Usage-Based Product with Guided Workflow](./articles/ind.um_configure_usage_product_with_guided_workflow.htm.md) | `ind.um_configure_usage_product_with_guided_workflow.htm` | 5,603 |
+| [Configure Usage Management Records Manually](./articles/ind.um_configure_usage_records.htm.md) | `ind.um_configure_usage_records.htm` | 3,537 |
+| [Usage Product Validator Considerations](./articles/ind.um_considerations_for_validator.htm.md) | `ind.um_considerations_for_validator.htm` | 1,344 |
+| [Manage Consumption for Usage-Based Products](./articles/ind.um_consumption_management.htm.md) | `ind.um_consumption_management.htm` | 2,170 |
+| [Consumption Management Flows](./articles/ind.um_consumption_management_standard_flow_templates.htm.md) | `ind.um_consumption_management_standard_flow_templates.htm` | 1,455 |
+| [Consumption Management Considerations](./articles/ind.um_consumption_mgmnt_impl_considerations.htm.md) | `ind.um_consumption_mgmnt_impl_considerations.htm` | 3,312 |
+| [Consumption Proration Calculations](./articles/ind.um_consumption_proration_calculations.htm.md) | `ind.um_consumption_proration_calculations.htm` | 2,114 |
+| [Create a Product Usage Resource](./articles/ind.um_create_a_product_usage_resource.htm.md) | `ind.um_create_a_product_usage_resource.htm` | 1,372 |
+| [Create a Usage Commitment Asset Related Object](./articles/ind.um_create_a_usage_commitment_asset_related_object.htm.md) | `ind.um_create_a_usage_commitment_asset_related_object.htm` | 797 |
+| [Create Usage Product Grant Binding Policy](./articles/ind.um_create_a_usage_product_grant_binding_policy.htm.md) | `ind.um_create_a_usage_product_grant_binding_policy.htm` | 1,785 |
+| [Create an On-demand Usage Ratable Summary](./articles/ind.um_create_on_demand_usage_ratable_summary.htm.md) | `ind.um_create_on_demand_usage_ratable_summary.htm` | 686 |
+| [Create an On-demand Usage Summary](./articles/ind.um_create_on_demand_usage_summary.htm.md) | `ind.um_create_on_demand_usage_summary.htm` | 862 |
+| [Create a Product Usage Resource Policy](./articles/ind.um_create_product_usage_resource_policy.htm.md) | `ind.um_create_product_usage_resource_policy.htm` | 888 |
+| [Create Rating Frequency Policy](./articles/ind.um_create_rating_frequency_policy.htm.md) | `ind.um_create_rating_frequency_policy.htm` | 715 |
+| [Create a Unit of Measure Class](./articles/ind.um_create_unit_of_measure_class.htm.md) | `ind.um_create_unit_of_measure_class.htm` | 1,761 |
+| [Create Units of Measure](./articles/ind.um_create_units_of_measure.htm.md) | `ind.um_create_units_of_measure.htm` | 1,628 |
+| [Create Usage Aggregation Policy](./articles/ind.um_create_usage_aggregation_policy.htm.md) | `ind.um_create_usage_aggregation_policy.htm` | 1,024 |
+| [Create a Usage Commitment Policy](./articles/ind.um_create_usage_commitment_policy.htm.md) | `ind.um_create_usage_commitment_policy.htm` | 1,853 |
+| [Create Usage Grant Refresh Policy](./articles/ind.um_create_usage_grant_refresh_policy.htm.md) | `ind.um_create_usage_grant_refresh_policy.htm` | 1,105 |
+| [Create Usage Grant Rollover Policy](./articles/ind.um_create_usage_grant_rollover_policy.htm.md) | `ind.um_create_usage_grant_rollover_policy.htm` | 1,265 |
+| [Create a Usage Overage Policy](./articles/ind.um_create_usage_overage_policy.htm.md) | `ind.um_create_usage_overage_policy.htm` | 578 |
+| [Create a Usage Resource](./articles/ind.um_create_usage_resource.htm.md) | `ind.um_create_usage_resource.htm` | 1,274 |
+| [Create a Usage Resource Policy](./articles/ind.um_create_usage_resource_policy.htm.md) | `ind.um_create_usage_resource_policy.htm` | 668 |
+| [Create a Product Usage Grant](./articles/ind.um_define_a_product_usage_grant.htm.md) | `ind.um_define_a_product_usage_grant.htm` | 2,242 |
+| [Begin Using Usage Management](./articles/ind.um_discover_and_explore.htm.md) | `ind.um_discover_and_explore.htm` | 726 |
+| [Enable Usage Management](./articles/ind.um_enable_usage_management.htm.md) | `ind.um_enable_usage_management.htm` | 527 |
+| [Guided Workflow Considerations and Limits](./articles/ind.um_guided_workflow_considerations.htm.md) | `ind.um_guided_workflow_considerations.htm` | 2,763 |
+| [Consumption Management Records](./articles/ind.um_key_objects_in_consumption_management.htm.md) | `ind.um_key_objects_in_consumption_management.htm` | 1,592 |
+| [Manage Consumption-Related Summaries](./articles/ind.um_manage_consumption_related_summaries.htm.md) | `ind.um_manage_consumption_related_summaries.htm` | 866 |
+| [Pack Product Drawdowns](./articles/ind.um_pack_product_drawdowns.htm.md) | `ind.um_pack_product_drawdowns.htm` | 1,353 |
+| [Run the Usage Product Validator](./articles/ind.um_run_validator.htm.md) | `ind.um_run_validator.htm` | 909 |
+| [Set Up Wallet View for Experience Cloud](./articles/ind.um_set_up_experience_cloud_for_wallet_management.htm.md) | `ind.um_set_up_experience_cloud_for_wallet_management.htm` | 1,254 |
+| [Set Up Navigation for Wallets](./articles/ind.um_set_up_menu_access.htm.md) | `ind.um_set_up_menu_access.htm` | 551 |
+| [Consumption Management Lifecycle Statuses](./articles/ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm.md) | `ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm` | 3,451 |
+| [Token Commitment Drawdowns](./articles/ind.um_token_commitment_drawdowns.htm.md) | `ind.um_token_commitment_drawdowns.htm` | 2,602 |
+| [Token Commitment Drawdown Use Cases](./articles/ind.um_token_committment_drawdown_use_cases.htm.md) | `ind.um_token_committment_drawdown_use_cases.htm` | 1,459 |
+| [Track Usage Components with Unified Usage Dashboard](./articles/ind.um_track_usage_with_unified_dashboard.htm.md) | `ind.um_track_usage_with_unified_dashboard.htm` | 3,430 |
+| [Manage and Track Usage-Based Products in Revenue Management](./articles/ind.um_usage_management.htm.md) | `ind.um_usage_management.htm` | 3,460 |
+| [Usage Management Limits](./articles/ind.um_usage_management_limits.htm.md) | `ind.um_usage_management_limits.htm` | 2,203 |
+| [Permission Set Licenses, Personas, and User Permissions](./articles/ind.um_usage_management_psls_and_personas.htm.md) | `ind.um_usage_management_psls_and_personas.htm` | 1,876 |
+| [Set Up Usage Management in Revenue Management](./articles/ind.um_usage_management_setup.htm.md) | `ind.um_usage_management_setup.htm` | 2,569 |
+| [Orchestrate Usage Management Flow Stages](./articles/ind.um_usage_orchestration_flow_stages.htm.md) | `ind.um_usage_orchestration_flow_stages.htm` | 4,718 |
+| [Usage-Based Product Setup with Guided Workflow](./articles/ind.um_usage_product_setup_with_guided_workflow.htm.md) | `ind.um_usage_product_setup_with_guided_workflow.htm` | 1,277 |
+| [Validate Your Usage Product Setup](./articles/ind.um_validate_your_setup.htm.md) | `ind.um_validate_your_setup.htm` | 744 |
+| [View Liable Summaries](./articles/ind.um_view_liable_summary.htm.md) | `ind.um_view_liable_summary.htm` | 664 |
+| [Unified Usage Dashboard](./articles/ind.um_wallet_management.htm.md) | `ind.um_wallet_management.htm` | 897 |
+
 ## Errored (3)
 
 - `ind.dro_create_a_fulfillment_task_assignment_rule.htm` — Create a Fulfillment Task Assignment Rule — _no H1 found (article may be 404 or unrendered)_
@@ -1089,4 +1147,4 @@ Captures **7 functional areas** of Revenue Cloud Help: billing, configurator, dr
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T20:15:19Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:09:38Z.*
