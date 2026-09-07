@@ -21,7 +21,7 @@ published source.
 
 ## How to populate this file
 
-1. **Capture the Help portal corpus.** Five of the 13 `snapshot_*_264` tasks —
+1. **Capture the Help portal corpus.** Five of the 11 `snapshot_*_help_264` tasks —
    `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro` — are already
    captured at `docs/salesforce/264/help/` and spot-checked against their 262
    twins; their `root_article_id`/`article_id_prefix` values are confirmed
