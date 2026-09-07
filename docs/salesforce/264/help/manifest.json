@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "usage",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264",
-  "root_article_id": "ind.um_usage_management.htm",
-  "article_id_prefix": "ind.um",
+  "area": "agents",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264",
+  "root_article_id": "ind.rev_agent_overview.htm",
+  "article_id_prefix": "ind.rev_agent",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -157,6 +157,25 @@
       "snapshot_started": "2026-09-07",
       "last_run_discovered": {
         "kept": 52,
+        "before_prefix_filter": 1371
+      }
+    },
+    {
+      "area": "agents",
+      "root_article_id": "ind.rev_agent_overview.htm",
+      "article_id_prefix": "ind.rev_agent",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264",
+      "last_updated": "2026-09-07T22:10:44Z",
+      "stats": {
+        "discovered": 17,
+        "captured": 17,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 34957
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 17,
         "before_prefix_filter": 1371
       }
     }
@@ -8719,6 +8738,158 @@
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
     },
     {
+      "article_id": "ind.rev_agent_approval_agent.htm",
+      "title": "Agentforce for Advanced Approval",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 3155,
+      "file": "articles/ind.rev_agent_approval_agent.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_billing_topic_invoice_line_explanation.htm",
+      "title": "Subagent: Invoice Line Explanation",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 1893,
+      "file": "articles/ind.rev_agent_billing_topic_invoice_line_explanation.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_overview.htm",
+      "title": "Agentforce for Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "body_length": 3507,
+      "file": "articles/ind.rev_agent_overview.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_topic_product_description_generation.htm",
+      "title": "Subagent: Product Description Generation",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_topic_reference.htm",
+      "body_length": 875,
+      "file": "articles/ind.rev_agent_pcm_topic_product_description_generation.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_topic_product_selection.htm",
+      "title": "Subagent: Product Selection",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 2074,
+      "file": "articles/ind.rev_agent_pcm_topic_product_selection.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm",
+      "title": "Use Case: Search and Filter Products with Agentforce",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_pcm_topic_product_selection.htm",
+      "body_length": 2192,
+      "file": "articles/ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_qocal_topic_quote_management.htm",
+      "title": "Subagent: Quote Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 3146,
+      "file": "articles/ind.rev_agent_qocal_topic_quote_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm",
+      "title": "Set Up Community and Partner Access for Agentforce in Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 5101,
+      "file": "articles/ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_setup.htm",
+      "title": "Set Up Agentforce for Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 1645,
+      "file": "articles/ind.rev_agent_setup.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_templates.htm",
+      "title": "Agent Templates in Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 1310,
+      "file": "articles/ind.rev_agent_templates.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_approval_management.htm",
+      "title": "Subagent: Approval Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 2072,
+      "file": "articles/ind.rev_agent_topic_approval_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_billing_collections_management.htm",
+      "title": "Subagent: Billing Collections Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 1836,
+      "file": "articles/ind.rev_agent_topic_billing_collections_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_billing_inquiries.htm",
+      "title": "Subagent: Billing Inquiries",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 2420,
+      "file": "articles/ind.rev_agent_topic_billing_inquiries.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_reference.htm",
+      "title": "Revenue Subagent Reference",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 369,
+      "file": "articles/ind.rev_agent_topic_reference.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_search_approval_records.htm",
+      "title": "Subagent: Search Approval Record",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 625,
+      "file": "articles/ind.rev_agent_topic_search_approval_records.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_summarize_multiple_approval_work_items.htm",
+      "title": "Subagent: Summarize Multiple Approval Work Items",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 1535,
+      "file": "articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_usage_topic_consumption_management.htm",
+      "title": "Subagent: Consumption Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 1202,
+      "file": "articles/ind.rev_agent_usage_topic_consumption_management.htm.md"
+    },
+    {
       "article_id": "ind.rm_add_negotiated_tierbased_rate_adjustment.htm",
       "title": "Add Negotiated Tier-Based Rate Adjustment",
       "status": "captured",
@@ -9815,12 +9986,12 @@
       "file": "articles/ind.um_wallet_management.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T22:09:38Z",
+  "last_updated": "2026-09-07T22:10:44Z",
   "stats": {
-    "discovered": 1074,
-    "captured": 1071,
+    "discovered": 1091,
+    "captured": 1088,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2614207
+    "total_captured_body_chars": 2649164
   }
 }

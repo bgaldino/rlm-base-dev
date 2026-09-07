@@ -1,24 +1,25 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **8 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
+Captures **9 functional areas** of Revenue Cloud Help: agents, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T22:09:38Z
+**Last updated:** 2026-09-07T22:10:44Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 1074 |
-| Captured | 1071 |
+| Discovered | 1091 |
+| Captured | 1088 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 2,614,207 |
+| Total captured body chars | 2,649,164 |
 
 ## Per-Area Coverage
 
 | Area | Root Article | Prefix | Captured | Last Updated |
 |:--|:--|:--|--:|:--|
+| **agents** | [ind.rev_agent_overview.htm](https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264) | `ind.rev_agent` | 17 | 2026-09-07T22:10:44Z |
 | **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5&release=264) | `ind.billing` | 265 | 2026-09-04T21:55:21Z |
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264) | `ind.product_configurator` | 83 | 2026-09-04T21:44:25Z |
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264) | `ind.dro` | 96 | 2026-09-07T17:34:30Z |
@@ -27,6 +28,28 @@ Captures **8 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | **rating** | [ind.rm_rate_management.htm](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264) | `ind.rm` | 70 | 2026-09-07T20:15:19Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
 | **usage** | [ind.um_usage_management.htm](https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264) | `ind.um` | 52 | 2026-09-07T22:09:38Z |
+
+## Captured — agents (17)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Agentforce for Advanced Approval](./articles/ind.rev_agent_approval_agent.htm.md) | `ind.rev_agent_approval_agent.htm` | 3,155 |
+| [Subagent: Invoice Line Explanation](./articles/ind.rev_agent_billing_topic_invoice_line_explanation.htm.md) | `ind.rev_agent_billing_topic_invoice_line_explanation.htm` | 1,893 |
+| [Agentforce for Revenue Management](./articles/ind.rev_agent_overview.htm.md) | `ind.rev_agent_overview.htm` | 3,507 |
+| [Subagent: Product Description Generation](./articles/ind.rev_agent_pcm_topic_product_description_generation.htm.md) | `ind.rev_agent_pcm_topic_product_description_generation.htm` | 875 |
+| [Subagent: Product Selection](./articles/ind.rev_agent_pcm_topic_product_selection.htm.md) | `ind.rev_agent_pcm_topic_product_selection.htm` | 2,074 |
+| [Use Case: Search and Filter Products with Agentforce](./articles/ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm.md) | `ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm` | 2,192 |
+| [Subagent: Quote Management](./articles/ind.rev_agent_qocal_topic_quote_management.htm.md) | `ind.rev_agent_qocal_topic_quote_management.htm` | 3,146 |
+| [Set Up Community and Partner Access for Agentforce in Revenue Management](./articles/ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm.md) | `ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm` | 5,101 |
+| [Set Up Agentforce for Revenue Management](./articles/ind.rev_agent_setup.htm.md) | `ind.rev_agent_setup.htm` | 1,645 |
+| [Agent Templates in Revenue Management](./articles/ind.rev_agent_templates.htm.md) | `ind.rev_agent_templates.htm` | 1,310 |
+| [Subagent: Approval Management](./articles/ind.rev_agent_topic_approval_management.htm.md) | `ind.rev_agent_topic_approval_management.htm` | 2,072 |
+| [Subagent: Billing Collections Management](./articles/ind.rev_agent_topic_billing_collections_management.htm.md) | `ind.rev_agent_topic_billing_collections_management.htm` | 1,836 |
+| [Subagent: Billing Inquiries](./articles/ind.rev_agent_topic_billing_inquiries.htm.md) | `ind.rev_agent_topic_billing_inquiries.htm` | 2,420 |
+| [Revenue Subagent Reference](./articles/ind.rev_agent_topic_reference.htm.md) | `ind.rev_agent_topic_reference.htm` | 369 |
+| [Subagent: Search Approval Record](./articles/ind.rev_agent_topic_search_approval_records.htm.md) | `ind.rev_agent_topic_search_approval_records.htm` | 625 |
+| [Subagent: Summarize Multiple Approval Work Items](./articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md) | `ind.rev_agent_topic_summarize_multiple_approval_work_items.htm` | 1,535 |
+| [Subagent: Consumption Management](./articles/ind.rev_agent_usage_topic_consumption_management.htm.md) | `ind.rev_agent_usage_topic_consumption_management.htm` | 1,202 |
 
 ## Captured — billing (265)
 
@@ -1147,4 +1170,4 @@ Captures **8 functional areas** of Revenue Cloud Help: billing, configurator, dr
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:09:38Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:10:44Z.*
