@@ -89,7 +89,7 @@ published source.
 
 | File | Description |
 |---|---|
-| [`help/`](help/) | Salesforce Help snapshot — captured for `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating` (1019 articles); the other four `snapshot_*_help_264` areas remain uncaptured. |
+| [`help/`](help/) | Salesforce Help snapshot — captured for `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating`, `usage`, `agents`, `approvals` (1131 articles); `snapshot_collections_help_264` is checked but not ready (see item 1 above). |
 | *(none yet)* | Release notes and Solution Overview decks — populate as they publish. |
 
 ## Related
