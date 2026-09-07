@@ -1,25 +1,26 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **9 functional areas** of Revenue Cloud Help: agents, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
+Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T22:10:44Z
+**Last updated:** 2026-09-07T22:13:05Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 1091 |
-| Captured | 1088 |
+| Discovered | 1134 |
+| Captured | 1131 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 2,649,164 |
+| Total captured body chars | 2,729,487 |
 
 ## Per-Area Coverage
 
 | Area | Root Article | Prefix | Captured | Last Updated |
 |:--|:--|:--|--:|:--|
 | **agents** | [ind.rev_agent_overview.htm](https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264) | `ind.rev_agent` | 17 | 2026-09-07T22:10:44Z |
+| **approvals** | [ind.approvals_advanced_approvals.htm](https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264) | `ind.approvals` | 43 | 2026-09-07T22:13:05Z |
 | **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5&release=264) | `ind.billing` | 265 | 2026-09-04T21:55:21Z |
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264) | `ind.product_configurator` | 83 | 2026-09-04T21:44:25Z |
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264) | `ind.dro` | 96 | 2026-09-07T17:34:30Z |
@@ -50,6 +51,54 @@ Captures **9 functional areas** of Revenue Cloud Help: agents, billing, configur
 | [Subagent: Search Approval Record](./articles/ind.rev_agent_topic_search_approval_records.htm.md) | `ind.rev_agent_topic_search_approval_records.htm` | 625 |
 | [Subagent: Summarize Multiple Approval Work Items](./articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md) | `ind.rev_agent_topic_summarize_multiple_approval_work_items.htm` | 1,535 |
 | [Subagent: Consumption Management](./articles/ind.rev_agent_usage_topic_consumption_management.htm.md) | `ind.rev_agent_usage_topic_consumption_management.htm` | 1,202 |
+
+## Captured — approvals (43)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Example: Add an Approval Button on a Record Page](./articles/ind.approvals_add_an_approval_button_for_sales_reps.htm.md) | `ind.approvals_add_an_approval_button_for_sales_reps.htm` | 4,382 |
+| [Advanced Approval Objects](./articles/ind.approvals_add_partners_to_approval_steps.htm.md) | `ind.approvals_add_partners_to_approval_steps.htm` | 2,641 |
+| [Advanced Approvals](./articles/ind.approvals_advanced_approvals.htm.md) | `ind.approvals_advanced_approvals.htm` | 3,196 |
+| [Advanced Approvals Considerations](./articles/ind.approvals_advanced_approvals_considerations.htm.md) | `ind.approvals_advanced_approvals_considerations.htm` | 1,545 |
+| [Advanced Approval Delegation](./articles/ind.approvals_approval_delegation.htm.md) | `ind.approvals_approval_delegation.htm` | 1,446 |
+| [Approval Process Execution](./articles/ind.approvals_approval_process_execution.htm.md) | `ind.approvals_approval_process_execution.htm` | 994 |
+| [Design an Approval Workflow](./articles/ind.approvals_building_blocks_of_advanced_approvals.htm.md) | `ind.approvals_building_blocks_of_advanced_approvals.htm` | 3,082 |
+| [User Interface, Component, and List View Behavior](./articles/ind.approvals_create_a_flow_to_update_records.htm.md) | `ind.approvals_create_a_flow_to_update_records.htm` | 1,655 |
+| [Create Approval Alert Content Definition Records](./articles/ind.approvals_create_approval_alert_content_definition_records.htm.md) | `ind.approvals_create_approval_alert_content_definition_records.htm` | 1,363 |
+| [Create Approval Delegation Records](./articles/ind.approvals_create_delegation_records.htm.md) | `ind.approvals_create_delegation_records.htm` | 1,198 |
+| [Rule-Based Auto-Approvals](./articles/ind.approvals_define_custom_logic_auto_approvals.htm.md) | `ind.approvals_define_custom_logic_auto_approvals.htm` | 5,568 |
+| [Considerations for Advanced Approval Delegations](./articles/ind.approvals_delegation_considerations.htm.md) | `ind.approvals_delegation_considerations.htm` | 722 |
+| [Customize Pages for Approvals](./articles/ind.approvals_design_advanced_approvals.htm.md) | `ind.approvals_design_advanced_approvals.htm` | 802 |
+| [Design, Build, and Activation](./articles/ind.approvals_design_build_activation.htm.md) | `ind.approvals_design_build_activation.htm` | 977 |
+| [Considerations for Emails in Advanced Approvals](./articles/ind.approvals_email_notification_behavior.htm.md) | `ind.approvals_email_notification_behavior.htm` | 2,076 |
+| [Email Templates in Advanced Approvals](./articles/ind.approvals_email_templates.htm.md) | `ind.approvals_email_templates.htm` | 2,235 |
+| [Environment & Setup](./articles/ind.approvals_environment_setup.htm.md) | `ind.approvals_environment_setup.htm` | 620 |
+| [Example: Configure an Approval Workflow](./articles/ind.approvals_example_configure_an_approval_workflow.htm.md) | `ind.approvals_example_configure_an_approval_workflow.htm` | 7,210 |
+| [Implement Serial and Parallel Approvers](./articles/ind.approvals_implement_serial_and_parallel_approvers.htm.md) | `ind.approvals_implement_serial_and_parallel_approvers.htm` | 647 |
+| [Configure Lightning Components for Approvals](./articles/ind.approvals_lightning_components.htm.md) | `ind.approvals_lightning_components.htm` | 1,391 |
+| [Begin Using Advanced Approvals](./articles/ind.approvals_manage_advanced_approvals.htm.md) | `ind.approvals_manage_advanced_approvals.htm` | 1,385 |
+| [Considerations for Approval Objects](./articles/ind.approvals_objects_considerations.htm.md) | `ind.approvals_objects_considerations.htm` | 673 |
+| [Advanced Approvals Personas and Permissions](./articles/ind.approvals_personas.htm.md) | `ind.approvals_personas.htm` | 1,414 |
+| [Preview an Approval Workflow](./articles/ind.approvals_preview.htm.md) | `ind.approvals_preview.htm` | 735 |
+| [Preview Approvals](./articles/ind.approvals_preview_approvals.htm.md) | `ind.approvals_preview_approvals.htm` | 1,328 |
+| [Example: How Step Conditions Affect a Preview](./articles/ind.approvals_preview_example.htm.md) | `ind.approvals_preview_example.htm` | 1,565 |
+| [Preview Approvals Considerations](./articles/ind.approvals_preview_feature_limitations.htm.md) | `ind.approvals_preview_feature_limitations.htm` | 1,248 |
+| [Add a Related List to an Approval Page](./articles/ind.approvals_related_lists.htm.md) | `ind.approvals_related_lists.htm` | 590 |
+| [Set Up Advanced Approvals](./articles/ind.approvals_set_up_advanced_approvals.htm.md) | `ind.approvals_set_up_advanced_approvals.htm` | 1,493 |
+| [Share Temporary Access to Records in Advanced Approvals](./articles/ind.approvals_share_records_using_triggers.htm.md) | `ind.approvals_share_records_using_triggers.htm` | 2,295 |
+| [Approvals in Slack](./articles/ind.approvals_slack.htm.md) | `ind.approvals_slack.htm` | 1,909 |
+| [Post Approval Notifications to a Slack Channel](./articles/ind.approvals_slack_channel_notifications.htm.md) | `ind.approvals_slack_channel_notifications.htm` | 1,143 |
+| [Considerations for Approvals in Slack](./articles/ind.approvals_slack_considerations.htm.md) | `ind.approvals_slack_considerations.htm` | 981 |
+| [Smart Approval Limitations](./articles/ind.approvals_smart_approval_limitations.htm.md) | `ind.approvals_smart_approval_limitations.htm` | 2,088 |
+| [Smart Approvals](./articles/ind.approvals_smart_approvals.htm.md) | `ind.approvals_smart_approvals.htm` | 2,135 |
+| [Smart Approvals and Rule-Based Auto-Approvals](./articles/ind.approvals_smart_or_rule_based_approvals.htm.md) | `ind.approvals_smart_or_rule_based_approvals.htm` | 3,321 |
+| [Turn On Advanced Approval Delegation](./articles/ind.approvals_turn_on_delegation.htm.md) | `ind.approvals_turn_on_delegation.htm` | 637 |
+| [Set Up Dynamic Approval Notifications](./articles/ind.approvals_turn_on_dynamic_approvals.htm.md) | `ind.approvals_turn_on_dynamic_approvals.htm` | 1,899 |
+| [Turn On Slack Notifications for Approvals](./articles/ind.approvals_turn_on_slack_notifs.htm.md) | `ind.approvals_turn_on_slack_notifs.htm` | 657 |
+| [Turn On Smart Approvals](./articles/ind.approvals_turn_on_smart_approvals.htm.md) | `ind.approvals_turn_on_smart_approvals.htm` | 539 |
+| [Approval Workflow Types](./articles/ind.approvals_types_of_approvals.htm.md) | `ind.approvals_types_of_approvals.htm` | 2,997 |
+| [Use Advanced Approvals in a Quote](./articles/ind.approvals_use_advanced_approvals_in_a_quote.htm.md) | `ind.approvals_use_advanced_approvals_in_a_quote.htm` | 3,658 |
+| [Use the Stage Exit Condition](./articles/ind.approvals_use_the_stage_exit_condition.htm.md) | `ind.approvals_use_the_stage_exit_condition.htm` | 1,883 |
 
 ## Captured — billing (265)
 
@@ -1170,4 +1219,4 @@ Captures **9 functional areas** of Revenue Cloud Help: agents, billing, configur
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:10:44Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:13:05Z.*

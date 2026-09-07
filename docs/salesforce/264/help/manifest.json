@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "agents",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264",
-  "root_article_id": "ind.rev_agent_overview.htm",
-  "article_id_prefix": "ind.rev_agent",
+  "area": "approvals",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264",
+  "root_article_id": "ind.approvals_advanced_approvals.htm",
+  "article_id_prefix": "ind.approvals",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -178,9 +178,414 @@
         "kept": 17,
         "before_prefix_filter": 1371
       }
+    },
+    {
+      "area": "approvals",
+      "root_article_id": "ind.approvals_advanced_approvals.htm",
+      "article_id_prefix": "ind.approvals",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264",
+      "last_updated": "2026-09-07T22:13:05Z",
+      "stats": {
+        "discovered": 43,
+        "captured": 43,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 80323
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 43,
+        "before_prefix_filter": 1371
+      }
     }
   ],
   "articles": [
+    {
+      "article_id": "ind.approvals_add_an_approval_button_for_sales_reps.htm",
+      "title": "Example: Add an Approval Button on a Record Page",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 4382,
+      "file": "articles/ind.approvals_add_an_approval_button_for_sales_reps.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_add_partners_to_approval_steps.htm",
+      "title": "Advanced Approval Objects",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 2641,
+      "file": "articles/ind.approvals_add_partners_to_approval_steps.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_advanced_approvals.htm",
+      "title": "Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "body_length": 3196,
+      "file": "articles/ind.approvals_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_advanced_approvals_considerations.htm",
+      "title": "Advanced Approvals Considerations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1545,
+      "file": "articles/ind.approvals_advanced_approvals_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_approval_delegation.htm",
+      "title": "Advanced Approval Delegation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1446,
+      "file": "articles/ind.approvals_approval_delegation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_approval_process_execution.htm",
+      "title": "Approval Process Execution",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 994,
+      "file": "articles/ind.approvals_approval_process_execution.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "title": "Design an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 3082,
+      "file": "articles/ind.approvals_building_blocks_of_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_a_flow_to_update_records.htm",
+      "title": "User Interface, Component, and List View Behavior",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 1655,
+      "file": "articles/ind.approvals_create_a_flow_to_update_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_approval_alert_content_definition_records.htm",
+      "title": "Create Approval Alert Content Definition Records",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_email_templates.htm",
+      "body_length": 1363,
+      "file": "articles/ind.approvals_create_approval_alert_content_definition_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_delegation_records.htm",
+      "title": "Create Approval Delegation Records",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_approval_delegation.htm",
+      "body_length": 1198,
+      "file": "articles/ind.approvals_create_delegation_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_define_custom_logic_auto_approvals.htm",
+      "title": "Rule-Based Auto-Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "body_length": 5568,
+      "file": "articles/ind.approvals_define_custom_logic_auto_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_delegation_considerations.htm",
+      "title": "Considerations for Advanced Approval Delegations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 722,
+      "file": "articles/ind.approvals_delegation_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_design_advanced_approvals.htm",
+      "title": "Customize Pages for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 802,
+      "file": "articles/ind.approvals_design_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_design_build_activation.htm",
+      "title": "Design, Build, and Activation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 977,
+      "file": "articles/ind.approvals_design_build_activation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_email_notification_behavior.htm",
+      "title": "Considerations for Emails in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 2076,
+      "file": "articles/ind.approvals_email_notification_behavior.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_email_templates.htm",
+      "title": "Email Templates in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 2235,
+      "file": "articles/ind.approvals_email_templates.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_environment_setup.htm",
+      "title": "Environment & Setup",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 620,
+      "file": "articles/ind.approvals_environment_setup.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_example_configure_an_approval_workflow.htm",
+      "title": "Example: Configure an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 7210,
+      "file": "articles/ind.approvals_example_configure_an_approval_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_implement_serial_and_parallel_approvers.htm",
+      "title": "Implement Serial and Parallel Approvers",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_types_of_approvals.htm",
+      "body_length": 647,
+      "file": "articles/ind.approvals_implement_serial_and_parallel_approvers.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_lightning_components.htm",
+      "title": "Configure Lightning Components for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 1391,
+      "file": "articles/ind.approvals_lightning_components.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_manage_advanced_approvals.htm",
+      "title": "Begin Using Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1385,
+      "file": "articles/ind.approvals_manage_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_objects_considerations.htm",
+      "title": "Considerations for Approval Objects",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 673,
+      "file": "articles/ind.approvals_objects_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_personas.htm",
+      "title": "Advanced Approvals Personas and Permissions",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1414,
+      "file": "articles/ind.approvals_personas.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview.htm",
+      "title": "Preview an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_preview_approvals.htm",
+      "body_length": 735,
+      "file": "articles/ind.approvals_preview.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_approvals.htm",
+      "title": "Preview Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1328,
+      "file": "articles/ind.approvals_preview_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_example.htm",
+      "title": "Example: How Step Conditions Affect a Preview",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_preview_approvals.htm",
+      "body_length": 1565,
+      "file": "articles/ind.approvals_preview_example.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_feature_limitations.htm",
+      "title": "Preview Approvals Considerations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 1248,
+      "file": "articles/ind.approvals_preview_feature_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_related_lists.htm",
+      "title": "Add a Related List to an Approval Page",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 590,
+      "file": "articles/ind.approvals_related_lists.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_set_up_advanced_approvals.htm",
+      "title": "Set Up Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1493,
+      "file": "articles/ind.approvals_set_up_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_share_records_using_triggers.htm",
+      "title": "Share Temporary Access to Records in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 2295,
+      "file": "articles/ind.approvals_share_records_using_triggers.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack.htm",
+      "title": "Approvals in Slack",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1909,
+      "file": "articles/ind.approvals_slack.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack_channel_notifications.htm",
+      "title": "Post Approval Notifications to a Slack Channel",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_slack.htm",
+      "body_length": 1143,
+      "file": "articles/ind.approvals_slack_channel_notifications.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack_considerations.htm",
+      "title": "Considerations for Approvals in Slack",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 981,
+      "file": "articles/ind.approvals_slack_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_approval_limitations.htm",
+      "title": "Smart Approval Limitations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 2088,
+      "file": "articles/ind.approvals_smart_approval_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_approvals.htm",
+      "title": "Smart Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "body_length": 2135,
+      "file": "articles/ind.approvals_smart_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "title": "Smart Approvals and Rule-Based Auto-Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 3321,
+      "file": "articles/ind.approvals_smart_or_rule_based_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_delegation.htm",
+      "title": "Turn On Advanced Approval Delegation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_approval_delegation.htm",
+      "body_length": 637,
+      "file": "articles/ind.approvals_turn_on_delegation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_dynamic_approvals.htm",
+      "title": "Set Up Dynamic Approval Notifications",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1899,
+      "file": "articles/ind.approvals_turn_on_dynamic_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_slack_notifs.htm",
+      "title": "Turn On Slack Notifications for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_slack.htm",
+      "body_length": 657,
+      "file": "articles/ind.approvals_turn_on_slack_notifs.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_smart_approvals.htm",
+      "title": "Turn On Smart Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_approvals.htm",
+      "body_length": 539,
+      "file": "articles/ind.approvals_turn_on_smart_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_types_of_approvals.htm",
+      "title": "Approval Workflow Types",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 2997,
+      "file": "articles/ind.approvals_types_of_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_use_advanced_approvals_in_a_quote.htm",
+      "title": "Use Advanced Approvals in a Quote",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 3658,
+      "file": "articles/ind.approvals_use_advanced_approvals_in_a_quote.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_use_the_stage_exit_condition.htm",
+      "title": "Use the Stage Exit Condition",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 1883,
+      "file": "articles/ind.approvals_use_the_stage_exit_condition.htm.md"
+    },
     {
       "article_id": "ind.billing.htm",
       "title": "Manage Billing in Revenue Management",
@@ -9986,12 +10391,12 @@
       "file": "articles/ind.um_wallet_management.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T22:10:44Z",
+  "last_updated": "2026-09-07T22:13:05Z",
   "stats": {
-    "discovered": 1091,
-    "captured": 1088,
+    "discovered": 1134,
+    "captured": 1131,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2649164
+    "total_captured_body_chars": 2729487
   }
 }
