@@ -42,6 +42,9 @@ class _NullLogger:
     def info(self, msg):
         pass
 
+    def warning(self, msg):
+        pass
+
     def error(self, msg):
         pass
 
@@ -284,6 +287,90 @@ def main():
     result12 = asyncio.run(run_capture(t12, page12))
     check("a genuine article title/body is not flagged as not-found",
           "error" not in result12)
+
+    # --- _capture_articles stale-artifact cleanup on refresh (PR #409 review
+    # round 2) -----------------------------------------------------------
+    # A `mode: refresh` run on an article that was previously captured
+    # successfully but has since become an error (not-found shell, empty
+    # body, etc.) must not leave the prior capture's file/body_length behind
+    # — a directory scan of articles/*.md that doesn't filter on manifest
+    # `status` would otherwise still surface the stale, now-invalid content.
+    import tempfile
+    from pathlib import Path
+
+    async def run_capture_articles(t, browser, articles, articles_dir, manifest, manifest_path):
+        await t._capture_articles(browser, articles, articles_dir, manifest, manifest_path)
+
+    class _FakeErrorPage:
+        async def goto(self, url, wait_until=None, timeout=None):
+            pass
+
+        async def wait_for_timeout(self, ms):
+            pass
+
+        async def evaluate(self, js):
+            return {
+                "title": "We looked high and low\nbut couldn't find that page.",
+                "body": "We looked high and low\nbut couldn't find that page.\nGo Home",
+                "breadcrumb": None,
+            }
+
+    class _FakeErrorContext:
+        async def new_page(self):
+            return _FakeErrorPage()
+
+        async def close(self):
+            pass
+
+    class _FakeErrorBrowser:
+        async def new_context(self):
+            return _FakeErrorContext()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        articles_dir = tmp_path / "articles"
+        articles_dir.mkdir()
+        article_id = "ind.example_retired.htm"
+        stale_path = articles_dir / f"{article_id}.md"
+        stale_path.write_text("stale captured content", encoding="utf-8")
+
+        t13 = _task(area="dro", concurrency=1)
+        manifest = {
+            "articles": [
+                {
+                    "article_id": article_id,
+                    "title": "A Previously Real Title",
+                    "status": "captured",
+                    "area": "dro",
+                    "file": f"articles/{article_id}.md",
+                    "body_length": 23,
+                }
+            ]
+        }
+        manifest_path = tmp_path / "manifest.json"
+        t13._save_manifest = lambda path, m: None  # avoid touching disk mid-run
+        t13._article_url = lambda aid: f"https://example.test/{aid}"
+
+        asyncio.run(run_capture_articles(
+            t13,
+            _FakeErrorBrowser(),
+            manifest["articles"],
+            articles_dir,
+            manifest,
+            manifest_path,
+        ))
+
+        refreshed = manifest["articles"][0]
+        check("refresh-to-error clears the stale file field",
+              "file" not in refreshed)
+        check("refresh-to-error clears the stale body_length field",
+              "body_length" not in refreshed)
+        check("refresh-to-error deletes the stale markdown file from disk",
+              not stale_path.exists())
+        check("refresh-to-error preserves the discovery/prior title",
+              refreshed["title"] == "A Previously Real Title")
+        check("refresh-to-error marks status error",
+              refreshed["status"] == "error")
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

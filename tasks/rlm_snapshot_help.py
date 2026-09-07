@@ -875,16 +875,25 @@ class SnapshotSalesforceHelp(BaseTask):
                     # area via render_article_markdown below).
                     record.setdefault("area", self.options["area"])
                     record.setdefault("article_id", article_id)
-                    if captured.get("error"):
+                    if captured.get("error") or not captured.get("body"):
+                        # A refresh can turn a previously-captured article into
+                        # an error (e.g. it's since become a not-found shell —
+                        # PR #409 review round 2). Drop the stale file/metadata
+                        # from the prior successful capture rather than leaving
+                        # it on disk and in the manifest, still marked
+                        # `captured`-looking except for `status`, where a
+                        # directory scan (not filtering on `status`) would
+                        # still surface it. `title` is untouched here — it's
+                        # only ever set by a successful capture (below), so on
+                        # error it already stays whatever discovery/a prior
+                        # capture last put there.
+                        error = captured.get("error") or "Empty body"
                         record["status"] = "error"
-                        record["error"] = captured["error"]
-                        self.logger.warning(
-                            f"  [skip] {article_id}: {captured['error']}"
-                        )
-                    elif not captured.get("body"):
-                        record["status"] = "error"
-                        record["error"] = "Empty body"
-                        self.logger.warning(f"  [skip] {article_id}: empty body")
+                        record["error"] = error
+                        if record.pop("file", None):
+                            (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
+                        record.pop("body_length", None)
+                        self.logger.warning(f"  [skip] {article_id}: {error}")
                     else:
                         body = captured["body"]
                         title = captured.get("title") or record.get("title") or article_id
