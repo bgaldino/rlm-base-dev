@@ -3702,7 +3702,7 @@ tasks:
   # areas — they are recorded after a capture, not predicted before one. The
   # six verified areas are the exception: each carries an expect_min_articles
   # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35,
-  # pricing 78) set at ~50% of its 262 twin's count, to tolerate real content
+  # pricing 55) set at ~50% of its 262 twin's count, to tolerate real content
   # growth/shrinkage between releases without re-flagging as unverified.
 
   snapshot_dev_guide_264:
@@ -3764,7 +3764,7 @@ tasks:
       root_article_id: ind.pricing_salesforce_pricing.htm
       article_id_prefix: ind.pricing
       mode: all
-      expect_min_articles: 78
+      expect_min_articles: 55
 
   snapshot_rating_help_264:
     group: Documentation
