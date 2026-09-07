@@ -1059,6 +1059,7 @@
 - `root_article_id`: `ind.pricing_salesforce_pricing.htm`
 - `article_id_prefix`: `ind.pricing`
 - `mode`: `all`
+- `expect_min_articles`: `55`
 
 ---
 

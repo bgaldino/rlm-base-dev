@@ -1,19 +1,19 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **5 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, transaction_mgmt.
+Captures **6 functional areas** of Revenue Cloud Help: billing, configurator, dro, pcm, pricing, transaction_mgmt.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T17:34:30Z
+**Last updated:** 2026-09-07T19:45:55Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 797 |
-| Captured | 794 |
+| Discovered | 952 |
+| Captured | 949 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 1,993,375 |
+| Total captured body chars | 2,406,380 |
 
 ## Per-Area Coverage
 
@@ -23,6 +23,7 @@ Captures **5 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264) | `ind.product_configurator` | 83 | 2026-09-04T21:44:25Z |
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264) | `ind.dro` | 96 | 2026-09-07T17:34:30Z |
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5&release=264) | `ind.product_catalog` | 142 | 2026-09-04T22:35:52Z |
+| **pricing** | [ind.pricing_salesforce_pricing.htm](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264) | `ind.pricing` | 155 | 2026-09-07T19:45:55Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
 
 ## Captured — billing (265)
@@ -631,6 +632,166 @@ Captures **5 functional areas** of Revenue Cloud Help: billing, configurator, dr
 | [Verify the Facets on the Product Discovery Product List Page](./articles/ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm.md) | `ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm` | 748 |
 | [Product Visibility and Recommendations in Real Time](./articles/ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm.md) | `ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm` | 5,485 |
 
+## Captured — pricing (155)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Access Your Pricing Information](./articles/ind.pricing_access_your_pricing_information.htm.md) | `ind.pricing_access_your_pricing_information.htm` | 1,576 |
+| [Calculate Aggregate Prices for Products](./articles/ind.pricing_add_aggregate_price_element.htm.md) | `ind.pricing_add_aggregate_price_element.htm` | 1,778 |
+| [Attribute-Based Discounts](./articles/ind.pricing_add_attribute_based_price_element.htm.md) | `ind.pricing_add_attribute_based_price_element.htm` | 1,735 |
+| [Bundle-Based Price](./articles/ind.pricing_add_bundle_based_price_element.htm.md) | `ind.pricing_add_bundle_based_price_element.htm` | 1,316 |
+| [Add the Calculate Price Button](./articles/ind.pricing_add_calculate_price_button.htm.md) | `ind.pricing_add_calculate_price_button.htm` | 1,622 |
+| [Update Context Tags to Pricing Elements with Einstein AI](./articles/ind.pricing_add_context_tags_automatically_to_your_pricing_elements.htm.md) | `ind.pricing_add_context_tags_automatically_to_your_pricing_elements.htm` | 790 |
+| [Fetch the List Price of a Product](./articles/ind.pricing_add_list_price_element.htm.md) | `ind.pricing_add_list_price_element.htm` | 2,108 |
+| [Manually Discount Product Prices](./articles/ind.pricing_add_manual_discount_element.htm.md) | `ind.pricing_add_manual_discount_element.htm` | 1,797 |
+| [Add Products as Price Book Entries](./articles/ind.pricing_add_products_as_price_book_entries.htm.md) | `ind.pricing_add_products_as_price_book_entries.htm` | 711 |
+| [Dynamic Pricing With Price Adjustment Matrix](./articles/ind.pricing_add_the_price_adjustment_matrix_element.htm.md) | `ind.pricing_add_the_price_adjustment_matrix_element.htm` | 1,548 |
+| [Configure the Proration and Subscription Element](./articles/ind.pricing_add_the_subscription_price_proration_element.htm.md) | `ind.pricing_add_the_subscription_price_proration_element.htm` | 2,932 |
+| [Understand the Difference Between Volume and Tier Discounts](./articles/ind.pricing_add_tier_discount_element.htm.md) | `ind.pricing_add_tier_discount_element.htm` | 2,009 |
+| [Volume and Tier Based Discounts](./articles/ind.pricing_add_volume_discount_element.htm.md) | `ind.pricing_add_volume_discount_element.htm` | 1,642 |
+| [Set Up Advanced Price Logs](./articles/ind.pricing_advanced_price_log_settings.htm.md) | `ind.pricing_advanced_price_log_settings.htm` | 1,171 |
+| [Annual Proration Examples](./articles/ind.pricing_annual_proration_examples.htm.md) | `ind.pricing_annual_proration_examples.htm` | 2,587 |
+| [Annual Proration Examples for Leap Years](./articles/ind.pricing_annual_proration_examples_for_leap_years.htm.md) | `ind.pricing_annual_proration_examples_for_leap_years.htm` | 2,784 |
+| [Best Practices for Apex Pricing Hooks](./articles/ind.pricing_apex_hooks_best_practices.htm.md) | `ind.pricing_apex_hooks_best_practices.htm` | 9,640 |
+| [Apply Policy-Driven Price Revisions](./articles/ind.pricing_apply_policy_driven_price_revisions.htm.md) | `ind.pricing_apply_policy_driven_price_revisions.htm` | 1,758 |
+| [Use the Rounding Values Element](./articles/ind.pricing_apply_the_rounding_values_element.htm.md) | `ind.pricing_apply_the_rounding_values_element.htm` | 3,210 |
+| [Map Context Tag Data Using Assignment Element](./articles/ind.pricing_assignment.htm.md) | `ind.pricing_assignment.htm` | 2,633 |
+| [Attribute-Based Pricing Limits](./articles/ind.pricing_attribute_based_pricing_limits.htm.md) | `ind.pricing_attribute_based_pricing_limits.htm` | 1,468 |
+| [Automate Pricing Data Sync with a Scheduled Flow](./articles/ind.pricing_automate_pricing_data_sync.htm.md) | `ind.pricing_automate_pricing_data_sync.htm` | 3,614 |
+| [Calculate Attribute-Based Discounts](./articles/ind.pricing_calculate_attribute_based_discounts.htm.md) | `ind.pricing_calculate_attribute_based_discounts.htm` | 3,722 |
+| [Calculate Bundle-Based Discounts](./articles/ind.pricing_calculate_bundle_based_discounts.htm.md) | `ind.pricing_calculate_bundle_based_discounts.htm` | 4,041 |
+| [Calculate Contract-Based Pricing](./articles/ind.pricing_calculate_contract_based_pricing.htm.md) | `ind.pricing_calculate_contract_based_pricing.htm` | 4,450 |
+| [Cumulative Pricing Using Volume or Tier Discount Elements](./articles/ind.pricing_calculate_cumulative_discounts_for_volume_and_tier.htm.md) | `ind.pricing_calculate_cumulative_discounts_for_volume_and_tier.htm` | 2,870 |
+| [Calculate Price of a Product by Using the Standard Price Action](./articles/ind.pricing_calculate_price_of_object.htm.md) | `ind.pricing_calculate_price_of_object.htm` | 579 |
+| [Calculate Product Prices Using Price Adjustment Matrix](./articles/ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm.md) | `ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm` | 3,312 |
+| [Calculate the Derived Price of Product](./articles/ind.pricing_calculate_the_derived_price_of_product.htm.md) | `ind.pricing_calculate_the_derived_price_of_product.htm` | 4,964 |
+| [Calculate Volume or Tiered Discounts with Cumulative Pricing](./articles/ind.pricing_calculate_volume_or_tiered_discounts_with_cumulative_pricing.htm.md) | `ind.pricing_calculate_volume_or_tiered_discounts_with_cumulative_pricing.htm` | 4,460 |
+| [Configure Decision Explainer for Price Waterfall](./articles/ind.pricing_configure_decision_explainer_for_price_waterfall.htm.md) | `ind.pricing_configure_decision_explainer_for_price_waterfall.htm` | 2,882 |
+| [Configure Decision Tables](./articles/ind.pricing_configure_decision_tables.htm.md) | `ind.pricing_configure_decision_tables.htm` | 706 |
+| [Customize the Pricing Action Button by Using Lightning Components](./articles/ind.pricing_configure_pricing_action_button_using_LWC.htm.md) | `ind.pricing_configure_pricing_action_button_using_LWC.htm` | 1,233 |
+| [Configure Pricing Parameters for Standard Objects](./articles/ind.pricing_configure_pricing_action_parameters_for_standards_objects.htm.md) | `ind.pricing_configure_pricing_action_parameters_for_standards_objects.htm` | 1,447 |
+| [Configure Your Pricing Procedure](./articles/ind.pricing_configure_pricing_procedure.htm.md) | `ind.pricing_configure_pricing_procedure.htm` | 7,161 |
+| [Configure a Product Selling Model for Your Products](./articles/ind.pricing_configure_product_selling_model_for_your_products.htm.md) | `ind.pricing_configure_product_selling_model_for_your_products.htm` | 612 |
+| [Configure Proration Settings](./articles/ind.pricing_configure_proration_settings.htm.md) | `ind.pricing_configure_proration_settings.htm` | 2,011 |
+| [Configure Salesforce Pricing Objects](./articles/ind.pricing_configure_salesforce_pricing_objects.htm.md) | `ind.pricing_configure_salesforce_pricing_objects.htm` | 2,737 |
+| [Configure the Price Propagation Element](./articles/ind.pricing_configure_the_price_propagation_element.htm.md) | `ind.pricing_configure_the_price_propagation_element.htm` | 4,223 |
+| [Considerations for Importing and Exporting Pricing Data](./articles/ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm.md) | `ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm` | 2,017 |
+| [Considerations for Migrating Attribute-Based Adjustments](./articles/ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm.md) | `ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm` | 1,679 |
+| [Contract-Based Pricing](./articles/ind.pricing_contract_based_pricing.htm.md) | `ind.pricing_contract_based_pricing.htm` | 801 |
+| [Create a Custom Procedure Plan Definition](./articles/ind.pricing_create_a_custom_procedure_plan_definition.htm.md) | `ind.pricing_create_a_custom_procedure_plan_definition.htm` | 2,464 |
+| [Configure Pricing Resolution Strategies](./articles/ind.pricing_create_a_procedure_output_resolution_record.htm.md) | `ind.pricing_create_a_procedure_output_resolution_record.htm` | 1,727 |
+| [Create a Proration Policy for a Subscription](./articles/ind.pricing_create_a_proration_policy.htm.md) | `ind.pricing_create_a_proration_policy.htm` | 2,295 |
+| [Create a Decision Table](./articles/ind.pricing_create_a_standard_decision_table.htm.md) | `ind.pricing_create_a_standard_decision_table.htm` | 1,667 |
+| [Create and Configure a CSV-Based Decision Table](./articles/ind.pricing_create_and_configure_a_csv_based_decision_table.htm.md) | `ind.pricing_create_and_configure_a_csv_based_decision_table.htm` | 1,865 |
+| [Create Attribute Based Adjustments](./articles/ind.pricing_create_attribute_based_adjustments.htm.md) | `ind.pricing_create_attribute_based_adjustments.htm` | 2,243 |
+| [Create Bundle Based Adjustments](./articles/ind.pricing_create_bundle_based_adjustments.htm.md) | `ind.pricing_create_bundle_based_adjustments.htm` | 2,263 |
+| [Create Constant Resources](./articles/ind.pricing_create_constant_resource.htm.md) | `ind.pricing_create_constant_resource.htm` | 945 |
+| [Context Definitions](./articles/ind.pricing_create_context_definitions.htm.md) | `ind.pricing_create_context_definitions.htm` | 1,338 |
+| [Create a Pricing Recipe](./articles/ind.pricing_create_new_pricing_recipe.htm.md) | `ind.pricing_create_new_pricing_recipe.htm` | 1,842 |
+| [Decision Tables](./articles/ind.pricing_create_or_use_predefined_lookup_tables.htm.md) | `ind.pricing_create_or_use_predefined_lookup_tables.htm` | 2,002 |
+| [Create and Manage Price Adjustment Schedules](./articles/ind.pricing_create_price_adjustment_schedules.htm.md) | `ind.pricing_create_price_adjustment_schedules.htm` | 2,398 |
+| [Create Price Adjustment Tiers for Volume Discounts](./articles/ind.pricing_create_price_adjustment_tiers_volume_discounts.htm.md) | `ind.pricing_create_price_adjustment_tiers_volume_discounts.htm` | 3,325 |
+| [Create Procedure Plan Definitions by Using Templates](./articles/ind.pricing_create_procedure_plan_defintions_templates.htm.md) | `ind.pricing_create_procedure_plan_defintions_templates.htm` | 1,813 |
+| [Create Procedure Plans](./articles/ind.pricing_create_procedure_plans.htm.md) | `ind.pricing_create_procedure_plans.htm` | 1,145 |
+| [CSV-Based Decision Table Limitations](./articles/ind.pricing_csv_based_decision_table_limitations.htm.md) | `ind.pricing_csv_based_decision_table_limitations.htm` | 1,562 |
+| [Customize Your Procedure Plans With Apex Hooks](./articles/ind.pricing_customize_pricing_procedures_with_apex_hooks.htm.md) | `ind.pricing_customize_pricing_procedures_with_apex_hooks.htm` | 47,859 |
+| [Decision Explainer for Salesforce Pricing](./articles/ind.pricing_decision_explainer_salesforce_pricing.htm.md) | `ind.pricing_decision_explainer_salesforce_pricing.htm` | 1,225 |
+| [Define Costs in Cost Books](./articles/ind.pricing_define_costs_in_cost_books.htm.md) | `ind.pricing_define_costs_in_cost_books.htm` | 2,680 |
+| [Set Price Impacting Attributes for Products](./articles/ind.pricing_define_price_impacting_attributes.htm.md) | `ind.pricing_define_price_impacting_attributes.htm` | 1,997 |
+| [Define Prices in Price Books](./articles/ind.pricing_define_prices_in_price_books.htm.md) | `ind.pricing_define_prices_in_price_books.htm` | 3,257 |
+| [Implement Derived Pricing](./articles/ind.pricing_derived_price.htm.md) | `ind.pricing_derived_price.htm` | 2,605 |
+| [Determine the Best Price for a Product Using Pricing Procedures](./articles/ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm.md) | `ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm` | 743 |
+| [Discount Distribution Service Limits](./articles/ind.pricing_discount_distribution_service_limits.htm.md) | `ind.pricing_discount_distribution_service_limits.htm` | 912 |
+| [Discount Distribution Service](./articles/ind.pricing_discount_spread_service.htm.md) | `ind.pricing_discount_spread_service.htm` | 4,025 |
+| [Begin Using Salesforce Pricing](./articles/ind.pricing_discover_and_explore.htm.md) | `ind.pricing_discover_and_explore.htm` | 949 |
+| [Discover Pricing Factors](./articles/ind.pricing_discovery_procedure_for_pricing.htm.md) | `ind.pricing_discovery_procedure_for_pricing.htm` | 2,650 |
+| [Automate Context Tag Mapping with Einstein Generative AI](./articles/ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm.md) | `ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm` | 1,377 |
+| [Configure Price Waterfall](./articles/ind.pricing_enable_price_waterfall.htm.md) | `ind.pricing_enable_price_waterfall.htm` | 381 |
+| [Ensure Price Transparency Using the Price Tracking Element](./articles/ind.pricing_ensure_price_transparency_using_the_price_tracking_element.htm.md) | `ind.pricing_ensure_price_transparency_using_the_price_tracking_element.htm` | 3,083 |
+| [Salesforce Pricing Essentials](./articles/ind.pricing_essentials.htm.md) | `ind.pricing_essentials.htm` | 10,422 |
+| [Example: Apply Discounts Sequentially for a Product](./articles/ind.pricing_example_apply_discounts_sequentially_for_a_product.htm.md) | `ind.pricing_example_apply_discounts_sequentially_for_a_product.htm` | 8,374 |
+| [Example: Calculate the Lowest Price of a Product](./articles/ind.pricing_example_calculate_the_lowest_price_of_a_product.htm.md) | `ind.pricing_example_calculate_the_lowest_price_of_a_product.htm` | 2,528 |
+| [Fix and Execute Failed Pricing Adjustment Batch Jobs](./articles/ind.pricing_execute_failed_pricing_batch_jobs.htm.md) | `ind.pricing_execute_failed_pricing_batch_jobs.htm` | 906 |
+| [Set Up Parallel Pricing Element Execution](./articles/ind.pricing_execute_pricing_elements_in_parallel.htm.md) | `ind.pricing_execute_pricing_elements_in_parallel.htm` | 1,337 |
+| [Export and Import Procedure Plans](./articles/ind.pricing_export_and_import_procedure_plans.htm.md) | `ind.pricing_export_and_import_procedure_plans.htm` | 2,284 |
+| [Export and Import Your Pricing Data](./articles/ind.pricing_export_and_import_your_pricing_data.htm.md) | `ind.pricing_export_and_import_your_pricing_data.htm` | 1,745 |
+| [Build Pricing Rules with Formula-Based Pricing](./articles/ind.pricing_formula_based_pricing.htm.md) | `ind.pricing_formula_based_pricing.htm` | 3,388 |
+| [Prerequisites to Build Pricing Procedures](./articles/ind.pricing_get_ready_to_build_pricing_procedures.htm.md) | `ind.pricing_get_ready_to_build_pricing_procedures.htm` | 2,409 |
+| [Prerequisites to Build Discovery and Derived Price Pricing Procedures](./articles/ind.pricing_get_ready_to_calculate_the_derived_price.htm.md) | `ind.pricing_get_ready_to_calculate_the_derived_price.htm` | 2,890 |
+| [Get Ready to Create Pricing Actions](./articles/ind.pricing_get_ready_to_create_pricing_actions.htm.md) | `ind.pricing_get_ready_to_create_pricing_actions.htm` | 1,332 |
+| [Salesforce Pricing Limits](./articles/ind.pricing_limits.htm.md) | `ind.pricing_limits.htm` | 2,800 |
+| [List Group and List Operation](./articles/ind.pricing_list_group_list_operation.htm.md) | `ind.pricing_list_group_list_operation.htm` | 4,150 |
+| [Map Context Tags](./articles/ind.pricing_map_context_tags_in_pricing_procedures.htm.md) | `ind.pricing_map_context_tags_in_pricing_procedures.htm` | 1,650 |
+| [Map Line Item](./articles/ind.pricing_map_line_item_element.htm.md) | `ind.pricing_map_line_item_element.htm` | 934 |
+| [Map Line Item Limits](./articles/ind.pricing_map_line_item_limits.htm.md) | `ind.pricing_map_line_item_limits.htm` | 1,506 |
+| [Modify Price Adjustment Matrices](./articles/ind.pricing_modify_price_adjustment_matrices.htm.md) | `ind.pricing_modify_price_adjustment_matrices.htm` | 712 |
+| [Monthly Proration Examples](./articles/ind.pricing_monthly_proration_examples.htm.md) | `ind.pricing_monthly_proration_examples.htm` | 3,301 |
+| [Monthly Proration Examples for Leap Years](./articles/ind.pricing_monthly_proration_examples_for_leap_years.htm.md) | `ind.pricing_monthly_proration_examples_for_leap_years.htm` | 3,306 |
+| [Monitor and Troubleshoot Pricing Issues](./articles/ind.pricing_operations_console.htm.md) | `ind.pricing_operations_console.htm` | 1,575 |
+| [Perform a Pricing Adjustment Batch Job](./articles/ind.pricing_perform_pricing_adjustment_batch_job.htm.md) | `ind.pricing_perform_pricing_adjustment_batch_job.htm` | 1,785 |
+| [Salesforce Pricing Editions, Permission Sets, and Personas](./articles/ind.pricing_permissions_salesforce_pricing.htm.md) | `ind.pricing_permissions_salesforce_pricing.htm` | 2,905 |
+| [Explore Price Adjustment Schedules](./articles/ind.pricing_price_adjustment_schedules_salesforce_pricing.htm.md) | `ind.pricing_price_adjustment_schedules_salesforce_pricing.htm` | 2,179 |
+| [Cost Books and Price Books](./articles/ind.pricing_price_books_salesforce_pricing.htm.md) | `ind.pricing_price_books_salesforce_pricing.htm` | 1,673 |
+| [Price Propagation](./articles/ind.pricing_price_propagation.htm.md) | `ind.pricing_price_propagation.htm` | 3,232 |
+| [Price Propagation Limits](./articles/ind.pricing_price_propagation_limits.htm.md) | `ind.pricing_price_propagation_limits.htm` | 1,172 |
+| [Track Price Ranges for Products](./articles/ind.pricing_price_tracking.htm.md) | `ind.pricing_price_tracking.htm` | 1,747 |
+| [Price Tracking Actions](./articles/ind.pricing_price_tracking_actions.htm.md) | `ind.pricing_price_tracking_actions.htm` | 1,012 |
+| [Pricing Action Parameters](./articles/ind.pricing_pricing_action_parameters.htm.md) | `ind.pricing_pricing_action_parameters.htm` | 1,423 |
+| [Pricing Adjustment Batch Jobs](./articles/ind.pricing_pricing_adjustment_batch_jobs.htm.md) | `ind.pricing_pricing_adjustment_batch_jobs.htm` | 1,573 |
+| [Pricing Discount Calendar](./articles/ind.pricing_pricing_discount_calendar.htm.md) | `ind.pricing_pricing_discount_calendar.htm` | 2,507 |
+| [Use Pricing Elements in Pricing Procedures](./articles/ind.pricing_pricing_element.htm.md) | `ind.pricing_pricing_element.htm` | 4,521 |
+| [Understand Your Pricing Data](./articles/ind.pricing_pricing_operations_console_sections.htm.md) | `ind.pricing_pricing_operations_console_sections.htm` | 1,286 |
+| [Build Your Pricing Procedures Using Salesforce Pricing](./articles/ind.pricing_pricing_procedures.htm.md) | `ind.pricing_pricing_procedures.htm` | 3,609 |
+| [Pricing Recipes Setup](./articles/ind.pricing_pricing_recipes.htm.md) | `ind.pricing_pricing_recipes.htm` | 2,388 |
+| [Pricing Setting](./articles/ind.pricing_pricing_setting.htm.md) | `ind.pricing_pricing_setting.htm` | 875 |
+| [Establish Procedure Output Resolution](./articles/ind.pricing_procedure_output_resolution.htm.md) | `ind.pricing_procedure_output_resolution.htm` | 2,961 |
+| [Build and Manage Your Procedure Execution](./articles/ind.pricing_procedure_plan_framework.htm.md) | `ind.pricing_procedure_plan_framework.htm` | 4,354 |
+| [Procedure Plan Limits](./articles/ind.pricing_procedure_plan_limits.htm.md) | `ind.pricing_procedure_plan_limits.htm` | 2,103 |
+| [Promotion Execution Element](./articles/ind.pricing_promotion_execution_element.htm.md) | `ind.pricing_promotion_execution_element.htm` | 593 |
+| [Learn About the Proration Multiplier](./articles/ind.pricing_proration_variables.htm.md) | `ind.pricing_proration_variables.htm` | 1,514 |
+| [Quarterly Proration Examples](./articles/ind.pricing_quarterly_proration_examples.htm.md) | `ind.pricing_quarterly_proration_examples.htm` | 1,642 |
+| [Configure Record Sharing for Salesforce Pricing](./articles/ind.pricing_record_sharing_pricing.htm.md) | `ind.pricing_record_sharing_pricing.htm` | 1,438 |
+| [Roll Up Pricing Using the Aggregate Price Element](./articles/ind.pricing_roll_up_pricing_using_the_aggregate_price_element.htm.md) | `ind.pricing_roll_up_pricing_using_the_aggregate_price_element.htm` | 2,751 |
+| [Apply Price Rounding Values](./articles/ind.pricing_rounding_values.htm.md) | `ind.pricing_rounding_values.htm` | 2,247 |
+| [Design Your Pricing Model in Revenue Management](./articles/ind.pricing_salesforce_pricing.htm.md) | `ind.pricing_salesforce_pricing.htm` | 4,818 |
+| [Semi-Annual Proration Examples](./articles/ind.pricing_semi_annual_proration_examples.htm.md) | `ind.pricing_semi_annual_proration_examples.htm` | 1,715 |
+| [Select a Pricing Procedure](./articles/ind.pricing_set_default_pricing_procedure.htm.md) | `ind.pricing_set_default_pricing_procedure.htm` | 2,954 |
+| [Configure Price Tracking History](./articles/ind.pricing_set_price_history_tracking.htm.md) | `ind.pricing_set_price_history_tracking.htm` | 904 |
+| [Set Price Waterfall Persistence](./articles/ind.pricing_set_price_waterfall_persistence.htm.md) | `ind.pricing_set_price_waterfall_persistence.htm` | 380 |
+| [Set Up Einstein Generative AI for Salesforce Pricing](./articles/ind.pricing_set_up_einstein_generative_ai_for_salesforce_pricing.htm.md) | `ind.pricing_set_up_einstein_generative_ai_for_salesforce_pricing.htm` | 219 |
+| [Set Up Price Logs Capture](./articles/ind.pricing_set_up_price_logs_capture.htm.md) | `ind.pricing_set_up_price_logs_capture.htm` | 903 |
+| [Set Up Price Waterfall](./articles/ind.pricing_set_up_price_waterfall_salesforce_pricing.htm.md) | `ind.pricing_set_up_price_waterfall_salesforce_pricing.htm` | 1,525 |
+| [Salesforce Pricing Basic Setup](./articles/ind.pricing_set_up_salesforce_pricing.htm.md) | `ind.pricing_set_up_salesforce_pricing.htm` | 3,076 |
+| [Configure a Discovery Procedure](./articles/ind.pricing_set_up_your_discovery_procedure.htm.md) | `ind.pricing_set_up_your_discovery_procedure.htm` | 2,542 |
+| [Simple Pricing Procedure Example](./articles/ind.pricing_simple_pricing_procedure_example.htm.md) | `ind.pricing_simple_pricing_procedure_example.htm` | 4,501 |
+| [Simulate and Activate Your Pricing Procedure](./articles/ind.pricing_simulate_activate_pricing_procedure.htm.md) | `ind.pricing_simulate_activate_pricing_procedure.htm` | 2,472 |
+| [Standard Pricing Actions](./articles/ind.pricing_standard_pricing_actions.htm.md) | `ind.pricing_standard_pricing_actions.htm` | 709 |
+| [Stop Pricing](./articles/ind.pricing_stop_pricing.htm.md) | `ind.pricing_stop_pricing.htm` | 1,157 |
+| [Manage Pricing Using Proration and Subscription Elements](./articles/ind.pricing_subscription_pricing_proration.htm.md) | `ind.pricing_subscription_pricing_proration.htm` | 2,326 |
+| [Common Proration Examples](./articles/ind.pricing_subscription_variables.htm.md) | `ind.pricing_subscription_variables.htm` | 2,770 |
+| [Sync Decision Tables in a Pricing Recipe](./articles/ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm.md) | `ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm` | 325 |
+| [Sync Pricing Data in Revenue Management](./articles/ind.pricing_sync_pricing_data.htm.md) | `ind.pricing_sync_pricing_data.htm` | 1,911 |
+| [Turn On Salesforce Pricing](./articles/ind.pricing_turn_on_salesforce_pricing.htm.md) | `ind.pricing_turn_on_salesforce_pricing.htm` | 563 |
+| [Salesforce Pricing Advanced Setup](./articles/ind.pricing_understand_advanced_pricing_setup.htm.md) | `ind.pricing_understand_advanced_pricing_setup.htm` | 885 |
+| [Resolve API Execution Errors](./articles/ind.pricing_understand_and_resolve_api_execution_messages.htm.md) | `ind.pricing_understand_and_resolve_api_execution_messages.htm` | 1,833 |
+| [Understand Discount Distribution Service Terms](./articles/ind.pricing_understand_discount_distribution_service_terms.htm.md) | `ind.pricing_understand_discount_distribution_service_terms.htm` | 2,279 |
+| [Understand Price Revisions](./articles/ind.pricing_understand_price_revisions.htm.md) | `ind.pricing_understand_price_revisions.htm` | 2,911 |
+| [Understand Pricing Elements](./articles/ind.pricing_understand_pricing_elements.htm.md) | `ind.pricing_understand_pricing_elements.htm` | 1,345 |
+| [Understand the Order of Execution for Place Sales Transaction](./articles/ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm.md) | `ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm` | 1,967 |
+| [Understand Your Resolution Variables](./articles/ind.pricing_understand_your_resolution_variables.htm.md) | `ind.pricing_understand_your_resolution_variables.htm` | 1,731 |
+| [Unique Pricing Scenarios](./articles/ind.pricing_unique_pricing_scenarios.htm.md) | `ind.pricing_unique_pricing_scenarios.htm` | 3,016 |
+| [Update Your Product Price Range Entries Decision Table](./articles/ind.pricing_update_your_product_price_range_entries_decision_table.htm.md) | `ind.pricing_update_your_product_price_range_entries_decision_table.htm` | 1,278 |
+| [Use the Aggregate Price Element](./articles/ind.pricing_use_the_aggregate_price_element.htm.md) | `ind.pricing_use_the_aggregate_price_element.htm` | 3,449 |
+| [Use the Discount Distribution Service Element](./articles/ind.pricing_use_the_discount_spread_service_element.htm.md) | `ind.pricing_use_the_discount_spread_service_element.htm` | 4,223 |
+| [Use the Price Revision Element in a Pricing Procedure](./articles/ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md) | `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm` | 8,515 |
+| [Use the Procedure Plan Framework](./articles/ind.pricing_use_the_procedure_plan_framework.htm.md) | `ind.pricing_use_the_procedure_plan_framework.htm` | 15,351 |
+| [View Pricing Adjustment Batch Job Logs](./articles/ind.pricing_view_pricing_adjustment_batch_job_logs.htm.md) | `ind.pricing_view_pricing_adjustment_batch_job_logs.htm` | 698 |
+| [Investigate and Analyze Pricing API Execution Logs](./articles/ind.pricing_view_pricing_api_execution_logs.htm.md) | `ind.pricing_view_pricing_api_execution_logs.htm` | 1,614 |
+| [View Pricing Data Using Lightning Components](./articles/ind.pricing_view_pricing_data.htm.md) | `ind.pricing_view_pricing_data.htm` | 1,424 |
+| [Select a Pricing Recipe for Your Salesforce Org](./articles/ind.pricing_view_pricing_recipes.htm.md) | `ind.pricing_view_pricing_recipes.htm` | 843 |
+| [Understand the Setup Objects Used for Price Waterfall](./articles/ind.pricing_view_setup_objects_price_waterfall.htm.md) | `ind.pricing_view_setup_objects_price_waterfall.htm` | 1,062 |
+| [Weekly Proration Examples](./articles/ind.pricing_weekly_proration.htm.md) | `ind.pricing_weekly_proration.htm` | 799 |
+
 ## Captured — transaction_mgmt (208)
 
 | Article | ID | Bytes |
@@ -852,4 +1013,4 @@ Captures **5 functional areas** of Revenue Cloud Help: billing, configurator, dr
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T17:34:30Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T19:45:55Z.*
