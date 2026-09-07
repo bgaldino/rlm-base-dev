@@ -21,14 +21,17 @@ published source.
 
 ## How to populate this file
 
-1. **Capture the Help portal corpus.** Seven of the 11 `snapshot_*_help_264` tasks —
-   `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating` —
+1. **Capture the Help portal corpus.** Ten of the 11 `snapshot_*_help_264` tasks —
+   `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating`,
+   `usage`, `agents`, `approvals` —
    are already captured at `docs/salesforce/264/help/` and spot-checked against their 262
    twins; their `root_article_id`/`article_id_prefix` values are confirmed
-   correct. The remaining four `snapshot_*_help_264` tasks (
-   usage, agents, approvals, collections) inherited their roots
-   from 262 **unverified** — Help article IDs are not stable across release
-   reorgs. Validate each uncaptured area's root first. (`snapshot_dev_guide_264`
+   correct. The remaining `snapshot_collections_help_264` task's root is verified
+   (discovery matches the 262 twin's 97-article count exactly), but the area is
+   **checked and not ready** — 96/97 shared bodies came back byte-identical with
+   zero net-new ids, the portal's own signal it's still serving 262 text for this
+   area. Re-check periodically rather than treating a matching discover count as
+   sufficient. (`snapshot_dev_guide_264`
    and `snapshot_industries_dev_guide_264` are a separate task family — no
    `root_article_id`, atlas-deliverable-driven, and already captured at 264;
    see `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note.)
@@ -43,25 +46,31 @@ published source.
 
    Discovery now polls until the sidebar stabilizes and raises loudly on a
    thin/empty walk (pack 146) — but the raise-below-a-floor check only fires
-   on an area with `expect_min_articles` set (currently the seven captured
-   areas above). On the other four, `discover` can still exit 0 with a
-   suspiciously low count, so read the `Discovered N unique articles` line it
+   on an area with `expect_min_articles` set (currently the ten captured
+   areas above). On `collections`, `discover` can still exit 0 with no floor
+   to check against, so read the `Discovered N unique articles` line it
    logs: piping to `grep` would report `grep`'s exit status instead of the
    task's and hide a failure that happens after the count is logged. Don't use
    the manifest either — `stats.discovered` sums every area and keeps prior runs,
-   so it stays positive through a failed re-walk (and on a first 264 run the
-   manifest does not exist yet). And even a non-zero count on one of those four
-   says nothing about whether 264 content was *written*: the articles behind a
-   valid root can still be 262 text, so a capture can spend 10–15 minutes
-   writing last release's content under a 264 path — an all-shared-articles
-   area that comes back byte-identical everywhere (no net-new ids vs the 262
-   twin) is that signal; `dro`'s readiness instead came from 29 articles that
-   exist only at 264, `pricing`'s from 45 net-new articles plus a shared
-   article whose body text itself changed release to release, and `rating`'s
-   from 35 net-new articles (70 discovered vs 35 at 262, all 35 262 ids present
-   plus 35 new ones). Per-area readiness and capture order are assessed in the
-   private artifacts repo (todo 183, following on from closed todo 145); check
-   it before committing a run to an area.
+   so it stays positive through a failed re-walk. And even a matching discover
+   count says nothing about whether 264 content was *written*: the articles
+   behind a valid root can still be 262 text, so a capture can spend 10–15
+   minutes writing last release's content under a 264 path — an
+   all-shared-articles area that comes back byte-identical everywhere (no
+   net-new ids vs the 262 twin) is that signal, and it's exactly what
+   `collections` showed (97 discovered, matching 262 exactly, 96/97 shared
+   bodies byte-identical, 0 net-new). Contrast `dro`'s readiness, which came
+   from 29 articles that exist only at 264, `pricing`'s from 45 net-new
+   articles plus a shared article whose body text itself changed release to
+   release, `rating`'s from 35 net-new articles (70 discovered vs 35 at 262,
+   all 35 262 ids present plus 35 new ones), `usage`'s from shared-body text
+   changes on an exact-count match (52 discovered, matching 262 exactly, but
+   title/edition text differs), `agents`'s from 4 net-new articles (17
+   discovered vs 13 at 262), and `approvals`'s from a title rename plus
+   net-new articles (43 discovered vs 34 at 262). Per-area readiness and
+   capture order are assessed in the private artifacts repo (todo 183,
+   following on from closed todo 145); check it before committing a run to
+   an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and

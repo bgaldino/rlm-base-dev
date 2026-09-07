@@ -3698,12 +3698,15 @@ tasks:
   # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
   # transaction management → ind.qocal_*).
   #
-  # Article counts are deliberately not asserted below for the four unverified
-  # areas — they are recorded after a capture, not predicted before one. The
-  # seven verified areas are the exception: each carries an expect_min_articles
-  # floor (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35,
-  # pricing 55, rating 17) set at ~50% of its 262 twin's count, to tolerate real
-  # content growth/shrinkage between releases without re-flagging as unverified.
+  # Article counts are deliberately not asserted for the unverified `collections`
+  # area — it is recorded after a capture, not predicted before one (and its
+  # 262-twin-matching discover count with zero net-new content means it isn't
+  # ready anyway — see the revenue-cloud-docs SKILL.md branch note). The ten
+  # verified areas are the exception: each carries an expect_min_articles floor
+  # (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35, pricing 55,
+  # rating 17, usage 26, agents 6, approvals 17) set at ~50% of its 262 twin's
+  # count, to tolerate real content growth/shrinkage between releases without
+  # re-flagging as unverified.
 
   snapshot_dev_guide_264:
     group: Documentation
@@ -3841,6 +3844,7 @@ tasks:
       root_article_id: ind.um_usage_management.htm
       article_id_prefix: ind.um
       mode: all
+      expect_min_articles: 26
 
   snapshot_billing_help_264:
     group: Documentation
@@ -3870,6 +3874,7 @@ tasks:
       root_article_id: ind.rev_agent_overview.htm
       article_id_prefix: ind.rev_agent
       mode: all
+      expect_min_articles: 6
 
   snapshot_approvals_help_264:
     group: Documentation
@@ -3884,6 +3889,7 @@ tasks:
       root_article_id: ind.approvals_advanced_approvals.htm
       article_id_prefix: ind.approvals
       mode: all
+      expect_min_articles: 17
 
   snapshot_collections_help_264:
     group: Documentation

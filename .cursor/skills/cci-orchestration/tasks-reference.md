@@ -734,6 +734,7 @@
 - `root_article_id`: `ind.rev_agent_overview.htm`
 - `article_id_prefix`: `ind.rev_agent`
 - `mode`: `all`
+- `expect_min_articles`: `6`
 
 ---
 
@@ -768,6 +769,7 @@
 - `root_article_id`: `ind.approvals_advanced_approvals.htm`
 - `article_id_prefix`: `ind.approvals`
 - `mode`: `all`
+- `expect_min_articles`: `17`
 
 ---
 
@@ -1180,6 +1182,7 @@
 - `root_article_id`: `ind.um_usage_management.htm`
 - `article_id_prefix`: `ind.um`
 - `mode`: `all`
+- `expect_min_articles`: `26`
 
 ---
 
