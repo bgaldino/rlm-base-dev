@@ -21,12 +21,12 @@ published source.
 
 ## How to populate this file
 
-1. **Capture the Help portal corpus.** Six of the 11 `snapshot_*_help_264` tasks —
-   `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing` — are
-   already captured at `docs/salesforce/264/help/` and spot-checked against their 262
+1. **Capture the Help portal corpus.** Seven of the 11 `snapshot_*_help_264` tasks —
+   `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating` —
+   are already captured at `docs/salesforce/264/help/` and spot-checked against their 262
    twins; their `root_article_id`/`article_id_prefix` values are confirmed
-   correct. The remaining five `snapshot_*_help_264` tasks (
-   rating, usage, agents, approvals, collections) inherited their roots
+   correct. The remaining four `snapshot_*_help_264` tasks (
+   usage, agents, approvals, collections) inherited their roots
    from 262 **unverified** — Help article IDs are not stable across release
    reorgs. Validate each uncaptured area's root first. (`snapshot_dev_guide_264`
    and `snapshot_industries_dev_guide_264` are a separate task family — no
@@ -34,8 +34,8 @@ published source.
    see `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note.)
 
    ```bash
-   cci task run snapshot_rating_help_264 -o mode discover   # read "Discovered N unique articles"
-   cci task run snapshot_rating_help_264                    # only if that N is non-zero
+   cci task run snapshot_usage_help_264 -o mode discover   # read "Discovered N unique articles"
+   cci task run snapshot_usage_help_264                    # only if that N is non-zero
    ```
 
    Captures land in `docs/salesforce/264/help/` and
@@ -43,24 +43,25 @@ published source.
 
    Discovery now polls until the sidebar stabilizes and raises loudly on a
    thin/empty walk (pack 146) — but the raise-below-a-floor check only fires
-   on an area with `expect_min_articles` set (currently the six captured
-   areas above). On the other five, `discover` can still exit 0 with a
+   on an area with `expect_min_articles` set (currently the seven captured
+   areas above). On the other four, `discover` can still exit 0 with a
    suspiciously low count, so read the `Discovered N unique articles` line it
    logs: piping to `grep` would report `grep`'s exit status instead of the
    task's and hide a failure that happens after the count is logged. Don't use
    the manifest either — `stats.discovered` sums every area and keeps prior runs,
    so it stays positive through a failed re-walk (and on a first 264 run the
-   manifest does not exist yet). And even a non-zero count on one of those five
+   manifest does not exist yet). And even a non-zero count on one of those four
    says nothing about whether 264 content was *written*: the articles behind a
    valid root can still be 262 text, so a capture can spend 10–15 minutes
    writing last release's content under a 264 path — an all-shared-articles
    area that comes back byte-identical everywhere (no net-new ids vs the 262
    twin) is that signal; `dro`'s readiness instead came from 29 articles that
-   exist only at 264, and `pricing`'s from 45 net-new articles plus a shared
-   article whose body text itself changed release to release. Per-area
-   readiness and capture order are assessed in the private artifacts repo
-   (todo 183, following on from closed todo 145); check it before committing
-   a run to an area.
+   exist only at 264, `pricing`'s from 45 net-new articles plus a shared
+   article whose body text itself changed release to release, and `rating`'s
+   from 35 net-new articles (70 discovered vs 35 at 262, all 35 262 ids present
+   plus 35 new ones). Per-area readiness and capture order are assessed in the
+   private artifacts repo (todo 183, following on from closed todo 145); check
+   it before committing a run to an area.
 
 2. **Add the release-notes and Solution Overview sources** to the table below as
    they publish, following the 262 pattern. Internal decks are CONFIDENTIAL and
@@ -79,7 +80,7 @@ published source.
 
 | File | Description |
 |---|---|
-| [`help/`](help/) | Salesforce Help snapshot — captured for `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing` (949 articles); the other five `snapshot_*_help_264` areas remain uncaptured. |
+| [`help/`](help/) | Salesforce Help snapshot — captured for `configurator`, `transaction_mgmt` (CLM), `billing`, `pcm`, `dro`, `pricing`, `rating` (1019 articles); the other four `snapshot_*_help_264` areas remain uncaptured. |
 | *(none yet)* | Release notes and Solution Overview decks — populate as they publish. |
 
 ## Related

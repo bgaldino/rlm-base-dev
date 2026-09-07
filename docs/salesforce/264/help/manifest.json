@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "pricing",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264",
-  "root_article_id": "ind.pricing_salesforce_pricing.htm",
-  "article_id_prefix": "ind.pricing",
+  "area": "rating",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264",
+  "root_article_id": "ind.rm_rate_management.htm",
+  "article_id_prefix": "ind.rm",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -121,6 +121,25 @@
         "kept": 155,
         "before_prefix_filter": 1371
       }
+    },
+    {
+      "area": "rating",
+      "root_article_id": "ind.rm_rate_management.htm",
+      "article_id_prefix": "ind.rm",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264",
+      "last_updated": "2026-09-07T20:15:19Z",
+      "stats": {
+        "discovered": 70,
+        "captured": 70,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 115759
+      },
+      "last_run_discovered": {
+        "kept": 70,
+        "before_prefix_filter": 1371
+      },
+      "snapshot_started": "2026-09-07"
     }
   ],
   "articles": [
@@ -8679,14 +8698,643 @@
       "parent_article": "ind.qocal_asset_lifecycle_considerations.htm",
       "body_length": 1326,
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.rm_add_negotiated_tierbased_rate_adjustment.htm",
+      "title": "Add Negotiated Tier-Based Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_negotiated_tierbased_adjustment.htm",
+      "body_length": 2262,
+      "file": "articles/ind.rm_add_negotiated_tierbased_rate_adjustment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_add_negotiated_volumebased_rate_adjustment_.htm",
+      "title": "Add Negotiated Volume-Based Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_negotiated_volumebased_rate_adjustment.htm",
+      "body_length": 2345,
+      "file": "articles/ind.rm_add_negotiated_volumebased_rate_adjustment_.htm.md"
+    },
+    {
+      "article_id": "ind.rm_add_rating_get_rate_cards.htm",
+      "title": "Add Get Rate Cards Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_element_get_rate_cards.htm",
+      "body_length": 1315,
+      "file": "articles/ind.rm_add_rating_get_rate_cards.htm.md"
+    },
+    {
+      "article_id": "ind.rm_clone_the_default_rating_discovery_procedure.htm",
+      "title": "Clone the Default Rating Discovery Procedure",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedures.htm",
+      "body_length": 1217,
+      "file": "articles/ind.rm_clone_the_default_rating_discovery_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.rm_clone_the_default_rating_procedure.htm",
+      "title": "Create a Rating Procedure by Cloning the Expression Set Template",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 1189,
+      "file": "articles/ind.rm_clone_the_default_rating_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.rm_commitment_rate_adjustment.htm",
+      "title": "Commitment Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1882,
+      "file": "articles/ind.rm_commitment_rate_adjustment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_configure_your_rating_discovery_procedure.htm",
+      "title": "Configure Your Rating Discovery Procedure",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedures.htm",
+      "body_length": 1456,
+      "file": "articles/ind.rm_configure_your_rating_discovery_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.rm_create_a_base_rate_card_entry.htm",
+      "title": "Create a Rate Card Entry for Base Rate Cards",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_card_entries.htm",
+      "body_length": 1342,
+      "file": "articles/ind.rm_create_a_base_rate_card_entry.htm.md"
+    },
+    {
+      "article_id": "ind.rm_create_a_rate_card.htm",
+      "title": "Create a Rate Card",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_cards_and_rate_card_entries.htm",
+      "body_length": 721,
+      "file": "articles/ind.rm_create_a_rate_card.htm.md"
+    },
+    {
+      "article_id": "ind.rm_create_a_tier_rate_card_entry.htm",
+      "title": "Create a Rate Card Entry For Tier Rate Cards",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_card_entries.htm",
+      "body_length": 2025,
+      "file": "articles/ind.rm_create_a_tier_rate_card_entry.htm.md"
+    },
+    {
+      "article_id": "ind.rm_create_price_book_rate_cards.htm",
+      "title": "Create Price Book Rate Cards",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 605,
+      "file": "articles/ind.rm_create_price_book_rate_cards.htm.md"
+    },
+    {
+      "article_id": "ind.rm_discover_and_explore.htm",
+      "title": "Explore Rate Management in Revenue Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management.htm",
+      "body_length": 1174,
+      "file": "articles/ind.rm_discover_and_explore.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_assignment.htm",
+      "title": "Assignment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1874,
+      "file": "articles/ind.rm_element_add_assignment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_base_rate_element.htm",
+      "title": "Add the Base Rate Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_base_rate.htm",
+      "body_length": 1926,
+      "file": "articles/ind.rm_element_add_base_rate_element.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_manual_rate_discount.htm",
+      "title": "Add the Manual Rate Discount Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_manual_rate_discount.htm",
+      "body_length": 2300,
+      "file": "articles/ind.rm_element_add_manual_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_negotiated_base_rate.htm",
+      "title": "Add the Negotiated Base Rate Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_negotiated_base_rate.htm",
+      "body_length": 1999,
+      "file": "articles/ind.rm_element_add_negotiated_base_rate.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_negotiated_rate_card_entries_element.htm",
+      "title": "Add the Negotiated Rate Card Entries Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_negotiated_rate_card_entries.htm",
+      "body_length": 2024,
+      "file": "articles/ind.rm_element_add_negotiated_rate_card_entries_element.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_rate_adjustment_matrix.htm",
+      "title": "Add the Rate Adjustment Matrix Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_rate_adjustment_matrix.htm",
+      "body_length": 1977,
+      "file": "articles/ind.rm_element_add_rate_adjustment_matrix.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_rounding_values.htm",
+      "title": "Add the Rounding Values Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_rounding_values.htm",
+      "body_length": 1479,
+      "file": "articles/ind.rm_element_add_rounding_values.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_tier_based_rate_discount.htm",
+      "title": "Add the Tier-Based Rate Discount Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_tier_based_rate_discount.htm",
+      "body_length": 2601,
+      "file": "articles/ind.rm_element_add_tier_based_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_add_volume_based_rate_discount.htm",
+      "title": "Add the Volume-Based Rate Discount Element",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_volume_based_rate_discount.htm",
+      "body_length": 2609,
+      "file": "articles/ind.rm_element_add_volume_based_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_base_rate.htm",
+      "title": "Base Rate",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 741,
+      "file": "articles/ind.rm_element_base_rate.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_base_rate_variables.htm",
+      "title": "Base Rate Variables",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_base_rate.htm",
+      "body_length": 1799,
+      "file": "articles/ind.rm_element_base_rate_variables.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_bora.htm",
+      "title": "Get Binding Object Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedure_elements.htm",
+      "body_length": 2520,
+      "file": "articles/ind.rm_element_bora.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_formula_based_rating.htm",
+      "title": "Formula-Based Rating",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 806,
+      "file": "articles/ind.rm_element_formula_based_rating.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_get_borce.htm",
+      "title": "Get Binding Object Rate Card Entries",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedure_elements.htm",
+      "body_length": 3764,
+      "file": "articles/ind.rm_element_get_borce.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_get_rate_card_entries.htm",
+      "title": "Get Rate Card Entries",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedure_elements.htm",
+      "body_length": 1894,
+      "file": "articles/ind.rm_element_get_rate_card_entries.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_get_rate_cards.htm",
+      "title": "Get Rate Cards",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedure_elements.htm",
+      "body_length": 684,
+      "file": "articles/ind.rm_element_get_rate_cards.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_get_tier_based_rate_adjustments.htm",
+      "title": "Get Tier-Based Rate Adjustments",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedure_elements.htm",
+      "body_length": 1160,
+      "file": "articles/ind.rm_element_get_tier_based_rate_adjustments.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_list_group_list_operation.htm",
+      "title": "List Group and List Operation",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1873,
+      "file": "articles/ind.rm_element_list_group_list_operation.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_manual_rate_discount.htm",
+      "title": "Manual Rate Discount",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1106,
+      "file": "articles/ind.rm_element_manual_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_manual_rate_discount_variables.htm",
+      "title": "Manual Rate Discount Variables",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_manual_rate_discount.htm",
+      "body_length": 991,
+      "file": "articles/ind.rm_element_manual_rate_discount_variables.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_base_rate.htm",
+      "title": "Negotiated Base Rate",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1905,
+      "file": "articles/ind.rm_element_negotiated_base_rate.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_baserate_bindingobject.htm",
+      "title": "Negotiated Base Rate for Binding Object",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1819,
+      "file": "articles/ind.rm_element_negotiated_baserate_bindingobject.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_rate_card_entries.htm",
+      "title": "Negotiated Rate Card Entries",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 2122,
+      "file": "articles/ind.rm_element_negotiated_rate_card_entries.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_tierbased_adjustment.htm",
+      "title": "Negotiated Tier-Based Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1302,
+      "file": "articles/ind.rm_element_negotiated_tierbased_adjustment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_tierbased_rate_adjustment.htm",
+      "title": "Negotiated Tier-Based Adjustment Variables",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_negotiated_tierbased_adjustment.htm",
+      "body_length": 1629,
+      "file": "articles/ind.rm_element_negotiated_tierbased_rate_adjustment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm",
+      "title": "Negotiated Tier-Based Rate Adjustment for Binding Object",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1842,
+      "file": "articles/ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotiatedratecardentries_bindingobject.htm",
+      "title": "Negotiated Rate Card Entries for Binding Object",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 2043,
+      "file": "articles/ind.rm_element_negotiatedratecardentries_bindingobject.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm",
+      "title": "Negotiated Volume-Based Rate Adjustment for Binding Object",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1804,
+      "file": "articles/ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_rate_adjustment_matrix.htm",
+      "title": "Rate Adjustment Matrix",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 832,
+      "file": "articles/ind.rm_element_rate_adjustment_matrix.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_rate_adjustment_matrix_variables.htm",
+      "title": "Rate Adjustment Matrix Variables",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_rate_adjustment_matrix.htm",
+      "body_length": 1304,
+      "file": "articles/ind.rm_element_rate_adjustment_matrix_variables.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_rating_setting.htm",
+      "title": "Rating Setting",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 740,
+      "file": "articles/ind.rm_element_rating_setting.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_rounding_values.htm",
+      "title": "Rounding Values",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1650,
+      "file": "articles/ind.rm_element_rounding_values.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_stop_rating.htm",
+      "title": "Stop Rating",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 195,
+      "file": "articles/ind.rm_element_stop_rating.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_tier_based_rate_discount.htm",
+      "title": "Tier-Based Rate Discount",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1459,
+      "file": "articles/ind.rm_element_tier_based_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_volume_based_rate_discount.htm",
+      "title": "Volume-Based Rate Discount",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 1069,
+      "file": "articles/ind.rm_element_volume_based_rate_discount.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_volume_based_rate_discount_variables.htm",
+      "title": "Volume-Based Rate Discount Variables for Non-Negotiable Rates",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_volume_based_rate_discount.htm",
+      "body_length": 2146,
+      "file": "articles/ind.rm_element_volume_based_rate_discount_variables.htm.md"
+    },
+    {
+      "article_id": "ind.rm_element_volume_based_rate_discount_variables_negotiable_rates.htm",
+      "title": "Volume-Based Rate Discount Variables for Negotiable Rates",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_element_volume_based_rate_discount.htm",
+      "body_length": 1556,
+      "file": "articles/ind.rm_element_volume_based_rate_discount_variables_negotiable_rates.htm.md"
+    },
+    {
+      "article_id": "ind.rm_enable_rate_management.htm",
+      "title": "Enable Rate Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 391,
+      "file": "articles/ind.rm_enable_rate_management.htm.md"
+    },
+    {
+      "article_id": "ind.rm_enable_rating_waterfall_persistence.htm",
+      "title": "Enable Rating Waterfall Persistence",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 1492,
+      "file": "articles/ind.rm_enable_rating_waterfall_persistence.htm.md"
+    },
+    {
+      "article_id": "ind.rm_external_objects_used_in_rate_management.htm",
+      "title": "External Objects Used in Rate Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_discover_and_explore.htm",
+      "body_length": 2261,
+      "file": "articles/ind.rm_external_objects_used_in_rate_management.htm.md"
+    },
+    {
+      "article_id": "ind.rm_implementation_considerations.htm",
+      "title": "Implementation Considerations for Rate Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_discover_and_explore.htm",
+      "body_length": 1973,
+      "file": "articles/ind.rm_implementation_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.rm_key_roles_in_rate_management.htm",
+      "title": "Key Roles in Rate Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_discover_and_explore.htm",
+      "body_length": 898,
+      "file": "articles/ind.rm_key_roles_in_rate_management.htm.md"
+    },
+    {
+      "article_id": "ind.rm_map_line_item.htm",
+      "title": "Map Line Item",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 789,
+      "file": "articles/ind.rm_map_line_item.htm.md"
+    },
+    {
+      "article_id": "ind.rm_negotiated_volumebased_rate_adjustment.htm",
+      "title": "Negotiated Volume-Based Rate Adjustment",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 886,
+      "file": "articles/ind.rm_negotiated_volumebased_rate_adjustment.htm.md"
+    },
+    {
+      "article_id": "ind.rm_negotiated_volumebased_rate_adjutment_variables.htm",
+      "title": "Negotiated Volume-Based Rate Adjustment Variables",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_negotiated_volumebased_rate_adjustment.htm",
+      "body_length": 1581,
+      "file": "articles/ind.rm_negotiated_volumebased_rate_adjutment_variables.htm.md"
+    },
+    {
+      "article_id": "ind.rm_prereqs_to_build_rating_procedures.htm",
+      "title": "Prerequisites for Building Rating Procedures",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_procedures.htm",
+      "body_length": 2324,
+      "file": "articles/ind.rm_prereqs_to_build_rating_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_card_entries.htm",
+      "title": "Rate Card Entries",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_cards_and_rate_card_entries.htm",
+      "body_length": 1577,
+      "file": "articles/ind.rm_rate_card_entries.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_cards_and_rate_card_entries.htm",
+      "title": "Rate Cards and Rate Card Entries",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 1401,
+      "file": "articles/ind.rm_rate_cards_and_rate_card_entries.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_management.htm",
+      "title": "Configure Rate Pricing Calculations in Revenue Management",
+      "status": "captured",
+      "area": "rating",
+      "body_length": 2306,
+      "file": "articles/ind.rm_rate_management.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_management_psls.htm",
+      "title": "Rate Management Permission Set Licenses",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_discover_and_explore.htm",
+      "body_length": 1623,
+      "file": "articles/ind.rm_rate_management_psls.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_management_setup.htm",
+      "title": "Rate Management Setup",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management.htm",
+      "body_length": 2811,
+      "file": "articles/ind.rm_rate_management_setup.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rate_mngmnt_limits.htm",
+      "title": "Rate Management Limits",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management.htm",
+      "body_length": 1900,
+      "file": "articles/ind.rm_rate_mngmnt_limits.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rating_discovery_procedure_elements.htm",
+      "title": "Elements in a Rating Discovery Procedure",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_discovery_procedures.htm",
+      "body_length": 2015,
+      "file": "articles/ind.rm_rating_discovery_procedure_elements.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rating_discovery_procedures.htm",
+      "title": "Rating Discovery Procedures",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management.htm",
+      "body_length": 1766,
+      "file": "articles/ind.rm_rating_discovery_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rating_element_get_rate_cards.htm",
+      "title": "Get Rate Cards",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_elements.htm",
+      "body_length": 991,
+      "file": "articles/ind.rm_rating_element_get_rate_cards.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rating_elements.htm",
+      "title": "Explore Available Rating Elements in Revenue Management",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rating_procedures.htm",
+      "body_length": 4701,
+      "file": "articles/ind.rm_rating_elements.htm.md"
+    },
+    {
+      "article_id": "ind.rm_rating_procedures.htm",
+      "title": "Rating Procedures",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management.htm",
+      "body_length": 1177,
+      "file": "articles/ind.rm_rating_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.rm_simulate_activate_rating_procedure.htm",
+      "title": "Simulate and Activate Your Rating Procedure",
+      "status": "captured",
+      "area": "rating",
+      "parent_article": "ind.rm_rate_management_setup.htm",
+      "body_length": 1819,
+      "file": "articles/ind.rm_simulate_activate_rating_procedure.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T19:45:55Z",
+  "last_updated": "2026-09-07T20:15:19Z",
   "stats": {
-    "discovered": 952,
-    "captured": 949,
+    "discovered": 1022,
+    "captured": 1019,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2406380
+    "total_captured_body_chars": 2522139
   }
 }
