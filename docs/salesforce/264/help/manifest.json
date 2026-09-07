@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "rating",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264",
-  "root_article_id": "ind.rm_rate_management.htm",
-  "article_id_prefix": "ind.rm",
+  "area": "approvals",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264",
+  "root_article_id": "ind.approvals_advanced_approvals.htm",
+  "article_id_prefix": "ind.approvals",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -140,9 +140,452 @@
         "before_prefix_filter": 1371
       },
       "snapshot_started": "2026-09-07"
+    },
+    {
+      "area": "usage",
+      "root_article_id": "ind.um_usage_management.htm",
+      "article_id_prefix": "ind.um",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264",
+      "last_updated": "2026-09-07T22:09:38Z",
+      "stats": {
+        "discovered": 52,
+        "captured": 52,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 92066
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 52,
+        "before_prefix_filter": 1371
+      }
+    },
+    {
+      "area": "agents",
+      "root_article_id": "ind.rev_agent_overview.htm",
+      "article_id_prefix": "ind.rev_agent",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5&release=264",
+      "last_updated": "2026-09-07T22:10:44Z",
+      "stats": {
+        "discovered": 17,
+        "captured": 17,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 34957
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 17,
+        "before_prefix_filter": 1371
+      }
+    },
+    {
+      "area": "approvals",
+      "root_article_id": "ind.approvals_advanced_approvals.htm",
+      "article_id_prefix": "ind.approvals",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264",
+      "last_updated": "2026-09-07T22:13:05Z",
+      "stats": {
+        "discovered": 43,
+        "captured": 43,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 80323
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 43,
+        "before_prefix_filter": 1371
+      }
     }
   ],
   "articles": [
+    {
+      "article_id": "ind.approvals_add_an_approval_button_for_sales_reps.htm",
+      "title": "Example: Add an Approval Button on a Record Page",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 4382,
+      "file": "articles/ind.approvals_add_an_approval_button_for_sales_reps.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_add_partners_to_approval_steps.htm",
+      "title": "Advanced Approval Objects",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 2641,
+      "file": "articles/ind.approvals_add_partners_to_approval_steps.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_advanced_approvals.htm",
+      "title": "Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "body_length": 3196,
+      "file": "articles/ind.approvals_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_advanced_approvals_considerations.htm",
+      "title": "Advanced Approvals Considerations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1545,
+      "file": "articles/ind.approvals_advanced_approvals_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_approval_delegation.htm",
+      "title": "Advanced Approval Delegation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1446,
+      "file": "articles/ind.approvals_approval_delegation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_approval_process_execution.htm",
+      "title": "Approval Process Execution",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 994,
+      "file": "articles/ind.approvals_approval_process_execution.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "title": "Design an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 3082,
+      "file": "articles/ind.approvals_building_blocks_of_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_a_flow_to_update_records.htm",
+      "title": "User Interface, Component, and List View Behavior",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 1655,
+      "file": "articles/ind.approvals_create_a_flow_to_update_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_approval_alert_content_definition_records.htm",
+      "title": "Create Approval Alert Content Definition Records",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_email_templates.htm",
+      "body_length": 1363,
+      "file": "articles/ind.approvals_create_approval_alert_content_definition_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_create_delegation_records.htm",
+      "title": "Create Approval Delegation Records",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_approval_delegation.htm",
+      "body_length": 1198,
+      "file": "articles/ind.approvals_create_delegation_records.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_define_custom_logic_auto_approvals.htm",
+      "title": "Rule-Based Auto-Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "body_length": 5568,
+      "file": "articles/ind.approvals_define_custom_logic_auto_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_delegation_considerations.htm",
+      "title": "Considerations for Advanced Approval Delegations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 722,
+      "file": "articles/ind.approvals_delegation_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_design_advanced_approvals.htm",
+      "title": "Customize Pages for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 802,
+      "file": "articles/ind.approvals_design_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_design_build_activation.htm",
+      "title": "Design, Build, and Activation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 977,
+      "file": "articles/ind.approvals_design_build_activation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_email_notification_behavior.htm",
+      "title": "Considerations for Emails in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 2076,
+      "file": "articles/ind.approvals_email_notification_behavior.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_email_templates.htm",
+      "title": "Email Templates in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 2235,
+      "file": "articles/ind.approvals_email_templates.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_environment_setup.htm",
+      "title": "Environment & Setup",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 620,
+      "file": "articles/ind.approvals_environment_setup.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_example_configure_an_approval_workflow.htm",
+      "title": "Example: Configure an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 7210,
+      "file": "articles/ind.approvals_example_configure_an_approval_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_implement_serial_and_parallel_approvers.htm",
+      "title": "Implement Serial and Parallel Approvers",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_types_of_approvals.htm",
+      "body_length": 647,
+      "file": "articles/ind.approvals_implement_serial_and_parallel_approvers.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_lightning_components.htm",
+      "title": "Configure Lightning Components for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 1391,
+      "file": "articles/ind.approvals_lightning_components.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_manage_advanced_approvals.htm",
+      "title": "Begin Using Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1385,
+      "file": "articles/ind.approvals_manage_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_objects_considerations.htm",
+      "title": "Considerations for Approval Objects",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 673,
+      "file": "articles/ind.approvals_objects_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_personas.htm",
+      "title": "Advanced Approvals Personas and Permissions",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1414,
+      "file": "articles/ind.approvals_personas.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview.htm",
+      "title": "Preview an Approval Workflow",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_preview_approvals.htm",
+      "body_length": 735,
+      "file": "articles/ind.approvals_preview.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_approvals.htm",
+      "title": "Preview Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1328,
+      "file": "articles/ind.approvals_preview_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_example.htm",
+      "title": "Example: How Step Conditions Affect a Preview",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_preview_approvals.htm",
+      "body_length": 1565,
+      "file": "articles/ind.approvals_preview_example.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_preview_feature_limitations.htm",
+      "title": "Preview Approvals Considerations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 1248,
+      "file": "articles/ind.approvals_preview_feature_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_related_lists.htm",
+      "title": "Add a Related List to an Approval Page",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_design_advanced_approvals.htm",
+      "body_length": 590,
+      "file": "articles/ind.approvals_related_lists.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_set_up_advanced_approvals.htm",
+      "title": "Set Up Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1493,
+      "file": "articles/ind.approvals_set_up_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_share_records_using_triggers.htm",
+      "title": "Share Temporary Access to Records in Advanced Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 2295,
+      "file": "articles/ind.approvals_share_records_using_triggers.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack.htm",
+      "title": "Approvals in Slack",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals.htm",
+      "body_length": 1909,
+      "file": "articles/ind.approvals_slack.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack_channel_notifications.htm",
+      "title": "Post Approval Notifications to a Slack Channel",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_slack.htm",
+      "body_length": 1143,
+      "file": "articles/ind.approvals_slack_channel_notifications.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_slack_considerations.htm",
+      "title": "Considerations for Approvals in Slack",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 981,
+      "file": "articles/ind.approvals_slack_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_approval_limitations.htm",
+      "title": "Smart Approval Limitations",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_advanced_approvals_considerations.htm",
+      "body_length": 2088,
+      "file": "articles/ind.approvals_smart_approval_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_approvals.htm",
+      "title": "Smart Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "body_length": 2135,
+      "file": "articles/ind.approvals_smart_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_smart_or_rule_based_approvals.htm",
+      "title": "Smart Approvals and Rule-Based Auto-Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 3321,
+      "file": "articles/ind.approvals_smart_or_rule_based_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_delegation.htm",
+      "title": "Turn On Advanced Approval Delegation",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_approval_delegation.htm",
+      "body_length": 637,
+      "file": "articles/ind.approvals_turn_on_delegation.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_dynamic_approvals.htm",
+      "title": "Set Up Dynamic Approval Notifications",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_manage_advanced_approvals.htm",
+      "body_length": 1899,
+      "file": "articles/ind.approvals_turn_on_dynamic_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_slack_notifs.htm",
+      "title": "Turn On Slack Notifications for Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_slack.htm",
+      "body_length": 657,
+      "file": "articles/ind.approvals_turn_on_slack_notifs.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_turn_on_smart_approvals.htm",
+      "title": "Turn On Smart Approvals",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_smart_approvals.htm",
+      "body_length": 539,
+      "file": "articles/ind.approvals_turn_on_smart_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_types_of_approvals.htm",
+      "title": "Approval Workflow Types",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 2997,
+      "file": "articles/ind.approvals_types_of_approvals.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_use_advanced_approvals_in_a_quote.htm",
+      "title": "Use Advanced Approvals in a Quote",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 3658,
+      "file": "articles/ind.approvals_use_advanced_approvals_in_a_quote.htm.md"
+    },
+    {
+      "article_id": "ind.approvals_use_the_stage_exit_condition.htm",
+      "title": "Use the Stage Exit Condition",
+      "status": "captured",
+      "area": "approvals",
+      "parent_article": "ind.approvals_building_blocks_of_advanced_approvals.htm",
+      "body_length": 1883,
+      "file": "articles/ind.approvals_use_the_stage_exit_condition.htm.md"
+    },
     {
       "article_id": "ind.billing.htm",
       "title": "Manage Billing in Revenue Management",
@@ -8700,6 +9143,158 @@
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
     },
     {
+      "article_id": "ind.rev_agent_approval_agent.htm",
+      "title": "Agentforce for Advanced Approval",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 3155,
+      "file": "articles/ind.rev_agent_approval_agent.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_billing_topic_invoice_line_explanation.htm",
+      "title": "Subagent: Invoice Line Explanation",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 1893,
+      "file": "articles/ind.rev_agent_billing_topic_invoice_line_explanation.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_overview.htm",
+      "title": "Agentforce for Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "body_length": 3507,
+      "file": "articles/ind.rev_agent_overview.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_topic_product_description_generation.htm",
+      "title": "Subagent: Product Description Generation",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_topic_reference.htm",
+      "body_length": 875,
+      "file": "articles/ind.rev_agent_pcm_topic_product_description_generation.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_topic_product_selection.htm",
+      "title": "Subagent: Product Selection",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 2074,
+      "file": "articles/ind.rev_agent_pcm_topic_product_selection.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm",
+      "title": "Use Case: Search and Filter Products with Agentforce",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_pcm_topic_product_selection.htm",
+      "body_length": 2192,
+      "file": "articles/ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_qocal_topic_quote_management.htm",
+      "title": "Subagent: Quote Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 3146,
+      "file": "articles/ind.rev_agent_qocal_topic_quote_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm",
+      "title": "Set Up Community and Partner Access for Agentforce in Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 5101,
+      "file": "articles/ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_setup.htm",
+      "title": "Set Up Agentforce for Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 1645,
+      "file": "articles/ind.rev_agent_setup.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_templates.htm",
+      "title": "Agent Templates in Revenue Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 1310,
+      "file": "articles/ind.rev_agent_templates.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_approval_management.htm",
+      "title": "Subagent: Approval Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 2072,
+      "file": "articles/ind.rev_agent_topic_approval_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_billing_collections_management.htm",
+      "title": "Subagent: Billing Collections Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 1836,
+      "file": "articles/ind.rev_agent_topic_billing_collections_management.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_billing_inquiries.htm",
+      "title": "Subagent: Billing Inquiries",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.billing_agentforce_billing_agent.htm",
+      "body_length": 2420,
+      "file": "articles/ind.rev_agent_topic_billing_inquiries.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_reference.htm",
+      "title": "Revenue Subagent Reference",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_overview.htm",
+      "body_length": 369,
+      "file": "articles/ind.rev_agent_topic_reference.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_search_approval_records.htm",
+      "title": "Subagent: Search Approval Record",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 625,
+      "file": "articles/ind.rev_agent_topic_search_approval_records.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_topic_summarize_multiple_approval_work_items.htm",
+      "title": "Subagent: Summarize Multiple Approval Work Items",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.rev_agent_approval_agent.htm",
+      "body_length": 1535,
+      "file": "articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md"
+    },
+    {
+      "article_id": "ind.rev_agent_usage_topic_consumption_management.htm",
+      "title": "Subagent: Consumption Management",
+      "status": "captured",
+      "area": "agents",
+      "parent_article": "ind.qocal_agentforce_quote_mgmt.htm",
+      "body_length": 1202,
+      "file": "articles/ind.rev_agent_usage_topic_consumption_management.htm.md"
+    },
+    {
       "article_id": "ind.rm_add_negotiated_tierbased_rate_adjustment.htm",
       "title": "Add Negotiated Tier-Based Rate Adjustment",
       "status": "captured",
@@ -9327,14 +9922,481 @@
       "parent_article": "ind.rm_rate_management_setup.htm",
       "body_length": 1819,
       "file": "articles/ind.rm_simulate_activate_rating_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.um_add_wallet_components_to_record_pages.htm",
+      "title": "Add Wallet Components to Record Pages",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_set_up_experience_cloud_for_wallet_management.htm",
+      "body_length": 913,
+      "file": "articles/ind.um_add_wallet_components_to_record_pages.htm.md"
+    },
+    {
+      "article_id": "ind.um_anchor_product_drawdowns.htm",
+      "title": "Anchor Product Drawdowns",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 1000,
+      "file": "articles/ind.um_anchor_product_drawdowns.htm.md"
+    },
+    {
+      "article_id": "ind.um_billing_schedules_for_usage_products.htm",
+      "title": "Billing Schedules and Invoices for Usage-Based Products",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management.htm",
+      "body_length": 3658,
+      "file": "articles/ind.um_billing_schedules_for_usage_products.htm.md"
+    },
+    {
+      "article_id": "ind.um_buckets_and_drawdowns.htm",
+      "title": "Buckets and Drawdowns",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 3868,
+      "file": "articles/ind.um_buckets_and_drawdowns.htm.md"
+    },
+    {
+      "article_id": "ind.um_cnsption_mngmnt_lifecycle.htm",
+      "title": "Consumption Management Lifecycle",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 1167,
+      "file": "articles/ind.um_cnsption_mngmnt_lifecycle.htm.md"
+    },
+    {
+      "article_id": "ind.um_commitment_product_drawdowns.htm",
+      "title": "Commitment Product Drawdowns",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 1531,
+      "file": "articles/ind.um_commitment_product_drawdowns.htm.md"
+    },
+    {
+      "article_id": "ind.um_configure_usage_product_with_guided_workflow.htm",
+      "title": "Configure a Usage-Based Product with Guided Workflow",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_product_setup_with_guided_workflow.htm",
+      "body_length": 5603,
+      "file": "articles/ind.um_configure_usage_product_with_guided_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.um_configure_usage_records.htm",
+      "title": "Configure Usage Management Records Manually",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management_setup.htm",
+      "body_length": 3537,
+      "file": "articles/ind.um_configure_usage_records.htm.md"
+    },
+    {
+      "article_id": "ind.um_considerations_for_validator.htm",
+      "title": "Usage Product Validator Considerations",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_validate_your_setup.htm",
+      "body_length": 1344,
+      "file": "articles/ind.um_considerations_for_validator.htm.md"
+    },
+    {
+      "article_id": "ind.um_consumption_management.htm",
+      "title": "Manage Consumption for Usage-Based Products",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management.htm",
+      "body_length": 2170,
+      "file": "articles/ind.um_consumption_management.htm.md"
+    },
+    {
+      "article_id": "ind.um_consumption_management_standard_flow_templates.htm",
+      "title": "Consumption Management Flows",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_cnsption_mngmnt_lifecycle.htm",
+      "body_length": 1455,
+      "file": "articles/ind.um_consumption_management_standard_flow_templates.htm.md"
+    },
+    {
+      "article_id": "ind.um_consumption_mgmnt_impl_considerations.htm",
+      "title": "Consumption Management Considerations",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 3312,
+      "file": "articles/ind.um_consumption_mgmnt_impl_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.um_consumption_proration_calculations.htm",
+      "title": "Consumption Proration Calculations",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 2114,
+      "file": "articles/ind.um_consumption_proration_calculations.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_a_product_usage_resource.htm",
+      "title": "Create a Product Usage Resource",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1372,
+      "file": "articles/ind.um_create_a_product_usage_resource.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_a_usage_commitment_asset_related_object.htm",
+      "title": "Create a Usage Commitment Asset Related Object",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 797,
+      "file": "articles/ind.um_create_a_usage_commitment_asset_related_object.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_a_usage_product_grant_binding_policy.htm",
+      "title": "Create Usage Product Grant Binding Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1785,
+      "file": "articles/ind.um_create_a_usage_product_grant_binding_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_on_demand_usage_ratable_summary.htm",
+      "title": "Create an On-demand Usage Ratable Summary",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_manage_consumption_related_summaries.htm",
+      "body_length": 686,
+      "file": "articles/ind.um_create_on_demand_usage_ratable_summary.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_on_demand_usage_summary.htm",
+      "title": "Create an On-demand Usage Summary",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_manage_consumption_related_summaries.htm",
+      "body_length": 862,
+      "file": "articles/ind.um_create_on_demand_usage_summary.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_product_usage_resource_policy.htm",
+      "title": "Create a Product Usage Resource Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 888,
+      "file": "articles/ind.um_create_product_usage_resource_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_rating_frequency_policy.htm",
+      "title": "Create Rating Frequency Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 715,
+      "file": "articles/ind.um_create_rating_frequency_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_unit_of_measure_class.htm",
+      "title": "Create a Unit of Measure Class",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1761,
+      "file": "articles/ind.um_create_unit_of_measure_class.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_units_of_measure.htm",
+      "title": "Create Units of Measure",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1628,
+      "file": "articles/ind.um_create_units_of_measure.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_aggregation_policy.htm",
+      "title": "Create Usage Aggregation Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1024,
+      "file": "articles/ind.um_create_usage_aggregation_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_commitment_policy.htm",
+      "title": "Create a Usage Commitment Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1853,
+      "file": "articles/ind.um_create_usage_commitment_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_grant_refresh_policy.htm",
+      "title": "Create Usage Grant Refresh Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1105,
+      "file": "articles/ind.um_create_usage_grant_refresh_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_grant_rollover_policy.htm",
+      "title": "Create Usage Grant Rollover Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1265,
+      "file": "articles/ind.um_create_usage_grant_rollover_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_overage_policy.htm",
+      "title": "Create a Usage Overage Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 578,
+      "file": "articles/ind.um_create_usage_overage_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_resource.htm",
+      "title": "Create a Usage Resource",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 1274,
+      "file": "articles/ind.um_create_usage_resource.htm.md"
+    },
+    {
+      "article_id": "ind.um_create_usage_resource_policy.htm",
+      "title": "Create a Usage Resource Policy",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 668,
+      "file": "articles/ind.um_create_usage_resource_policy.htm.md"
+    },
+    {
+      "article_id": "ind.um_define_a_product_usage_grant.htm",
+      "title": "Create a Product Usage Grant",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_configure_usage_records.htm",
+      "body_length": 2242,
+      "file": "articles/ind.um_define_a_product_usage_grant.htm.md"
+    },
+    {
+      "article_id": "ind.um_discover_and_explore.htm",
+      "title": "Begin Using Usage Management",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management.htm",
+      "body_length": 726,
+      "file": "articles/ind.um_discover_and_explore.htm.md"
+    },
+    {
+      "article_id": "ind.um_enable_usage_management.htm",
+      "title": "Enable Usage Management",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_discover_and_explore.htm",
+      "body_length": 527,
+      "file": "articles/ind.um_enable_usage_management.htm.md"
+    },
+    {
+      "article_id": "ind.um_guided_workflow_considerations.htm",
+      "title": "Guided Workflow Considerations and Limits",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_product_setup_with_guided_workflow.htm",
+      "body_length": 2763,
+      "file": "articles/ind.um_guided_workflow_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.um_key_objects_in_consumption_management.htm",
+      "title": "Consumption Management Records",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 1592,
+      "file": "articles/ind.um_key_objects_in_consumption_management.htm.md"
+    },
+    {
+      "article_id": "ind.um_manage_consumption_related_summaries.htm",
+      "title": "Manage Consumption-Related Summaries",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 866,
+      "file": "articles/ind.um_manage_consumption_related_summaries.htm.md"
+    },
+    {
+      "article_id": "ind.um_pack_product_drawdowns.htm",
+      "title": "Pack Product Drawdowns",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 1353,
+      "file": "articles/ind.um_pack_product_drawdowns.htm.md"
+    },
+    {
+      "article_id": "ind.um_run_validator.htm",
+      "title": "Run the Usage Product Validator",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_validate_your_setup.htm",
+      "body_length": 909,
+      "file": "articles/ind.um_run_validator.htm.md"
+    },
+    {
+      "article_id": "ind.um_set_up_experience_cloud_for_wallet_management.htm",
+      "title": "Set Up Wallet View for Experience Cloud",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_wallet_management.htm",
+      "body_length": 1254,
+      "file": "articles/ind.um_set_up_experience_cloud_for_wallet_management.htm.md"
+    },
+    {
+      "article_id": "ind.um_set_up_menu_access.htm",
+      "title": "Set Up Navigation for Wallets",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_set_up_experience_cloud_for_wallet_management.htm",
+      "body_length": 551,
+      "file": "articles/ind.um_set_up_menu_access.htm.md"
+    },
+    {
+      "article_id": "ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm",
+      "title": "Consumption Management Lifecycle Statuses",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_cnsption_mngmnt_lifecycle.htm",
+      "body_length": 3451,
+      "file": "articles/ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm.md"
+    },
+    {
+      "article_id": "ind.um_token_commitment_drawdowns.htm",
+      "title": "Token Commitment Drawdowns",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 2602,
+      "file": "articles/ind.um_token_commitment_drawdowns.htm.md"
+    },
+    {
+      "article_id": "ind.um_token_committment_drawdown_use_cases.htm",
+      "title": "Token Commitment Drawdown Use Cases",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_buckets_and_drawdowns.htm",
+      "body_length": 1459,
+      "file": "articles/ind.um_token_committment_drawdown_use_cases.htm.md"
+    },
+    {
+      "article_id": "ind.um_track_usage_with_unified_dashboard.htm",
+      "title": "Track Usage Components with Unified Usage Dashboard",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_wallet_management.htm",
+      "body_length": 3430,
+      "file": "articles/ind.um_track_usage_with_unified_dashboard.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_management.htm",
+      "title": "Manage and Track Usage-Based Products in Revenue Management",
+      "status": "captured",
+      "area": "usage",
+      "body_length": 3460,
+      "file": "articles/ind.um_usage_management.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_management_limits.htm",
+      "title": "Usage Management Limits",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management.htm",
+      "body_length": 2203,
+      "file": "articles/ind.um_usage_management_limits.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_management_psls_and_personas.htm",
+      "title": "Permission Set Licenses, Personas, and User Permissions",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_discover_and_explore.htm",
+      "body_length": 1876,
+      "file": "articles/ind.um_usage_management_psls_and_personas.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_management_setup.htm",
+      "title": "Set Up Usage Management in Revenue Management",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management.htm",
+      "body_length": 2569,
+      "file": "articles/ind.um_usage_management_setup.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_orchestration_flow_stages.htm",
+      "title": "Orchestrate Usage Management Flow Stages",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_cnsption_mngmnt_lifecycle.htm",
+      "body_length": 4718,
+      "file": "articles/ind.um_usage_orchestration_flow_stages.htm.md"
+    },
+    {
+      "article_id": "ind.um_usage_product_setup_with_guided_workflow.htm",
+      "title": "Usage-Based Product Setup with Guided Workflow",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management_setup.htm",
+      "body_length": 1277,
+      "file": "articles/ind.um_usage_product_setup_with_guided_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.um_validate_your_setup.htm",
+      "title": "Validate Your Usage Product Setup",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_usage_management_setup.htm",
+      "body_length": 744,
+      "file": "articles/ind.um_validate_your_setup.htm.md"
+    },
+    {
+      "article_id": "ind.um_view_liable_summary.htm",
+      "title": "View Liable Summaries",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_manage_consumption_related_summaries.htm",
+      "body_length": 664,
+      "file": "articles/ind.um_view_liable_summary.htm.md"
+    },
+    {
+      "article_id": "ind.um_wallet_management.htm",
+      "title": "Unified Usage Dashboard",
+      "status": "captured",
+      "area": "usage",
+      "parent_article": "ind.um_consumption_management.htm",
+      "body_length": 897,
+      "file": "articles/ind.um_wallet_management.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T20:15:19Z",
+  "last_updated": "2026-09-07T22:13:05Z",
   "stats": {
-    "discovered": 1022,
-    "captured": 1019,
+    "discovered": 1134,
+    "captured": 1131,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2522141
+    "total_captured_body_chars": 2729487
   }
 }
