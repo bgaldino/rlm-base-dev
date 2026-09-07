@@ -16,7 +16,7 @@ Use the Get Rate Cards element to fetch the rate cards that you need for your ra
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license
-NOTE Note: Use the existing Pricebook Rate Card Entries lookup table to create a new lookup table for the Get Rate Cards element. Use the get rate card element to fetch the rate card and map the variables to the relevant context tags.
+Note: Use the existing Pricebook Rate Card Entries lookup table to create a new lookup table for the Get Rate Cards element. Use the get rate card element to fetch the rate card and map the variables to the relevant context tags.
 Output Rule Variables
 PARAMETER NAME	MAPPED CONTEXT TAG	CONTEXT TAG’S DESCRIPTION
 Rate Card Type	RCType	The type of rate card, such as attribute or tier.
