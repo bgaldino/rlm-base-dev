@@ -32,7 +32,7 @@ Creating Accounting Periods: Innovate Solutions defines monthly, quarterly, and 
 Assigning Legal Entities to Accounting Periods: They assign specific legal entity to an accounting period for each subsidiary. For example, a Legal Entity Accounting Period record is created for Innovate Solutions EU - Jan 2027 linking to the Innovate Solutions EU legal entity and the Jan 2027 accounting period.
 Automated Transaction Association: As new invoices, credit memos, and payments are processed, the system automatically assigned them to the correct legal entity accounting period based on the transaction's legal entity and effective date.
 
-At the end of each month, Innovate Solutions Corp finalize and close their accounting records. SeeExample: Streamlining Accounting Period Closure.
+At the end of each month, Innovate Solutions Corp finalize and close their accounting records. See Example: Streamlining Accounting Period Closure.
 
 SEE ALSO
 Legal Entity Accounting Periods Closure and Reopening

@@ -421,6 +421,7 @@ reference and worked examples. Read that skill rather than guessing flags:
 | `scripts/expression_sets/*` — Expression Set inspect/trace/diff/export and guarded mutators | `expression-sets/SKILL.md` |
 | `scripts/cml/*` — constraint model export/import/validate | `constraint-models/SKILL.md` |
 | `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |
+| `scripts/ai/check_help_corpus_text_artifacts.py` — non-gating spot-check for glued-link text artifacts in the Help snapshot | `revenue-cloud-docs/SKILL.md` |
 | `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
 | `scripts/ai/pr_review.py` — automated-PR-review helper | **Responding to Automated PR Reviews**, above |
 | `scripts/ai/check_branch_scope.py` — fail a branch carrying commits it does not own (already upstream, or another open PR's) | `audit-review/SKILL.md` → **Step −1** |

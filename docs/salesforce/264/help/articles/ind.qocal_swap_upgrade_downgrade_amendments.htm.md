@@ -19,7 +19,7 @@ Available in: Enterprise, Unlimited, and Developer Editions of Revenue Managemen
 USER PERMISSIONS NEEDED
 To create a swap, upgrade, or downgrade amendment:	Initiate Amend user permission
 
-Before you begin, add the Type and Subtype columns to the Sales Transaction Line Table component. The Type column shows action types, while the Subtype column shows line groupings like SwapIn, SwapOut, UpgradeFrom, UpgradeTo, DowngradeFrom, and DowngradeTo. SeeAdd and Customize the Transaction Line Editor or Sales Transaction Line Editor.
+Before you begin, add the Type and Subtype columns to the Sales Transaction Line Table component. The Type column shows action types, while the Subtype column shows line groupings like SwapIn, SwapOut, UpgradeFrom, UpgradeTo, DowngradeFrom, and DowngradeTo. See Add and Customize the Transaction Line Editor or Sales Transaction Line Editor.
 
 Instead of "rip and replace," this feature tracks swaps, upgrades, and downgrades across quote lines, order items, asset actions, and asset action sources.
 
