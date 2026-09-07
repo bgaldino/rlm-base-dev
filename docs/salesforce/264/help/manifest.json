@@ -1,10 +1,10 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "dro",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5&release=264",
-  "root_article_id": "ind.dro_dynamic_revenue_orchestrator.htm",
-  "article_id_prefix": "ind.dro",
+  "area": "pricing",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264",
+  "root_article_id": "ind.pricing_salesforce_pricing.htm",
+  "article_id_prefix": "ind.pricing",
   "snapshot_started": "2026-09-04",
   "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
   "areas": [
@@ -102,6 +102,25 @@
         "before_prefix_filter": 1373
       },
       "snapshot_started": "2026-09-05"
+    },
+    {
+      "area": "pricing",
+      "root_article_id": "ind.pricing_salesforce_pricing.htm",
+      "article_id_prefix": "ind.pricing",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264",
+      "last_updated": "2026-09-07T19:45:55Z",
+      "stats": {
+        "discovered": 155,
+        "captured": 155,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 413005
+      },
+      "snapshot_started": "2026-09-07",
+      "last_run_discovered": {
+        "kept": 155,
+        "before_prefix_filter": 1371
+      }
     }
   ],
   "articles": [
@@ -3375,6 +3394,1399 @@
       "parent_article": "ind.dro_run_time_administration.htm",
       "body_length": 736,
       "file": "articles/ind.dro_view_fulfillment_step_history.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_access_your_pricing_information.htm",
+      "title": "Access Your Pricing Information",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 1576,
+      "file": "articles/ind.pricing_access_your_pricing_information.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_aggregate_price_element.htm",
+      "title": "Calculate Aggregate Prices for Products",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1778,
+      "file": "articles/ind.pricing_add_aggregate_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_attribute_based_price_element.htm",
+      "title": "Attribute-Based Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1735,
+      "file": "articles/ind.pricing_add_attribute_based_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_bundle_based_price_element.htm",
+      "title": "Bundle-Based Price",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1316,
+      "file": "articles/ind.pricing_add_bundle_based_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_calculate_price_button.htm",
+      "title": "Add the Calculate Price Button",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_standard_pricing_actions.htm",
+      "body_length": 1622,
+      "file": "articles/ind.pricing_add_calculate_price_button.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_context_tags_automatically_to_your_pricing_elements.htm",
+      "title": "Update Context Tags to Pricing Elements with Einstein AI",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm",
+      "body_length": 790,
+      "file": "articles/ind.pricing_add_context_tags_automatically_to_your_pricing_elements.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_list_price_element.htm",
+      "title": "Fetch the List Price of a Product",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 2108,
+      "file": "articles/ind.pricing_add_list_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_manual_discount_element.htm",
+      "title": "Manually Discount Product Prices",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1797,
+      "file": "articles/ind.pricing_add_manual_discount_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_products_as_price_book_entries.htm",
+      "title": "Add Products as Price Book Entries",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "body_length": 711,
+      "file": "articles/ind.pricing_add_products_as_price_book_entries.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_the_price_adjustment_matrix_element.htm",
+      "title": "Dynamic Pricing With Price Adjustment Matrix",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1548,
+      "file": "articles/ind.pricing_add_the_price_adjustment_matrix_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_the_subscription_price_proration_element.htm",
+      "title": "Configure the Proration and Subscription Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_pricing_proration.htm",
+      "body_length": 2932,
+      "file": "articles/ind.pricing_add_the_subscription_price_proration_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_tier_discount_element.htm",
+      "title": "Understand the Difference Between Volume and Tier Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_volume_discount_element.htm",
+      "body_length": 2009,
+      "file": "articles/ind.pricing_add_tier_discount_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_add_volume_discount_element.htm",
+      "title": "Volume and Tier Based Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1642,
+      "file": "articles/ind.pricing_add_volume_discount_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_advanced_price_log_settings.htm",
+      "title": "Set Up Advanced Price Logs",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_operations_console.htm",
+      "body_length": 1171,
+      "file": "articles/ind.pricing_advanced_price_log_settings.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_annual_proration_examples.htm",
+      "title": "Annual Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 2587,
+      "file": "articles/ind.pricing_annual_proration_examples.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_annual_proration_examples_for_leap_years.htm",
+      "title": "Annual Proration Examples for Leap Years",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 2784,
+      "file": "articles/ind.pricing_annual_proration_examples_for_leap_years.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_apex_hooks_best_practices.htm",
+      "title": "Best Practices for Apex Pricing Hooks",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_customize_pricing_procedures_with_apex_hooks.htm",
+      "body_length": 9640,
+      "file": "articles/ind.pricing_apex_hooks_best_practices.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_apply_policy_driven_price_revisions.htm",
+      "title": "Apply Policy-Driven Price Revisions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 1758,
+      "file": "articles/ind.pricing_apply_policy_driven_price_revisions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_apply_the_rounding_values_element.htm",
+      "title": "Use the Rounding Values Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_rounding_values.htm",
+      "body_length": 3210,
+      "file": "articles/ind.pricing_apply_the_rounding_values_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_assignment.htm",
+      "title": "Map Context Tag Data Using Assignment Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 2633,
+      "file": "articles/ind.pricing_assignment.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_attribute_based_pricing_limits.htm",
+      "title": "Attribute-Based Pricing Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_attribute_based_price_element.htm",
+      "body_length": 1468,
+      "file": "articles/ind.pricing_attribute_based_pricing_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_automate_pricing_data_sync.htm",
+      "title": "Automate Pricing Data Sync with a Scheduled Flow",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_sync_pricing_data.htm",
+      "body_length": 3614,
+      "file": "articles/ind.pricing_automate_pricing_data_sync.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_attribute_based_discounts.htm",
+      "title": "Calculate Attribute-Based Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_attribute_based_price_element.htm",
+      "body_length": 3722,
+      "file": "articles/ind.pricing_calculate_attribute_based_discounts.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_bundle_based_discounts.htm",
+      "title": "Calculate Bundle-Based Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_bundle_based_price_element.htm",
+      "body_length": 4041,
+      "file": "articles/ind.pricing_calculate_bundle_based_discounts.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_contract_based_pricing.htm",
+      "title": "Calculate Contract-Based Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_contract_based_pricing.htm",
+      "body_length": 4450,
+      "file": "articles/ind.pricing_calculate_contract_based_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_cumulative_discounts_for_volume_and_tier.htm",
+      "title": "Cumulative Pricing Using Volume or Tier Discount Elements",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_volume_discount_element.htm",
+      "body_length": 2870,
+      "file": "articles/ind.pricing_calculate_cumulative_discounts_for_volume_and_tier.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_price_of_object.htm",
+      "title": "Calculate Price of a Product by Using the Standard Price Action",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_standard_pricing_actions.htm",
+      "body_length": 579,
+      "file": "articles/ind.pricing_calculate_price_of_object.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm",
+      "title": "Calculate Product Prices Using Price Adjustment Matrix",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_the_price_adjustment_matrix_element.htm",
+      "body_length": 3312,
+      "file": "articles/ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_the_derived_price_of_product.htm",
+      "title": "Calculate the Derived Price of Product",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_derived_price.htm",
+      "body_length": 4964,
+      "file": "articles/ind.pricing_calculate_the_derived_price_of_product.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_calculate_volume_or_tiered_discounts_with_cumulative_pricing.htm",
+      "title": "Calculate Volume or Tiered Discounts with Cumulative Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_volume_discount_element.htm",
+      "body_length": 4460,
+      "file": "articles/ind.pricing_calculate_volume_or_tiered_discounts_with_cumulative_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_decision_explainer_for_price_waterfall.htm",
+      "title": "Configure Decision Explainer for Price Waterfall",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_decision_explainer_salesforce_pricing.htm",
+      "body_length": 2882,
+      "file": "articles/ind.pricing_configure_decision_explainer_for_price_waterfall.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_decision_tables.htm",
+      "title": "Configure Decision Tables",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 706,
+      "file": "articles/ind.pricing_configure_decision_tables.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_pricing_action_button_using_LWC.htm",
+      "title": "Customize the Pricing Action Button by Using Lightning Components",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_action_parameters.htm",
+      "body_length": 1233,
+      "file": "articles/ind.pricing_configure_pricing_action_button_using_LWC.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_pricing_action_parameters_for_standards_objects.htm",
+      "title": "Configure Pricing Parameters for Standard Objects",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_create_pricing_actions.htm",
+      "body_length": 1447,
+      "file": "articles/ind.pricing_configure_pricing_action_parameters_for_standards_objects.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_pricing_procedure.htm",
+      "title": "Configure Your Pricing Procedure",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 7161,
+      "file": "articles/ind.pricing_configure_pricing_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_product_selling_model_for_your_products.htm",
+      "title": "Configure a Product Selling Model for Your Products",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "body_length": 612,
+      "file": "articles/ind.pricing_configure_product_selling_model_for_your_products.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_proration_settings.htm",
+      "title": "Configure Proration Settings",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_pricing_proration.htm",
+      "body_length": 2011,
+      "file": "articles/ind.pricing_configure_proration_settings.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_salesforce_pricing_objects.htm",
+      "title": "Configure Salesforce Pricing Objects",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 2737,
+      "file": "articles/ind.pricing_configure_salesforce_pricing_objects.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_configure_the_price_propagation_element.htm",
+      "title": "Configure the Price Propagation Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_propagation.htm",
+      "body_length": 4223,
+      "file": "articles/ind.pricing_configure_the_price_propagation_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm",
+      "title": "Considerations for Importing and Exporting Pricing Data",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 2017,
+      "file": "articles/ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm",
+      "title": "Considerations for Migrating Attribute-Based Adjustments",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_attribute_based_price_element.htm",
+      "body_length": 1679,
+      "file": "articles/ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_contract_based_pricing.htm",
+      "title": "Contract-Based Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 801,
+      "file": "articles/ind.pricing_contract_based_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_a_custom_procedure_plan_definition.htm",
+      "title": "Create a Custom Procedure Plan Definition",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_create_procedure_plans.htm",
+      "body_length": 2464,
+      "file": "articles/ind.pricing_create_a_custom_procedure_plan_definition.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_a_procedure_output_resolution_record.htm",
+      "title": "Configure Pricing Resolution Strategies",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_output_resolution.htm",
+      "body_length": 1727,
+      "file": "articles/ind.pricing_create_a_procedure_output_resolution_record.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_a_proration_policy.htm",
+      "title": "Create a Proration Policy for a Subscription",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_pricing_proration.htm",
+      "body_length": 2295,
+      "file": "articles/ind.pricing_create_a_proration_policy.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_a_standard_decision_table.htm",
+      "title": "Create a Decision Table",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_configure_decision_tables.htm",
+      "body_length": 1667,
+      "file": "articles/ind.pricing_create_a_standard_decision_table.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_and_configure_a_csv_based_decision_table.htm",
+      "title": "Create and Configure a CSV-Based Decision Table",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_configure_decision_tables.htm",
+      "body_length": 1865,
+      "file": "articles/ind.pricing_create_and_configure_a_csv_based_decision_table.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_attribute_based_adjustments.htm",
+      "title": "Create Attribute Based Adjustments",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_attribute_based_price_element.htm",
+      "body_length": 2243,
+      "file": "articles/ind.pricing_create_attribute_based_adjustments.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_bundle_based_adjustments.htm",
+      "title": "Create Bundle Based Adjustments",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_bundle_based_price_element.htm",
+      "body_length": 2263,
+      "file": "articles/ind.pricing_create_bundle_based_adjustments.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_constant_resource.htm",
+      "title": "Create Constant Resources",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "body_length": 945,
+      "file": "articles/ind.pricing_create_constant_resource.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_context_definitions.htm",
+      "title": "Context Definitions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "body_length": 1338,
+      "file": "articles/ind.pricing_create_context_definitions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_new_pricing_recipe.htm",
+      "title": "Create a Pricing Recipe",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_recipes.htm",
+      "body_length": 1842,
+      "file": "articles/ind.pricing_create_new_pricing_recipe.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_or_use_predefined_lookup_tables.htm",
+      "title": "Decision Tables",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "body_length": 2002,
+      "file": "articles/ind.pricing_create_or_use_predefined_lookup_tables.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_price_adjustment_schedules.htm",
+      "title": "Create and Manage Price Adjustment Schedules",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_adjustment_schedules_salesforce_pricing.htm",
+      "body_length": 2398,
+      "file": "articles/ind.pricing_create_price_adjustment_schedules.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_price_adjustment_tiers_volume_discounts.htm",
+      "title": "Create Price Adjustment Tiers for Volume Discounts",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_volume_discount_element.htm",
+      "body_length": 3325,
+      "file": "articles/ind.pricing_create_price_adjustment_tiers_volume_discounts.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_procedure_plan_defintions_templates.htm",
+      "title": "Create Procedure Plan Definitions by Using Templates",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_create_procedure_plans.htm",
+      "body_length": 1813,
+      "file": "articles/ind.pricing_create_procedure_plan_defintions_templates.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_create_procedure_plans.htm",
+      "title": "Create Procedure Plans",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 1145,
+      "file": "articles/ind.pricing_create_procedure_plans.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_csv_based_decision_table_limitations.htm",
+      "title": "CSV-Based Decision Table Limitations",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_create_and_configure_a_csv_based_decision_table.htm",
+      "body_length": 1562,
+      "file": "articles/ind.pricing_csv_based_decision_table_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_customize_pricing_procedures_with_apex_hooks.htm",
+      "title": "Customize Your Procedure Plans With Apex Hooks",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 47859,
+      "file": "articles/ind.pricing_customize_pricing_procedures_with_apex_hooks.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_decision_explainer_salesforce_pricing.htm",
+      "title": "Decision Explainer for Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 1225,
+      "file": "articles/ind.pricing_decision_explainer_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_define_costs_in_cost_books.htm",
+      "title": "Define Costs in Cost Books",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_books_salesforce_pricing.htm",
+      "body_length": 2680,
+      "file": "articles/ind.pricing_define_costs_in_cost_books.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_define_price_impacting_attributes.htm",
+      "title": "Set Price Impacting Attributes for Products",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_attribute_based_price_element.htm",
+      "body_length": 1997,
+      "file": "articles/ind.pricing_define_price_impacting_attributes.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_define_prices_in_price_books.htm",
+      "title": "Define Prices in Price Books",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_books_salesforce_pricing.htm",
+      "body_length": 3257,
+      "file": "articles/ind.pricing_define_prices_in_price_books.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_derived_price.htm",
+      "title": "Implement Derived Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 2605,
+      "file": "articles/ind.pricing_derived_price.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm",
+      "title": "Determine the Best Price for a Product Using Pricing Procedures",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_output_resolution.htm",
+      "body_length": 743,
+      "file": "articles/ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_discount_distribution_service_limits.htm",
+      "title": "Discount Distribution Service Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discount_spread_service.htm",
+      "body_length": 912,
+      "file": "articles/ind.pricing_discount_distribution_service_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_discount_spread_service.htm",
+      "title": "Discount Distribution Service",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 4025,
+      "file": "articles/ind.pricing_discount_spread_service.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_discover_and_explore.htm",
+      "title": "Begin Using Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 949,
+      "file": "articles/ind.pricing_discover_and_explore.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_discovery_procedure_for_pricing.htm",
+      "title": "Discover Pricing Factors",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_derived_price.htm",
+      "body_length": 2650,
+      "file": "articles/ind.pricing_discovery_procedure_for_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm",
+      "title": "Automate Context Tag Mapping with Einstein Generative AI",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 1377,
+      "file": "articles/ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_enable_price_waterfall.htm",
+      "title": "Configure Price Waterfall",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_price_waterfall_salesforce_pricing.htm",
+      "body_length": 381,
+      "file": "articles/ind.pricing_enable_price_waterfall.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_ensure_price_transparency_using_the_price_tracking_element.htm",
+      "title": "Ensure Price Transparency Using the Price Tracking Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_tracking_actions.htm",
+      "body_length": 3083,
+      "file": "articles/ind.pricing_ensure_price_transparency_using_the_price_tracking_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_essentials.htm",
+      "title": "Salesforce Pricing Essentials",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.revenue_impl_glossary.htm",
+      "body_length": 10422,
+      "file": "articles/ind.pricing_essentials.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_example_apply_discounts_sequentially_for_a_product.htm",
+      "title": "Example: Apply Discounts Sequentially for a Product",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm",
+      "body_length": 8374,
+      "file": "articles/ind.pricing_example_apply_discounts_sequentially_for_a_product.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_example_calculate_the_lowest_price_of_a_product.htm",
+      "title": "Example: Calculate the Lowest Price of a Product",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm",
+      "body_length": 2528,
+      "file": "articles/ind.pricing_example_calculate_the_lowest_price_of_a_product.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_execute_failed_pricing_batch_jobs.htm",
+      "title": "Fix and Execute Failed Pricing Adjustment Batch Jobs",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_adjustment_batch_jobs.htm",
+      "body_length": 906,
+      "file": "articles/ind.pricing_execute_failed_pricing_batch_jobs.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_execute_pricing_elements_in_parallel.htm",
+      "title": "Set Up Parallel Pricing Element Execution",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 1337,
+      "file": "articles/ind.pricing_execute_pricing_elements_in_parallel.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_export_and_import_procedure_plans.htm",
+      "title": "Export and Import Procedure Plans",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 2284,
+      "file": "articles/ind.pricing_export_and_import_procedure_plans.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_export_and_import_your_pricing_data.htm",
+      "title": "Export and Import Your Pricing Data",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm",
+      "body_length": 1745,
+      "file": "articles/ind.pricing_export_and_import_your_pricing_data.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_formula_based_pricing.htm",
+      "title": "Build Pricing Rules with Formula-Based Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 3388,
+      "file": "articles/ind.pricing_formula_based_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_get_ready_to_build_pricing_procedures.htm",
+      "title": "Prerequisites to Build Pricing Procedures",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 2409,
+      "file": "articles/ind.pricing_get_ready_to_build_pricing_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_get_ready_to_calculate_the_derived_price.htm",
+      "title": "Prerequisites to Build Discovery and Derived Price Pricing Procedures",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_derived_price.htm",
+      "body_length": 2890,
+      "file": "articles/ind.pricing_get_ready_to_calculate_the_derived_price.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_get_ready_to_create_pricing_actions.htm",
+      "title": "Get Ready to Create Pricing Actions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_action_parameters.htm",
+      "body_length": 1332,
+      "file": "articles/ind.pricing_get_ready_to_create_pricing_actions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_limits.htm",
+      "title": "Salesforce Pricing Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 2800,
+      "file": "articles/ind.pricing_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_list_group_list_operation.htm",
+      "title": "List Group and List Operation",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 4150,
+      "file": "articles/ind.pricing_list_group_list_operation.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_map_context_tags_in_pricing_procedures.htm",
+      "title": "Map Context Tags",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1650,
+      "file": "articles/ind.pricing_map_context_tags_in_pricing_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_map_line_item_element.htm",
+      "title": "Map Line Item",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_map_context_tags_in_pricing_procedures.htm",
+      "body_length": 934,
+      "file": "articles/ind.pricing_map_line_item_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_map_line_item_limits.htm",
+      "title": "Map Line Item Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_map_context_tags_in_pricing_procedures.htm",
+      "body_length": 1506,
+      "file": "articles/ind.pricing_map_line_item_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_modify_price_adjustment_matrices.htm",
+      "title": "Modify Price Adjustment Matrices",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_recipes.htm",
+      "body_length": 712,
+      "file": "articles/ind.pricing_modify_price_adjustment_matrices.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_monthly_proration_examples.htm",
+      "title": "Monthly Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 3301,
+      "file": "articles/ind.pricing_monthly_proration_examples.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_monthly_proration_examples_for_leap_years.htm",
+      "title": "Monthly Proration Examples for Leap Years",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 3306,
+      "file": "articles/ind.pricing_monthly_proration_examples_for_leap_years.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_operations_console.htm",
+      "title": "Monitor and Troubleshoot Pricing Issues",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.revenue_operations_console.htm",
+      "body_length": 1575,
+      "file": "articles/ind.pricing_operations_console.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_perform_pricing_adjustment_batch_job.htm",
+      "title": "Perform a Pricing Adjustment Batch Job",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_adjustment_batch_jobs.htm",
+      "body_length": 1785,
+      "file": "articles/ind.pricing_perform_pricing_adjustment_batch_job.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_permissions_salesforce_pricing.htm",
+      "title": "Salesforce Pricing Editions, Permission Sets, and Personas",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discover_and_explore.htm",
+      "body_length": 2905,
+      "file": "articles/ind.pricing_permissions_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_adjustment_schedules_salesforce_pricing.htm",
+      "title": "Explore Price Adjustment Schedules",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 2179,
+      "file": "articles/ind.pricing_price_adjustment_schedules_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_books_salesforce_pricing.htm",
+      "title": "Cost Books and Price Books",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 1673,
+      "file": "articles/ind.pricing_price_books_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_propagation.htm",
+      "title": "Price Propagation",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 3232,
+      "file": "articles/ind.pricing_price_propagation.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_propagation_limits.htm",
+      "title": "Price Propagation Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_propagation.htm",
+      "body_length": 1172,
+      "file": "articles/ind.pricing_price_propagation_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_tracking.htm",
+      "title": "Track Price Ranges for Products",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1747,
+      "file": "articles/ind.pricing_price_tracking.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_price_tracking_actions.htm",
+      "title": "Price Tracking Actions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_tracking.htm",
+      "body_length": 1012,
+      "file": "articles/ind.pricing_price_tracking_actions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_action_parameters.htm",
+      "title": "Pricing Action Parameters",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 1423,
+      "file": "articles/ind.pricing_pricing_action_parameters.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_adjustment_batch_jobs.htm",
+      "title": "Pricing Adjustment Batch Jobs",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_adjustment_schedules_salesforce_pricing.htm",
+      "body_length": 1573,
+      "file": "articles/ind.pricing_pricing_adjustment_batch_jobs.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_discount_calendar.htm",
+      "title": "Pricing Discount Calendar",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_access_your_pricing_information.htm",
+      "body_length": 2507,
+      "file": "articles/ind.pricing_pricing_discount_calendar.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_element.htm",
+      "title": "Use Pricing Elements in Pricing Procedures",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 4521,
+      "file": "articles/ind.pricing_pricing_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_operations_console_sections.htm",
+      "title": "Understand Your Pricing Data",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_operations_console.htm",
+      "body_length": 1286,
+      "file": "articles/ind.pricing_pricing_operations_console_sections.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_procedures.htm",
+      "title": "Build Your Pricing Procedures Using Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 3609,
+      "file": "articles/ind.pricing_pricing_procedures.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_recipes.htm",
+      "title": "Pricing Recipes Setup",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 2388,
+      "file": "articles/ind.pricing_pricing_recipes.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_pricing_setting.htm",
+      "title": "Pricing Setting",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_map_context_tags_in_pricing_procedures.htm",
+      "body_length": 875,
+      "file": "articles/ind.pricing_pricing_setting.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_procedure_output_resolution.htm",
+      "title": "Establish Procedure Output Resolution",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 2961,
+      "file": "articles/ind.pricing_procedure_output_resolution.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_procedure_plan_framework.htm",
+      "title": "Build and Manage Your Procedure Execution",
+      "status": "captured",
+      "area": "pricing",
+      "body_length": 4354,
+      "file": "articles/ind.pricing_procedure_plan_framework.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_procedure_plan_limits.htm",
+      "title": "Procedure Plan Limits",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 2103,
+      "file": "articles/ind.pricing_procedure_plan_limits.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_promotion_execution_element.htm",
+      "title": "Promotion Execution Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_unique_pricing_scenarios.htm",
+      "body_length": 593,
+      "file": "articles/ind.pricing_promotion_execution_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_proration_variables.htm",
+      "title": "Learn About the Proration Multiplier",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_pricing_proration.htm",
+      "body_length": 1514,
+      "file": "articles/ind.pricing_proration_variables.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_quarterly_proration_examples.htm",
+      "title": "Quarterly Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 1642,
+      "file": "articles/ind.pricing_quarterly_proration_examples.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_record_sharing_pricing.htm",
+      "title": "Configure Record Sharing for Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 1438,
+      "file": "articles/ind.pricing_record_sharing_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_roll_up_pricing_using_the_aggregate_price_element.htm",
+      "title": "Roll Up Pricing Using the Aggregate Price Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_aggregate_price_element.htm",
+      "body_length": 2751,
+      "file": "articles/ind.pricing_roll_up_pricing_using_the_aggregate_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_rounding_values.htm",
+      "title": "Apply Price Rounding Values",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 2247,
+      "file": "articles/ind.pricing_rounding_values.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_salesforce_pricing.htm",
+      "title": "Design Your Pricing Model in Revenue Management",
+      "status": "captured",
+      "area": "pricing",
+      "body_length": 4818,
+      "file": "articles/ind.pricing_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_semi_annual_proration_examples.htm",
+      "title": "Semi-Annual Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 1715,
+      "file": "articles/ind.pricing_semi_annual_proration_examples.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_default_pricing_procedure.htm",
+      "title": "Select a Pricing Procedure",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 2954,
+      "file": "articles/ind.pricing_set_default_pricing_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_price_history_tracking.htm",
+      "title": "Configure Price Tracking History",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_tracking.htm",
+      "body_length": 904,
+      "file": "articles/ind.pricing_set_price_history_tracking.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_price_waterfall_persistence.htm",
+      "title": "Set Price Waterfall Persistence",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_price_waterfall_salesforce_pricing.htm",
+      "body_length": 380,
+      "file": "articles/ind.pricing_set_price_waterfall_persistence.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_up_einstein_generative_ai_for_salesforce_pricing.htm",
+      "title": "Set Up Einstein Generative AI for Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_einstein_generative_ai_for_salesforce_pricing.htm",
+      "body_length": 219,
+      "file": "articles/ind.pricing_set_up_einstein_generative_ai_for_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_up_price_logs_capture.htm",
+      "title": "Set Up Price Logs Capture",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 903,
+      "file": "articles/ind.pricing_set_up_price_logs_capture.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_up_price_waterfall_salesforce_pricing.htm",
+      "title": "Set Up Price Waterfall",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 1525,
+      "file": "articles/ind.pricing_set_up_price_waterfall_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_up_salesforce_pricing.htm",
+      "title": "Salesforce Pricing Basic Setup",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 3076,
+      "file": "articles/ind.pricing_set_up_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_set_up_your_discovery_procedure.htm",
+      "title": "Configure a Discovery Procedure",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discovery_procedure_for_pricing.htm",
+      "body_length": 2542,
+      "file": "articles/ind.pricing_set_up_your_discovery_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_simple_pricing_procedure_example.htm",
+      "title": "Simple Pricing Procedure Example",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 4501,
+      "file": "articles/ind.pricing_simple_pricing_procedure_example.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_simulate_activate_pricing_procedure.htm",
+      "title": "Simulate and Activate Your Pricing Procedure",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 2472,
+      "file": "articles/ind.pricing_simulate_activate_pricing_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_standard_pricing_actions.htm",
+      "title": "Standard Pricing Actions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_action_parameters.htm",
+      "body_length": 709,
+      "file": "articles/ind.pricing_standard_pricing_actions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_stop_pricing.htm",
+      "title": "Stop Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 1157,
+      "file": "articles/ind.pricing_stop_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_subscription_pricing_proration.htm",
+      "title": "Manage Pricing Using Proration and Subscription Elements",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_element.htm",
+      "body_length": 2326,
+      "file": "articles/ind.pricing_subscription_pricing_proration.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_subscription_variables.htm",
+      "title": "Common Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_pricing_proration.htm",
+      "body_length": 2770,
+      "file": "articles/ind.pricing_subscription_variables.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm",
+      "title": "Sync Decision Tables in a Pricing Recipe",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_recipes.htm",
+      "body_length": 325,
+      "file": "articles/ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_sync_pricing_data.htm",
+      "title": "Sync Pricing Data in Revenue Management",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_salesforce_pricing.htm",
+      "body_length": 1911,
+      "file": "articles/ind.pricing_sync_pricing_data.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_turn_on_salesforce_pricing.htm",
+      "title": "Turn On Salesforce Pricing",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discover_and_explore.htm",
+      "body_length": 563,
+      "file": "articles/ind.pricing_turn_on_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_advanced_pricing_setup.htm",
+      "title": "Salesforce Pricing Advanced Setup",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 885,
+      "file": "articles/ind.pricing_understand_advanced_pricing_setup.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_and_resolve_api_execution_messages.htm",
+      "title": "Resolve API Execution Errors",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_operations_console.htm",
+      "body_length": 1833,
+      "file": "articles/ind.pricing_understand_and_resolve_api_execution_messages.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_discount_distribution_service_terms.htm",
+      "title": "Understand Discount Distribution Service Terms",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discount_spread_service.htm",
+      "body_length": 2279,
+      "file": "articles/ind.pricing_understand_discount_distribution_service_terms.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_price_revisions.htm",
+      "title": "Understand Price Revisions",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_apply_policy_driven_price_revisions.htm",
+      "body_length": 2911,
+      "file": "articles/ind.pricing_understand_price_revisions.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_pricing_elements.htm",
+      "title": "Understand Pricing Elements",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_procedures.htm",
+      "body_length": 1345,
+      "file": "articles/ind.pricing_understand_pricing_elements.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm",
+      "title": "Understand the Order of Execution for Place Sales Transaction",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 1967,
+      "file": "articles/ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_understand_your_resolution_variables.htm",
+      "title": "Understand Your Resolution Variables",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_output_resolution.htm",
+      "body_length": 1731,
+      "file": "articles/ind.pricing_understand_your_resolution_variables.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_unique_pricing_scenarios.htm",
+      "title": "Unique Pricing Scenarios",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_salesforce_pricing.htm",
+      "body_length": 3016,
+      "file": "articles/ind.pricing_unique_pricing_scenarios.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_update_your_product_price_range_entries_decision_table.htm",
+      "title": "Update Your Product Price Range Entries Decision Table",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_price_tracking.htm",
+      "body_length": 1278,
+      "file": "articles/ind.pricing_update_your_product_price_range_entries_decision_table.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_use_the_aggregate_price_element.htm",
+      "title": "Use the Aggregate Price Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_add_aggregate_price_element.htm",
+      "body_length": 3449,
+      "file": "articles/ind.pricing_use_the_aggregate_price_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_use_the_discount_spread_service_element.htm",
+      "title": "Use the Discount Distribution Service Element",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_discount_spread_service.htm",
+      "body_length": 4223,
+      "file": "articles/ind.pricing_use_the_discount_spread_service_element.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm",
+      "title": "Use the Price Revision Element in a Pricing Procedure",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_apply_policy_driven_price_revisions.htm",
+      "body_length": 8515,
+      "file": "articles/ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_use_the_procedure_plan_framework.htm",
+      "title": "Use the Procedure Plan Framework",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_procedure_plan_framework.htm",
+      "body_length": 15351,
+      "file": "articles/ind.pricing_use_the_procedure_plan_framework.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_view_pricing_adjustment_batch_job_logs.htm",
+      "title": "View Pricing Adjustment Batch Job Logs",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_adjustment_batch_jobs.htm",
+      "body_length": 698,
+      "file": "articles/ind.pricing_view_pricing_adjustment_batch_job_logs.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_view_pricing_api_execution_logs.htm",
+      "title": "Investigate and Analyze Pricing API Execution Logs",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_operations_console.htm",
+      "body_length": 1614,
+      "file": "articles/ind.pricing_view_pricing_api_execution_logs.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_view_pricing_data.htm",
+      "title": "View Pricing Data Using Lightning Components",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_access_your_pricing_information.htm",
+      "body_length": 1424,
+      "file": "articles/ind.pricing_view_pricing_data.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_view_pricing_recipes.htm",
+      "title": "Select a Pricing Recipe for Your Salesforce Org",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_pricing_recipes.htm",
+      "body_length": 843,
+      "file": "articles/ind.pricing_view_pricing_recipes.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_view_setup_objects_price_waterfall.htm",
+      "title": "Understand the Setup Objects Used for Price Waterfall",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_set_up_price_waterfall_salesforce_pricing.htm",
+      "body_length": 1062,
+      "file": "articles/ind.pricing_view_setup_objects_price_waterfall.htm.md"
+    },
+    {
+      "article_id": "ind.pricing_weekly_proration.htm",
+      "title": "Weekly Proration Examples",
+      "status": "captured",
+      "area": "pricing",
+      "parent_article": "ind.pricing_subscription_variables.htm",
+      "body_length": 799,
+      "file": "articles/ind.pricing_weekly_proration.htm.md"
     },
     {
       "article_id": "ind.product_catalog_activate_dt_for_a_product.htm",
@@ -7269,12 +8681,12 @@
       "file": "articles/ind.qocal_zero_quantity_considerations.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T17:34:30Z",
+  "last_updated": "2026-09-07T19:45:55Z",
   "stats": {
-    "discovered": 797,
-    "captured": 794,
+    "discovered": 952,
+    "captured": 949,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 1993375
+    "total_captured_body_chars": 2406380
   }
 }
