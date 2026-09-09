@@ -85,7 +85,7 @@ def test_recovers_after_more_than_the_old_attempt_cap():
     clock = _FakeClock()
     calls = {"n": 0}
 
-    def fake_make_request(method, url, headers=None, retryable=None):
+    def fake_make_request(method, url, headers=None, retryable=None, **kwargs):
         calls["n"] += 1
         # Miss for the first 6 probes (well past the old _MAX_RETRIES=3 cap),
         # then a hit.
@@ -109,7 +109,7 @@ def test_exhausts_the_full_budget_when_never_visible():
     t = _new_task()
     clock = _FakeClock()
 
-    def fake_make_request(method, url, headers=None, retryable=None):
+    def fake_make_request(method, url, headers=None, retryable=None, **kwargs):
         return {"isSuccess": False}
 
     t._make_request = fake_make_request
@@ -133,6 +133,35 @@ def test_exhausts_the_full_budget_when_never_visible():
         "backoff grows rather than staying flat "
         "(the final interval may be clipped shorter to fit the remaining budget)",
         max(clock.sleeps) > clock.sleeps[0],
+    )
+
+
+def test_probe_timeout_is_capped_to_the_remaining_budget():
+    # A probe issued near the deadline must not itself be allowed to hang for
+    # the full default (connect, read) timeout -- that could blow well past
+    # _RECOVER_BUDGET_SECONDS on its own. Each probe's timeout should be
+    # capped to what's left of the budget.
+    t = _new_task()
+    clock = _FakeClock()
+    seen_timeouts = []
+
+    def fake_make_request(method, url, headers=None, retryable=None, timeout=None, **kwargs):
+        seen_timeouts.append(timeout)
+        return {"isSuccess": False}
+
+    t._make_request = fake_make_request
+    t._recover_context_id(
+        "Sales_Transaction_Context", sleep=clock.sleep, monotonic=clock.monotonic
+    )
+    check("every probe passed an explicit timeout", all(tm is not None for tm in seen_timeouts))
+    check(
+        "no probe's timeout exceeds the remaining budget at the time it was issued",
+        all(connect <= _RECOVER_BUDGET_SECONDS and read <= _RECOVER_BUDGET_SECONDS
+            for connect, read in seen_timeouts),
+    )
+    check(
+        "the final probe's timeout is capped well below the default 600s read timeout",
+        seen_timeouts[-1][1] < 600,
     )
 
 
@@ -171,6 +200,11 @@ def test_failure_messages_are_distinct_and_carry_the_right_guidance():
     check(
         "duplicate_value message points at the Connect-API inspect path",
         "context-service" in dup_msg,
+    )
+    check(
+        "duplicate_value message also names the same-Name/different-developerName "
+        "collision case, not just visibility/permission",
+        "developername" in dup_msg.lower() and "name" in dup_msg.lower(),
     )
 
 

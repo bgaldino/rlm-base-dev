@@ -242,9 +242,19 @@ class ExtendStandardContext(SFDXBaseTask):
         wait = _RECOVER_INITIAL_WAIT
         attempt = 0
         while True:
+            elapsed = monotonic() - start
+            remaining = _RECOVER_BUDGET_SECONDS - elapsed
+            if remaining <= 0:
+                return None
             attempt += 1
-            # Disable _make_request's own retries — this loop owns the backoff
-            response = self._make_request("get", url, headers=headers, retryable=False)
+            # Disable _make_request's own retries — this loop owns the backoff.
+            # Cap the probe's own connect/read timeout to what's left of the
+            # budget, so a stalled probe can't itself run the loop well past
+            # _RECOVER_BUDGET_SECONDS (the default per-call timeout is 630s).
+            probe_timeout = (min(_CONNECT_TIMEOUT, remaining), min(_READ_TIMEOUT, remaining))
+            response = self._make_request(
+                "get", url, headers=headers, retryable=False, timeout=probe_timeout
+            )
             if response is not None:
                 # The API returns isSuccess:false for unknown definitions
                 if response.get("isSuccess") is not False:
@@ -279,19 +289,26 @@ class ExtendStandardContext(SFDXBaseTask):
           contextDefinitionId (empty/non-JSON body, or a success payload missing
           the field) — the connection did not drop, but the outcome is still
           unknown, so the operator guidance is the same as network_drop.
-        - "duplicate_value": Salesforce already told us the definition exists
-          (DUPLICATE_VALUE), so its absence from the lookup is a
-          visibility/permission problem, not a missing definition.
+        - "duplicate_value": Salesforce already told us a definition exists
+          (DUPLICATE_VALUE), so its absence from the lookup is either a
+          visibility/permission problem on this exact record, or (per
+          _is_duplicate_value_error) a *different* definition sharing the same
+          display Name but a different developerName — a developerName lookup
+          can never resolve that second case.
         """
         budget_minutes = _RECOVER_BUDGET_SECONDS // 60
         if reason == "duplicate_value":
             return (
-                f"Salesforce reported context definition '{developer_name}' already "
-                f"exists (DUPLICATE_VALUE), but it was not retrievable by developerName "
-                f"after polling for ~{budget_minutes} minutes. This looks like a "
-                f"visibility or permission problem, not a missing definition — inspect "
-                f"the org's ContextDefinition via the Connect API "
-                f"(.cursor/skills/context-service/SKILL.md)."
+                f"Salesforce reported a context definition matching '{developer_name}' "
+                f"already exists (DUPLICATE_VALUE), but it was not retrievable by "
+                f"developerName after polling for ~{budget_minutes} minutes. Two "
+                f"distinct causes produce DUPLICATE_VALUE: a visibility/permission gap "
+                f"on this exact record, or another definition that shares the same "
+                f"display Name but a different developerName — a developerName lookup "
+                f"can never resolve that second case. Inspect the org's "
+                f"ContextDefinition via the Connect API "
+                f"(.cursor/skills/context-service/SKILL.md); if no record with "
+                f"developerName '{developer_name}' exists, search by Name instead."
             )
         if reason == "missing_id":
             outcome = (
