@@ -13,6 +13,16 @@ _READ_TIMEOUT = 600         # seconds to wait for response (context APIs can tak
 _MAX_RETRIES = 3            # total attempts on transient failures
 _RETRY_BACKOFF = 30         # seconds between retries (doubles each attempt)
 
+# Recovery-by-developerName settings. Separate from the constants above:
+# _MAX_RETRIES/_RETRY_BACKOFF govern _make_request's fast per-call retry on a
+# single HTTP transaction and must stay short. This governs polling for the
+# *side effect* of a POST whose own log says it "may take 5-10 minutes on some
+# org types" -- a 3-attempt/~90s window gives up long before that commit
+# finishes (see todo 126 / #264-64).
+_RECOVER_BUDGET_SECONDS = 600   # total poll window; sized to the documented 5-10 min commit
+_RECOVER_INITIAL_WAIT = 15      # first inter-probe wait, then doubles
+_RECOVER_MAX_INTERVAL = 120     # cap on the exponential inter-probe wait
+
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
 class ExtendStandardContext(SFDXBaseTask):
@@ -148,6 +158,7 @@ class ExtendStandardContext(SFDXBaseTask):
                     f"      Context definition '{developer_name}' already exists. "
                     f"Recovering ID to continue configuration..."
                 )
+                recovery_reason = "duplicate_value"
                 self.context_id = self._recover_context_id(developer_name)
             elif self._last_response_status is not None:
                 # Non-recoverable API error (auth, validation, etc.) — fail loudly
@@ -160,14 +171,14 @@ class ExtendStandardContext(SFDXBaseTask):
                 self.logger.warning(
                     f"      contextDefinitionId not in response — attempting to recover by developerName..."
                 )
+                recovery_reason = "network_drop"
                 self.context_id = self._recover_context_id(developer_name)
         if self.context_id:
             self.logger.info(f"      Context Definition ID: {self.context_id}")
             self._process_context_id()
         else:
             raise RuntimeError(
-                f"Could not obtain context definition ID for '{developer_name}' "
-                f"after creation and recovery attempts. The org may need manual inspection."
+                self._recovery_failure_message(developer_name, recovery_reason)
             )
 
     def _is_missing_base_context_error(self):
@@ -201,16 +212,28 @@ class ExtendStandardContext(SFDXBaseTask):
             pass
         return False
 
-    def _recover_context_id(self, developer_name):
-        """Query the org for an existing context definition by developerName."""
+    def _recover_context_id(self, developer_name, *, sleep=time.sleep, monotonic=time.monotonic):
+        """Query the org for an existing context definition by developerName.
+
+        Polls on a total elapsed-time budget (_RECOVER_BUDGET_SECONDS) rather than
+        a fixed attempt count, because the operation being recovered from ("this
+        API call may take 5-10 minutes on some org types") is far slower than a
+        short attempt count can wait out. Backoff between probes grows
+        exponentially from _RECOVER_INITIAL_WAIT, capped at _RECOVER_MAX_INTERVAL,
+        so an early-committing org gets a fast answer while a slow one still gets
+        the full budget. ``sleep``/``monotonic`` are injectable so tests can drive
+        the loop without real time.
+        """
         self.logger.info(f"      Querying for existing context definition '{developer_name}'...")
-        # Wait briefly for server-side commit to propagate
-        time.sleep(10)
         # Use the direct lookup endpoint (avoids paging the full list)
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{developer_name}"
         )
-        for attempt in range(1, _MAX_RETRIES + 1):
+        start = monotonic()
+        wait = _RECOVER_INITIAL_WAIT
+        attempt = 0
+        while True:
+            attempt += 1
             # Disable _make_request's own retries — this loop owns the backoff
             response = self._make_request("get", url, headers=headers, retryable=False)
             if response is not None:
@@ -218,16 +241,56 @@ class ExtendStandardContext(SFDXBaseTask):
                 if response.get("isSuccess") is not False:
                     ctx_id = response.get("contextDefinitionId")
                     if ctx_id:
-                        self.logger.info(f"      Recovered context definition from org.")
+                        self.logger.info(
+                            f"      Recovered context definition from org "
+                            f"(attempt {attempt}, {int(monotonic() - start)}s elapsed)."
+                        )
                         return ctx_id
-            if attempt < _MAX_RETRIES:
-                wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
-                self.logger.warning(
-                    f"      Context definition not found yet (attempt {attempt}/{_MAX_RETRIES}). "
-                    f"Waiting {wait}s for server-side commit..."
-                )
-                time.sleep(wait)
-        return None
+            elapsed = monotonic() - start
+            remaining = _RECOVER_BUDGET_SECONDS - elapsed
+            if remaining <= 0:
+                return None
+            this_wait = min(wait, remaining)
+            self.logger.warning(
+                f"      Context definition not found yet (attempt {attempt}, "
+                f"{int(elapsed)}s/{_RECOVER_BUDGET_SECONDS}s elapsed). "
+                f"Waiting {int(this_wait)}s for server-side commit..."
+            )
+            sleep(this_wait)
+            wait = min(wait * 2, _RECOVER_MAX_INTERVAL)
+
+    def _recovery_failure_message(self, developer_name, reason):
+        """Build the exhausted-recovery error message for the given ``reason``.
+
+        The two reasons need different operator action, so the message must not
+        conflate them (todo 126 / #264-64):
+        - "network_drop": the POST's own connection dropped before an ID came
+          back, so whether the definition was created server-side is genuinely
+          unknown.
+        - "duplicate_value": Salesforce already told us the definition exists
+          (DUPLICATE_VALUE), so its absence from the lookup is a
+          visibility/permission problem, not a missing definition.
+        """
+        budget_minutes = _RECOVER_BUDGET_SECONDS // 60
+        if reason == "duplicate_value":
+            return (
+                f"Salesforce reported context definition '{developer_name}' already "
+                f"exists (DUPLICATE_VALUE), but it was not retrievable by developerName "
+                f"after polling for ~{budget_minutes} minutes. This looks like a "
+                f"visibility or permission problem, not a missing definition — inspect "
+                f"the org's ContextDefinition via the Connect API "
+                f"(.cursor/skills/context-service/SKILL.md)."
+            )
+        return (
+            f"The POST to create context definition '{developer_name}' had its "
+            f"connection drop before returning an ID, and it was not visible by "
+            f"developerName after polling for ~{budget_minutes} minutes. It was very "
+            f"likely created server-side and is still committing, OR the POST never "
+            f"reached the server — this cannot be distinguished from here. Re-run the "
+            f"task: if it was created, the re-run returns DUPLICATE_VALUE and recovers "
+            f"the ID automatically; if it was not, the re-run creates it cleanly. "
+            f"Neither outcome duplicates the definition."
+        )
 
     # Post-process after getting the context ID - typically to process the version list
     def _process_context_id(self):
