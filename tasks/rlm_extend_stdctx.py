@@ -248,10 +248,15 @@ class ExtendStandardContext(SFDXBaseTask):
                 return None
             attempt += 1
             # Disable _make_request's own retries — this loop owns the backoff.
-            # Cap the probe's own connect/read timeout to what's left of the
-            # budget, so a stalled probe can't itself run the loop well past
-            # _RECOVER_BUDGET_SECONDS (the default per-call timeout is 630s).
-            probe_timeout = (min(_CONNECT_TIMEOUT, remaining), min(_READ_TIMEOUT, remaining))
+            # Requests' (connect, read) timeout applies each limit independently,
+            # not as a combined wall-clock cap — min(X, remaining) on both phases
+            # still lets a probe run up to 2x remaining. Split what's left of the
+            # budget across the two phases instead (connect first, read gets
+            # whatever's left, floored at 1s) so connect + read stays bounded by
+            # remaining, not by _RECOVER_BUDGET_SECONDS.
+            connect_timeout = min(_CONNECT_TIMEOUT, remaining)
+            read_timeout = min(_READ_TIMEOUT, max(remaining - connect_timeout, 1))
+            probe_timeout = (connect_timeout, read_timeout)
             response = self._make_request(
                 "get", url, headers=headers, retryable=False, timeout=probe_timeout
             )

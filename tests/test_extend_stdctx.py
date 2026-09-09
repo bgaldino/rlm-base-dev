@@ -139,29 +139,34 @@ def test_exhausts_the_full_budget_when_never_visible():
 def test_probe_timeout_is_capped_to_the_remaining_budget():
     # A probe issued near the deadline must not itself be allowed to hang for
     # the full default (connect, read) timeout -- that could blow well past
-    # _RECOVER_BUDGET_SECONDS on its own. Each probe's timeout should be
-    # capped to what's left of the budget.
+    # _RECOVER_BUDGET_SECONDS on its own. requests applies (connect, read) as
+    # two INDEPENDENT phase timeouts, not a combined wall-clock cap, so
+    # min(X, remaining) on both components would still let a probe run up to
+    # 2x remaining -- assert the *sum* against remaining-at-issue-time, not
+    # each component against the original total budget (which (600, 600)
+    # would pass trivially).
     t = _new_task()
     clock = _FakeClock()
-    seen_timeouts = []
+    seen = []  # (remaining_at_issue, timeout) pairs
 
     def fake_make_request(method, url, headers=None, retryable=None, timeout=None, **kwargs):
-        seen_timeouts.append(timeout)
+        remaining_at_issue = _RECOVER_BUDGET_SECONDS - clock.now
+        seen.append((remaining_at_issue, timeout))
         return {"isSuccess": False}
 
     t._make_request = fake_make_request
     t._recover_context_id(
         "Sales_Transaction_Context", sleep=clock.sleep, monotonic=clock.monotonic
     )
-    check("every probe passed an explicit timeout", all(tm is not None for tm in seen_timeouts))
+    check("every probe passed an explicit timeout", all(tm is not None for _, tm in seen))
     check(
-        "no probe's timeout exceeds the remaining budget at the time it was issued",
-        all(connect <= _RECOVER_BUDGET_SECONDS and read <= _RECOVER_BUDGET_SECONDS
-            for connect, read in seen_timeouts),
+        "connect + read timeout never exceeds remaining budget by more than the "
+        "1s floor reserved for read",
+        all(connect + read <= remaining_at_issue + 1 for remaining_at_issue, (connect, read) in seen),
     )
     check(
         "the final probe's timeout is capped well below the default 600s read timeout",
-        seen_timeouts[-1][1] < 600,
+        seen[-1][1][1] < 600,
     )
 
 
