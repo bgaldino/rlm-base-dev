@@ -27,6 +27,7 @@ repo root.
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | `usage-consumption/SKILL.md` |
+| Prep a clone as a DF Hands-On workshop org (capture/replay seeded quotes+config, verify before templating) | DF Workshop Setup | `df-workshop-setup/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |

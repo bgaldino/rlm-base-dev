@@ -369,6 +369,14 @@ foundations:
         - scripts/docgen/docgen_template_manage.py
         - scripts/docgen/docgen_template_generate.py
 
+    - id: df-workshop-setup
+      path: .cursor/skills/df-workshop-setup/SKILL.md
+      purpose: "Capture/replay DF Hands-On workshop org drift (seeded quotes, ramps, anchors, config) into a clone and verify it before TrialForce/OrgFarm templating"
+      consumed_by_pmos: []
+      tooling:
+        - scripts/df_workshop/extract_workshop_quotes.py
+        - scripts/df_workshop/insert_workshop_quotes.py
+
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
     - id: snapshot_salesforce_help
