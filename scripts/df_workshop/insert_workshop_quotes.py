@@ -426,10 +426,18 @@ def replay_attributes(org, quote_id, quote_spec):
     attrs = (quote_spec.get("childRecords") or {}).get("QuoteLineItemAttribute", [])
     if not attrs:
         return
-    # Target QLI id by product SKU on the placed quote.
+    # Target QLIs on the placed quote, ordered by LineNumber. A simple quote's lines
+    # are placed in spec order (== source LineNumber order), so the i-th target line
+    # matches source line ordinal i -- this disambiguates a quote that repeats a SKU,
+    # where a SKU->line map would collapse every occurrence onto the last line.
     rows = sf_query(org, "SELECT Id, Product2.StockKeepingUnit FROM QuoteLineItem "
-                         f"WHERE QuoteId = {soql_str(quote_id)}")
-    qli_by_sku = {(r.get("Product2") or {}).get("StockKeepingUnit"): r["Id"] for r in rows}
+                         f"WHERE QuoteId = {soql_str(quote_id)} ORDER BY LineNumber")
+    qli_by_ordinal = {i: r["Id"] for i, r in enumerate(rows)}
+    qli_by_sku, sku_counts = {}, {}
+    for r in rows:
+        sku = (r.get("Product2") or {}).get("StockKeepingUnit")
+        sku_counts[sku] = sku_counts.get(sku, 0) + 1
+        qli_by_sku[sku] = r["Id"]          # fallback for pre-ordinal specs
     made = 0
     # Configured attributes are part of the required workshop state (e.g. Quote
     # PDF's six). Silently skipping an unresolvable one would let an incomplete
@@ -438,10 +446,20 @@ def replay_attributes(org, quote_id, quote_spec):
     unresolved = []
     for a in attrs:
         name = a.get("AttributeName")
-        sku = (a.get("_keys") or {}).get("QuoteLineItemSku")
-        qli = qli_by_sku.get(sku)
+        akeys = a.get("_keys") or {}
+        sku = akeys.get("QuoteLineItemSku")
+        ordinal = akeys.get("QuoteLineOrdinal")
+        qli = qli_by_ordinal.get(ordinal) if ordinal is not None else None
+        if qli is None and sku is not None:
+            # Older spec without an ordinal: SKU is safe only when unique on the quote.
+            if sku_counts.get(sku, 0) > 1:
+                unresolved.append(
+                    f"{name!r}: sku={sku!r} is on {sku_counts[sku]} lines and the spec "
+                    "carries no line ordinal -- re-extract to disambiguate")
+                continue
+            qli = qli_by_sku.get(sku)
         if not (name and qli):
-            unresolved.append(f"{name!r}: no target line for sku={sku!r}")
+            unresolved.append(f"{name!r}: no target line for sku={sku!r} ordinal={ordinal!r}")
             continue
         adef = _attr_def(org, name)
         if not adef.get("Id"):
@@ -579,7 +597,16 @@ def _assert_complete(org, quote_id, quote_spec):
 
 def replay_quote(org, quote_spec, acct_ids, opp_ids, contact_ids, dry_run, replace):
     name = quote_spec["name"]
-    existing = sf_query_one(org, f"SELECT Id FROM Quote WHERE Name = {soql_str(name)} LIMIT 1")
+    # Quote names are not unique. Selecting one arbitrary match would let --replace
+    # delete only one of several, and certify completeness against the wrong one, so
+    # fail on ambiguity before skipping/replacing.
+    matches = sf_query(org, f"SELECT Id FROM Quote WHERE Name = {soql_str(name)} ORDER BY CreatedDate")
+    if len(matches) > 1:
+        raise InsertError(
+            f"{len(matches)} quotes named {name!r} in {org!r}; ambiguous -- --replace "
+            "would delete only one and completeness cannot be judged. Remove the "
+            "duplicate(s) before replaying.")
+    existing = matches[0] if matches else None
     if existing:
         if replace and not dry_run:
             rc, out, err = _run(["sf", "data", "delete", "record", "--sobject", "Quote",
@@ -692,7 +719,17 @@ def main():
 
     if not args.skip_quotes:
         print("Quotes:")
+        spec_names = {q["name"] for q in spec["quotes"]}
         wanted = set(args.quote) if args.quote else None
+        if wanted:
+            # A misspelled/absent --quote must not silently prepare a clone without the
+            # requested quote (the run would still touch anchors and exit 0).
+            unknown = sorted(wanted - spec_names)
+            if unknown:
+                raise InsertError(
+                    "requested --quote name(s) not in the spec: "
+                    + ", ".join(repr(u) for u in unknown)
+                    + f" (spec has: {', '.join(repr(n) for n in sorted(spec_names))})")
         for qspec in spec["quotes"]:
             if wanted and qspec["name"] not in wanted:
                 continue

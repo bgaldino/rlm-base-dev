@@ -16,9 +16,10 @@ exercise guide for any other release (see **Discovery**).
 
 1. **The drift has three buckets.** A = platform provisioning (Data Cloud,
    Einstein/Agentforce) — NOT handled by scripts, enabled by the attendee
-   post-clone. B = config toggles (perm-set assign; pricing-procedure state) —
-   scriptable + idempotent. C = transactional data (quotes/ramps/anchors) — the
-   extract/replay core.
+   post-clone. B = config toggles: the perm-set assign is scriptable + idempotent;
+   the DISTI pricing-procedure state is *detected* (an active version fails with
+   manual deactivation instructions, not auto-deactivated). C = transactional data
+   (quotes/ramps/anchors) — the extract/replay core.
 2. **Quotes are replayed, never DML'd.** Re-create each quote through Place Sales
    Transaction (`POST /connect/rev/sales-transaction/actions/place`) so the
    platform generates and prices line items, attributes, and ramp segments.
@@ -108,8 +109,10 @@ python scripts/df_workshop/insert_workshop_quotes.py --org <clone> \
 - Upserts anchors by Name (idempotent), resolves each SKU/selling-model to the
   clone's own PricebookEntry, replays quotes via Place (ramps via Create Ramp
   Deal), and replays configured `QuoteLineItemAttribute`s.
-- `--apply-config` applies bucket B: assign the Coworker-admin perm set;
-  report/deactivate the pricing procedure if one is active.
+- `--apply-config` applies bucket B: assign the Coworker-admin perm set. It does
+  **not** auto-deactivate the DISTI pricing procedure — it *detects* an active
+  version and **fails** with manual `scripts/expression_sets/` deactivation
+  instructions (deactivate, don't delete), so a partial setup is never certified.
 
 ### 3. Verify by query (the template gate)
 Confirm, with SOQL against the clone (see **Validation Checks**): each quote's

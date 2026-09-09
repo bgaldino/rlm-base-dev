@@ -4,7 +4,7 @@
 Why a "replay spec" and not a data dump
 ---------------------------------------
 The workshop's value records are three Quotes and their line items
-(``Quoted PDF`` + two ramp quotes). Their child records -- QuoteLineItem,
+(``Quote PDF`` + two ramp quotes). Their child records -- QuoteLineItem,
 QuoteLineItemAttribute, QuoteLineDetail, price adjustments, ramp segments --
 are *derived*: the platform generates them when a quote is created and priced
 through the RLM transaction/pricing pipeline. Direct DML of a QuoteLineItem is
@@ -94,6 +94,24 @@ class ExtractError(RuntimeError):
     pass
 
 
+class UnknownObjectError(ExtractError):
+    """The org has no such sObject -- safe to skip an *optional* child collection.
+
+    Distinct from a describe that failed for any other reason (auth, CLI,
+    transient, malformed response): those must propagate, not be swallowed as
+    "object absent", or we would write a successful-but-incomplete replay spec.
+    """
+    pass
+
+
+def _is_unknown_object(name, msg):
+    """True only when a describe error positively identifies a missing sObject."""
+    hay = f"{name} {msg}".lower()
+    return any(s in hay for s in (
+        "not supported", "does not exist", "invalid_type", "no such sobject",
+        "cannot find", "not found", "unknown sobject", "invalid sobject"))
+
+
 # ----------------------------------------------------------------------
 # sf CLI plumbing (auth delegated to the CLI -- no tokens handled here)
 # ----------------------------------------------------------------------
@@ -132,10 +150,20 @@ def describe(org, sobject):
         rc, out, err = _run(["sf", "sobject", "describe", "--sobject", sobject,
                              "--target-org", org, "--json"])
         try:
-            d = json.loads(out)["result"]
-        except (json.JSONDecodeError, KeyError):
-            raise ExtractError(f"describe {sobject} failed: {(err or out)[:300]}")
-        _DESCRIBE_CACHE[sobject] = d
+            payload = json.loads(out)
+        except json.JSONDecodeError:
+            payload = None
+        if payload and payload.get("status", 1) == 0 and "result" in payload:
+            _DESCRIBE_CACHE[sobject] = payload["result"]
+        else:
+            name = (payload or {}).get("name") or ""
+            msg = ((payload or {}).get("message") or err or out or "").strip()
+            # Only a positively-identified missing object is skippable; every other
+            # failure (auth, CLI, transient, malformed) must propagate so we never
+            # silently drop a child collection into a "successful" spec.
+            if _is_unknown_object(name, msg):
+                raise UnknownObjectError(f"{sobject} not present in {org!r}: {msg[:200]}")
+            raise ExtractError(f"describe {sobject} failed: {msg[:300]}")
     return _DESCRIBE_CACHE[sobject]
 
 
@@ -231,18 +259,22 @@ def extract_quote(org, quote_name):
                              f"WHERE QuoteId = {soql_str(quote_id)} ORDER BY LineNumber")
     lines = []
     line_ids = []
-    for r in qli_rows:
+    for idx, r in enumerate(qli_rows):   # qli_rows is ORDER BY LineNumber
         line_ids.append(r["Id"])
-        lines.append(clean_record(org, r))
+        rec = clean_record(org, r)
+        rec["_lineOrdinal"] = idx        # stable position, disambiguates repeated SKUs
+        lines.append(rec)
 
-    # Map source QLI id -> product SKU so child records carry a portable line key
-    # (the raw QuoteLineItemId is org-specific; the replay resolves the target QLI
-    # by product on the placed quote).
-    qli_sku = {}
-    for ln in lines:
+    # Map source QLI id -> (SKU, ordinal) so child records carry a UNIQUE portable
+    # line key. SKU alone is ambiguous when a quote repeats a product -- the ordinal
+    # (position in LineNumber order) disambiguates. The raw QuoteLineItemId is
+    # org-specific; the replay resolves the target QLI by ordinal on the placed quote
+    # (placement order == this order), falling back to SKU when it is unique.
+    qli_line = {}
+    for idx, ln in enumerate(lines):
         sku = (ln.get("_keys") or {}).get("Product2Key")
-        if ln.get("_sourceId") and sku:
-            qli_sku[ln["_sourceId"]] = sku
+        if ln.get("_sourceId"):
+            qli_line[ln["_sourceId"]] = (sku, idx)
 
     # Child records that carry manual input (configured attrs, manual adjustments,
     # line-level pricing detail). Queried per child object, grouped by line.
@@ -254,8 +286,8 @@ def extract_quote(org, quote_name):
     ):
         try:
             fields = queryable_fields(org, child_obj)
-        except ExtractError:
-            continue  # object not present in this org
+        except UnknownObjectError:
+            continue  # object genuinely absent in this org (other failures propagate)
         if not line_ids:
             break
         id_list = ", ".join(soql_str(i) for i in line_ids)
@@ -265,9 +297,12 @@ def extract_quote(org, quote_name):
             cleaned = []
             for c in crows:
                 rec = clean_record(org, c)
-                parent_sku = qli_sku.get(c.get(rel))
-                if parent_sku:
-                    rec.setdefault("_keys", OrderedDict())["QuoteLineItemSku"] = parent_sku
+                parent = qli_line.get(c.get(rel))
+                if parent:
+                    keys = rec.setdefault("_keys", OrderedDict())
+                    if parent[0]:
+                        keys["QuoteLineItemSku"] = parent[0]
+                    keys["QuoteLineOrdinal"] = parent[1]
                 cleaned.append(rec)
             children[child_obj] = cleaned
 
