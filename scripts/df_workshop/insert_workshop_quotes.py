@@ -208,7 +208,19 @@ def upsert_anchors(org, anchors, dry_run=False):
         # store a full display name in LastName with an empty FirstName (Contact.Name
         # is a formula); splitting it corrupts LastName and breaks the Name existence
         # check, inserting a duplicate on every run.
-        existing = sf_query_one(org, f"SELECT Id FROM Contact WHERE Name = {soql_str(name)} LIMIT 1")
+        # Contact names are not unique either -- scope by the captured account (when
+        # present) and fail on a still-ambiguous match, same as opportunities below.
+        acct_id = acct_ids.get(acct_name) if acct_name else None
+        where = [f"Name = {soql_str(name)}"]
+        if acct_id:
+            where.append(f"AccountId = {soql_str(acct_id)}")
+        matches = sf_query(org, f"SELECT Id FROM Contact WHERE {' AND '.join(where)} ORDER BY CreatedDate")
+        if len(matches) > 1:
+            scope = f" on account {acct_name!r}" if acct_id else " (no captured account to scope by)"
+            raise InsertError(
+                f"{len(matches)} contacts named {name!r}{scope}; ambiguous anchor -- "
+                "remove the duplicate(s) before replaying.")
+        existing = matches[0] if matches else None
         if existing:
             contact_ids[name] = existing["Id"]
             print(f"    contact exists: {name}")
@@ -245,8 +257,22 @@ def upsert_anchors(org, anchors, dry_run=False):
                                   f"{name!r} -- is the QB foundation loaded in {org!r}?")
             pb_id = pb_row["Id"]
 
-        existing = sf_query_one(org, "SELECT Id, Pricebook2Id, Amount FROM Opportunity "
-                                     f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
+        # Opportunity names are not unique. Scope the existing-anchor match by the
+        # captured account so a same-named opp on another account is never healed
+        # and used as this anchor (which would leave the intended scenario opp
+        # absent); fail if the Name+Account composite is still ambiguous.
+        acct_id = acct_ids.get(acct_name) if acct_name else None
+        where = [f"Name = {soql_str(name)}"]
+        if acct_id:
+            where.append(f"AccountId = {soql_str(acct_id)}")
+        matches = sf_query(org, "SELECT Id, Pricebook2Id, Amount FROM Opportunity "
+                                f"WHERE {' AND '.join(where)} ORDER BY CreatedDate")
+        if len(matches) > 1:
+            scope = f" on account {acct_name!r}" if acct_id else " (no captured account to scope by)"
+            raise InsertError(
+                f"{len(matches)} opportunities named {name!r}{scope}; ambiguous anchor -- "
+                "remove the duplicate(s) before replaying.")
+        existing = matches[0] if matches else None
         if existing:
             opp_ids[name] = existing["Id"]
             # Heal an existing opp in place (these opps may already carry quotes,
