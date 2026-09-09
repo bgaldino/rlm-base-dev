@@ -504,7 +504,19 @@ public with sharing class RLM_UsageUploaderController {
             resourceNames.put(ur.Id, ur.Name);
         }
 
-        // Build wrapper list
+        return buildRateInfoWrappers(arces, tiersByRce, resourceNames);
+    }
+
+    // Split out from getRatesForAsset so the transform can be unit-tested against
+    // in-memory (uninserted) AssetRateCardEntry rows — the object is platform-derived
+    // (createable = false) and only ever populated by the real order-to-asset
+    // assetization pipeline, so a unit test cannot insert one to exercise this logic.
+    @TestVisible
+    private static List<RateInfoWrapper> buildRateInfoWrappers(
+        List<AssetRateCardEntry> arces,
+        Map<Id, List<RateAdjustmentByTier>> tiersByRce,
+        Map<Id, String> resourceNames
+    ) {
         List<RateInfoWrapper> wrappers = new List<RateInfoWrapper>();
         for (AssetRateCardEntry arce : arces) {
             RateInfoWrapper w = new RateInfoWrapper();
