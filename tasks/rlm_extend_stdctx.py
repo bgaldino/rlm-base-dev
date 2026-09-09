@@ -166,12 +166,21 @@ class ExtendStandardContext(SFDXBaseTask):
                     f"Salesforce API error creating context definition '{developer_name}': "
                     f"HTTP {self._last_response_status} — {self._last_response_body[:300]}"
                 )
+            elif response is None:
+                # Network failure — no response came back at all. Attempt recovery.
+                self.logger.warning(
+                    f"      No response from server — attempting to recover by developerName..."
+                )
+                recovery_reason = "network_drop"
+                self.context_id = self._recover_context_id(developer_name)
             else:
-                # Network failure or missing ID in response — attempt recovery
+                # Got a response, but it had no contextDefinitionId (empty/non-JSON
+                # body, or a success payload missing the field) — not a dropped
+                # connection. Attempt recovery.
                 self.logger.warning(
                     f"      contextDefinitionId not in response — attempting to recover by developerName..."
                 )
-                recovery_reason = "network_drop"
+                recovery_reason = "missing_id"
                 self.context_id = self._recover_context_id(developer_name)
         if self.context_id:
             self.logger.info(f"      Context Definition ID: {self.context_id}")
@@ -262,11 +271,14 @@ class ExtendStandardContext(SFDXBaseTask):
     def _recovery_failure_message(self, developer_name, reason):
         """Build the exhausted-recovery error message for the given ``reason``.
 
-        The two reasons need different operator action, so the message must not
+        The three reasons need different operator framing, so the message must not
         conflate them (todo 126 / #264-64):
-        - "network_drop": the POST's own connection dropped before an ID came
-          back, so whether the definition was created server-side is genuinely
-          unknown.
+        - "network_drop": no response came back at all (a real connection drop),
+          so whether the definition was created server-side is genuinely unknown.
+        - "missing_id": a response did come back, just without a
+          contextDefinitionId (empty/non-JSON body, or a success payload missing
+          the field) — the connection did not drop, but the outcome is still
+          unknown, so the operator guidance is the same as network_drop.
         - "duplicate_value": Salesforce already told us the definition exists
           (DUPLICATE_VALUE), so its absence from the lookup is a
           visibility/permission problem, not a missing definition.
@@ -281,15 +293,24 @@ class ExtendStandardContext(SFDXBaseTask):
                 f"the org's ContextDefinition via the Connect API "
                 f"(.cursor/skills/context-service/SKILL.md)."
             )
+        if reason == "missing_id":
+            outcome = (
+                f"The POST to create context definition '{developer_name}' returned "
+                f"a response without a contextDefinitionId (empty or unexpected body)"
+            )
+        else:
+            outcome = (
+                f"The POST to create context definition '{developer_name}' had its "
+                f"connection drop before returning an ID"
+            )
         return (
-            f"The POST to create context definition '{developer_name}' had its "
-            f"connection drop before returning an ID, and it was not visible by "
-            f"developerName after polling for ~{budget_minutes} minutes. It was very "
-            f"likely created server-side and is still committing, OR the POST never "
-            f"reached the server — this cannot be distinguished from here. Re-run the "
-            f"task: if it was created, the re-run returns DUPLICATE_VALUE and recovers "
-            f"the ID automatically; if it was not, the re-run creates it cleanly. "
-            f"Neither outcome duplicates the definition."
+            f"{outcome}, and it was not visible by developerName after polling for "
+            f"~{budget_minutes} minutes. It was very likely created server-side and "
+            f"is still committing, OR the POST never reached the server — this "
+            f"cannot be distinguished from here. Re-run the task: if it was created, "
+            f"the re-run returns DUPLICATE_VALUE and recovers the ID automatically; "
+            f"if it was not, the re-run creates it cleanly. Neither outcome "
+            f"duplicates the definition."
         )
 
     # Post-process after getting the context ID - typically to process the version list

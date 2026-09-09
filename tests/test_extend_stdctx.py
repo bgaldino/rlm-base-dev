@@ -139,9 +139,11 @@ def test_exhausts_the_full_budget_when_never_visible():
 def test_failure_messages_are_distinct_and_carry_the_right_guidance():
     t = _new_task()
     network_msg = t._recovery_failure_message("Sales_Transaction_Context", "network_drop")
+    missing_id_msg = t._recovery_failure_message("Sales_Transaction_Context", "missing_id")
     dup_msg = t._recovery_failure_message("Sales_Transaction_Context", "duplicate_value")
 
-    check("the two reasons produce different messages", network_msg != dup_msg)
+    check("the three reasons produce distinct messages",
+          len({network_msg, missing_id_msg, dup_msg}) == 3)
     check(
         "network_drop message tells the operator to re-run",
         "re-run" in network_msg.lower(),
@@ -149,6 +151,18 @@ def test_failure_messages_are_distinct_and_carry_the_right_guidance():
     check(
         "network_drop message explains the DUPLICATE_VALUE auto-recovery path",
         "duplicate_value" in network_msg.lower(),
+    )
+    check(
+        "network_drop message claims the connection dropped",
+        "connection drop" in network_msg.lower(),
+    )
+    check(
+        "missing_id message does not falsely claim the connection dropped",
+        "connection drop" not in missing_id_msg.lower(),
+    )
+    check(
+        "missing_id message still tells the operator to re-run",
+        "re-run" in missing_id_msg.lower(),
     )
     check(
         "duplicate_value message points at a visibility/permission problem",
