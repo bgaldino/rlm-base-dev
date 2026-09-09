@@ -263,6 +263,18 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="extend_stdctx_recovery",
+        cmd=["python", "tests/test_extend_stdctx.py"],
+        # Kept out of stdlib_offline_suites (deps=[]) on purpose: unlike the tasks that suite's
+        # files cover, tasks/rlm_extend_stdctx.py imports cumulusci.tasks.sfdx/cumulusci.core.keychain
+        # unconditionally rather than behind a try/except ImportError fallback (the guard
+        # tests/test_snapshot_help.py's and tests/test_snapshot_dev_guide.py's modules use to stay
+        # importable without cumulusci) — the module was never written to be importable without it, and
+        # adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
+        triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
         name="cci_reference_drift",
         cmd=None,  # regenerate, then require a clean tree — see run_cci_reference_drift
         # The generated files themselves are triggers: they carry a "do not edit" banner, so a
