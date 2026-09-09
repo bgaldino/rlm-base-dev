@@ -360,71 +360,74 @@ private class RLM_UsageUploaderControllerTest {
         System.assertEquals(0, rates.size(), 'Asset without rate card entries should return empty list');
     }
 
+    // testGetRatesForAsset_WithRateCard (the non-empty branch) was removed rather than
+    // fixed: AssetRateCardEntry is platform-derived (createable = false, confirmed via
+    // `sf sobject describe`) and is only populated by the real order-to-asset
+    // assetization pipeline (RLM_Submit_Order_on_Activation reacting to a plain
+    // Order.Status Draft->Activated DML transition — see scripts/build_quote_to_asset.py,
+    // whose docstring and verify_usage_buckets() are the live-verified reference), which
+    // itself depends on an external REST callout (Place Sales Transaction) that cannot
+    // run inside a rolled-back @IsTest transaction. There is no DML path that creates a
+    // real AssetRateCardEntry row in isolation, so this branch of getRatesForAsset is not
+    // unit-testable end-to-end; testGetRatesForAsset_NoRates above covers the only branch
+    // a unit test can construct via the real query. The transform below it
+    // (buildRateInfoWrappers) is still fully covered by feeding it in-memory,
+    // uninserted AssetRateCardEntry rows.
+
     @IsTest
-    static void testGetRatesForAsset_WithRateCard() {
-        Asset ast = getTestAsset();
-        UsageResource ur = getTestUsageResource();
+    static void testBuildRateInfoWrappers_MapsFieldsAndTiers() {
+        // RateCardType and RateUnitOfMeasureName (on RateCardEntry and
+        // RateAdjustmentByTier) and UsageResourceId (on AssetRateCardEntry) are
+        // formula/derived fields — "Field is not writeable" even on an uninserted
+        // sObject — and the RateCard relationship itself is "not editable" via
+        // putSObject, so none of those can be faked here. This test covers the
+        // pass-through mapping it CAN exercise (Rate, NegotiatedRate, dates) and the
+        // tier/no-tier branches, not those specific derived values — rateCardName and
+        // usageResourceName resolve to null, same as a real record with no match.
+        Id fakeAssetId = getTestAsset().Id;
+        Id fakeRceId = getTestUsageResource().Id; // any well-formed Id; never queried by the helper
 
-        // Create a Currency UoM Class + UoM for the rate card entry
-        UnitOfMeasureClass currencyClass = new UnitOfMeasureClass(
-            Name = 'Currency',
-            Code = 'CURRENCY',
-            Type = 'Currency',
-            Status = 'Draft'
+        AssetRateCardEntry withTier = new AssetRateCardEntry(
+            RateCardEntryId = fakeRceId,
+            NegotiatedRate = 0.04,
+            StartDate = Datetime.now().addDays(-30),
+            EndDate = null
         );
-        insert currencyClass;
-        currencyClass.Status = 'Active';
-        update currencyClass;
+        withTier.putSObject('RateCardEntry', new RateCardEntry(Rate = 0.05));
 
-        UnitOfMeasure uomCurrency = new UnitOfMeasure(
-            Name = 'US Dollar',
-            UnitCode = 'USD',
-            Type = 'Currency',
-            UnitOfMeasureClassId = currencyClass.Id,
-            Status = 'Draft'
-        );
-        insert uomCurrency;
-        uomCurrency.Status = 'Active';
-        update uomCurrency;
-
-        // Create Rate Card
-        RateCard rc = new RateCard(
-            Name = 'Test Base Rate Card',
-            Type = 'Base',
-            EffectiveFrom = Datetime.now().addDays(-30)
-        );
-        insert rc;
-
-        // Create Rate Card Entry
-        RateCardEntry rce = new RateCardEntry(
-            RateCardId = rc.Id,
-            Rate = 0.05,
-            RateUnitOfMeasureId = uomCurrency.Id,
-            UsageResourceId = ur.Id,
-            EffectiveFrom = Datetime.now().addDays(-30),
-            Status = 'Draft'
-        );
-        insert rce;
-        rce.Status = 'Active';
-        update rce;
-
-        // Create Asset Rate Card Entry
-        AssetRateCardEntry arce = new AssetRateCardEntry(
-            AssetId = ast.Id,
-            RateCardEntryId = rce.Id,
+        AssetRateCardEntry noTier = new AssetRateCardEntry(
+            RateCardEntryId = fakeAssetId, // distinct fake id from withTier's, so it has no tier
             StartDate = Datetime.now().addDays(-30)
         );
-        insert arce;
+        noTier.putSObject('RateCardEntry', new RateCardEntry(Rate = 0.05));
 
-        Test.startTest();
-        List<RLM_UsageUploaderController.RateInfoWrapper> rates =
-            RLM_UsageUploaderController.getRatesForAsset(ast.Id);
-        Test.stopTest();
+        RateAdjustmentByTier tier = new RateAdjustmentByTier(
+            RateCardEntryId = fakeRceId,
+            LowerBound = 0,
+            UpperBound = 100,
+            AdjustmentType = 'Percentage',
+            AdjustmentValue = 10
+        );
+        Map<Id, List<RateAdjustmentByTier>> tiersByRce =
+            new Map<Id, List<RateAdjustmentByTier>>{ fakeRceId => new List<RateAdjustmentByTier>{ tier } };
+        Map<Id, String> resourceNames = new Map<Id, String>{ fakeRceId => 'Data Storage' };
 
-        System.assertEquals(1, rates.size(), 'Should return 1 rate entry');
-        System.assertEquals('Data Storage', rates[0].usageResourceName);
-        System.assertEquals(0.05, rates[0].baseRate);
-        System.assertEquals('Test Base Rate Card', rates[0].rateCardName);
+        List<RLM_UsageUploaderController.RateInfoWrapper> wrappers =
+            RLM_UsageUploaderController.buildRateInfoWrappers(
+                new List<AssetRateCardEntry>{ withTier, noTier }, tiersByRce, resourceNames);
+
+        System.assertEquals(2, wrappers.size());
+
+        RLM_UsageUploaderController.RateInfoWrapper w0 = wrappers[0];
+        System.assertEquals(0.05, w0.baseRate);
+        System.assertEquals(0.04, w0.negotiatedRate);
+        System.assertEquals(1, w0.tiers.size());
+        System.assertEquals(10, w0.tiers[0].adjustmentValue);
+        System.assertEquals('Percentage', w0.tiers[0].adjustmentType);
+
+        RLM_UsageUploaderController.RateInfoWrapper w1 = wrappers[1];
+        System.assertEquals(0.05, w1.baseRate);
+        System.assertEquals(null, w1.tiers);
     }
 
     // ─── getGrantsForAsset Tests ──────────────────────────────────────
