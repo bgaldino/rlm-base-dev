@@ -70,8 +70,9 @@ SKIP_TYPES = {"address", "location", "base64", "complexvalue"}
 
 # Fields dropped from output: real-person / seller-identity values that carry no
 # replay value (the quote-header replay never uses them) and must not be committed.
-# RLM_Seller_Email__c holds the running seller's real email — scrub it.
-SENSITIVE_FIELDS = {"RLM_Seller_Email__c"}
+# RLM_Seller_Email__c / RLM_Sales_Rep_Name__c hold the running seller's real email
+# and name — scrub both.
+SENSITIVE_FIELDS = {"RLM_Seller_Email__c", "RLM_Sales_Rep_Name__c"}
 
 # reference field -> (target sobject, name expression used as the portable key)
 # Resolved to natural keys so the spec does not carry org-specific Ids.
@@ -216,7 +217,11 @@ def extract_quote(org, quote_name):
     if not rows:
         raise ExtractError(f"quote not found: {quote_name!r}")
     if len(rows) > 1:
-        print(f"  ! {len(rows)} quotes named {quote_name!r}; taking the first", file=sys.stderr)
+        # Taking an unordered first row would make the spec nondeterministic and
+        # could capture the wrong workshop quote. Fail on ambiguity instead.
+        raise ExtractError(
+            f"{len(rows)} quotes named {quote_name!r} in {org!r}; ambiguous. "
+            "Rename/remove the duplicates (or narrow --quotes) before extracting.")
     quote = clean_record(org, rows[0])
     quote_id = rows[0]["Id"]
 
@@ -291,11 +296,15 @@ def extract_anchors(org, quotes, seed_opps=(), seed_accounts=()):
 
     # Named seeded Opportunities not attached to any captured quote. Pull each in
     # and pull its Account along too, so a fresh clone gets the parent account.
+    # A requested seed name is *required* drift: a missing one would write a
+    # successful-but-incomplete spec, so collect and fail rather than warn. (Opt
+    # out intentionally by passing an empty --seed-opps / --seed-accounts value.)
+    missing = []
     for name in seed_opps:
         row = sf_query_one(org, "SELECT Id, AccountId FROM Opportunity "
                                 f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
         if not row:
-            print(f"  ! seed opportunity not found, skipping: {name!r}", file=sys.stderr)
+            missing.append(f"opportunity {name!r}")
             continue
         opp_ids[row["Id"]] = True
         if row.get("AccountId"):
@@ -306,9 +315,15 @@ def extract_anchors(org, quotes, seed_opps=(), seed_accounts=()):
         row = sf_query_one(org, "SELECT Id FROM Account "
                                 f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
         if not row:
-            print(f"  ! seed account not found, skipping: {name!r}", file=sys.stderr)
+            missing.append(f"account {name!r}")
             continue
         acct_ids[row["Id"]] = True
+
+    if missing:
+        raise ExtractError(
+            "requested seed record(s) not found in " + repr(org) + ": "
+            + ", ".join(missing)
+            + " -- fix the name(s), or pass an empty --seed-opps/--seed-accounts to opt out.")
 
     def fetch(sobject, ids):
         if not ids:
@@ -380,7 +395,9 @@ def main():
         "anchors": anchors,
         "quotes": quotes,
     }
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    out_dir = os.path.dirname(args.out)
+    if out_dir:  # empty when --out is a bare filename; os.makedirs("") would raise
+        os.makedirs(out_dir, exist_ok=True)
     with open(args.out, "w") as fh:
         json.dump(spec, fh, indent=2)
         fh.write("\n")

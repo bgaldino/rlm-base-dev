@@ -324,7 +324,6 @@
         "RLM_Discount_Percent__c": 0,
         "RLM_Payment_Terms__c": "Net 30",
         "RLM_Approval_Level__c": 0,
-        "RLM_Sales_Rep_Name__c": "Jon Putsch",
         "RLM_Seller_CompanyName__c": "Salesforce Trial Org Request & Manage",
         "RLM_Seller_Country__c": "US",
         "_keys": {
@@ -1304,7 +1303,6 @@
         "RLM_Discount_Percent__c": 11,
         "RLM_Payment_Terms__c": "Net 30",
         "RLM_Approval_Level__c": 1,
-        "RLM_Sales_Rep_Name__c": "Jon Putsch",
         "RLM_Seller_CompanyName__c": "Salesforce Trial Org Request & Manage",
         "RLM_Seller_Country__c": "US",
         "_keys": {
@@ -1605,7 +1603,6 @@
         "RLM_Discount_Percent__c": 17.5,
         "RLM_Payment_Terms__c": "Net 30",
         "RLM_Approval_Level__c": 2,
-        "RLM_Sales_Rep_Name__c": "Jon Putsch",
         "RLM_Seller_CompanyName__c": "Salesforce Trial Org Request & Manage",
         "RLM_Seller_Country__c": "US",
         "_keys": {

@@ -153,10 +153,11 @@ sf data query --target-org <clone> -q "SELECT COUNT() FROM QuoteLineItemAttribut
 sf data query --target-org <clone> -q "SELECT Name, Account.Name, Amount, StageName, Pricebook2.Name FROM Opportunity WHERE Name IN (...)"
 # bucket B: perm-set assignment + no active DefaultPricing procedure that breaks orders
 sf data query --target-org <clone> -q "SELECT PermissionSet.Name FROM PermissionSetAssignment WHERE PermissionSet.Name='<coworker-admin PSet>' AND Assignee.Username='<running user>'"
-sf data query --target-org <clone> -q "SELECT ApiName, IsActive FROM ExpressionSet WHERE UsageType='DefaultPricing' AND IsActive=true"
+sf data query --target-org <clone> -q "SELECT ExpressionSet.ApiName, VersionNumber, IsActive FROM ExpressionSetVersion WHERE ExpressionSet.UsageType='DefaultPricing' AND IsActive=true"
 ```
+(`IsActive` is on `ExpressionSetVersion`, not `ExpressionSet` — query the active
+version through its `ExpressionSet` relationship.)
 
 Also confirm the extract/insert scripts still compile
 (`python -m py_compile scripts/df_workshop/*.py`), re-run the extractor idempotently
 if the spec changed, and follow `doc-consistency/SKILL.md` before the PR.
-```

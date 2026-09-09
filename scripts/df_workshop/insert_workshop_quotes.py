@@ -12,12 +12,16 @@ Consumes ``datasets/df_workshop/workshop_quotes.json`` (produced by
      generates + prices the line items, attributes and ramp segments. Direct
      QuoteLineItem DML is not viable (see extract_workshop_quotes.py).
   4. (--apply-config) Apply the bucket-B setup toggles: assign the Agentforce
-     Coworker Admin perm set to the running user, and deactivate the
-     RLM PRM DISTI pricing procedure.
+     Coworker Admin perm set to the running user, and flag an active DISTI pricing
+     procedure. Fails loudly if a toggle cannot be established (perm set absent, or
+     an active DISTI version present) rather than certifying a partial setup.
 
 A ramp is not a special object: it is N line records for one product sharing a
-RampIdentifier, each a dated segment. We send the segment lines with their ramp
-identity fields and let pricing roll them up.
+RampIdentifier, each a dated segment. We never copy the source org's opaque
+RampIdentifier/SegmentIdentifier tokens: we place only the primary (Year-1)
+segment, call Create Ramp Deal so the PLATFORM mints the identifiers and
+generates the yearly segments, then place-with-context to reprice the later
+segments to their captured quantity + discount.
 
 Idempotency: anchors upsert by name. Quotes are matched by Name -- an existing
 quote of the same name is skipped unless --replace is passed (which deletes it
@@ -87,10 +91,17 @@ def sf_dml_insert(org, sobject, fields):
     pairs = " ".join(f"{k}={_cli_val(v)}" for k, v in fields.items())
     rc, out, err = _run(["sf", "data", "create", "record", "--sobject", sobject,
                          "--values", pairs, "--target-org", org, "--json"])
+    # `sf ... --json` emits parseable JSON even on failure, so the parse alone is
+    # not proof of success -- gate on the exit code / status too.
     try:
         d = json.loads(out)
+    except json.JSONDecodeError:
+        raise InsertError(f"insert {sobject} failed: {(err or out)[:400]}")
+    if rc != 0 or d.get("status", 0) != 0:
+        raise InsertError(f"insert {sobject} failed: {d.get('message', (err or out))[:400]}")
+    try:
         return d["result"]["id"]
-    except (json.JSONDecodeError, KeyError):
+    except KeyError:
         raise InsertError(f"insert {sobject} failed: {(err or out)[:400]}")
 
 
@@ -105,10 +116,14 @@ def sf_dml_update(org, sobject, record_id, fields):
     rc, out, err = _run(["sf", "data", "update", "record", "--sobject", sobject,
                          "--record-id", record_id, "--values", pairs,
                          "--target-org", org, "--json"])
+    # `sf ... --json` emits parseable JSON even on failure; a failed heal must not
+    # be logged as success, so gate on the exit code / status, not just the parse.
     try:
-        json.loads(out)
+        d = json.loads(out)
     except json.JSONDecodeError:
         raise InsertError(f"update {sobject} failed: {(err or out)[:400]}")
+    if rc != 0 or d.get("status", 0) != 0:
+        raise InsertError(f"update {sobject} failed: {d.get('message', (err or out))[:400]}")
 
 
 # ----------------------------------------------------------------------
@@ -166,6 +181,10 @@ def upsert_anchors(org, anchors, dry_run=False):
             acct_ids[name] = existing["Id"]
             print(f"    account exists: {name}")
         elif dry_run:
+            # Record a placeholder so downstream quote-payload construction can be
+            # previewed on a fresh clone (where the anchor does not yet exist)
+            # instead of raising "unresolved account".
+            acct_ids[name] = "[dry-new-account]"
             print(f"    [dry] insert account: {name}")
         else:
             fields = {"Name": name}
@@ -187,6 +206,7 @@ def upsert_anchors(org, anchors, dry_run=False):
             contact_ids[name] = existing["Id"]
             print(f"    contact exists: {name}")
         elif dry_run:
+            contact_ids[name] = "[dry-new-contact]"
             print(f"    [dry] insert contact: {name}")
         else:
             fields = {"LastName": c.get("LastName") or name.rsplit(" ", 1)[-1]}
@@ -205,32 +225,44 @@ def upsert_anchors(org, anchors, dry_run=False):
         acct_name = keys.get("AccountKey")
         # Resolve the source pricebook name to THIS org's Pricebook2 id. Opps
         # carry a Pricebook2 lookup; without it the quoting/Coworker flows have no
-        # pricebook context. Missing pricebook is a warn, not a hard failure.
+        # pricebook context, so a workshop-ready clone cannot be certified with the
+        # anchor missing it. Fail here rather than silently produce unusable anchors
+        # (consistent with the quote header, which hard-fails on the same lookup).
         pb_id = None
         pb_name = keys.get("Pricebook2Key")
         if pb_name:
             pb_row = sf_query_one(org, f"SELECT Id FROM Pricebook2 WHERE Name = {soql_str(pb_name)} "
                                        "AND IsActive = true LIMIT 1")
-            if pb_row:
-                pb_id = pb_row["Id"]
-            else:
-                print(f"    ! pricebook {pb_name!r} not found for opp {name!r}")
+            if not pb_row:
+                raise InsertError(f"pricebook {pb_name!r} not found (active) for opportunity "
+                                  f"{name!r} -- is the QB foundation loaded in {org!r}?")
+            pb_id = pb_row["Id"]
 
-        existing = sf_query_one(org, "SELECT Id, Pricebook2Id FROM Opportunity "
+        existing = sf_query_one(org, "SELECT Id, Pricebook2Id, Amount FROM Opportunity "
                                      f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
         if existing:
             opp_ids[name] = existing["Id"]
-            # Heal an existing opp that is missing its pricebook (updated in place;
-            # these opps may already carry quotes, so we never delete/recreate).
+            # Heal an existing opp in place (these opps may already carry quotes,
+            # so we never delete/recreate): restore a missing pricebook lookup and
+            # a missing/stale scenario Amount, so preexisting Starter/Target records
+            # still land on the source economics.
+            heal = {}
             if pb_id and not existing.get("Pricebook2Id"):
+                heal["Pricebook2Id"] = pb_id
+            spec_amount = o.get("Amount")
+            if spec_amount is not None and existing.get("Amount") != spec_amount:
+                heal["Amount"] = spec_amount
+            if heal:
+                detail = ", ".join(sorted(heal))
                 if dry_run:
-                    print(f"    [dry] set pricebook on existing opportunity: {name}")
+                    print(f"    [dry] heal existing opportunity {name}: {detail}")
                 else:
-                    sf_dml_update(org, "Opportunity", existing["Id"], {"Pricebook2Id": pb_id})
-                    print(f"    opportunity pricebook set: {name} -> {pb_name}")
+                    sf_dml_update(org, "Opportunity", existing["Id"], heal)
+                    print(f"    opportunity healed: {name} ({detail})")
             else:
                 print(f"    opportunity exists: {name}")
         elif dry_run:
+            opp_ids[name] = "[dry-new-opp]"
             print(f"    [dry] insert opportunity: {name}")
         else:
             fields = {"Name": name,
@@ -399,16 +431,21 @@ def replay_attributes(org, quote_id, quote_spec):
                          f"WHERE QuoteId = {soql_str(quote_id)}")
     qli_by_sku = {(r.get("Product2") or {}).get("StockKeepingUnit"): r["Id"] for r in rows}
     made = 0
+    # Configured attributes are part of the required workshop state (e.g. Quote
+    # PDF's six). Silently skipping an unresolvable one would let an incomplete
+    # quote be templated as success -- so accumulate failures and raise after
+    # processing the resolvable ones.
+    unresolved = []
     for a in attrs:
         name = a.get("AttributeName")
         sku = (a.get("_keys") or {}).get("QuoteLineItemSku")
         qli = qli_by_sku.get(sku)
         if not (name and qli):
-            print(f"    ! skip attribute {name!r}: unresolved line (sku={sku!r})")
+            unresolved.append(f"{name!r}: no target line for sku={sku!r}")
             continue
         adef = _attr_def(org, name)
         if not adef.get("Id"):
-            print(f"    ! skip attribute {name!r}: no AttributeDefinition in target")
+            unresolved.append(f"{name!r}: no AttributeDefinition in target")
             continue
         exists = sf_query_one(org, "SELECT Id FROM QuoteLineItemAttribute WHERE "
                                    f"QuoteLineItemId = {soql_str(qli)} AND "
@@ -426,6 +463,11 @@ def replay_attributes(org, quote_id, quote_spec):
         made += 1
     if made:
         print(f"    added {made} configured attribute(s)")
+    if unresolved:
+        raise InsertError(
+            f"{len(unresolved)} configured attribute(s) on quote {quote_spec['name']!r} "
+            "could not be restored: " + "; ".join(unresolved)
+            + " -- the clone is missing required definitions/lines; do not template it.")
 
 
 # -- ramp: place primary -> ramp-deal-create -> place(contextId) + reprice ------
@@ -505,16 +547,59 @@ def _report(org, name):
     return row["Id"]
 
 
+def _expected_counts(quote_spec):
+    """(expected line count, expected configured-attribute count) from the spec."""
+    n_lines = len(quote_spec["lineItems"])
+    n_attr = len((quote_spec.get("childRecords") or {}).get("QuoteLineItemAttribute", []))
+    return n_lines, n_attr
+
+
+def _assert_complete(org, quote_id, quote_spec):
+    """Fail if an existing same-named quote is only partially replayed.
+
+    Name existence is not proof of a complete replay: a failure after the first
+    Place call can leave a one-line ramp or a quote missing its attributes, and a
+    later normal run would skip it forever and report success. Compare the actual
+    line / attribute counts to the spec and direct the operator to --replace.
+    """
+    name = quote_spec["name"]
+    exp_lines, exp_attr = _expected_counts(quote_spec)
+    row = sf_query_one(org, "SELECT LineItemCount FROM Quote "
+                            f"WHERE Id = {soql_str(quote_id)} LIMIT 1")
+    got_lines = (row or {}).get("LineItemCount") or 0
+    arow = sf_query_one(org, "SELECT COUNT(Id) c FROM QuoteLineItemAttribute "
+                             f"WHERE QuoteLineItem.QuoteId = {soql_str(quote_id)}")
+    got_attr = (arow or {}).get("c") or 0
+    if got_lines != exp_lines or got_attr != exp_attr:
+        raise InsertError(
+            f"existing quote {name!r} is incomplete (lines {got_lines}/{exp_lines}, "
+            f"attributes {got_attr}/{exp_attr}) -- a prior run likely failed mid-replay. "
+            "Re-run with --replace to rebuild it; do not template until it matches.")
+
+
 def replay_quote(org, quote_spec, acct_ids, opp_ids, contact_ids, dry_run, replace):
     name = quote_spec["name"]
     existing = sf_query_one(org, f"SELECT Id FROM Quote WHERE Name = {soql_str(name)} LIMIT 1")
     if existing:
         if replace and not dry_run:
-            _run(["sf", "data", "delete", "record", "--sobject", "Quote",
-                  "--record-id", existing["Id"], "--target-org", org, "--json"])
+            rc, out, err = _run(["sf", "data", "delete", "record", "--sobject", "Quote",
+                                 "--record-id", existing["Id"], "--target-org", org, "--json"])
+            ok = rc == 0
+            try:
+                ok = ok and json.loads(out).get("status", 0) == 0
+            except json.JSONDecodeError:
+                ok = False
+            if not ok:
+                raise InsertError(f"failed to delete existing quote {name!r} for --replace: "
+                                  f"{(err or out)[:300]}")
             print(f"    deleted existing quote {name}")
-        else:
+        elif dry_run:
             print(f"    quote exists, skipping (use --replace): {name}")
+            return existing["Id"]
+        else:
+            # Not replacing: only report success if it is actually complete.
+            _assert_complete(org, existing["Id"], quote_spec)
+            print(f"    quote exists and is complete, skipping (use --replace to rebuild): {name}")
             return existing["Id"]
 
     header, pricebook_name, currency = _quote_header(org, quote_spec, acct_ids, opp_ids, contact_ids)
@@ -527,6 +612,11 @@ def replay_quote(org, quote_spec, acct_ids, opp_ids, contact_ids, dry_run, repla
 # Bucket B setup toggles
 # ----------------------------------------------------------------------
 def apply_config(org, dry_run=False):
+    # --apply-config asserts the clone should reach bucket-B state. Any toggle it
+    # cannot establish is collected and raised at the end, so the command never
+    # exits 0 having silently certified a partial setup.
+    incomplete = []
+
     # 1. Assign Agentforce Coworker Admin to the running (org default) user.
     who = _run(["sf", "org", "display", "--target-org", org, "--json"])
     user = None
@@ -536,7 +626,8 @@ def apply_config(org, dry_run=False):
         pass
     ps = sf_query_one(org, f"SELECT Id FROM PermissionSet WHERE Name = {soql_str(COWORKER_ADMIN_PSET)} LIMIT 1")
     if not ps:
-        print(f"    ! perm set {COWORKER_ADMIN_PSET} not found (Agentforce not provisioned?)")
+        # Cannot establish the required assignment; do not certify partial bucket B.
+        incomplete.append(f"perm set {COWORKER_ADMIN_PSET!r} absent (provision it before --apply-config)")
     else:
         urow = sf_query_one(org, f"SELECT Id FROM User WHERE Username = {soql_str(user)} LIMIT 1")
         assigned = sf_query_one(org, "SELECT Id FROM PermissionSetAssignment WHERE "
@@ -551,16 +642,30 @@ def apply_config(org, dry_run=False):
                           {"PermissionSetId": ps["Id"], "AssigneeId": urow["Id"]})
             print(f"    assigned perm set {COWORKER_ADMIN_PSET} to {user}")
 
-    # 2. Deactivate the DISTI pricing procedure. ExpressionSet activation is via
-    #    the expression_sets toolkit; here we only report the target -- wired in
-    #    once the deactivation mechanism is confirmed live (see README).
+    # 2. Deactivate the DISTI pricing procedure. It "breaks orders" only when an
+    #    active version applies it globally, so gate on ExpressionSetVersion.IsActive
+    #    (IsActive lives on the *version*, not the ExpressionSet). Deactivation is a
+    #    guarded, live-verified expression_sets mutation not performed here; if an
+    #    active version exists, fail loudly rather than exit 0 leaving it active.
     es = sf_query_one(org, "SELECT Id, Name FROM ExpressionSet WHERE ApiName = "
                            f"{soql_str(DISTI_PRICING_APINAME)} LIMIT 1")
     if not es:
         print(f"    DISTI pricing procedure not present ({DISTI_PRICING_APINAME}) -- nothing to deactivate")
     else:
-        print(f"    ! TODO deactivate ExpressionSet {es['Name']} ({es['Id']}) "
-              "-- use scripts/expression_sets/ (deactivate, don't delete)")
+        active = sf_query_one(org, "SELECT Id, VersionNumber FROM ExpressionSetVersion WHERE "
+                                   f"ExpressionSetId = {soql_str(es['Id'])} AND IsActive = true LIMIT 1")
+        if not active:
+            print(f"    DISTI pricing procedure {es['Name']} present but no active version -- "
+                  "nothing applies globally, nothing to deactivate")
+        else:
+            incomplete.append(
+                f"ExpressionSet {es['Name']} ({es['Id']}) has an active version "
+                f"(v{active.get('VersionNumber')}) -- deactivate it via scripts/expression_sets/ "
+                "(deactivate, don't delete); auto-deactivation is not wired in yet")
+
+    if incomplete:
+        raise InsertError("--apply-config could not establish bucket B: "
+                          + "; ".join(incomplete))
 
 
 # ----------------------------------------------------------------------

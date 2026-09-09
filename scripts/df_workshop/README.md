@@ -14,17 +14,17 @@ canvas *"DF Hands On Working/Dev Org"* (`F0BU8CSKNU8`).
 Stock 264 pre-release clone → workshop-ready org differs in three ways. Only
 bucket C is data; A and B are org config.
 
-### A. Platform provisioning — **template prerequisite, NOT handled here**
-Q-Branch setup that "won't be available at DF" and must be pre-seeded on the
-template:
+### A. Platform provisioning — **attendee post-clone step, NOT handled here**
+Q-Branch setup that "won't be available at DF":
 - **Data Cloud**
 - **Agentforce**
 
-A data/config skill cannot provision these — a clone either has them or it does
-not. The insert step only *validates* their presence and fails loudly if absent.
-Per the exercise guide, the *attendee* enables Data Cloud + Einstein during lab
-setup ("Data Cloud Setup" → "Turn on Einstein", ~15 min), so this is a lab step
-for the **Coworker agent**, not a pre-spin baking requirement for any flow below.
+A data/config skill cannot provision these, and this toolkit does **not** validate
+or gate on their presence — a clone either has them or it does not. Per the
+exercise guide, the *attendee* enables Data Cloud + Einstein during lab setup
+("Data Cloud Setup" → "Turn on Einstein", ~15 min), so this is a lab step for the
+**Coworker agent**, not a pre-spin baking requirement for any flow below — and it
+must **not** be done on the org headed for TrialForce (see the warning below).
 
 > **⚠ Data Cloud must NOT be provisioned on the TrialForce source (TSO) org.**
 > Provisioning Data Cloud breaks TrialForce snapshot creation — so the org you
@@ -167,4 +167,5 @@ Every record keeps `_sourceId` for traceability; the insert side must never use 
       creation. Desired end-state already matches source; the `--apply-config`
       deactivation stub stays a stub because there is nothing to deactivate. (Re-check
       before templating if a build step ever activates a DISTI procedure.)
-- [ ] Promote to a registered skill under `.cursor/skills/`.
+- [x] **Promoted to a registered skill** under `.cursor/skills/df-workshop-setup/`
+      (routed in `AGENTS.md`, `.cursor/skills/README.md`, `.claude/skill-manifest.yml`).
