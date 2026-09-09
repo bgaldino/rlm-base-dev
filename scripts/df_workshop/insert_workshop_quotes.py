@@ -80,6 +80,13 @@ def sf_rest(org, path, method="GET", body=None):
         args += ["--body", json.dumps(body)]
     rc, out, err = _run(args)
     text = out.strip() or err.strip()
+    # `sf api request rest` exits nonzero on an HTTP error (4xx/5xx) or CLI failure
+    # while still printing a parseable error body. Returning that body would let a
+    # failed call (e.g. the ramp place-with-context reprice) pass through _place,
+    # after which _report finds the step-1 quote and the command "succeeds" with
+    # unrepriced segments. Gate on rc before any caller inspects the body.
+    if rc != 0:
+        raise InsertError(f"{method} {path} failed (exit {rc}): {text[:400]}")
     try:
         return json.loads(text)
     except json.JSONDecodeError:
