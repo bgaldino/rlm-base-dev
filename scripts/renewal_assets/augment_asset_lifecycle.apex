@@ -23,8 +23,15 @@
  *   5. Updates the Asset header (CurrentQuantity / CurrentAmount / CurrentMrr)
  *      to the final running state.
  *
- * Quantity deltas are scaled to the asset's REAL base quantity, not absolute
- * numbers -- a Renewal renews the same qty, an Upsell adds, a Downsell removes.
+ * Quantity deltas (DELTAS below) are ABSOLUTE unit changes applied to the running
+ * quantity -- a Renewal renews the same qty (0), an Upsell adds (+n), a Downsell
+ * removes (-n). They are NOT a fraction of the asset's base quantity, so tune them
+ * to your base qty (e.g. +2 is a large move on a base of 1, trivial on 10000).
+ *
+ * PRISTINE ONLY: to avoid trimming/overlaying REAL platform history, an asset is
+ * augmented only when it is pristine -- exactly one Initial-Sale action and exactly
+ * one state period, with no other actions. Assets that already carry lifecycle
+ * changes are skipped (logged), never modified.
  *
  * ── HOW TO TARGET ASSETS ──────────────────────────────────────────────────
  * Pick ONE of the two blocks below (leave the other empty). Both are empty by
@@ -101,9 +108,17 @@ for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductS
 }
 // Existing full-window state period (to trim to first segment)
 Map<Id, AssetStatePeriod> stateByAsset = new Map<Id, AssetStatePeriod>();
+Map<Id, Integer> statePeriodCount = new Map<Id, Integer>();
 for (AssetStatePeriod sp : [SELECT Id, AssetId, Quantity, Amount, Mrr, StartDate, EndDate
                             FROM AssetStatePeriod WHERE AssetId IN :targetIds ORDER BY StartDate]) {
     if (!stateByAsset.containsKey(sp.AssetId)) stateByAsset.put(sp.AssetId, sp); // keep earliest
+    statePeriodCount.put(sp.AssetId, (statePeriodCount.containsKey(sp.AssetId) ? statePeriodCount.get(sp.AssetId) : 0) + 1);
+}
+// Total AssetAction count per asset -- a pristine asset has exactly one (Initial Sale).
+Map<Id, Integer> actionCount = new Map<Id, Integer>();
+for (AggregateResult ar : [SELECT AssetId aid, COUNT(Id) c FROM AssetAction
+                           WHERE AssetId IN :targetIds GROUP BY AssetId]) {
+    actionCount.put((Id) ar.get('aid'), (Integer) ar.get('c'));
 }
 
 List<AssetAction>       actionsIns = new List<AssetAction>();
@@ -125,8 +140,22 @@ for (Id aid : targetIds) {
     if (src == null || sp0 == null || a.LifecycleStartDate == null || a.LifecycleEndDate == null) {
         System.debug('skip (missing src/state/lifecycle dates) ' + aid); skipped++; continue;
     }
+    // PRISTINE guard: refuse assets that already carry lifecycle history. Only the
+    // single Initial-Sale action and its one state period may exist -- otherwise
+    // trimming sp0 and layering a chain would corrupt/erase REAL history.
+    Integer nAct = actionCount.containsKey(aid) ? actionCount.get(aid) : 0;
+    Integer nSp  = statePeriodCount.containsKey(aid) ? statePeriodCount.get(aid) : 0;
+    if (nAct != 1 || nSp != 1) {
+        System.debug('skip (not pristine: actions=' + nAct + ' statePeriods=' + nSp
+            + ' -- expected 1 and 1) ' + aid); skipped++; continue;
+    }
 
     Decimal unitPrice = (src.UnitPrice != null && src.UnitPrice != 0) ? src.UnitPrice : 0;
+    // Per-unit MONTHLY recurring revenue, taken from the Initial-Sale state period
+    // (Mrr / Quantity). UnitPrice is per-term, not monthly (e.g. Term Annual unit
+    // price 12000 is Mrr 1000), so MRR fields must NOT be qty * unitPrice.
+    Decimal perUnitMrr = (sp0.Mrr != null && sp0.Quantity != null && sp0.Quantity != 0)
+                         ? (sp0.Mrr / sp0.Quantity) : 0;
 
     Datetime S = a.LifecycleStartDate;
     Datetime E = a.LifecycleEndDate;
@@ -164,21 +193,21 @@ for (Id aid : targetIds) {
         actionsIns.add(new AssetAction(
             AssetId = aid, Type = 'Change', CategoryEnum = cat,
             ActionDate = st, QuantityChange = delta,
-            MrrChange = delta * unitPrice, Amount = delta * unitPrice
+            MrrChange = delta * perUnitMrr, Amount = delta * unitPrice
         ));
         actionAssetIds.add(aid); actionEvtIdx.add(i);
 
         running += delta;
         stateIns.add(new AssetStatePeriod(
             AssetId = aid, Quantity = running,
-            Amount = running * unitPrice, Mrr = running * unitPrice,
+            Amount = running * unitPrice, Mrr = running * perUnitMrr,
             StartDate = st, EndDate = en
         ));
     }
 
     // 3) Update asset header to the final running state
     assetUpd.add(new Asset(Id = aid, CurrentQuantity = running,
-                           CurrentAmount = running * unitPrice, CurrentMrr = running * unitPrice));
+                           CurrentAmount = running * unitPrice, CurrentMrr = running * perUnitMrr));
 }
 
 // ── DML ────────────────────────────────────────────────────────────────────

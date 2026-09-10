@@ -879,7 +879,9 @@ def main():
                     help="skip the usage-bucket assertion after activation. Use for a "
                          "plain renewal term product (no entitlements) so a valid, "
                          "non-usage asset is not failed for having zero buckets. Default "
-                         "off — usage-anchor SKUs (QB-DB etc.) still verify")
+                         "off for THIS script — i.e. a standalone run of a usage-anchor SKU "
+                         "(QB-DB etc.) still verifies. (build_renewal_buckets.py passes this "
+                         "flag by default; pass its --verify-usage to re-enable there.)")
     ap.add_argument("--selling-model", default="", metavar="NAME_OR_TYPE",
                     help="pick the PricebookEntry by selling model NAME (e.g. "
                          "'Term Monthly') or TYPE (TermDefined/Evergreen/OneTime). "
@@ -915,7 +917,9 @@ def main():
 
     print(f"\n{'=' * 74}")
     ok = len(accounts) - len(failures)
-    print(f"{ok}/{len(accounts)} account(s) reached an asset with usage buckets")
+    outcome = ("created an asset (usage buckets NOT verified: --skip-usage-verify)"
+               if args.skip_usage_verify else "reached an asset with usage buckets")
+    print(f"{ok}/{len(accounts)} account(s) {outcome}")
     for account, msg in failures:
         print(f"  FAIL  {account}: {msg}")
     return 1 if failures else 0

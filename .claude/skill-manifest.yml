@@ -94,6 +94,7 @@ foundations:
     - id: renewal-asset-creation
       path: .cursor/skills/renewal-asset-creation/SKILL.md
       purpose: "Create renewal-ready assets across the 4 expiry windows (reusing build_quote_to_asset.py) and layer Renewal/Upsell/Downsell lifecycle event history"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
       tooling:
         - scripts/renewal_assets/build_renewal_buckets.py
         - scripts/renewal_assets/augment_asset_lifecycle.apex

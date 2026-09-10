@@ -16,8 +16,8 @@ layering a Renewal/Upsell/Downsell event history onto assets that already exist.
 | File | What it does | Runs |
 |------|--------------|------|
 | `build_renewal_buckets.py` | Computes the 4 expiry windows (≤30 / 30-60 / 60-90 / >90 days) from today, back-solves a start date per asset, and shells out to `../build_quote_to_asset.py` once per asset. Single-SKU or product-mix; distributes across pre-existing accounts. `--dry-run` prints the plan and touches nothing. | `python` |
-| `augment_asset_lifecycle.apex` | **Additive, post-run.** Layers contiguous Renewal/Upsell/Downsell `AssetAction` + `AssetActionSource` + `AssetStatePeriod` records onto assets a run already created, reusing each asset's REAL PricebookEntry / ProductSellingModel / UnitPrice. Never creates or reprices assets. Target via `ASSET_IDS` (smoke) or `ACCOUNT_NAME_LIKE` (full set) — both empty by default, so it no-ops until you set one. | `sf apex run` |
-| `reset_augment.apex` | Undo an augment run on `ASSET_IDS` (deletes the Change actions/sources/extra state periods, restores the full-window Initial-Sale period). Additive runs are not de-duped, so reset before re-running. | `sf apex run` |
+| `augment_asset_lifecycle.apex` | **Additive, post-run, pristine-only.** Layers contiguous Renewal/Upsell/Downsell `AssetAction` + `AssetActionSource` + `AssetStatePeriod` records onto assets a run already created, reusing each asset's REAL PricebookEntry / ProductSellingModel / UnitPrice and deriving MRR from the Initial-Sale state period (not per-term `UnitPrice`). Only touches assets with exactly one Initial-Sale action + one state period; assets that already carry history are skipped. `DELTAS` are absolute unit changes. Never creates or reprices assets. Target via `ASSET_IDS` (smoke) or `ACCOUNT_NAME_LIKE` (full set) — both empty by default, so it no-ops until you set one. | `sf apex run` |
+| `reset_augment.apex` | Undo an augment run on `ASSET_IDS` (deletes only augment-created `Type='Change'` actions/sources + extra state periods, restores the full-window Initial-Sale period). **Refuses** any asset carrying non-augment (non-`Change`) history it cannot prove it created. Additive runs are not de-duped, so reset before re-running. | `sf apex run` |
 
 ## The `build_quote_to_asset.py --skip-usage-verify` flag
 
@@ -33,12 +33,12 @@ asset's existence is still confirmed either way.
 # 1. dry-run the plan (no org writes)
 python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
     --accounts "Infinitech" --skus QB-DB --per-bucket 1 \
-    --term-months 12 --selling-model "Term Monthly" --dry-run
+    --term-months 12 --selling-model "Term Annual" --billing-frequency Annual --dry-run
 
 # 2. build the assets (one per bucket)
 python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
     --accounts "Infinitech,Kingsbridge Digital" --skus QB-DB \
-    --per-bucket 1 --term-months 12 --selling-model "Term Monthly"
+    --per-bucket 1 --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
 
 # 3. (optional) layer lifecycle history — smoke on ONE id first, then a pattern
 #    edit ASSET_IDS / ACCOUNT_NAME_LIKE at the top of the script, then:

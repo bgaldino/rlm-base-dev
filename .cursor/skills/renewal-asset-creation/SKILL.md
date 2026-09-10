@@ -35,10 +35,17 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    asserts usage buckets (it was built for usage anchors); the driver passes
    `--skip-usage-verify` by default so a plain term product isn't failed for
    carrying none. Pass `--verify-usage` for usage-anchor SKUs (QB-DB etc.).
-5. **Augment is additive and read-your-work.** `augment_asset_lifecycle.apex`
-   layers events onto EXISTING assets, reusing each asset's real PBE/PSM/UnitPrice.
-   It is **not** de-duped — smoke on one `ASSET_IDS` first, verify, then scale by
-   `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running.
+5. **Augment is additive, pristine-only, and read-your-work.**
+   `augment_asset_lifecycle.apex` layers events onto EXISTING assets, reusing each
+   asset's real PBE/PSM/UnitPrice, and derives MRR from the Initial-Sale state
+   period (not `UnitPrice`, which is per-term). It **only** touches *pristine*
+   assets — exactly one Initial-Sale action and one state period; any asset that
+   already carries lifecycle history is skipped (logged), never modified. It is
+   **not** de-duped — smoke on one `ASSET_IDS` first, verify, then scale by
+   `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running. `DELTAS` are
+   **absolute** unit changes (not a fraction of base qty) — tune them to your qty.
+   `reset_augment.apex` deletes only augment-created `Type='Change'` records and
+   **refuses** any asset carrying non-augment history it cannot prove it created.
 6. **Everything ships through a feature branch + PR.** Never commit to `264` /
    `main` / `release/*`. This skill and its scripts are their own branch — adding
    them to an unrelated feature branch trips `check_branch_scope.py`.
@@ -76,14 +83,17 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
 
 ### 1. Pick accounts + SKU(s)
 Confirm the target accounts already exist and (ideally) carry no prior asset for
-the SKU. Choose a recurring selling model **Name** (e.g. `Term Monthly`) — the
-selling model, not the product, dictates which line fields are legal.
+the SKU. Choose a **TermDefined** selling model **Name** that the SKU actually
+offers — expiry windows need a `LifecycleEndDate`, so Evergreen/OneTime are
+unsupported, and the name must exist for the SKU (e.g. QB-DB offers only
+`Term Annual`; QB-DAT-THPT offers `Term Annual` and `Term Monthly`). The selling
+model, not the product, dictates which line fields are legal.
 
 ### 2. Dry-run the plan (no org writes)
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
     --accounts "Infinitech" --skus QB-DB --per-bucket 1 \
-    --term-months 12 --selling-model "Term Monthly" --dry-run
+    --term-months 12 --selling-model "Term Annual" --billing-frequency Annual --dry-run
 ```
 Prints the bucket / start / end / sku / account for every scheduled asset.
 
@@ -93,7 +103,7 @@ logged to `/tmp/renewal_bucket_results.csv`. Total assets = `4 × --per-bucket`.
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
     --accounts "Infinitech,Kingsbridge Digital" --skus QB-DB \
-    --per-bucket 1 --term-months 12 --selling-model "Term Monthly"
+    --per-bucket 1 --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
 ```
 
 ### 4. (Optional) Layer lifecycle history
@@ -111,7 +121,7 @@ Re-running? `reset_augment.apex` (scoped to `ASSET_IDS`) first — augment is ad
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
     --accounts "Infinitech" --skus QB-DB --per-bucket 1 \
-    --term-months 12 --selling-model "Term Monthly"
+    --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
 ```
 → 4 assets (one in each of ≤30 / 30-60 / 60-90 / >90), all on Infinitech.
 
@@ -119,10 +129,11 @@ python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
     --accounts "Acme,Globex" --skus "QB-DB,QB-DAT-THPT" --per-bucket 2 \
-    --term-months 12 --selling-model "Term Monthly"
+    --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
 ```
 → 8 assets; each bucket gets one QB-DB + one QB-DAT-THPT, distributed round-robin
-across Acme and Globex.
+across Acme and Globex. (`Term Annual` is used because it is the one TermDefined
+model both SKUs share — QB-DB has no `Term Monthly`.)
 
 **Augment a smoke asset, then the full set:**
 ```bash
@@ -155,8 +166,10 @@ sf data query --target-org <alias> -q "SELECT CategoryEnum, COUNT(Id) FROM Asset
 sf data query --target-org <alias> -q "SELECT AssetId, COUNT(Id) periods FROM AssetStatePeriod WHERE Asset.Account.Name LIKE 'Infinitech%' GROUP BY AssetId"
 ```
 Expect `Initial Sale` once per asset plus the added `Renewals`/`Upsells`/`Downsells`,
-and a uniform `periods` count. A short count means an asset was skipped (no
-Initial-Sale source or null lifecycle dates) — the Apex logs each skip.
+and a uniform `periods` count. A short count means an asset was skipped — missing
+Initial-Sale source, null lifecycle dates, or **not pristine** (it already had
+lifecycle history, so augment left it untouched). The Apex logs each skip with the
+reason.
 
 > **Behavioral verification.** The two Apex scripts and the end-to-end bucket
 > build write to an org and are **not** verified by the offline checks above.

@@ -52,12 +52,12 @@ Usage
     # dry-run first -- prints the plan, touches nothing
     python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
         --accounts "Infinitech" --skus QB-DB --per-bucket 1 \
-        --term-months 12 --selling-model "Term Monthly" --dry-run
+        --term-months 12 --selling-model "Term Annual" --billing-frequency Annual --dry-run
 
     # then execute
     python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
         --accounts "Infinitech,Kingsbridge Digital" --skus QB-DB \
-        --per-bucket 2 --term-months 12 --selling-model "Term Monthly"
+        --per-bucket 2 --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
 
 Exits 0 when every scheduled asset build succeeded, 1 otherwise.
 """
@@ -80,8 +80,10 @@ def minus_months(d, months):
     m = d.month - 1 - months
     year = d.year + m // 12
     month = m % 12 + 1
-    # clamp to the last valid day of the target month (e.g. 31 Mar - 1 month)
-    for day in (d.day, 28, 29, 30, 31):
+    # clamp to the last valid day of the target month (e.g. 31 Mar - 1 month ->
+    # 28/29 Feb; 31 May - 1 month -> 30 Apr). Try the original day first, then the
+    # largest valid day DESCENDING so we land on the month's true last day, not 28.
+    for day in (d.day, 31, 30, 29, 28):
         try:
             return d.replace(year=year, month=month, day=day)
         except ValueError:
@@ -158,8 +160,11 @@ def main():
     ap.add_argument("--term-months", type=int, default=12,
                     help="subscription term in months; start = end - term (default: 12)")
     ap.add_argument("--selling-model", default="",
-                    help="ProductSellingModel NAME (e.g. 'Term Monthly') or TYPE; passed "
-                         "through to build_quote_to_asset.py")
+                    help="ProductSellingModel NAME (e.g. 'Term Annual') or TYPE; passed "
+                         "through to build_quote_to_asset.py. MUST resolve to a TermDefined "
+                         "model — expiry windows need a LifecycleEndDate, so Evergreen/OneTime "
+                         "models (which produce no end date) are unsupported here. Note the "
+                         "NAME must exist for the SKU: e.g. QB-DB offers only 'Term Annual'")
     ap.add_argument("--quantity", type=int, default=1)
     ap.add_argument("--billing-frequency", default="Monthly",
                     choices=["MilestonePlan", "Monthly", "Quarterly", "Semi-Annual", "Annual"])
@@ -183,6 +188,17 @@ def main():
     accounts = [a.strip() for a in args.accounts.split(",") if a.strip()]
     if not skus or not accounts:
         print("FATAL: --skus and --accounts must each name at least one value.", file=sys.stderr)
+        return 1
+    if args.per_bucket < 1:
+        print("FATAL: --per-bucket must be >= 1 (0 builds nothing).", file=sys.stderr)
+        return 1
+    if args.term_months < 1:
+        print("FATAL: --term-months must be >= 1.", file=sys.stderr)
+        return 1
+    if args.far_bucket_days < 91:
+        print("FATAL: --far-bucket-days must be >= 91 — the >90 window starts at day 91; "
+              "a smaller value would place '>90' assets inside an earlier window.",
+              file=sys.stderr)
         return 1
 
     plan = build_plan(today, args.per_bucket, args.far_bucket_days,
