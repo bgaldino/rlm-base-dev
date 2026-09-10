@@ -44,8 +44,10 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    **not** de-duped — smoke on one `ASSET_IDS` first, verify, then scale by
    `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running. `DELTAS` are
    **absolute** unit changes (not a fraction of base qty) — tune them to your qty.
-   `reset_augment.apex` deletes only augment-created `Type='Change'` records and
-   **refuses** any asset carrying non-augment history it cannot prove it created.
+   `reset_augment.apex` deletes **only** records carrying augment's provenance
+   marker (`AssetActionSource.ExternalReference` / `AssetStatePeriod.SegmentName`
+   = `RLM_AUGMENT_LIFECYCLE`), never by the generic `Type='Change'`, so real
+   Renewal/Upsell/Downsell history on the same asset is untouched.
 6. **Everything ships through a feature branch + PR.** Never commit to `264` /
    `main` / `release/*`. This skill and its scripts are their own branch — adding
    them to an unrelated feature branch trips `check_branch_scope.py`.
@@ -61,12 +63,17 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
 - **DO NOT** point the augment Apex at a broad `ACCOUNT_NAME_LIKE` before a
   one-asset smoke run — a wrong pattern rewrites state periods on unintended
   assets. Both selectors are empty by default for this reason.
-- **DO NOT** change the builder's usage-bucket assertion for usage-anchor SKUs —
-  use `--verify-usage`/default there; `--skip-usage-verify` is for non-usage
-  renewal products only.
-- **DO NOT** add usage/metered (Anchor/Pack/Commit) or Bundle SKUs to `--skus` for
-  a plain renewal spread — they need binding/anchor handling this driver doesn't
-  do (see `build_quote_to_asset.py` `--anchor-sku` / `--link-commitment` for those).
+- **DO NOT** read `--skip-usage-verify` as "usage buckets don't matter here" for a
+  SKU you *want* rated — it only tells the driver not to *fail* an asset for
+  carrying none. `QB-DB` is fine as a plain **Term Annual** renewal asset (that is
+  what the examples build); pass `--verify-usage` when you specifically want its
+  usage buckets asserted. The default (`QB-DB` without `--verify-usage`) is
+  supported and intentional — the two are not in conflict.
+- **DO NOT** add **Pack** (drawdown), **Commit**, or **Bundle** SKUs to `--skus` for
+  a plain renewal spread — those need binding/anchor handling this driver doesn't do
+  (see `build_quote_to_asset.py` `--anchor-sku` / `--link-commitment`). A usage-anchor
+  SKU sold as a straight term asset (like `QB-DB` on `Term Annual`) is **not** in this
+  set and is the documented default.
 
 ## Entry Conditions
 

@@ -62,6 +62,13 @@
 String   ACCOUNT_NAME_LIKE = '';                        // e.g. '<accountPrefix>%'  ('' to disable)
 List<Id> ASSET_IDS         = new List<Id>{ };           // explicit Ids (wins if non-empty)
 
+// Durable provenance marker stamped on EVERY record this script creates, so
+// reset_augment.apex can delete exactly (and only) its own rows -- never real
+// platform history. AssetActionSource.ExternalReference and AssetStatePeriod
+// .SegmentName are both writable strings the platform does not populate for a
+// plain term asset. MUST match AUGMENT_MARKER in reset_augment.apex.
+final String AUGMENT_MARKER = 'RLM_AUGMENT_LIFECYCLE';
+
 // ── EVENT STRUCTURE ────────────────────────────────────────────────────────
 // One entry per added event, ordered earliest->latest. Initial Sale already
 // exists at fraction 0, so these are the CHANGE events layered after it.
@@ -201,7 +208,8 @@ for (Id aid : targetIds) {
         stateIns.add(new AssetStatePeriod(
             AssetId = aid, Quantity = running,
             Amount = running * unitPrice, Mrr = running * perUnitMrr,
-            StartDate = st, EndDate = en
+            StartDate = st, EndDate = en,
+            SegmentName = AUGMENT_MARKER               // provenance marker for reset
         ));
     }
 
@@ -235,7 +243,8 @@ for (Integer k = 0; k < actionsIns.size(); k++) {
         UnitPrice = unitPrice, NetUnitPrice = unitPrice, ListPrice = unitPrice,
         PeriodBoundary = 'Anniversary',
         PricebookEntryId = baseSrc.PricebookEntryId,
-        ProductSellingModelId = baseSrc.ProductSellingModelId
+        ProductSellingModelId = baseSrc.ProductSellingModelId,
+        ExternalReference = AUGMENT_MARKER             // provenance marker for reset
     ));
 }
 if (!srcIns.isEmpty()) insert srcIns;
