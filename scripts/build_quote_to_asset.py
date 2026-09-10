@@ -834,6 +834,21 @@ def build_one(org, account, args):
         if actual != args.start:
             raise StepError(f"asset lifecycle start is {actual}, expected {args.start} "
                             f"— backdating did not take")
+
+    # Symmetric end-date check. A zero exit alone does not prove the term LANDED where
+    # asked: callers that bucket by expiry (build_renewal_buckets.py) need the derived
+    # LifecycleEndDate to match --end, or an asset silently falls in the wrong window
+    # (or, for a mis-chosen Evergreen/empty model, carries no end date at all). For a
+    # TermDefined line the platform derives the end from the requested EndDate, so any
+    # mismatch — including a null end where one was asked for — fails loudly. OneTime
+    # and Evergreen lines have no lifecycle end, so there is nothing to verify.
+    model0 = ids.get("SKU0_SELLING_MODEL")
+    if args.end and model0 not in ("OneTime", "Evergreen"):
+        for a in assets:
+            actual_end = str(a["LifecycleEndDate"])[:10] if a["LifecycleEndDate"] else None
+            if actual_end != args.end:
+                raise StepError(f"asset lifecycle end is {actual_end}, expected {args.end} "
+                                f"— term end did not take (selling model={model0})")
     return True
 
 

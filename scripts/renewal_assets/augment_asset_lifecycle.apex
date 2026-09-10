@@ -10,10 +10,12 @@
  *
  * For each target asset it:
  *   1. Keeps the platform's own Initial-Sale AssetAction + AssetActionSource.
- *   2. Reuses that asset's REAL PricebookEntry / ProductSellingModel / UnitPrice
- *      (read from the Initial-Sale AssetActionSource) -- so the added events sit
- *      on the asset's actual selling model (e.g. Term Monthly), never a
- *      hardcoded one.
+ *   2. Reuses that asset's REAL PricebookEntry / ProductSellingModel / pricing /
+ *      PeriodBoundary (read from the Initial-Sale AssetActionSource) -- so the added
+ *      events sit on the asset's actual selling model (e.g. Term Monthly) and billing
+ *      alignment, never a hardcoded one. Amounts use the BOOKED (post-discount)
+ *      per-unit figure from the Initial-Sale state period, never the list UnitPrice,
+ *      so a discounted asset is not silently repriced to list.
  *   3. Trims the existing full-window AssetStatePeriod to the first segment,
  *      then chains N contiguous, non-overlapping state periods.
  *   4. Inserts one Change AssetAction + AssetActionSource per event, placed at
@@ -107,9 +109,12 @@ for (AssetAction aa : [SELECT Id, AssetId FROM AssetAction
                        WHERE AssetId IN :targetIds AND CategoryEnum = 'Initial Sale']) {
     initialActionByAsset.put(aa.AssetId, aa.Id);
 }
-// AssetActionSource carries PBE / PSM / UnitPrice
+// AssetActionSource carries PBE / PSM / pricing (list UnitPrice + post-discount
+// NetUnitPrice + ListPrice) and the original PeriodBoundary -- all reused so the
+// added events keep the asset's actual price, discount, and billing alignment.
 Map<Id, AssetActionSource> srcByAction = new Map<Id, AssetActionSource>();
-for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductSellingModelId, UnitPrice
+for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductSellingModelId,
+                            UnitPrice, NetUnitPrice, ListPrice, PeriodBoundary
                             FROM AssetActionSource WHERE AssetActionId IN :initialActionByAsset.values()]) {
     srcByAction.put(s.AssetActionId, s);
 }
@@ -136,6 +141,9 @@ List<Asset>             assetUpd   = new List<Asset>();
 // Track, per new action, the event index + asset so we can build sources after insert.
 List<Id>      actionAssetIds = new List<Id>();
 List<Integer> actionEvtIdx   = new List<Integer>();
+// Per-unit BOOKED (post-discount) amount per asset, reused by the source-build loop
+// so both loops price identically and never fall back to list UnitPrice.
+Map<Id, Decimal> perUnitAmtByAsset = new Map<Id, Decimal>();
 Integer skipped = 0;
 
 for (Id aid : targetIds) {
@@ -157,7 +165,18 @@ for (Id aid : targetIds) {
             + ' -- expected 1 and 1) ' + aid); skipped++; continue;
     }
 
-    Decimal unitPrice = (src.UnitPrice != null && src.UnitPrice != 0) ? src.UnitPrice : 0;
+    // List (pre-discount) vs net (post-discount) per-unit price, from the source.
+    Decimal listUnitPrice = (src.ListPrice != null && src.ListPrice != 0) ? src.ListPrice
+                          : ((src.UnitPrice != null && src.UnitPrice != 0) ? src.UnitPrice : 0);
+    Decimal netUnitPrice  = (src.NetUnitPrice != null && src.NetUnitPrice != 0) ? src.NetUnitPrice
+                          : listUnitPrice;
+    // Per-unit BOOKED amount from the Initial-Sale STATE PERIOD (Amount / Quantity) --
+    // the actual, post-discount figure. AssetActionSource.UnitPrice is the pre-discount
+    // list price, so a discounted asset must NOT be repriced to it. Fall back to the net
+    // unit price only if the period carries no amount.
+    Decimal perUnitAmount = (sp0.Amount != null && sp0.Quantity != null && sp0.Quantity != 0)
+                          ? (sp0.Amount / sp0.Quantity) : netUnitPrice;
+    perUnitAmtByAsset.put(aid, perUnitAmount);
     // Per-unit MONTHLY recurring revenue, taken from the Initial-Sale state period
     // (Mrr / Quantity). UnitPrice is per-term, not monthly (e.g. Term Annual unit
     // price 12000 is Mrr 1000), so MRR fields must NOT be qty * unitPrice.
@@ -200,14 +219,14 @@ for (Id aid : targetIds) {
         actionsIns.add(new AssetAction(
             AssetId = aid, Type = 'Change', CategoryEnum = cat,
             ActionDate = st, QuantityChange = delta,
-            MrrChange = delta * perUnitMrr, Amount = delta * unitPrice
+            MrrChange = delta * perUnitMrr, Amount = delta * perUnitAmount
         ));
         actionAssetIds.add(aid); actionEvtIdx.add(i);
 
         running += delta;
         stateIns.add(new AssetStatePeriod(
             AssetId = aid, Quantity = running,
-            Amount = running * unitPrice, Mrr = running * perUnitMrr,
+            Amount = running * perUnitAmount, Mrr = running * perUnitMrr,
             StartDate = st, EndDate = en,
             SegmentName = AUGMENT_MARKER               // provenance marker for reset
         ));
@@ -215,7 +234,7 @@ for (Id aid : targetIds) {
 
     // 3) Update asset header to the final running state
     assetUpd.add(new Asset(Id = aid, CurrentQuantity = running,
-                           CurrentAmount = running * unitPrice, CurrentMrr = running * perUnitMrr));
+                           CurrentAmount = running * perUnitAmount, CurrentMrr = running * perUnitMrr));
 }
 
 // ── DML ────────────────────────────────────────────────────────────────────
@@ -229,7 +248,13 @@ for (Integer k = 0; k < actionsIns.size(); k++) {
     Integer i = actionEvtIdx[k];
     Asset a = assetById.get(aid);
     AssetActionSource baseSrc = srcByAction.get(initialActionByAsset.get(aid));
-    Decimal unitPrice = (baseSrc.UnitPrice != null && baseSrc.UnitPrice != 0) ? baseSrc.UnitPrice : 0;
+    // Preserve the source's real pricing: list UnitPrice, post-discount NetUnitPrice,
+    // and the booked per-unit amount (from the state period) for ProductAmount.
+    Decimal listUnitPrice = (baseSrc.ListPrice != null && baseSrc.ListPrice != 0) ? baseSrc.ListPrice
+                          : ((baseSrc.UnitPrice != null && baseSrc.UnitPrice != 0) ? baseSrc.UnitPrice : 0);
+    Decimal netUnitPrice  = (baseSrc.NetUnitPrice != null && baseSrc.NetUnitPrice != 0) ? baseSrc.NetUnitPrice
+                          : listUnitPrice;
+    Decimal perUnitAmount = perUnitAmtByAsset.containsKey(aid) ? perUnitAmtByAsset.get(aid) : netUnitPrice;
     Long spanSec = (a.LifecycleEndDate.getTime() - a.LifecycleStartDate.getTime()) / 1000;
     Datetime st = a.LifecycleStartDate.addSeconds((Integer)(spanSec * FRACS[i]));
     Datetime en = (i < FRACS.size() - 1)
@@ -239,9 +264,11 @@ for (Integer k = 0; k < actionsIns.size(); k++) {
     srcIns.add(new AssetActionSource(
         AssetActionId = actionsIns[k].Id,
         TransactionDate = st, StartDate = st, EndDate = en,
-        Quantity = delta, ProductAmount = delta * unitPrice,
-        UnitPrice = unitPrice, NetUnitPrice = unitPrice, ListPrice = unitPrice,
-        PeriodBoundary = 'Anniversary',
+        Quantity = delta, ProductAmount = delta * perUnitAmount,
+        UnitPrice = listUnitPrice, NetUnitPrice = netUnitPrice, ListPrice = listUnitPrice,
+        // Reuse the asset's original billing alignment, not a hardcoded 'Anniversary'
+        // (assets built with AlignToCalendar/DayOfPeriod/LastDayOfPeriod keep theirs).
+        PeriodBoundary = (baseSrc.PeriodBoundary != null ? baseSrc.PeriodBoundary : 'Anniversary'),
         PricebookEntryId = baseSrc.PricebookEntryId,
         ProductSellingModelId = baseSrc.ProductSellingModelId,
         ExternalReference = AUGMENT_MARKER             // provenance marker for reset

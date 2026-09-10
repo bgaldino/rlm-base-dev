@@ -189,6 +189,13 @@ def main():
     if not skus or not accounts:
         print("FATAL: --skus and --accounts must each name at least one value.", file=sys.stderr)
         return 1
+    if not args.selling_model.strip():
+        print("FATAL: --selling-model is required and must resolve to a TermDefined model "
+              "(e.g. 'Term Annual'). Expiry windows need a LifecycleEndDate, so an empty or "
+              "Evergreen/OneTime model would produce an asset with no end date to bucket by. "
+              "The builder verifies the resulting end date matches this row's window.",
+              file=sys.stderr)
+        return 1
     if args.per_bucket < 1:
         print("FATAL: --per-bucket must be >= 1 (0 builds nothing).", file=sys.stderr)
         return 1

@@ -37,17 +37,21 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    carrying none. Pass `--verify-usage` for usage-anchor SKUs (QB-DB etc.).
 5. **Augment is additive, pristine-only, and read-your-work.**
    `augment_asset_lifecycle.apex` layers events onto EXISTING assets, reusing each
-   asset's real PBE/PSM/UnitPrice, and derives MRR from the Initial-Sale state
-   period (not `UnitPrice`, which is per-term). It **only** touches *pristine*
-   assets — exactly one Initial-Sale action and one state period; any asset that
-   already carries lifecycle history is skipped (logged), never modified. It is
-   **not** de-duped — smoke on one `ASSET_IDS` first, verify, then scale by
-   `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running. `DELTAS` are
-   **absolute** unit changes (not a fraction of base qty) — tune them to your qty.
-   `reset_augment.apex` deletes **only** records carrying augment's provenance
-   marker (`AssetActionSource.ExternalReference` / `AssetStatePeriod.SegmentName`
-   = `RLM_AUGMENT_LIFECYCLE`), never by the generic `Type='Change'`, so real
-   Renewal/Upsell/Downsell history on the same asset is untouched.
+   asset's real PBE/PSM/`PeriodBoundary` and its **booked, post-discount** per-unit
+   amount + MRR from the Initial-Sale *state period* (never the list `UnitPrice`,
+   which is both pre-discount and per-term — so a discounted asset is not repriced
+   to list). It **only** touches *pristine* assets — exactly one Initial-Sale action
+   and one state period; any asset that already carries lifecycle history is skipped
+   (logged), never modified. It is **not** de-duped — smoke on one `ASSET_IDS` first,
+   verify, then scale by `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running.
+   `DELTAS` are **absolute** unit changes (not a fraction of base qty) — tune them to
+   your qty. `reset_augment.apex` deletes **only** records carrying augment's
+   provenance marker (`AssetActionSource.ExternalReference` /
+   `AssetStatePeriod.SegmentName` = `RLM_AUGMENT_LIFECYCLE`), never by the generic
+   `Type='Change'` — and is **preflighted**: an asset that gained real
+   renewal/amendment history *after* augment (surviving unmarked action/period count
+   ≠ 1) is refused entirely, so the restore step can't overlap or clobber genuine
+   history.
 6. **Everything ships through a feature branch + PR.** Never commit to `264` /
    `main` / `release/*`. This skill and its scripts are their own branch — adding
    them to an unrelated feature branch trips `check_branch_scope.py`.
@@ -155,8 +159,10 @@ sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-
 Scripts compile and the driver's plan is deterministic offline:
 ```bash
 python -m py_compile scripts/build_quote_to_asset.py scripts/renewal_assets/build_renewal_buckets.py
+python tests/test_renewal_bucket_planner.py   # offline unit tests for the planner functions
 python scripts/renewal_assets/build_renewal_buckets.py --org dummy \
-    --accounts "A,B" --skus "QB-DB,QB-DAT-THPT" --per-bucket 2 --today 2026-09-10 --dry-run
+    --accounts "A,B" --skus "QB-DB,QB-DAT-THPT" --per-bucket 2 \
+    --selling-model "Term Annual" --today 2026-09-10 --dry-run
 ```
 
 After a build (read-only, against the org):
