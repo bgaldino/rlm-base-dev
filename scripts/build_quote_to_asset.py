@@ -806,12 +806,21 @@ def build_one(org, account, args):
               "                 cci org default <cci_alias>   # refresh_dt_asset takes no --org\n"
               "                 cci task run refresh_dt_asset")
 
-    counts = verify_usage_buckets(org, [a["Id"] for a in assets])
-    for k, v in counts.items():
-        print(f"  {'OK ' if v else 'GAP'}          {k} = {v}")
-    if not all(counts.values()):
-        raise StepError("asset created but usage buckets are incomplete: "
-                        + ", ".join(f"{k}={v}" for k, v in counts.items() if not v))
+    # Usage-bucket verification is meaningful only for usage products (Anchor/
+    # Pack/Commit). A plain renewal term product (the renewal-asset-creation use
+    # case) carries no entitlements, so the counts are legitimately zero and the
+    # assertion would fail a perfectly good asset. --skip-usage-verify turns the
+    # check into an informational print for those products; the asset itself is
+    # still confirmed to exist above.
+    if not args.skip_usage_verify:
+        counts = verify_usage_buckets(org, [a["Id"] for a in assets])
+        for k, v in counts.items():
+            print(f"  {'OK ' if v else 'GAP'}          {k} = {v}")
+        if not all(counts.values()):
+            raise StepError("asset created but usage buckets are incomplete: "
+                            + ", ".join(f"{k}={v}" for k, v in counts.items() if not v))
+    else:
+        print("  skip         usage-bucket verification (--skip-usage-verify)")
 
     # Backdating is the whole point — fail loudly if the platform overrode it.
     # A OneTime line has no lifecycle, so there is nothing to backdate. The key is
@@ -866,6 +875,11 @@ def main():
                     help="proceed when the account already has an asset for this SKU; "
                          "the post-activation poll then requires a NEW asset id "
                          "rather than accepting the pre-existing one")
+    ap.add_argument("--skip-usage-verify", action="store_true",
+                    help="skip the usage-bucket assertion after activation. Use for a "
+                         "plain renewal term product (no entitlements) so a valid, "
+                         "non-usage asset is not failed for having zero buckets. Default "
+                         "off — usage-anchor SKUs (QB-DB etc.) still verify")
     ap.add_argument("--selling-model", default="", metavar="NAME_OR_TYPE",
                     help="pick the PricebookEntry by selling model NAME (e.g. "
                          "'Term Monthly') or TYPE (TermDefined/Evergreen/OneTime). "
