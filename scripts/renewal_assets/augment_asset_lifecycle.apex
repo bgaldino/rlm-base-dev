@@ -92,20 +92,22 @@ List<Integer> DELTAS = new List<Integer>{ 0,         2,        0,         -1,   
 // length mismatch would throw mid-run (after DML has started), and empty, equal,
 // decreasing, or out-of-range fractions would build overlapping/invalid state
 // periods. Fail fast, before touching the org.
+// A bad config is a mistake, not a legitimate no-op: THROW so `sf apex run` exits
+// nonzero (an early `return` would report success after writing nothing, letting
+// automation accept a broken run). This is still before any query/DML, so the
+// no-write safety holds.
 if (FRACS.isEmpty() || CATS.size() != FRACS.size() || DELTAS.size() != FRACS.size()) {
-    System.debug('augment_asset_lifecycle: FATAL config -- FRACS/CATS/DELTAS must be '
-        + 'non-empty and equal length (FRACS=' + FRACS.size() + ' CATS=' + CATS.size()
-        + ' DELTAS=' + DELTAS.size() + '). No-op.');
-    return;
+    throw new IllegalArgumentException('augment_asset_lifecycle: invalid config -- '
+        + 'FRACS/CATS/DELTAS must be non-empty and equal length (FRACS=' + FRACS.size()
+        + ' CATS=' + CATS.size() + ' DELTAS=' + DELTAS.size() + ').');
 }
 Decimal prevFrac = 0;   // strictly increasing, each strictly inside (0, 1)
 for (Integer i = 0; i < FRACS.size(); i++) {
     Decimal f = FRACS[i];
     if (f == null || f <= 0 || f >= 1 || f <= prevFrac) {
-        System.debug('augment_asset_lifecycle: FATAL config -- FRACS must be strictly '
-            + 'increasing with 0 < frac < 1 (bad index ' + i + ' = ' + f
-            + ', previous ' + prevFrac + '). No-op.');
-        return;
+        throw new IllegalArgumentException('augment_asset_lifecycle: invalid config -- '
+            + 'FRACS must be strictly increasing with 0 < frac < 1 (bad index ' + i
+            + ' = ' + f + ', previous ' + prevFrac + ').');
     }
     prevFrac = f;
 }

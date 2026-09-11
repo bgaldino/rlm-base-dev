@@ -209,6 +209,16 @@ def main():
     args = ap.parse_args()
 
     today = dt.date.fromisoformat(args.today) if args.today else dt.date.today()
+    # --today only reshapes the plan for inspection. Building against a date other than
+    # the real current day anchors the windows to a stale date, so assets land OUTSIDE
+    # the current renewal windows (or already expired/future) while the run reports
+    # success. Allow the override only for --dry-run, or when it equals the real today.
+    if args.today and not args.dry_run and today != dt.date.today():
+        print("FATAL: --today is a dry-run-only anchor (or must equal the real current "
+              "date). A real build against a stale date places assets outside the current "
+              "renewal windows while still reporting success. Drop --today for a real build, "
+              "or keep --dry-run.", file=sys.stderr)
+        return 1
     skus = [s.strip() for s in args.skus.split(",") if s.strip()]
     accounts = [a.strip() for a in args.accounts.split(",") if a.strip()]
     if not skus or not accounts:
