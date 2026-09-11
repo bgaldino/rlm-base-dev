@@ -164,9 +164,14 @@ each cloning the most recent ramped group:
   "options": { "lineScope": "AllLines" } }
 ```
 
-A non-null `trackerId` in the response means the clone ran **async** — poll
-`AsyncOperationTracker` by that id; otherwise it ran synchronously and the new
-segment is already present. Then read back the new group's id for the next clone.
+The v68 clone response is `{ requestId, salesTransactionId, success, errors }`
+(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`)
+— there is **no** `trackerId`. `success:false` with a populated `errors[]` is a
+synchronous failure — stop. On `success:true` the save runs **async**: `requestId`
+identifies that process, and the observable gate is `Quote.CalculationStatus` —
+poll it to a settled state ([Status](#status)) before the next call. Do **not**
+read or clone the next group until it settles; then read back the new group's id
+for the next clone.
 
 > **Apex-invocable variant.** Some connectors expose clone as a CLASSIC Apex
 > invocable whose args are wrapped in an `inputs` array:
@@ -175,19 +180,39 @@ segment is already present. Then read back the new group's id for the next clone
 
 ### <a name="status"></a>Poll `CalculationStatus` between calls
 
-`Quote.CalculationStatus` is read-only and moves through tax/price states. The org
-returns **`CompletedWithTax`** where the field describe lists `TaxCalculationSuccess`
-— both are success. Success also includes `CompletedWithoutPricing`;
-`*Failed`/`CloneFailed` are terminal failures; `*InProgress`/`*Waiting`/`*Queued`/
-`CloneInProgress`/`Saving` are in-flight. **An unrecognized value = stop and
-look**, not "keep polling" or "assume done".
+`Quote.CalculationStatus` is read-only and moves through tax/price/save states.
+Match against the **live v68 enum** (from `scripts/erd/schema_diff/264-schema.json`),
+not a suffix wildcard — several in-flight values are `QueuedFor…`-**prefixed** (they
+do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
+
+- **Settled — success:** `CompletedWithPricing`; `CompletedWithTax` (the org returns
+  this where the describe lists `TaxCalculationSuccess` — treat both as success);
+  `CompletedWithoutPricing` (settled, but pricing was **skipped** — not a priced
+  result, so do not report prices from it).
+- **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
+  `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
+  `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
+  `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`.
+- **In-flight (keep polling):** `NotStarted`, `TaxCalculationWaiting`,
+  `TaxCalculationInProcess`, `PriceCalculationQueued`, `PriceCalculationInProgress`,
+  `Saving`, `ConfigurationInProgress`, `ReconciliationInProgress`,
+  `ContextHydrationInProgress`, `ARCInProgress`, `CloneInProgress`, and every
+  `QueuedFor…` value (`QueuedForConfiguration`, `QueuedForPricing`,
+  `QueuedForPricingAndSaving`, `QueuedForSaving`, `QueuedForARC`, `QueuedForClone`).
+
+**A value in none of these = stop and look**, not "keep polling" or "assume done".
 
 ## <a name="compound-uplift"></a>Compound price uplift
 
 Compound uplift makes each period's price uplift on the **prior period's factor**
-(not the list price): `applied%(n) = (1 + applied%(n−1)/100) × (1 + unitUplift%(n)/100) − 1`,
-and `NetUnitPrice(n) = base × (1 + applied%(n)/100)`. The first period is the
-baseline; a 0% period is a *carryover* (prior cumulative multiplier preserved).
+(not the list price). Working in **percent units** (the units `UnitPriceUplift` and
+`ApplUnitPriceUpliftPct` carry):
+`applied%(n) = [(1 + applied%(n−1)/100) × (1 + unitUplift%(n)/100) − 1] × 100`,
+and `NetUnitPrice(n) = base × (1 + applied%(n)/100)`. The `× 100` converts the
+compounded multiplier back to a percentage — e.g. uplifts 5% then 3% give
+`applied% = 8.15` (not `0.0815`), so `NetUnitPrice = base × 1.0815`. The first
+period is the baseline; a 0% period is a *carryover* (prior cumulative multiplier
+preserved).
 
 It needs **all** of:
 
@@ -204,20 +229,32 @@ It needs **all** of:
    (there are two `PriceRevision` steps; only the ramp path compounds).
 5. **`UnitPriceUplift` (per-period %) set per segment** on each `QuoteLineItem`.
 
+**Unsupported for compound** (264 Help, *Considerations for Ramp Deals*,
+`docs/salesforce/264/help/articles/ind.qocal_considerations_ramp_deals.htm.md`):
+a SKU using **CPI renewal uplift**, **usage-based pricing**, or **derived pricing**
+can't compound — don't build a compound ramp on one; its verification would be
+invalid. Also: compound **resets on renewal** (Year 1 of the new term is the new
+baseline), and records created **before Winter '27** use standard uplift.
+
 Verify numerically by reading back the segments (below).
 
 ## Read-back → the ramp schedule
 
 ```bash
-sf data query --target-org <sf_alias> -q "SELECT SegmentName, IsPrimarySegment, \
-  RampIdentifier, StartDate, EndDate, Quantity, UnitPrice, NetUnitPrice, \
-  UnitPriceUplift, ApplUnitPriceUpliftPct, RampUpliftType, QuoteLineGroupId \
+sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.ProductCode, \
+  SegmentName, IsPrimarySegment, RampIdentifier, StartDate, EndDate, Quantity, \
+  UnitPrice, NetUnitPrice, TotalPrice, UnitPriceUplift, ApplUnitPriceUpliftPct, \
+  RampUpliftType, QuoteLineGroupId \
   FROM QuoteLineItem WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
 ```
 
 Report: account, products, **TCV** (Σ all line totals across all segments),
 per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
-`RampIdentifier`). All numbers come from the priced quote.
+`RampIdentifier`, labelled by `Product2.Name`/`ProductCode`). Sum the
+platform-computed **`TotalPrice`** for TCV and subtotals — do **not** derive them
+from `Quantity × NetUnitPrice`, which is unreliable for term-priced or prorated
+lines. `TotalPrice` is read-only (never *set* it) but is queryable; all numbers
+come from the priced quote.
 
 ## <a name="discovering-ids"></a>Discovering ids
 
@@ -277,8 +314,9 @@ skill's routing.
    [Compound uplift](#compound-uplift)).
 6. Read back; report TCV, per-year subtotal, % of TCV, ramp-by-product matrix.
 
-Expected compound shape (base 360, uplifts 5/3/2%): 360 → 378 → 389.34 → 397.13
-(applied % 0 → 5 → 8.15 → 10.313).
+Expected compound shape for this 3-year ramp (base 360, uplifts 5/3% — baseline +
+2 uplifts = 3 periods): 360 → 378 → 389.34 (applied % 0 → 5 → 8.15). A 4-year ramp
+would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 
 ## Validation Checks
 

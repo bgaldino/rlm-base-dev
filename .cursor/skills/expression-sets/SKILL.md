@@ -351,17 +351,30 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
    is a *carryover* (prior cumulative multiplier preserved, not reset).
 
-Compounding math:
-`applied%(n) = (1 + applied%(n-1)/100) × (1 + unitUplift%(n)/100) − 1`, and
-`NetUnitPrice(n) = base × (1 + applied%(n)/100)`.
+Compounding math (in **percent units**, matching `UnitPriceUplift` /
+`ApplUnitPriceUpliftPct`):
+`applied%(n) = [(1 + applied%(n-1)/100) × (1 + unitUplift%(n)/100) − 1] × 100`, and
+`NetUnitPrice(n) = base × (1 + applied%(n)/100)`. The `× 100` converts the
+compounded multiplier back to a percentage — uplifts 5% then 3% give `applied% =
+8.15` (not `0.0815`), i.e. `NetUnitPrice = base × 1.0815`.
+
+**Unsupported for compound** (264 Help, *Considerations for Ramp Deals*): a SKU
+using **CPI renewal uplift**, **usage-based pricing**, or **derived pricing** can't
+compound. Compound also **resets on renewal** (new term's Year 1 is the new
+baseline); pre-Winter '27 records use standard uplift.
 
 ### Inspect / research (read-only)
 
 ```bash
+# 0. Discover the org's ACTIVE pricing procedure first — RLM_DefaultPricingProcedure
+#    is the template default, but an org may run a different one. Never assume the name.
+python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> \
+    --type PricingProcedure
 # Is compound enabled, and what feeds the rate? Find the PriceRevision BKM under
-# "Applyupliftstoramped…" and read IsCompoundUpliftEnabled + its Rate input.
+# "Applyupliftstoramped…" and read IsCompoundUpliftEnabled + its Rate input. Use the
+# DeveloperName discovered above (RLM_DefaultPricingProcedure shown as the default).
 python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> \
-    --developer-name RLM_DefaultPricingProcedure --params
+    --developer-name <PRICING_PROCEDURE> --params
 
 # Do live compound ramps exist? (any Compound row = yes)
 sf data query --target-org <sf_alias> -q \
