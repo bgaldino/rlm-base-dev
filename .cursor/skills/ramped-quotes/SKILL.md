@@ -185,10 +185,16 @@ Match against the **live v68 enum** (from `scripts/erd/schema_diff/264-schema.js
 not a suffix wildcard — several in-flight values are `QueuedFor…`-**prefixed** (they
 do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 
-- **Settled — success:** `CompletedWithPricing`; `CompletedWithTax` (the org returns
-  this where the describe lists `TaxCalculationSuccess` — treat both as success);
-  `CompletedWithoutPricing` (settled, but pricing was **skipped** — not a priced
-  result, so do not report prices from it).
+- **Settled — success:** `CompletedWithTax` (the org returns this where the describe
+  lists `TaxCalculationSuccess` — treat both as success); `CompletedWithoutPricing`
+  (settled, but pricing was **skipped** — not a priced result, so do not report
+  prices from it).
+- **`CompletedWithPricing` — settled *only when tax is skipped*.** It means pricing
+  is complete and **tax is now calculating** (order/quote field reference). The
+  examples here omit `taxPref`, and `taxPref` defaults to **running** tax
+  (`connect_requests_place_sales_transaction_input.htm.md`), so in this flow
+  `CompletedWithPricing` is **still in-flight** — wait for `CompletedWithTax`. It is
+  terminal only if you passed `taxPref: "Skip"` (then no `CompletedWithTax` follows).
 - **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
@@ -222,11 +228,18 @@ It needs **all** of:
    `.cursor/skills/context-service/SKILL.md`.
 2. **A group ramp** (this skill) — line ramps can't compound.
 3. **`RampUpliftType='Compound'` on the `QuoteLineGroup`** (cascades to lines).
-4. **The pricing procedure's ramp `PriceRevision` element has
-   `IsCompoundUpliftEnabled=true`** — *this is the engine*. Inspect / diff / author
-   it via `.cursor/skills/expression-sets/SKILL.md` →
-   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift)
-   (there are two `PriceRevision` steps; only the ramp path compounds).
+4. **A fully-configured ramp `PriceRevision` element** — the flag alone is *not*
+   enough. **Enable Compound Uplift** (`IsCompoundUpliftEnabled=true`) appears only
+   after a **lookup table** is selected, and requires bindings for **Ramp Identifier**,
+   **Base Price Multiplier** (blank ⇒ 1 for new sale; prior compounded multiplier for
+   amend/renew), **Uplift Method** (blank ⇒ silently *standard*, no compounding),
+   and **Effective From**/**Effective To** — every segment needs a **unique Effective
+   From** or pricing fails for the *entire* ramp group. Compound also requires a
+   **newly-created** pricing procedure (existing procedures don't support it). This
+   is *engine* setup — author/inspect it via `.cursor/skills/expression-sets/SKILL.md` →
+   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift), which is
+   **mandatory** here, not optional (there are two `PriceRevision` steps; only the ramp
+   path compounds).
 5. **`UnitPriceUplift` (per-period %) set per segment** on each `QuoteLineItem`.
 
 **Unsupported for compound** (264 Help, *Considerations for Ramp Deals*,
@@ -243,18 +256,21 @@ Verify numerically by reading back the segments (below).
 ```bash
 sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.ProductCode, \
   SegmentName, IsPrimarySegment, RampIdentifier, StartDate, EndDate, Quantity, \
-  UnitPrice, NetUnitPrice, TotalPrice, UnitPriceUplift, ApplUnitPriceUpliftPct, \
-  RampUpliftType, QuoteLineGroupId \
+  UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice, UnitPriceUplift, \
+  ApplUnitPriceUpliftPct, RampUpliftType, QuoteLineGroupId \
   FROM QuoteLineItem WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
 ```
 
 Report: account, products, **TCV** (Σ all line totals across all segments),
 per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
 `RampIdentifier`, labelled by `Product2.Name`/`ProductCode`). Sum the
-platform-computed **`TotalPrice`** for TCV and subtotals — do **not** derive them
-from `Quantity × NetUnitPrice`, which is unreliable for term-priced or prorated
-lines. `TotalPrice` is read-only (never *set* it) but is queryable; all numbers
-come from the priced quote.
+platform-computed **`NetTotalPrice`** for TCV and subtotals — it is the
+**post-discount, prorated** line total that propagates to the posted invoice
+(`scripts/txn_data_harness/docs/contracts-sales-txn-quote.md`). `TotalPrice` is the
+gross list total and **overstates** TCV whenever an uplift, discount, or proration
+changes the net; do **not** sum it, and do **not** derive totals from `Quantity ×
+NetUnitPrice` (unreliable for term-priced/prorated lines). Both totals are read-only
+(never *set* them) but queryable; all numbers come from the priced quote.
 
 ## <a name="discovering-ids"></a>Discovering ids
 

@@ -337,9 +337,21 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    (`QuoteLineGroupId=null`) — no group to hold the uplift mode, so it can never
    compound.
 3. **`RampUpliftType='Compound'` on the `QuoteLineGroup`** (cascades to lines).
-4. **The `PriceRevision` element carries `IsCompoundUpliftEnabled=true`** (UI
-   *"Enable Compound"* checkbox) — *this is the engine*, and this skill's tooling
-   reads/writes it. In `RLM_DefaultPricingProcedure` there are **two** distinct
+4. **A fully-configured ramp `PriceRevision` element** — `IsCompoundUpliftEnabled=true`
+   (UI *"Enable Compound Uplift"*) is *necessary but not sufficient*. Per the 264 Help
+   (*Use the Price Revision Element in a Pricing Procedure*), the checkbox appears
+   **only after a lookup table is selected**, and exposes bindings that must all be set:
+
+   | Binding | Rule (blank / wrong ⇒) |
+   |---|---|
+   | **Ramp Identifier** | Groups a ramp's segments so they compound independently; lines with no Ramp Identifier price independently |
+   | **Base Price Multiplier** | Blank ⇒ 1 for a new sale; for amend/renew, the ramp's compounded multiplier from the prior transaction |
+   | **Uplift Method** | **Blank ⇒ silently *standard* (no compounding)** — this is the quiet failure mode |
+   | **Effective From** / **Effective To** | Segment date range; **every segment needs a *unique* Effective From** — a missing or duplicated one **fails pricing for the entire ramp group**, not just that segment |
+
+   Also: **compound requires a newly-created pricing procedure** — existing procedures
+   don't support it; and changing/removing the lookup table auto-clears
+   `IsCompoundUpliftEnabled`. In `RLM_DefaultPricingProcedure` there are **two** distinct
    `PriceRevision` BKM steps; only the ramp path compounds:
 
    | BKM step (parent filter) | Drives |
