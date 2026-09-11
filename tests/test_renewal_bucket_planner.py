@@ -86,6 +86,25 @@ plan3 = m.build_plan(TODAY, per_bucket=2, far_days=365, term_months=12,
 first_bucket = [r["sku"] for r in plan3 if r["bucket"] == "<=30"]
 check("sku cycles in bucket", first_bucket, ["QB-DB", "QB-DAT-THPT"])
 
+# ── future_start_rows: reject a plan whose start back-solves past today ─────
+# far_days (365) > ~360-day 12mo term -> the >90 outer edge (end=today+365) yields
+# start = today+1, a future-dated asset that is not active yet. per_bucket=1 never
+# hits the outer edge, so it is safe; per_bucket>=2 does.
+safe = m.build_plan(TODAY, per_bucket=1, far_days=365, term_months=12,
+                    skus=["QB-DB"], accounts=["A"])
+check("per_bucket=1 no future starts", m.future_start_rows(safe, TODAY), [])
+risky = m.build_plan(TODAY, per_bucket=2, far_days=365, term_months=12,
+                     skus=["QB-DB"], accounts=["A", "B"])
+fsr = m.future_start_rows(risky, TODAY)
+check("per_bucket=2 far=365 term=12 -> 1 future start", len(fsr), 1)
+check("future start is the >90 outer edge", fsr[0]["bucket"], ">90")
+check("future start date = today+1",
+      dt.date.fromisoformat(fsr[0]["start"]), TODAY + dt.timedelta(days=1))
+# far_days <= term keeps every start on/before today (the documented far=180 fix).
+fixed = m.build_plan(TODAY, per_bucket=2, far_days=180, term_months=12,
+                     skus=["QB-DB"], accounts=["A", "B"])
+check("far=180 term=12 no future starts", m.future_start_rows(fixed, TODAY), [])
+
 if _failures:
     print("FAIL — renewal bucket planner:")
     for f in _failures:

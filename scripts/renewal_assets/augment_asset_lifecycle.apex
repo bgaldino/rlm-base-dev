@@ -49,9 +49,11 @@
  * verify the (N+1)-period chain (see the skill's Validation Checks), then
  * switch to ACCOUNT_NAME_LIKE for the full set.
  *
- * ── UNDO ──────────────────────────────────────────────────────────────────
- * The run is additive and NOT de-duped -- running it twice on the same assets
- * layers a second series. To re-run cleanly, undo first with reset_augment.apex.
+ * ── UNDO / RE-RUN ──────────────────────────────────────────────────────────
+ * The run is additive, but the pristine guard makes a second run a NO-OP: an
+ * already-augmented asset has >1 action/period, so it is skipped -- NOT layered
+ * with a duplicate series. To rebuild or change the history, reset_augment.apex
+ * first (which restores the asset to pristine), then re-run.
  *
  * Run with:  sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-org <alias>
  *

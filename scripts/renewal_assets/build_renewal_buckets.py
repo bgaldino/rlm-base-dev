@@ -54,10 +54,14 @@ Usage
         --accounts "Infinitech" --skus QB-DB --per-bucket 1 \
         --term-months 12 --selling-model "Term Annual" --billing-frequency Annual --dry-run
 
-    # then execute
+    # then execute. NOTE --far-bucket-days 180 (not the 365 default): with 2+ per
+    # bucket the >90 window's OUTER edge back-solves a start of end - term, so a far
+    # edge beyond the term (365 default vs a ~360-day 12-month term) would start the
+    # asset in the future. Keep far-bucket-days <= the term, or raise --term-months.
     python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
         --accounts "Infinitech,Kingsbridge Digital" --skus QB-DB \
-        --per-bucket 2 --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
+        --per-bucket 2 --term-months 12 --far-bucket-days 180 \
+        --selling-model "Term Annual" --billing-frequency Annual
 
 Exits 0 when every scheduled asset build succeeded, 1 otherwise.
 """
@@ -120,6 +124,17 @@ def build_plan(today, per_bucket, far_days, term_months, skus, accounts):
     return plan
 
 
+def future_start_rows(plan, today):
+    """Rows whose back-solved start date is AFTER today (pure -- no org calls).
+
+    A bucket asset must be CURRENTLY active and merely expiring in its window, but
+    start = end - term, so when the >90 window's outer edge (far_bucket_days) exceeds
+    the term the start lands in the future -- an asset that is not active yet and so
+    not renewal-ready. Callers reject a plan with any such row.
+    """
+    return [r for r in plan if dt.date.fromisoformat(r["start"]) > today]
+
+
 def run_one(args, row):
     cmd = [
         sys.executable, BUILDER,
@@ -179,7 +194,10 @@ def main():
     ap.add_argument("--today", default="",
                     help="anchor date YYYY-MM-DD for the windows (default: real today)")
     ap.add_argument("--far-bucket-days", type=int, default=365,
-                    help="outer edge of the >90 window, in days from today (default: 365)")
+                    help="outer edge of the >90 window, in days from today (default: 365). "
+                         "With --per-bucket >= 2 keep this <= the term (a 12-month term is "
+                         "~360 days): a far edge beyond the term back-solves a future start "
+                         "date, and the planner rejects any plan whose computed start > today.")
     ap.add_argument("--verify-usage", action="store_true",
                     help="require usage buckets on each asset (for usage-anchor SKUs). "
                          "Default off: plain renewal term products carry none")
@@ -231,6 +249,23 @@ def main():
     for i, r in enumerate(plan, 1):
         print(f"{i:>3}  {r['bucket']:6}  {r['start']:10}  {r['end']:10}  "
               f"{r['sku']:14}  {r['account']}")
+
+    # Every bucket asset must be CURRENTLY active and merely expiring in its window.
+    # start = end - term, so when --far-bucket-days exceeds the term (e.g. far=365 with
+    # term-months=12 puts the >90 end a full year out) the back-solved start lands AFTER
+    # today -- a future-dated subscription that is not active yet and so not renewal-ready.
+    # Reject the whole plan with actionable guidance rather than building such assets.
+    future = future_start_rows(plan, today)
+    if future:
+        worst = max(future, key=lambda r: r["start"])
+        print(f"\nFATAL: {len(future)} of {len(plan)} planned asset(s) would start AFTER today "
+              f"(latest {worst['start']} in the {worst['bucket']} bucket) — a future-dated start "
+              f"is not currently active, so the asset is not renewal-ready. This happens when "
+              f"--far-bucket-days ({args.far_bucket_days}) exceeds the term "
+              f"(--term-months {args.term_months} ≈ {args.term_months * 30} days). Raise "
+              f"--term-months or lower --far-bucket-days so every computed start ≤ today.",
+              file=sys.stderr)
+        return 1
 
     if args.dry_run:
         print("\n(dry-run — nothing built)")

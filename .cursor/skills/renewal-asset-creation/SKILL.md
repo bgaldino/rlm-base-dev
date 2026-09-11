@@ -42,8 +42,10 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    which is both pre-discount and per-term — so a discounted asset is not repriced
    to list). It **only** touches *pristine* assets — exactly one Initial-Sale action
    and one state period; any asset that already carries lifecycle history is skipped
-   (logged), never modified. It is **not** de-duped — smoke on one `ASSET_IDS` first,
-   verify, then scale by `ACCOUNT_NAME_LIKE`; `reset_augment.apex` before re-running.
+   (logged), never modified. A second run is a **no-op** — the pristine guard skips
+   an already-augmented asset rather than layering a duplicate series, so
+   `reset_augment.apex` first to rebuild. Smoke on one `ASSET_IDS`, verify, then scale
+   by `ACCOUNT_NAME_LIKE`.
    `DELTAS` are **absolute** unit changes (not a fraction of base qty) — tune them to
    your qty. `reset_augment.apex` deletes **only** records carrying augment's
    provenance marker (`AssetActionSource.ExternalReference` /
@@ -62,8 +64,9 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
   asset or hand-set `LifecycleEndDate` — build it through the flow so the platform
   derives lifecycle records. (The augment Apex only *adds* history to an asset the
   platform already made, and reuses that asset's own selling model.)
-- **DO NOT** run `augment_asset_lifecycle.apex` twice on the same assets — it
-  layers a second event series (no de-dupe). Use `reset_augment.apex` first.
+- **DO NOT** expect a second `augment_asset_lifecycle.apex` run to change an
+  already-augmented asset — the pristine guard skips it (a no-op, not a duplicate
+  series). `reset_augment.apex` first to rebuild the history.
 - **DO NOT** point the augment Apex at a broad `ACCOUNT_NAME_LIKE` before a
   one-asset smoke run — a wrong pattern rewrites state periods on unintended
   assets. Both selectors are empty by default for this reason.
@@ -140,11 +143,14 @@ python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
     --accounts "Acme,Globex" --skus "QB-DB,QB-DAT-THPT" --per-bucket 2 \
-    --term-months 12 --selling-model "Term Annual" --billing-frequency Annual
+    --term-months 12 --far-bucket-days 180 --selling-model "Term Annual" --billing-frequency Annual
 ```
 → 8 assets; each bucket gets one QB-DB + one QB-DAT-THPT, distributed round-robin
 across Acme and Globex. (`Term Annual` is used because it is the one TermDefined
-model both SKUs share — QB-DB has no `Term Monthly`.)
+model both SKUs share — QB-DB has no `Term Monthly`.) `--far-bucket-days 180` (not
+the 365 default) because with `--per-bucket >= 2` the >90 window's outer edge
+back-solves `start = end - term`; a far edge past the ~360-day term would start the
+asset in the future, which the planner rejects.
 
 **Augment a smoke asset, then the full set:**
 ```bash
@@ -162,7 +168,7 @@ python -m py_compile scripts/build_quote_to_asset.py scripts/renewal_assets/buil
 python tests/test_renewal_bucket_planner.py   # offline unit tests for the planner functions
 python scripts/renewal_assets/build_renewal_buckets.py --org dummy \
     --accounts "A,B" --skus "QB-DB,QB-DAT-THPT" --per-bucket 2 \
-    --selling-model "Term Annual" --today 2026-09-10 --dry-run
+    --far-bucket-days 180 --selling-model "Term Annual" --today 2026-09-10 --dry-run
 ```
 
 After a build (read-only, against the org):
