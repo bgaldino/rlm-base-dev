@@ -20,9 +20,11 @@
  * (unmarked, so it survives the delete), stretching the Initial-Sale period would
  * overlap it and the header reset would clobber the current values. So before any
  * DML this script checks, per asset, that the SURVIVING (unmarked) records are
- * exactly one action + one state period; any asset that fails is REFUSED entirely
- * (no delete, no restore) and left untouched -- the same pristine contract augment
- * itself enforces.
+ * exactly one action + one state period AND that the surviving action is the Initial
+ * Sale (by CategoryEnum) -- a lone survivor that is not the Initial Sale (original
+ * deleted/replaced out-of-band) would be wrongly stretched. Any asset that fails is
+ * REFUSED entirely (no delete, no restore) and left untouched -- the same pristine
+ * contract augment itself enforces.
  *
  * Run with:  sf apex run --file scripts/renewal_assets/reset_augment.apex --target-org <alias>
  */
@@ -81,21 +83,35 @@ for (AggregateResult ar : [SELECT AssetId aid, COUNT(Id) c FROM AssetStatePeriod
                            WHERE AssetId IN :candidates GROUP BY AssetId])
     totalSpByAsset.put((Id) ar.get('aid'), (Integer) ar.get('c'));
 
+// Surviving Initial-Sale actions per candidate. augment NEVER marks the Initial Sale
+// (it keeps it), so any Initial-Sale action here is an unmarked survivor. A count-of-one
+// survivor is only safe to restore if that survivor actually IS the Initial Sale --
+// identified by CategoryEnum, the same signal augment uses (initialActionByAsset).
+Map<Id, Integer> initSaleActByAsset = new Map<Id, Integer>();
+for (AggregateResult ar : [SELECT AssetId aid, COUNT(Id) c FROM AssetAction
+                           WHERE AssetId IN :candidates AND CategoryEnum = 'Initial Sale'
+                           GROUP BY AssetId])
+    initSaleActByAsset.put((Id) ar.get('aid'), (Integer) ar.get('c'));
+
 // PREFLIGHT: an asset is eligible only if, once the marked rows go, the survivors are
-// exactly the single Initial-Sale action + its one state period. Otherwise real
-// post-augment history exists and the restore below would corrupt it -- refuse it.
+// exactly the single Initial-Sale action + its one state period. Count alone is not
+// enough -- a lone survivor that is NOT the Initial Sale (e.g. the original was deleted
+// or replaced out-of-band) would be wrongly stretched to the full lifecycle and clobber
+// the header. So require the surviving unmarked action to BE the Initial Sale. Otherwise
+// real/mutated history exists and the restore below would corrupt it -- refuse it.
 Set<Id> eligible = new Set<Id>();
 for (Id aid : candidates) {
     Integer unmarkedAct = (totalActByAsset.containsKey(aid) ? totalActByAsset.get(aid) : 0)
                         - (markedActByAsset.containsKey(aid) ? markedActByAsset.get(aid) : 0);
     Integer unmarkedSp  = (totalSpByAsset.containsKey(aid) ? totalSpByAsset.get(aid) : 0)
                         - (markedSpByAsset.containsKey(aid) ? markedSpByAsset.get(aid) : 0);
-    if (unmarkedAct == 1 && unmarkedSp == 1) {
+    Integer initSaleAct = initSaleActByAsset.containsKey(aid) ? initSaleActByAsset.get(aid) : 0;
+    if (unmarkedAct == 1 && unmarkedSp == 1 && initSaleAct == 1) {
         eligible.add(aid);
     } else {
-        System.debug('reset_augment: REFUSING ' + aid + ' -- post-augment history present '
-            + '(surviving unmarked actions=' + unmarkedAct + ' statePeriods=' + unmarkedSp
-            + ', expected 1 and 1). Left untouched.');
+        System.debug('reset_augment: REFUSING ' + aid + ' -- surviving unmarked history is not a '
+            + 'lone Initial Sale (unmarked actions=' + unmarkedAct + ' statePeriods=' + unmarkedSp
+            + ' initialSaleActions=' + initSaleAct + ', expected 1, 1 and 1). Left untouched.');
     }
 }
 if (eligible.isEmpty()) {
