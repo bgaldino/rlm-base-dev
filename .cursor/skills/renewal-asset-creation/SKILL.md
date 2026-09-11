@@ -25,7 +25,8 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    and the Initial-Sale action/state period. Direct `Asset`/`QuoteLineItem` DML is
    not viable for TermDefined products.
 2. **Expiry-bucket spread comes from `build_renewal_buckets.py`.** It computes the
-   4 windows from *today*, back-solves `start = end − term`, and shells out to the
+   4 windows from *today*, back-solves `start = end − term + 1 day` (inclusive term),
+   and shells out to the
    builder once per asset. There is no second flow implementation to keep in sync.
 3. **Accounts must pre-exist.** The builder resolves accounts by name and does not
    create them. Reset an account (no existing asset for the SKU) or rely on the
@@ -89,7 +90,7 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
 | Need renewal-due assets spread across the 4 expiry windows for renewal insights | Yes |
 | Give existing assets a realistic Renewal/Upsell/Downsell lifecycle timeline | Yes — the augment Apex |
 | One renewable termed asset to exercise a reprice/price-revision path | Yes (or `build_quote_to_asset.py` directly for a single account) |
-| A usage-rating demo (assets with usage wallets/buckets) | No → `build_quote_to_asset.py` with `--verify-usage`; see `usage-consumption/SKILL.md` |
+| A usage-rating demo (assets with usage wallets/buckets) | No → `build_quote_to_asset.py` directly (it verifies usage buckets by default — `--verify-usage` is a `build_renewal_buckets.py` flag, not one this script takes); see `usage-consumption/SKILL.md` |
 | Seed transaction/invoice demo data (stops before assets) | No → `txn-data-harness/SKILL.md` |
 | Prep a DF Hands-On workshop clone | No → `df-workshop-setup/SKILL.md` |
 
@@ -149,7 +150,7 @@ python scripts/renewal_assets/build_renewal_buckets.py --org rlm-base__beta \
 across Acme and Globex. (`Term Annual` is used because it is the one TermDefined
 model both SKUs share — QB-DB has no `Term Monthly`.) `--far-bucket-days 180` (not
 the 365 default) because with `--per-bucket >= 2` the >90 window's outer edge
-back-solves `start = end - term`; a far edge past the ~360-day term would start the
+back-solves `start = end - term + 1 day`; a far edge past the ~360-day term would start the
 asset in the future, which the planner rejects.
 
 **Augment a smoke asset, then the full set:**

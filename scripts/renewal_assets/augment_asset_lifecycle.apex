@@ -83,6 +83,30 @@ List<Decimal> FRACS  = new List<Decimal>{ 0.20, 0.27, 0.40, 0.47, 0.60, 0.80 };
 List<String>  CATS   = new List<String> { 'Renewals','Upsells','Renewals','Downsells','Renewals','Renewals' };
 List<Integer> DELTAS = new List<Integer>{ 0,         2,        0,         -1,          0,         0 };
 
+// ── Validate the editable event structure BEFORE any query or DML ───────────
+// FRACS/CATS/DELTAS are hand-editable and indexed together by FRACS.size(); the
+// loops also assume fractions are ordered inside the (0,1) lifecycle window. A
+// length mismatch would throw mid-run (after DML has started), and empty, equal,
+// decreasing, or out-of-range fractions would build overlapping/invalid state
+// periods. Fail fast, before touching the org.
+if (FRACS.isEmpty() || CATS.size() != FRACS.size() || DELTAS.size() != FRACS.size()) {
+    System.debug('augment_asset_lifecycle: FATAL config -- FRACS/CATS/DELTAS must be '
+        + 'non-empty and equal length (FRACS=' + FRACS.size() + ' CATS=' + CATS.size()
+        + ' DELTAS=' + DELTAS.size() + '). No-op.');
+    return;
+}
+Decimal prevFrac = 0;   // strictly increasing, each strictly inside (0, 1)
+for (Integer i = 0; i < FRACS.size(); i++) {
+    Decimal f = FRACS[i];
+    if (f == null || f <= 0 || f >= 1 || f <= prevFrac) {
+        System.debug('augment_asset_lifecycle: FATAL config -- FRACS must be strictly '
+            + 'increasing with 0 < frac < 1 (bad index ' + i + ' = ' + f
+            + ', previous ' + prevFrac + '). No-op.');
+        return;
+    }
+    prevFrac = f;
+}
+
 // ── Resolve target Asset Ids ───────────────────────────────────────────────
 List<Id> targetIds = new List<Id>();
 if (!ASSET_IDS.isEmpty()) {
@@ -170,8 +194,9 @@ for (Id aid : targetIds) {
     // List (pre-discount) vs net (post-discount) per-unit price, from the source.
     Decimal listUnitPrice = (src.ListPrice != null && src.ListPrice != 0) ? src.ListPrice
                           : ((src.UnitPrice != null && src.UnitPrice != 0) ? src.UnitPrice : 0);
-    Decimal netUnitPrice  = (src.NetUnitPrice != null && src.NetUnitPrice != 0) ? src.NetUnitPrice
-                          : listUnitPrice;
+    // Fall back to list ONLY when net is null. A legitimate 0 (a fully-discounted line)
+    // must be preserved, not rewritten to the list price.
+    Decimal netUnitPrice  = (src.NetUnitPrice != null) ? src.NetUnitPrice : listUnitPrice;
     // Per-unit BOOKED amount from the Initial-Sale STATE PERIOD (Amount / Quantity) --
     // the actual, post-discount figure. AssetActionSource.UnitPrice is the pre-discount
     // list price, so a discounted asset must NOT be repriced to it. Fall back to the net
@@ -268,8 +293,9 @@ for (Integer k = 0; k < actionsIns.size(); k++) {
     // and the booked per-unit amount (from the state period) for ProductAmount.
     Decimal listUnitPrice = (baseSrc.ListPrice != null && baseSrc.ListPrice != 0) ? baseSrc.ListPrice
                           : ((baseSrc.UnitPrice != null && baseSrc.UnitPrice != 0) ? baseSrc.UnitPrice : 0);
-    Decimal netUnitPrice  = (baseSrc.NetUnitPrice != null && baseSrc.NetUnitPrice != 0) ? baseSrc.NetUnitPrice
-                          : listUnitPrice;
+    // Fall back to list ONLY when net is null -- preserve a legitimate 0 (fully discounted),
+    // so the synthetic AssetActionSource keeps the original net-price contract.
+    Decimal netUnitPrice  = (baseSrc.NetUnitPrice != null) ? baseSrc.NetUnitPrice : listUnitPrice;
     Decimal perUnitAmount = perUnitAmtByAsset.containsKey(aid) ? perUnitAmtByAsset.get(aid) : netUnitPrice;
     Long spanSec = (a.LifecycleEndDate.getTime() - a.LifecycleStartDate.getTime()) / 1000;
     Datetime st = a.LifecycleStartDate.addSeconds((Integer)(spanSec * FRACS[i]));

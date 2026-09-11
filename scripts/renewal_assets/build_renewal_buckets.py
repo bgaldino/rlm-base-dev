@@ -55,7 +55,7 @@ Usage
         --term-months 12 --selling-model "Term Annual" --billing-frequency Annual --dry-run
 
     # then execute. NOTE --far-bucket-days 180 (not the 365 default): with 2+ per
-    # bucket the >90 window's OUTER edge back-solves a start of end - term, so a far
+    # bucket the >90 window's OUTER edge back-solves a start of end - term + 1 day, so a far
     # edge beyond the term (365 default vs a ~360-day 12-month term) would start the
     # asset in the future. Keep far-bucket-days <= the term, or raise --term-months.
     python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
@@ -128,7 +128,7 @@ def future_start_rows(plan, today):
     """Rows whose back-solved start date is AFTER today (pure -- no org calls).
 
     A bucket asset must be CURRENTLY active and merely expiring in its window, but
-    start = end - term, so when the >90 window's outer edge (far_bucket_days) exceeds
+    start = end - term + 1 day, so when the >90 window's outer edge (far_bucket_days) exceeds
     the term the start lands in the future -- an asset that is not active yet and so
     not renewal-ready. Callers reject a plan with any such row.
     """
@@ -179,7 +179,8 @@ def main():
     ap.add_argument("--per-bucket", type=int, default=1,
                     help="assets per expiry window; total = 4 x this (default: 1)")
     ap.add_argument("--term-months", type=int, default=12,
-                    help="subscription term in months; start = end - term (default: 12)")
+                    help="subscription term in months; start = end - term + 1 day "
+                         "(inclusive term boundaries) (default: 12)")
     ap.add_argument("--selling-model", default="",
                     help="ProductSellingModel NAME (e.g. 'Term Annual') or TYPE; passed "
                          "through to build_quote_to_asset.py. MUST resolve to a TermDefined "
@@ -251,7 +252,7 @@ def main():
               f"{r['sku']:14}  {r['account']}")
 
     # Every bucket asset must be CURRENTLY active and merely expiring in its window.
-    # start = end - term, so when --far-bucket-days exceeds the term (e.g. far=365 with
+    # start = end - term + 1 day, so when --far-bucket-days exceeds the term (e.g. far=365 with
     # term-months=12 puts the >90 end a full year out) the back-solved start lands AFTER
     # today -- a future-dated subscription that is not active yet and so not renewal-ready.
     # Reject the whole plan with actionable guidance rather than building such assets.
