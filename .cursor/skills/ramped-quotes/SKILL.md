@@ -25,13 +25,22 @@ Two distinct ramp mechanisms exist — do not confuse them:
 
 ## Quick Rules
 
-1. **A group ramp is one `QuoteLineGroup` per period.** Build it in exactly this
-   order: (1) `placeSalesTransaction` **create** — Quote + one group (period 1) +
-   one `QuoteLineItem` per product, all `POST` in a single graph; (2)
-   `placeSalesTransaction` with **`groupRampAction: "EditGroup"`** — flip period-1's
-   group to `IsRamped=true`, `SegmentType=Yearly`, which stamps `RampIdentifier` on
-   its lines; (3) **clone × (N−1)** — one clone per *additional* period. A 3-year
-   ramp = create + EditGroup + 2 clones.
+1. **A group ramp is a per-period segment structure — and its shape depends on the
+   *Multiple Ramp Schedules Per Transaction* setting** (`enableGroupRampMultiSchedulePref`),
+   which **this repo enables by default** (`config/project-scratch-def.json`,
+   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`). **ON (repo
+   default) ⇒ a two-level structure:** a top-level `QuoteLineGroup` with
+   `Type='RampScheduleGroup'` and one **segment subgroup per period** nested under it
+   (`ParentQuoteLineGroupId` → the schedule group). **OFF ⇒ a single-level list** of
+   period groups (`ParentQuoteLineGroupId` null). Either way the call order is: (1)
+   `placeSalesTransaction` **create** — Quote + period-1 group + one `QuoteLineItem`
+   per product; (2) `groupRampAction: "EditGroup"` — `IsRamped=true`,
+   `SegmentType=Yearly`, which (in multi-schedule mode) makes the platform create the
+   top-level `RampScheduleGroup` and convert the posted group into segment 1, and
+   stamps `RampIdentifier` on its lines; (3) **clone × (N−1)** — one clone per
+   *additional* period. A 3-year ramp = create + EditGroup + 2 clones. The exact
+   two-level graph and resulting ids must be confirmed by read-back on the target org
+   (live-verify rule below).
 2. **The group is created plain, then ramped by `EditGroup`.** Do **not** try to
    `POST` an already-ramped group. `EditGroup` sets `IsRamped`/`SegmentType`/dates.
 3. **Clone is a separate Connect resource**, not a `groupRampAction`:
@@ -43,14 +52,18 @@ Two distinct ramp mechanisms exist — do not confuse them:
    before the next call. Treat an unrecognized status as *stop and look*, never
    "assume done" (see [Status](#status)).
 5. **Compound uplift is group + engine, not a line write.** Set the per-segment
-   percentage in **`QuoteLineItem.UnitPriceUplift`** (writeable) and the mode in
-   **`QuoteLineGroup.RampUpliftType`** (`Standard`|`Compound`) — the mode is
-   engine-owned on the *line* and rejected there. The compounding itself is driven
-   by the pricing procedure's `PriceRevision` element; see
-   [Compound uplift](#compound-uplift).
+   percentage in **`QuoteLineItem.UnitPriceUplift`** (writeable). Set the mode in
+   **`RampUpliftType`** (`Standard`|`Compound`) on the ramp **group** — with
+   multi-schedule ON (repo default), on the **top-level `RampScheduleGroup`** (it
+   cascades to segment subgroups and lines); with it OFF, on the single ramp segment
+   group. `RampUpliftType` is engine-owned on the *line* and rejected there. The
+   compounding itself is driven by the pricing procedure's `PriceRevision` element;
+   see [Compound uplift](#compound-uplift).
 6. **`RampIdentifier` is the cross-segment linkage — constant per product across
-   all segments.** Group the read-back matrix on it. Do **not** use
-   `SegmentIdentifier` (unique per line) or `ParentQuoteLineGroupId` (null).
+   all segments.** Group the read-back matrix on it, not `SegmentIdentifier` (unique
+   per line). `ParentQuoteLineGroupId` is **not** a linkage key: with multi-schedule
+   ON a segment subgroup's `ParentQuoteLineGroupId` points to its top-level
+   `RampScheduleGroup`; only with it OFF is it null.
 7. **Report from the priced quote — never re-price.** PST already computed net
    prices, subtotals, and totals; read them back.
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
@@ -64,7 +77,9 @@ Two distinct ramp mechanisms exist — do not confuse them:
   `QuoteNumber`. They are computed — the call fails if you set them.
 - **DO NOT** write `RampUpliftType` on `QuoteLineItem`/`OrderItem` via Place — it
   is engine-owned there (rejected as not-writeable even when FLS shows editable).
-  Set it on the **`QuoteLineGroup`**; it cascades to the group's ramped lines.
+  Set it on the ramp **group** — the **top-level `RampScheduleGroup`** in
+  multi-schedule mode (repo default), or the single segment group when the setting is
+  off; it cascades to every ramped line in the schedule.
 - **DO NOT** use the trial segment type `Trial` — the live enum is **`FreeTrial`**
   (`SegmentType` ∈ `Yearly`, `Custom`, `FreeTrial`, `Prorated`).
 - **DO NOT** clone more than one group per call — `recordIds` takes exactly one id
@@ -97,8 +112,21 @@ Two distinct ramp mechanisms exist — do not confuse them:
 ## The proven build sequence
 
 `<PLACEHOLDER>` values are ids you resolve first (see [Discovering ids](#discovering-ids)).
-Windows are contiguous calendar-year spans (`2026-01-01..2026-12-31`,
-`2027-01-01..2027-12-31`, …), 12 months per period.
+Windows are contiguous per-period spans. For **`SegmentType=Yearly`** each segment
+must be **exactly 365 days** (`ind.qocal_ramp_deal_for_groups_create.htm.md`:
+"exactly 365 days for all segments, fixed") — so use `StartDate` + 364 days, **not**
+calendar-year spans: a leap year (e.g. 2028 = 366 days) violates the Yearly rule.
+For variable or true calendar-year durations use **`SegmentType=Custom`** instead.
+(The `2026`/`2027` examples below happen to be 365-day years; a 3-year ramp reaching
+2028 would need the 365-day form or `Custom`.)
+
+**Multi-schedule mode (repo default).** With `enableGroupRampMultiSchedulePref=true`
+(this repo's setting), `EditGroup` produces the **two-level** structure — a top-level
+`Type='RampScheduleGroup'` group with the period segments nested under it — and
+`RampUpliftType` is set on that **parent** (Quick Rule 5). After each mutating call,
+read the groups back (`SELECT Id, Type, ParentQuoteLineGroupId, IsRamped FROM
+QuoteLineGroup WHERE QuoteId='<QUOTE_ID>'`) to get the parent-schedule and
+last-segment ids rather than assuming them.
 
 ### 1. `placeSalesTransaction` (create) — Quote + group + lines
 
@@ -132,11 +160,19 @@ parents created in the same call.
 
 Add one `refLineN` per product. A ramp line needs **both** `Product2Id` and
 `PricebookEntryId` (PBE alone fails). The product must be `Product2.CanRamp=true`.
+`BillingTreatmentId` is **required** for a term-defined line with a `BillingFrequency`:
+the Place call fails with no treatment ("Add a Billing Treatment…") *and* if the
+referenced treatment has `CanChangeBillingFrequency=false` ("Update the Billing
+Treatment…"). Resolve one for the account currency (see [Discovering ids](#discovering-ids));
+this mirrors `scripts/build_quote_to_asset.py`.
 
 ### 2. `placeSalesTransaction` (EditGroup) — mark period 1 ramped
 
 Same endpoint, with **`groupRampAction: "EditGroup"`**. This flips the group and
-stamps `RampIdentifier` on its lines.
+stamps `RampIdentifier` on its lines. In multi-schedule mode (repo default) the
+platform also creates the top-level `RampScheduleGroup` here and nests this segment
+under it — read the groups back afterward to capture the parent-schedule id (needed
+for `RampUpliftType` in step 4) and the segment id.
 
 ```json
 {
@@ -172,6 +208,40 @@ identifies that process, and the observable gate is `Quote.CalculationStatus` �
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
 read or clone the next group until it settles; then read back the new group's id
 for the next clone.
+
+### 4. `placeSalesTransaction` (PATCH) — apply compound uplift, then reprice
+
+Cloning copies the prior segment as-is; it does **not** set the uplift. To produce a
+compound ramp you must, after the segments exist, PATCH `RampUpliftType='Compound'`
+onto the **top-level `RampScheduleGroup`** (multi-schedule; the single segment group
+when the setting is off) and the per-segment **`UnitPriceUplift`** onto each segment's
+line, in one Place graph, then reprice and poll. This step is what actually yields the
+compound result — the three calls above alone do not. It also needs the fully-configured
+`PriceRevision` engine ([Compound uplift](#compound-uplift)).
+
+```json
+{
+  "pricingPref": "Force",
+  "graph": { "graphId": "rampCompound", "records": [
+    { "referenceId": "q", "record": {
+        "attributes": { "type": "Quote", "method": "PATCH", "id": "<QUOTE_ID>" } } },
+    { "referenceId": "sg", "record": {
+        "attributes": { "type": "QuoteLineGroup", "method": "PATCH", "id": "<RAMP_SCHEDULE_GROUP_ID>" },
+        "RampUpliftType": "Compound" } },
+    { "referenceId": "l1", "record": {
+        "attributes": { "type": "QuoteLineItem", "method": "PATCH", "id": "<SEGMENT_2_LINE_ID>" },
+        "UnitPriceUplift": 5 } },
+    { "referenceId": "l2", "record": {
+        "attributes": { "type": "QuoteLineItem", "method": "PATCH", "id": "<SEGMENT_3_LINE_ID>" },
+        "UnitPriceUplift": 3 } }
+  ] }
+}
+```
+
+Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
+re-runs pricing so the engine applies the compound uplift. Poll `CalculationStatus`
+to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
+verify the compounding numerically.
 
 > **Apex-invocable variant.** Some connectors expose clone as a CLASSIC Apex
 > invocable whose args are wrapped in an `inputs` array:
@@ -227,7 +297,9 @@ It needs **all** of:
    quotes/orders/assets exist corrupts pricing/amendments/renewals. See
    `.cursor/skills/context-service/SKILL.md`.
 2. **A group ramp** (this skill) — line ramps can't compound.
-3. **`RampUpliftType='Compound'` on the `QuoteLineGroup`** (cascades to lines).
+3. **`RampUpliftType='Compound'` on the ramp group** — the top-level
+   `RampScheduleGroup` in multi-schedule mode (repo default), the single segment
+   group when off; it cascades to segment subgroups and lines (Quick Rule 5).
 4. **A fully-configured ramp `PriceRevision` element** — the flag alone is *not*
    enough. **Enable Compound Uplift** (`IsCompoundUpliftEnabled=true`) appears only
    after a **lookup table** is selected, and requires bindings for **Ramp Identifier**,
@@ -288,6 +360,13 @@ sf data query --target-org <sf_alias> -q \
 # Rampable products only:
 sf data query --target-org <sf_alias> -q \
   "SELECT Id, Name, ProductCode FROM Product2 WHERE CanRamp = true"
+# BillingTreatment for <TREATMENT_ID> — REQUIRED on a term-defined line with a
+# BillingFrequency. Must be Active, match the ACCOUNT currency, and have
+# CanChangeBillingFrequency = true (the Place call rejects a treatment without it).
+sf data query --target-org <sf_alias> -q \
+  "SELECT Id, Name, CanChangeBillingFrequency FROM BillingTreatment \
+   WHERE Status = 'Active' AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>' \
+   AND CanChangeBillingFrequency = true ORDER BY Name"
 ```
 
 ## Field legality (live 264 / v68.0)
@@ -319,15 +398,17 @@ skill's routing.
 
 1. Resolve ids for one rampable product (`Product2.CanRamp=true`) + its standard
    `PricebookEntry`.
-2. `placeSalesTransaction` create → Quote + "Year 1" group + one line (12-month
-   window). Poll to `CompletedWithTax`.
+2. `placeSalesTransaction` create → Quote + "Year 1" group + one line (365-day
+   window; resolve a `BillingTreatmentId`). Poll to `CompletedWithTax`.
 3. `placeSalesTransaction` `EditGroup` on the Year-1 group (`IsRamped=true`,
-   `SegmentType=Yearly`). Poll.
+   `SegmentType=Yearly`). Poll. In multi-schedule mode read the groups back to get
+   the top-level `RampScheduleGroup` id.
 4. `cloneSalesTransaction` twice (Year 2, Year 3), each cloning the last ramped
-   group. Poll after each.
-5. For compound uplift: set `RampUpliftType='Compound'` on the group and
-   `UnitPriceUplift` per segment, then reprice (needs the `PriceRevision` engine —
-   [Compound uplift](#compound-uplift)).
+   segment. Poll after each.
+5. For compound uplift (step 4 of the sequence): PATCH `RampUpliftType='Compound'`
+   on the **top-level `RampScheduleGroup`** and per-segment `UnitPriceUplift`, then
+   reprice (`pricingPref:"Force"`) and poll (needs the fully-configured
+   `PriceRevision` engine — [Compound uplift](#compound-uplift)).
 6. Read back; report TCV, per-year subtotal, % of TCV, ramp-by-product matrix.
 
 Expected compound shape for this 3-year ramp (base 360, uplifts 5/3% — baseline +
@@ -336,11 +417,17 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 
 ## Validation Checks
 
-- [ ] Group ramp (one `QuoteLineGroup` per period), not a line ramp, if compound
-      uplift is in scope.
+- [ ] Group ramp (per-period segment structure — the two-level `RampScheduleGroup`
+      in the repo's multi-schedule default), not a line ramp, if compound uplift is
+      in scope.
+- [ ] `Yearly` segments are **exactly 365 days** (not calendar-year spans, which hit
+      366 on a leap year); `Custom` used for variable/calendar durations.
+- [ ] `BillingTreatmentId` resolved on each term-defined line (Active, account
+      currency, `CanChangeBillingFrequency=true`).
 - [ ] No read-only/system fields written on the graph (see the legality table).
-- [ ] `RampUpliftType='Compound'` on the **group**, never on the line; per-segment
-      `UnitPriceUplift` set on lines.
+- [ ] `RampUpliftType='Compound'` on the ramp **group** (the top-level
+      `RampScheduleGroup` in multi-schedule mode), never on the line; per-segment
+      `UnitPriceUplift` set on lines, then repriced with `pricingPref:"Force"`.
 - [ ] `CalculationStatus` polled to a settled state between calls; unknown status
       halted, not assumed.
 - [ ] Read-back grouped on `RampIdentifier`; every ramped line carries both

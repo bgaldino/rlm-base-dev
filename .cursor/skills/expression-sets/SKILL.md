@@ -336,7 +336,10 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    A single-line `createRampDeal` yields ungrouped segments
    (`QuoteLineGroupId=null`) — no group to hold the uplift mode, so it can never
    compound.
-3. **`RampUpliftType='Compound'` on the `QuoteLineGroup`** (cascades to lines).
+3. **`RampUpliftType='Compound'` on the ramp group** — with *Multiple Ramp Schedules
+   Per Transaction* on (the repo default), set it on the **top-level `RampScheduleGroup`**;
+   with it off, on the single ramp segment group. On individual segment groups and
+   lines the type is **read-only**. It cascades to every ramped line in the schedule.
 4. **A fully-configured ramp `PriceRevision` element** — `IsCompoundUpliftEnabled=true`
    (UI *"Enable Compound Uplift"*) is *necessary but not sufficient*. Per the 264 Help
    (*Use the Price Revision Element in a Pricing Procedure*), the checkbox appears
