@@ -1,0 +1,353 @@
+/*
+ * augment_asset_lifecycle.apex
+ * ---------------------------------------------------------------------------
+ * Adds a richer, contiguous lifecycle EVENT HISTORY on top of assets that
+ * ALREADY exist -- e.g. ones produced by build_quote_to_asset.py /
+ * build_renewal_buckets.py (Quote -> Order -> Activation). This does NOT create
+ * assets and does NOT touch pricing; it is purely ADDITIVE on records the
+ * platform already generated, so a single Initial-Sale asset gains the timeline
+ * of a real multi-year subscription (Renewals / Upsells / Downsells).
+ *
+ * For each target asset it:
+ *   1. Keeps the platform's own Initial-Sale AssetAction + AssetActionSource.
+ *   2. Reuses that asset's REAL PricebookEntry / ProductSellingModel / pricing /
+ *      PeriodBoundary + its companions (PeriodBoundaryDay, PeriodBoundaryStartMonth)
+ *      (read from the Initial-Sale AssetActionSource) -- so the added
+ *      events sit on the asset's actual selling model (e.g. Term Monthly) and billing
+ *      alignment, never a hardcoded one. Amounts use the BOOKED (post-discount)
+ *      per-unit figure from the Initial-Sale state period, never the list UnitPrice,
+ *      so a discounted asset is not silently repriced to list.
+ *   3. Trims the existing full-window AssetStatePeriod to the first segment,
+ *      then chains N contiguous, non-overlapping state periods.
+ *   4. Inserts one Change AssetAction + AssetActionSource per event, placed at
+ *      fractional positions inside the asset's OWN [LifecycleStartDate,
+ *      LifecycleEndDate] -- so events stay valid whatever expiry bucket the
+ *      asset is in.
+ *   5. Updates the Asset header (CurrentQuantity / CurrentAmount / CurrentMrr)
+ *      to the final running state.
+ *
+ * Quantity deltas (DELTAS below) are ABSOLUTE unit changes applied to the running
+ * quantity -- a Renewal renews the same qty (0), an Upsell adds (+n), a Downsell
+ * removes (-n). They are NOT a fraction of the asset's base quantity, so tune them
+ * to your base qty (e.g. +2 is a large move on a base of 1, trivial on 10000).
+ *
+ * PRISTINE ONLY: to avoid trimming/overlaying REAL platform history, an asset is
+ * augmented only when it is pristine -- exactly one Initial-Sale action and exactly
+ * one state period, with no other actions. Assets that already carry lifecycle
+ * changes are skipped (logged), never modified.
+ *
+ * ── HOW TO TARGET ASSETS ──────────────────────────────────────────────────
+ * Pick ONE of the two blocks below (leave the other empty). Both are empty by
+ * default, so the script no-ops until you set one -- there is no built-in
+ * account pattern to accidentally hit the wrong org's assets.
+ *   A) ACCOUNT_NAME_LIKE -- augment every asset whose Account.Name matches a
+ *      SOQL LIKE pattern, e.g. 'RenewalTest%'. Normal path after a run.
+ *   B) ASSET_IDS -- an explicit list of Asset Ids (smoke test / re-run subset).
+ * If both are set, ASSET_IDS wins.
+ *
+ * ── SMOKE FIRST ───────────────────────────────────────────────────────────
+ * Prove it on ONE asset before scaling: put a single Id in ASSET_IDS, run,
+ * verify the (N+1)-period chain (see the skill's Validation Checks), then
+ * switch to ACCOUNT_NAME_LIKE for the full set.
+ *
+ * ── UNDO / RE-RUN ──────────────────────────────────────────────────────────
+ * The run is additive, but the pristine guard makes a second run a NO-OP: an
+ * already-augmented asset has >1 action/period, so it is skipped -- NOT layered
+ * with a duplicate series. To rebuild or change the history, reset_augment.apex
+ * first (which restores the asset to pristine), then re-run.
+ *
+ * Run with:  sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-org <alias>
+ *
+ * Governor headroom: 3N + 2 explicit DML rows per asset (trim 1 + N actions +
+ * N sources + N new states + 1 header). With the default N=6 that is 20 rows, so
+ * 48 assets = 960 rows -- well under the 10k limit, and a single execution handles
+ * a few hundred assets. Triggers may add rows on top; the required live run
+ * measures actual usage.
+ */
+
+// ── TARGET SELECTION (pick ONE) ────────────────────────────────────────────
+String   ACCOUNT_NAME_LIKE = '';                        // e.g. '<accountPrefix>%'  ('' to disable)
+List<Id> ASSET_IDS         = new List<Id>{ };           // explicit Ids (wins if non-empty)
+
+// Durable provenance marker stamped on EVERY record this script creates, so
+// reset_augment.apex can delete exactly (and only) its own rows -- never real
+// platform history. AssetActionSource.ExternalReference and AssetStatePeriod
+// .SegmentName are both writable strings the platform does not populate for a
+// plain term asset. MUST match AUGMENT_MARKER in reset_augment.apex.
+final String AUGMENT_MARKER = 'RLM_AUGMENT_LIFECYCLE';
+
+// ── EVENT STRUCTURE ────────────────────────────────────────────────────────
+// One entry per added event, ordered earliest->latest. Initial Sale already
+// exists at fraction 0, so these are the CHANGE events layered after it.
+//   FRACS  = position as a fraction of the asset's [start,end] window
+//   CATS   = AssetAction CategoryEnum: 'Renewals' | 'Upsells' | 'Downsells'
+//   DELTAS = quantity change vs the running quantity (0 renews same qty)
+List<Decimal> FRACS  = new List<Decimal>{ 0.20, 0.27, 0.40, 0.47, 0.60, 0.80 };
+List<String>  CATS   = new List<String> { 'Renewals','Upsells','Renewals','Downsells','Renewals','Renewals' };
+List<Integer> DELTAS = new List<Integer>{ 0,         2,        0,         -1,          0,         0 };
+
+// ── Validate the editable event structure BEFORE any query or DML ───────────
+// FRACS/CATS/DELTAS are hand-editable and indexed together by FRACS.size(); the
+// loops also assume fractions are ordered inside the (0,1) lifecycle window. A
+// length mismatch would throw mid-run (after DML has started), and empty, equal,
+// decreasing, or out-of-range fractions would build overlapping/invalid state
+// periods. Fail fast, before touching the org.
+// A bad config is a mistake, not a legitimate no-op: THROW so `sf apex run` exits
+// nonzero (an early `return` would report success after writing nothing, letting
+// automation accept a broken run). This is still before any query/DML, so the
+// no-write safety holds.
+if (FRACS.isEmpty() || CATS.size() != FRACS.size() || DELTAS.size() != FRACS.size()) {
+    throw new IllegalArgumentException('augment_asset_lifecycle: invalid config -- '
+        + 'FRACS/CATS/DELTAS must be non-empty and equal length (FRACS=' + FRACS.size()
+        + ' CATS=' + CATS.size() + ' DELTAS=' + DELTAS.size() + ').');
+}
+Decimal prevFrac = 0;   // strictly increasing, each strictly inside (0, 1)
+for (Integer i = 0; i < FRACS.size(); i++) {
+    Decimal f = FRACS[i];
+    if (f == null || f <= 0 || f >= 1 || f <= prevFrac) {
+        throw new IllegalArgumentException('augment_asset_lifecycle: invalid config -- '
+            + 'FRACS must be strictly increasing with 0 < frac < 1 (bad index ' + i
+            + ' = ' + f + ', previous ' + prevFrac + ').');
+    }
+    prevFrac = f;
+}
+
+// ── Resolve target Asset Ids ───────────────────────────────────────────────
+List<Id> targetIds = new List<Id>();
+if (!ASSET_IDS.isEmpty()) {
+    targetIds = ASSET_IDS;
+} else if (String.isNotBlank(ACCOUNT_NAME_LIKE)) {
+    for (Asset a : [SELECT Id FROM Asset WHERE Account.Name LIKE :ACCOUNT_NAME_LIKE]) {
+        targetIds.add(a.Id);
+    }
+}
+if (targetIds.isEmpty()) {
+    System.debug('augment_asset_lifecycle: no target assets (set ACCOUNT_NAME_LIKE or ASSET_IDS). No-op.');
+    return;
+}
+System.debug('augment_asset_lifecycle: targeting ' + targetIds.size() + ' asset(s).');
+
+// ── Gather per-asset data ──────────────────────────────────────────────────
+Map<Id, Asset> assetById = new Map<Id, Asset>([
+    SELECT Id, Product2Id, AccountId, CurrentQuantity, Quantity,
+           LifecycleStartDate, LifecycleEndDate
+    FROM Asset WHERE Id IN :targetIds
+]);
+
+// Existing Initial-Sale actions (to reach their AssetActionSource for PBE/PSM/UnitPrice)
+Map<Id, Id> initialActionByAsset = new Map<Id, Id>();
+for (AssetAction aa : [SELECT Id, AssetId FROM AssetAction
+                       WHERE AssetId IN :targetIds AND CategoryEnum = 'Initial Sale']) {
+    initialActionByAsset.put(aa.AssetId, aa.Id);
+}
+// AssetActionSource carries PBE / PSM / pricing (list UnitPrice + post-discount
+// NetUnitPrice + ListPrice) and the full billing alignment (PeriodBoundary plus its
+// companions PeriodBoundaryDay for DayOfPeriod and PeriodBoundaryStartMonth for annual
+// calendar alignment) -- all reused so the added events keep the asset's actual price,
+// discount, and billing alignment.
+// One AssetAction can roll up MULTIPLE AssetActionSources. A plain 1-line term asset
+// has exactly one, but the pristine guard below counts only actions and state periods,
+// so an asset with one Initial-Sale action carrying >1 source would otherwise be
+// accepted and the synthetic history would inherit whichever source's PBE/PSM/price
+// the map happened to keep last -- an arbitrary, silent choice. Count sources per
+// action so the pristine guard can refuse a multi-source Initial-Sale action too.
+Map<Id, AssetActionSource> srcByAction = new Map<Id, AssetActionSource>();
+Map<Id, Integer> srcCountByAction = new Map<Id, Integer>();
+for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductSellingModelId,
+                            UnitPrice, NetUnitPrice, ListPrice,
+                            PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth
+                            FROM AssetActionSource WHERE AssetActionId IN :initialActionByAsset.values()]) {
+    srcByAction.put(s.AssetActionId, s);
+    srcCountByAction.put(s.AssetActionId,
+        (srcCountByAction.containsKey(s.AssetActionId) ? srcCountByAction.get(s.AssetActionId) : 0) + 1);
+}
+// Existing full-window state period (to trim to first segment)
+Map<Id, AssetStatePeriod> stateByAsset = new Map<Id, AssetStatePeriod>();
+Map<Id, Integer> statePeriodCount = new Map<Id, Integer>();
+for (AssetStatePeriod sp : [SELECT Id, AssetId, Quantity, Amount, Mrr, StartDate, EndDate
+                            FROM AssetStatePeriod WHERE AssetId IN :targetIds ORDER BY StartDate]) {
+    if (!stateByAsset.containsKey(sp.AssetId)) stateByAsset.put(sp.AssetId, sp); // keep earliest
+    statePeriodCount.put(sp.AssetId, (statePeriodCount.containsKey(sp.AssetId) ? statePeriodCount.get(sp.AssetId) : 0) + 1);
+}
+// Total AssetAction count per asset -- a pristine asset has exactly one (Initial Sale).
+Map<Id, Integer> actionCount = new Map<Id, Integer>();
+for (AggregateResult ar : [SELECT AssetId aid, COUNT(Id) c FROM AssetAction
+                           WHERE AssetId IN :targetIds GROUP BY AssetId]) {
+    actionCount.put((Id) ar.get('aid'), (Integer) ar.get('c'));
+}
+
+List<AssetAction>       actionsIns = new List<AssetAction>();
+List<AssetStatePeriod>  stateIns   = new List<AssetStatePeriod>();
+List<AssetStatePeriod>  stateUpd   = new List<AssetStatePeriod>();
+List<Asset>             assetUpd   = new List<Asset>();
+
+// Track, per new action, the event index + asset so we can build sources after insert.
+List<Id>      actionAssetIds = new List<Id>();
+List<Integer> actionEvtIdx   = new List<Integer>();
+// Per-unit BOOKED (post-discount) amount per asset, reused by the source-build loop
+// so both loops price identically and never fall back to list UnitPrice.
+Map<Id, Decimal> perUnitAmtByAsset = new Map<Id, Decimal>();
+Integer skipped = 0;
+
+for (Id aid : targetIds) {
+    Asset a = assetById.get(aid);
+    if (a == null) { System.debug('skip (no asset) ' + aid); skipped++; continue; }
+    Id initAct = initialActionByAsset.get(aid);
+    AssetActionSource src = (initAct != null) ? srcByAction.get(initAct) : null;
+    AssetStatePeriod  sp0 = stateByAsset.get(aid);
+    if (src == null || sp0 == null || a.LifecycleStartDate == null || a.LifecycleEndDate == null) {
+        System.debug('skip (missing src/state/lifecycle dates) ' + aid); skipped++; continue;
+    }
+    // PRISTINE guard: refuse assets that already carry lifecycle history. Only the
+    // single Initial-Sale action and its one state period may exist -- otherwise
+    // trimming sp0 and layering a chain would corrupt/erase REAL history.
+    Integer nAct = actionCount.containsKey(aid) ? actionCount.get(aid) : 0;
+    Integer nSp  = statePeriodCount.containsKey(aid) ? statePeriodCount.get(aid) : 0;
+    // The Initial-Sale action must roll up exactly one source, else the reused PBE/PSM/
+    // price would be an arbitrary pick among several -- refuse rather than guess.
+    Integer nSrc = srcCountByAction.containsKey(initAct) ? srcCountByAction.get(initAct) : 0;
+    if (nAct != 1 || nSp != 1 || nSrc != 1) {
+        System.debug('skip (not pristine: actions=' + nAct + ' statePeriods=' + nSp
+            + ' initialSaleSources=' + nSrc + ' -- expected 1, 1 and 1) ' + aid); skipped++; continue;
+    }
+
+    // List (pre-discount) vs net (post-discount) per-unit price, from the source.
+    Decimal listUnitPrice = (src.ListPrice != null && src.ListPrice != 0) ? src.ListPrice
+                          : ((src.UnitPrice != null && src.UnitPrice != 0) ? src.UnitPrice : 0);
+    // Fall back to list ONLY when net is null. A legitimate 0 (a fully-discounted line)
+    // must be preserved, not rewritten to the list price.
+    Decimal netUnitPrice  = (src.NetUnitPrice != null) ? src.NetUnitPrice : listUnitPrice;
+    // Per-unit BOOKED amount from the Initial-Sale STATE PERIOD (Amount / Quantity) --
+    // the actual, post-discount figure. AssetActionSource.UnitPrice is the pre-discount
+    // list price, so a discounted asset must NOT be repriced to it. Fall back to the net
+    // unit price only if the period carries no amount.
+    Decimal perUnitAmount = (sp0.Amount != null && sp0.Quantity != null && sp0.Quantity != 0)
+                          ? (sp0.Amount / sp0.Quantity) : netUnitPrice;
+    perUnitAmtByAsset.put(aid, perUnitAmount);
+    // Per-unit MONTHLY recurring revenue, taken from the Initial-Sale state period
+    // (Mrr / Quantity). UnitPrice is per-term, not monthly (e.g. Term Annual unit
+    // price 12000 is Mrr 1000), so MRR fields must NOT be qty * unitPrice.
+    Decimal perUnitMrr = (sp0.Mrr != null && sp0.Quantity != null && sp0.Quantity != 0)
+                         ? (sp0.Mrr / sp0.Quantity) : 0;
+
+    Datetime S = a.LifecycleStartDate;
+    Datetime E = a.LifecycleEndDate;
+    Long spanSec = (E.getTime() - S.getTime()) / 1000;
+
+    // Base quantity = what was actually sold, read from the Initial-Sale state
+    // period first. Do NOT trust Asset.CurrentQuantity as the primary source:
+    // once an asset has expired the platform zeroes CurrentQuantity/CurrentMrr,
+    // which would seed the whole event walk from 0. Prefer the first positive
+    // of: Initial-Sale period qty -> CurrentQuantity -> Asset.Quantity -> 1.
+    Decimal baseQty =
+        (sp0.Quantity != null && sp0.Quantity > 0)         ? sp0.Quantity
+      : (a.CurrentQuantity != null && a.CurrentQuantity > 0) ? a.CurrentQuantity
+      : (a.Quantity != null && a.Quantity > 0)              ? a.Quantity
+      : 1;
+
+    // event datetimes from fractions
+    List<Datetime> evtDates = new List<Datetime>();
+    for (Decimal f : FRACS) {
+        evtDates.add(S.addSeconds((Integer)(spanSec * f)));
+    }
+
+    // 1) Trim existing (first) state period to end just before the first event
+    sp0.EndDate = evtDates[0].addSeconds(-1);
+    stateUpd.add(sp0);
+
+    // 2) Build Change actions + contiguous state periods
+    Decimal running = baseQty;
+    for (Integer i = 0; i < FRACS.size(); i++) {
+        Integer delta = DELTAS[i];
+        String  cat   = CATS[i];
+        Datetime st   = evtDates[i];
+        Datetime en   = (i < FRACS.size() - 1) ? evtDates[i+1].addSeconds(-1) : E;
+
+        actionsIns.add(new AssetAction(
+            AssetId = aid, Type = 'Change', CategoryEnum = cat,
+            ActionDate = st, QuantityChange = delta,
+            MrrChange = delta * perUnitMrr, Amount = delta * perUnitAmount
+        ));
+        actionAssetIds.add(aid); actionEvtIdx.add(i);
+
+        running += delta;
+        stateIns.add(new AssetStatePeriod(
+            AssetId = aid, Quantity = running,
+            Amount = running * perUnitAmount, Mrr = running * perUnitMrr,
+            StartDate = st, EndDate = en,
+            SegmentName = AUGMENT_MARKER               // provenance marker for reset
+        ));
+    }
+
+    // 3) Update the Asset header. Asset.CurrentQuantity/CurrentMrr mirror the state
+    // period that is CURRENT NOW, and are 0 when none is current (per the Asset object
+    // reference) -- e.g. an already-expired or not-yet-started window. So the header must
+    // reflect the segment active at `now`, NOT the final running total: sum only the
+    // deltas whose event has already occurred (evtDates[i] <= now). If now is before the
+    // first event it is the base quantity; if after the last, the full running total.
+    // Outside [S, E] no period is current, so Current* stay 0.
+    Datetime nowDt = System.now();
+    Decimal curQty = baseQty;
+    for (Integer i = 0; i < FRACS.size(); i++) {
+        if (evtDates[i] <= nowDt) curQty += DELTAS[i];
+    }
+    Boolean assetCurrent = (S == null || S <= nowDt) && (E == null || E >= nowDt);
+    assetUpd.add(new Asset(Id = aid,
+        CurrentQuantity = assetCurrent ? curQty : 0,
+        CurrentAmount   = assetCurrent ? curQty * perUnitAmount : 0,
+        CurrentMrr      = assetCurrent ? curQty * perUnitMrr : 0));
+}
+
+// ── DML ────────────────────────────────────────────────────────────────────
+if (!stateUpd.isEmpty()) update stateUpd;
+if (!actionsIns.isEmpty()) insert actionsIns;
+
+// build sources for the just-inserted actions
+List<AssetActionSource> srcIns = new List<AssetActionSource>();
+for (Integer k = 0; k < actionsIns.size(); k++) {
+    Id aid = actionAssetIds[k];
+    Integer i = actionEvtIdx[k];
+    Asset a = assetById.get(aid);
+    AssetActionSource baseSrc = srcByAction.get(initialActionByAsset.get(aid));
+    // Preserve the source's real pricing: list UnitPrice, post-discount NetUnitPrice,
+    // and the booked per-unit amount (from the state period) for ProductAmount.
+    Decimal listUnitPrice = (baseSrc.ListPrice != null && baseSrc.ListPrice != 0) ? baseSrc.ListPrice
+                          : ((baseSrc.UnitPrice != null && baseSrc.UnitPrice != 0) ? baseSrc.UnitPrice : 0);
+    // Fall back to list ONLY when net is null -- preserve a legitimate 0 (fully discounted),
+    // so the synthetic AssetActionSource keeps the original net-price contract.
+    Decimal netUnitPrice  = (baseSrc.NetUnitPrice != null) ? baseSrc.NetUnitPrice : listUnitPrice;
+    Decimal perUnitAmount = perUnitAmtByAsset.containsKey(aid) ? perUnitAmtByAsset.get(aid) : netUnitPrice;
+    Long spanSec = (a.LifecycleEndDate.getTime() - a.LifecycleStartDate.getTime()) / 1000;
+    Datetime st = a.LifecycleStartDate.addSeconds((Integer)(spanSec * FRACS[i]));
+    Datetime en = (i < FRACS.size() - 1)
+                  ? a.LifecycleStartDate.addSeconds((Integer)(spanSec * FRACS[i+1])).addSeconds(-1)
+                  : a.LifecycleEndDate;
+    Integer delta = DELTAS[i];
+    srcIns.add(new AssetActionSource(
+        AssetActionId = actionsIns[k].Id,
+        TransactionDate = st, StartDate = st, EndDate = en,
+        Quantity = delta, ProductAmount = delta * perUnitAmount,
+        UnitPrice = listUnitPrice, NetUnitPrice = netUnitPrice, ListPrice = listUnitPrice,
+        // Reuse the asset's original billing alignment, not a hardcoded 'Anniversary'
+        // (assets built with AlignToCalendar/DayOfPeriod/LastDayOfPeriod keep theirs).
+        // PeriodBoundary alone is insufficient: DayOfPeriod also needs PeriodBoundaryDay,
+        // and annual calendar alignment carries PeriodBoundaryStartMonth. Copy the
+        // companions too (null when not applicable) so alignment is fully preserved.
+        PeriodBoundary = (baseSrc.PeriodBoundary != null ? baseSrc.PeriodBoundary : 'Anniversary'),
+        PeriodBoundaryDay = baseSrc.PeriodBoundaryDay,
+        PeriodBoundaryStartMonth = baseSrc.PeriodBoundaryStartMonth,
+        PricebookEntryId = baseSrc.PricebookEntryId,
+        ProductSellingModelId = baseSrc.ProductSellingModelId,
+        ExternalReference = AUGMENT_MARKER             // provenance marker for reset
+    ));
+}
+if (!srcIns.isEmpty()) insert srcIns;
+if (!stateIns.isEmpty()) insert stateIns;
+if (!assetUpd.isEmpty()) update assetUpd;
+
+System.debug('=== AUGMENT COMPLETE ===');
+System.debug('assets processed: ' + assetUpd.size()
+    + ' | skipped: ' + skipped
+    + ' | actions +' + actionsIns.size()
+    + ' | sources +' + srcIns.size()
+    + ' | statePeriods +' + stateIns.size() + ' (trimmed ' + stateUpd.size() + ')');
