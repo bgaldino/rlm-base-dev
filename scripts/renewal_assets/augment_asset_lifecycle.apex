@@ -145,12 +145,21 @@ for (AssetAction aa : [SELECT Id, AssetId FROM AssetAction
 // companions PeriodBoundaryDay for DayOfPeriod and PeriodBoundaryStartMonth for annual
 // calendar alignment) -- all reused so the added events keep the asset's actual price,
 // discount, and billing alignment.
+// One AssetAction can roll up MULTIPLE AssetActionSources. A plain 1-line term asset
+// has exactly one, but the pristine guard below counts only actions and state periods,
+// so an asset with one Initial-Sale action carrying >1 source would otherwise be
+// accepted and the synthetic history would inherit whichever source's PBE/PSM/price
+// the map happened to keep last -- an arbitrary, silent choice. Count sources per
+// action so the pristine guard can refuse a multi-source Initial-Sale action too.
 Map<Id, AssetActionSource> srcByAction = new Map<Id, AssetActionSource>();
+Map<Id, Integer> srcCountByAction = new Map<Id, Integer>();
 for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductSellingModelId,
                             UnitPrice, NetUnitPrice, ListPrice,
                             PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth
                             FROM AssetActionSource WHERE AssetActionId IN :initialActionByAsset.values()]) {
     srcByAction.put(s.AssetActionId, s);
+    srcCountByAction.put(s.AssetActionId,
+        (srcCountByAction.containsKey(s.AssetActionId) ? srcCountByAction.get(s.AssetActionId) : 0) + 1);
 }
 // Existing full-window state period (to trim to first segment)
 Map<Id, AssetStatePeriod> stateByAsset = new Map<Id, AssetStatePeriod>();
@@ -194,9 +203,12 @@ for (Id aid : targetIds) {
     // trimming sp0 and layering a chain would corrupt/erase REAL history.
     Integer nAct = actionCount.containsKey(aid) ? actionCount.get(aid) : 0;
     Integer nSp  = statePeriodCount.containsKey(aid) ? statePeriodCount.get(aid) : 0;
-    if (nAct != 1 || nSp != 1) {
+    // The Initial-Sale action must roll up exactly one source, else the reused PBE/PSM/
+    // price would be an arbitrary pick among several -- refuse rather than guess.
+    Integer nSrc = srcCountByAction.containsKey(initAct) ? srcCountByAction.get(initAct) : 0;
+    if (nAct != 1 || nSp != 1 || nSrc != 1) {
         System.debug('skip (not pristine: actions=' + nAct + ' statePeriods=' + nSp
-            + ' -- expected 1 and 1) ' + aid); skipped++; continue;
+            + ' initialSaleSources=' + nSrc + ' -- expected 1, 1 and 1) ' + aid); skipped++; continue;
     }
 
     // List (pre-discount) vs net (post-discount) per-unit price, from the source.

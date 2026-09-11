@@ -762,6 +762,25 @@ def build_one(org, account, args):
     print(f"  opportunity  {ids['OPP_ID']}  ({ids['CURRENCY']}, "
           f"{ids.get('SKU0_SELLING_MODEL')})")
 
+    # --require-term-end must fail BEFORE the quote is placed and the order activated:
+    # the resolved selling model is already known here (create_opportunity emitted
+    # SKU0_SELLING_MODEL), so a OneTime/Evergreen resolution — or a missing --end —
+    # is caught now, not after an invalid no-end asset has been persisted. Deferring
+    # it to the post-activation block would leave one no-end asset behind per row
+    # (build_renewal_buckets.py drives one run per bucket). The post-activation
+    # end-date assertion below still runs to confirm the term LANDED on --end.
+    model0 = ids.get("SKU0_SELLING_MODEL")
+    term_less = model0 in ("OneTime", "Evergreen")
+    if args.require_term_end:
+        if not args.end:
+            raise StepError("--require-term-end set but no --end was given; a bucketed "
+                            "asset needs a term end to verify against.")
+        if term_less:
+            raise StepError(f"--require-term-end set but the resolved selling model is "
+                            f"{model0}, which has no lifecycle end; a bucketed asset needs "
+                            f"a TermDefined model. Pass --selling-model NAME (e.g. "
+                            f"'Term Annual').")
+
     quote_id = place_quote(org, ids, account, args.start, args.end,
                            args.quantity, args.period_boundary, args.billing_frequency,
                            args.bind_extra_lines)
@@ -837,27 +856,12 @@ def build_one(org, account, args):
 
     # Symmetric end-date check. A zero exit alone does not prove the term LANDED where
     # asked: callers that bucket by expiry (build_renewal_buckets.py) need the derived
-    # LifecycleEndDate to match --end, or an asset silently falls in the wrong window
-    # (or, for a mis-chosen Evergreen/empty model, carries no end date at all). For a
-    # TermDefined line the platform derives the end from the requested EndDate, so any
-    # mismatch — including a null end where one was asked for — fails loudly. OneTime
-    # and Evergreen lines have no lifecycle end, so there is normally nothing to verify.
-    #
-    # --require-term-end flips that exemption into a hard error: a caller that buckets by
-    # expiry cannot accept a no-end asset, so a resolved OneTime/Evergreen model (or a
-    # missing --end) is a failure, not a silent skip. Without the flag the exemption
-    # stands, so a standalone OneTime/Evergreen build still succeeds as before.
-    model0 = ids.get("SKU0_SELLING_MODEL")
-    term_less = model0 in ("OneTime", "Evergreen")
-    if args.require_term_end:
-        if not args.end:
-            raise StepError("--require-term-end set but no --end was given; a bucketed "
-                            "asset needs a term end to verify against.")
-        if term_less:
-            raise StepError(f"--require-term-end set but the resolved selling model is "
-                            f"{model0}, which has no lifecycle end; a bucketed asset needs "
-                            f"a TermDefined model. Pass --selling-model NAME (e.g. "
-                            f"'Term Annual').")
+    # LifecycleEndDate to match --end, or an asset silently falls in the wrong window.
+    # For a TermDefined line the platform derives the end from the requested EndDate, so
+    # any mismatch — including a null end where one was asked for — fails loudly. OneTime
+    # and Evergreen lines have no lifecycle end, so there is nothing to verify (and under
+    # --require-term-end a term_less model has already failed above, before placement).
+    # model0/term_less were resolved before the quote was placed and are reused here.
     if args.end and not term_less:
         for a in assets:
             actual_end = str(a["LifecycleEndDate"])[:10] if a["LifecycleEndDate"] else None

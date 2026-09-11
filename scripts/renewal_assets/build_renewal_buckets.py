@@ -71,6 +71,7 @@ import datetime as dt
 import os
 import subprocess
 import sys
+import tempfile
 
 BUILDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "..", "build_quote_to_asset.py")
@@ -282,7 +283,11 @@ def main():
         print("\n(dry-run — nothing built)")
         return 0
 
-    results = "/tmp/renewal_bucket_results.csv"
+    # Platform-native, unique results log: a hard-coded /tmp path fails on Windows
+    # (no root /tmp) and lets concurrent runs overwrite each other's log. mkstemp picks
+    # the OS temp dir and guarantees a unique name; the summary prints the path below.
+    fd, results = tempfile.mkstemp(prefix="renewal_bucket_results_", suffix=".csv")
+    os.close(fd)
     failures = []
     with open(results, "w", newline="") as fh:
         w = csv.writer(fh)

@@ -114,7 +114,8 @@ Prints the bucket / start / end / sku / account for every scheduled asset.
 
 ### 3. Build the assets
 Drop `--dry-run`. Each asset is built by `build_quote_to_asset.py`; results are
-logged to `/tmp/renewal_bucket_results.csv`. Total assets = `4 × --per-bucket`.
+logged to a unique per-run CSV in the OS temp dir (the path is printed in the
+final summary). Total assets = `4 × --per-bucket`.
 ```bash
 python scripts/renewal_assets/build_renewal_buckets.py --org <alias> \
     --accounts "Infinitech,Kingsbridge Digital" --skus QB-DB \
