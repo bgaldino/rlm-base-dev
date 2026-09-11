@@ -11,7 +11,8 @@
  * For each target asset it:
  *   1. Keeps the platform's own Initial-Sale AssetAction + AssetActionSource.
  *   2. Reuses that asset's REAL PricebookEntry / ProductSellingModel / pricing /
- *      PeriodBoundary (read from the Initial-Sale AssetActionSource) -- so the added
+ *      PeriodBoundary + its companions (PeriodBoundaryDay, PeriodBoundaryStartMonth)
+ *      (read from the Initial-Sale AssetActionSource) -- so the added
  *      events sit on the asset's actual selling model (e.g. Term Monthly) and billing
  *      alignment, never a hardcoded one. Amounts use the BOOKED (post-discount)
  *      per-unit figure from the Initial-Sale state period, never the list UnitPrice,
@@ -57,9 +58,11 @@
  *
  * Run with:  sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-org <alias>
  *
- * Governor headroom: ~21 DML rows per asset (trim 1 + N actions + N sources +
- * N states + 1 header). A single execution comfortably handles a few hundred
- * assets (48 assets ~= 987 rows, well under the 10k limit).
+ * Governor headroom: 3N + 2 explicit DML rows per asset (trim 1 + N actions +
+ * N sources + N new states + 1 header). With the default N=6 that is 20 rows, so
+ * 48 assets = 960 rows -- well under the 10k limit, and a single execution handles
+ * a few hundred assets. Triggers may add rows on top; the required live run
+ * measures actual usage.
  */
 
 // ── TARGET SELECTION (pick ONE) ────────────────────────────────────────────
@@ -136,11 +139,14 @@ for (AssetAction aa : [SELECT Id, AssetId FROM AssetAction
     initialActionByAsset.put(aa.AssetId, aa.Id);
 }
 // AssetActionSource carries PBE / PSM / pricing (list UnitPrice + post-discount
-// NetUnitPrice + ListPrice) and the original PeriodBoundary -- all reused so the
-// added events keep the asset's actual price, discount, and billing alignment.
+// NetUnitPrice + ListPrice) and the full billing alignment (PeriodBoundary plus its
+// companions PeriodBoundaryDay for DayOfPeriod and PeriodBoundaryStartMonth for annual
+// calendar alignment) -- all reused so the added events keep the asset's actual price,
+// discount, and billing alignment.
 Map<Id, AssetActionSource> srcByAction = new Map<Id, AssetActionSource>();
 for (AssetActionSource s : [SELECT Id, AssetActionId, PricebookEntryId, ProductSellingModelId,
-                            UnitPrice, NetUnitPrice, ListPrice, PeriodBoundary
+                            UnitPrice, NetUnitPrice, ListPrice,
+                            PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth
                             FROM AssetActionSource WHERE AssetActionId IN :initialActionByAsset.values()]) {
     srcByAction.put(s.AssetActionId, s);
 }
@@ -310,7 +316,12 @@ for (Integer k = 0; k < actionsIns.size(); k++) {
         UnitPrice = listUnitPrice, NetUnitPrice = netUnitPrice, ListPrice = listUnitPrice,
         // Reuse the asset's original billing alignment, not a hardcoded 'Anniversary'
         // (assets built with AlignToCalendar/DayOfPeriod/LastDayOfPeriod keep theirs).
+        // PeriodBoundary alone is insufficient: DayOfPeriod also needs PeriodBoundaryDay,
+        // and annual calendar alignment carries PeriodBoundaryStartMonth. Copy the
+        // companions too (null when not applicable) so alignment is fully preserved.
         PeriodBoundary = (baseSrc.PeriodBoundary != null ? baseSrc.PeriodBoundary : 'Anniversary'),
+        PeriodBoundaryDay = baseSrc.PeriodBoundaryDay,
+        PeriodBoundaryStartMonth = baseSrc.PeriodBoundaryStartMonth,
         PricebookEntryId = baseSrc.PricebookEntryId,
         ProductSellingModelId = baseSrc.ProductSellingModelId,
         ExternalReference = AUGMENT_MARKER             // provenance marker for reset
