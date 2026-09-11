@@ -762,6 +762,25 @@ def build_one(org, account, args):
     print(f"  opportunity  {ids['OPP_ID']}  ({ids['CURRENCY']}, "
           f"{ids.get('SKU0_SELLING_MODEL')})")
 
+    # --require-term-end must fail BEFORE the quote is placed and the order activated:
+    # the resolved selling model is already known here (create_opportunity emitted
+    # SKU0_SELLING_MODEL), so a OneTime/Evergreen resolution — or a missing --end —
+    # is caught now, not after an invalid no-end asset has been persisted. Deferring
+    # it to the post-activation block would leave one no-end asset behind per row
+    # (build_renewal_buckets.py drives one run per bucket). The post-activation
+    # end-date assertion below still runs to confirm the term LANDED on --end.
+    model0 = ids.get("SKU0_SELLING_MODEL")
+    term_less = model0 in ("OneTime", "Evergreen")
+    if args.require_term_end:
+        if not args.end:
+            raise StepError("--require-term-end set but no --end was given; a bucketed "
+                            "asset needs a term end to verify against.")
+        if term_less:
+            raise StepError(f"--require-term-end set but the resolved selling model is "
+                            f"{model0}, which has no lifecycle end; a bucketed asset needs "
+                            f"a TermDefined model. Pass --selling-model NAME (e.g. "
+                            f"'Term Annual').")
+
     quote_id = place_quote(org, ids, account, args.start, args.end,
                            args.quantity, args.period_boundary, args.billing_frequency,
                            args.bind_extra_lines)
@@ -806,12 +825,21 @@ def build_one(org, account, args):
               "                 cci org default <cci_alias>   # refresh_dt_asset takes no --org\n"
               "                 cci task run refresh_dt_asset")
 
-    counts = verify_usage_buckets(org, [a["Id"] for a in assets])
-    for k, v in counts.items():
-        print(f"  {'OK ' if v else 'GAP'}          {k} = {v}")
-    if not all(counts.values()):
-        raise StepError("asset created but usage buckets are incomplete: "
-                        + ", ".join(f"{k}={v}" for k, v in counts.items() if not v))
+    # Usage-bucket verification is meaningful only for usage products (Anchor/
+    # Pack/Commit). A plain renewal term product (the renewal-asset-creation use
+    # case) carries no entitlements, so the counts are legitimately zero and the
+    # assertion would fail a perfectly good asset. --skip-usage-verify turns the
+    # check into an informational print for those products; the asset itself is
+    # still confirmed to exist above.
+    if not args.skip_usage_verify:
+        counts = verify_usage_buckets(org, [a["Id"] for a in assets])
+        for k, v in counts.items():
+            print(f"  {'OK ' if v else 'GAP'}          {k} = {v}")
+        if not all(counts.values()):
+            raise StepError("asset created but usage buckets are incomplete: "
+                            + ", ".join(f"{k}={v}" for k, v in counts.items() if not v))
+    else:
+        print("  skip         usage-bucket verification (--skip-usage-verify)")
 
     # Backdating is the whole point — fail loudly if the platform overrode it.
     # A OneTime line has no lifecycle, so there is nothing to backdate. The key is
@@ -825,6 +853,21 @@ def build_one(org, account, args):
         if actual != args.start:
             raise StepError(f"asset lifecycle start is {actual}, expected {args.start} "
                             f"— backdating did not take")
+
+    # Symmetric end-date check. A zero exit alone does not prove the term LANDED where
+    # asked: callers that bucket by expiry (build_renewal_buckets.py) need the derived
+    # LifecycleEndDate to match --end, or an asset silently falls in the wrong window.
+    # For a TermDefined line the platform derives the end from the requested EndDate, so
+    # any mismatch — including a null end where one was asked for — fails loudly. OneTime
+    # and Evergreen lines have no lifecycle end, so there is nothing to verify (and under
+    # --require-term-end a term_less model has already failed above, before placement).
+    # model0/term_less were resolved before the quote was placed and are reused here.
+    if args.end and not term_less:
+        for a in assets:
+            actual_end = str(a["LifecycleEndDate"])[:10] if a["LifecycleEndDate"] else None
+            if actual_end != args.end:
+                raise StepError(f"asset lifecycle end is {actual_end}, expected {args.end} "
+                                f"— term end did not take (selling model={model0})")
     return True
 
 
@@ -866,11 +909,24 @@ def main():
                     help="proceed when the account already has an asset for this SKU; "
                          "the post-activation poll then requires a NEW asset id "
                          "rather than accepting the pre-existing one")
+    ap.add_argument("--skip-usage-verify", action="store_true",
+                    help="skip the usage-bucket assertion after activation. Use for a "
+                         "plain renewal term product (no entitlements) so a valid, "
+                         "non-usage asset is not failed for having zero buckets. Default "
+                         "off for THIS script — i.e. a standalone run of a usage-anchor SKU "
+                         "(QB-DB etc.) still verifies. (build_renewal_buckets.py passes this "
+                         "flag by default; pass its --verify-usage to re-enable there.)")
     ap.add_argument("--selling-model", default="", metavar="NAME_OR_TYPE",
                     help="pick the PricebookEntry by selling model NAME (e.g. "
                          "'Term Monthly') or TYPE (TermDefined/Evergreen/OneTime). "
                          "A type matching several entries is rejected as ambiguous. "
                          "Default: first by model name")
+    ap.add_argument("--require-term-end", action="store_true",
+                    help="fail if the resolved selling model has no lifecycle end "
+                         "(OneTime/Evergreen) or no --end was given, instead of exempting "
+                         "it from the end-date check. Use when the caller buckets by expiry "
+                         "(build_renewal_buckets.py passes it) and a no-end asset is a hard "
+                         "error, not an exempt case.")
     ap.add_argument("--billing-timing", default="Advance",
                     help="substring used to pick among a currency's BillingTreatments "
                          "(default: Advance)")
@@ -901,7 +957,9 @@ def main():
 
     print(f"\n{'=' * 74}")
     ok = len(accounts) - len(failures)
-    print(f"{ok}/{len(accounts)} account(s) reached an asset with usage buckets")
+    outcome = ("created an asset (usage buckets NOT verified: --skip-usage-verify)"
+               if args.skip_usage_verify else "reached an asset with usage buckets")
+    print(f"{ok}/{len(accounts)} account(s) {outcome}")
     for account, msg in failures:
         print(f"  FAIL  {account}: {msg}")
     return 1 if failures else 0

@@ -91,6 +91,20 @@ foundations:
         - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
         - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING (platform issue); re-verified on fresh 264 2026-08-14, still unfixed. Commit works on both releases"
 
+    - id: renewal-asset-creation
+      path: .cursor/skills/renewal-asset-creation/SKILL.md
+      purpose: "Create renewal-ready assets across the 4 expiry windows (reusing build_quote_to_asset.py) and layer Renewal/Upsell/Downsell lifecycle event history"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      tooling:
+        - scripts/renewal_assets/build_renewal_buckets.py
+        - scripts/renewal_assets/augment_asset_lifecycle.apex
+        - scripts/renewal_assets/reset_augment.apex
+        - scripts/build_quote_to_asset.py
+      provenance: ported from eng git.soma.salesforce.com/tsubramaniam/RevAssetCreation; offline (py_compile + dry-run) verified, org behavior needs-live-verification
+      caveats:
+        - "Accounts must pre-exist — build_quote_to_asset.py resolves by name and does not create them"
+        - "The two Apex scripts + end-to-end bucket build write to an org and are not covered by the offline checks; run live before relying on results"
+
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
       purpose: "204 RC business API endpoints across 9 domains"
