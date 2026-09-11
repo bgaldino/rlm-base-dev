@@ -100,6 +100,15 @@ foundations:
         - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
         - "Skill self-describes as 'reference, not source of truth'"
 
+    - id: ramped-quotes
+      path: .cursor/skills/ramped-quotes/SKILL.md
+      purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      provenance: live-verified on 264/v68.0 org 2026-07 (field legality + build sequence)
+      caveats:
+        - "Compound-uplift ENGINE (PriceRevision element) lives in expression-sets skill; this skill covers the transaction build + prerequisites"
+        - "Headless scripts/ramp_deals/ toolkit is on unmerged branch feat/ramp-deals-core; skill documents the raw Connect calls until it lands"
+
     - id: txn-data-harness
       path: .cursor/skills/txn-data-harness/SKILL.md
       purpose: "Plan, generate, inspect, continue, verify, and clean up Revenue Cloud transaction demo data via scripts/txn_data_harness"

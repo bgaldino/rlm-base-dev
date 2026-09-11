@@ -30,6 +30,7 @@ repo root.
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
+| Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | `ramped-quotes/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | Transaction Data Harness | `txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | `repo-integration/ux-assembly-retrieve.md` |

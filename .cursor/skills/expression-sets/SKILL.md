@@ -190,6 +190,7 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 | Author/modify a procedure in git (source-controlled) | `metadata-vs-connect.md` → Metadata API authoring |
 | The Connect mutation lifecycle, verb-specific field rules, GET gotchas | `metadata-vs-connect.md` |
 | Capture a known-good element from one org and add it to another | `authoring-and-overlays.md` |
+| Understand/inspect/diff **compound ramp uplift** (the `PriceRevision` compound flag, prerequisites, `RampUpliftType`-on-group rule) | [Compound ramp uplift](#compound-ramp-uplift) |
 | Classify a step's dependency scopes; remove a step safely | `authoring-and-overlays.md` |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
 | The **decision table** a `GetOutputsFromDecisionTable` step consumes (inspect / author / lifecycle) | `.cursor/skills/decision-tables/SKILL.md` |
@@ -313,6 +314,77 @@ not functional** — a `removeSteps` that reactivates can still leave a consumer
 orphaned and silently misbehave. The full slicing table, the three-scope
 classifier, the `externalDependencies` block shape, and safe-removal guidance
 live in **`authoring-and-overlays.md`**.
+
+---
+
+## <a name="compound-ramp-uplift"></a>Compound ramp uplift
+
+Compound ramp uplift (each ramp segment's price uplifts on the *prior segment's*
+factor, not the list price) is a **group-ramp + pricing-procedure** capability.
+The procedure element is this skill's turf; the rest is Revenue Settings + a
+**group** ramp deal. It is **not** a line field you set — `RampUpliftType` is
+read-only on `QuoteLineItem`/`OrderItem` (Place API, Apex, and Tooling all reject
+a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
+
+**Five prerequisites** (Salesforce Help: *"Compound Uplift in Ramp Deals"*,
+*"Create Ramp Deals with Standard or Compound Price Uplifts"*):
+
+1. **Revenue Settings → Advanced Detail Line Pricing = ON**, context definition
+   synced. Off ⇒ standard (list-based) uplift only; turning it off *after*
+   compound quotes/orders/assets exist corrupts pricing, amendments, renewals.
+2. **Ramp Deals for *Groups*** (a group ramp), **not** the line-level ramp path.
+   A single-line `createRampDeal` yields ungrouped segments
+   (`QuoteLineGroupId=null`) — no group to hold the uplift mode, so it can never
+   compound.
+3. **`RampUpliftType='Compound'` on the `QuoteLineGroup`** (cascades to lines).
+4. **The `PriceRevision` element carries `IsCompoundUpliftEnabled=true`** (UI
+   *"Enable Compound"* checkbox) — *this is the engine*, and this skill's tooling
+   reads/writes it. In `RLM_DefaultPricingProcedure` there are **two** distinct
+   `PriceRevision` BKM steps; only the ramp path compounds:
+
+   | BKM step (parent filter) | Drives |
+   |---|---|
+   | `PriceRevision` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | **ramp** compound uplift |
+   | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | non-ramp price revision |
+
+5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
+   is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
+   is a *carryover* (prior cumulative multiplier preserved, not reset).
+
+Compounding math:
+`applied%(n) = (1 + applied%(n-1)/100) × (1 + unitUplift%(n)/100) − 1`, and
+`NetUnitPrice(n) = base × (1 + applied%(n)/100)`.
+
+### Inspect / research (read-only)
+
+```bash
+# Is compound enabled, and what feeds the rate? Find the PriceRevision BKM under
+# "Applyupliftstoramped…" and read IsCompoundUpliftEnabled + its Rate input.
+python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> \
+    --developer-name RLM_DefaultPricingProcedure --params
+
+# Do live compound ramps exist? (any Compound row = yes)
+sf data query --target-org <sf_alias> -q \
+  "SELECT RampUpliftType, COUNT(Id) FROM QuoteLineGroup GROUP BY RampUpliftType"
+
+# Segment breakdown for one quote (verify the compounding numerically):
+sf data query --target-org <sf_alias> -q "SELECT SegmentName, IsPrimarySegment, \
+  StartDate, EndDate, UnitPrice, NetUnitPrice, UnitPriceUplift, \
+  ApplUnitPriceUpliftPct, RampUpliftType FROM QuoteLineItem \
+  WHERE QuoteId='<id>' AND RampUpliftType='Compound' ORDER BY StartDate NULLS FIRST"
+```
+
+Diff the ramp path org-vs-org with `diff_expression_set.py` (compare
+`IsCompoundUpliftEnabled` and the `Rate`/`Subtotal` bindings on the ramp
+`PriceRevision`). Building the compound-capable ramp quote end-to-end (a **group**
+ramp via `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone, then
+per-segment `UnitPriceUplift` + `RampUpliftType='Compound'` on the group) is a
+transaction-building task, outside this skill — see
+`.cursor/skills/ramped-quotes/SKILL.md`. (Do **not** use the line-level
+`createRampDeal` or the legacy `/commerce/…/ramp-deals` API — neither produces the
+group that holds the compound uplift mode.) Ground behavior via `doc_search` on the
+two Help articles above plus *"Use the Price Revision Element in a Pricing
+Procedure"*.
 
 ---
 
