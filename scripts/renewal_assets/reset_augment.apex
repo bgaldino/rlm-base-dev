@@ -145,15 +145,24 @@ for (AssetStatePeriod sp : [SELECT Id, AssetId, Quantity, Amount, Mrr, StartDate
 }
 List<AssetStatePeriod> spUpd = new List<AssetStatePeriod>();
 List<Asset> aUpd = new List<Asset>();
+Datetime nowDt = System.now();
 for (Id aid : eligible) {
     AssetStatePeriod sp0 = keep.get(aid);
     Asset a = assets.get(aid);
     if (sp0 != null && a != null) {
         sp0.EndDate = a.LifecycleEndDate;               // restore full window
         spUpd.add(sp0);
+        // Asset.CurrentQuantity/CurrentMrr mirror the CURRENT state period and are 0
+        // when none is current (per the Asset object reference). Only seed the header
+        // from the restored period when that period is actually current now; if the
+        // asset is expired or not-yet-started, leave Current* at 0 so it is not shown
+        // as active. (Same rule applied on the augment side.)
+        Boolean isCurrent = (sp0.StartDate == null || sp0.StartDate <= nowDt)
+                         && (a.LifecycleEndDate == null || a.LifecycleEndDate >= nowDt);
         aUpd.add(new Asset(Id = aid,
-            CurrentQuantity = sp0.Quantity,
-            CurrentAmount = sp0.Amount, CurrentMrr = sp0.Mrr));
+            CurrentQuantity = isCurrent ? sp0.Quantity : 0,
+            CurrentAmount   = isCurrent ? sp0.Amount   : 0,
+            CurrentMrr      = isCurrent ? sp0.Mrr      : 0));
     }
 }
 if (!spUpd.isEmpty()) update spUpd;

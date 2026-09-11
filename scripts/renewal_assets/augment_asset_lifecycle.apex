@@ -232,9 +232,18 @@ for (Id aid : targetIds) {
         ));
     }
 
-    // 3) Update asset header to the final running state
-    assetUpd.add(new Asset(Id = aid, CurrentQuantity = running,
-                           CurrentAmount = running * perUnitAmount, CurrentMrr = running * perUnitMrr));
+    // 3) Update asset header to the final running state -- but only when a state
+    // period is actually current. Asset.CurrentQuantity/CurrentMrr mirror the CURRENT
+    // period and are 0 when none is current (per the Asset object reference), which is
+    // exactly the case for an already-expired or not-yet-started lifecycle window. Seed
+    // the header from the running state only if now falls inside [S, E]; otherwise leave
+    // Current* at 0 so an inactive asset is not shown as active.
+    Boolean assetCurrent = (S == null || S <= System.now())
+                        && (E == null || E >= System.now());
+    assetUpd.add(new Asset(Id = aid,
+        CurrentQuantity = assetCurrent ? running : 0,
+        CurrentAmount   = assetCurrent ? running * perUnitAmount : 0,
+        CurrentMrr      = assetCurrent ? running * perUnitMrr : 0));
 }
 
 // ── DML ────────────────────────────────────────────────────────────────────
