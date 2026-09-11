@@ -134,6 +134,12 @@ def run_one(args, row):
         "--timeout", str(args.timeout),
         "--interval", str(args.interval),
         "--allow-existing-asset",
+        # Every bucket asset MUST carry a LifecycleEndDate to fall in a window, so the
+        # child must treat a resolved OneTime/Evergreen model (or a missing end) as a
+        # hard error, not an exempt skip. The parent's nonblank check cannot see how a
+        # NAME resolves; this delegates the authoritative TermDefined/end-date contract
+        # to the child, which has the resolved model in hand.
+        "--require-term-end",
     ]
     if args.selling_model:
         cmd += ["--selling-model", args.selling_model]
@@ -195,6 +201,15 @@ def main():
               "Evergreen/OneTime model would produce an asset with no end date to bucket by. "
               "The builder verifies the resulting end date matches this row's window.",
               file=sys.stderr)
+        return 1
+    # Reject the two lifecycle-less TYPE keywords up front — the only values known to be
+    # non-TermDefined without an org lookup. A NAME could still resolve to Evergreen/OneTime,
+    # but that is caught by the child's --require-term-end check (passed in run_one), which
+    # has the resolved model in hand. This is just a fast, obvious-mistake guard.
+    if args.selling_model.strip().lower() in ("evergreen", "onetime", "one time"):
+        print(f"FATAL: --selling-model {args.selling_model!r} is a lifecycle-less model type; "
+              "expiry windows need a TermDefined model with a LifecycleEndDate (e.g. "
+              "'Term Annual'). Pass a TermDefined model NAME or type.", file=sys.stderr)
         return 1
     if args.per_bucket < 1:
         print("FATAL: --per-bucket must be >= 1 (0 builds nothing).", file=sys.stderr)

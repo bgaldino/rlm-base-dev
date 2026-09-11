@@ -841,9 +841,24 @@ def build_one(org, account, args):
     # (or, for a mis-chosen Evergreen/empty model, carries no end date at all). For a
     # TermDefined line the platform derives the end from the requested EndDate, so any
     # mismatch — including a null end where one was asked for — fails loudly. OneTime
-    # and Evergreen lines have no lifecycle end, so there is nothing to verify.
+    # and Evergreen lines have no lifecycle end, so there is normally nothing to verify.
+    #
+    # --require-term-end flips that exemption into a hard error: a caller that buckets by
+    # expiry cannot accept a no-end asset, so a resolved OneTime/Evergreen model (or a
+    # missing --end) is a failure, not a silent skip. Without the flag the exemption
+    # stands, so a standalone OneTime/Evergreen build still succeeds as before.
     model0 = ids.get("SKU0_SELLING_MODEL")
-    if args.end and model0 not in ("OneTime", "Evergreen"):
+    term_less = model0 in ("OneTime", "Evergreen")
+    if args.require_term_end:
+        if not args.end:
+            raise StepError("--require-term-end set but no --end was given; a bucketed "
+                            "asset needs a term end to verify against.")
+        if term_less:
+            raise StepError(f"--require-term-end set but the resolved selling model is "
+                            f"{model0}, which has no lifecycle end; a bucketed asset needs "
+                            f"a TermDefined model. Pass --selling-model NAME (e.g. "
+                            f"'Term Annual').")
+    if args.end and not term_less:
         for a in assets:
             actual_end = str(a["LifecycleEndDate"])[:10] if a["LifecycleEndDate"] else None
             if actual_end != args.end:
@@ -902,6 +917,12 @@ def main():
                          "'Term Monthly') or TYPE (TermDefined/Evergreen/OneTime). "
                          "A type matching several entries is rejected as ambiguous. "
                          "Default: first by model name")
+    ap.add_argument("--require-term-end", action="store_true",
+                    help="fail if the resolved selling model has no lifecycle end "
+                         "(OneTime/Evergreen) or no --end was given, instead of exempting "
+                         "it from the end-date check. Use when the caller buckets by expiry "
+                         "(build_renewal_buckets.py passes it) and a no-end asset is a hard "
+                         "error, not an exempt case.")
     ap.add_argument("--billing-timing", default="Advance",
                     help="substring used to pick among a currency's BillingTreatments "
                          "(default: Advance)")

@@ -232,18 +232,23 @@ for (Id aid : targetIds) {
         ));
     }
 
-    // 3) Update asset header to the final running state -- but only when a state
-    // period is actually current. Asset.CurrentQuantity/CurrentMrr mirror the CURRENT
-    // period and are 0 when none is current (per the Asset object reference), which is
-    // exactly the case for an already-expired or not-yet-started lifecycle window. Seed
-    // the header from the running state only if now falls inside [S, E]; otherwise leave
-    // Current* at 0 so an inactive asset is not shown as active.
-    Boolean assetCurrent = (S == null || S <= System.now())
-                        && (E == null || E >= System.now());
+    // 3) Update the Asset header. Asset.CurrentQuantity/CurrentMrr mirror the state
+    // period that is CURRENT NOW, and are 0 when none is current (per the Asset object
+    // reference) -- e.g. an already-expired or not-yet-started window. So the header must
+    // reflect the segment active at `now`, NOT the final running total: sum only the
+    // deltas whose event has already occurred (evtDates[i] <= now). If now is before the
+    // first event it is the base quantity; if after the last, the full running total.
+    // Outside [S, E] no period is current, so Current* stay 0.
+    Datetime nowDt = System.now();
+    Decimal curQty = baseQty;
+    for (Integer i = 0; i < FRACS.size(); i++) {
+        if (evtDates[i] <= nowDt) curQty += DELTAS[i];
+    }
+    Boolean assetCurrent = (S == null || S <= nowDt) && (E == null || E >= nowDt);
     assetUpd.add(new Asset(Id = aid,
-        CurrentQuantity = assetCurrent ? running : 0,
-        CurrentAmount   = assetCurrent ? running * perUnitAmount : 0,
-        CurrentMrr      = assetCurrent ? running * perUnitMrr : 0));
+        CurrentQuantity = assetCurrent ? curQty : 0,
+        CurrentAmount   = assetCurrent ? curQty * perUnitAmount : 0,
+        CurrentMrr      = assetCurrent ? curQty * perUnitMrr : 0));
 }
 
 // ── DML ────────────────────────────────────────────────────────────────────
