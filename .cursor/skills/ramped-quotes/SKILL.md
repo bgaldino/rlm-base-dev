@@ -142,6 +142,7 @@ parents created in the same call.
     { "referenceId": "refQuote", "record": {
         "attributes": { "type": "Quote", "method": "POST" },
         "Name": "<deal name>", "QuoteAccountId": "<ACCOUNT_ID>",
+        "CurrencyIsoCode": "<ACCOUNT_CURRENCY>",
         "Status": "Draft", "Pricebook2Id": "<PRICEBOOK_ID>" } },
     { "referenceId": "refGroup", "record": {
         "attributes": { "type": "QuoteLineGroup", "method": "POST" },
@@ -159,7 +160,14 @@ parents created in the same call.
 ```
 
 Add one `refLineN` per product. A ramp line needs **both** `Product2Id` and
-`PricebookEntryId` (PBE alone fails). The product must be `Product2.CanRamp=true`.
+`PricebookEntryId` (PBE alone fails). For **group** ramps the product needs **no
+per-product ramp flag** — all subscription (term-defined) products that meet the
+requirements are eligible by default (264 Help, *Ramp Deals for Groups Transition*);
+`Product2.CanRamp` gates the *line*-ramp path, not this one. Set
+`CurrencyIsoCode` on the Quote to the **account currency** — this repo enables
+multicurrency (`config/project-scratch-def.json`), so omitting it lets the quote take
+the running user's currency and mismatch the PBE/billing-treatment currency (the
+proven builder sets it, `scripts/build_quote_to_asset.py`).
 `BillingTreatmentId` is **required** for a term-defined line with a `BillingFrequency`:
 the Place call fails with no treatment ("Add a Billing Treatment…") *and* if the
 referenced treatment has `CanChangeBillingFrequency=false` ("Update the Billing
@@ -244,8 +252,10 @@ to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) 
 verify the compounding numerically.
 
 > **Apex-invocable variant.** Some connectors expose clone as a CLASSIC Apex
-> invocable whose args are wrapped in an `inputs` array:
-> `{ "inputs": [ { "salesTransactionId": "...", "recordIds": ["..."], "lineScope": "AllLines" } ] }`.
+> invocable whose args are wrapped in an `inputs` array. `lineScope` lives inside the
+> Apex-defined **`options`** input (with optional `recordTypeId`), not at the top level
+> (`actions_obj_deep_clone_sales_transaction.htm.md`):
+> `{ "inputs": [ { "salesTransactionId": "...", "recordIds": ["..."], "options": { "lineScope": "AllLines" } } ] }`.
 > Same semantics; use whichever the transport exposes.
 
 ### <a name="status"></a>Poll `CalculationStatus` between calls
@@ -351,15 +361,23 @@ The ask won't give Salesforce ids — resolve them first. Map spoken product int
 SKUs.
 
 ```bash
-# Account, Pricebook, per-product Product2 + PricebookEntry (a ramp needs BOTH).
+# Account — SELECT CurrencyIsoCode: multicurrency is on (repo default), and it drives
+# the Quote/PBE/BillingTreatment currency below.
 sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Name FROM Account WHERE Name = '<name>'"
+  "SELECT Id, Name, CurrencyIsoCode FROM Account WHERE Name = '<name>'"
+# PricebookEntry — a ramp needs BOTH Product2Id and this. Filter to the ACCOUNT
+# currency and active entries, and read the selling model: a product can expose
+# several (e.g. Evergreen / Term Monthly / Term Annual) and the model dictates which
+# line fields are legal, so pick a TermDefined one deliberately (not the first row).
 sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Product2Id, Pricebook2Id, UnitPrice FROM PricebookEntry \
-   WHERE Product2.ProductCode = '<SKU>' AND Pricebook2.IsStandard = true"
-# Rampable products only:
-sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Name, ProductCode FROM Product2 WHERE CanRamp = true"
+  "SELECT Id, Product2Id, Pricebook2Id, UnitPrice, \
+     ProductSellingModel.Name, ProductSellingModel.SellingModelType \
+   FROM PricebookEntry \
+   WHERE Product2.ProductCode = '<SKU>' AND Pricebook2.IsStandard = true \
+     AND IsActive = true AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>'"
+# Group-ramp eligibility: no per-product ramp flag is required — any subscription
+# (term-defined) product that meets the requirements is eligible by default (264
+# Help). `Product2.CanRamp` is the LINE-ramp flag, not a group-ramp prerequisite.
 # BillingTreatment for <TREATMENT_ID> — REQUIRED on a term-defined line with a
 # BillingFrequency. Must be Active, match the ACCOUNT currency, and have
 # CanChangeBillingFrequency = true (the Place call rejects a treatment without it).
@@ -396,8 +414,9 @@ skill's routing.
 
 **Worked example — a 3-year ramp on a standalone SKU** (substitute your own ids):
 
-1. Resolve ids for one rampable product (`Product2.CanRamp=true`) + its standard
-   `PricebookEntry`.
+1. Resolve ids for one eligible subscription (term-defined) product + its standard,
+   active `PricebookEntry` in the account currency (no per-product ramp flag needed
+   for group ramps).
 2. `placeSalesTransaction` create → Quote + "Year 1" group + one line (365-day
    window; resolve a `BillingTreatmentId`). Poll to `CompletedWithTax`.
 3. `placeSalesTransaction` `EditGroup` on the Year-1 group (`IsRamped=true`,
