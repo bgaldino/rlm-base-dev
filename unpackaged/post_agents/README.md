@@ -64,7 +64,7 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 9. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
 10. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
-Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `true` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
+Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`). It is currently **`false`** in `cumulusci.yml` — `publish_agents` fails on v68/264 for the `RLM_Revenue_Quote_Management` bundle's `Configure_Product_Attributes` currency outputs, so these ten steps are temporarily skipped on every build (tracked as pack 187; preferred fix: omit that standard-template bundle and capture the current 264 version, then re-enable). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
 ## Why post-deploy publish + activation are required
 

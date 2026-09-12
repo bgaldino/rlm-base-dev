@@ -5605,28 +5605,126 @@
             <stepType>ListGroup</stepType>
         </steps>
         <steps>
-            <actionType>FormulaBasedPricing</actionType>
+            <actionType>PriceRevision</actionType>
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>formula-section-0-input</name>
+                    <name>ValidStartDate</name>
                     <output>false</output>
-                    <type>Formula</type>
-                    <value>NetUnitPrice +  NetUnitPrice * ItemUnitPriceUplift__std</value>
+                    <type>Parameter</type>
+                    <value>ItemConsumerPriceIndexDate__std</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>writeBackData</name>
+                    <name>ValidEndDate</name>
                     <output>false</output>
-                    <type>Literal</type>
-                    <value>[]</value>
+                    <type>Parameter</type>
+                    <value>ItemConsumerPriceIndexDate__std</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>formulaSectionCount</name>
+                    <name>Region</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPriceRevisionPolicyRegion__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItemQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PriceRevisionPolicy</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPriceRevisionPolicy__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>InputUnitPrice</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>NetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PolicyType</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPriceRevisionPolicyType__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PriceRevisionFormula</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPriceRevisionPolicyFormula__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PolicyAdjustment</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemUnitPriceUplift__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>RampIdentifier</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemRampIdentifier</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PreviousSegmentMultiplier</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPreviousApplUnitPriceUpliftPct__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UpliftMethod</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemRampUpliftType__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PriceRevisionEffectiveFrom</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveFrom</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>PriceRevisionEffectiveTo</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveTo</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>1</value>
+                    <value>Index Rate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>__LOOKUPID_INDEX_RATE_DECISION_TABLE__</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpApiName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Index_Rate_Decision_Table</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5634,6 +5732,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsCompoundUpliftEnabled</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5658,20 +5763,34 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>formula-section-0-output</name>
+                    <name>Rate</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemApplUnitPriceUpliftPct__std</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
                     <value>NetUnitPrice</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>Output Variable</name>
+                    <name>Subtotal</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>NetUnitPrice</value>
+                    <value>Subtotal</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>AppliedUnitPriceUplift</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemApplUnitPriceUpliftPct__std</value>
                 </parameters>
             </customElement>
-            <description>Formula Based Pricing</description>
+            <description>Price Revision</description>
             <hasNestedExplainability>false</hasNestedExplainability>
             <label>Uplift</label>
             <name>Uplift</name>
