@@ -377,6 +377,7 @@ that topic.
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history (Renewal/Upsell/Downsell) | `.cursor/skills/renewal-asset-creation/SKILL.md` |
+| Prep a clone as a DF Hands-On workshop org (capture/replay seeded quotes+config, verify before templating) | `.cursor/skills/df-workshop-setup/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
@@ -423,6 +424,7 @@ reference and worked examples. Read that skill rather than guessing flags:
 | `scripts/expression_sets/*` — Expression Set inspect/trace/diff/export and guarded mutators | `expression-sets/SKILL.md` |
 | `scripts/cml/*` — constraint model export/import/validate | `constraint-models/SKILL.md` |
 | `scripts/renewal_assets/*` — renewal-asset expiry-bucket spread (`build_renewal_buckets.py`, reuses `build_quote_to_asset.py`) + lifecycle event-history augment/reset Apex | `renewal-asset-creation/SKILL.md` |
+| `scripts/df_workshop/*` — capture (`extract_workshop_quotes.py`) and replay (`insert_workshop_quotes.py`) DF workshop org drift | `df-workshop-setup/SKILL.md` |
 | `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |
 | `scripts/ai/check_help_corpus_text_artifacts.py` — non-gating spot-check for glued-link text artifacts in the Help snapshot | `revenue-cloud-docs/SKILL.md` |
 | `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
