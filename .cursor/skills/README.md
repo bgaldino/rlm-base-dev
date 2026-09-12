@@ -27,10 +27,12 @@ repo root.
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | `usage-consumption/SKILL.md` |
+| Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | `renewal-asset-creation/SKILL.md` |
 | Prep a clone as a DF Hands-On workshop org (capture/replay seeded quotes+config, verify before templating) | DF Workshop Setup | `df-workshop-setup/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
+| Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | `ramped-quotes/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | Transaction Data Harness | `txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | `repo-integration/ux-assembly-retrieve.md` |
