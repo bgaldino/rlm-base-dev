@@ -292,6 +292,16 @@
                 <identifier>RecordSegmentTypeField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RampUpliftType</fieldItem>
+                <identifier>RecordRampUpliftTypeField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-70481312-846e-4c30-a9b2-4d3b25f4e04d</name>
         <type>Facet</type>
     </flexiPageRegions>

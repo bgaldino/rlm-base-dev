@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-08-15T01:16:26.810490Z",
+  "assembled_at": "2026-09-12T17:03:30.512624Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -12,7 +12,7 @@
     "guidedselling": true,
     "tso": false,
     "prm": true,
-    "agents": true,
+    "agents": false,
     "docgen": true,
     "payments": true,
     "constraints": true,
