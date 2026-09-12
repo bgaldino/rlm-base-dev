@@ -137,11 +137,6 @@ def sf_query(org, soql):
     return d["result"]["records"]
 
 
-def sf_query_one(org, soql):
-    rows = sf_query(org, soql)
-    return rows[0] if rows else None
-
-
 _DESCRIBE_CACHE: dict[str, dict] = {}
 
 
@@ -334,31 +329,47 @@ def extract_anchors(org, quotes, seed_opps=(), seed_accounts=()):
     # A requested seed name is *required* drift: a missing one would write a
     # successful-but-incomplete spec, so collect and fail rather than warn. (Opt
     # out intentionally by passing an empty --seed-opps / --seed-accounts value.)
+    # A duplicate name is as fatal as a missing one: picking an unordered/oldest
+    # row would silently capture the wrong seed record. Fail on ambiguity, exactly
+    # as extract_quote does for quote names, and collect both classes to report at
+    # once. (Opt out of a seed entirely with an empty --seed-opps/--seed-accounts.)
     missing = []
+    ambiguous = []
     for name in seed_opps:
-        row = sf_query_one(org, "SELECT Id, AccountId FROM Opportunity "
-                                f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
-        if not row:
+        rows = sf_query(org, "SELECT Id, AccountId FROM Opportunity "
+                             f"WHERE Name = {soql_str(name)}")
+        if not rows:
             missing.append(f"opportunity {name!r}")
             continue
+        if len(rows) > 1:
+            ambiguous.append(f"{len(rows)} opportunities named {name!r}")
+            continue
+        row = rows[0]
         opp_ids[row["Id"]] = True
         if row.get("AccountId"):
             acct_ids[row["AccountId"]] = True
 
     # Named seeded Accounts whose opportunity is created live in the exercise.
     for name in seed_accounts:
-        row = sf_query_one(org, "SELECT Id FROM Account "
-                                f"WHERE Name = {soql_str(name)} ORDER BY CreatedDate LIMIT 1")
-        if not row:
+        rows = sf_query(org, f"SELECT Id FROM Account WHERE Name = {soql_str(name)}")
+        if not rows:
             missing.append(f"account {name!r}")
             continue
-        acct_ids[row["Id"]] = True
+        if len(rows) > 1:
+            ambiguous.append(f"{len(rows)} accounts named {name!r}")
+            continue
+        acct_ids[rows[0]["Id"]] = True
 
     if missing:
         raise ExtractError(
             "requested seed record(s) not found in " + repr(org) + ": "
             + ", ".join(missing)
             + " -- fix the name(s), or pass an empty --seed-opps/--seed-accounts to opt out.")
+    if ambiguous:
+        raise ExtractError(
+            "ambiguous seed record(s) in " + repr(org) + ": "
+            + ", ".join(ambiguous)
+            + " -- rename/remove the duplicates before extracting.")
 
     def fetch(sobject, ids):
         if not ids:

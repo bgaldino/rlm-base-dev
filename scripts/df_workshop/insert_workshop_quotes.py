@@ -58,6 +58,17 @@ def soql_str(value):
     return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
+def _is_real_id(value):
+    """True for a resolved Salesforce Id, False for a --dry-run placeholder.
+
+    upsert_anchors records a `[dry-new-*]` placeholder for an anchor it would
+    create, so a fresh clone can be previewed. Those placeholders must never be
+    embedded in a SOQL `AccountId = ...` filter (invalid ID), so the contact/opp
+    existence scoping gates on this.
+    """
+    return bool(value) and not str(value).startswith("[dry")
+
+
 def sf_query(org, soql):
     rc, out, err = _run(["sf", "data", "query", "-q", soql, "--target-org", org, "--json"])
     try:
@@ -211,8 +222,15 @@ def upsert_anchors(org, anchors, dry_run=False):
         # Contact names are not unique either -- scope by the captured account (when
         # present) and fail on a still-ambiguous match, same as opportunities below.
         acct_id = acct_ids.get(acct_name) if acct_name else None
+        # A dry-run whose parent account does not yet exist carries a placeholder id:
+        # the contact on it is necessarily new too, and a placeholder cannot be scoped
+        # in SOQL, so preview the insert without an (impossible) existence check.
+        if dry_run and acct_name and acct_id is not None and not _is_real_id(acct_id):
+            contact_ids[name] = "[dry-new-contact]"
+            print(f"    [dry] insert contact: {name}")
+            continue
         where = [f"Name = {soql_str(name)}"]
-        if acct_id:
+        if _is_real_id(acct_id):
             where.append(f"AccountId = {soql_str(acct_id)}")
         matches = sf_query(org, f"SELECT Id FROM Contact WHERE {' AND '.join(where)} ORDER BY CreatedDate")
         if len(matches) > 1:
@@ -262,8 +280,14 @@ def upsert_anchors(org, anchors, dry_run=False):
         # and used as this anchor (which would leave the intended scenario opp
         # absent); fail if the Name+Account composite is still ambiguous.
         acct_id = acct_ids.get(acct_name) if acct_name else None
+        # See the contact loop: a dry-run on a not-yet-created account cannot scope by
+        # its placeholder id, so preview the insert rather than emit invalid SOQL.
+        if dry_run and acct_name and acct_id is not None and not _is_real_id(acct_id):
+            opp_ids[name] = "[dry-new-opp]"
+            print(f"    [dry] insert opportunity: {name}")
+            continue
         where = [f"Name = {soql_str(name)}"]
-        if acct_id:
+        if _is_real_id(acct_id):
             where.append(f"AccountId = {soql_str(acct_id)}")
         matches = sf_query(org, "SELECT Id, Pricebook2Id, Amount FROM Opportunity "
                                 f"WHERE {' AND '.join(where)} ORDER BY CreatedDate")
@@ -521,40 +545,46 @@ def replay_attributes(org, quote_id, quote_spec):
             + " -- the clone is missing required definitions/lines; do not template it.")
 
 
-# -- ramp: place primary -> ramp-deal-create -> place(contextId) + reprice ------
-def replay_ramp_quote(org, quote_spec, header, pricebook_name, currency, dry_run):
-    name = quote_spec["name"]
-    segs = sorted(quote_spec["lineItems"], key=lambda l: l.get("StartDate") or "")
-    primary = next((s for s in segs if s.get("IsPrimarySegment")), segs[0])
+# -- ramp: place primaries -> per-group ramp-deal-create -> reprice later segs ---
+def _partition_ramp_lines(quote_spec):
+    """Split a quote's lines into ramp groups (by RampIdentifier) and plain lines.
+
+    A quote may carry more than one ramp (distinct RampIdentifier), and may mix
+    ramp segments with ordinary non-ramp lines. Each distinct RampIdentifier is its
+    own ramp group with its own primary + later segments; a line with no
+    RampIdentifier is a plain line placed as-is. First-seen order is preserved so
+    the placement order is deterministic (it drives the post-place ordinal match).
+    """
+    ramp_groups: dict[str, list] = {}   # rid -> segments (dict preserves insertion order)
+    plain_lines = []
+    for ln in quote_spec["lineItems"]:
+        rid = ln.get("RampIdentifier")
+        if rid:
+            ramp_groups.setdefault(rid, []).append(ln)
+        else:
+            plain_lines.append(ln)
+    groups = []
+    for rid, segs in ramp_groups.items():
+        segs = sorted(segs, key=lambda l: l.get("StartDate") or "")
+        primary = next((s for s in segs if s.get("IsPrimarySegment")), segs[0])
+        groups.append({"rid": rid, "segs": segs, "primary": primary})
+    return plain_lines, groups
+
+
+def _ramp_deal_create_and_reprice(org, name, qid, primary_line_id, segs, primary):
+    """Expand ONE ramp group off its already-placed primary line, then reprice the
+    later segments to their captured qty + discount.
+
+    subscriptionTerm is in MONTHS; YEARLY => term/12 segments. Year 1 (primary)
+    already carries its qty/discount from the initial place, so only the later
+    segments are patched. Each group's ramp-deal-create returns its own context.
+    """
     n = len(segs)
-
-    # 1. place the quote with ONLY the primary segment as a plain line.
-    prim_rec = _line_record(org, primary, pricebook_name, currency, "refLine")
-    payload = _place_envelope([{"referenceId": "refQuote", "record": header}, prim_rec],
-                              "dfWorkshopRampPrimary")
-    if dry_run:
-        print(f"    [dry] ramp {name}: place primary segment {primary.get('SegmentName')} "
-              f"(qty {primary['Quantity']}), then ramp-deal-create YEARLY x{n}, "
-              f"then reprice {n-1} later segment(s)")
-        print(json.dumps(payload, indent=2))
-        return None
-    _place(org, payload)
-
-    row = sf_query_one(org, f"SELECT Id FROM Quote WHERE Name = {soql_str(name)} "
-                            "ORDER BY CreatedDate DESC LIMIT 1")
-    if not row:
-        raise InsertError(f"ramp place returned but no quote named {name!r} found")
-    qid = row["Id"]
-    lrow = sf_query_one(org, f"SELECT Id FROM QuoteLineItem WHERE QuoteId = {soql_str(qid)} LIMIT 1")
-    line_id = lrow["Id"]
-
-    # 2. ramp-deal-create: platform generates N yearly segments + mints identifiers.
-    #    subscriptionTerm is in MONTHS; YEARLY => term/12 segments.
-    rdc = {"transactionId": qid, "transactionLineId": line_id,
+    rdc = {"transactionId": qid, "transactionLineId": primary_line_id,
            "subscriptionTerm": 12 * n, "subscriptionTermUnit": "MONTHS",
            "segmentType": "YEARLY",
            "executionSettings": {"executePricing": True, "executeConfigRules": False}}
-    resp = sf_rest(org, RAMP_CREATE_PATH.format(lineId=line_id), "POST", rdc)
+    resp = sf_rest(org, RAMP_CREATE_PATH.format(lineId=primary_line_id), "POST", rdc)
     if not (isinstance(resp, dict) and resp.get("success")):
         detail = (resp.get("errors") if isinstance(resp, dict) else resp) or resp
         raise InsertError(f"ramp-deal-create failed for {name!r}: {json.dumps(detail)[:400]}")
@@ -567,8 +597,6 @@ def replay_ramp_quote(org, quote_spec, header, pricebook_name, currency, dry_run
             if it.get("ItemSegmentName"):
                 seg_ctx[it["ItemSegmentName"]] = it["id"]
 
-    # 3. place(contextId): reprice the NON-primary segments to their qty + discount.
-    #    Year 1 (primary) already carries its qty/discount from step 1.
     recs = [{"referenceId": "qh",
              "record": {"attributes": {"type": "Quote", "method": "PATCH", "id": qid}}}]
     for s in segs:
@@ -585,6 +613,105 @@ def replay_ramp_quote(org, quote_spec, header, pricebook_name, currency, dry_run
         recs.append({"referenceId": sid, "record": patch})
     if len(recs) > 1:
         _place(org, _place_envelope(recs, "dfWorkshopRampApply", context_id))
+
+
+def replay_ramp_quote(org, quote_spec, header, pricebook_name, currency, dry_run):
+    """Replay a quote carrying one or more ramp groups (and, optionally, plain
+    non-ramp lines) into a single quote.
+
+    Placed ONCE with every plain line plus each group's primary segment; then, per
+    ramp group, ramp-deal-create mints that group's yearly segments off its primary
+    and the later segments are repriced. We never copy the source org's opaque
+    RampIdentifier/SegmentIdentifier tokens -- the platform mints its own.
+    """
+    name = quote_spec["name"]
+
+    # A ramp/mixed quote cannot faithfully replay configured attributes: replay_attributes
+    # binds each QuoteLineItemAttribute to its line by source-ordinal == placed LineNumber,
+    # but this path places plain-then-primary and then GROWS the line set via
+    # ramp-deal-create, so the source ordinals no longer line up. Silently dropping them
+    # would also wedge _assert_complete into demanding --replace forever (attr count never
+    # reaches the spec). Refuse loudly instead. The shipped ramp quotes carry none; a future
+    # one that does needs a real design, not a silent drop.
+    if (quote_spec.get("childRecords") or {}).get("QuoteLineItemAttribute"):
+        raise InsertError(
+            f"quote {name!r} is a ramp/mixed quote AND carries configured "
+            "QuoteLineItemAttribute records -- replaying attributes onto platform-generated "
+            "ramp segments is not supported (source line ordinals do not survive segment "
+            "generation). Split the attributes off or extend the replay before templating.")
+
+    plain_lines, groups = _partition_ramp_lines(quote_spec)
+
+    # Primary recovery (below) binds each placed line to its payload by LineNumber ordinal,
+    # guarded by a SKU check. That guard is blind when a SKU repeats across the initial-place
+    # lines (two same-SKU ramp primaries, or a plain line sharing a primary's SKU): a
+    # placement-order divergence would then bind the wrong line and reprice one ramp's
+    # economics onto another, silently. Refuse that case up front rather than certify it.
+    initial_lines = plain_lines + [g["primary"] for g in groups]
+    sku_counts: dict = {}
+    for ln in initial_lines:
+        sku = (ln.get("_keys") or {}).get("Product2Key")
+        sku_counts[sku] = sku_counts.get(sku, 0) + 1
+    dup = sorted(s for s, c in sku_counts.items() if s and c > 1)
+    if dup:
+        raise InsertError(
+            f"quote {name!r} places multiple lines with the same SKU ({', '.join(dup)}) in "
+            "one ramp replay -- the primary-recovery ordinal match cannot be SKU-verified and "
+            "could bind the wrong line. Give each ramp group a distinct product, or extend the "
+            "replay to match primaries unambiguously before templating.")
+
+    # 1. Single initial place: plain lines first, then one primary per ramp group.
+    #    Placement order == LineNumber order, so each line is recoverable by ordinal.
+    records = [{"referenceId": "refQuote", "record": header}]
+    ordinals = []   # ("plain"|"primary", payload) parallel to placed lines, in order
+    for i, ln in enumerate(plain_lines):
+        records.append(_line_record(org, ln, pricebook_name, currency, f"refPlain{i}"))
+        ordinals.append(("plain", ln))
+    for g, grp in enumerate(groups):
+        records.append(_line_record(org, grp["primary"], pricebook_name, currency, f"refPrimary{g}"))
+        ordinals.append(("primary", grp))
+
+    if dry_run:
+        desc = ", ".join(f"{g['rid']} x{len(g['segs'])}" for g in groups) or "none"
+        print(f"    [dry] ramp {name}: place {len(plain_lines)} plain line(s) + "
+              f"{len(groups)} ramp primary line(s); then per group [{desc}] "
+              "ramp-deal-create YEARLY + reprice later segments")
+        print(json.dumps(_place_envelope(records, "dfWorkshopRampPrimary"), indent=2))
+        return None
+    _place(org, _place_envelope(records, "dfWorkshopRampPrimary"))
+
+    # Resolve the placed quote and recover each line Id by ordinal, BEFORE any
+    # segment generation grows the line set (later ramp-deal-create expands lines,
+    # but the captured Ids stay valid).
+    row = sf_query_one(org, f"SELECT Id FROM Quote WHERE Name = {soql_str(name)} "
+                            "ORDER BY CreatedDate DESC LIMIT 1")
+    if not row:
+        raise InsertError(f"ramp place returned but no quote named {name!r} found")
+    qid = row["Id"]
+    placed = sf_query(org, "SELECT Id, Product2.StockKeepingUnit FROM QuoteLineItem "
+                           f"WHERE QuoteId = {soql_str(qid)} ORDER BY LineNumber")
+    if len(placed) != len(ordinals):
+        raise InsertError(
+            f"ramp place for {name!r} produced {len(placed)} line(s), expected "
+            f"{len(ordinals)} (plain lines + one primary per ramp group) before "
+            "segment generation -- cannot map primaries; do not template.")
+    # Attach each ramp group's placed primary line Id (SKU-verify the ordinal match).
+    for (kind, obj), prow in zip(ordinals, placed):
+        if kind != "primary":
+            continue
+        exp_sku = (obj["primary"].get("_keys") or {}).get("Product2Key")
+        got_sku = (prow.get("Product2") or {}).get("StockKeepingUnit")
+        if exp_sku and got_sku and exp_sku != got_sku:
+            raise InsertError(
+                f"ramp primary line mismatch in {name!r}: expected SKU {exp_sku!r}, "
+                f"placed line carries {got_sku!r} -- placement order diverged from spec.")
+        obj["primaryLineId"] = prow["Id"]
+
+    # 2-3. Per group: ramp-deal-create off its primary, then reprice later segments.
+    for grp in groups:
+        _ramp_deal_create_and_reprice(org, name, qid, grp["primaryLineId"],
+                                      grp["segs"], grp["primary"])
+
     return _report(org, name)
 
 

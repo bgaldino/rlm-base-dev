@@ -112,10 +112,17 @@ A **ramp** is N QuoteLineItems for the same product sharing a **`RampIdentifier`
 each a segment (`SegmentName` Year-1/2/…, `IsPrimarySegment`, `SegmentType=Yearly`)
 with its own date range and quantity. We do **not** copy the source org's opaque
 `RampIdentifier`/`SegmentIdentifier` tokens or DML the segment rows. Instead the
-insert side builds the ramp the platform way, so the org mints fresh identifiers:
+insert side builds the ramp the platform way, so the org mints fresh identifiers.
 
-1. Place the quote with **only the primary (Year-1) segment** as a plain priced line.
-2. Call **Create Ramp Deal** —
+A quote may carry **more than one ramp** (distinct `RampIdentifier`s) and may
+**mix** ramp segments with ordinary non-ramp lines. The replay partitions a quote's
+lines by `RampIdentifier` into ramp groups + plain lines, then:
+
+1. **Place the quote once** with every plain line plus **each group's primary
+   (Year-1) segment** as plain priced lines. Placement order == `LineNumber` order,
+   so each placed primary is recovered by ordinal (SKU-verified) before segment
+   generation grows the line set.
+2. Per ramp group, call **Create Ramp Deal** off that group's primary line —
    `POST /connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`
    with `subscriptionTerm = 12 × N` months, `subscriptionTermUnit=MONTHS`,
    `segmentType=YEARLY`. The platform generates the N yearly segments and returns
@@ -123,7 +130,22 @@ insert side builds the ramp the platform way, so the org mints fresh identifiers
 3. **Place with context** (`contextDetails.contextId`) a PATCH graph that reprices
    each non-primary segment to its captured quantity + discount.
 
-See the 264 dev guide, *Create Ramp Deal (POST)*.
+The shipped workshop quotes are each a single ramp (no plain lines), which is just
+the one-group case of the above. See the 264 dev guide, *Create Ramp Deal (POST)*.
+
+**Scope of the multi-ramp/mixed path.** The single-ramp, no-plain-lines case is
+live-verified (the three shipped quotes). The multi-group and mixed shapes are
+exercised by offline unit tests (`tests/test_df_workshop_replay.py`) but have **not**
+been run against a live org — no such workshop quote exists yet. Two shapes are
+refused up front rather than replayed incorrectly:
+
+- A ramp/mixed quote that also carries **configured `QuoteLineItemAttribute`
+  records** — the attribute→line ordinal match cannot survive segment generation,
+  so attributes are not dropped silently; the replay fails and asks you to extend it.
+- Two lines sharing the **same SKU** in one ramp replay (two same-SKU primaries, or a
+  plain line sharing a primary's SKU) — the SKU-verified ordinal recovery of each
+  primary would be ambiguous, so the replay fails rather than risk binding the wrong
+  line. Give each ramp group a distinct product.
 
 ## What the extractor captures — a portable replay spec, not a data dump
 
