@@ -302,9 +302,20 @@ preserved).
 
 It needs **all** of:
 
-1. **Revenue Settings → Advanced Detail Line Pricing = ON**, context definition
-   synced. Off ⇒ standard (list-based) uplift only. Turning it off *after* compound
-   quotes/orders/assets exist corrupts pricing/amendments/renewals. See
+1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo defaults it
+   **OFF** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
+   `enableAdvancedDetailLinePricing=false`; kept in sync across every scratch-def), so
+   compound is *not* available out of the box: the Compound option is hidden from the
+   Ramp Uplift Type picklist until it is on. Enabling it is necessary but **not
+   sufficient** — the prebuilt Revenue Management Default Pricing Procedure doesn't
+   update automatically, so **clone the latest template** and, per *Use Advanced
+   Transaction Detail Line Pricing to Map Custom Fields*, **add a map line item
+   mapping `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`
+   to the prebuilt template** (264 Help, *Compound Uplift for Ramp Deals*,
+   `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`).
+   **Then sync the context definition** — merely turning the setting on and syncing,
+   without that map line, leaves compound nonfunctional. Turning it off *after*
+   compound quotes/orders/assets exist corrupts pricing/amendments/renewals. See
    `.cursor/skills/context-service/SKILL.md`.
 2. **A group ramp** (this skill) — line ramps can't compound.
 3. **`RampUpliftType='Compound'` on the ramp group** — the top-level

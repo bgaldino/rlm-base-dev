@@ -329,9 +329,18 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
 **Five prerequisites** (Salesforce Help: *"Compound Uplift in Ramp Deals"*,
 *"Create Ramp Deals with Standard or Compound Price Uplifts"*):
 
-1. **Revenue Settings → Advanced Detail Line Pricing = ON**, context definition
-   synced. Off ⇒ standard (list-based) uplift only; turning it off *after*
-   compound quotes/orders/assets exist corrupts pricing, amendments, renewals.
+1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo defaults it
+   **OFF** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
+   `enableAdvancedDetailLinePricing=false`), so compound is hidden from the Ramp Uplift
+   Type picklist until it is enabled. Enabling it alone is **not sufficient**: the
+   prebuilt Default Pricing Procedure doesn't update automatically, so **clone the
+   latest template** and **add a map line item mapping `ItemApplUnitPriceUpliftPct__std`
+   → `itemDetailApplUnitPriceUpliftPct__std` to the prebuilt template** (264 Help,
+   *Compound Uplift for Ramp Deals* → *Use Advanced Transaction Detail Line Pricing to
+   Map Custom Fields*). **Then sync the context definition** — turning the setting on
+   and syncing *without* that map line leaves compound nonfunctional. Off ⇒ standard
+   (list-based) uplift only; turning it off *after* compound quotes/orders/assets exist
+   corrupts pricing, amendments, renewals.
 2. **Ramp Deals for *Groups*** (a group ramp), **not** the line-level ramp path.
    A single-line `createRampDeal` yields ungrouped segments
    (`QuoteLineGroupId=null`) — no group to hold the uplift mode, so it can never
@@ -410,9 +419,10 @@ per-segment `UnitPriceUplift` + `RampUpliftType='Compound'` on the group) is a
 transaction-building task, outside this skill — see
 `.cursor/skills/ramped-quotes/SKILL.md`. (Do **not** use the line-level
 `createRampDeal` or the legacy `/commerce/…/ramp-deals` API — neither produces the
-group that holds the compound uplift mode.) Ground behavior via `doc_search` on the
-two Help articles above plus *"Use the Price Revision Element in a Pricing
-Procedure"*.
+group that holds the compound uplift mode.) Ground behavior in the tracked 264 Help
+snapshots: `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`,
+`ind.qocal_ramp_deal_compound_uplift_sales_reps.htm.md`, and
+`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md`.
 
 ---
 
