@@ -106,7 +106,7 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
-| The raw Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `postman/docs/transaction-management-apis-reference.md`; `.cursor/skills/rlm-business-apis/SKILL.md` |
+| The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). **Not** `postman/docs/transaction-management-apis-reference.md`: it is v66 (`/commerce/sales-transactions/...`), an incompatible contract |
 | A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md` |
 
 ## The proven build sequence
@@ -173,6 +173,16 @@ the Place call fails with no treatment ("Add a Billing Treatment…") *and* if t
 referenced treatment has `CanChangeBillingFrequency=false` ("Update the Billing
 Treatment…"). Resolve one for the account currency (see [Discovering ids](#discovering-ids));
 this mirrors `scripts/build_quote_to_asset.py`.
+
+> **Check the response body after every Place call — a returned Quote id is not
+> success.** `place` reports per-record graph failures in an **`errorResponse`** array
+> while still returning **HTTP 200** *and* still creating the parent `Quote` (a naive
+> "did I get a quote id?" check then proceeds on a quote with no/partial lines, and
+> polling it can look settled). Before polling, fail on a top-level `errorCode`, and on
+> a dict response fail if `errorResponse` is non-empty **or** `isSuccess === false`.
+> This applies to the create call here and the `EditGroup` call in step 2; the proven
+> builder does exactly this (`scripts/build_quote_to_asset.py`). (The `clone` call in
+> step 3 has its own contract — `success:false` + populated `errors[]` — covered there.)
 
 ### 2. `placeSalesTransaction` (EditGroup) — mark period 1 ramped
 
@@ -331,8 +341,10 @@ It needs **all** of:
    **newly-created** pricing procedure (existing procedures don't support it). This
    is *engine* setup — author/inspect it via `.cursor/skills/expression-sets/SKILL.md` →
    [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift), which is
-   **mandatory** here, not optional (there are two `PriceRevision` steps; only the ramp
-   path compounds).
+   **mandatory** here, not optional. The tracked `RLM_DefaultPricingProcedure` does
+   **not** have a ramp-path `PriceRevision` — its ramp branch is a `FormulaBasedPricing`
+   `Uplift` BKM (standard uplift only); the compound ramp-path `PriceRevision` exists
+   only in a **newly-cloned latest-264-template** procedure.
 5. **`UnitPriceUplift` (per-period %) set per segment** on each `QuoteLineItem`.
 
 **Unsupported for compound** (264 Help, *Considerations for Ramp Deals*,
@@ -478,9 +490,10 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift).
 - **Advanced Detail Line Pricing / context definition sync** (compound
   prerequisite; null-`RampIdentifier` fix): `.cursor/skills/context-service/SKILL.md`.
-- **Connect endpoint catalog** (place, clone, ramp-deal, amend/renew/cancel):
-  `postman/docs/transaction-management-apis-reference.md`;
-  `.cursor/skills/rlm-business-apis/SKILL.md`.
+- **v68 Connect endpoint catalog** (place, clone, ramp-deal, amend/renew/cancel):
+  `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide — `/connect/rev/...`).
+  Do **not** use `postman/docs/transaction-management-apis-reference.md`: it is v66
+  (`/commerce/sales-transactions/...`), the legacy contract this skill supersedes.
 - **Non-ramp quote→order→asset builder:** `scripts/build_quote_to_asset.py`;
   `.cursor/skills/txn-data-harness/SKILL.md`.
 - **RLM object/field model:** `.cursor/skills/revenue-cloud-data-model/SKILL.md`.

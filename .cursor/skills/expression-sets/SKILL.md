@@ -363,13 +363,18 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
 
    Also: **compound requires a newly-created pricing procedure** — existing procedures
    don't support it; and changing/removing the lookup table auto-clears
-   `IsCompoundUpliftEnabled`. In `RLM_DefaultPricingProcedure` there are **two** distinct
-   `PriceRevision` BKM steps; only the ramp path compounds:
+   `IsCompoundUpliftEnabled`. **Do not assume the tracked repo default already has a
+   compound ramp step** — it does not. `RLM_DefaultPricingProcedure` in this repo
+   contains exactly **one** `PriceRevision` BKM, and it is the **non-ramp** step; the
+   ramp branch is a `FormulaBasedPricing` BKM, not a `PriceRevision`. Compound uplift
+   requires a **newly-created procedure cloned from the latest 264 template** (existing
+   procedures are explicitly unsupported), which is what adds the ramp-path
+   `PriceRevision`:
 
-   | BKM step (parent filter) | Drives |
-   |---|---|
-   | `PriceRevision` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | **ramp** compound uplift |
-   | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | non-ramp price revision |
+   | BKM step (parent filter) | Kind in tracked default | Drives |
+   |---|---|---|
+   | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | `PriceRevision` (present) | non-ramp price revision |
+   | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `FormulaBasedPricing` (**not** a `PriceRevision`) — standard uplift only | a **newly-cloned 264-template** procedure replaces/adds a ramp-path `PriceRevision` here for **compound** uplift |
 
 5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
    is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
@@ -392,11 +397,17 @@ baseline); pre-Winter '27 records use standard uplift.
 ```bash
 # 0. Discover the org's ACTIVE pricing procedure first — RLM_DefaultPricingProcedure
 #    is the template default, but an org may run a different one. Never assume the name.
+#    --versions is REQUIRED to mark the active version ([ACTIVE]); without it the tool
+#    prints set names only (list_expression_sets.py) and can't tell active from draft.
 python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> \
-    --type PricingProcedure
-# Is compound enabled, and what feeds the rate? Find the PriceRevision BKM under
-# "Applyupliftstoramped…" and read IsCompoundUpliftEnabled + its Rate input. Use the
-# DeveloperName discovered above (RLM_DefaultPricingProcedure shown as the default).
+    --type PricingProcedure --versions
+# Is compound enabled, and what feeds the rate? Inspect the SELECTED procedure for a
+# ramp-path PriceRevision BKM (the ramp branch is "Applyupliftstoramped…") and read
+# IsCompoundUpliftEnabled + its Rate input. NOTE the tracked RLM_DefaultPricingProcedure
+# does NOT have one there — its ramp branch is a FormulaBasedPricing "Uplift" BKM — so an
+# ABSENT ramp-path PriceRevision is the signal that compound uplift is not configured on
+# that procedure (compound needs a newly-created latest-264-template procedure). Use the
+# DeveloperName discovered above.
 python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> \
     --developer-name <PRICING_PROCEDURE> --params
 
