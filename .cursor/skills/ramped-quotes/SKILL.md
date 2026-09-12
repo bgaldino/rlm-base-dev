@@ -336,7 +336,7 @@ Verify numerically by reading back the segments (below).
 ## Read-back → the ramp schedule
 
 ```bash
-sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.ProductCode, \
+sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.StockKeepingUnit, \
   SegmentName, IsPrimarySegment, RampIdentifier, StartDate, EndDate, Quantity, \
   UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice, UnitPriceUplift, \
   ApplUnitPriceUpliftPct, RampUpliftType, QuoteLineGroupId \
@@ -345,7 +345,7 @@ sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.Product
 
 Report: account, products, **TCV** (Σ all line totals across all segments),
 per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
-`RampIdentifier`, labelled by `Product2.Name`/`ProductCode`). Sum the
+`RampIdentifier`, labelled by `Product2.Name`/`StockKeepingUnit`). Sum the
 platform-computed **`NetTotalPrice`** for TCV and subtotals — it is the
 **post-discount, prorated** line total that propagates to the posted invoice
 (`scripts/txn_data_harness/docs/contracts-sales-txn-quote.md`). `TotalPrice` is the
@@ -365,16 +365,20 @@ SKUs.
 # the Quote/PBE/BillingTreatment currency below.
 sf data query --target-org <sf_alias> -q \
   "SELECT Id, Name, CurrencyIsoCode FROM Account WHERE Name = '<name>'"
-# PricebookEntry — a ramp needs BOTH Product2Id and this. Filter to the ACCOUNT
-# currency and active entries, and read the selling model: a product can expose
-# several (e.g. Evergreen / Term Monthly / Term Annual) and the model dictates which
-# line fields are legal, so pick a TermDefined one deliberately (not the first row).
+# PricebookEntry — a ramp needs BOTH Product2Id and this. Match the SKU on
+# Product2.StockKeepingUnit (the repo's SKU field, per scripts/build_quote_to_asset.py
+# and scripts/txn_data_harness/discovery.py — NOT ProductCode). Filter to the ACCOUNT
+# currency and require BOTH the entry and the product active (IsActive = true AND
+# Product2.IsActive = true), and read the selling model: a product can expose several
+# (e.g. Evergreen / Term Monthly / Term Annual) and the model dictates which line
+# fields are legal, so pick a TermDefined one deliberately (not the first row).
 sf data query --target-org <sf_alias> -q \
   "SELECT Id, Product2Id, Pricebook2Id, UnitPrice, \
      ProductSellingModel.Name, ProductSellingModel.SellingModelType \
    FROM PricebookEntry \
-   WHERE Product2.ProductCode = '<SKU>' AND Pricebook2.IsStandard = true \
-     AND IsActive = true AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>'"
+   WHERE Product2.StockKeepingUnit = '<SKU>' AND Pricebook2.IsStandard = true \
+     AND IsActive = true AND Product2.IsActive = true \
+     AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>'"
 # Group-ramp eligibility: no per-product ramp flag is required — any subscription
 # (term-defined) product that meets the requirements is eligible by default (264
 # Help). `Product2.CanRamp` is the LINE-ramp flag, not a group-ramp prerequisite.
