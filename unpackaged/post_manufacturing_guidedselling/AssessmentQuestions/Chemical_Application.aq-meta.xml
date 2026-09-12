@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Chemical Application</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What is the primary application?</questionText>
+        <responseValues>PCB cleaning
+Protective Topcoat
+pH Adjustment and Sanitizing
+Preventing Product Degradation
+Coolant System Protection
+Foam Control During Processing
+Component Encapsulation
+Durable Container Molding
+pH Adjustment and Synthesis
+Cleaning-In-Place (CIP)
+Semiconductor Etching and Cleaning
+Tablet Coating and Opacifier
+Paint and Thinner Formulation
+Plastic Component and Coating Protection
+Paint Preparation and Parts Cleaning</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Chemical_Application</developerName>
+    <name>Chemical Application</name>
+    <questionCategory>Chemical</questionCategory>
+</AssessmentQuestion>

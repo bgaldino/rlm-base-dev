@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Generator Application</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What is the intended generator application?</questionText>
+        <responseValues>Prime Power (PRP)
+Emergency Standby Power (ESP)
+Continuous Power (COP)
+Data Center Continuous (DCC)</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Generator_Application</developerName>
+    <name>Generator Application</name>
+    <questionCategory>Power Management</questionCategory>
+</AssessmentQuestion>

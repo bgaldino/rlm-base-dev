@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Seismic Certification</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What seismic certification do you require?</questionText>
+        <responseValues>IBC Seismic Certification
+OSHPD Seismic Certification</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Seismic_Certification</developerName>
+    <name>Seismic Certification</name>
+    <questionCategory>Power Management</questionCategory>
+</AssessmentQuestion>
