@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_All_Billing_Schedule_Groups</fullName>
+    <columns>Name</columns>
+    <columns>BillingAccount</columns>
+    <columns>BillingTermUnit</columns>
+    <columns>BillingTerm</columns>
+    <columns>BillDayOfMonth</columns>
+    <columns>BillingMethod</columns>
+    <columns>BillToContact</columns>
+    <columns>EffectiveNextBillingDate</columns>
+    <columns>PaymentTerm</columns>
+    <columns>Product2</columns>
+    <filterScope>Everything</filterScope>
+    <label>All Billing Schedule Groups</label>
+</ListView>
