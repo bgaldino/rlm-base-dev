@@ -120,7 +120,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: true              # Agentforce agent configurations
+    agents: false             # DISABLED pending pack 187: publish_agents fails on v68/264 (RLM_Revenue_Quote_Management Configure_Product_Attributes currency outputs). Deliberate committed state — re-enable once pack 187 lands (preferred fix: omit that bundle + capture the 264 template).
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
