@@ -329,16 +329,18 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
 **Five prerequisites** (Salesforce Help: *"Compound Uplift in Ramp Deals"*,
 *"Create Ramp Deals with Standard or Compound Price Uplifts"*):
 
-1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo defaults it
-   **OFF** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
-   `enableAdvancedDetailLinePricing=false`), so compound is hidden from the Ramp Uplift
-   Type picklist until it is enabled. Enabling it alone is **not sufficient**: the
-   prebuilt Default Pricing Procedure doesn't update automatically, so **clone the
-   latest template** and **add a map line item mapping `ItemApplUnitPriceUpliftPct__std`
-   → `itemDetailApplUnitPriceUpliftPct__std` to the prebuilt template** (264 Help,
-   *Compound Uplift for Ramp Deals* → *Use Advanced Transaction Detail Line Pricing to
-   Map Custom Fields*). **Then sync the context definition** — turning the setting on
-   and syncing *without* that map line leaves compound nonfunctional. Off ⇒ standard
+1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo now defaults it
+   **ON** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
+   `enableAdvancedDetailLinePricing=true`), so compound is available (it is hidden from the
+   Ramp Uplift Type picklist only when ADLP is off). The 264 Help's hand-authoring path
+   (*Compound Uplift for Ramp Deals* → *Use Advanced Transaction Detail Line Pricing to Map
+   Custom Fields*) — clone the template, add a map line item mapping
+   `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`, sync the
+   context — is **not required in this repo**: the tracked `RLM_DefaultPricingProcedure`
+   already ships the ramp-path compound `PriceRevision` (prerequisite 4), and the bound
+   ramp attributes plus the `itemDetailApplUnitPriceUpliftPct__std` target are
+   **standard/inherited** from base `SalesTransactionContext`, so no clone, no map line,
+   and no context sync are needed (verified on a fresh 264 build). Off ⇒ standard
    (list-based) uplift only; turning it off *after* compound quotes/orders/assets exist
    corrupts pricing, amendments, renewals.
 2. **Ramp Deals for *Groups*** (a group ramp), **not** the line-level ramp path.
@@ -361,20 +363,19 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    | **Uplift Method** | **Blank ⇒ silently *standard* (no compounding)** — this is the quiet failure mode |
    | **Effective From** / **Effective To** | Segment date range; **every segment needs a *unique* Effective From** — a missing or duplicated one **fails pricing for the entire ramp group**, not just that segment |
 
-   Also: **compound requires a newly-created pricing procedure** — existing procedures
-   don't support it; and changing/removing the lookup table auto-clears
-   `IsCompoundUpliftEnabled`. **Do not assume the tracked repo default already has a
-   compound ramp step** — it does not. `RLM_DefaultPricingProcedure` in this repo
-   contains exactly **one** `PriceRevision` BKM, and it is the **non-ramp** step; the
-   ramp branch is a `FormulaBasedPricing` BKM, not a `PriceRevision`. Compound uplift
-   requires a **newly-created procedure cloned from the latest 264 template** (existing
-   procedures are explicitly unsupported), which is what adds the ramp-path
-   `PriceRevision`:
+   Note: changing/removing the lookup table auto-clears `IsCompoundUpliftEnabled`. The 264
+   Help says compound "requires a newly-created procedure" — that is a **UI-authoring**
+   limitation (the builder won't let you enable compound uplift on an existing procedure);
+   deploying the full expression-set metadata bypasses it. The tracked
+   `RLM_DefaultPricingProcedure` in this repo **now ships two** `PriceRevision` BKMs — the
+   long-standing **non-ramp** step, **and** the **ramp-path** compound step (migrated from
+   the old `FormulaBasedPricing` `Uplift` BKM by metadata deploy). Compound ramp uplift
+   therefore works on the tracked default out of the box; no clone is needed:
 
    | BKM step (parent filter) | Kind in tracked default | Drives |
    |---|---|---|
    | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | `PriceRevision` (present) | non-ramp price revision |
-   | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `FormulaBasedPricing` (**not** a `PriceRevision`) — standard uplift only | a **newly-cloned 264-template** procedure replaces/adds a ramp-path `PriceRevision` here for **compound** uplift |
+   | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `PriceRevision` with `IsCompoundUpliftEnabled=true` (migrated from `FormulaBasedPricing`) | **compound** ramp uplift when `RampUpliftType=Compound`; flat when `Standard` |
 
 5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
    is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
@@ -404,9 +405,9 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> \
 # Is compound enabled, and what feeds the rate? Inspect the SELECTED procedure for a
 # ramp-path PriceRevision BKM (the ramp branch is "Applyupliftstoramped…") and read
 # IsCompoundUpliftEnabled + its Rate input. NOTE the tracked RLM_DefaultPricingProcedure
-# does NOT have one there — its ramp branch is a FormulaBasedPricing "Uplift" BKM — so an
+# NOW ships one there (IsCompoundUpliftEnabled=true), so compound works out of the box; an
 # ABSENT ramp-path PriceRevision is the signal that compound uplift is not configured on
-# that procedure (compound needs a newly-created latest-264-template procedure). Use the
+# that procedure (e.g. a custom procedure that predates the migration). Use the
 # DeveloperName discovered above.
 python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> \
     --developer-name <PRICING_PROCEDURE> --params

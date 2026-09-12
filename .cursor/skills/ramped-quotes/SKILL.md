@@ -312,20 +312,21 @@ preserved).
 
 It needs **all** of:
 
-1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo defaults it
-   **OFF** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
-   `enableAdvancedDetailLinePricing=false`; kept in sync across every scratch-def), so
-   compound is *not* available out of the box: the Compound option is hidden from the
-   Ramp Uplift Type picklist until it is on. Enabling it is necessary but **not
-   sufficient** — the prebuilt Revenue Management Default Pricing Procedure doesn't
-   update automatically, so **clone the latest template** and, per *Use Advanced
-   Transaction Detail Line Pricing to Map Custom Fields*, **add a map line item
-   mapping `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`
-   to the prebuilt template** (264 Help, *Compound Uplift for Ramp Deals*,
-   `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`).
-   **Then sync the context definition** — merely turning the setting on and syncing,
-   without that map line, leaves compound nonfunctional. Turning it off *after*
-   compound quotes/orders/assets exist corrupts pricing/amendments/renewals. See
+1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo now defaults it
+   **ON** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
+   `enableAdvancedDetailLinePricing=true`; kept in sync across every scratch-def), so
+   compound **is** available out of the box (the Compound option is hidden from the Ramp
+   Uplift Type picklist only when ADLP is off). The 264 Help (*Compound Uplift for Ramp
+   Deals*, `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`)
+   describes a hand-authoring path — clone the latest template, add a map line item
+   `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`, then sync
+   the context — but **none of that is required here**: the tracked
+   `RLM_DefaultPricingProcedure` already carries the ramp-path compound `PriceRevision`
+   (see prerequisite 4), and the bound ramp attributes plus the `itemDetailApplUnitPriceUpliftPct__std`
+   target are **standard/inherited** from base `SalesTransactionContext` (present on the
+   live `RLM_SalesTransactionContext`), so **no clone, no map line, and no context sync**
+   is needed — verified on a fresh 264 build. Turning ADLP off *after* compound
+   quotes/orders/assets exist still corrupts pricing/amendments/renewals. See
    `.cursor/skills/context-service/SKILL.md`.
 2. **A group ramp** (this skill) — line ramps can't compound.
 3. **`RampUpliftType='Compound'` on the ramp group** — the top-level
@@ -337,14 +338,17 @@ It needs **all** of:
    **Base Price Multiplier** (blank ⇒ 1 for new sale; prior compounded multiplier for
    amend/renew), **Uplift Method** (blank ⇒ silently *standard*, no compounding),
    and **Effective From**/**Effective To** — every segment needs a **unique Effective
-   From** or pricing fails for the *entire* ramp group. Compound also requires a
-   **newly-created** pricing procedure (existing procedures don't support it). This
-   is *engine* setup — author/inspect it via `.cursor/skills/expression-sets/SKILL.md` →
-   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift), which is
-   **mandatory** here, not optional. The tracked `RLM_DefaultPricingProcedure` does
-   **not** have a ramp-path `PriceRevision` — its ramp branch is a `FormulaBasedPricing`
-   `Uplift` BKM (standard uplift only); the compound ramp-path `PriceRevision` exists
-   only in a **newly-cloned latest-264-template** procedure.
+   From** or pricing fails for the *entire* ramp group. This is *engine* setup —
+   author/inspect it via `.cursor/skills/expression-sets/SKILL.md` →
+   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift). The tracked
+   `RLM_DefaultPricingProcedure` **now carries this ramp-path compound `PriceRevision`**
+   (`IsCompoundUpliftEnabled=true`) directly — the ramp branch
+   (`Applyupliftstorampedsubscriptionsitemsduringamendment`, seq 2) was migrated from the
+   old `FormulaBasedPricing` `Uplift` BKM by metadata deploy, so it works out of the box
+   with no procedure clone. (The 264 Help's "newly-created procedure required" caveat is a
+   **UI-authoring** limitation — you can't toggle Enable Compound Uplift on an existing
+   procedure in the builder; deploying the full expression set metadata bypasses it, which
+   is how the repo ships it.)
 5. **`UnitPriceUplift` (per-period %) set per segment** on each `QuoteLineItem`.
 
 **Unsupported for compound** (264 Help, *Considerations for Ramp Deals*,
