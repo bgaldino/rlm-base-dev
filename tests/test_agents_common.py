@@ -237,6 +237,37 @@ def check_bundle_discovery(_):
         check("discovery_is_sorted_so_publish_and_activate_agree", found == sorted(found), str(found))
 
 
+def check_excluded_bundles_are_omitted_from_discovery(_):
+    """Pack 187: an excluded bundle present on disk must be skipped by default
+    (the publish/activate contract) — so nothing tries to publish or activate a
+    bundle v68 cannot compile. But ``include_excluded=True`` must return it, the
+    deactivate_agents contract: an upgraded org may still have it active, and
+    deactivating a missing/inactive agent is a no-op."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "aiAuthoringBundles"
+        for name in common.EXCLUDED_BUNDLES:
+            (root / name).mkdir(parents=True)
+        (root / "RLM_Quoting_Assistant").mkdir(parents=True, exist_ok=True)
+        found = common.discover_agent_bundles(root)
+        check("excluded_bundle_is_not_discovered",
+              all(name not in found for name in common.EXCLUDED_BUNDLES), str(found))
+        check("non_excluded_bundle_survives", "RLM_Quoting_Assistant" in found, str(found))
+        # deactivate_agents must still see the excluded bundle so it can deactivate
+        # a version left active by a 262→264 upgrade.
+        with_excluded = common.discover_agent_bundles(root, include_excluded=True)
+        check("include_excluded_returns_the_excluded_bundle",
+              all(name in with_excluded for name in common.EXCLUDED_BUNDLES),
+              str(with_excluded))
+        check("include_excluded_still_returns_non_excluded",
+              "RLM_Quoting_Assistant" in with_excluded, str(with_excluded))
+        check("include_excluded_is_sorted",
+              with_excluded == sorted(with_excluded), str(with_excluded))
+        # The current live exclusion, pinned so a silent re-add is a test failure.
+        check("rqm_is_the_excluded_bundle",
+              "RLM_Revenue_Quote_Management" in common.EXCLUDED_BUNDLES,
+              str(common.EXCLUDED_BUNDLES))
+
+
 def main():
     print("tasks/rlm_agents_common.py — sf CLI contract and agent discovery")
     print("=" * 100)
@@ -253,6 +284,7 @@ def main():
         check_a_missing_cli_is_named,
         check_a_timeout_is_named,
         check_bundle_discovery,
+        check_excluded_bundles_are_omitted_from_discovery,
     ):
         fn(None)
     print("=" * 100)

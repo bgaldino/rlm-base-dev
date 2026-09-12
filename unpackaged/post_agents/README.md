@@ -29,11 +29,11 @@ This bundle deploys three Agentforce **Employee Agents** plus their settings and
 | --- | --- | --- |
 | Settings | `settings/` | `AgentPlatform`, `EinsteinCopilot`, `EinsteinGpt`. Deployed first by `deploy_agents_settings`. |
 | Product Configuration & quote-line services | `classes/` | Apex invocable services behind the agent flows: `RLM_AI_QuoteLineItemLookupService` (scored product-name matching; blank product name lists every line for selection — used by both Product Configuration and Revenue Quote Management's discount flow), `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`, plus the shared `inherited sharing` helper `RLM_AI_ConfigServiceUtils` (Id/prefix validation, null-safe JSON, SOQL LIKE escaping). |
-| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). Published by `publish_agents`, then activated by `activate_agents` — it no longer deploys as standard metadata (see the 264 note above). |
+| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). It no longer deploys as standard metadata (see the 264 note above). **Currently omitted from publish/activate on v68/264 — pack 187:** its `Configure_Product_Attributes` currency outputs fail `sf agent publish`, so it is listed in `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) and its permission set's `<agentAccesses>` is stripped until the 264 template is recaptured. The bundle source still deploys (as the capture target); it is not published or activated. |
 | Quoting Assistant agent | `aiAuthoringBundles/RLM_Quoting_Assistant/` | Builder Script `.agent` authoring bundle (developer name `RLM_Quoting_Assistant`; label "Quoting Assistant"). A ground-up, scoped demo quoting agent — tight arc (find products → create/identify quote → add line → discount → configure → totals), unified no-redundant-confirmation policy (`require_user_confirmation: False` everywhere), and a names-not-IDs presentation contract (native record cards; Id outputs flagged `is_used_by_planner: false`). Backed by the three `RLM_AI_*` helper services/flows below. Intentionally excludes asset lifecycle and usage/consumption. |
 | Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Assistant"). |
 | Quoting Assistant helper services | `classes/RLM_AI_AddProductToQuoteService`, `RLM_AI_ApplyQuoteLineDiscountsService`, `RLM_AI_QuoteDemoSummaryService` (+ tests) | Apex invocable services behind the Quoting Assistant's three helper flows (`flows/RLM_AI_Add_Product_To_Quote`, `RLM_AI_Apply_Quote_Line_Discounts`, `RLM_AI_Get_Quote_Demo_Summary`): one-call add-product (resolves product + default selling model, then the managed add-line), one-call bulk line discount (high-level targeting: applyToAll / productName / display-ordinals; percent, target-price, percent-of-list modes), and a read-only names-only quote recap. Each isolates the managed `quotingAI__*` invocation behind a `@TestVisible` invoker seam. |
-| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
+| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each grants Lightning users access to its agent via `<agentAccesses>`. **`RLM_QuotingAgent`'s block is currently stripped (pack 187)** — its agent (`RLM_Revenue_Quote_Management`) is omitted from publish, so a live `<agentAccesses>` reference would dangle and fail deploy; restore it when the bundle is re-added. |
 
 `AiAuthoringBundle` requires **API version 65.0 or higher**.
 
@@ -64,7 +64,7 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 9. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
 10. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
-Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`). It is currently **`false`** in `cumulusci.yml` — `publish_agents` fails on v68/264 for the `RLM_Revenue_Quote_Management` bundle's `Configure_Product_Attributes` currency outputs, so these ten steps are temporarily skipped on every build (tracked as pack 187; preferred fix: omit that standard-template bundle and capture the current 264 version, then re-enable). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
+Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`), which is **`true`**. On v68/264 the `RLM_Revenue_Quote_Management` bundle's `Configure_Product_Attributes` currency outputs fail `sf agent publish`, so that one bundle is **omitted** from publish/activate/deactivate via `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) and its permission set's `<agentAccesses>` is stripped — the other two agents publish and activate normally, and the ten steps run (tracked as pack 187; the follow-up is to capture the current 264 template and re-add it). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
 ## Why post-deploy publish + activation are required
 
@@ -160,7 +160,13 @@ Fix:
    cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent"
    ```
 
-4. Verify `SetupEntityAccess` rows exist for all three permission sets and current `BotDefinition` records, then hard-refresh UI.
+4. Verify `SetupEntityAccess` rows exist for `RLM_QuotingAssistant` and
+   `RLM_BillingEmployeeAgent` against their current `BotDefinition` records, then
+   hard-refresh UI. **Do not expect a row for `RLM_QuotingAgent`:** its
+   `<agentAccesses>` binding to `RLM_Revenue_Quote_Management` is intentionally
+   stripped (pack 187 — the bundle is omitted from publish/activate on v68/264),
+   so that permission set is assigned but carries no agent access until the 264
+   template is recaptured. Its absence is expected, not the fault above.
 
 ### Publish fails with restricted picklist error on `Generative AI Function Definition ID`
 
