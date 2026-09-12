@@ -17,9 +17,28 @@ except ImportError:
     CommandException = Exception
 
 
+# Bundles present on disk but deliberately excluded from the agent lifecycle.
+# See todo pack 187: on v68/264, ``RLM_Revenue_Quote_Management``'s
+# ``Configure_Product_Attributes`` action has five currency output params that
+# ``sf agent publish`` no longer accepts as scalars, aborting ``prepare_agents``.
+# The bundle is a standard agent template that changed 262→264 and has not yet
+# been recaptured, so it is omitted rather than hand-patched. The source stays
+# on disk (and is still deployed by ``deploy_agents``, which does not compile)
+# as the capture target — remove the entry once the 264 template is captured and
+# reintroduced. This is the single disk-discovery point, so ``publish_agents``,
+# ``activate_agents`` and ``deactivate_agents`` skip it uniformly — which also
+# avoids activating a bundle that was never published. (``test_agents`` does not
+# discover from disk; it maps a static suite list and never referenced this
+# bundle. Its permission set's ``<agentAccesses>`` binding is separately removed
+# in unpackaged/post_agents/permissionsets, since that deploys via a directory
+# Deploy rather than this filter.)
+EXCLUDED_BUNDLES = frozenset({"RLM_Revenue_Quote_Management"})
+
+
 def discover_agent_bundles(bundles_root):
     """Return the sorted directory names under ``bundles_root`` (each is an
-    agent api-name), or ``[]`` if the directory does not exist.
+    agent api-name), minus any in ``EXCLUDED_BUNDLES``, or ``[]`` if the
+    directory does not exist.
 
     The directory name is the agent api-name for both ``sf agent publish
     authoring-bundle --api-name`` and ``sf agent activate --api-name``; the
@@ -28,7 +47,11 @@ def discover_agent_bundles(bundles_root):
     """
     if not bundles_root.is_dir():
         return []
-    return sorted(p.name for p in bundles_root.iterdir() if p.is_dir())
+    return sorted(
+        p.name
+        for p in bundles_root.iterdir()
+        if p.is_dir() and p.name not in EXCLUDED_BUNDLES
+    )
 
 
 def run_sf_json(cmd, *, timeout, label, cwd=None):

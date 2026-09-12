@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <agentAccesses>
-        <agentName>RLM_Revenue_Quote_Management</agentName>
-        <enabled>true</enabled>
-    </agentAccesses>
+    <!-- pack 187: the <agentAccesses> binding to RLM_Revenue_Quote_Management is
+         removed while that bundle is omitted from the agent lifecycle (see
+         EXCLUDED_BUNDLES in tasks/rlm_agents_common.py). The bundle is never
+         published on v68/264, so a <agentAccesses> block here would resolve
+         against a BotDefinition that does not exist and fail deploy_agent_permission_sets
+         (this file deploys via a directory Deploy, not the discovery filter).
+         Restore the block below once the 264 template is recaptured and re-added:
+             <agentAccesses>
+                 <agentName>RLM_Revenue_Quote_Management</agentName>
+                 <enabled>true</enabled>
+             </agentAccesses>
+    -->
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Quoting Agent</label>
 </PermissionSet>
