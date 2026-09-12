@@ -44,7 +44,10 @@ class DeactivateAgents(BaseSalesforceTask):
 
     def _run_task(self):
         bundles_root = Path(self.options.get("bundles_path") or DEFAULT_BUNDLES_PATH)
-        agents = discover_agent_bundles(bundles_root)
+        # include_excluded: an EXCLUDED_BUNDLES entry (omitted from publish) may
+        # still be active from a 262→264 upgrade; deactivating it is a no-op if
+        # it is missing/inactive, so it is always safe to include here.
+        agents = discover_agent_bundles(bundles_root, include_excluded=True)
 
         if not agents:
             self.logger.info(

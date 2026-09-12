@@ -17,7 +17,8 @@ except ImportError:
     CommandException = Exception
 
 
-# Bundles present on disk but deliberately excluded from the agent lifecycle.
+# Bundles present on disk but deliberately excluded from *compilation* — i.e.
+# from ``publish_agents`` and ``activate_agents``.
 # See todo pack 187: on v68/264, ``RLM_Revenue_Quote_Management``'s
 # ``Configure_Product_Attributes`` action has five currency output params that
 # ``sf agent publish`` no longer accepts as scalars, aborting ``prepare_agents``.
@@ -25,20 +26,32 @@ except ImportError:
 # been recaptured, so it is omitted rather than hand-patched. The source stays
 # on disk (and is still deployed by ``deploy_agents``, which does not compile)
 # as the capture target — remove the entry once the 264 template is captured and
-# reintroduced. This is the single disk-discovery point, so ``publish_agents``,
-# ``activate_agents`` and ``deactivate_agents`` skip it uniformly — which also
-# avoids activating a bundle that was never published. (``test_agents`` does not
-# discover from disk; it maps a static suite list and never referenced this
-# bundle. Its permission set's ``<agentAccesses>`` binding is separately removed
-# in unpackaged/post_agents/permissionsets, since that deploys via a directory
+# reintroduced.
+#
+# The exclusion is *operation-specific*, not applied at every call site.
+# ``publish_agents``/``activate_agents`` skip the bundle (default), so nothing
+# tries to compile or activate it. ``deactivate_agents`` deliberately keeps it
+# (``include_excluded=True``): on a 262→264 *upgraded* org the old BotVersion may
+# already be published and active, and skipping it there would leave it active
+# indefinitely. Deactivation of a missing/inactive agent is a no-op, so including
+# it is safe on a fresh org too. (``test_agents`` does not discover from disk; it
+# maps a static suite list and never referenced this bundle. Its permission set's
+# ``<agentAccesses>`` binding is separately removed in
+# unpackaged/post_agents/permissionsets, since that deploys via a directory
 # Deploy rather than this filter.)
 EXCLUDED_BUNDLES = frozenset({"RLM_Revenue_Quote_Management"})
 
 
-def discover_agent_bundles(bundles_root):
+def discover_agent_bundles(bundles_root, *, include_excluded=False):
     """Return the sorted directory names under ``bundles_root`` (each is an
-    agent api-name), minus any in ``EXCLUDED_BUNDLES``, or ``[]`` if the
-    directory does not exist.
+    agent api-name), or ``[]`` if the directory does not exist.
+
+    By default, names in ``EXCLUDED_BUNDLES`` are omitted — the contract for
+    the compiling operations (``publish_agents``, ``activate_agents``). Pass
+    ``include_excluded=True`` for ``deactivate_agents``, which must be able to
+    deactivate a bundle that was excluded from publish but may still be active
+    from a prior (e.g. 262→264 upgraded) org; deactivating a missing/inactive
+    agent is a no-op.
 
     The directory name is the agent api-name for both ``sf agent publish
     authoring-bundle --api-name`` and ``sf agent activate --api-name``; the
@@ -50,7 +63,7 @@ def discover_agent_bundles(bundles_root):
     return sorted(
         p.name
         for p in bundles_root.iterdir()
-        if p.is_dir() and p.name not in EXCLUDED_BUNDLES
+        if p.is_dir() and (include_excluded or p.name not in EXCLUDED_BUNDLES)
     )
 
 

@@ -160,7 +160,13 @@ Fix:
    cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent"
    ```
 
-4. Verify `SetupEntityAccess` rows exist for all three permission sets and current `BotDefinition` records, then hard-refresh UI.
+4. Verify `SetupEntityAccess` rows exist for `RLM_QuotingAssistant` and
+   `RLM_BillingEmployeeAgent` against their current `BotDefinition` records, then
+   hard-refresh UI. **Do not expect a row for `RLM_QuotingAgent`:** its
+   `<agentAccesses>` binding to `RLM_Revenue_Quote_Management` is intentionally
+   stripped (pack 187 — the bundle is omitted from publish/activate on v68/264),
+   so that permission set is assigned but carries no agent access until the 264
+   template is recaptured. Its absence is expected, not the fault above.
 
 ### Publish fails with restricted picklist error on `Generative AI Function Definition ID`
 
