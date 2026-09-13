@@ -142,6 +142,37 @@ def make_fp_transform(old, new):
     return transform
 
 
+def missing_sources(src_root: Path):
+    """Return every mapped source input (repo-relative to `src_root`) that is absent.
+
+    This is the single source of truth for what a complete extraction must contain,
+    used by main() as a PREFLIGHT: a fixed bundle has no valid subset, and the default
+    destination is the committed module, so a partial extraction must be caught before
+    the first write — otherwise it clobbers committed output with a mixed/partial
+    bundle and only then exits nonzero. An LWC bundle needs at least its same-name
+    .js and .js-meta.xml to deploy; Apex needs both .cls and .cls-meta.xml.
+    """
+    missing = []
+    for old in LWC_MAP:
+        for rel in (f"lwc/{old}/{old}.js", f"lwc/{old}/{old}.js-meta.xml"):
+            if not (src_root / rel).exists():
+                missing.append(rel)
+    for old in APEX_MAP:
+        for ext in (".cls", ".cls-meta.xml"):
+            rel = f"classes/{old}{ext}"
+            if not (src_root / rel).exists():
+                missing.append(rel)
+    for fname in ("InvoiceCardLogo.png", "InvoiceCardLogo.resource-meta.xml"):
+        rel = f"staticresources/{fname}"
+        if not (src_root / rel).exists():
+            missing.append(rel)
+    for old in FLEXIPAGE_MAP:
+        rel = f"flexipages/{old}.flexipage-meta.xml"
+        if not (src_root / rel).exists():
+            missing.append(rel)
+    return missing
+
+
 def _disp(path: Path) -> str:
     """Render a path relative to ROOT when it lives inside the repo, else absolute.
     SRC may be overridden (RLM_BILLING_LWC_SRC / argv[1]) to a dir outside the repo,
@@ -188,10 +219,20 @@ def main(argv=None):
         or ROOT / "templates" / "flexipages" / "standalone" / "billing_ui"
     ).resolve()
 
-    # Track mapped inputs the source did not supply. This is a fixed bundle, so a
-    # missing input means a broken/incomplete extraction, not a valid subset — main()
-    # exits nonzero rather than silently writing a partial module (see the end).
-    missing = []
+    # ── 0. Preflight ─────────────────────────────────────────────────────────
+    # Verify EVERY mapped source input exists before creating or writing a single
+    # destination file. The default destination is the committed module, so a
+    # broken/incomplete extraction must fail here — not after half the bundle has
+    # already overwritten committed output. Nothing below runs unless the source
+    # is complete.
+    missing = missing_sources(SRC)
+    if missing:
+        print("=== PREFLIGHT FAILED ===")
+        print(f"{len(missing)} mapped source input(s) missing — a broken/incomplete "
+              "extraction, not a valid subset. Nothing was written:")
+        for m in missing:
+            print(f"  MISSING  {m}")
+        return 1
 
     # ── 1. LWC components ────────────────────────────────────────────────────
     print("\n=== LWC COMPONENTS ===")
@@ -201,21 +242,6 @@ def main(argv=None):
     for old_name, new_name in LWC_MAP.items():
         src_dir = lwc_src / old_name
         dst_dir = lwc_dst / new_name
-        if not src_dir.exists():
-            print(f"  WARN  source dir not found: {src_dir}")
-            missing.append(f"lwc/{old_name}")
-            continue
-        # A present-but-incomplete bundle is still a broken extraction: an LWC needs
-        # at least its same-name .js and .js-meta.xml to deploy. Require both rather
-        # than copying whatever happens to be there and exiting 0 on an undeployable
-        # component.
-        required = [f"{old_name}.js", f"{old_name}.js-meta.xml"]
-        absent = [r for r in required if not (src_dir / r).exists()]
-        if absent:
-            for r in absent:
-                print(f"  WARN  incomplete LWC bundle, missing: {src_dir / r}")
-                missing.append(f"lwc/{old_name}/{r}")
-            continue
         dst_dir.mkdir(parents=True, exist_ok=True)
         print(f"\n  [{old_name}] → [{new_name}]")
 
@@ -242,11 +268,6 @@ def main(argv=None):
         for ext in (".cls", ".cls-meta.xml"):
             src_file = cls_src / f"{old_name}{ext}"
             dst_file = cls_dst / f"{new_name}{ext}"
-            if not src_file.exists():
-                print(f"  WARN  not found: {src_file}")
-                missing.append(f"classes/{old_name}{ext}")
-                continue
-
             if ext == ".cls":
                 read_write(src_file, dst_file, transform=make_cls_transform(old_name, new_name))
             else:
@@ -263,10 +284,6 @@ def main(argv=None):
     for fname in ("InvoiceCardLogo.png", "InvoiceCardLogo.resource-meta.xml"):
         src_file = sr_src / fname
         dst_file = sr_dst / fname
-        if not src_file.exists():
-            print(f"  WARN  not found: {src_file}")
-            missing.append(f"staticresources/{fname}")
-            continue
         if fname.endswith(".xml"):
             read_write(src_file, dst_file, transform=apply_all_renames)
         else:
@@ -280,11 +297,6 @@ def main(argv=None):
     for old_name, new_name in FLEXIPAGE_MAP.items():
         src_file = fp_src / f"{old_name}.flexipage-meta.xml"
         dst_file = DEST_FLEXIPAGES / f"{new_name}.flexipage-meta.xml"
-        if not src_file.exists():
-            print(f"  WARN  not found: {src_file}")
-            missing.append(f"flexipages/{old_name}.flexipage-meta.xml")
-            continue
-
         print(f"\n  [{old_name}] → [{new_name}]")
         read_write(src_file, dst_file, transform=make_fp_transform(old_name, new_name))
 
@@ -310,14 +322,6 @@ def main(argv=None):
 
     fp_present = [n for n in FLEXIPAGE_MAP.values() if (DEST_FLEXIPAGES / f"{n}.flexipage-meta.xml").exists()]
     print(f"\nFlexipages:          {len(fp_present)} / {len(FLEXIPAGE_MAP)} generator-owned present")
-
-    if missing:
-        print(f"\nFAILED: {len(missing)} mapped source input(s) were missing — the module is "
-              "incomplete. This is a fixed bundle, so a missing input is a broken extraction, "
-              "not a valid subset:")
-        for m in missing:
-            print(f"  MISSING  {m}")
-        return 1
 
     print("\nDone.")
     return 0

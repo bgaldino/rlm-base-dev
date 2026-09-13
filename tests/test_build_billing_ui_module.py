@@ -235,7 +235,9 @@ def test_end_to_end_build_is_safe_and_idempotent(m):
                     for n in m.APEX_MAP.values()
                     if (dest / "classes" / f"{n}.cls").exists()}
         before = _all_cls(dest1)
-        _run(src, dest1)
+        r2 = _run(src, dest1)
+        check("second run into the same dir also exits 0", r2.returncode == 0,
+              (r2.stderr or r2.stdout)[-400:])
         after = _all_cls(dest1)
         check("re-running into the same dir is byte-identical for every class",
               before and before == after,
@@ -268,6 +270,11 @@ def test_partial_source_fails(m):
               r.stdout[-400:])
         check("an existing-but-incomplete LWC bundle is caught",
               f"{gutted}.js" in r.stdout, r.stdout[-400:])
+        # Preflight must fail BEFORE any write, so a partial extraction cannot
+        # clobber committed output with a half-written bundle.
+        wrote = list(dest.rglob("*")) if dest.exists() else []
+        check("a failed preflight leaves the destination untouched", not wrote,
+              f"unexpected writes: {[str(p) for p in wrote][:5]}")
 
 
 def _no_raise(fn):
