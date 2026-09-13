@@ -25,6 +25,7 @@ Offline, no org: `python tests/test_build_billing_ui_module.py`.
 """
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -113,39 +114,81 @@ def test_idempotent(m):
           m.apply_all_renames("RLM_SplitInvoicesController") == "RLM_SplitInvoicesController")
 
 
+def _write_full_source(m, src: Path):
+    """Materialize a COMPLETE synthetic source tree — every mapped input the
+    generator expects (all LWC_MAP dirs, all APEX_MAP .cls/.cls-meta pairs, both
+    static resources, all FLEXIPAGE_MAP pages) — so a build over it has nothing
+    missing and must exit 0. Returns nothing; writes under `src`."""
+    (src / "classes").mkdir(parents=True, exist_ok=True)
+    for old in m.APEX_MAP:
+        # A body that references another mapped class exercises the cross-reference
+        # rename + the single-prefix guard on every class, not just one.
+        (src / "classes" / f"{old}.cls").write_text(
+            f"public with sharing class {old} {{\n"
+            f"  public static String go() {{ return InvoiceAgingController.x(); }}\n}}\n",
+            encoding="utf-8",
+        )
+        (src / "classes" / f"{old}.cls-meta.xml").write_text(
+            "<?xml version=\"1.0\"?><ApexClass></ApexClass>\n", encoding="utf-8"
+        )
+
+    # Pick a second, distinct LWC name to cross-reference in each component body so
+    # the end-to-end build actually exercises LWC name renaming (and, since
+    # `invoiceAging` is a prefix of `invoiceAgingChart`, the length-desc ordering
+    # guard) — not just the Apex cross-reference.
+    lwc_names = list(m.LWC_MAP)
+    for i, old in enumerate(lwc_names):
+        other = lwc_names[(i + 1) % len(lwc_names)]
+        d = src / "lwc" / old
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"{old}.js").write_text(
+            "import { LightningElement } from 'lwc';\n"
+            f"import Other from 'c/{other}';\n"
+            f"export default class extends LightningElement {{}} // {old}\n",
+            encoding="utf-8",
+        )
+        (d / f"{old}.js-meta.xml").write_text(
+            "<?xml version=\"1.0\"?><LightningComponentBundle></LightningComponentBundle>\n",
+            encoding="utf-8",
+        )
+
+    (src / "staticresources").mkdir(parents=True, exist_ok=True)
+    (src / "staticresources" / "InvoiceCardLogo.png").write_bytes(b"\x89PNG\r\n")
+    (src / "staticresources" / "InvoiceCardLogo.resource-meta.xml").write_text(
+        "<?xml version=\"1.0\"?><StaticResource></StaticResource>\n", encoding="utf-8"
+    )
+
+    (src / "flexipages").mkdir(parents=True, exist_ok=True)
+    for old in m.FLEXIPAGE_MAP:
+        label = old.replace("_", " ")
+        (src / "flexipages" / f"{old}.flexipage-meta.xml").write_text(
+            f"<?xml version=\"1.0\"?><FlexiPage><masterLabel>{label}</masterLabel></FlexiPage>\n",
+            encoding="utf-8",
+        )
+
+
+def _run(src: Path, dest: Path):
+    env = dict(os.environ,
+               RLM_BILLING_LWC_SRC=str(src),
+               RLM_BILLING_UI_DEST=str(dest),
+               RLM_BILLING_UI_FLEXIPAGE_DEST=str(dest / "flexipages"))
+    return subprocess.run([sys.executable, str(MODULE_PATH)],
+                          env=env, capture_output=True, text=True)
+
+
 def test_end_to_end_build_is_safe_and_idempotent(m):
-    """Run the real script against a synthetic source, with outputs redirected to a
-    temp tree, and assert the generated Apex is correct and a re-run is byte-identical."""
+    """Run the real script against a COMPLETE synthetic source, outputs redirected
+    to a temp tree, and assert it exits 0, the generated Apex is correct, and a
+    re-run is byte-identical."""
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         src = td / "src"
-        (src / "classes").mkdir(parents=True)
-        (src / "classes" / "SplitInvoicesController.cls").write_text(
-            "public with sharing class SplitInvoicesController {\n"
-            "  public static String go() { return InvoiceAgingController.x(); }\n}\n",
-            encoding="utf-8",
-        )
-        (src / "classes" / "SplitInvoicesController.cls-meta.xml").write_text(
-            "<?xml version=\"1.0\"?><ApexClass></ApexClass>\n", encoding="utf-8"
-        )
-        (src / "classes" / "TransactionJournalRelatedListController.cls").write_text(
-            "public class TransactionJournalRelatedListController {}\n", encoding="utf-8"
-        )
-        (src / "classes" / "TransactionJournalRelatedListController.cls-meta.xml").write_text(
-            "<?xml version=\"1.0\"?><ApexClass></ApexClass>\n", encoding="utf-8"
-        )
-
-        def run(dest):
-            env = dict(os.environ,
-                       RLM_BILLING_LWC_SRC=str(src),
-                       RLM_BILLING_UI_DEST=str(dest),
-                       RLM_BILLING_UI_FLEXIPAGE_DEST=str(dest / "flexipages"))
-            return subprocess.run([sys.executable, str(MODULE_PATH)],
-                                  env=env, capture_output=True, text=True)
+        _write_full_source(m, src)
 
         dest1 = td / "out1"
-        r1 = run(dest1)
-        check("end-to-end run exits 0", r1.returncode == 0, r1.stderr[-300:])
+        r1 = _run(src, dest1)
+        check("complete-source run exits 0", r1.returncode == 0,
+              (r1.stderr or r1.stdout)[-400:])
 
         gen = (dest1 / "classes" / "RLM_SplitInvoicesController.cls")
         check("generated .cls has the RLM_-prefixed name", gen.exists())
@@ -160,13 +203,65 @@ def test_end_to_end_build_is_safe_and_idempotent(m):
         check("the 43-char orphan name was NOT emitted",
               not (dest1 / "classes" / "RLM_TransactionJournalRelatedListController.cls").exists())
 
-        # Re-run into a fresh dir; a maintained generator must be reproducible.
-        dest2 = td / "out2"
-        run(dest2)
-        b1 = (dest1 / "classes" / "RLM_SplitInvoicesController.cls").read_text(encoding="utf-8") if gen.exists() else ""
-        b2p = (dest2 / "classes" / "RLM_SplitInvoicesController.cls")
-        b2 = b2p.read_text(encoding="utf-8") if b2p.exists() else "<missing>"
-        check("re-running the build is byte-identical", b1 == b2)
+        # Every mapped output present — the verification block's own success criterion.
+        check("all APEX_MAP classes emitted",
+              all((dest1 / "classes" / f"{n}.cls").exists() for n in m.APEX_MAP.values()))
+        check("all LWC_MAP components emitted",
+              all((dest1 / "lwc" / n).exists() for n in m.LWC_MAP.values()))
+        check("all FLEXIPAGE_MAP pages emitted",
+              all((dest1 / "flexipages" / f"{n}.flexipage-meta.xml").exists()
+                  for n in m.FLEXIPAGE_MAP.values()))
+
+        # LWC cross-reference import must be renamed to the mapped `rlm…` name (and
+        # never left as the lowercase source name), across the whole bundle.
+        def _lwc_body(dest, new_name):
+            f = dest / "lwc" / new_name / f"{new_name}.js"
+            return f.read_text(encoding="utf-8") if f.exists() else ""
+        lwc_names = list(m.LWC_MAP)
+        lwc_xref_ok = True
+        for i, old in enumerate(lwc_names):
+            new = m.LWC_MAP[old]
+            other_new = m.LWC_MAP[lwc_names[(i + 1) % len(lwc_names)]]
+            body = _lwc_body(dest1, new)
+            if f"c/{other_new}" not in body or f"c/{old}" in body or f"'c/{lwc_names[(i + 1) % len(lwc_names)]}'" in body:
+                lwc_xref_ok = False
+                break
+        check("LWC cross-reference imports renamed to mapped rlm… names", lwc_xref_ok)
+
+        # True re-run idempotency: run AGAIN into the same dir and assert every
+        # generator-owned .cls is byte-for-byte unchanged (not just one file).
+        def _all_cls(dest):
+            return {n: (dest / "classes" / f"{n}.cls").read_text(encoding="utf-8")
+                    for n in m.APEX_MAP.values()
+                    if (dest / "classes" / f"{n}.cls").exists()}
+        before = _all_cls(dest1)
+        _run(src, dest1)
+        after = _all_cls(dest1)
+        check("re-running into the same dir is byte-identical for every class",
+              before and before == after,
+              f"{sum(1 for k in before if before.get(k) != after.get(k))} class(es) differ")
+
+
+def test_partial_source_fails(m):
+    """A partial source tree (missing mapped inputs) is a broken extraction, not a
+    valid subset. The build must exit NONZERO and name the missing inputs rather
+    than silently writing an incomplete module."""
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        src = td / "src"
+        _write_full_source(m, src)
+        # Remove one mapped input of each kind.
+        (src / "classes" / "SplitInvoicesController.cls").unlink()
+        first_lwc = next(iter(m.LWC_MAP))
+        shutil.rmtree(src / "lwc" / first_lwc)
+
+        dest = td / "out"
+        r = _run(src, dest)
+        check("partial-source run exits nonzero", r.returncode != 0,
+              f"returncode={r.returncode}")
+        check("failure output names a missing input",
+              "MISSING" in r.stdout and "SplitInvoicesController.cls" in r.stdout,
+              r.stdout[-400:])
 
 
 def _no_raise(fn):
@@ -187,6 +282,7 @@ def main():
     test_no_double_prefix(m)
     test_idempotent(m)
     test_end_to_end_build_is_safe_and_idempotent(m)
+    test_partial_source_fails(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

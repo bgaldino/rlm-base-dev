@@ -188,6 +188,11 @@ def main(argv=None):
         or ROOT / "templates" / "flexipages" / "standalone" / "billing_ui"
     ).resolve()
 
+    # Track mapped inputs the source did not supply. This is a fixed bundle, so a
+    # missing input means a broken/incomplete extraction, not a valid subset — main()
+    # exits nonzero rather than silently writing a partial module (see the end).
+    missing = []
+
     # ── 1. LWC components ────────────────────────────────────────────────────
     print("\n=== LWC COMPONENTS ===")
     lwc_src = SRC / "lwc"
@@ -198,6 +203,7 @@ def main(argv=None):
         dst_dir = lwc_dst / new_name
         if not src_dir.exists():
             print(f"  WARN  source dir not found: {src_dir}")
+            missing.append(f"lwc/{old_name}")
             continue
         dst_dir.mkdir(parents=True, exist_ok=True)
         print(f"\n  [{old_name}] → [{new_name}]")
@@ -227,6 +233,7 @@ def main(argv=None):
             dst_file = cls_dst / f"{new_name}{ext}"
             if not src_file.exists():
                 print(f"  WARN  not found: {src_file}")
+                missing.append(f"classes/{old_name}{ext}")
                 continue
 
             if ext == ".cls":
@@ -247,6 +254,7 @@ def main(argv=None):
         dst_file = sr_dst / fname
         if not src_file.exists():
             print(f"  WARN  not found: {src_file}")
+            missing.append(f"staticresources/{fname}")
             continue
         if fname.endswith(".xml"):
             read_write(src_file, dst_file, transform=apply_all_renames)
@@ -263,39 +271,46 @@ def main(argv=None):
         dst_file = DEST_FLEXIPAGES / f"{new_name}.flexipage-meta.xml"
         if not src_file.exists():
             print(f"  WARN  not found: {src_file}")
+            missing.append(f"flexipages/{old_name}.flexipage-meta.xml")
             continue
 
         print(f"\n  [{old_name}] → [{new_name}]")
         read_write(src_file, dst_file, transform=make_fp_transform(old_name, new_name))
 
     # ── 5. Verification summary ────────────────────────────────────────────────
+    # Count only the generator's OWN outputs, against len(MAP). The default
+    # destination also holds 23 hand-authored classes (see README.md), so globbing
+    # the whole directory would report "34 (expected 11)" and contradict that split.
     print("\n\n=== VERIFICATION ===")
 
-    lwc_dirs = list((DEST_MODULE / "lwc").iterdir()) if (DEST_MODULE / "lwc").exists() else []
-    print(f"LWC components:      {len(lwc_dirs)}  (expected 17)")
-    for d in sorted(lwc_dirs):
-        files = list(d.iterdir())
-        print(f"  {d.name:45s}  ({len(files)} files)")
+    lwc_present = [n for n in LWC_MAP.values() if (DEST_MODULE / "lwc" / n).exists()]
+    print(f"LWC components:      {len(lwc_present)} / {len(LWC_MAP)} generator-owned present")
 
-    cls_files = list((DEST_MODULE / "classes").glob("*.cls")) if (DEST_MODULE / "classes").exists() else []
-    meta_files = list((DEST_MODULE / "classes").glob("*.cls-meta.xml")) if (DEST_MODULE / "classes").exists() else []
-    print(f"\nApex .cls files:     {len(cls_files)}  (expected 11)")
-    print(f"Apex meta files:     {len(meta_files)}  (expected 11)")
-    for f in sorted(cls_files):
-        print(f"  {f.name}")
+    cls_present = [n for n in APEX_MAP.values() if (DEST_MODULE / "classes" / f"{n}.cls").exists()]
+    meta_present = [n for n in APEX_MAP.values() if (DEST_MODULE / "classes" / f"{n}.cls-meta.xml").exists()]
+    print(f"Apex .cls files:     {len(cls_present)} / {len(APEX_MAP)} generator-owned present")
+    print(f"Apex meta files:     {len(meta_present)} / {len(APEX_MAP)} generator-owned present")
+    for n in sorted(cls_present):
+        print(f"  {n}.cls")
 
-    sr_files = list((DEST_MODULE / "staticresources").iterdir()) if (DEST_MODULE / "staticresources").exists() else []
-    print(f"\nStatic resources:    {len(sr_files)}  (expected 2)")
-    for f in sorted(sr_files):
-        print(f"  {f.name}")
+    sr_names = ("InvoiceCardLogo.png", "InvoiceCardLogo.resource-meta.xml")
+    sr_present = [n for n in sr_names if (DEST_MODULE / "staticresources" / n).exists()]
+    print(f"\nStatic resources:    {len(sr_present)} / {len(sr_names)} generator-owned present")
 
-    fp_files = list(DEST_FLEXIPAGES.glob("*.flexipage-meta.xml")) if DEST_FLEXIPAGES.exists() else []
-    print(f"\nFlexipages:          {len(fp_files)}  (expected 8)")
-    for f in sorted(fp_files):
-        print(f"  {f.name}")
+    fp_present = [n for n in FLEXIPAGE_MAP.values() if (DEST_FLEXIPAGES / f"{n}.flexipage-meta.xml").exists()]
+    print(f"\nFlexipages:          {len(fp_present)} / {len(FLEXIPAGE_MAP)} generator-owned present")
+
+    if missing:
+        print(f"\nFAILED: {len(missing)} mapped source input(s) were missing — the module is "
+              "incomplete. This is a fixed bundle, so a missing input is a broken extraction, "
+              "not a valid subset:")
+        for m in missing:
+            print(f"  MISSING  {m}")
+        return 1
 
     print("\nDone.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
