@@ -16,8 +16,9 @@ locations in the README:
      e.g. dated "Schema Analysis" / "ExternalId Assessment" tables — are deliberately
      NOT treated as the object table, so a README whose only object-style table has
      no `Operation` column is reported as "Skipped".
-     A valid `Pass` column binds the record count to that pass's source CSV;
-     rows without a resolved Pass retain unordered CSV-count matching.
+     For live writable declarations, a valid `Pass` column binds the record count
+     to that pass's source CSV. Other rows retain unordered CSV-count matching
+     when files exist; Readonly/Delete/excluded declarations do not require a CSV.
   2. The **file-structure listing** — lines like `Foo.csv   # 315 records`.
 
 Free-form prose and dated changelog/history counts are intentionally NOT parsed,
@@ -200,7 +201,7 @@ def csv_index(plan_dir: str) -> dict[str, list[str]]:
 
 def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int,
                       count_cache: dict):
-    """(count, path-relative-to-plan_dir) for the CSV this pass actually reads,
+    """(count, path-relative-to-plan_dir) for the CSV at this pass's source location,
     mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
     always reads the root CSV regardless of an object-set-1/ override or the flag;
     pass N>1 reads objectset_source/object-set-N/<name>.csv only when
@@ -208,6 +209,10 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
     Restricting to the root CSV unconditionally (the prior behavior) emitted `—`
     for an object sourced only from an objectset_source override, e.g.
     procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file).
+
+    This locates files, not runtime reads: the generator also documents optional
+    files for Readonly/Delete/excluded declarations. The checker imposes source
+    requirements only on live writable variants.
 
     This is a deliberately simpler read-only echo of that rule for display purposes,
     not a call into the validator itself — commit 50d7e383 changed exactly this rule
@@ -339,7 +344,7 @@ def parse_object_tables(lines: list[str]):
 
 # --- checks ---------------------------------------------------------------
 
-def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
+def check_count_claims(rel, claims_by_name, counts, errors, suffix="", reserved_counts=None):
     """Match each claimed record count to a DISTINCT actual CSV.
 
     An object can map to several CSVs — a Pass-1 source plus a smaller
@@ -348,6 +353,8 @@ def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
     count, so a README that lists 9/9 is flagged even though 9 is "present".
     When every CSV shares one count (or there's a single CSV), duplicate correct
     claims are fine and under-listing (fewer claims than CSVs) is not an error.
+    `reserved_counts` contains one count per distinct CSV already matched by
+    explicit pass rows, so legacy rows cannot reuse those files.
     """
     for name, claims in claims_by_name.items():
         if name not in counts:
@@ -356,6 +363,7 @@ def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
         label = f"`{name}{suffix}`"
         if len(set(actual)) > 1:
             avail = Counter(actual)
+            avail.subtract((reserved_counts or {}).get(name, []))
             for ln, claimed in claims:
                 if avail.get(claimed, 0) > 0:
                     avail[claimed] -= 1
@@ -402,6 +410,7 @@ def check_plan(plan_dir: str):
     seen_any_pass: set[str] = set()
     seen_specific_passes: dict[str, set[int]] = {}
     table_count_claims: dict[str, list] = {}  # object -> [(line, claimed_count)]
+    bound_sources: dict[str, dict[str, int]] = {}  # object -> {CSV path: row count}
     for row in parse_object_tables(lines):
         parsed_anything = True
         object_table_found = True
@@ -520,13 +529,14 @@ def check_plan(plan_dir: str):
             if wants and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` externalId README={got!r} export.json={sorted(wants)}")
 
-        # A valid Pass binds the count to its effective source CSV, using the
+        # A live writable Pass binds the count to its effective source CSV, using the
         # same resolver as README generation. Counts for two passes may legitimately
         # reuse one root CSV; a count from another pass's override cannot substitute.
-        if row["records"] is not None and has_csv:
+        if row["records"] is not None:
             claimed = parse_int(row["records"])
             if claimed is not None:
-                if row_pass is not None and compare_variants:
+                if row_pass is not None and any(
+                        SFDMUValidator._is_live_writable(v) for v in compare_variants):
                     actual, source = resolve_pass_csv(
                         plan_dir, csvs, use_separated, name, row_pass, count_cache)
                     if actual is None:
@@ -535,11 +545,19 @@ def check_plan(plan_dir: str):
                     elif claimed != actual:
                         errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
                                       f"actual CSV={actual} ({source})")
-                else:
+                    else:
+                        # Reserve each physical file once, even when multiple
+                        # explicit passes legitimately read that same file.
+                        bound_sources.setdefault(name, {})[source] = actual
+                elif has_csv:
+                    # Non-writable rows may describe optional CSVs or org records.
+                    # Preserve the existing file-count check without requiring a file.
                     table_count_claims.setdefault(name, []).append((ln, claimed))
 
-    # Legacy rows without a resolved Pass retain unordered, distinct-CSV matching.
-    check_count_claims(rel, table_count_claims, counts, errors)
+    # Legacy and non-writable rows retain unordered, distinct-CSV matching.
+    check_count_claims(rel, table_count_claims, counts, errors,
+                       reserved_counts={name: list(sources.values())
+                                        for name, sources in bound_sources.items()})
 
     # 2) File-structure CSV listings  (Foo.csv  # N records)
     fs_claims: dict[str, list] = {}

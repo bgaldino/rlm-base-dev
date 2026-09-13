@@ -251,9 +251,68 @@ PASS_COUNTS = [
 ]
 
 
+
+MIXED_PASS_COUNTS = [
+    ("a blank-Pass row cannot reuse the CSV already bound to pass 1", 1,
+     len(_count_check(records=(5, 5), passes=(1, ""))[0])),
+    ("a blank-Pass row can use the other CSV count", ([], [], True),
+     _count_check(passes=(1, ""))),
+    ("legacy row order does not affect reserved CSV matching", 1,
+     len(_count_check(records=(3, 3), passes=("", 3))[0])),
+    ("a legacy row before the bound row can match the remaining source", ([], [], True),
+     _count_check(passes=("", 3))),
+    ("two explicit passes sharing root reserve it only once for legacy matching", ([], [], True),
+     _check([[UPSERT_P1], [UPSERT_P1], [UPDATE_P3]],
+            [_row(1, "Widget__c", 1, "Upsert", "Name", 5),
+             _row(2, "Widget__c", 2, "Upsert", "Name", 5),
+             _row(3, "Widget__c", "", "Update", "Name", 3)],
+            csvs={"Widget__c.csv": "Id\n" + "root\n" * 5,
+                  "objectset_source/object-set-3/Widget__c.csv": "Id\n" + "other\n" * 3},
+            export_options={"useSeparatedCSVFiles": True})),
+    ("two legacy rows cannot reuse the sole remaining count in a mixed-count plan", 1,
+     len(_check([[UPSERT_P1], [], [UPDATE_P3]],
+                [_row(1, "Widget__c", 1, "Upsert", "Name", 5),
+                 _row(2, "Widget__c", "", "Update", "Name", 3),
+                 _row(3, "Widget__c", "", "Update", "Name", 3)],
+                csvs={"Widget__c.csv": "Id\n" + "root\n" * 5,
+                      "objectset_source/object-set-3/Widget__c.csv": "Id\n" + "other\n" * 3},
+                export_options={"useSeparatedCSVFiles": True})[0])),
+]
+
+
+def _nonwritable_counts(operation, excluded=False, csvs=None):
+    config = dict(UPSERT_P1, operation=operation, excluded=excluded)
+    return _check([[config]], [_row(1, "Widget__c", 1, operation, "Name", 999)], csvs=csvs)
+
+
+COUNT_SOURCE_REQUIREMENTS = [
+    ("a writable numeric count with no CSV anywhere is an error", 1,
+     len(_nonwritable_counts("Upsert")[0])),
+    ("a missing-source error names the object and pass", True,
+     any("Widget__c" in e and "Pass=1" in e and "no source CSV" in e
+         for e in _nonwritable_counts("Upsert")[0])),
+    ("Readonly numeric claims without files retain org-count semantics", ([], [], True),
+     _nonwritable_counts("Readonly")),
+    ("Delete numeric claims do not require a source CSV", ([], [], True),
+     _nonwritable_counts("Delete")),
+    ("excluded writable declarations do not require a source CSV", ([], [], True),
+     _nonwritable_counts("Upsert", excluded=True)),
+    ("Readonly optional CSV counts remain checked when a file exists", 1,
+     len(_nonwritable_counts("Readonly", csvs={"Widget__c.csv": "Id\none\n"})[0])),
+    ("a Readonly pass without its own source does not inherit writable requirements", ([], [], True),
+     _check([[dict(UPSERT_P1, operation="Readonly")], [], [UPDATE_P3]],
+            [_row(1, "Widget__c", 1, "Readonly", "Name", 3),
+             _row(2, "Widget__c", 3, "Update", "Name", 3)],
+            csvs={"objectset_source/object-set-3/Widget__c.csv": "Id\n" + "row\n" * 3},
+            export_options={"useSeparatedCSVFiles": True})),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [
+        ("mixed explicit and legacy rows preserve distinct-CSV matching", MIXED_PASS_COUNTS),
+        ("source requirements respect the declared operation", COUNT_SOURCE_REQUIREMENTS),
         ("record counts follow the CSV read by the declared pass", PASS_COUNTS),
         ("Pass-column narrowing matches a row against its own pass, not the union", PASS_NARROWING),
         ("no Pass cell falls back to ANY-variant matching", NO_PASS_CELL_FALLBACK),

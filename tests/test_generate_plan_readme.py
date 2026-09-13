@@ -206,7 +206,29 @@ def _case_generate_block_counts_and_missing():
                 "missing CSV" in block)
 
 
+
+def _case_optional_csv_roundtrip(operation, excluded=False):
+    """Preserve optional-file documentation while checking writable pass counts."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [
+            {"objects": [UPSERT_WIDGET]},
+            {"objects": [dict(UPSERT_WIDGET, operation=operation, excluded=excluded)]},
+        ]}, {"Widget__c.csv": _csv(4)})
+        G.write_readme(str(plan))
+        # Import via the generator's canonical module, including the shared resolver.
+        import check_plan_readme_consistency as checker
+        errors, warns, _ = checker.check_plan(str(plan))
+        rows = list(checker.parse_object_tables((plan / "README.md").read_text().splitlines()))
+        return [row["records"] for row in rows], errors, warns
+
+
 GENERATE_BLOCK = [
+    ("writable + Readonly passes retain optional-file counts and round-trip cleanly",
+     (["4", "4"], [], []), _case_optional_csv_roundtrip("Readonly")),
+    ("writable + Delete passes retain optional-file counts and round-trip cleanly",
+     (["4", "4"], [], []), _case_optional_csv_roundtrip("Delete")),
+    ("writable + excluded passes retain optional-file counts and round-trip cleanly",
+     (["4", "4"], [], []), _case_optional_csv_roundtrip("Update", excluded=True)),
     ("row count reflects the actual CSV, Readonly gets '—', a writable object with no CSV is flagged",
      (True, True, True), _case_generate_block_counts_and_missing()),
 ]
