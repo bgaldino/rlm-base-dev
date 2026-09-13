@@ -848,8 +848,9 @@ ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 # undeclared reference remains. A new entry here is a new defect, not documentation: fix the
 # offending `when:` instead.
 #
-# ⚠ The check is scoped to (flow, step, flag), NOT the bare name, so re-populating this would
-# forgive the flag in all 198 clauses across 46 flows. Keep it empty.
+# ⚠ The check is scoped to (flow, step, flag), NOT the bare name: an entry forgives only that
+# one site, so a genuinely new undeclared reference at any other step still fails. There is no
+# longer any legitimate undeclared reference, so keep this empty rather than re-adding a tuple.
 # ⚠ EMPTY, and it must stay empty. CCI discards a `when:` on a `flow:` step (see the check
 # below), so such a guard reads as load-bearing while doing nothing. The seven that existed
 # were removed rather than kept as documentation — issue #333. Every child step already
@@ -1005,7 +1006,7 @@ for flow_name, flow in (cci.get("flows") or {}).items():
         # grouped ones — each fix making the next look covered.
         #
         # So stop closing variants and close the class: NO `when:` in this repo uses a bracket at
-        # all (measured across all 198 clauses), so any bracket is an unmodelled form and fails
+        # all (measured across every `when:` clause), so any bracket is an unmodelled form and fails
         # closed. A legitimate `x in ['a','b']` would be rejected too — that is the same trade as
         # JINJA_RESERVED and ALLOWED_ORG_CONFIG_REFS, and the message names the remedy.
         if "[" in expr or "]" in expr:
