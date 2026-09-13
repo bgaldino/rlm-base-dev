@@ -97,6 +97,28 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
+def deferral_issues(rel_plan_dir, passes, root_files):
+    """Run the validator END-TO-END with the plan materialized at its real
+    `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
+    resolves each CSV against `sfdmu_base`) actually fires.
+
+    `issues()` cannot exercise the deferral: it writes under a temp `.../plan` dir outside
+    `sfdmu_base`, so the predicate always returns False there and the header-only check runs
+    unconditionally. Without this helper, moving the no-header check below the deferral would
+    leave every group green — the exact interaction pinned here (deferral suppresses
+    header-only, but NOT no-header, and only for enumerated files).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "datasets" / "sfdmu" / rel_plan_dir
+        plan.mkdir(parents=True)
+        (plan / "export.json").write_text(
+            json.dumps({"objectSets": [{"objects": p} for p in passes]}))
+        for name, body in (root_files or {}).items():
+            (plan / name).write_text(body)
+        result = V.SFDMUValidator(base_dir=td, verbose=False).validate_dataset(plan)
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
+
+
 def raw_issues(body, root_files=None, per_pass_files=None):
     """Like `issues()`, but takes the whole `export.json` body verbatim.
 
@@ -1312,6 +1334,112 @@ UNPARSEABLE_QUERY_REPORTED = [
             if "no parseable" in i]),
 ]
 
+# A header-only CSV (valid header row, 0 data rows) used to report NOTHING for a non-allowlisted
+# object: the `data_row_count == 0` branch only DEBUG-logged allowlisted objects and was silent
+# otherwise, so an Upsert whose CSV lost its rows loaded nothing and passed clean — the same
+# data-loss shape that blanked q3-billing in commit 3bff2389 (pack 162). Now HIGH, mirroring the
+# no-header StopIteration branch's split, but HIGH not CRITICAL: a present header is a weaker
+# signal than a file with no header row at all.
+HEADER_ONLY_CSV_REPORTED = [
+    ("a header-only (0-row) CSV for a non-allowlisted Upsert object is reported HIGH",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n"},
+                               severity=V.Severity.HIGH)
+            if "header row but 0 data rows" in i]),
+    ("...and NOT as Critical — a present header is a weaker signal than a no-header file",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n"},
+                                severity=V.Severity.CRITICAL)
+            if "header row but 0 data rows" in i]),
+    ("...but a populated CSV for the same object does not — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n1,a\n"})
+            if "header row but 0 data rows" in i]),
+    ("...and an allowlisted object (CostBook) shipping header-only stays benign — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM CostBook", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"CostBook.csv": "Id,Name\n"})
+            if "header row but 0 data rows" in i]),
+]
+
+# Two empty shapes csv.reader does NOT surface as StopIteration, both flagged by Copilot on #427:
+#   1. A whitespace/newline-only file yields an empty (all-blank) first record, so it is a
+#      no-header file, not a header-only one — it must report the no-header CRITICAL (and BEFORE
+#      the family deferral), never be mistaken for the deferrable header-only shape.
+#   2. csv.reader yields [] for a blank line, so a trailing newline / blank separator row must
+#      NOT be counted as data — else `Id,Name\n\n` shows a phantom data row and slips the check.
+NO_HEADER_AND_BLANK_ROWS_DETECTED = [
+    ("a whitespace/newline-only CSV is a no-header file, reported CRITICAL (not StopIteration)",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "\n"},
+                              severity=V.Severity.CRITICAL)
+            if "no header row" in i]),
+    ("...an all-blank (spaces) header row is treated the same — CRITICAL no-header",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "   \n"},
+                              severity=V.Severity.CRITICAL)
+            if "no header row" in i]),
+    ("...and it is NOT mis-reported as the deferrable header-only shape — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "\n"})
+            if "header row but 0 data rows" in i]),
+    ("a header plus only blank lines counts 0 data rows — the blank rows are not data",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n\n\n"},
+                              severity=V.Severity.HIGH)
+            if "header row but 0 data rows" in i]),
+]
+
+# The `q3` and `mfg` plan trees carry 22 live header-only CSVs (q3-billing's are real data lost
+# in commit 3bff2389; q3-dro / mfg-guidedselling are never-populated stubs) — all deferred until
+# the 264 upgrade re-seeds them (pack 162). The deferral is ENUMERATED by exact plan-relative path
+# (not family-wide, per the Codex #427 finding): it protects the priority `qb` datasets AND still
+# fires on a new object or a currently-populated q3/mfg CSV later truncated to its header. Tested on
+# the method directly: the synthetic-plan harness writes under a temp dir outside `sfdmu_base`, so
+# it can't reach the path predicate.
+_DEFER_V = V.SFDMUValidator(base_dir=str(REPO))
+DEFERRED_PLAN_SKIP = [
+    ("an enumerated q3 header-only CSV is deferred — not flagged",
+     True, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/q3/en-US/q3-billing/BillingTreatment.csv")),
+    ("an enumerated mfg header-only CSV is deferred too",
+     True, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv")),
+    ("a qb plan tree is NOT deferred — the priority datasets are still checked",
+     False, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/qb/en-US/qb-pricing/CostBook.csv")),
+    # The whole point of enumerating: a NON-enumerated file in a deferred plan is still checked, so
+    # a new object or a currently-populated CSV later truncated to its header is NOT masked.
+    ("a NON-enumerated file in a deferred q3 plan is NOT exempt — new/truncated data still fires",
+     False, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/q3/en-US/q3-billing/PaymentTerm.csv")),
+]
+
+# End-to-end (not predicate-in-isolation, per the Codex #427 coverage finding): the deferral must
+# actually fire through validate_dataset when a plan sits at its real datasets/sfdmu location, and
+# must suppress ONLY the header-only finding — a no-header (whitespace-only) file in the same
+# enumerated plan stays CRITICAL, and a non-enumerated sibling still fires HIGH. Moving the
+# no-header check below the deferral (the regression this pins) would flip case 2 from present to
+# absent.
+_Q3B = "q3/en-US/q3-billing"
+DEFERRAL_END_TO_END = [
+    ("an enumerated q3 header-only CSV is suppressed end-to-end through validate_dataset",
+     False, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
+                  "externalId": "Name"}]], {"BillingTreatment.csv": "Id,Name\n"})
+         if "header row but 0 data rows" in i]),
+    ("...but a no-header (whitespace-only) CSV for that same enumerated object is STILL Critical "
+     "— the deferral does not cover the no-header shape",
+     True, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
+                  "externalId": "Name"}]], {"BillingTreatment.csv": "\n"})
+         if "no header row" in i]),
+    ("...and a NON-enumerated header-only sibling in the same deferred plan still fires HIGH",
+     True, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM PaymentTerm", "operation": "Upsert",
+                  "externalId": "Name"}]], {"PaymentTerm.csv": "Id,Name\n"})
+         if "header row but 0 data rows" in i]),
+]
+
 MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
     # The SELECT-coverage sweep used to run on every live declaration unconditionally, including
     # one already flagged malformed (non-string, `str()`-coerced). A coerced repr that happens to
@@ -1650,6 +1778,17 @@ def main() -> int:
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),
+                 ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
+                  "not silently passed",
+                  HEADER_ONLY_CSV_REPORTED),
+                 ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
+                  DEFERRED_PLAN_SKIP),
+                 ("the deferral fires end-to-end and covers only header-only, not no-header, "
+                  "and only for enumerated files",
+                  DEFERRAL_END_TO_END),
+                 ("no-header (whitespace-only) files and blank data rows are detected, "
+                  "not mistaken for header-only or counted as data",
+                  NO_HEADER_AND_BLANK_ROWS_DETECTED),
                  ("a malformed externalId is not double-reported by the SELECT-coverage sweep too",
                   MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED),
                  ("a malformed externalId does not shadow a same-coerced-string well-formed "

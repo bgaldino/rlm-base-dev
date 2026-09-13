@@ -171,6 +171,91 @@ class SFDMUValidator:
         "UsagePrdGrantBindingPolicy",
     }
 
+    # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
+    # `q3` / `mfg` plan families (todo pack 162). These are DEFERRED — not real placeholders
+    # — until the 264 upgrade re-seeds those plans: the `q3-billing` set is real data lost
+    # in commit 3bff2389's "fresh 262 refresh" (recoverable from git @ 3bff2389~1), and
+    # `q3-dro` / `mfg-guidedselling` / the rest are never-populated stubs. The priority
+    # datasets are the `qb` series (verified clean of this shape, 0 findings).
+    #
+    # Enumerated by EXACT plan-relative path (relative to datasets/sfdmu), deliberately NOT
+    # by family prefix: a family-wide skip would also silently swallow a NEWLY added q3/mfg
+    # object, or one of these plans' currently-POPULATED CSVs later truncated to its header
+    # (e.g. q3-billing/PaymentTerm still ships a data row) — exactly the data-loss shape this
+    # check exists to catch. Only these specific files are exempt; anything else still
+    # produces the gating HIGH. Regenerate the set from the live tree (validator findings
+    # with this deferral disabled), and delete entries as each plan is re-seeded.
+    #
+    # KNOWN EXCEPTION (pack 162 log): q3-dro/FulfillmentWorkspaceItem carries
+    # `deleteOldData: true`, so its header-only CSV is DESTRUCTIVE — running q3-dro would
+    # delete existing FulfillmentWorkspaceItem records and insert nothing. It is intentionally
+    # kept in this set (this shape was silent before pack 162 too; q3 is frozen until the
+    # post-264 re-seed by explicit project decision, and un-deferring it would block every PR
+    # on a plan the team chose not to run). The re-seed MUST re-populate this CSV or drop the
+    # deleteOldData/plan wiring; the destructive shape is tracked in the pack 162 log, not lost.
+    _DEFERRED_EMPTY_CSV_PATHS = frozenset({
+        "mfg/en-US/mfg-guidedselling/AssessmentQuestionAssignment.csv",
+        "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
+        "mfg/en-US/mfg-guidedselling/AssessmentQuestionSetConfig.csv",
+        "mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv",
+        "q3/en-US/q3-billing/AccountingPeriod.csv",
+        "q3/en-US/q3-billing/BillingPolicy.csv",
+        "q3/en-US/q3-billing/BillingTreatment.csv",
+        "q3/en-US/q3-billing/BillingTreatmentItem.csv",
+        "q3/en-US/q3-billing/GeneralLedgerAccount.csv",
+        "q3/en-US/q3-billing/GeneralLedgerAcctAsgntRule.csv",
+        "q3/en-US/q3-billing/LegalEntyAccountingPeriod.csv",
+        "q3/en-US/q3-billing/PaymentRetryRule.csv",
+        "q3/en-US/q3-billing/PaymentRetryRuleSet.csv",
+        "q3/en-US/q3-dro/FulfillmentFalloutRule.csv",
+        "q3/en-US/q3-dro/FulfillmentStepDefinition.csv",
+        "q3/en-US/q3-dro/FulfillmentStepDefinitionGroup.csv",
+        "q3/en-US/q3-dro/FulfillmentStepDependencyDef.csv",
+        "q3/en-US/q3-dro/FulfillmentStepJeopardyRule.csv",
+        "q3/en-US/q3-dro/FulfillmentWorkspace.csv",
+        "q3/en-US/q3-dro/FulfillmentWorkspaceItem.csv",
+        "q3/en-US/q3-dro/ProductFulfillmentDecompRule.csv",
+        "q3/en-US/q3-dro/ProductFulfillmentScenario.csv",
+    })
+
+    def _report_empty_csv_no_header(self, result, obj_name: str, csv_path: Path,
+                                    pass_prefix: str) -> None:
+        """Report a CSV with no usable header row — a 0-byte file (StopIteration) or a
+        whitespace/newline-only file (csv.reader yields an empty/all-blank first record).
+        HIGH for an allowlisted object, CRITICAL otherwise. NOT subject to the family
+        deferral: a no-header file is a stronger defect than a header-only one, and the
+        deferral covers only the header-only finding."""
+        if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name=obj_name,
+                message=f"{pass_prefix}CSV file is completely empty (no header row). Add header row with fields from query.",
+                file_path=self._make_relative_path(csv_path)
+            ))
+        else:
+            result.add_issue(Issue(
+                severity=Severity.CRITICAL,
+                object_name=obj_name,
+                message=f"{pass_prefix}CSV file is completely empty (no header row)",
+                file_path=self._make_relative_path(csv_path)
+            ))
+
+    def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
+        """True if csv_path is one of the enumerated known-empty q3/mfg CSVs deferred
+        pending the post-264 re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
+        EXACT path relative to datasets/sfdmu, so only those specific files are exempt —
+        a new object, or a currently-populated sibling in the same plan later truncated to
+        its header, still produces the gating HIGH.
+
+        Scope note: this defers ONLY the header-only-CSV finding. A deferred plan's CSV that
+        is a completely empty (no-header) file, or one missing a `$$` composite-key column,
+        still fires — those checks are not part of this deferral."""
+        try:
+            rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
+        except (ValueError, AttributeError):
+            return False
+        return rel in self._DEFERRED_EMPTY_CSV_PATHS
+
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
         """Initialize the validator.
@@ -1724,34 +1809,58 @@ class SFDMUValidator:
                 try:
                     headers = next(reader)
                 except StopIteration:
-                    # Empty file
-                    if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
-                        result.add_issue(Issue(
-                            severity=Severity.HIGH,
-                            object_name=obj_name,
-                            message=f"{pass_prefix}CSV file is completely empty (no header row). Add header row with fields from query.",
-                            file_path=self._make_relative_path(csv_path)
-                        ))
-                    else:
-                        result.add_issue(Issue(
-                            severity=Severity.CRITICAL,
-                            object_name=obj_name,
-                            message=f"{pass_prefix}CSV file is completely empty (no header row)",
-                            file_path=self._make_relative_path(csv_path)
-                        ))
+                    # Completely empty (0-byte) file — no header row at all.
+                    self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
                     return
 
                 # Normalize headers (strip BOM, quotes, whitespace)
                 headers = [self._normalize_header(h) for h in headers]
 
-                # Count data rows
-                data_row_count = sum(1 for _ in reader)
+                # A whitespace/newline-only file does NOT raise StopIteration — csv.reader
+                # yields an empty (or all-blank) first record, so `headers` normalizes to
+                # all-empty here. That is still a no-header file: report it exactly like the
+                # StopIteration case above, and BEFORE the family deferral, so the no-header
+                # guarantee holds for q3/mfg too (the deferral covers only the header-only
+                # finding, a strictly weaker signal).
+                if not any(h for h in headers):
+                    self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
+                    return
+
+                # Count data rows. csv.reader yields [] for a blank line, so a trailing
+                # newline or a blank separator row is NOT data — a row counts only if it has
+                # at least one non-whitespace field. (Otherwise `Id,Name\n\n` would report a
+                # phantom data row and slip past the header-only check below.)
+                data_row_count = sum(1 for row in reader if any((field or "").strip() for field in row))
 
                 self.log(f"  CSV has {len(headers)} columns, {data_row_count} data rows", level="DEBUG")
 
-                # Check if this is a known empty CSV (0 data rows)
-                if data_row_count == 0 and obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
-                    self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
+                # A header-only CSV (valid header row, 0 data rows) is as empty of DATA as the
+                # no-header StopIteration case above — but one branch up that case is CRITICAL for
+                # an unlisted object, while this one used to report NOTHING for it (only a DEBUG log
+                # for an allowlisted object, and silence otherwise). So an Upsert object whose CSV
+                # lost its data rows (bad export, or a file truncated to just its header) passed
+                # validation cleanly. Mirror the severity split:
+                #   - allowlisted object → benign (this IS the expected placeholder state), DEBUG only.
+                #   - enumerated deferred q3/mfg file → this finding only is skipped (see
+                #     _DEFERRED_EMPTY_CSV_PATHS; other empty/key checks still fire, and a new
+                #     or newly-truncated file in the same plan is NOT exempt).
+                #   - any other object   → HIGH. Not CRITICAL: a present header is a weaker failure
+                #     signal than the completely-empty (no-header) file, which stays CRITICAL.
+                if data_row_count == 0:
+                    if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
+                        self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
+                    elif self._is_deferred_empty_csv_plan(csv_path):
+                        self.log(f"  {obj_name} has 0 data rows in a deferred plan tree "
+                                 "(pending post-264 refresh) — not flagged", level="DEBUG")
+                    else:
+                        result.add_issue(Issue(
+                            severity=Severity.HIGH,
+                            object_name=obj_name,
+                            message=(f"{pass_prefix}CSV has a header row but 0 data rows, and "
+                                     f"{obj_name} is not a known-empty object — a lost or truncated "
+                                     "export would otherwise pass unnoticed."),
+                            file_path=self._make_relative_path(csv_path)
+                        ))
 
                 # Validate composite key columns for objects with multi-field externalId
                 # Skip objects with deleteOldData: true (delete-then-insert strategy doesn't need composite key)
