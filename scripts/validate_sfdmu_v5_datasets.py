@@ -185,6 +185,14 @@ class SFDMUValidator:
     # check exists to catch. Only these specific files are exempt; anything else still
     # produces the gating HIGH. Regenerate the set from the live tree (validator findings
     # with this deferral disabled), and delete entries as each plan is re-seeded.
+    #
+    # KNOWN EXCEPTION (pack 162 log): q3-dro/FulfillmentWorkspaceItem carries
+    # `deleteOldData: true`, so its header-only CSV is DESTRUCTIVE — running q3-dro would
+    # delete existing FulfillmentWorkspaceItem records and insert nothing. It is intentionally
+    # kept in this set (this shape was silent before pack 162 too; q3 is frozen until the
+    # post-264 re-seed by explicit project decision, and un-deferring it would block every PR
+    # on a plan the team chose not to run). The re-seed MUST re-populate this CSV or drop the
+    # deleteOldData/plan wiring; the destructive shape is tracked in the pack 162 log, not lost.
     _DEFERRED_EMPTY_CSV_PATHS = frozenset({
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionAssignment.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
