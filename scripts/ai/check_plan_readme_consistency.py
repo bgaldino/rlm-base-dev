@@ -576,11 +576,20 @@ def check_plan(plan_dir: str):
                             errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
                                           f"actual CSV={actual} ({source})")
                 elif has_csv:
-                    # Non-writable rows may describe optional CSVs or org records.
-                    # Preserve the existing file-count check without requiring a file.
-                    table_count_claims.setdefault(name, []).append((ln, claimed))
+                    # Optional rows emitted by the generator can share the source
+                    # selected by an explicit pass, just like writable rows. Only
+                    # accept that binding when the count actually matches; optional
+                    # rows may also describe another CSV under the legacy contract.
+                    actual, source = (resolve_pass_csv(
+                        plan_dir, csvs, use_separated, name, row_pass, count_cache)
+                        if row_pass is not None and matched else (None, None))
+                    if actual is not None and claimed == actual:
+                        bound_sources.setdefault(name, {})[source] = actual
+                    else:
+                        # No source is required for optional/org-count claims.
+                        table_count_claims.setdefault(name, []).append((ln, claimed))
 
-    # Legacy and non-writable rows retain unordered, distinct-CSV matching.
+    # Unbound rows retain unordered, distinct-CSV matching.
     check_count_claims(rel, table_count_claims, counts, errors,
                        reserved_counts={name: list(sources.values())
                                         for name, sources in bound_sources.items()})

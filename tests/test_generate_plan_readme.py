@@ -222,6 +222,52 @@ def _case_optional_csv_roundtrip(operation, excluded=False):
         return [row["records"] for row in rows], errors, warns
 
 
+def _case_shared_optional_source(operation, excluded=False, same_pass=True,
+                                 reverse=False, legacy=False):
+    """Generated explicit rows may share a source; blank-Pass rows may not."""
+    with tempfile.TemporaryDirectory() as td:
+        optional = dict(UPSERT_WIDGET, operation=operation, excluded=excluded)
+        if same_pass:
+            pair = [UPSERT_WIDGET, optional]
+            if reverse:
+                pair.reverse()
+            sets = [[], [], pair]
+        else:
+            # The optional second pass falls back to the first pass's root;
+            # a third-pass override makes distinct-CSV matching observable.
+            sets = [[UPSERT_WIDGET], [optional], [UPSERT_WIDGET]]
+        plan = _plan(td, {"useSeparatedCSVFiles": True,
+                          "objectSets": [{"objects": objects} for objects in sets]},
+                     {"Widget__c.csv": _csv(5),
+                      "objectset_source/object-set-3/Widget__c.csv": _csv(3)})
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        readme = plan / "README.md"
+        if legacy:
+            # Add a blank-Pass row reusing the explicit rows' shared count.
+            lines = readme.read_text().splitlines()
+            rows = list(checker.parse_object_tables(lines))
+            cells = lines[rows[-1]["line"] - 1].split("|")
+            header = next(line for line in lines if "| Pass |" in line).split("|")
+            cells[header.index(" Pass ")] = " "
+            lines.insert(rows[-1]["line"], "|".join(cells))
+            readme.write_text("\n".join(lines) + "\n")
+        errors, warns, _ = checker.check_plan(str(plan))
+        return len(errors), warns
+
+
+SHARED_OPTIONAL_SOURCES = [
+    (f"generated {operation}/{excluded} optional source: same_pass={same_pass}, reverse={reverse}",
+     (0, []), _case_shared_optional_source(operation, excluded, same_pass, reverse))
+    for operation, excluded in [("Readonly", False), ("Delete", False), ("Upsert", True)]
+    for same_pass, reverse in [(True, False), (True, True), (False, False)]
+] + [
+    (f"blank-Pass row cannot reuse generated optional source: {operation}/{excluded}",
+     (1, []), _case_shared_optional_source(operation, excluded, legacy=True))
+    for operation, excluded in [("Readonly", False), ("Delete", False), ("Upsert", True)]
+]
+
+
 GENERATE_BLOCK = [
     ("writable + Readonly passes retain optional-file counts and round-trip cleanly",
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Readonly")),
@@ -237,6 +283,7 @@ GENERATE_BLOCK = [
 def main() -> int:
     failures = []
     all_cases = [
+        ("generator/checker shared optional source round trips", SHARED_OPTIONAL_SOURCES),
         ("write_readme: fresh write / narrative-preserving regen / skip-without-force / --force / dup-markers",
          WRITE_README),
         ("resolve_pass_csv mirrors the pass-1-always-root, pass-N-separated-override rule", RESOLVE_PASS_CSV),
