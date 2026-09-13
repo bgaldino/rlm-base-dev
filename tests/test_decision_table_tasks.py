@@ -840,15 +840,16 @@ else:
 # offline suite stays offline.
 ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 
-# ⚠ PRE-EXISTING on main, not introduced by this branch. `psg_debug` is referenced by two
-# steps of assign_feature_permission_sets and is absent from project.custom, so both evaluate
-# `<flag> and Undefined` -> False in every org and have never run. Allowlisted so this check
-# ships ENFORCED rather than blocked on an undecided question. Tracked as issue #331.
+# ⚠ EMPTY, and it must stay empty. `psg_debug` used to gate two steps of
+# assign_feature_permission_sets (tso->pcm, billing->blng) and was never declared in
+# project.custom, so both evaluated `<flag> and Undefined` -> False in every org and had never
+# run. Those two dead steps and their two now-orphaned permission-set anchors
+# (rlm_pcm_ps_api_names, rlm_blng_ps_api_names) were DELETED — pack 082, issue #331 — so no
+# undeclared reference remains. A new entry here is a new defect, not documentation: fix the
+# offending `when:` instead.
 #
-# ⚠ Scoped to (flow, step, flag), NOT to the bare name. A name-scoped allowlist forgives the
-# flag in all 198 clauses across 46 flows — measured: re-gating refresh_dt_prm_pricing onto
-# psg_debug, which would silently stop that step running in any org, broke zero checks. These
-# two sites are forgiven; a third reference anywhere is a failure.
+# ⚠ The check is scoped to (flow, step, flag), NOT the bare name, so re-populating this would
+# forgive the flag in all 198 clauses across 46 flows. Keep it empty.
 # ⚠ EMPTY, and it must stay empty. CCI discards a `when:` on a `flow:` step (see the check
 # below), so such a guard reads as load-bearing while doing nothing. The seven that existed
 # were removed rather than kept as documentation — issue #333. Every child step already
@@ -871,10 +872,7 @@ ALLOWED_ORG_CONFIG_REFS = {"org_config.scratch", "org_config.org_type"}
 # swapped child from inheriting the exemption (measured: swapping in another flow passed).
 KNOWN_FLOW_GUARDS = {}
 
-KNOWN_UNDECLARED = {
-    ("assign_feature_permission_sets", 1, "psg_debug"),
-    ("assign_feature_permission_sets", 4, "psg_debug"),
-}
+KNOWN_UNDECLARED = set()
 
 # ⚠ Consume the WHOLE dotted run. `re.findall(r"(\w+)\.(\w+)", ...)` matches non-overlapping,
 # so `org_config.scratch.nonexistent` yields only ("org_config", "scratch") — an ALLOWED

@@ -305,7 +305,7 @@ persona user instead. See the persona rows in the flow inventory below.
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
-Assigned by `assign_feature_permission_sets` step 2 — build step 1.17.2 — when `einstein` is on.
+Assigned by `assign_feature_permission_sets` steps 1–2 — build steps 1.17.1–1.17.2 — when `einstein` is on (`SalesCloudEinsteinAll` additionally requires a non-Developer-Edition org).
 
 | Permission Set | Purpose |
 |---|---|
@@ -325,15 +325,6 @@ Assigned in `prepare_tso` step 4.
 | `RLM_RebuildSearchIndex` | Rebuild Search Index component (Apex class, `RLM_SessionId` page, `ApiEnabled`; no object perms — the class runs no SOQL/DML) |
 | `OrchestrationProcessManagerPermissionSet` | Orchestration process manager |
 | `EventMonitoringPermSet` | Event monitoring |
-
-### Debug-Only Permission Sets (`psg_debug: true`)
-
-These are normally covered by their parent PSGs (RLM_RCB, RLM_PCM). The `psg_debug` flag assigns them individually for troubleshooting when PSG recalculation is suspect.
-
-| Anchor | Permission Sets | Condition | Parent PSG |
-|---|---|---|---|
-| `rlm_pcm_ps_api_names` | `IndustriesConfiguratorPlatformApi`, `ProductConfigurationRulesDesigner`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer` | `tso` + `psg_debug` | RLM_PCM / RLM_CFG |
-| `rlm_blng_ps_api_names` | 10 billing permission sets (same as RLM_RCB minus `DocGenDesigner`, `BillingAdvancedPayment*`, `BillingCollectionsAndRecoverySpecialist`, `DataProcessingEngineUser`, `RevenueLifecycleManagementBillingCustomerService`) | `billing` + `psg_debug` | RLM_RCB |
 
 ### Deploy-Only Permission Sets (Not Explicitly Assigned)
 
@@ -378,10 +369,8 @@ The following table shows the sequence of all permission-related steps across th
 | 1.11 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
 | 1.12 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
 | 1.13 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
-| 1.17.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | PCM permission sets (4) | `tso` + `psg_debug` |
-| 1.17.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
-| 1.17.3 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
-| 1.17.4 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | Billing permission sets (10) | `billing` + `psg_debug` |
+| 1.17.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
+| 1.17.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
 | 4.8 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` > `assign_permission_sets` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_QuantumBit` | `quantumbit` |
@@ -448,8 +437,6 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
 | `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` |
-| `billing` + `psg_debug` | -- | -- | 10 billing PS (debug) |
-| `tso` + `psg_debug` | -- | -- | 4 PCM PS (debug) |
 
 ---
 
@@ -461,9 +448,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 3. **Tolerant assignment** -- `assign_permission_set_groups_tolerant` extends the standard CCI `AssignPermissionSetGroups` task to tolerate warnings about permissions unavailable on the target org edition (e.g., Enterprise vs. Unlimited). Used for core PSGs and `RLM_TSO`.
 
-4. **Debug-only assignments (`psg_debug`)** -- The `psg_debug` flag gates direct permission set assignments that are normally provided by their parent PSGs. Useful for isolating whether a PSG recalculation issue is causing missing permissions.
+4. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
-5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
-
-6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
-7. **Persona assignments are not admin assignments** -- steps 28.6-28.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.
+5. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+6. **Persona assignments are not admin assignments** -- steps 28.6-28.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

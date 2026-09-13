@@ -88,14 +88,10 @@ Assign feature-gated permission sets after PSGs are updated
 
 **Steps:**
 
-1. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
-   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
-2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
+1. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
    - `api_names`: `['EinsteinGPTPromptTemplateManager']`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
    - `api_names`: `['SalesCloudEinsteinAll']`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
-   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
 
 ---
 
