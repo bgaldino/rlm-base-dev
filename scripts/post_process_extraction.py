@@ -96,7 +96,7 @@ def get_object_name_from_query(query: str) -> str:
 def parse_plan_structure(export_json: dict) -> tuple:
     """Parse export.json into a structure mapping object names to their config.
 
-    Returns a tuple (plan_structure, passes) where:
+    Returns a tuple (plan_structure, passes, malformed) where:
       plan_structure: object_name -> {
         "pass_index": int (0-based),
         "operation": str,
@@ -106,6 +106,13 @@ def parse_plan_structure(export_json: dict) -> tuple:
       }
       passes: object_name -> list of (pass_index, entry) for all passes
         (used for objectset_source generation; plan_structure keeps only first pass).
+      malformed: list of {"query", "pass_index"} for declarations whose `query` is
+        present but yields no object name (non-string, or a string with no FROM). This
+        is NOT the same as an empty/absent query: a *dropped* declaration is dangerous,
+        because under --copy-to-plan the object's raw extracted CSV is still synced over
+        the tracked plan CSV (sync_to_plan's incidental-copy fallback), bypassing all
+        processing. The caller must treat a non-empty `malformed` as fatal — the
+        validator reports the same shape as Critical (validate_sfdmu_v5_datasets.py).
     For objects appearing in multiple passes, only the first pass entry
     is stored in plan_structure; later passes are in passes.
 
@@ -114,6 +121,7 @@ def parse_plan_structure(export_json: dict) -> tuple:
     """
     result = {}
     passes = {}
+    malformed = []
     object_sets = export_json.get("objectSets", [])
     if not object_sets and "objects" in export_json:
         # Single-pass plan (e.g. qb-pcm): treat as one virtual object set
@@ -125,6 +133,11 @@ def parse_plan_structure(export_json: dict) -> tuple:
             query = obj.get("query", "")
             name = get_object_name_from_query(query)
             if not name:
+                # A present-but-unparseable query is a malformed declaration, not an
+                # empty slot — record it so the caller can fail instead of silently
+                # dropping the object (which would let its raw CSV be synced as-is).
+                if query:
+                    malformed.append({"query": query, "pass_index": idx})
                 continue
             fields = parse_select_fields(query)
             entry = {
@@ -138,7 +151,7 @@ def parse_plan_structure(export_json: dict) -> tuple:
                 result[name] = entry
             # Track all passes for objectset_source generation
             passes.setdefault(name, []).append((idx, entry))
-    return result, passes
+    return result, passes, malformed
 
 
 def parse_select_fields(query: str) -> list:
@@ -785,7 +798,27 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     instead of .Code/.UnitCode).
     """
     export_json = load_export_json(plan_dir)
-    plan_structure, all_passes = parse_plan_structure(export_json)
+    plan_structure, all_passes, malformed = parse_plan_structure(export_json)
+
+    # Fail fast on a malformed declaration rather than dropping it. A dropped object is
+    # skipped by the processing loop below, but under --copy-to-plan sync_to_plan would
+    # still find its raw extracted CSV and copy it over the tracked plan CSV as
+    # "incidental" — bypassing status rewrites, ID resolution, defaults, and column
+    # alignment, and exiting 0. That silently corrupts plan data, so refuse to proceed
+    # (the validator flags the same shape as Critical).
+    if malformed:
+        export_path = os.path.join(plan_dir, "export.json")
+        print("\n" + "=" * 80)
+        print(f"CRITICAL: {len(malformed)} malformed object declaration(s) in {export_path} —")
+        print("each has a `query` that cannot be parsed to an object name "
+              "(non-string, or missing a FROM clause):")
+        for md in malformed:
+            print(f"  pass {md['pass_index'] + 1}: query={md['query']!r}")
+        print("Refusing to proceed: dropping a declaration would let --copy-to-plan sync the "
+              "raw extracted CSV over the tracked plan CSV, bypassing all processing.")
+        print("=" * 80)
+        raise SystemExit(1)
+
     code_map = load_code_map(code_map_file)
 
     # Find extracted CSV files

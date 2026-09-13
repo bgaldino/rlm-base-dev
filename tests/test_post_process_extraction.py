@@ -18,7 +18,10 @@ hand-editable export.json field, which hits `.split(";")`); that guard is pinned
 Offline, no org: `python tests/test_post_process_extraction.py`.
 """
 import importlib.util
+import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,10 +80,10 @@ def test_well_formed_query_unchanged(m):
     check("query without SELECT/FROM yields no fields", m.parse_select_fields("garbage") == [])
 
 
-def test_whole_plan_parse_survives_malformed_entry(m):
-    """A malformed (list) query in one object must not abort parse_plan_structure — the
-    bad entry is dropped and the good ones still parse, matching the caller's `if not
-    name: continue` contract."""
+def test_whole_plan_parse_records_malformed_entry(m):
+    """A malformed (list) query must not abort parse_plan_structure, but it must be
+    RECORDED in the `malformed` list — not silently dropped — so the caller can fail
+    before syncing. Well-formed objects still parse."""
     export_json = {
         "objects": [
             {"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"},
@@ -89,15 +92,21 @@ def test_whole_plan_parse_survives_malformed_entry(m):
         ]
     }
     raised = False
+    result, passes, malformed = {}, {}, []
     try:
-        result, passes = m.parse_plan_structure(export_json)
-    except Exception as e:
+        result, passes, malformed = m.parse_plan_structure(export_json)
+    except Exception:
         raised = True
-        result = {}
     check("parse_plan_structure does not raise on a malformed query entry", not raised)
     check("well-formed objects still parsed", set(result) == {"Account", "Pricebook2"},
           sorted(result))
-    check("malformed entry was dropped, not injected", "Product2" not in result)
+    check("malformed entry is not injected into plan_structure", "Product2" not in result)
+    check("malformed entry is recorded in the malformed list",
+          len(malformed) == 1 and malformed[0]["query"] == ["SELECT Id FROM Product2"],
+          malformed)
+    # An absent/empty query is a legitimately empty slot, NOT malformed.
+    _, _, empty = m.parse_plan_structure({"objects": [{"operation": "Upsert"}]})
+    check("absent query is not flagged malformed", empty == [], empty)
 
 
 def test_non_string_external_id_is_guarded(m):
@@ -122,6 +131,49 @@ def test_non_string_external_id_is_guarded(m):
           m.get_key_columns(headers, "Name;Code"))
 
 
+def test_copy_to_plan_refuses_on_malformed_query(m):
+    """End-to-end guard for the corruption path both reviewers flagged: a malformed
+    query drops the object from plan_structure, and under --copy-to-plan sync_to_plan
+    would otherwise copy the object's RAW extracted CSV over the tracked plan CSV,
+    bypassing all processing and exiting 0. The run must exit nonzero and leave the
+    tracked plan CSV byte-for-byte untouched."""
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        plan = td / "plan"
+        extraction = td / "extraction"
+        plan.mkdir()
+        extraction.mkdir()
+
+        # export.json with a well-formed object and a malformed (list) query.
+        (plan / "export.json").write_text(json.dumps({"objects": [
+            {"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"},
+            {"query": ["SELECT Id, Name FROM Pricebook2"], "operation": "Upsert"},  # malformed
+        ]}), encoding="utf-8")
+
+        # Tracked, already-processed plan CSV for the malformed object — the file that
+        # must NOT be clobbered by the raw extract.
+        tracked = plan / "Pricebook2.csv"
+        tracked_bytes = b"Name,IsStandard\nStandard Price Book,true\n"
+        tracked.write_bytes(tracked_bytes)
+        (plan / "Account.csv").write_bytes(b"Name\nAcme\n")
+
+        # Raw extraction CSVs (different content — what a silent sync would overwrite with).
+        (extraction / "Pricebook2.csv").write_bytes(b"Id,Name,IsStandard\n01s,RAW,false\n")
+        (extraction / "Account.csv").write_bytes(b"Id,Name\n001,Acme\n")
+
+        r = subprocess.run(
+            [sys.executable, str(MODULE_PATH), str(extraction), str(plan),
+             "--copy-to-plan", "--output-dir", str(td / "out")],
+            capture_output=True, text=True,
+        )
+        check("--copy-to-plan run exits nonzero on a malformed query", r.returncode != 0,
+              f"returncode={r.returncode}\n{(r.stdout + r.stderr)[-400:]}")
+        check("failure output flags the malformed declaration as CRITICAL",
+              "CRITICAL" in r.stdout, r.stdout[-400:])
+        check("the tracked plan CSV was NOT overwritten by the raw extract",
+              tracked.read_bytes() == tracked_bytes, tracked.read_text(encoding="utf-8"))
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -129,8 +181,9 @@ def main():
     m = _load_module()
     test_non_string_query_is_guarded(m)
     test_well_formed_query_unchanged(m)
-    test_whole_plan_parse_survives_malformed_entry(m)
+    test_whole_plan_parse_records_malformed_entry(m)
     test_non_string_external_id_is_guarded(m)
+    test_copy_to_plan_refuses_on_malformed_query(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1
