@@ -4,7 +4,7 @@
 Derives the object table (Object, Pass, Operation, External ID, Records) and a
 file listing straight from export.json + the plan's CSVs, reusing
 check_plan_readme_consistency.py's own parsing (object_name/load_plan/csv_index/
-csv_row_count) rather than re-deriving it — so the generated README is guaranteed
+resolve_pass_csv) rather than re-deriving it — so the generated README is guaranteed
 to pass that check, and stays the same defect class it isn't (see packs 160-163:
 duplicated ad hoc SOQL/export.json parsing drifts from the canonical parser).
 
@@ -39,10 +39,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from check_plan_readme_consistency import (  # noqa: E402
     REPO_ROOT,
     csv_index,
-    csv_row_count,
     find_plan_dirs,
     load_export_data,
     load_plan,
+    resolve_pass_csv,
     tracked_plan_dirs,
 )
 from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
@@ -101,45 +101,6 @@ FRESH_TEMPLATE = """# {title} Data Plan
 
 {block}
 """
-
-
-def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int,
-                      count_cache: dict):
-    """(count, path-relative-to-plan_dir) for the CSV this pass actually reads,
-    mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
-    always reads the root CSV regardless of an object-set-1/ override or the flag;
-    pass N>1 reads objectset_source/object-set-N/<name>.csv only when
-    useSeparatedCSVFiles is true and that file exists, else falls back to root.
-    Restricting to the root CSV unconditionally (the prior behavior) emitted `—`
-    for an object sourced only from an objectset_source override, e.g.
-    procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file).
-
-    This is a deliberately simpler read-only echo of that rule for display purposes,
-    not a call into the validator itself — commit 50d7e383 changed exactly this rule
-    (excluding pass-1 overrides from the coverage set) after it had already shipped
-    once, so re-check this docstring against `_objects_owing_root_csv`'s current
-    docstring whenever that method changes.
-
-    `count_cache`, keyed by absolute CSV path: an object declared in two passes with
-    no per-pass override (common — most objects only override the root in one pass)
-    resolves to the same physical file twice; without the cache that file is
-    re-scanned by csv_row_count() once per pass instead of once per distinct file. The
-    sole caller (generate_block) always passes a populated dict, so this is required
-    rather than optional."""
-    by_abspath = {os.path.abspath(p): p for p in csv_idx.get(name, [])}
-    # Override candidate first (only when it applies), then root — first match wins.
-    candidates = []
-    if pass_no > 1 and use_separated:
-        candidates.append(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
-    candidates.append(os.path.join(plan_dir, f"{name}.csv"))
-    for candidate in candidates:
-        abs_candidate = os.path.abspath(candidate)
-        if abs_candidate in by_abspath:
-            p = by_abspath[abs_candidate]
-            if p not in count_cache:
-                count_cache[p] = csv_row_count(p)
-            return count_cache[p], os.path.relpath(p, plan_dir)
-    return None, None
 
 
 def generate_block(plan_dir: str) -> str:

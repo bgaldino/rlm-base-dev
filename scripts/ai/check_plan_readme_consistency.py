@@ -16,6 +16,9 @@ locations in the README:
      e.g. dated "Schema Analysis" / "ExternalId Assessment" tables — are deliberately
      NOT treated as the object table, so a README whose only object-style table has
      no `Operation` column is reported as "Skipped".
+     For unambiguously live writable declarations, a valid `Pass` binds the count
+     to that pass's source CSV. Other rows retain unordered CSV-count matching
+     when files exist; Readonly/Delete/excluded declarations do not require a CSV.
   2. The **file-structure listing** — lines like `Foo.csv   # 315 records`.
 
 Free-form prose and dated changelog/history counts are intentionally NOT parsed,
@@ -196,6 +199,48 @@ def csv_index(plan_dir: str) -> dict[str, list[str]]:
     return idx
 
 
+def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: str, pass_no: int,
+                      count_cache: dict):
+    """(count, path-relative-to-plan_dir) for the CSV at this pass's source location,
+    mirroring validate_sfdmu_v5_datasets.py's _objects_owing_root_csv rule: pass 1
+    always reads the root CSV regardless of an object-set-1/ override or the flag;
+    pass N>1 reads objectset_source/object-set-N/<name>.csv only when
+    useSeparatedCSVFiles is true and that file exists, else falls back to root.
+    Restricting to the root CSV unconditionally (the prior behavior) emitted `—`
+    for an object sourced only from an objectset_source override, e.g.
+    procedure-plans' ProcedurePlanOption.csv (object-set-2 only, no root file).
+
+    This locates files, not runtime reads: the generator also documents optional
+    files for Readonly/Delete/excluded declarations. The checker imposes source
+    requirements only on live writable variants.
+
+    This is a deliberately simpler read-only echo of that rule for display purposes,
+    not a call into the validator itself — commit 50d7e383 changed exactly this rule
+    (excluding pass-1 overrides from the coverage set) after it had already shipped
+    once, so re-check this docstring against `_objects_owing_root_csv`'s current
+    docstring whenever that method changes.
+
+    `count_cache`, keyed by absolute CSV path: an object declared in two passes with
+    no per-pass override (common — most objects only override the root in one pass)
+    resolves to the same physical file twice; without the cache that file is
+    re-scanned by csv_row_count() once per pass instead of once per distinct file. The
+    checker and generator share this resolver and each supply a cache."""
+    by_abspath = {os.path.abspath(p): p for p in csv_idx.get(name, [])}
+    # Override candidate first (only when it applies), then root — first match wins.
+    candidates = []
+    if pass_no > 1 and use_separated:
+        candidates.append(os.path.join(plan_dir, "objectset_source", f"object-set-{pass_no}", f"{name}.csv"))
+    candidates.append(os.path.join(plan_dir, f"{name}.csv"))
+    for candidate in candidates:
+        abs_candidate = os.path.abspath(candidate)
+        if abs_candidate in by_abspath:
+            p = by_abspath[abs_candidate]
+            if p not in count_cache:
+                count_cache[p] = csv_row_count(p)
+            return count_cache[p], os.path.relpath(p, plan_dir)
+    return None, None
+
+
 # --- README parsing -------------------------------------------------------
 
 FILE_STRUCT_RE = re.compile(r"([A-Za-z0-9_]+)\.csv\b.*?#\s*([\d,]+)\s+record", re.I)
@@ -299,7 +344,27 @@ def parse_object_tables(lines: list[str]):
 
 # --- checks ---------------------------------------------------------------
 
-def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
+def count_variants(row: dict, variants: list[dict]) -> list[dict]:
+    """Declarations identified by a row's operation and literal external ID.
+
+    Pass alone is not declaration identity: a pass can contain both writable and
+    optional declarations for one object. Prose keys cannot narrow that ambiguity.
+    """
+    if len(variants) <= 1:
+        # Pass already identifies the declaration; metadata mismatches are
+        # reported by the existing checks and must not suppress its count check.
+        return variants
+    operation = norm_op(row["operation"] or "")
+    if operation:
+        variants = [v for v in variants if norm_op(v["operation"]) == operation]
+    external_id = (row["externalId"] or "").replace("`", "").strip()
+    if external_id and KEYLIKE_RE.match(external_id):
+        variants = [v for v in variants
+                    if v["externalId"].replace("`", "").strip() == external_id]
+    return variants
+
+
+def check_count_claims(rel, claims_by_name, counts, errors, suffix="", reserved_counts=None):
     """Match each claimed record count to a DISTINCT actual CSV.
 
     An object can map to several CSVs — a Pass-1 source plus a smaller
@@ -307,15 +372,20 @@ def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
     *different* row counts (e.g. 9 and 5), each claim must consume a distinct
     count, so a README that lists 9/9 is flagged even though 9 is "present".
     When every CSV shares one count (or there's a single CSV), duplicate correct
-    claims are fine and under-listing (fewer claims than CSVs) is not an error.
+    claims are fine only if no explicit pass has reserved a source. Under-listing
+    (fewer claims than CSVs) is not an error.
+    `reserved_counts` contains one count per distinct CSV already matched by
+    explicit pass rows, so legacy rows cannot reuse those files.
     """
     for name, claims in claims_by_name.items():
         if name not in counts:
             continue  # phantom / no-CSV handled by the caller
         actual = counts[name]
         label = f"`{name}{suffix}`"
-        if len(set(actual)) > 1:
+        reserved = (reserved_counts or {}).get(name, [])
+        if len(set(actual)) > 1 or reserved:
             avail = Counter(actual)
+            avail.subtract(reserved)
             for ln, claimed in claims:
                 if avail.get(claimed, 0) > 0:
                     avail[claimed] -= 1
@@ -334,9 +404,12 @@ def check_plan(plan_dir: str):
     warns: list[str] = []
     export_json = os.path.join(plan_dir, "export.json")
     readme = os.path.join(plan_dir, "README.md")
-    plan = load_plan(export_json)
+    data = load_export_data(export_json)
+    plan = load_plan(export_json, data=data)
+    use_separated = SFDMUValidator._is_js_truthy(data.get("useSeparatedCSVFiles"))
     csvs = csv_index(plan_dir)
-    counts = {name: [csv_row_count(p) for p in paths] for name, paths in csvs.items()}
+    count_cache = {p: csv_row_count(p) for paths in csvs.values() for p in paths}
+    counts = {name: [count_cache[p] for p in paths] for name, paths in csvs.items()}
     with open(readme, encoding="utf-8") as fh:
         text = fh.read()
     lines = text.splitlines()
@@ -359,6 +432,7 @@ def check_plan(plan_dir: str):
     seen_any_pass: set[str] = set()
     seen_specific_passes: dict[str, set[int]] = {}
     table_count_claims: dict[str, list] = {}  # object -> [(line, claimed_count)]
+    bound_sources: dict[str, dict[str, int]] = {}  # object -> {CSV path: row count}
     for row in parse_object_tables(lines):
         parsed_anything = True
         object_table_found = True
@@ -477,15 +551,57 @@ def check_plan(plan_dir: str):
             if wants and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` externalId README={got!r} export.json={sorted(wants)}")
 
-        # record count — collected here, matched per-CSV after the loop (handles
-        # multi-CSV objects, e.g. a Pass-1 source + a smaller objectset override)
-        if row["records"] is not None and has_csv:
+        # A live writable Pass binds the count to its effective source CSV, using the
+        # same resolver as README generation. Counts for two passes may legitimately
+        # reuse one root CSV; a count from another pass's override cannot substitute.
+        if row["records"] is not None:
             claimed = parse_int(row["records"])
             if claimed is not None:
-                table_count_claims.setdefault(name, []).append((ln, claimed))
+                # Unmatched metadata cannot make a uniformly writable pass
+                # ambiguous about its source; retain the pass candidates then.
+                matched = count_variants(row, compare_variants) or compare_variants
+                # If identical displayed fields match writable AND excluded
+                # declarations, this row cannot establish a source requirement.
+                if row_pass is not None and matched and all(
+                        SFDMUValidator._is_live_writable(v) for v in matched):
+                    actual, source = resolve_pass_csv(
+                        plan_dir, csvs, use_separated, name, row_pass, count_cache)
+                    if actual is None:
+                        errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
+                                      "— no source CSV for this pass")
+                    else:
+                        # Source identity is independent of a correct count claim.
+                        # Reserve each physical file once, even when multiple
+                        # explicit passes legitimately read that same file.
+                        bound_sources.setdefault(name, {})[source] = actual
+                        if claimed != actual:
+                            errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
+                                          f"actual CSV={actual} ({source})")
+                elif has_csv:
+                    # Optional rows emitted by the generator can share the source
+                    # selected by an explicit pass, just like writable rows. Only
+                    # accept that binding when the count actually matches; optional
+                    # rows may also describe another CSV under the legacy contract.
+                    actual, source = (resolve_pass_csv(
+                        plan_dir, csvs, use_separated, name, row_pass, count_cache)
+                        if row_pass is not None and matched else (None, None))
+                    if actual is not None and claimed == actual:
+                        bound_sources.setdefault(name, {})[source] = actual
+                    elif (row_pass is not None and matched and actual is None
+                          and set(counts[name]) == {claimed}):
+                        # An explicit optional pass with no source can still
+                        # describe the sole available file count (legacy behavior).
+                        # It establishes no source identity to reserve. Blank-Pass
+                        # rows never qualify for this optional-pass exception.
+                        pass
+                    else:
+                        # No source is required for optional/org-count claims.
+                        table_count_claims.setdefault(name, []).append((ln, claimed))
 
-    # object-table record counts: each claim must match a distinct actual CSV
-    check_count_claims(rel, table_count_claims, counts, errors)
+    # Unbound rows retain unordered, distinct-CSV matching.
+    check_count_claims(rel, table_count_claims, counts, errors,
+                       reserved_counts={name: list(sources.values())
+                                        for name, sources in bound_sources.items()})
 
     # 2) File-structure CSV listings  (Foo.csv  # N records)
     fs_claims: dict[str, list] = {}
