@@ -120,7 +120,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: false             # DISABLED pending pack 187: publish_agents fails on v68/264 (RLM_Revenue_Quote_Management Configure_Product_Attributes currency outputs). Deliberate committed state — re-enable once pack 187 lands (preferred fix: omit that bundle + capture the 264 template).
+    agents: true              # RLM_Revenue_Quote_Management is omitted from agent publish/activation via EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (pack 187): its Configure_Product_Attributes currency outputs fail publish on v68/264. deactivate_agents still discovers it (to clean up a version left active by a 262→264 upgrade). The other two bundles publish; re-add the omitted bundle once its 264 template is captured.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
@@ -1035,17 +1035,17 @@ tasks:
 
   publish_agents:
     group: Revenue Lifecycle Management
-    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
     class_path: tasks.rlm_publish_agents.PublishAgents
 
   deactivate_agents:
     group: Revenue Lifecycle Management
-    description: Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
+    description: Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Unlike publish_agents/activate_agents, this discovers EXCLUDED_BUNDLES too (include_excluded=True, tasks/rlm_agents_common.py), so a version left active by a 262→264-upgraded org still gets deactivated. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
     class_path: tasks.rlm_deactivate_agents.DeactivateAgents
 
   activate_agents:
     group: Revenue Lifecycle Management
-    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles minus EXCLUDED_BUNDLES (tasks/rlm_agents_common.py) — the same filtered set as publish_agents, so it never activates a bundle that was not published. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
     class_path: tasks.rlm_activate_agents.ActivateAgents
 
   test_agents:

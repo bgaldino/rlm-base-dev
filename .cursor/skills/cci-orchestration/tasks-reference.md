@@ -1285,7 +1285,7 @@
 
 ### `activate_agents`
 
-**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles minus EXCLUDED_BUNDLES (tasks/rlm_agents_common.py) — the same filtered set as publish_agents, so it never activates a bundle that was not published. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
 
 **Class:** `tasks.rlm_activate_agents.ActivateAgents`
 
@@ -1805,7 +1805,7 @@
 
 ### `deactivate_agents`
 
-**Description:** Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
+**Description:** Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Unlike publish_agents/activate_agents, this discovers EXCLUDED_BUNDLES too (include_excluded=True, tasks/rlm_agents_common.py), so a version left active by a 262→264-upgraded org still gets deactivated. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
 
 **Class:** `tasks.rlm_deactivate_agents.DeactivateAgents`
 
@@ -3068,7 +3068,7 @@
 
 ### `publish_agents`
 
-**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
 
 **Class:** `tasks.rlm_publish_agents.PublishAgents`
 
