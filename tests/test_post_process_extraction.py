@@ -104,9 +104,21 @@ def test_whole_plan_parse_records_malformed_entry(m):
     check("malformed entry is recorded in the malformed list",
           len(malformed) == 1 and malformed[0]["query"] == ["SELECT Id FROM Product2"],
           malformed)
-    # An absent/empty query is a legitimately empty slot, NOT malformed.
-    _, _, empty = m.parse_plan_structure({"objects": [{"operation": "Upsert"}]})
-    check("absent query is not flagged malformed", empty == [], empty)
+    # Only an absent or empty STRING slot is non-malformed.
+    _, _, absent = m.parse_plan_structure({"objects": [{"operation": "Upsert"}]})
+    check("absent query is not flagged malformed", absent == [], absent)
+    _, _, empty_str = m.parse_plan_structure({"objects": [{"query": ""}]})
+    check("explicit empty-string query is not flagged malformed", empty_str == [], empty_str)
+
+    # Every non-string value is malformed — including the FALSY ones a plain
+    # truthiness test would have dropped back onto the unsafe raw-CSV sync path.
+    for falsy in ([], {}, 0, False, None):
+        _, _, mal = m.parse_plan_structure({"objects": [{"query": falsy}]})
+        check(f"falsy non-string query {falsy!r} is flagged malformed",
+              len(mal) == 1 and mal[0]["query"] == falsy, mal)
+    # A non-empty string that fails to parse (no FROM) is also malformed.
+    _, _, garbage = m.parse_plan_structure({"objects": [{"query": "SELECT nonsense"}]})
+    check("non-empty unparseable string query is flagged malformed", len(garbage) == 1, garbage)
 
 
 def test_non_string_external_id_is_guarded(m):

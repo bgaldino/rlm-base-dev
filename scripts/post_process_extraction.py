@@ -136,7 +136,12 @@ def parse_plan_structure(export_json: dict) -> tuple:
                 # A present-but-unparseable query is a malformed declaration, not an
                 # empty slot — record it so the caller can fail instead of silently
                 # dropping the object (which would let its raw CSV be synced as-is).
-                if query:
+                # The ONLY non-malformed no-name case is an absent or empty *string*
+                # slot (missing key defaults to ""). Every non-string value — [], {},
+                # 0, False, null — is malformed, even the falsy ones: a plain
+                # truthiness test would wave those straight back onto the raw-CSV path.
+                is_empty_string_slot = isinstance(query, str) and query == ""
+                if not is_empty_string_slot:
                     malformed.append({"query": query, "pass_index": idx})
                 continue
             fields = parse_select_fields(query)
