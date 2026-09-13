@@ -120,7 +120,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: true              # RLM_Revenue_Quote_Management is omitted from the agent lifecycle via EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (pack 187): its Configure_Product_Attributes currency outputs fail publish on v68/264. The other two bundles publish; re-add the omitted bundle once its 264 template is captured.
+    agents: true              # RLM_Revenue_Quote_Management is omitted from agent publish/activation via EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (pack 187): its Configure_Product_Attributes currency outputs fail publish on v68/264. deactivate_agents still discovers it (to clean up a version left active by a 262→264 upgrade). The other two bundles publish; re-add the omitted bundle once its 264 template is captured.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────

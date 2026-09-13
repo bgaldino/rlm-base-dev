@@ -24,6 +24,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -268,6 +269,60 @@ def check_excluded_bundles_are_omitted_from_discovery(_):
               str(common.EXCLUDED_BUNDLES))
 
 
+class _SilentLogger:
+    def info(self, *a, **k):
+        pass
+
+    warning = error = debug = info
+
+
+def check_deactivate_task_actually_requests_the_excluded_bundle(_):
+    """Pins the operation-specific contract at its *call site*, not just in the
+    helper. `check_excluded_bundles_are_omitted_from_discovery` proves
+    `discover_agent_bundles(include_excluded=True)` returns excluded names, but a
+    regression reverting `DeactivateAgents._run_task` to the default call —
+    exactly what would silently re-orphan a 262→264-upgraded org's old RQM
+    version — would still leave that test green. This drives `_run_task` with
+    discovery and the CLI stubbed and asserts the excluded bundle both is
+    requested (`include_excluded=True`) and reaches `sf agent deactivate`.
+    """
+    from tasks import rlm_deactivate_agents as deact
+
+    captured = {}
+    deactivated = []
+
+    def fake_discover(root, **kwargs):
+        captured["kwargs"] = kwargs
+        # Mimic include_excluded semantics so a reverted call site returns a set
+        # missing the excluded bundle — making the regression observable here too.
+        names = ["RLM_Quoting_Assistant"]
+        if kwargs.get("include_excluded"):
+            names += list(common.EXCLUDED_BUNDLES)
+        return sorted(names)
+
+    def fake_run(cmd, **kwargs):
+        deactivated.append(cmd[cmd.index("--api-name") + 1])
+        return {"status": 0}
+
+    orig_discover, orig_run = deact.discover_agent_bundles, deact.run_sf_json
+    deact.discover_agent_bundles = fake_discover
+    deact.run_sf_json = fake_run
+    try:
+        inst = deact.DeactivateAgents.__new__(deact.DeactivateAgents)
+        inst.options = {}
+        inst.logger = _SilentLogger()
+        inst.org_config = types.SimpleNamespace(username="u@example.com")
+        inst._run_task()
+    finally:
+        deact.discover_agent_bundles = orig_discover
+        deact.run_sf_json = orig_run
+
+    check("deactivate_call_site_passes_include_excluded",
+          captured.get("kwargs", {}).get("include_excluded") is True, str(captured))
+    check("deactivate_actually_targets_the_excluded_bundle",
+          all(name in deactivated for name in common.EXCLUDED_BUNDLES), str(deactivated))
+
+
 def main():
     print("tasks/rlm_agents_common.py — sf CLI contract and agent discovery")
     print("=" * 100)
@@ -285,6 +340,7 @@ def main():
         check_a_timeout_is_named,
         check_bundle_discovery,
         check_excluded_bundles_are_omitted_from_discovery,
+        check_deactivate_task_actually_requests_the_excluded_bundle,
     ):
         fn(None)
     print("=" * 100)
