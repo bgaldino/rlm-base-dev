@@ -8,7 +8,9 @@ validator's equivalent pair was hardened for exactly this in PR #397; these copi
 not. This suite pins the `isinstance(query, str)` guards and proves:
 
   1. a non-string query is skipped (returns ""/[]) rather than raising,
-  2. a whole-plan parse survives a malformed entry and simply drops it, and
+  2. a whole-plan parse survives a malformed entry — it is RECORDED (not silently
+     dropped), and the command then refuses to process or sync the plan rather than
+     letting the object's raw CSV overwrite the tracked plan CSV, and
   3. well-formed queries still parse identically (no regression on the #N/A backfill
      logic that consumes the object name + fields).
 

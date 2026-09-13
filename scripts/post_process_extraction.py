@@ -116,7 +116,9 @@ def parse_plan_structure(export_json: dict) -> tuple:
         because under --copy-to-plan the object's raw extracted CSV is still synced over
         the tracked plan CSV (sync_to_plan's incidental-copy fallback), bypassing all
         processing. The caller must treat a non-empty `malformed` as fatal — the
-        validator reports the same shape as Critical (validate_sfdmu_v5_datasets.py).
+        validator flags the same shape (a non-string/unparseable `query`) as
+        Severity.HIGH (validate_sfdmu_v5_datasets.py); this command deliberately
+        exits with its own CRITICAL result instead of the raw-CSV sync.
     For objects appearing in multiple passes, only the first pass entry
     is stored in plan_structure; later passes are in passes.
 
@@ -814,7 +816,7 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     # still find its raw extracted CSV and copy it over the tracked plan CSV as
     # "incidental" — bypassing status rewrites, ID resolution, defaults, and column
     # alignment, and exiting 0. That silently corrupts plan data, so refuse to proceed
-    # (the validator flags the same shape as Critical).
+    # (the validator flags the same shape as Severity.HIGH; this command exits CRITICAL).
     if malformed:
         export_path = os.path.join(plan_dir, "export.json")
         print("\n" + "=" * 80)
