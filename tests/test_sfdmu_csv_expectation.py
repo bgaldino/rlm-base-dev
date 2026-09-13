@@ -1367,23 +1367,29 @@ NO_HEADER_AND_BLANK_ROWS_DETECTED = [
             if "header row but 0 data rows" in i]),
 ]
 
-# The `q3` and `mfg` plan trees carry ~22 live header-only CSVs (q3-billing's are real data lost
-# in commit 3bff2389; q3-dro / mfg are never-populated stubs) — all deferred until the 264 upgrade
-# re-seeds them (pack 162). The check must protect the priority `qb` datasets (verified clean of
-# this shape) without turning the gate red on the deferred trees. Tested on the method directly:
-# the synthetic-plan harness writes under a temp dir with no `sfdmu/<family>` segment, so it can't
-# reach the path predicate.
+# The `q3` and `mfg` plan trees carry 22 live header-only CSVs (q3-billing's are real data lost
+# in commit 3bff2389; q3-dro / mfg-guidedselling are never-populated stubs) — all deferred until
+# the 264 upgrade re-seeds them (pack 162). The deferral is ENUMERATED by exact plan-relative path
+# (not family-wide, per the Codex #427 finding): it protects the priority `qb` datasets AND still
+# fires on a new object or a currently-populated q3/mfg CSV later truncated to its header. Tested on
+# the method directly: the synthetic-plan harness writes under a temp dir outside `sfdmu_base`, so
+# it can't reach the path predicate.
 _DEFER_V = V.SFDMUValidator(base_dir=str(REPO))
 DEFERRED_PLAN_SKIP = [
-    ("a q3 plan tree is deferred — its header-only CSVs are not flagged",
+    ("an enumerated q3 header-only CSV is deferred — not flagged",
      True, _DEFER_V._is_deferred_empty_csv_plan(
          REPO / "datasets/sfdmu/q3/en-US/q3-billing/BillingTreatment.csv")),
-    ("an mfg plan tree is deferred too",
+    ("an enumerated mfg header-only CSV is deferred too",
      True, _DEFER_V._is_deferred_empty_csv_plan(
          REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv")),
     ("a qb plan tree is NOT deferred — the priority datasets are still checked",
      False, _DEFER_V._is_deferred_empty_csv_plan(
          REPO / "datasets/sfdmu/qb/en-US/qb-pricing/CostBook.csv")),
+    # The whole point of enumerating: a NON-enumerated file in a deferred plan is still checked, so
+    # a new object or a currently-populated CSV later truncated to its header is NOT masked.
+    ("a NON-enumerated file in a deferred q3 plan is NOT exempt — new/truncated data still fires",
+     False, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/q3/en-US/q3-billing/PaymentTerm.csv")),
 ]
 
 MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
