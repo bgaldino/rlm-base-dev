@@ -372,7 +372,8 @@ def check_count_claims(rel, claims_by_name, counts, errors, suffix="", reserved_
     *different* row counts (e.g. 9 and 5), each claim must consume a distinct
     count, so a README that lists 9/9 is flagged even though 9 is "present".
     When every CSV shares one count (or there's a single CSV), duplicate correct
-    claims are fine and under-listing (fewer claims than CSVs) is not an error.
+    claims are fine only if no explicit pass has reserved a source. Under-listing
+    (fewer claims than CSVs) is not an error.
     `reserved_counts` contains one count per distinct CSV already matched by
     explicit pass rows, so legacy rows cannot reuse those files.
     """
@@ -381,9 +382,10 @@ def check_count_claims(rel, claims_by_name, counts, errors, suffix="", reserved_
             continue  # phantom / no-CSV handled by the caller
         actual = counts[name]
         label = f"`{name}{suffix}`"
-        if len(set(actual)) > 1:
+        reserved = (reserved_counts or {}).get(name, [])
+        if len(set(actual)) > 1 or reserved:
             avail = Counter(actual)
-            avail.subtract((reserved_counts or {}).get(name, []))
+            avail.subtract(reserved)
             for ln, claimed in claims:
                 if avail.get(claimed, 0) > 0:
                     avail[claimed] -= 1
@@ -585,6 +587,13 @@ def check_plan(plan_dir: str):
                         if row_pass is not None and matched else (None, None))
                     if actual is not None and claimed == actual:
                         bound_sources.setdefault(name, {})[source] = actual
+                    elif (row_pass is not None and matched and actual is None
+                          and set(counts[name]) == {claimed}):
+                        # An explicit optional pass with no source can still
+                        # describe the sole available file count (legacy behavior).
+                        # It establishes no source identity to reserve. Blank-Pass
+                        # rows never qualify for this optional-pass exception.
+                        pass
                     else:
                         # No source is required for optional/org-count claims.
                         table_count_claims.setdefault(name, []).append((ln, claimed))

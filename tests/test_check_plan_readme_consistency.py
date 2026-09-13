@@ -373,9 +373,45 @@ BOUND_SOURCE_ACCOUNTING = [
 ]
 
 
+def _equal_count_claims(passes, copies=1, records=None, operation="Upsert", listing=False):
+    records = records if records is not None else [5] * len(passes)
+    obj = dict(UPSERT_P1, operation=operation)
+    return _check([[obj], [obj]],
+                  [_row(i + 1, "Widget__c", pass_no, operation, "Name", count)
+                   for i, (pass_no, count) in enumerate(zip(passes, records))],
+                  csvs={name: "Id\n" + "row\n" * 5 for name in
+                        ["Widget__c.csv"] + [f"archive-{i}/Widget__c.csv" for i in range(copies - 1)]},
+                  extra_readme_lines=(["Widget__c.csv # 5 records"] * 3 if listing else None))
+
+
+EQUAL_COUNT_RESERVATIONS = [
+    ("sole root reserved by an explicit pass cannot be reused by a blank pass", 1,
+     len(_equal_count_claims([1, ""])[0])),
+    ("equal-count reservation works with legacy row first", 1,
+     len(_equal_count_claims(["", 1])[0])),
+    ("one unreserved equal-count file supports one blank-Pass claim", ([], [], True),
+     _equal_count_claims([1, ""], copies=2)),
+    ("one unreserved equal-count file cannot support two blank-Pass claims", 1,
+     len(_equal_count_claims([1, "", ""], copies=2)[0])),
+    ("explicit passes sharing a root reserve it once", ([], [], True),
+     _equal_count_claims([1, 2, ""], copies=2)),
+    ("wrong bound count still reserves a sole root", 2,
+     len(_equal_count_claims([1, ""], records=[3, 5])[0])),
+    ("optional pass source also reserves a sole root", 1,
+     len(_equal_count_claims([1, ""], operation="Readonly")[0])),
+    ("all-legacy equal-count claims keep duplicate semantics", ([], [], True),
+     _equal_count_claims(["", "", ""])),
+    ("all-explicit rows can share a sole root", ([], [], True),
+     _equal_count_claims([1, 2])),
+    ("file listings remain independent of equal-count table reservations", ([], [], True),
+     _equal_count_claims([1, 2], listing=True)),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [
+        ("equal-count CSV reservations", EQUAL_COUNT_RESERVATIONS),
         ("bound sources remain authoritative despite bad claims", BOUND_SOURCE_ACCOUNTING),
         ("same-pass declaration matching respects optional rows", SAME_PASS_DECLARATIONS),
         ("mixed explicit and legacy rows preserve distinct-CSV matching", MIXED_PASS_COUNTS),
