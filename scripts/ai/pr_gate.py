@@ -423,6 +423,7 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_post_process_extraction.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",

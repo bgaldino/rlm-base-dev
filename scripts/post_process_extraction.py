@@ -75,7 +75,16 @@ def load_export_json(plan_dir: str) -> dict:
 
 
 def get_object_name_from_query(query: str) -> str:
-    """Extract the object API name from a SOQL query string."""
+    """Extract the object API name from a SOQL query string.
+
+    A non-string `query` (e.g. a JSON list from a hand-edited export.json) returns ""
+    rather than raising — `.upper()` on a list throws AttributeError straight out of the
+    caller, aborting the whole run over one malformed declaration. Callers already skip
+    on an empty name (`if not name: continue`). This mirrors the guard added to
+    validate_sfdmu_v5_datasets.py's `_extract_object_name` in PR #397; see todo pack 182.
+    """
+    if not isinstance(query, str):
+        return ""
     upper = query.upper()
     idx = upper.find(" FROM ")
     if idx == -1:
@@ -133,7 +142,14 @@ def parse_plan_structure(export_json: dict) -> tuple:
 
 
 def parse_select_fields(query: str) -> list:
-    """Extract field names from a SOQL SELECT clause."""
+    """Extract field names from a SOQL SELECT clause.
+
+    Non-string `query` returns [] rather than raising, for the same reason as
+    get_object_name_from_query above — mirrors validate_sfdmu_v5_datasets.py's
+    `_parse_select_fields` guard (PR #397, todo pack 182).
+    """
+    if not isinstance(query, str):
+        return []
     upper = query.upper()
     select_idx = upper.find("SELECT ")
     from_idx = upper.find(" FROM ")
@@ -620,7 +636,12 @@ def get_key_columns(plan_headers: list, external_id: str) -> list:
 
     Falls back to all columns if no externalId fields found.
     """
-    if not external_id or external_id == "Id":
+    # `externalId`, like `query`, comes straight from a hand-editable export.json. A
+    # non-string value (e.g. a JSON list ["Name"]) is not caught by the `not external_id`
+    # check when populated and would raise AttributeError at `.split(";")` below, aborting
+    # the run — the same crash class the query guards above close (todo pack 182). Treat a
+    # non-string externalId as "no key" and fall back to all columns.
+    if not isinstance(external_id, str) or not external_id or external_id == "Id":
         return list(plan_headers) if plan_headers else []
 
     # Split externalId on ";" but be aware that composite key references
