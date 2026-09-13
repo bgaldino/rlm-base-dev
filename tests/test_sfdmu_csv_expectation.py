@@ -97,6 +97,28 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
+def deferral_issues(rel_plan_dir, passes, root_files):
+    """Run the validator END-TO-END with the plan materialized at its real
+    `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
+    resolves each CSV against `sfdmu_base`) actually fires.
+
+    `issues()` cannot exercise the deferral: it writes under a temp `.../plan` dir outside
+    `sfdmu_base`, so the predicate always returns False there and the header-only check runs
+    unconditionally. Without this helper, moving the no-header check below the deferral would
+    leave every group green — the exact interaction pinned here (deferral suppresses
+    header-only, but NOT no-header, and only for enumerated files).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = pathlib.Path(td) / "datasets" / "sfdmu" / rel_plan_dir
+        plan.mkdir(parents=True)
+        (plan / "export.json").write_text(
+            json.dumps({"objectSets": [{"objects": p} for p in passes]}))
+        for name, body in (root_files or {}).items():
+            (plan / name).write_text(body)
+        result = V.SFDMUValidator(base_dir=td, verbose=False).validate_dataset(plan)
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
+
+
 def raw_issues(body, root_files=None, per_pass_files=None):
     """Like `issues()`, but takes the whole `export.json` body verbatim.
 
@@ -1392,6 +1414,32 @@ DEFERRED_PLAN_SKIP = [
          REPO / "datasets/sfdmu/q3/en-US/q3-billing/PaymentTerm.csv")),
 ]
 
+# End-to-end (not predicate-in-isolation, per the Codex #427 coverage finding): the deferral must
+# actually fire through validate_dataset when a plan sits at its real datasets/sfdmu location, and
+# must suppress ONLY the header-only finding — a no-header (whitespace-only) file in the same
+# enumerated plan stays CRITICAL, and a non-enumerated sibling still fires HIGH. Moving the
+# no-header check below the deferral (the regression this pins) would flip case 2 from present to
+# absent.
+_Q3B = "q3/en-US/q3-billing"
+DEFERRAL_END_TO_END = [
+    ("an enumerated q3 header-only CSV is suppressed end-to-end through validate_dataset",
+     False, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
+                  "externalId": "Name"}]], {"BillingTreatment.csv": "Id,Name\n"})
+         if "header row but 0 data rows" in i]),
+    ("...but a no-header (whitespace-only) CSV for that same enumerated object is STILL Critical "
+     "— the deferral does not cover the no-header shape",
+     True, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
+                  "externalId": "Name"}]], {"BillingTreatment.csv": "\n"})
+         if "no header row" in i]),
+    ("...and a NON-enumerated header-only sibling in the same deferred plan still fires HIGH",
+     True, [i for i in deferral_issues(
+         _Q3B, [[{"query": "SELECT Id, Name FROM PaymentTerm", "operation": "Upsert",
+                  "externalId": "Name"}]], {"PaymentTerm.csv": "Id,Name\n"})
+         if "header row but 0 data rows" in i]),
+]
+
 MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
     # The SELECT-coverage sweep used to run on every live declaration unconditionally, including
     # one already flagged malformed (non-string, `str()`-coerced). A coerced repr that happens to
@@ -1735,6 +1783,9 @@ def main() -> int:
                   HEADER_ONLY_CSV_REPORTED),
                  ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
                   DEFERRED_PLAN_SKIP),
+                 ("the deferral fires end-to-end and covers only header-only, not no-header, "
+                  "and only for enumerated files",
+                  DEFERRAL_END_TO_END),
                  ("no-header (whitespace-only) files and blank data rows are detected, "
                   "not mistaken for header-only or counted as data",
                   NO_HEADER_AND_BLANK_ROWS_DETECTED),
