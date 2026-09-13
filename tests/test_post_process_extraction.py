@@ -78,6 +78,17 @@ def test_well_formed_query_unchanged(m):
     # No FROM / no SELECT edge cases keep their prior contract.
     check("query without FROM yields no object name", m.get_object_name_from_query("SELECT Id") == "")
     check("query without SELECT/FROM yields no fields", m.parse_select_fields("garbage") == [])
+    # A query ending at `FROM ` (only whitespace after) must return "" — not raise
+    # IndexError on rest.split()[0] — so it flows into the controlled malformed handling.
+    for terminated in ("SELECT Id FROM ", "select id from ", "SELECT Id FROM \t\n"):
+        raised = False
+        name = None
+        try:
+            name = m.get_object_name_from_query(terminated)
+        except Exception:
+            raised = True
+        check(f"FROM-terminated query {terminated!r} returns '' without raising",
+              not raised and name == "", f"raised={raised} name={name!r}")
 
 
 def test_whole_plan_parse_records_malformed_entry(m):

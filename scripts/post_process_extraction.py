@@ -90,7 +90,11 @@ def get_object_name_from_query(query: str) -> str:
     if idx == -1:
         return ""
     rest = query[idx + 6:].strip()
-    return rest.split()[0].strip()
+    # `FROM` followed by only whitespace leaves nothing to split — return "" (the caller
+    # then records it as a malformed declaration) rather than an IndexError that would
+    # crash the run with a traceback, bypassing the controlled malformed-query handling.
+    parts = rest.split()
+    return parts[0].strip() if parts else ""
 
 
 def parse_plan_structure(export_json: dict) -> tuple:
