@@ -555,7 +555,9 @@ def check_plan(plan_dir: str):
         if row["records"] is not None:
             claimed = parse_int(row["records"])
             if claimed is not None:
-                matched = count_variants(row, compare_variants)
+                # Unmatched metadata cannot make a uniformly writable pass
+                # ambiguous about its source; retain the pass candidates then.
+                matched = count_variants(row, compare_variants) or compare_variants
                 # If identical displayed fields match writable AND excluded
                 # declarations, this row cannot establish a source requirement.
                 if row_pass is not None and matched and all(
@@ -565,13 +567,14 @@ def check_plan(plan_dir: str):
                     if actual is None:
                         errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
                                       "— no source CSV for this pass")
-                    elif claimed != actual:
-                        errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
-                                      f"actual CSV={actual} ({source})")
                     else:
+                        # Source identity is independent of a correct count claim.
                         # Reserve each physical file once, even when multiple
                         # explicit passes legitimately read that same file.
                         bound_sources.setdefault(name, {})[source] = actual
+                        if claimed != actual:
+                            errors.append(f"{rel}:{ln} `{name}` Pass={row_pass} record count README={claimed} "
+                                          f"actual CSV={actual} ({source})")
                 elif has_csv:
                     # Non-writable rows may describe optional CSVs or org records.
                     # Preserve the existing file-count check without requiring a file.

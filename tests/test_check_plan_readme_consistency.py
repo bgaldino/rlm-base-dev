@@ -345,9 +345,38 @@ SAME_PASS_DECLARATIONS = [
 ]
 
 
+
+def _unmatched_writable_count(count, variants=None):
+    variants = variants or [{"query": "SELECT Id FROM Widget__c", "operation": "Upsert"},
+                            {"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert"}]
+    return _check([variants, [], [UPDATE_P3]],
+                  [_row(1, "Widget__c", 1, "Upsert", "Name", count), OTHER_PASS_ROW],
+                  csvs={"Widget__c.csv": "Id\n" + "root\n" * 5,
+                        "objectset_source/object-set-3/Widget__c.csv": "Id\n" + "override\n" * 3},
+                  export_options={"useSeparatedCSVFiles": True})
+
+
+BOUND_SOURCE_ACCOUNTING = [
+    ("unmatched metadata cannot use another source when all pass declarations are writable", 1,
+     len(_unmatched_writable_count(3)[0])),
+    ("unmatched metadata still accepts the correct root count", ([], [], True),
+     _unmatched_writable_count(5)),
+    ("a bad bound count still reserves its real source from a legacy row", 2,
+     len(_count_check(records=(3, 5), passes=(1, ""))[0])),
+    ("the bad bound count and the legacy reuse are each reported at their own row", True,
+     all(any(f":{line} " in e for e in _count_check(records=(3, 5), passes=(1, ""))[0])
+         for line in (7, 8))),
+    ("a bad bound count does not consume the other source's legitimate claim", 1,
+     len(_count_check(records=(3, 3), passes=(1, ""))[0])),
+    ("failed pass binding reserves its source regardless of table order", 2,
+     len(_count_check(records=(3, 5), passes=("", 3))[0])),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [
+        ("bound sources remain authoritative despite bad claims", BOUND_SOURCE_ACCOUNTING),
         ("same-pass declaration matching respects optional rows", SAME_PASS_DECLARATIONS),
         ("mixed explicit and legacy rows preserve distinct-CSV matching", MIXED_PASS_COUNTS),
         ("source requirements respect the declared operation", COUNT_SOURCE_REQUIREMENTS),
