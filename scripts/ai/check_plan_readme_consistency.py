@@ -16,7 +16,7 @@ locations in the README:
      e.g. dated "Schema Analysis" / "ExternalId Assessment" tables — are deliberately
      NOT treated as the object table, so a README whose only object-style table has
      no `Operation` column is reported as "Skipped".
-     For live writable declarations, a valid `Pass` column binds the record count
+     For unambiguously live writable declarations, a valid `Pass` binds the count
      to that pass's source CSV. Other rows retain unordered CSV-count matching
      when files exist; Readonly/Delete/excluded declarations do not require a CSV.
   2. The **file-structure listing** — lines like `Foo.csv   # 315 records`.
@@ -344,6 +344,26 @@ def parse_object_tables(lines: list[str]):
 
 # --- checks ---------------------------------------------------------------
 
+def count_variants(row: dict, variants: list[dict]) -> list[dict]:
+    """Declarations identified by a row's operation and literal external ID.
+
+    Pass alone is not declaration identity: a pass can contain both writable and
+    optional declarations for one object. Prose keys cannot narrow that ambiguity.
+    """
+    if len(variants) <= 1:
+        # Pass already identifies the declaration; metadata mismatches are
+        # reported by the existing checks and must not suppress its count check.
+        return variants
+    operation = norm_op(row["operation"] or "")
+    if operation:
+        variants = [v for v in variants if norm_op(v["operation"]) == operation]
+    external_id = (row["externalId"] or "").replace("`", "").strip()
+    if external_id and KEYLIKE_RE.match(external_id):
+        variants = [v for v in variants
+                    if v["externalId"].replace("`", "").strip() == external_id]
+    return variants
+
+
 def check_count_claims(rel, claims_by_name, counts, errors, suffix="", reserved_counts=None):
     """Match each claimed record count to a DISTINCT actual CSV.
 
@@ -535,8 +555,11 @@ def check_plan(plan_dir: str):
         if row["records"] is not None:
             claimed = parse_int(row["records"])
             if claimed is not None:
-                if row_pass is not None and any(
-                        SFDMUValidator._is_live_writable(v) for v in compare_variants):
+                matched = count_variants(row, compare_variants)
+                # If identical displayed fields match writable AND excluded
+                # declarations, this row cannot establish a source requirement.
+                if row_pass is not None and matched and all(
+                        SFDMUValidator._is_live_writable(v) for v in matched):
                     actual, source = resolve_pass_csv(
                         plan_dir, csvs, use_separated, name, row_pass, count_cache)
                     if actual is None:

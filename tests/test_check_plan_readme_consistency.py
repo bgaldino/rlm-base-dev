@@ -308,9 +308,47 @@ COUNT_SOURCE_REQUIREMENTS = [
 ]
 
 
+
+def _same_pass_counts(optional_operation="Readonly", optional_excluded=False,
+                      optional_key="Name", writable_count=3, indistinguishable=False):
+    optional = dict(UPSERT_P1, operation=optional_operation,
+                    excluded=optional_excluded, externalId=optional_key)
+    return _check([[], [], [UPSERT_P1, optional]],
+                  [_row(1, "Widget__c", 3, "Upsert", "Name", writable_count),
+                   _row(2, "Widget__c", 3, optional_operation,
+                        "shared key" if indistinguishable else optional_key, 5)],
+                  csvs={"Widget__c.csv": "Id\n" + "root\n" * 5,
+                        "objectset_source/object-set-3/Widget__c.csv": "Id\n" + "override\n" * 3},
+                  export_options={"useSeparatedCSVFiles": True})
+
+
+SAME_PASS_DECLARATIONS = [
+    ("an unspecified externalId cannot suppress a unique writable declaration's count check", 1,
+     len(_check([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert"}]],
+                [_row(1, "Widget__c", 1, "Upsert", "Name", 5)])[0])),
+    ("Readonly sibling keeps optional counts even beside writable declaration", ([], [], True),
+     _same_pass_counts()),
+    ("Delete sibling keeps optional counts even beside writable declaration", ([], [], True),
+     _same_pass_counts(optional_operation="Delete")),
+    ("externalId distinguishes excluded and writable declarations with the same operation",
+     ([], [], True), _same_pass_counts(optional_operation="Upsert", optional_excluded=True,
+                                     optional_key="OtherKey")),
+    ("identical displayed declarations do not prove that a row is writable", ([], [], True),
+     _same_pass_counts(optional_operation="Upsert", optional_excluded=True)),
+    ("a prose externalId cannot disambiguate excluded and writable variants", ([], [], True),
+     _same_pass_counts(optional_operation="Upsert", optional_excluded=True, indistinguishable=True)),
+    ("a matched writable row still rejects the other CSV's count", 1,
+     len([e for e in _same_pass_counts(writable_count=5)[0] if "Pass=3" in e])),
+    ("a writable row distinguished by externalId still binds to its own source", 1,
+     len([e for e in _same_pass_counts(optional_operation="Upsert", optional_excluded=True,
+                                     optional_key="OtherKey", writable_count=5)[0] if "Pass=3" in e])),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [
+        ("same-pass declaration matching respects optional rows", SAME_PASS_DECLARATIONS),
         ("mixed explicit and legacy rows preserve distinct-CSV matching", MIXED_PASS_COUNTS),
         ("source requirements respect the declared operation", COUNT_SOURCE_REQUIREMENTS),
         ("record counts follow the CSV read by the declared pass", PASS_COUNTS),
