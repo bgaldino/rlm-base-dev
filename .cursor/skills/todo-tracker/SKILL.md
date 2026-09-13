@@ -16,10 +16,13 @@ especially when starting a session in this repo with no idea what is in flight.
    what makes a simultaneous start collide instead of silently duplicating a day.
 3. **Never hand-edit frontmatter.** Use `index.py claim|release|close`; it stamps,
    validates, commits and pushes as one step.
-4. **Release when you stop, not only when you finish.** A claim left on a paused item is
-   the main way this tracker rots.
-5. **Close on acceptance, not on merge.** If the criteria are met and verified, close it
-   and say in the Outcome that it is unmerged.
+4. **Keep the claim for the whole work item, not one pass.** Retain ownership through
+   implementation, CI, review rounds, follow-up fixes, and waits for user approval.
+   Release only when actually handing off, abandoning, or explicitly parking the item
+   so someone else may take it. Ending a turn or review pass is not a release event.
+5. **Close on agreed acceptance.** Honor any user-required review, merge-approval, or
+   landing gate; green checks alone do not satisfy those gates. When acceptance does
+   not require landing, close on verified delivery and state that it is unmerged.
 6. **A session task list is never the record.** Claude Code's task tool, a scratch file,
    a TODO comment — none of these outlive the session. The pack does.
 
@@ -31,9 +34,10 @@ especially when starting a session in this repo with no idea what is in flight.
 - **DO NOT** claim as an agent. `claimed_by` names a **person** — an agent acts on
   someone's behalf, and a tracker full of `claude` cannot tell you whose machine holds
   the uncommitted work.
-- **DO NOT** take over a claim silently. A claim older than 14 days with no commits
-  referencing the item is presumed abandoned — clear it **and write in the pack's log
-  that you did**.
+- **DO NOT** take over a claim silently. For a claim older than 14 days with no
+  commits referencing the item, check the pack log and linked PR before presuming
+  abandonment. Record the evidence and reason for any stale-claim release. An ongoing
+  review or approval wait is not abandonment merely because no new commit was needed.
 - **DO NOT** widen a pack's scope to keep it open. Partially done is not done: split the
   remainder into a new pack and close the original against what it delivered.
 - **DO NOT** write a bare `#NN` for a pack id in a commit message or PR body. GitHub
@@ -124,8 +128,17 @@ python .agents/artifacts/todos/index.py claim 071     # pushes immediately
 when, or the push is rejected. Either way: pull, re-read, pick something else. Do not
 work a claimed item in parallel.
 
-**Finishing.** Rewrite the body into an Outcome first, then `close 071`. If it refuses,
-it is telling you step 3 has not been done — that is the check working.
+**Between review rounds.** Keep the existing claim. Record the PR, current head,
+review/CI state, and next action in the pack log. Do not release/reclaim or reset the
+claim timestamp at each pass. Waiting for the user to approve the merge is still
+part of the same work item when that approval is an agreed acceptance gate.
+
+**Handing off or explicitly parking.** Record the remaining work and where the branch
+and any uncommitted changes live, then `release 071` so another owner can take it.
+
+**Finishing.** After all agreed acceptance gates are met, rewrite the body into an
+Outcome, then `close 071` (which clears the claim). If it refuses, address the
+reported closeout requirement before retrying.
 
 ## Validation Checks
 
@@ -137,7 +150,10 @@ it is telling you step 3 has not been done — that is the check working.
   hook or CI job on it expecting otherwise, and always read the message. `INDEX.md is
   stale` on its own means regenerate; `Closeout problems` means fix the pack.
 - A pack you closed is in `done/`, has `status: done`, a `closed_at`, and no claim.
-- A pack you claimed shows your name on the remote, not just locally.
+- A pack you claimed shows your name on the remote, not just locally, and stays claimed
+  across review passes and approval waits while you still own the work.
+- A release represents an actual ownership handoff or explicit parking decision, recorded
+  in the log; a turn boundary or completed review round is not sufficient.
 - Nothing you intend to survive this session exists only in a session task list.
 
 ## Related
