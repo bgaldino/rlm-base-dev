@@ -183,6 +183,28 @@ class SFDMUValidator:
     # locale/plan subdir. Remove an entry once its tree is refreshed.
     _EMPTY_CSV_DEFERRED_PLAN_FAMILIES = ("q3", "mfg")
 
+    def _report_empty_csv_no_header(self, result, obj_name: str, csv_path: Path,
+                                    pass_prefix: str) -> None:
+        """Report a CSV with no usable header row — a 0-byte file (StopIteration) or a
+        whitespace/newline-only file (csv.reader yields an empty/all-blank first record).
+        HIGH for an allowlisted object, CRITICAL otherwise. NOT subject to the family
+        deferral: a no-header file is a stronger defect than a header-only one, and the
+        deferral covers only the header-only finding."""
+        if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name=obj_name,
+                message=f"{pass_prefix}CSV file is completely empty (no header row). Add header row with fields from query.",
+                file_path=self._make_relative_path(csv_path)
+            ))
+        else:
+            result.add_issue(Issue(
+                severity=Severity.CRITICAL,
+                object_name=obj_name,
+                message=f"{pass_prefix}CSV file is completely empty (no header row)",
+                file_path=self._make_relative_path(csv_path)
+            ))
+
     def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
         """True if csv_path lives under a plan family whose header-only (0-data-row) CSV
         finding is deferred (pending the post-264 re-seed, per
@@ -1754,28 +1776,28 @@ class SFDMUValidator:
                 try:
                     headers = next(reader)
                 except StopIteration:
-                    # Empty file
-                    if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
-                        result.add_issue(Issue(
-                            severity=Severity.HIGH,
-                            object_name=obj_name,
-                            message=f"{pass_prefix}CSV file is completely empty (no header row). Add header row with fields from query.",
-                            file_path=self._make_relative_path(csv_path)
-                        ))
-                    else:
-                        result.add_issue(Issue(
-                            severity=Severity.CRITICAL,
-                            object_name=obj_name,
-                            message=f"{pass_prefix}CSV file is completely empty (no header row)",
-                            file_path=self._make_relative_path(csv_path)
-                        ))
+                    # Completely empty (0-byte) file — no header row at all.
+                    self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
                     return
 
                 # Normalize headers (strip BOM, quotes, whitespace)
                 headers = [self._normalize_header(h) for h in headers]
 
-                # Count data rows
-                data_row_count = sum(1 for _ in reader)
+                # A whitespace/newline-only file does NOT raise StopIteration — csv.reader
+                # yields an empty (or all-blank) first record, so `headers` normalizes to
+                # all-empty here. That is still a no-header file: report it exactly like the
+                # StopIteration case above, and BEFORE the family deferral, so the no-header
+                # guarantee holds for q3/mfg too (the deferral covers only the header-only
+                # finding, a strictly weaker signal).
+                if not any(h for h in headers):
+                    self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
+                    return
+
+                # Count data rows. csv.reader yields [] for a blank line, so a trailing
+                # newline or a blank separator row is NOT data — a row counts only if it has
+                # at least one non-whitespace field. (Otherwise `Id,Name\n\n` would report a
+                # phantom data row and slip past the header-only check below.)
+                data_row_count = sum(1 for row in reader if any((field or "").strip() for field in row))
 
                 self.log(f"  CSV has {len(headers)} columns, {data_row_count} data rows", level="DEBUG")
 

@@ -1339,6 +1339,34 @@ HEADER_ONLY_CSV_REPORTED = [
             if "header row but 0 data rows" in i]),
 ]
 
+# Two empty shapes csv.reader does NOT surface as StopIteration, both flagged by Copilot on #427:
+#   1. A whitespace/newline-only file yields an empty (all-blank) first record, so it is a
+#      no-header file, not a header-only one — it must report the no-header CRITICAL (and BEFORE
+#      the family deferral), never be mistaken for the deferrable header-only shape.
+#   2. csv.reader yields [] for a blank line, so a trailing newline / blank separator row must
+#      NOT be counted as data — else `Id,Name\n\n` shows a phantom data row and slips the check.
+NO_HEADER_AND_BLANK_ROWS_DETECTED = [
+    ("a whitespace/newline-only CSV is a no-header file, reported CRITICAL (not StopIteration)",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "\n"},
+                              severity=V.Severity.CRITICAL)
+            if "no header row" in i]),
+    ("...an all-blank (spaces) header row is treated the same — CRITICAL no-header",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "   \n"},
+                              severity=V.Severity.CRITICAL)
+            if "no header row" in i]),
+    ("...and it is NOT mis-reported as the deferrable header-only shape — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "\n"})
+            if "header row but 0 data rows" in i]),
+    ("a header plus only blank lines counts 0 data rows — the blank rows are not data",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n\n\n"},
+                              severity=V.Severity.HIGH)
+            if "header row but 0 data rows" in i]),
+]
+
 # The `q3` and `mfg` plan trees carry ~22 live header-only CSVs (q3-billing's are real data lost
 # in commit 3bff2389; q3-dro / mfg are never-populated stubs) — all deferred until the 264 upgrade
 # re-seeds them (pack 162). The check must protect the priority `qb` datasets (verified clean of
@@ -1701,6 +1729,9 @@ def main() -> int:
                   HEADER_ONLY_CSV_REPORTED),
                  ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
                   DEFERRED_PLAN_SKIP),
+                 ("no-header (whitespace-only) files and blank data rows are detected, "
+                  "not mistaken for header-only or counted as data",
+                  NO_HEADER_AND_BLANK_ROWS_DETECTED),
                  ("a malformed externalId is not double-reported by the SELECT-coverage sweep too",
                   MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED),
                  ("a malformed externalId does not shadow a same-coerced-string well-formed "
