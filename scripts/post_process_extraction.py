@@ -75,19 +75,32 @@ def load_export_json(plan_dir: str) -> dict:
 
 
 def get_object_name_from_query(query: str) -> str:
-    """Extract the object API name from a SOQL query string."""
+    """Extract the object API name from a SOQL query string.
+
+    A non-string `query` (e.g. a JSON list from a hand-edited export.json) returns ""
+    rather than raising — `.upper()` on a list throws AttributeError straight out of the
+    caller, aborting the whole run over one malformed declaration. Callers already skip
+    on an empty name (`if not name: continue`). This mirrors the guard added to
+    validate_sfdmu_v5_datasets.py's `_extract_object_name` in PR #397; see todo pack 182.
+    """
+    if not isinstance(query, str):
+        return ""
     upper = query.upper()
     idx = upper.find(" FROM ")
     if idx == -1:
         return ""
     rest = query[idx + 6:].strip()
-    return rest.split()[0].strip()
+    # `FROM` followed by only whitespace leaves nothing to split — return "" (the caller
+    # then records it as a malformed declaration) rather than an IndexError that would
+    # crash the run with a traceback, bypassing the controlled malformed-query handling.
+    parts = rest.split()
+    return parts[0].strip() if parts else ""
 
 
 def parse_plan_structure(export_json: dict) -> tuple:
     """Parse export.json into a structure mapping object names to their config.
 
-    Returns a tuple (plan_structure, passes) where:
+    Returns a tuple (plan_structure, passes, malformed) where:
       plan_structure: object_name -> {
         "pass_index": int (0-based),
         "operation": str,
@@ -97,6 +110,15 @@ def parse_plan_structure(export_json: dict) -> tuple:
       }
       passes: object_name -> list of (pass_index, entry) for all passes
         (used for objectset_source generation; plan_structure keeps only first pass).
+      malformed: list of {"query", "pass_index"} for declarations whose `query` is
+        present but yields no object name (non-string, or a string with no FROM). This
+        is NOT the same as an empty/absent query: a *dropped* declaration is dangerous,
+        because under --copy-to-plan the object's raw extracted CSV is still synced over
+        the tracked plan CSV (sync_to_plan's incidental-copy fallback), bypassing all
+        processing. The caller must treat a non-empty `malformed` as fatal — the
+        validator flags the same shape (a non-string/unparseable `query`) as
+        Severity.HIGH (validate_sfdmu_v5_datasets.py); this command deliberately
+        exits with its own CRITICAL result instead of the raw-CSV sync.
     For objects appearing in multiple passes, only the first pass entry
     is stored in plan_structure; later passes are in passes.
 
@@ -105,6 +127,7 @@ def parse_plan_structure(export_json: dict) -> tuple:
     """
     result = {}
     passes = {}
+    malformed = []
     object_sets = export_json.get("objectSets", [])
     if not object_sets and "objects" in export_json:
         # Single-pass plan (e.g. qb-pcm): treat as one virtual object set
@@ -116,6 +139,16 @@ def parse_plan_structure(export_json: dict) -> tuple:
             query = obj.get("query", "")
             name = get_object_name_from_query(query)
             if not name:
+                # A present-but-unparseable query is a malformed declaration, not an
+                # empty slot — record it so the caller can fail instead of silently
+                # dropping the object (which would let its raw CSV be synced as-is).
+                # The ONLY non-malformed no-name case is an absent or empty *string*
+                # slot (missing key defaults to ""). Every non-string value — [], {},
+                # 0, False, null — is malformed, even the falsy ones: a plain
+                # truthiness test would wave those straight back onto the raw-CSV path.
+                is_empty_string_slot = isinstance(query, str) and query == ""
+                if not is_empty_string_slot:
+                    malformed.append({"query": query, "pass_index": idx})
                 continue
             fields = parse_select_fields(query)
             entry = {
@@ -129,11 +162,18 @@ def parse_plan_structure(export_json: dict) -> tuple:
                 result[name] = entry
             # Track all passes for objectset_source generation
             passes.setdefault(name, []).append((idx, entry))
-    return result, passes
+    return result, passes, malformed
 
 
 def parse_select_fields(query: str) -> list:
-    """Extract field names from a SOQL SELECT clause."""
+    """Extract field names from a SOQL SELECT clause.
+
+    Non-string `query` returns [] rather than raising, for the same reason as
+    get_object_name_from_query above — mirrors validate_sfdmu_v5_datasets.py's
+    `_parse_select_fields` guard (PR #397, todo pack 182).
+    """
+    if not isinstance(query, str):
+        return []
     upper = query.upper()
     select_idx = upper.find("SELECT ")
     from_idx = upper.find(" FROM ")
@@ -620,7 +660,12 @@ def get_key_columns(plan_headers: list, external_id: str) -> list:
 
     Falls back to all columns if no externalId fields found.
     """
-    if not external_id or external_id == "Id":
+    # `externalId`, like `query`, comes straight from a hand-editable export.json. A
+    # non-string value (e.g. a JSON list ["Name"]) is not caught by the `not external_id`
+    # check when populated and would raise AttributeError at `.split(";")` below, aborting
+    # the run — the same crash class the query guards above close (todo pack 182). Treat a
+    # non-string externalId as "no key" and fall back to all columns.
+    if not isinstance(external_id, str) or not external_id or external_id == "Id":
         return list(plan_headers) if plan_headers else []
 
     # Split externalId on ";" but be aware that composite key references
@@ -764,7 +809,27 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     instead of .Code/.UnitCode).
     """
     export_json = load_export_json(plan_dir)
-    plan_structure, all_passes = parse_plan_structure(export_json)
+    plan_structure, all_passes, malformed = parse_plan_structure(export_json)
+
+    # Fail fast on a malformed declaration rather than dropping it. A dropped object is
+    # skipped by the processing loop below, but under --copy-to-plan sync_to_plan would
+    # still find its raw extracted CSV and copy it over the tracked plan CSV as
+    # "incidental" — bypassing status rewrites, ID resolution, defaults, and column
+    # alignment, and exiting 0. That silently corrupts plan data, so refuse to proceed
+    # (the validator flags the same shape as Severity.HIGH; this command exits CRITICAL).
+    if malformed:
+        export_path = os.path.join(plan_dir, "export.json")
+        print("\n" + "=" * 80)
+        print(f"CRITICAL: {len(malformed)} malformed object declaration(s) in {export_path} —")
+        print("each has a `query` that cannot be parsed to an object name "
+              "(non-string, or missing a FROM clause):")
+        for md in malformed:
+            print(f"  pass {md['pass_index'] + 1}: query={md['query']!r}")
+        print("Refusing to proceed: dropping a declaration would let --copy-to-plan sync the "
+              "raw extracted CSV over the tracked plan CSV, bypassing all processing.")
+        print("=" * 80)
+        raise SystemExit(1)
+
     code_map = load_code_map(code_map_file)
 
     # Find extracted CSV files
