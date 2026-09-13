@@ -1312,6 +1312,52 @@ UNPARSEABLE_QUERY_REPORTED = [
             if "no parseable" in i]),
 ]
 
+# A header-only CSV (valid header row, 0 data rows) used to report NOTHING for a non-allowlisted
+# object: the `data_row_count == 0` branch only DEBUG-logged allowlisted objects and was silent
+# otherwise, so an Upsert whose CSV lost its rows loaded nothing and passed clean — the same
+# data-loss shape that blanked q3-billing in commit 3bff2389 (pack 162). Now HIGH, mirroring the
+# no-header StopIteration branch's split, but HIGH not CRITICAL: a present header is a weaker
+# signal than a file with no header row at all.
+HEADER_ONLY_CSV_REPORTED = [
+    ("a header-only (0-row) CSV for a non-allowlisted Upsert object is reported HIGH",
+     True, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n"},
+                               severity=V.Severity.HIGH)
+            if "header row but 0 data rows" in i]),
+    ("...and NOT as Critical — a present header is a weaker signal than a no-header file",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n"},
+                                severity=V.Severity.CRITICAL)
+            if "header row but 0 data rows" in i]),
+    ("...but a populated CSV for the same object does not — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n1,a\n"})
+            if "header row but 0 data rows" in i]),
+    ("...and an allowlisted object (CostBook) shipping header-only stays benign — control",
+     False, [i for i in issues([[{"query": "SELECT Id, Name FROM CostBook", "operation": "Upsert",
+                                  "externalId": "Name"}]], {"CostBook.csv": "Id,Name\n"})
+            if "header row but 0 data rows" in i]),
+]
+
+# The `q3` and `mfg` plan trees carry ~22 live header-only CSVs (q3-billing's are real data lost
+# in commit 3bff2389; q3-dro / mfg are never-populated stubs) — all deferred until the 264 upgrade
+# re-seeds them (pack 162). The check must protect the priority `qb` datasets (verified clean of
+# this shape) without turning the gate red on the deferred trees. Tested on the method directly:
+# the synthetic-plan harness writes under a temp dir with no `sfdmu/<family>` segment, so it can't
+# reach the path predicate.
+_DEFER_V = V.SFDMUValidator(base_dir=str(REPO))
+DEFERRED_PLAN_SKIP = [
+    ("a q3 plan tree is deferred — its header-only CSVs are not flagged",
+     True, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/q3/en-US/q3-billing/BillingTreatment.csv")),
+    ("an mfg plan tree is deferred too",
+     True, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv")),
+    ("a qb plan tree is NOT deferred — the priority datasets are still checked",
+     False, _DEFER_V._is_deferred_empty_csv_plan(
+         REPO / "datasets/sfdmu/qb/en-US/qb-pricing/CostBook.csv")),
+]
+
 MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED = [
     # The SELECT-coverage sweep used to run on every live declaration unconditionally, including
     # one already flagged malformed (non-string, `str()`-coerced). A coerced repr that happens to
@@ -1650,6 +1696,11 @@ def main() -> int:
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),
+                 ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
+                  "not silently passed",
+                  HEADER_ONLY_CSV_REPORTED),
+                 ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
+                  DEFERRED_PLAN_SKIP),
                  ("a malformed externalId is not double-reported by the SELECT-coverage sweep too",
                   MALFORMED_EXTERNAL_ID_NOT_DOUBLE_REPORTED),
                  ("a malformed externalId does not shadow a same-coerced-string well-formed "

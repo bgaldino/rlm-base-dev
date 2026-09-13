@@ -171,6 +171,36 @@ class SFDMUValidator:
         "UsagePrdGrantBindingPolicy",
     }
 
+    # Plan trees whose header-only-CSV finding is DEFERRED, not a real placeholder.
+    # The `q3` and `mfg` plans carry ~22 header-only Upsert CSVs today: the `q3-billing`
+    # set is real data lost in commit 3bff2389's "fresh 262 refresh" (recoverable from
+    # git @ 3bff2389~1), and `q3-dro` / `mfg` are never-populated stubs. Both are
+    # explicitly out of scope until the 264 upgrade re-seeds these plans (todo pack 162):
+    # the priority datasets are the `qb` series (verified clean of this shape, 0 findings),
+    # so this check protects `qb` and any new plan while leaving the deferred trees alone.
+    # Matched as an exact path segment (the family directory name immediately under
+    # `sfdmu`), so `datasets/sfdmu/q3/...` and `.../mfg/...` are covered regardless of
+    # locale/plan subdir. Remove an entry once its tree is refreshed.
+    _EMPTY_CSV_DEFERRED_PLAN_FAMILIES = ("q3", "mfg")
+
+    def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
+        """True if csv_path lives under a plan family whose header-only (0-data-row) CSV
+        finding is deferred (pending the post-264 re-seed, per
+        _EMPTY_CSV_DEFERRED_PLAN_FAMILIES / pack 162).
+
+        Scope note: this defers ONLY the new header-only-CSV finding. A q3/mfg CSV that
+        is a completely empty (no-header) file, or one missing a `$$` composite-key
+        column, still fires — those checks are not part of this deferral."""
+        try:
+            parts = csv_path.resolve().relative_to(self.base_dir.resolve()).parts
+        except (ValueError, AttributeError):
+            parts = csv_path.parts
+        # Look for the plan family segment immediately under a `sfdmu` directory.
+        for i, seg in enumerate(parts[:-1]):
+            if seg == "sfdmu" and parts[i + 1] in self._EMPTY_CSV_DEFERRED_PLAN_FAMILIES:
+                return True
+        return False
+
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
         """Initialize the validator.
@@ -1749,9 +1779,32 @@ class SFDMUValidator:
 
                 self.log(f"  CSV has {len(headers)} columns, {data_row_count} data rows", level="DEBUG")
 
-                # Check if this is a known empty CSV (0 data rows)
-                if data_row_count == 0 and obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
-                    self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
+                # A header-only CSV (valid header row, 0 data rows) is as empty of DATA as the
+                # no-header StopIteration case above — but one branch up that case is CRITICAL for
+                # an unlisted object, while this one used to report NOTHING for it (only a DEBUG log
+                # for an allowlisted object, and silence otherwise). So an Upsert object whose CSV
+                # lost its data rows (bad export, or a file truncated to just its header) passed
+                # validation cleanly. Mirror the severity split:
+                #   - allowlisted object → benign (this IS the expected placeholder state), DEBUG only.
+                #   - deferred plan family → this finding only is skipped (see
+                #     _EMPTY_CSV_DEFERRED_PLAN_FAMILIES; other empty/key checks still fire).
+                #   - any other object   → HIGH. Not CRITICAL: a present header is a weaker failure
+                #     signal than the completely-empty (no-header) file, which stays CRITICAL.
+                if data_row_count == 0:
+                    if obj_name in self.KNOWN_EMPTY_CSV_OBJECTS:
+                        self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
+                    elif self._is_deferred_empty_csv_plan(csv_path):
+                        self.log(f"  {obj_name} has 0 data rows in a deferred plan tree "
+                                 "(pending post-264 refresh) — not flagged", level="DEBUG")
+                    else:
+                        result.add_issue(Issue(
+                            severity=Severity.HIGH,
+                            object_name=obj_name,
+                            message=(f"{pass_prefix}CSV has a header row but 0 data rows, and "
+                                     f"{obj_name} is not a known-empty object — a lost or truncated "
+                                     "export would otherwise pass unnoticed."),
+                            file_path=self._make_relative_path(csv_path)
+                        ))
 
                 # Validate composite key columns for objects with multi-field externalId
                 # Skip objects with deleteOldData: true (delete-then-insert strategy doesn't need composite key)
