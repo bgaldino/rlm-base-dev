@@ -412,6 +412,7 @@ CHECKS = [
 # reports anything in tests/ that no check claims, so adding one is not silently ignored.
 STDLIB_SUITES = [
     "tests/test_agents_common.py",
+    "tests/test_build_billing_ui_module.py",
     "tests/test_context_apply.py",
     "tests/test_context_delete.py",
     "tests/test_context_payload.py",
