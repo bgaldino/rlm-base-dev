@@ -5,7 +5,11 @@ updates to an *active* agent version, so deactivating first lets
 ``publish_agents`` + ``activate_agents`` re-publish and re-activate.
 
 Agents are discovered from ``aiAuthoringBundles`` — the same source as
-``publish_agents`` and ``activate_agents``, so all three act on one set.
+``publish_agents`` and ``activate_agents``. This task discovers the *full*
+set (``include_excluded=True``): publish/activate skip ``EXCLUDED_BUNDLES``
+(bundles that fail to compile on the current API version), but deactivation
+must still reach one that a prior/upgraded org left active — deactivating a
+missing or already-inactive agent is a no-op, so including it is safe.
 This task previously read the ``legacy/bots`` tree, which held the only
 Bot + BotVersion agent in the repo; Release 264 retired both
 ``BotVersion`` and ``GenAiPlannerBundle`` as metadata types (absent from
