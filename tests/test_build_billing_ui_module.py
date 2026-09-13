@@ -250,10 +250,14 @@ def test_partial_source_fails(m):
         td = Path(td)
         src = td / "src"
         _write_full_source(m, src)
-        # Remove one mapped input of each kind.
+        # Remove one mapped input of each kind: a whole class, a whole LWC dir, and
+        # — critically — a required file from an LWC dir that otherwise EXISTS, which
+        # a bare directory-exists check would wave through.
         (src / "classes" / "SplitInvoicesController.cls").unlink()
-        first_lwc = next(iter(m.LWC_MAP))
-        shutil.rmtree(src / "lwc" / first_lwc)
+        lwc_names = list(m.LWC_MAP)
+        shutil.rmtree(src / "lwc" / lwc_names[0])
+        gutted = lwc_names[1]
+        (src / "lwc" / gutted / f"{gutted}.js").unlink()  # dir stays, .js gone
 
         dest = td / "out"
         r = _run(src, dest)
@@ -262,6 +266,8 @@ def test_partial_source_fails(m):
         check("failure output names a missing input",
               "MISSING" in r.stdout and "SplitInvoicesController.cls" in r.stdout,
               r.stdout[-400:])
+        check("an existing-but-incomplete LWC bundle is caught",
+              f"{gutted}.js" in r.stdout, r.stdout[-400:])
 
 
 def _no_raise(fn):

@@ -205,6 +205,17 @@ def main(argv=None):
             print(f"  WARN  source dir not found: {src_dir}")
             missing.append(f"lwc/{old_name}")
             continue
+        # A present-but-incomplete bundle is still a broken extraction: an LWC needs
+        # at least its same-name .js and .js-meta.xml to deploy. Require both rather
+        # than copying whatever happens to be there and exiting 0 on an undeployable
+        # component.
+        required = [f"{old_name}.js", f"{old_name}.js-meta.xml"]
+        absent = [r for r in required if not (src_dir / r).exists()]
+        if absent:
+            for r in absent:
+                print(f"  WARN  incomplete LWC bundle, missing: {src_dir / r}")
+                missing.append(f"lwc/{old_name}/{r}")
+            continue
         dst_dir.mkdir(parents=True, exist_ok=True)
         print(f"\n  [{old_name}] → [{new_name}]")
 
