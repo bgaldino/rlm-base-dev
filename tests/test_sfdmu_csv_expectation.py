@@ -1334,22 +1334,35 @@ UNPARSEABLE_QUERY_REPORTED = [
             if "no parseable" in i]),
 ]
 
-# pack 163: object identity is case-insensitive, and a SELECT-clause subquery's inner FROM is not
-# the object. Both gaps were latent (no shipped plan has either shape — the live baseline is
-# unchanged), so these synthetic cases are the only coverage.
+# pack 163: object identity is case-SENSITIVE, and a SELECT-clause subquery's inner FROM is not
+# the object. Both shapes are latent (no shipped plan has either — the live baseline is unchanged),
+# so these synthetic cases are the only coverage.
+# Object identity is NOT case-folded. SFDMU reads each pass's CSV at `path.join(root, sObjectName)`
+# with `sObjectName` the raw `FROM`-clause name and no case normalization (`Common.getCSVFilename`;
+# `ScriptObject.name = parsed.sObject` — verified against sfdmu 5.8.0). So `FROM Widget__c` and
+# `FROM widget__c` read `Widget__c.csv` and `widget__c.csv` — genuinely different files on
+# case-sensitive Linux. An earlier revision folded them to one object; PR #430's round-2 review
+# showed that suppresses a real missing-file Critical (SFDMU would still fail to read the un-shipped
+# casing), and the fold was reverted (todo pack 163). These cases pin the exact-case behavior.
+#
+# The case-identity pair below asserts on the config-builder KEYS, not on an end-to-end missing-CSV
+# Critical, on purpose: whether `widget__c.csv` is "missing" when `Widget__c.csv` exists depends on
+# the host filesystem's case sensitivity (absent on Linux CI, present on the dev's case-insensitive
+# macOS), so an end-to-end assertion would be green here and red in CI. The keys ARE the mechanism —
+# two distinct keys means each pass owes and is checked against its own exact-cased file wherever it
+# runs; one merged key is the false green the fold produced.
+_CASE_ID_EXPORT = {"objectSets": [
+    {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}]},
+    {"objects": [{"query": "SELECT Id, Name FROM widget__c", "operation": "Update", "externalId": "Name"}]},
+]}
+_CASE_ID_V = V.SFDMUValidator(base_dir=str(REPO), verbose=False)
 OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY = [
-    ("two passes differing only in FROM-clause case are one object; a single populated root CSV "
-     "in the first casing covers both — no missing-CSV Critical for the lowercase casing",
-     False, issues(
-         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
-          [{"query": "SELECT Id, Name FROM widget__c", "operation": "Update", "externalId": "Name"}]],
-         {"Widget__c.csv": HEADER}, severity=V.Severity.CRITICAL)),
-    ("...and the merged object is still checked, not made to vanish: with NO root CSV the missing "
-     "file is still reported CRITICAL (guards against the merge silently dropping coverage)",
-     True, [i for i in issues(
-         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
-          [{"query": "SELECT Id, Name FROM widget__c", "operation": "Update", "externalId": "Name"}]],
-         severity=V.Severity.CRITICAL) if "CSV file not found" in i]),
+    ("two passes differing only in FROM-clause case key as SEPARATE objects in _all_pass_configs — "
+     "not folded into one, so each owes its own exact-cased CSV",
+     True, sorted(_CASE_ID_V._all_pass_configs(_CASE_ID_EXPORT).keys()) == ["Widget__c", "widget__c"]),
+    ("...and the same two distinct keys in _parse_object_configs, so loop A validates each casing's "
+     "own file rather than letting one stand in for the other",
+     True, sorted(_CASE_ID_V._parse_object_configs(_CASE_ID_EXPORT).keys()) == ["Widget__c", "widget__c"]),
     ("a SELECT-clause subquery's inner FROM is not mistaken for the object: the outer Account is "
      "validated (populated Account.csv), and no spurious Contacts CSV Critical is raised",
      False, [i for i in criticals(
@@ -1360,29 +1373,28 @@ OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY = [
      True, [i for i in criticals(
          [{"query": "SELECT Id, (SELECT Id FROM Contacts) FROM Account", "operation": "Upsert",
            "externalId": "Id"}]) if "CSV file not found: Account.csv" in i]),
-    # The override cross-join: a per-pass CSV filename in a different casing than the query's FROM
-    # (`object-set-2/account.csv` for a `FROM Account` pass) is still matched to the object. Without
-    # `_resolve_object_key` at the override loop these would report "no matching object in pass".
-    ("a differently-cased per-pass override filename (account.csv vs FROM Account) is matched, "
-     "not reported as declaring no object",
-     False, [i for i in issues(
+    # Per-pass override filename casing must match the declaration's: SFDMU reads
+    # `object-set-N/<sObjectName>.csv` by exact case, so a mis-cased override is a file it never loads.
+    ("a differently-cased per-pass override filename (account.csv vs FROM Account) is NOT credited: "
+     "it is reported 'no matching object in pass' — SFDMU would read object-set-2/Account.csv, not it",
+     True, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
           [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
          {"Account.csv": HEADER}, {2: {"account.csv": HEADER}}, use_separated_csv_files=True)
             if "no matching object in pass" in i]),
-    ("...and the matched override's CONTENT is validated through the resolved key: a header-only "
-     "override CSV is reported HIGH, proving the case-fold reaches the content check",
+    ("...and a mis-cased override does NOT relieve the root-CSV requirement: with only "
+     "object-set-2/account.csv and no root Account.csv, the missing root is still CRITICAL",
      True, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
           [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
-         {"Account.csv": HEADER}, {2: {"account.csv": "Id,Name\n"}}, use_separated_csv_files=True,
-         severity=V.Severity.HIGH) if "header row but 0 data rows" in i]),
-    ("...but a genuinely undeclared override name still reports 'no matching object' — the fold "
-     "matches only real case-variants, it does not swallow the check",
-     True, [i for i in issues(
+         {}, {2: {"account.csv": HEADER}}, use_separated_csv_files=True, severity=V.Severity.CRITICAL)
+            if "CSV file not found: Account.csv" in i]),
+    ("...but a correctly-cased override (Account.csv for FROM Account) IS matched — exact-case "
+     "matching still credits the real file, it does not over-reject (control)",
+     False, [i for i in issues(
          [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
           [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
-         {"Account.csv": HEADER}, {2: {"Sprocket__c.csv": HEADER}}, use_separated_csv_files=True)
+         {"Account.csv": HEADER}, {2: {"Account.csv": HEADER}}, use_separated_csv_files=True)
             if "no matching object in pass" in i]),
 ]
 
@@ -1830,8 +1842,8 @@ def main() -> int:
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),
-                 ("object identity is case-insensitive and subquery-aware (FROM-clause case; a "
-                  "SELECT-clause subquery's inner FROM is not the object)",
+                 ("object identity is case-SENSITIVE (SFDMU reads CSVs by exact FROM-clause case) "
+                  "and subquery-aware (a SELECT-clause subquery's inner FROM is not the object)",
                   OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY),
                  ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
                   "not silently passed",
