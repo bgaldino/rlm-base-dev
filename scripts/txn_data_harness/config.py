@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Optional
@@ -174,6 +175,8 @@ class ProductOption:
     # in the worst case). Requires a TermDefined product with a `term:` also
     # set -- co-term shorthand is incoherent without a cadence.
     end_date: Optional[EndDateOverride] = None
+    # PBE currency pin; None uses the resolved account currency.
+    currency: Optional[str] = None
 
 
 @dataclass
@@ -802,16 +805,25 @@ def _coerce_enum(
     return value
 
 
+def _coerce_product_currency(value: Any, where: str) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z]{3}", value.strip()):
+        raise ConfigError(f"{where}: currency must be a three-letter ISO code")
+    return value.strip().upper()
+
+
 def _coerce_product_option(
     raw: Any,
     where: str,
     default_qty: Any,
     default_discount: Any,
     default_selling_model: Any,
+    default_currency: Optional[str] = None,
 ) -> ProductOption:
     """Build one :class:`ProductOption` from a ``products[]`` entry (a mapping).
 
-    Per-entry ``quantity``/``discount``/``selling_model`` win over the
+    Per-entry ``quantity``/``discount``/``selling_model``/``currency`` win over the
     scenario-level fallbacks, mirroring how a scenario field wins over
     ``defaults``. ``period_boundary``/``billing_frequency`` are per-product only
     (no scenario-level fallback) -- they're product-specific proration knobs.
@@ -838,6 +850,7 @@ def _coerce_product_option(
         usage=_coerce_usage(raw.get("usage"), where),
         term=_coerce_term(raw.get("term"), where),
         selling_model=selling_model,
+        currency=_coerce_product_currency(raw.get("currency", default_currency), where),
         end_date=_coerce_end_date(raw.get("end_date"), where),
     )
 
@@ -918,6 +931,7 @@ def _coerce_sales_transaction_spec(
     # pool. `products:` is the pool a transaction draws a random subset from.
     default_qty = merged.get("quantity", 1)
     default_discount = merged.get("discount")
+    default_currency = _coerce_product_currency(merged.get("currency"), where)
     default_selling_model = merged.get("selling_model")
     if default_selling_model is not None and not isinstance(default_selling_model, str):
         raise ConfigError(f"{where}: selling_model must be a string")
@@ -932,6 +946,7 @@ def _coerce_sales_transaction_spec(
                 default_qty,
                 default_discount,
                 default_selling_model,
+                default_currency,
             )
             for i, p in enumerate(products_raw)
         ]
@@ -950,6 +965,7 @@ def _coerce_sales_transaction_spec(
                     merged.get("billing_frequency"), where, "billing_frequency",
                     _VALID_BILLING_FREQUENCIES),
                 selling_model=default_selling_model,
+                currency=default_currency,
             )
         ]
 

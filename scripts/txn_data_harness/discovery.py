@@ -169,6 +169,7 @@ class Product:
     # lazily by ``attach_usage_bindings`` once the caller knows which products
     # need them (avoids extra SOQL on non-usage scenarios).
     usage_bindings: list[UsageResourceBinding] = field(default_factory=list)
+    currency_iso_code: Optional[str] = None
 
     @property
     def is_qb(self) -> bool:
@@ -546,11 +547,12 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
 def discover_products(
     client: SfRestClient,
     sku: Optional[str] = None,
-    limit: int = 25,
+    limit: Optional[int] = 25,
+    product_id: Optional[str] = None,
 ) -> list[Product]:
     """Return billable products (active PBE on the standard pricebook)."""
     soql = (
-        "SELECT Id, UnitPrice, Product2Id, Product2.Name, "
+        "SELECT Id, CurrencyIsoCode, UnitPrice, Product2Id, Product2.Name, "
         "Product2.StockKeepingUnit, ProductSellingModel.SellingModelType, "
         "ProductSellingModel.Name, "
         "ProductSellingModel.PricingTerm, ProductSellingModel.PricingTermUnit "
@@ -560,9 +562,20 @@ def discover_products(
     )
     if sku:
         soql += f" AND Product2.StockKeepingUnit = '{_sql_escape(sku)}'"
-    soql += f" LIMIT {int(limit)}"
+    if product_id:
+        soql += f" AND Product2Id = '{_sql_escape(product_id)}'"
+    if limit is not None:
+        soql += f" LIMIT {int(limit)}"
+    try:
+        rows = client.query(soql)
+    except Exception as exc:
+        # CurrencyIsoCode is absent on single-currency orgs. Do not hide
+        # permissions, transport failures, or other missing-field errors.
+        if "INVALID_FIELD" not in str(exc) or "CurrencyIsoCode" not in str(exc):
+            raise
+        rows = client.query(soql.replace("Id, CurrencyIsoCode, UnitPrice", "Id, UnitPrice"))
     products: list[Product] = []
-    for r in client.query(soql):
+    for r in rows:
         p = r.get("Product2") or {}
         psm = r.get("ProductSellingModel") or {}
         products.append(Product(
@@ -571,6 +584,7 @@ def discover_products(
             sku=p.get("StockKeepingUnit"),
             pricebook_entry_id=r["Id"],
             unit_price=r.get("UnitPrice"),
+            currency_iso_code=r.get("CurrencyIsoCode"),
             selling_model_type=psm.get("SellingModelType"),
             selling_model_name=psm.get("Name"),
             pricing_term=psm.get("PricingTerm"),
@@ -583,8 +597,11 @@ def discover_products(
 
 def resolve_product(
     client: SfRestClient,
-    sku: str,
+    sku: Optional[str],
     selling_model: Optional[str] = None,
+    currency: Optional[str] = None,
+    pricebook_entry_id: Optional[str] = None,
+    product_id: Optional[str] = None,
 ) -> Product:
     """Resolve a single billable product by SKU (active PBE on standard PB).
 
@@ -593,16 +610,34 @@ def resolve_product(
     happens and the caller hasn't pinned ``selling_model``, this fails with
     the candidate names rather than silently returning whichever PBE the SOQL
     happens to return first. Pass ``selling_model`` (matching
-    ``ProductSellingModel.Name``) to disambiguate.
+    ``ProductSellingModel.Name``) to disambiguate. ``currency`` filters by
+    PricebookEntry.CurrencyIsoCode before selling-model selection; callers use
+    the account currency unless config pins another one. A stored PBE id lets
+    manifest resume preserve the exact original selection.
     """
-    # Query without LIMIT so we can detect ambiguity. Bound generously to
-    # protect against runaway SKU/PBE setups; real catalogs see < 5.
-    candidates = discover_products(client, sku=sku, limit=25)
+    # Query every PBE for this SKU: seven currencies times four models already
+    # exceeds the old 25-row cap.
+    if not sku and not product_id:
+        raise DiscoveryError("Product resolution requires a SKU or Product2 id")
+    candidates = discover_products(client, sku=sku, limit=None, product_id=product_id)
+    sku = sku or f"<Product2 {product_id}>"
     if not candidates:
         raise DiscoveryError(
             f"product SKU '{sku}' has no active PricebookEntry on the standard "
             f"pricebook (check the product/pricebook setup)"
         )
+    if pricebook_entry_id is not None:
+        candidates = [p for p in candidates if p.pricebook_entry_id == pricebook_entry_id]
+        if not candidates:
+            raise DiscoveryError(f"product SKU '{sku}' no longer has active PBE '{pricebook_entry_id}'")
+    if currency is not None:
+        matches = [p for p in candidates if p.currency_iso_code == currency]
+        if not matches:
+            available = ", ".join(sorted({p.currency_iso_code or "<single-currency>" for p in candidates}))
+            raise DiscoveryError(
+                f"product SKU '{sku}' has no active PBE in currency '{currency}' "
+                f"(available: {available})")
+        candidates = matches
     if selling_model is not None:
         matches = [p for p in candidates if p.selling_model_name == selling_model]
         if not matches:

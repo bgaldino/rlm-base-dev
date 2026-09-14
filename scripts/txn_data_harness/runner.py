@@ -6,7 +6,7 @@ import contextvars
 import logging
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -232,14 +232,21 @@ def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> R
         account = resolve_account(client, spec.account)
     else:
         account = ctx.default_account()
-    products = [
-        (
-            resolve_product(client, opt.sku, selling_model=opt.selling_model)
-            if opt.sku
-            else ctx.default_product()
-        )
-        for opt in spec.products
-    ]
+    products = []
+    for opt in spec.products:
+        default_product = ctx.default_product() if not opt.sku else None
+        sku = opt.sku or default_product.sku
+        products.append(resolve_product(
+            client, sku, selling_model=opt.selling_model,
+            currency=opt.currency or account.currency_iso_code,
+            product_id=default_product.id if not sku else None))
+    currencies = {p.currency_iso_code for p in products}
+    if len(currencies) > 1:
+        raise ConfigError("All products in a transaction pool must use the same currency")
+    # Carry the selected transaction currency without mutating the discovered
+    # Account shared with other scenarios. None preserves single-currency payloads.
+    if products:
+        account = replace(account, currency_iso_code=products[0].currency_iso_code)
     # Only fetch usage bindings for products that actually opted in.
     usage_products = [
         p for p, opt in zip(products, spec.products) if opt.usage is not None

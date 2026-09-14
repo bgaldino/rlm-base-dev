@@ -52,6 +52,15 @@ billing-ready account and a billable product; config lets one run mix shapes.
 > The live-verified endpoint/body/async contracts are locked in
 > [`CONTRACTS.md`](CONTRACTS.md) — read it before changing `lifecycle.py`.
 
+## Currency selection
+
+Sales transaction scenarios resolve PBEs in the account's currency by default.
+Use a scenario or product `currency:` pin to select another currency; the full
+product pool must agree on one currency. `plan` reports the selected currency
+and PBE id, and new manifests preserve that selection for resume. See the
+[scenario field reference](scenarios/README.md#multi-currency-product-selection)
+for precedence, single-currency behavior, and an override example.
+
 ## Quick start
 
 ```bash

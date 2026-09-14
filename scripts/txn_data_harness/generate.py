@@ -108,7 +108,7 @@ def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
               f"is placed per transaction (multi-line)")
     for opt in r.options:
         print(f"    • {opt.product.sku or '(no SKU)'} — {opt.product.name}  "
-              f"${opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
+              f"{opt.product.currency_iso_code or 'org currency'} {opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
               f"{_fmt_discount(opt.discount)}".rstrip()
               + f"  (PBE {opt.product.pricebook_entry_id})")
     rng = r.start_date_range

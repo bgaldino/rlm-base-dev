@@ -200,7 +200,14 @@ class SfRestClient:
 
         path = f"/services/data/v{self.api_version}/query?q={quote(soql)}"
         result = self._request("GET", path)
-        return result.get("records", []) if isinstance(result, dict) else []
+        records = []
+        while isinstance(result, dict):
+            records.extend(result.get("records", []))
+            next_page = result.get("nextRecordsUrl")
+            if not next_page:
+                break
+            result = self._request("GET", next_page)
+        return records
 
     # ----- transport dispatch ------------------------------------------------
     def _request(self, method: str, path: str, body: Any = None) -> Any:
