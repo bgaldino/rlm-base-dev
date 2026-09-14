@@ -1,0 +1,83 @@
+"""Shared "is this path git-tracked?" helpers.
+
+One implementation of the question "which of these candidate paths does git
+track?", used by both the SFDMU plan-README gate
+(`scripts/ai/check_plan_readme_consistency.py`) and the ERD schema-diff impact
+report (`scripts/erd/schema_diff/diff_schemas.py`). Both need it for the same
+reason: a report/gate that should reflect a *fresh clone* must exclude
+gitignored local/scratch plan dirs (`datasets/sfdmu/extractions/`,
+`.../reconcile/`, `test/qb-dro.bak/`, …) that happen to carry an `export.json`.
+
+Todo pack 167 consolidated the two copies here. `repo_root` is an explicit
+parameter (not a module global) so callers keep their own root — and so the
+README gate's tests, which monkeypatch that script's `REPO_ROOT` to a temp git
+repo, still redirect this helper.
+
+Deliberately NOT merged with `bump_api_version.py`'s `tracked_files()` (a
+cached, whole-repo, repo-relative frozenset): that answers a different question
+(a full-repo inventory, not "which of THESE few candidates are tracked") — the
+same "unrelated concern domains / not worth the coupling" reasoning the README
+gate already applied to it. Kept out of the pure-parsing `sfdmu_export.py` on
+purpose too: that module is dependency-free (`re` only); this one shells out to
+git.
+
+Failure mode is the CALLER's to choose, at the call site: `tracked_paths` lets a
+git failure raise (`check=True`, uncaught). The README gate lets it propagate —
+a gate must never silently look like "nothing tracked". `diff_schemas.py` wraps
+the call and degrades to an `rglob` walk + warning, because an impact report is
+analysis, not a merge gate. Same helper, two policies, each explicit.
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+
+
+def repo_relpath(p: str, repo_root: str) -> str:
+    """Like `os.path.relpath(p, repo_root)`, but treats a `repo_root` prefix that
+    differs from `p` only in case as the SAME directory — so a path admitted as
+    "inside the repo" on a case-insensitive filesystem (macOS APFS) does not turn
+    into a bogus, deeply-'../'-prefixed relpath that then makes `git ls-files`
+    exit 128 ("outside repository") and, via `tracked_paths`' `check=True`, crash
+    instead of cleanly reporting bad input (round 15 of PR #406's review, pack
+    147: live-reproduced)."""
+    p = os.fspath(p)
+    repo_root = os.fspath(repo_root)
+    root_len = len(repo_root)
+    if p[:root_len].lower() == repo_root.lower() and p[root_len:root_len + 1] in ("", os.sep):
+        return p[root_len:].lstrip(os.sep) or "."
+    return os.path.relpath(p, repo_root)
+
+
+def tracked_paths(paths: list[str], repo_root: str) -> set[str]:
+    """Absolute paths of `paths` that git tracks under `repo_root` — one batched
+    `git ls-files` call for all candidates, instead of one
+    `git ls-files --error-unmatch` subprocess per candidate (~30+ processes on
+    this repo's tree). Returns which of the GIVEN candidates are tracked, not a
+    full-repo inventory.
+
+    check=True: a git failure (e.g. run outside a checkout) must not silently
+    yield empty stdout, which a gate would misread as "nothing tracked" and
+    pass-by-absence. Callers that prefer to degrade rather than crash wrap this
+    and catch `CalledProcessError`/`FileNotFoundError` themselves.
+
+    -z: git's default core.quotepath=true C-quotes/octal-escapes non-ASCII bytes
+    in plain `ls-files` output (a tracked `café/export.json` echoes as
+    `caf\\303\\251/export.json`), which would never string-match the plain
+    relpath below and misclassify a genuinely tracked path as untracked. -z
+    disables quoting and NUL-delimits instead.
+
+    Compares case-folded, and returns the CALLER's own paths rather than
+    reconstructing from git's stdout: on a case-insensitive filesystem (macOS
+    APFS) with core.ignorecase set, git matches a pathspec case-insensitively but
+    echoes it back in the INDEX's casing, which can differ from the caller's/disk's
+    after a case-only rename the index missed — exact-string reconstruction would
+    then silently miss a real match."""
+    if not paths:
+        return set()
+    paths = [os.fspath(p) for p in paths]
+    rels = [repo_relpath(p, repo_root) for p in paths]
+    r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=repo_root,
+                        capture_output=True, text=True, check=True)
+    tracked_rel_lower = {line.lower() for line in r.stdout.split("\0") if line}
+    return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
