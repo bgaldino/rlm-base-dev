@@ -28,6 +28,8 @@ The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the
 - [Contributing](#contributing)
 - [Branch Information](#branch-information)
 - [Additional Resources](#additional-resources)
+- [Project Governance & Support](#project-governance--support)
+- [License](#license)
 
 ## Docker build environment (no local toolchain)
 
@@ -1549,6 +1551,11 @@ due to differences in how composite `externalId` definitions are processed. See
 
 ## Contributing
 
+Contributions go through a fork and a pull request — see
+**[CONTRIBUTING.md](CONTRIBUTING.md)** for the full workflow: environment setup,
+the validation commands to run before pushing, commit/PR conventions, and how
+review rounds are handled.
+
 When contributing to this project:
 
 1. Follow the existing code structure and patterns
@@ -1557,6 +1564,10 @@ When contributing to this project:
 4. Update this README if adding new prerequisites or workflows
 5. Add detailed READMEs for new data plans
 6. Register new tasks and flows in `cumulusci.yml`
+
+Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md). Report
+security vulnerabilities privately through the process in
+[SECURITY.md](SECURITY.md) — never through a public GitHub issue.
 
 ## Branch Information
 
@@ -1576,6 +1587,22 @@ When contributing to this project:
 
 **Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference.
 
+## Project Governance & Support
+
+- [License](LICENSE.txt) — Apache License, Version 2.0
+- [Code of Conduct](CODE_OF_CONDUCT.md) — Salesforce Open Source Community Code of Conduct
+- [Contributing](CONTRIBUTING.md) — fork, branch, validate, pull request
+- [Security](SECURITY.md) — report vulnerabilities privately, never through a public issue
+- [Review Guide](REVIEW.md) — how pull requests are reviewed in this repository
+
+For questions or problems, open an issue or a pull request in this repository.
+
 ## License
 
-[Add your license information here]
+This project is licensed under the **Apache License, Version 2.0** — see
+[`LICENSE.txt`](LICENSE.txt) for the full text.
+
+```
+Copyright (c) 2026 Salesforce, Inc.
+All rights reserved.
+```
