@@ -534,6 +534,11 @@ scenarios:
     count: 1
 ```
 
+On QuantumBit builds, the existing `RLM_Default_Opportunity_Currency` flow
+forces new Opportunities into the account currency. Keep the account currency
+with `with_opportunity: true`; for a cross-currency quote, omit the optional
+Opportunity. A currency pin does not bypass org automation.
+
 Run `cli plan` first; it prints the selected currency and PBE id. All options
 in a product pool must use one currency, even though a run draws a subset.
 New manifests retain PBE id, selling model, and currency so `cli step` resumes
