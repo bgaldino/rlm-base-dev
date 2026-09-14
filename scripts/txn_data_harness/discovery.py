@@ -241,6 +241,17 @@ def _sql_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
+def _query_id_batches(client: SfRestClient, template: str, ids: list[str]) -> list[dict]:
+    """Query all ids in bounded GET URLs without truncating discovery results."""
+    unique_ids = list(dict.fromkeys(ids))
+    rows = []
+    # 100 Salesforce ids leave ample URL space for projections and encoding.
+    for offset in range(0, len(unique_ids), 100):
+        quoted = ",".join(f"'{_sql_escape(value)}'" for value in unique_ids[offset:offset + 100])
+        rows.extend(client.query(template.replace("{ids}", quoted)))
+    return rows
+
+
 def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) -> list[Account]:
     """Return billing-ready accounts (those with a BillingAccount).
 
@@ -335,10 +346,9 @@ def _account_currency_map(
     cache_key = _org_cache_key(client)
     if cache_key is not None and _MULTI_CURRENCY_BY_ORG.get(cache_key) is False:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
     try:
-        rows = client.query(
-            f"SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({quoted})"
+        rows = _query_id_batches(
+            client, "SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({ids})", account_ids
         )
     except Exception as exc:  # noqa: BLE001
         if _missing_currency_field(exc):
@@ -382,9 +392,9 @@ def _resolve_account_addresses(
     """
     if not account_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    rows = client.query(
-        f"SELECT Id, {', '.join(_ADDRESS_FIELDS)} FROM Account WHERE Id IN ({quoted})"
+    rows = _query_id_batches(
+        client, f"SELECT Id, {', '.join(_ADDRESS_FIELDS)} FROM Account WHERE Id IN ({{ids}})",
+        account_ids,
     )
     out: dict[str, tuple[Optional[PostalAddress], Optional[PostalAddress]]] = {}
     for r in rows:
@@ -425,10 +435,9 @@ def _resolve_default_contact_id(
     """
     if not account_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    rows = client.query(
-        f"SELECT Id, AccountId FROM Contact WHERE AccountId IN ({quoted}) "
-        f"ORDER BY CreatedDate DESC"
+    rows = _query_id_batches(
+        client, "SELECT Id, AccountId FROM Contact WHERE AccountId IN ({ids}) "
+        "ORDER BY CreatedDate DESC", account_ids,
     )
     by_account: dict[str, str] = {}
     for r in rows:
@@ -718,9 +727,8 @@ def discover_any_accounts(
     if not rows:
         return []
     account_ids = [r["Id"] for r in rows]
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    ba_rows = client.query(
-        f"SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({quoted})"
+    ba_rows = _query_id_batches(
+        client, "SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({ids})", account_ids
     )
     ba_by_account: dict[str, str] = {r["AccountId"]: r["Id"] for r in ba_rows}
     contact_by_account = _resolve_default_contact_id(client, account_ids)
@@ -778,7 +786,6 @@ def discover_usage_bindings(
     """
     if not product_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(pid)}'" for pid in product_ids)
     soql = (
         "SELECT ProductId, UsageResourceId, "
         "UsageResource.Code, UsageResource.Name, "
@@ -786,10 +793,10 @@ def discover_usage_bindings(
         "UsageResource.DefaultUnitOfMeasureId, "
         "UsageResource.DefaultUnitOfMeasure.UnitCode, "
         "UsageResource.DefaultUnitOfMeasure.Name "
-        f"FROM ProductUsageResource WHERE ProductId IN ({quoted})"
+        "FROM ProductUsageResource WHERE ProductId IN ({ids})"
     )
     by_product: dict[str, list[UsageResourceBinding]] = {}
-    for r in client.query(soql):
+    for r in _query_id_batches(client, soql, product_ids):
         ur = r.get("UsageResource") or {}
         duom = ur.get("DefaultUnitOfMeasure") or {}
         binding = UsageResourceBinding(

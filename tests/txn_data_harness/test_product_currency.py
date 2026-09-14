@@ -293,3 +293,47 @@ def test_auto_product_preserves_discovered_identity(fake_client, org_context, sk
                                    spec([config.ProductOption(None, (1, 1))]))
     assert resolved.options[0].product.id == preferred.id
     assert resolved.options[0].product.pricebook_entry_id == intended['Id']
+
+
+def test_large_billing_account_discovery_batches_all_lookups(fake_client):
+    import re
+    from urllib.parse import quote
+    ids = [f'001{i:015d}' for i in range(2101)]
+    calls = []
+    def query(sql):
+        if 'FROM BillingAccount' in sql:
+            return [{'Id': 'ba'+a, 'AccountId': a, 'Account': {'Name': a}} for a in ids]
+        batch = re.findall(r"'(001\d{15})'", sql)
+        assert 0 < len(batch) <= 100
+        assert len(quote(sql)) < 8000
+        calls.append((sql, batch))
+        if 'FROM Contact' in sql:
+            assert 'ORDER BY CreatedDate DESC' in sql
+            return [r for a in batch for r in [
+                {'Id': 'new'+a, 'AccountId': a}, {'Id': 'old'+a, 'AccountId': a}]]
+        if 'CurrencyIsoCode' in sql:
+            return [{'Id': a, 'CurrencyIsoCode': 'EUR'} for a in batch]
+        return [{'Id': a, 'BillingCity': a} for a in batch]
+    fake_client.query = query
+    accounts = discovery.discover_accounts(fake_client)
+    assert {a.id for a in accounts} == set(ids)
+    assert all(a.currency_iso_code == 'EUR' and a.bill_to_contact_id == 'new'+a.id
+               and a.billing_address.city == a.id for a in accounts)
+    assert len(calls) == 66  # 22 batches for each of three lookups
+
+
+def test_id_batches_deduplicate_and_propagate_later_failure(fake_client):
+    calls = []
+    error = RuntimeError('later page failed')
+    def query(sql):
+        calls.append(sql)
+        if len(calls) == 2:
+            raise error
+        return [{'Id': 'first'}]
+    fake_client.query = query
+    ids = [f'001{i:015d}' for i in range(101)]
+    with pytest.raises(RuntimeError) as caught:
+        discovery._query_id_batches(fake_client, 'SELECT Id FROM Account WHERE Id IN ({ids})', ids + ids)
+    assert caught.value is error
+    assert calls[0].count("'001") == 100
+    assert calls[1].count("'001") == 1
