@@ -1260,8 +1260,9 @@ class ExtractSFDMUData(SFDXBaseTask):
             for obj in oset.get("objects", []):
                 if obj.get("excluded"):
                     continue
-                query = obj.get("query", "")
-                objname = query.split("FROM")[1].strip().split()[0] if "FROM" in query else None
+                # Shared parser: case-insensitive, subquery-aware, "" on non-string/malformed
+                # (the normalized top-level pass, pack 168, must map without aborting extraction).
+                objname = sfdmu_export.extract_object_name(obj.get("query", ""))
                 external_id = obj.get("externalId", "")
                 if not objname or not external_id:
                     continue

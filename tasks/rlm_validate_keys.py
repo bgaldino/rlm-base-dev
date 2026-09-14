@@ -79,8 +79,10 @@ def collect_key_target_objects(export_json: dict) -> Dict[str, List[List[str]]]:
         for obj in oset.get("objects", []):
             if obj.get("excluded"):
                 continue
-            query = obj.get("query", "")
-            name = query.split("FROM")[1].strip().split()[0] if "FROM" in query else None
+            # Shared parser: case-insensitive, subquery-aware, and returns "" (not a
+            # raise) on a non-string/malformed query — the newly-included top-level pass
+            # (pack 168) must be validated without aborting on a lowercase `from`.
+            name = sfdmu_export.extract_object_name(obj.get("query", ""))
             external_id = obj.get("externalId", "")
             if not name or not external_id or external_id == "Id":
                 continue
@@ -167,7 +169,16 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.info("All source keys are present and unique.")
 
     def _validate_object(self, obj: str, keyfields: List[str], populate: bool) -> int:
+        # POPULATE_CONFIG is object-wide but targets one specific key field
+        # (e.g. Product2 -> StockKeepingUnit). A multi-pass plan may validate the
+        # same object on a different direct key (e.g. ProductCode); applying the
+        # config there would populate StockKeepingUnit and clear the issue count
+        # while the requested key stayed null. Only honor the config for the
+        # declaration whose key IS the config's field; otherwise fall back to the
+        # default (populate the requested key itself from Name).
         cfg = POPULATE_CONFIG.get(obj)
+        if cfg and cfg.get("field") not in keyfields:
+            cfg = None
         select = ["Id"] + list(keyfields)
         extras = (cfg["basis"] + cfg.get("sync", [])) if cfg else (
             ["Name"] if (len(keyfields) == 1 and keyfields[0] != "Name") else []
@@ -210,7 +221,11 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.warning(
                 f"  {obj}: cannot auto-populate composite/Name key {keyfields}; report only."
             )
-            return sum(1 for r in records if not _present(r.get(field))) if field in (keyfields or []) else 0
+            # Report-only: count nulls across ALL key components (matching the caller's
+            # honest n_null), not just the first — otherwise a composite key with nulls
+            # only in a trailing component would return 0 and clear the gate while the key
+            # stayed broken.
+            return sum(1 for r in records for k in keyfields if not _present(r.get(k)))
 
         basis = (cfg or {}).get("basis", ["Name"])
         sync = (cfg or {}).get("sync", [])

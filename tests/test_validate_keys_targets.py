@@ -56,6 +56,16 @@ check("identical declarations across passes are de-duplicated",
       }),
       {"Baz": [["Code"]]})
 
+check("lowercase/mixed-case 'from' is parsed via the shared parser (not skipped)",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "select Id from Product2", "externalId": "StockKeepingUnit"}]}),
+      {"Product2": [["StockKeepingUnit"]]})
+
+check("non-string query does not raise (returns no target)",
+      vk.collect_key_target_objects({"objects": [
+          {"query": ["SELECT Id FROM X"], "externalId": "Code"}]}),
+      {})
+
 check("relationship-traversal externalId is skipped (validated via parent)",
       vk.collect_key_target_objects({
           "objects": [_obj("RateCardEntry", "Product.StockKeepingUnit;RateCard.Name")]
@@ -71,6 +81,77 @@ check("externalId of Id, empty, or excluded objects are not targets",
           ]
       }),
       {})
+
+# --- _validate_object / _populate_nulls: per-declaration populate gating ------
+# These pin the round-5 fix: POPULATE_CONFIG is object-wide but targets one key
+# field, so validating the same object on a different key must NOT populate the
+# config's field (and clear the count) while the requested key stays null. Uses a
+# minimal fake for `self.sf`/`self.logger` — the module falls back to `object` when
+# cumulusci is absent, so ValidateSourceDataKeys is constructible via __new__.
+class _NullLogger:
+    def info(self, *a, **k):
+        pass
+    warning = error = info
+
+
+class _FakeBulkObj:
+    def __init__(self, recorder, obj):
+        self._recorder, self._obj = recorder, obj
+
+    def update(self, updates):
+        self._recorder[self._obj] = updates
+        return [{"success": True, "id": u["Id"]} for u in updates]
+
+
+class _FakeBulk:
+    def __init__(self, recorder):
+        self._recorder = recorder
+
+    def __getattr__(self, obj):
+        return _FakeBulkObj(self._recorder, obj)
+
+
+class _FakeSf:
+    def __init__(self, records):
+        self._records = records
+        self.updated = {}
+        self.bulk = _FakeBulk(self.updated)
+
+    def query(self, soql):
+        return {"records": self._records, "done": True}
+
+
+def _make_task(records, options=None):
+    t = vk.ValidateSourceDataKeys.__new__(vk.ValidateSourceDataKeys)
+    t.options = options or {}
+    t.logger = _NullLogger()
+    t.sf = _FakeSf(records)
+    return t
+
+
+# Product2 keyed on ProductCode (not the config's StockKeepingUnit): SKU present,
+# ProductCode null. The config must be gated off so ProductCode itself is populated
+# and no issue is silently cleared by writing the wrong field.
+_pc_task = _make_task([{"Id": "1", "Name": "Widget", "StockKeepingUnit": "SKU-1", "ProductCode": None}])
+_pc_task._validate_object("Product2", ["ProductCode"], populate=True)
+_written = _pc_task.sf.updated.get("Product2", [{}])[0]
+check(f"ProductCode-keyed Product2 populates ProductCode, not StockKeepingUnit ({_written})",
+      "ProductCode" in _written and "StockKeepingUnit" not in _written, True)
+
+# Product2 keyed on StockKeepingUnit (the config's field): config applies, so the
+# derived value is written to SKU and synced to ProductCode.
+_sku_task = _make_task([{"Id": "1", "Name": "Widget", "StockKeepingUnit": None, "ProductCode": None}])
+_sku_task._validate_object("Product2", ["StockKeepingUnit"], populate=True)
+_w2 = _sku_task.sf.updated.get("Product2", [{}])[0]
+check(f"StockKeepingUnit-keyed Product2 applies config (writes SKU + syncs ProductCode) ({_w2})",
+      "StockKeepingUnit" in _w2 and "ProductCode" in _w2, True)
+
+# Composite key with a null in a TRAILING component must still report the issue in
+# populate mode (report-only), not silently return 0 (the finding-1 count bug).
+_comp_task = _make_task([{"Id": "1", "Name": "Std", "Type": None}])
+_comp_issues = _comp_task._validate_object("RateCard", ["Name", "Type"], populate=True)
+check(f"composite key with a trailing-component null still reports an issue in populate mode ({_comp_issues})",
+      _comp_issues >= 1, True)
 
 print("=" * 60)
 if _failures:

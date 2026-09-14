@@ -199,6 +199,45 @@ def test_copy_to_plan_refuses_on_malformed_query(m):
               tracked.read_bytes() == tracked_bytes, tracked.read_text(encoding="utf-8"))
 
 
+def test_both_array_plan_prepends_top_level_pass(m):
+    """pack 168 caller-level regression: a non-empty top-level `objects` alongside a
+    non-empty `objectSets` is unshifted as pass index 0 (ahead of objectSets), so its
+    declarations must reach `plan_structure` and `passes`. The old exclusive fallback
+    here ("objectSets wins outright") dropped the top-level pass entirely for a
+    both-arrays plan — its records land in the extraction but never enter the roundtrip.
+    Pins the integration point directly, so it cannot revert while the helper test
+    (normalize_object_sets) still passes."""
+    export_json = {
+        "objectSets": [
+            {"objects": [
+                {"query": "SELECT Id FROM RateCard", "operation": "Upsert", "externalId": "Name"},
+                {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "StockKeepingUnit"},
+            ]},
+        ],
+        "objects": [
+            {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name"},
+            {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "ProductCode"},
+        ],
+    }
+    result, passes, malformed = m.parse_plan_structure(export_json)
+    check("both-array: top-level-only Account reaches plan_structure",
+          "Account" in result, sorted(result))
+    check("both-array: objectSets RateCard also present",
+          "RateCard" in result, sorted(result))
+    check("both-array: no false malformed entries", malformed == [], malformed)
+    # The top-level pass is unshifted to index 0, ahead of the objectSets pass (index 1).
+    check("top-level Account is pass index 0",
+          passes["Account"][0][0] == 0, passes.get("Account"))
+    check("objectSets RateCard is pass index 1",
+          passes["RateCard"][0][0] == 1, passes.get("RateCard"))
+    # An object declared in BOTH passes appears twice in `passes`; plan_structure keeps
+    # the first (top-level) entry.
+    check("Product2 tracked in both passes", len(passes.get("Product2", [])) == 2,
+          passes.get("Product2"))
+    check("plan_structure keeps Product2's top-level (first) declaration",
+          result.get("Product2", {}).get("externalId") == "ProductCode", result.get("Product2"))
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -209,6 +248,7 @@ def main():
     test_whole_plan_parse_records_malformed_entry(m)
     test_non_string_external_id_is_guarded(m)
     test_copy_to_plan_refuses_on_malformed_query(m)
+    test_both_array_plan_prepends_top_level_pass(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1
