@@ -156,6 +156,52 @@ check("a lowercase 'from' keyword is matched",
 check("no objectName and no parseable query yields ''",
       ds._extract_object_name({}) == "")
 
+# --- diff_schemas._list_tracked_export_jsons (soft-degrade contract) ---------
+# The consolidation kept this caller's SOFTER failure mode: return None on a git
+# failure so find_impacted_plans degrades to an rglob walk + warning, rather than
+# letting the shared helper's check=True crash the impact report. Pinned here
+# because the README gate's wrapper deliberately does the opposite (propagate),
+# and a future edit could quietly align the two and lose the distinction.
+print("-- diff_schemas._list_tracked_export_jsons keeps its soft-degrade failure mode")
+_saved_root = ds.REPO_ROOT
+try:
+    with tempfile.TemporaryDirectory() as td:
+        root = os.path.realpath(td)
+        sfdmu = pathlib.Path(root) / "datasets" / "sfdmu"
+        kept = sfdmu / "kept"
+        kept.mkdir(parents=True)
+        (kept / "export.json").write_text(json.dumps({"objectSets": []}))
+        scratch = sfdmu / "scratch"
+        scratch.mkdir(parents=True)
+        (scratch / "export.json").write_text(json.dumps({"objectSets": []}))
+        (pathlib.Path(root) / ".gitignore").write_text("datasets/sfdmu/scratch/**\n")
+        git(root, "init", "--quiet", "-b", "base")
+        git(root, "config", "user.email", "t@example.com")
+        git(root, "config", "user.name", "test")
+        git(root, "config", "commit.gpgsign", "false")
+        git(root, "config", "core.hooksPath", os.devnull)
+        git(root, "add", ".gitignore", "datasets/sfdmu/kept/export.json")
+        git(root, "commit", "--quiet", "-m", "seed")
+
+        ds.REPO_ROOT = pathlib.Path(root)
+        got = ds._list_tracked_export_jsons(sfdmu)
+        got_names = sorted(p.parent.name for p in got) if got is not None else None
+        check("returns tracked plans only, gitignored scratch excluded",
+              got_names == ["kept"])
+
+    # A non-git directory makes the shared helper's `git ls-files` raise; the wrapper
+    # must catch it and return None (not crash), so find_impacted_plans can degrade.
+    with tempfile.TemporaryDirectory() as td:
+        root = os.path.realpath(td)
+        sfdmu = pathlib.Path(root) / "datasets" / "sfdmu"
+        sfdmu.mkdir(parents=True)
+        (sfdmu / "export.json").write_text(json.dumps({"objectSets": []}))
+        ds.REPO_ROOT = pathlib.Path(root)  # NOT a git repo
+        check("git failure degrades to None rather than raising",
+              ds._list_tracked_export_jsons(sfdmu) is None)
+finally:
+    ds.REPO_ROOT = _saved_root
+
 
 print("=" * 100)
 if _failures:

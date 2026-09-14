@@ -67,17 +67,22 @@ def tracked_paths(paths: list[str], repo_root: str) -> set[str]:
     relpath below and misclassify a genuinely tracked path as untracked. -z
     disables quoting and NUL-delimits instead.
 
-    Compares case-folded, and returns the CALLER's own paths rather than
-    reconstructing from git's stdout: on a case-insensitive filesystem (macOS
-    APFS) with core.ignorecase set, git matches a pathspec case-insensitively but
-    echoes it back in the INDEX's casing, which can differ from the caller's/disk's
-    after a case-only rename the index missed — exact-string reconstruction would
-    then silently miss a real match."""
+    Matches EXACT-case, and returns the CALLER's own path (not git's stdout
+    string) for each match. Case-folding the comparison — which this helper's
+    ancestor did — is wrong: on case-sensitive Linux (where CI runs) `foo/` and
+    `FOO/` are distinct directories, so folding would report an untracked local
+    `FOO/export.json` as tracked whenever a real `foo/export.json` is, a false
+    positive that misclassifies a scratch dir as a shipped plan. It also bought
+    nothing on macOS: `git ls-files` does NOT match a mis-cased pathspec there
+    (verified — a query for `FOO/export.json` against a tracked `foo/export.json`
+    returns empty, not the index casing), so there is no folded match for the
+    fold to recover. This is the same "never fold a path identity that maps to a
+    real file git/SFDMU read exact-case" lesson as todo pack 163."""
     if not paths:
         return set()
     paths = [os.fspath(p) for p in paths]
     rels = [repo_relpath(p, repo_root) for p in paths]
     r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=repo_root,
                         capture_output=True, text=True, check=True)
-    tracked_rel_lower = {line.lower() for line in r.stdout.split("\0") if line}
-    return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
+    tracked_rels = {line for line in r.stdout.split("\0") if line}
+    return {p for p, rel in zip(paths, rels) if rel in tracked_rels}
