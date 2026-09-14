@@ -626,7 +626,9 @@ def resolve_product(
     # exceeds the old 25-row cap.
     if not sku and not product_id:
         raise DiscoveryError("Product resolution requires a SKU or Product2 id")
-    candidates = discover_products(client, sku=sku, limit=None, product_id=product_id)
+    # Persisted identity survives SKU edits; the old SKU is diagnostic only.
+    candidates = discover_products(
+        client, sku=None if product_id else sku, limit=None, product_id=product_id)
     sku = sku or f"<Product2 {product_id}>"
     if not candidates:
         raise DiscoveryError(

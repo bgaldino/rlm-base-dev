@@ -249,3 +249,22 @@ def test_direct_generate_reports_mixed_currency_without_traceback(
     assert 'ERROR: bad config:' in error
     assert 'same currency' in error
     assert 'Traceback' not in error
+
+
+@pytest.mark.parametrize('current_sku', ['RENAMED', None])
+def test_manifest_product_identity_survives_sku_edit(fake_client, current_sku):
+    row = pbe('EUR')
+    row['Product2']['StockKeepingUnit'] = current_sku
+    def query(sql):
+        assert "Product2Id = 'product'" in sql
+        assert "Product2.StockKeepingUnit =" not in sql
+        return [row]
+    fake_client.query = query
+    manifest = SimpleNamespace(lines=[{
+        'sku': 'OLD-SKU', 'product_id': 'product',
+        'pricebook_entry_id': row['Id'], 'currency': 'EUR', 'quantity': 1,
+    }])
+    lines = cli._lines_from_manifest(fake_client, manifest, 'USD')
+    assert lines[0].product.pricebook_entry_id == row['Id']
+    assert lines[0].product.id == 'product'
+    assert lines[0].product.sku == current_sku
