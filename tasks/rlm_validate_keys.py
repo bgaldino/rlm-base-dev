@@ -60,14 +60,21 @@ def _present(value) -> bool:
     return value is not None and value != ""
 
 
-def collect_key_target_objects(export_json: dict) -> Dict[str, List[str]]:
-    """Return {object: [direct key fields]} for objects whose externalId is all-direct.
+def collect_key_target_objects(export_json: dict) -> Dict[str, List[List[str]]]:
+    """Return {object: [distinct direct-key field-sets]} for objects whose externalId is all-direct.
+
+    A multi-pass plan can declare the same object with different direct-key externalIds in
+    different passes — e.g. `Name` in the top-level `objects` pass (unshifted as pass 1 by
+    ``normalize_object_sets``) and `Code` in an `objectSets` pass. Each distinct key-field set
+    is returned and validated on its own, so a null/duplicate in a later declaration's key is
+    not silently missed by collapsing every declaration to the first. Identical field-sets are
+    de-duplicated (first-seen order preserved) to avoid redundant source-org queries.
 
     Objects with any relationship-traversal externalId component are skipped (their
     keys are validated through their parent objects).
     """
     object_sets = sfdmu_export.normalize_object_sets(export_json)
-    targets: Dict[str, List[str]] = {}
+    targets: Dict[str, List[List[str]]] = {}
     for oset in object_sets:
         for obj in oset.get("objects", []):
             if obj.get("excluded"):
@@ -80,7 +87,9 @@ def collect_key_target_objects(export_json: dict) -> Dict[str, List[str]]:
             comps = [c.strip() for c in external_id.split(";") if c.strip()]
             if not comps or any("." in c for c in comps):
                 continue  # relationship-keyed: validated via parent objects
-            targets.setdefault(name, comps)
+            variants = targets.setdefault(name, [])
+            if comps not in variants:
+                variants.append(comps)
     return targets
 
 
@@ -139,13 +148,15 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.info("No all-direct-key objects to validate in this plan.")
             return
 
+        n_decls = sum(len(v) for v in targets.values())
         self.logger.info(
-            f"Validating source keys for {len(targets)} object(s) in {plan_dir} "
-            f"(populate={populate})"
+            f"Validating source keys for {len(targets)} object(s) "
+            f"({n_decls} key declaration(s)) in {plan_dir} (populate={populate})"
         )
         total_issues = 0
         for obj in sorted(targets):
-            total_issues += self._validate_object(obj, targets[obj], populate)
+            for keyfields in targets[obj]:
+                total_issues += self._validate_object(obj, keyfields, populate)
 
         if total_issues:
             msg = f"Source-key validation found {total_issues} unresolved key issue(s)."
