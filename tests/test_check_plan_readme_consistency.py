@@ -408,9 +408,41 @@ EQUAL_COUNT_RESERVATIONS = [
 ]
 
 
+# pack 169: object_name() delegates to the shared case-insensitive extractor. The old literal
+# " FROM " split matched only uppercase, single-space-delimited, and fell through to a `"?"` that
+# then vanished from the object table on re-parse. Direct unit cases plus an end-to-end plan.
+OBJECT_NAME_CASE_INSENSITIVE = [
+    ("lowercase 'from' resolves the object (was silently '?' before)",
+     "Widget__c", C.object_name({"query": "SELECT Id, Name from Widget__c"})),
+    ("mixed-case 'From' resolves the object",
+     "Widget__c", C.object_name({"query": "SELECT Id From Widget__c"})),
+    ("uppercase 'FROM' still resolves the object (control)",
+     "Widget__c", C.object_name({"query": "SELECT Id FROM Widget__c"})),
+    ("tab/newline before the keyword resolves the object",
+     "Widget__c", C.object_name({"query": "SELECT Id\n\tFROM Widget__c"})),
+    ("a SELECT-clause subquery does not steal the object name",
+     "Account", C.object_name({"query": "SELECT Id, (SELECT Id FROM Contacts) FROM Account"})),
+    ("a query with no parseable FROM yields a visible Unparseable(...) sentinel, not a silent '?'",
+     True, C.object_name({"query": "SELECT Id"}).startswith("Unparseable")),
+    # End-to-end: a lowercase-`from` plan object with a correct README row. Before the fix the plan
+    # object keyed as `"?"`, so the README's `Widget__c` row referenced an object absent from the
+    # plan — a hard ERROR — while the real object silently vanished. After the fix the row matches.
+    ("end-to-end: a lowercase-from plan object matches its README row — no error",
+     False, _check([[{"query": "SELECT Id from Widget__c", "operation": "Upsert",
+                      "externalId": "Name"}]],
+                   [_row(1, "Widget__c", 1, "Upsert", "Name")])[0]),
+    ("end-to-end: ...and no missing-object warning either",
+     False, _check([[{"query": "SELECT Id from Widget__c", "operation": "Upsert",
+                      "externalId": "Name"}]],
+                   [_row(1, "Widget__c", 1, "Upsert", "Name")])[1]),
+]
+
+
 def main() -> int:
     failures = []
     all_cases = [
+        ("object_name() is case-insensitive and subquery-aware (shared extractor)",
+         OBJECT_NAME_CASE_INSENSITIVE),
         ("equal-count CSV reservations", EQUAL_COUNT_RESERVATIONS),
         ("bound sources remain authoritative despite bad claims", BOUND_SOURCE_ACCOUNTING),
         ("same-pass declaration matching respects optional rows", SAME_PASS_DECLARATIONS),

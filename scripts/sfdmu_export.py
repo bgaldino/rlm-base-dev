@@ -51,6 +51,34 @@ def normalize_object_sets(export_data: dict) -> List[dict]:
     return object_sets
 
 
+def _strip_parenthesized(query: str) -> str:
+    """Return `query` with every parenthesized group (and its contents) removed.
+
+    A SOQL query may carry a SELECT-clause subquery — `SELECT Id, (SELECT Id FROM
+    Contacts) FROM Account` — whose own `FROM Contacts` is the *first* `FROM` in the
+    string. The plain `\\sFROM\\s+(\\w+)` / non-greedy `SELECT\\s+(.+?)\\s+FROM` regexes
+    below both stop at that inner `FROM`, misidentifying the object as `Contacts` and
+    truncating the field list. Removing the parenthesized groups first (depth-tracked,
+    so nested subqueries collapse too) leaves the outer `SELECT … FROM Account`, which
+    the same regexes then read correctly.
+
+    Baseline-neutral on every shipped plan: the only parentheses in tracked queries are
+    in trailing `WHERE … IN ( … )` clauses, which sit *after* the outer `FROM` — the
+    `SELECT … FROM` match already terminates before them, so stripping them changes
+    nothing. It bites only on a genuine SELECT-clause subquery, which no plan uses today.
+    """
+    out, depth = [], 0
+    for ch in query:
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            if depth > 0:
+                depth -= 1
+        elif depth == 0:
+            out.append(ch)
+    return ''.join(out)
+
+
 def extract_object_name(query: str) -> str:
     """Extract the object API name from a SOQL query, or "" if not found.
 
@@ -58,24 +86,38 @@ def extract_object_name(query: str) -> str:
     raises `TypeError`, which would take a whole run down over one malformed
     declaration; "" makes the caller skip the declaration, which callers already
     handle (`if not obj_name`).
+
+    Subquery-aware: parenthesized groups are stripped first so a SELECT-clause
+    subquery's inner `FROM` cannot be mistaken for the outer object — see
+    `_strip_parenthesized`. The name is returned in its original SOQL casing; callers
+    that key on object *identity* fold it case-insensitively (Salesforce treats
+    `Account`/`account` as one object), while CSV filenames keep the original case.
     """
     if not isinstance(query, str):
         return ""
-    match = re.search(r'\sFROM\s+(\w+)', query, re.IGNORECASE)
+    match = re.search(r'\sFROM\s+(\w+)', _strip_parenthesized(query), re.IGNORECASE)
     return match.group(1) if match else ""
 
 
 def parse_select_fields(query: str) -> List[str]:
     """Field names from a SOQL SELECT clause (incl. relationship traversals like
-    `Product.Name`), or [] if the query is non-string or has no parseable SELECT."""
+    `Product.Name`), or [] if the query is non-string or has no parseable SELECT.
+
+    Subquery-aware (see `_strip_parenthesized`): a SELECT-clause subquery is removed
+    before the SELECT…FROM match, so the outer query's fields are read rather than the
+    subquery's truncated ones. Empty tokens are dropped, so the comma a removed subquery
+    leaves behind (`SELECT Id, (…) FROM X` -> `SELECT Id,  FROM X`) does not yield a
+    spurious `""` field."""
     if not isinstance(query, str):
         return []
-    match = re.search(r'SELECT\s+(.+?)\s+FROM', query, re.IGNORECASE | re.DOTALL)
+    match = re.search(r'SELECT\s+(.+?)\s+FROM', _strip_parenthesized(query),
+                      re.IGNORECASE | re.DOTALL)
     if not match:
         return []
     fields_str = match.group(1)
-    # Split by comma, strip whitespace
-    fields = [f.strip() for f in fields_str.split(',')]
+    # Split by comma, strip whitespace, drop empties (e.g. a trailing comma left by a
+    # stripped subquery).
+    fields = [f.strip() for f in fields_str.split(',') if f.strip()]
     return fields
 
 

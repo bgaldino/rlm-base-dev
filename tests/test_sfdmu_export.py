@@ -55,6 +55,13 @@ check("leading whitespace/newline before FROM",
 check("no FROM -> empty", se.extract_object_name("SELECT Id"), "")
 check("non-string query -> empty (does not raise)", se.extract_object_name(["SELECT"]), "")
 check("None query -> empty", se.extract_object_name(None), "")
+# Subquery-aware (pack 163): the inner FROM must not be mistaken for the outer object.
+check("SELECT-clause subquery -> outer object, not the subquery's",
+      se.extract_object_name("SELECT Id, Name, (SELECT Id FROM Contacts) FROM Account"), "Account")
+check("nested subqueries -> outer object",
+      se.extract_object_name("SELECT Id, (SELECT Id, (SELECT Id FROM X) FROM Y) FROM Account"), "Account")
+check("trailing WHERE...IN(...) does not shift the object (baseline shape)",
+      se.extract_object_name("SELECT Id FROM RecordType WHERE X IN ('a','b')"), "RecordType")
 
 # --- parse_select_fields -----------------------------------------------------
 check("basic field list",
@@ -64,6 +71,16 @@ check("relationship traversal preserved",
       ["Id", "Product.Name"])
 check("no SELECT -> empty", se.parse_select_fields("DELETE FROM Account"), [])
 check("non-string -> empty", se.parse_select_fields(42), [])
+# Subquery-aware (pack 163): read the outer field list, and drop the empty token the removed
+# subquery's trailing comma would otherwise leave behind.
+check("SELECT-clause subquery -> outer fields only, no empty token",
+      se.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account"), ["Id"])
+check("outer fields around a subquery preserved",
+      se.parse_select_fields("SELECT Id, Name, (SELECT Id FROM Contacts), Type FROM Account"),
+      ["Id", "Name", "Type"])
+check("trailing WHERE...IN(...) leaves the field list unchanged (baseline shape)",
+      se.parse_select_fields("SELECT Id, DeveloperName FROM RecordType WHERE X IN ('a','b')"),
+      ["Id", "DeveloperName"])
 
 # --- is_js_truthy ------------------------------------------------------------
 check("empty list is JS-truthy (unlike Python)", se.is_js_truthy([]), True)
