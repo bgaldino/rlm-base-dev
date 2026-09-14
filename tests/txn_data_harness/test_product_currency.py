@@ -196,3 +196,35 @@ def test_pbe_resolution_reads_later_query_pages(monkeypatch):
     monkeypatch.setattr(client, '_request', request)
     assert discovery.resolve_product(client, 'SKU', currency='EUR').currency_iso_code == 'EUR'
     assert paths[1] == '/services/data/v68.0/query/next'
+
+
+@pytest.mark.parametrize('probe', ['product', 'account'])
+@pytest.mark.parametrize('field', ['CurrencyIsoCode', 'UnrelatedField'])
+def test_currency_probe_uses_api_response_not_request_path(fake_client, probe, field):
+    from scripts.txn_data_harness.auth import SfApiError
+    calls = []
+    error = SfApiError(400, f'INVALID_FIELD: No such column {field}',
+                       'GET', '/query?q=SELECT+Id,CurrencyIsoCode+FROM+PricebookEntry')
+    def query(sql):
+        calls.append(sql)
+        if len(calls) == 1:
+            raise error
+        row = pbe()
+        row.pop('CurrencyIsoCode')
+        return [row]
+    fake_client.query = query
+    def resolve():
+        if probe == 'product':
+            return discovery.resolve_product(fake_client, 'SKU')
+        return discovery._account_currency_map(fake_client, ['account'])
+    if field == 'UnrelatedField':
+        with pytest.raises(SfApiError) as caught:
+            resolve()
+        assert caught.value is error
+        assert len(calls) == 1
+    elif probe == 'product':
+        assert resolve().currency_iso_code is None
+        assert len(calls) == 2
+    else:
+        assert resolve() == {}
+        assert len(calls) == 1

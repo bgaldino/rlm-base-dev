@@ -1216,7 +1216,7 @@ def _coerce_invoice_ingestion_spec(
     pst_only = (
         "products", "product", "quantity", "discount",
         "opportunity_stage", "start_date", "term", "end_date",
-        "period_boundary", "billing_frequency",
+        "period_boundary", "billing_frequency", "currency",
     )
     for key in pst_only:
         if key not in explicit_keys:

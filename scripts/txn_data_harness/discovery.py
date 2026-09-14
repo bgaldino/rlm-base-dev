@@ -32,7 +32,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .auth import SfRestClient
+from .auth import SfApiError, SfRestClient
 from .term import Term
 
 log = logging.getLogger("txn_data_harness.discovery")
@@ -341,7 +341,7 @@ def _account_currency_map(
             f"SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({quoted})"
         )
     except Exception as exc:  # noqa: BLE001
-        if "INVALID_FIELD" in str(exc):
+        if _missing_currency_field(exc):
             if cache_key is not None:
                 _MULTI_CURRENCY_BY_ORG[cache_key] = False
             return {}
@@ -544,6 +544,13 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
     )
 
 
+def _missing_currency_field(exc: Exception) -> bool:
+    # SfApiError's formatted string includes the SOQL request path, which
+    # always mentions CurrencyIsoCode even when a different field failed.
+    message = exc.body if isinstance(exc, SfApiError) else str(exc)
+    return "INVALID_FIELD" in message and "CurrencyIsoCode" in message
+
+
 def discover_products(
     client: SfRestClient,
     sku: Optional[str] = None,
@@ -571,7 +578,7 @@ def discover_products(
     except Exception as exc:
         # CurrencyIsoCode is absent on single-currency orgs. Do not hide
         # permissions, transport failures, or other missing-field errors.
-        if "INVALID_FIELD" not in str(exc) or "CurrencyIsoCode" not in str(exc):
+        if not _missing_currency_field(exc):
             raise
         rows = client.query(soql.replace("Id, CurrencyIsoCode, UnitPrice", "Id, UnitPrice"))
     products: list[Product] = []
