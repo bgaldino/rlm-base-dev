@@ -147,9 +147,14 @@ CHECKS = [
         # check reads real README/export.json content without touching either README script
         # or any datasets/sfdmu/ file — `sfdmu_datasets`/`sfdmu_csv_expectation` selecting on
         # it exercises the validator's own logic, not this check's consumption of it.
+        # scripts/sfdmu_export.py is a trigger for the same reason one level down: the validator
+        # now DELEGATES exactly those primitives (_normalized_object_sets, _resolve_operation,
+        # _is_js_truthy, ...) to that module (pack 191), so a parser-only follow-on that edits
+        # only sfdmu_export.py changes what this check reads without touching the validator or any
+        # README script — the drift the whole extraction is meant to enable, so it must select this.
         triggers=["datasets/sfdmu/", "scripts/ai/check_plan_readme_consistency.py",
                   "scripts/ai/generate_plan_readme.py",
-                  "scripts/validate_sfdmu_v5_datasets.py"],
+                  "scripts/validate_sfdmu_v5_datasets.py", "scripts/sfdmu_export.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -163,8 +168,11 @@ CHECKS = [
         # exercise whatever shape they happen to have, not every shape the module's own comments
         # document handling (round 18 of PR #406's review, pack 147: no suite caught a regression
         # in these semantics unless a tracked README happened to already be in that exact shape).
+        # scripts/sfdmu_export.py: this suite runs check_plan_readme_consistency.py, which calls
+        # SFDMUValidator's delegated primitives (normalize_object_sets, ...) that now live in the
+        # module (pack 191) — a parser-only edit changes the parsing this suite pins.
         triggers=["tests/test_check_plan_readme_consistency.py",
-                  "scripts/ai/check_plan_readme_consistency.py"],
+                  "scripts/ai/check_plan_readme_consistency.py", "scripts/sfdmu_export.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -189,8 +197,10 @@ CHECKS = [
         # (comment 3901323059): marker-preservation on regenerate, the --force wholesale-
         # replace path, and the per-pass CSV resolution rule mirroring
         # _objects_owing_root_csv were unguarded but for the module's own comments.
+        # scripts/sfdmu_export.py: runs generate_plan_readme.py -> check_plan_readme_consistency.py
+        # -> SFDMUValidator's delegated primitives, now in the module (pack 191).
         triggers=["tests/test_generate_plan_readme.py", "scripts/ai/generate_plan_readme.py",
-                  "scripts/ai/check_plan_readme_consistency.py"],
+                  "scripts/ai/check_plan_readme_consistency.py", "scripts/sfdmu_export.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -237,7 +247,11 @@ CHECKS = [
         # the same matrix drift the `erd_doc_counts` trigger comment above names. Listed explicitly
         # instead — this suite's own file, so self-edits still select it (nothing else does that for
         # a suite that names no path of its own), plus the one sibling `baseline_sites()` reads.
-        triggers=["scripts/validate_sfdmu_v5_datasets.py", "tests/test_sfdmu_csv_expectation.py",
+        # scripts/sfdmu_export.py: this suite loads the validator, which delegates its parsing
+        # primitives to the module (pack 191) — a parser-only edit changes the validator behavior
+        # this suite asserts (root-CSV expectation, live baseline) without touching the validator.
+        triggers=["scripts/validate_sfdmu_v5_datasets.py", "scripts/sfdmu_export.py",
+                  "tests/test_sfdmu_csv_expectation.py",
                   "tests/test_pr_gate.py", "datasets/sfdmu/",
                   "AGENTS.md", "scripts/ai/", "docs/features/", ".cursor/skills/"],
         deps=[], gating=True,
@@ -413,7 +427,9 @@ CHECKS = [
     dict(
         name="sfdmu_datasets",
         cmd=["python", "scripts/validate_sfdmu_v5_datasets.py"],
-        triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py"],
+        # scripts/sfdmu_export.py: the validator this runs delegates its parsing primitives to the
+        # module (pack 191), so a parser-only edit changes what this live-tree scan finds.
+        triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py", "scripts/sfdmu_export.py"],
         deps=[], gating=True,
     ),
 ]

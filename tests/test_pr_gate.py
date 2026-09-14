@@ -463,6 +463,20 @@ check("that rule can see an uncovered import, rather than passing because the tr
       "to be complete today",
       first_party_imports("tests/test_expression_set_schema.py")
       >= {"tasks/expression_set_schema.py"})
+# The shared SFDMU parser module (pack 191) is executed transitively — the validator delegates its
+# primitives to it, and the two live-tree/synthetic README suites reach it through the validator —
+# but the import-coverage guard above cannot see that: the module lives under scripts/ (which
+# first_party_imports resolves repo-relative, not as first-party) and one suite loads the validator
+# through a spec loader, not an `import` statement. So the guarantee that a parser-only follow-on
+# still runs the validator's integration/live-tree coverage has to be pinned by name (Copilot/Codex
+# review on PR #429). Subset, not equality: a broader trigger elsewhere selecting the module too is
+# not a regression, but dropping any of these is.
+_parser_selects = selected_names(["scripts/sfdmu_export.py"])
+_parser_deps = {"sfdmu_export_parser", "sfdmu_datasets", "sfdmu_csv_expectation",
+                "plan_readme_consistency", "plan_readme_parsing", "generate_plan_readme_writer"}
+check("a change to scripts/sfdmu_export.py selects every check whose suite runs it through the "
+      "validator's delegation, not only its own unit test",
+      _parser_deps <= _parser_selects, sorted(_parser_deps - _parser_selects))
 # Discovery must recurse. A flat listing missed 30 suites in tests/build_harness/ and
 # tests/txn_data_harness/ while reporting "none unclaimed".
 nested = [s for s in pr_gate.CLAIMED_SUITES if s.endswith("/")]
@@ -5106,7 +5120,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 695
+EXPECTED = 696
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

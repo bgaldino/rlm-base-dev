@@ -89,20 +89,38 @@ check("unrecognized word -> None", se.resolve_operation("frobnicate"), None)
 check("None -> None", se.resolve_operation(None), None)
 
 # --- validator still delegates to the module (no drift) ----------------------
+# A same-output comparison (`wrapper(x) == module(x)`) does NOT prove delegation: an identical
+# reimplementation left in the wrapper would pass it, so the "no drift" invariant would go
+# unenforced. Instead patch the module function to return a unique sentinel and assert the
+# validator's wrapper returns exactly that sentinel — which can only happen if the wrapper actually
+# calls the module. The validator does `import sfdmu_export` and looks the name up at call time on
+# the same module object `se` references, so patching an attribute on `se` reaches its calls.
 from validate_sfdmu_v5_datasets import SFDMUValidator  # noqa: E402
 
-check("validator._normalized_object_sets delegates",
-      SFDMUValidator._normalized_object_sets({"objects": [1]}),
-      se.normalize_object_sets({"objects": [1]}))
-check("validator._extract_object_name delegates",
-      SFDMUValidator._extract_object_name(None, "SELECT Id from foo"),
-      se.extract_object_name("SELECT Id from foo"))
-check("validator._resolve_operation delegates",
-      SFDMUValidator._resolve_operation("Unknown"), se.resolve_operation("Unknown"))
-check("validator._is_js_truthy delegates",
-      SFDMUValidator._is_js_truthy([]), se.is_js_truthy([]))
-check("validator SFDMU_OPERATION_BY_INDEX is the module tuple",
-      SFDMUValidator.SFDMU_OPERATION_BY_INDEX, se.SFDMU_OPERATION_BY_INDEX)
+
+def delegates(label, module_fn_name, call_wrapper):
+    sentinel = object()
+    original = getattr(se, module_fn_name)
+    setattr(se, module_fn_name, lambda *a, **k: sentinel)
+    try:
+        got = call_wrapper()
+    finally:
+        setattr(se, module_fn_name, original)
+    check(label, got, sentinel)
+
+
+delegates("validator._normalized_object_sets calls module.normalize_object_sets",
+          "normalize_object_sets", lambda: SFDMUValidator._normalized_object_sets({"objects": [1]}))
+delegates("validator._extract_object_name calls module.extract_object_name",
+          "extract_object_name", lambda: SFDMUValidator._extract_object_name(None, "SELECT Id FROM X"))
+delegates("validator._parse_select_fields calls module.parse_select_fields",
+          "parse_select_fields", lambda: SFDMUValidator._parse_select_fields(None, "SELECT Id FROM X"))
+delegates("validator._resolve_operation calls module.resolve_operation",
+          "resolve_operation", lambda: SFDMUValidator._resolve_operation("Upsert"))
+delegates("validator._is_js_truthy calls module.is_js_truthy",
+          "is_js_truthy", lambda: SFDMUValidator._is_js_truthy([]))
+check("validator SFDMU_OPERATION_BY_INDEX is the module tuple (same object, not a copy)",
+      SFDMUValidator.SFDMU_OPERATION_BY_INDEX is se.SFDMU_OPERATION_BY_INDEX, True)
 
 print("=" * 60)
 if _failures:
