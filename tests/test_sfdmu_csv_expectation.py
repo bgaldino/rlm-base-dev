@@ -1334,6 +1334,58 @@ UNPARSEABLE_QUERY_REPORTED = [
             if "no parseable" in i]),
 ]
 
+# pack 163: object identity is case-insensitive, and a SELECT-clause subquery's inner FROM is not
+# the object. Both gaps were latent (no shipped plan has either shape — the live baseline is
+# unchanged), so these synthetic cases are the only coverage.
+OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY = [
+    ("two passes differing only in FROM-clause case are one object; a single populated root CSV "
+     "in the first casing covers both — no missing-CSV Critical for the lowercase casing",
+     False, issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM widget__c", "operation": "Update", "externalId": "Name"}]],
+         {"Widget__c.csv": HEADER}, severity=V.Severity.CRITICAL)),
+    ("...and the merged object is still checked, not made to vanish: with NO root CSV the missing "
+     "file is still reported CRITICAL (guards against the merge silently dropping coverage)",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM widget__c", "operation": "Update", "externalId": "Name"}]],
+         severity=V.Severity.CRITICAL) if "CSV file not found" in i]),
+    ("a SELECT-clause subquery's inner FROM is not mistaken for the object: the outer Account is "
+     "validated (populated Account.csv), and no spurious Contacts CSV Critical is raised",
+     False, [i for i in criticals(
+         [{"query": "SELECT Id, (SELECT Id FROM Contacts) FROM Account", "operation": "Upsert",
+           "externalId": "Id"}], {"Account.csv": "Id\n1\n"}) if "Contacts" in i]),
+    ("...and with no CSV the missing-file Critical names the outer Account, not the subquery's "
+     "Contacts — proof the object is identified as Account",
+     True, [i for i in criticals(
+         [{"query": "SELECT Id, (SELECT Id FROM Contacts) FROM Account", "operation": "Upsert",
+           "externalId": "Id"}]) if "CSV file not found: Account.csv" in i]),
+    # The override cross-join: a per-pass CSV filename in a different casing than the query's FROM
+    # (`object-set-2/account.csv` for a `FROM Account` pass) is still matched to the object. Without
+    # `_resolve_object_key` at the override loop these would report "no matching object in pass".
+    ("a differently-cased per-pass override filename (account.csv vs FROM Account) is matched, "
+     "not reported as declaring no object",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"account.csv": HEADER}}, use_separated_csv_files=True)
+            if "no matching object in pass" in i]),
+    ("...and the matched override's CONTENT is validated through the resolved key: a header-only "
+     "override CSV is reported HIGH, proving the case-fold reaches the content check",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"account.csv": "Id,Name\n"}}, use_separated_csv_files=True,
+         severity=V.Severity.HIGH) if "header row but 0 data rows" in i]),
+    ("...but a genuinely undeclared override name still reports 'no matching object' — the fold "
+     "matches only real case-variants, it does not swallow the check",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"Sprocket__c.csv": HEADER}}, use_separated_csv_files=True)
+            if "no matching object in pass" in i]),
+]
+
 # A header-only CSV (valid header row, 0 data rows) used to report NOTHING for a non-allowlisted
 # object: the `data_row_count == 0` branch only DEBUG-logged allowlisted objects and was silent
 # otherwise, so an Upsert whose CSV lost its rows loaded nothing and passed clean — the same
@@ -1778,6 +1830,9 @@ def main() -> int:
                   EXPLICIT_NULL_DEFAULTS),
                  ("a query with no parseable FROM clause is reported, not silently dropped",
                   UNPARSEABLE_QUERY_REPORTED),
+                 ("object identity is case-insensitive and subquery-aware (FROM-clause case; a "
+                  "SELECT-clause subquery's inner FROM is not the object)",
+                  OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY),
                  ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
                   "not silently passed",
                   HEADER_ONLY_CSV_REPORTED),

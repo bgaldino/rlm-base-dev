@@ -58,6 +58,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import sfdmu_export  # noqa: E402
 from validate_sfdmu_v5_datasets import _is_skip_segment, SFDMUValidator  # noqa: E402
 
 # A README line carrying this marker is skipped by every per-row check, but the row's
@@ -100,10 +101,23 @@ def csv_row_count(path: str) -> int:
 
 
 def object_name(obj: dict) -> str:
+    """The object's API name from its SOQL query — case-insensitive and subquery-aware.
+
+    Delegates to the shared `sfdmu_export.extract_object_name` (todo pack 169) instead of the
+    old literal `" FROM "` split, which matched only an uppercase, single-space-delimited
+    keyword. A legal lowercase `from` (SOQL keywords are case-insensitive) fell through to
+    `obj.get("name", "?")`, and an SFDMU object declaration has no `name` key, so it returned the
+    literal `"?"`. That `"?"` then keyed `load_plan`'s output and — once written into a generated
+    README table — was silently dropped by `parse_object_tables`' name regex (`^[A-Za-z]...`) on
+    the next parse, so the object was never checked at all.
+
+    A query with no parseable FROM (malformed — SFDMU identifies objects by their FROM clause)
+    yields a visible `Unparseable(...)` sentinel rather than a silent `""`/`"?"`: it cannot match
+    a README row's object-name regex, so the object surfaces through the missing-object check
+    instead of vanishing. Mirrors the `Unresolvable(...)` operation sentinel in `load_plan`.
+    """
     q = obj.get("query", "") or ""
-    if " FROM " in q:
-        return q.split(" FROM ", 1)[1].split()[0]
-    return obj.get("name", "?")
+    return sfdmu_export.extract_object_name(q) or f"Unparseable({q!r})"
 
 
 def load_export_data(export_json: str) -> dict:
