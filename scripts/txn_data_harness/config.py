@@ -1222,10 +1222,16 @@ def _coerce_invoice_ingestion_spec(
         if key not in explicit_keys:
             continue
         value = merged[key]
-        if value == _BUILTIN_DEFAULTS.get(key):
-            continue
-        if value in (None, [], {}, False):
-            continue
+        if key == "currency":
+            # Only null is a no-op; false, zero and empty containers are
+            # invalid explicit currency settings, not inherited defaults.
+            if value is None:
+                continue
+        else:
+            if value == _BUILTIN_DEFAULTS.get(key):
+                continue
+            if value in (None, [], {}, False):
+                continue
         raise ConfigError(
             f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
             f"(belongs to kind 'sales_txn_quote')"
