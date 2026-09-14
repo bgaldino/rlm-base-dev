@@ -1360,6 +1360,30 @@ OBJECT_NAME_CASE_AND_SUBQUERY_IDENTITY = [
      True, [i for i in criticals(
          [{"query": "SELECT Id, (SELECT Id FROM Contacts) FROM Account", "operation": "Upsert",
            "externalId": "Id"}]) if "CSV file not found: Account.csv" in i]),
+    # The override cross-join: a per-pass CSV filename in a different casing than the query's FROM
+    # (`object-set-2/account.csv` for a `FROM Account` pass) is still matched to the object. Without
+    # `_resolve_object_key` at the override loop these would report "no matching object in pass".
+    ("a differently-cased per-pass override filename (account.csv vs FROM Account) is matched, "
+     "not reported as declaring no object",
+     False, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"account.csv": HEADER}}, use_separated_csv_files=True)
+            if "no matching object in pass" in i]),
+    ("...and the matched override's CONTENT is validated through the resolved key: a header-only "
+     "override CSV is reported HIGH, proving the case-fold reaches the content check",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"account.csv": "Id,Name\n"}}, use_separated_csv_files=True,
+         severity=V.Severity.HIGH) if "header row but 0 data rows" in i]),
+    ("...but a genuinely undeclared override name still reports 'no matching object' — the fold "
+     "matches only real case-variants, it does not swallow the check",
+     True, [i for i in issues(
+         [[{"query": "SELECT Id, Name FROM Account", "operation": "Upsert", "externalId": "Name"}],
+          [{"query": "SELECT Id, Name FROM Account", "operation": "Update", "externalId": "Name"}]],
+         {"Account.csv": HEADER}, {2: {"Sprocket__c.csv": HEADER}}, use_separated_csv_files=True)
+            if "no matching object in pass" in i]),
 ]
 
 # A header-only CSV (valid header row, 0 data rows) used to report NOTHING for a non-allowlisted

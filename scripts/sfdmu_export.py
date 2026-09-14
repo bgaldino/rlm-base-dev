@@ -62,18 +62,42 @@ def _strip_parenthesized(query: str) -> str:
     so nested subqueries collapse too) leaves the outer `SELECT … FROM Account`, which
     the same regexes then read correctly.
 
+    SOQL single-quoted string literals are tracked (with `\\` escapes), so a parenthesis
+    *inside* a quoted value — `… WHERE Name = '(' …` — is not counted as structural.
+    Without that, a child subquery carrying such a literal (`SELECT Id, (SELECT Id FROM
+    Contacts WHERE Name = '(') FROM Account`) would leave `depth` non-zero at the subquery's
+    real closing paren, strip the outer `FROM Account`, and make both callers report the
+    declaration unparseable. A removed top-level group is replaced with a single space so
+    the tokens it sat between do not glue together.
+
     Baseline-neutral on every shipped plan: the only parentheses in tracked queries are
     in trailing `WHERE … IN ( … )` clauses, which sit *after* the outer `FROM` — the
     `SELECT … FROM` match already terminates before them, so stripping them changes
     nothing. It bites only on a genuine SELECT-clause subquery, which no plan uses today.
     """
-    out, depth = [], 0
+    out, depth, in_str, escaped = [], 0, False, False
     for ch in query:
-        if ch == '(':
+        if in_str:
+            if depth == 0:
+                out.append(ch)
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == "'":
+                in_str = False
+            continue
+        if ch == "'":
+            in_str = True
+            if depth == 0:
+                out.append(ch)
+        elif ch == '(':
             depth += 1
         elif ch == ')':
             if depth > 0:
                 depth -= 1
+                if depth == 0:
+                    out.append(' ')  # separator where a top-level group was removed
         elif depth == 0:
             out.append(ch)
     return ''.join(out)

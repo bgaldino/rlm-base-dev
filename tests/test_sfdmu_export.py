@@ -60,6 +60,12 @@ check("SELECT-clause subquery -> outer object, not the subquery's",
       se.extract_object_name("SELECT Id, Name, (SELECT Id FROM Contacts) FROM Account"), "Account")
 check("nested subqueries -> outer object",
       se.extract_object_name("SELECT Id, (SELECT Id, (SELECT Id FROM X) FROM Y) FROM Account"), "Account")
+check("paren inside a subquery's string literal is not structural -> outer object",
+      se.extract_object_name("SELECT Id, (SELECT Id FROM Contacts WHERE Name = '(') FROM Account"),
+      "Account")
+check("escaped quote inside a subquery literal does not end the string early -> outer object",
+      se.extract_object_name(r"SELECT Id, (SELECT Id FROM Contacts WHERE Name = '\'(') FROM Account"),
+      "Account")
 check("trailing WHERE...IN(...) does not shift the object (baseline shape)",
       se.extract_object_name("SELECT Id FROM RecordType WHERE X IN ('a','b')"), "RecordType")
 
@@ -78,6 +84,9 @@ check("SELECT-clause subquery -> outer fields only, no empty token",
 check("outer fields around a subquery preserved",
       se.parse_select_fields("SELECT Id, Name, (SELECT Id FROM Contacts), Type FROM Account"),
       ["Id", "Name", "Type"])
+check("paren inside a subquery's string literal does not corrupt outer field parsing",
+      se.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts WHERE Name = '(') FROM Account"),
+      ["Id"])
 check("trailing WHERE...IN(...) leaves the field list unchanged (baseline shape)",
       se.parse_select_fields("SELECT Id, DeveloperName FROM RecordType WHERE X IN ('a','b')"),
       ["Id", "DeveloperName"])

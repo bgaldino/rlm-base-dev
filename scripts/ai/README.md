@@ -298,7 +298,7 @@ can live at `objectset_source/object-set-N/<Object>.csv`, an *alternative* to th
 pass only** — and only when the plan's top-level `useSeparatedCSVFiles` is `true`; pass 1 always reads
 the root regardless of the flag. Neither qualifier met, the root CSV is still owed. Both gates stay
 conditional on their own reason, so an `Upsert` object with no CSV anywhere still fails;
-`tests/test_sfdmu_csv_expectation.py` pins both directions in 166 cases. Two mechanisms make that
+`tests/test_sfdmu_csv_expectation.py` pins both directions in 169 cases. Two mechanisms make that
 pinning necessary rather than decorative. `_parse_object_configs` keeps only the *first* declaration,
 so reading the operation from the merged config would let a `Readonly` first pass silence a writable
 later pass. And the exemption has to be keyed on the **pass**, not the object: `BillingPolicy` in
