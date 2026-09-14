@@ -243,6 +243,18 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="sfdmu_export_parser",
+        cmd=["python", "tests/test_sfdmu_export.py"],
+        # The shared, dependency-free export.json parsing primitives (pack 191) and the
+        # validator delegators that must not drift back apart from them. Hermetic — synthetic
+        # inputs only, green on a clean tree — so it gates for its own reason. Triggers are
+        # exactly the files the suite reads: the module, the validator (its delegation
+        # assertions), and the suite itself.
+        triggers=["scripts/sfdmu_export.py", "scripts/validate_sfdmu_v5_datasets.py",
+                  "tests/test_sfdmu_export.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="branch_scope",
         cmd=["python", "tests/test_branch_scope.py"],
         # The last two are read by the suite, which asserts both cite its current size — so

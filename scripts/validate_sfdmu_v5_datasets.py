@@ -31,6 +31,19 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+# Shared, dependency-free export.json parsing primitives. These functions were
+# extracted verbatim FROM this file (the canonical copy) into one module so the
+# other four+ callers stop re-implementing them and drifting; the staticmethods
+# below now delegate to it. See scripts/sfdmu_export.py and todo pack 191.
+# Put this file's own directory on the path so the sibling module resolves however
+# this file is loaded: run directly (dir is sys.path[0] already), imported by the AI
+# scripts (they insert scripts/ themselves), or exec'd from a spec loader by a test
+# (tests/test_sfdmu_csv_expectation.py — which does neither).
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import sfdmu_export
+
 
 # Path segments (relative to the scan root) that mark a directory we never validate:
 # internal SFDMU subdirs, developer-local scratch (test/), and backup dirs (*.bak).
@@ -758,11 +771,10 @@ class SFDMUValidator:
         `--fix-all` output is byte-identical either way and nothing would have caught a mistake here.
         Pinned by the fix-mode cases in `tests/test_sfdmu_csv_expectation.py`, which are the repo's
         only fix-mode coverage.
+
+        Implementation lives in `sfdmu_export.normalize_object_sets` (extracted for reuse, pack 191).
         """
-        object_sets = export_data.get("objectSets") or []
-        if not object_sets and "objects" in export_data:
-            return [{"objects": export_data["objects"]}]
-        return object_sets
+        return sfdmu_export.normalize_object_sets(export_data)
 
     def _all_pass_configs(self, export_data: dict) -> Dict[str, Dict[int, List[dict]]]:
         """Map each object to `{pass index: [that pass's declarations]}`, every pass.
@@ -845,10 +857,10 @@ class SFDMUValidator:
         (`_reject_non_finite_json_constant`) the way SFDMU's real `JSON.parse` would — so a `NaN`
         can no longer survive to be read here. A truthiness rule for a state the loader has
         already ruled out would be untestable except by calling this function directly.
+
+        Implementation lives in `sfdmu_export.is_js_truthy` (extracted for reuse, pack 191).
         """
-        if isinstance(value, (list, dict)):
-            return True
-        return bool(value)
+        return sfdmu_export.is_js_truthy(value)
 
     @staticmethod
     def _is_live_writable(cfg: dict) -> bool:
@@ -962,8 +974,7 @@ class SFDMUValidator:
     # returns `"unknown"` rather than `None` for it; callers then treat `"unknown"` as its own
     # state — resolved to a committed value, but not a real operation — rather than lumping it in
     # with a value that fails resolution outright.
-    SFDMU_OPERATION_BY_INDEX = ("insert", "update", "upsert", "readonly", "delete",
-                                "deletesource", "deletehierarchy", "harddelete", "unknown")
+    SFDMU_OPERATION_BY_INDEX = sfdmu_export.SFDMU_OPERATION_BY_INDEX
 
     @staticmethod
     def _resolve_operation(value) -> Optional[str]:
@@ -987,18 +998,10 @@ class SFDMUValidator:
         also matches the literal string `"Unknown"` and resolves it to `8` — the same committed
         value a numeric `8` resolves to. Returning `"unknown"` here (rather than `None`) lets
         callers distinguish that from a value that fails resolution outright.
+
+        Implementation lives in `sfdmu_export.resolve_operation` (extracted for reuse, pack 191).
         """
-        if isinstance(value, bool):
-            return None
-        if isinstance(value, int) or (isinstance(value, float) and value.is_integer()):
-            idx = int(value)
-            return (SFDMUValidator.SFDMU_OPERATION_BY_INDEX[idx]
-                    if 0 <= idx < len(SFDMUValidator.SFDMU_OPERATION_BY_INDEX) else None)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            return (normalized if normalized in SFDMUValidator.SFDMU_OPERATION_BY_INDEX
-                    else None)
-        return None
+        return sfdmu_export.resolve_operation(value)
 
     def _validate_operation_value(self, obj_name: str, obj_config: dict, result: ValidationResult):
         """Report an `operation` declaration SFDMU cannot resolve to a real, actionable operation —
@@ -1330,11 +1333,10 @@ class SFDMUValidator:
         Non-string `query` returns "" rather than raising. `re.search` on a list raises `TypeError`
         out of `main()`, taking all 39 plans down over one malformed declaration; returning "" makes
         the caller skip the declaration, which the callers already handle (`if not obj_name`).
+
+        Implementation lives in `sfdmu_export.extract_object_name` (extracted for reuse, pack 191).
         """
-        if not isinstance(query, str):
-            return ""
-        match = re.search(r'\sFROM\s+(\w+)', query, re.IGNORECASE)
-        return match.group(1) if match else ""
+        return sfdmu_export.extract_object_name(query)
 
     def _parse_select_fields(self, query: str) -> List[str]:
         """Parse field names from SOQL SELECT clause.
@@ -1344,17 +1346,10 @@ class SFDMUValidator:
 
         Returns:
             List of field names (including relationship traversals like Product.Name)
-        """
-        if not isinstance(query, str):
-            return []
-        match = re.search(r'SELECT\s+(.+?)\s+FROM', query, re.IGNORECASE | re.DOTALL)
-        if not match:
-            return []
 
-        fields_str = match.group(1)
-        # Split by comma, strip whitespace
-        fields = [f.strip() for f in fields_str.split(',')]
-        return fields
+        Implementation lives in `sfdmu_export.parse_select_fields` (extracted for reuse, pack 191).
+        """
+        return sfdmu_export.parse_select_fields(query)
 
     def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict,
                                          result: ValidationResult) -> Dict[Tuple[str, int], Tuple[Path, int]]:
