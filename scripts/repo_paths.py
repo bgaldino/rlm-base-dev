@@ -81,7 +81,16 @@ def tracked_paths(paths: list[str], repo_root: str) -> set[str]:
     if not paths:
         return set()
     paths = [os.fspath(p) for p in paths]
-    rels = [repo_relpath(p, repo_root) for p in paths]
+    # Normalize to forward slashes: `repo_relpath` -> `os.path.relpath` emits the
+    # platform separator (`\` on Windows), but `git ls-files` always prints index
+    # paths with `/`. Comparing the two directly would never match on Windows and
+    # silently drop every tracked candidate (a gate then reads "nothing tracked").
+    # git accepts `/` in a pathspec on all platforms, so we normalize once and use
+    # the result for both the query and the comparison. Replacing `\`->`/`
+    # unconditionally (not via `os.sep`) is a no-op on POSIX for the repo-relative
+    # `export.json` paths this helper is given — none contain a literal backslash —
+    # and, unlike `os.sep`, is exercised by the tests regardless of host platform.
+    rels = [repo_relpath(p, repo_root).replace("\\", "/") for p in paths]
     r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=repo_root,
                         capture_output=True, text=True, check=True)
     tracked_rels = {line for line in r.stdout.split("\0") if line}

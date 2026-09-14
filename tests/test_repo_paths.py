@@ -121,6 +121,20 @@ with tempfile.TemporaryDirectory() as td:
     check("empty input short-circuits to empty set (no git call)",
           rp.tracked_paths([], root) == set())
 
+    # Windows separator normalization: on Windows `repo_relpath` -> os.path.relpath
+    # yields `\`, but `git ls-files` prints `/`; tracked_paths must normalize so the
+    # comparison still matches (else every tracked candidate is silently dropped).
+    # macOS never produces a `\` relpath, so we simulate Windows by monkeypatching
+    # repo_relpath to emit backslashes and confirm the candidate is still matched.
+    _real_repo_relpath = rp.repo_relpath
+    try:
+        rp.repo_relpath = lambda p, r: _real_repo_relpath(p, r).replace("/", "\\")
+        got_win = rp.tracked_paths([str(tracked_json), str(scratch_json)], root)
+    finally:
+        rp.repo_relpath = _real_repo_relpath
+    check("a backslash relpath (Windows) is normalized so the tracked path still matches",
+          got_win == {str(tracked_json)})
+
 # check=True hard-fails outside a checkout — a gate must not read empty stdout as
 # "nothing tracked". The README gate lets this propagate; diff_schemas wraps it.
 print("-- repo_paths.tracked_paths raises outside a git checkout (check=True)")
