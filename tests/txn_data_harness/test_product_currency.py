@@ -98,7 +98,7 @@ def test_resolve_spec_uses_account_default_or_override(fake_client, org_context,
     assert org_context.billing_ready_accounts[0].currency_iso_code == 'USD'
 
 
-def test_auto_product_resolves_currency_against_full_sku(fake_client, org_context):
+def test_auto_product_resolves_currency_against_full_product(fake_client, org_context):
     org_context.billing_ready_accounts[0].currency_iso_code = 'EUR'
     fake_client.query_responses = [[pbe('USD'), pbe('EUR')]]
     result = runner.resolve_spec(fake_client, org_context, spec([config.ProductOption(None, (1, 1))]))
@@ -268,3 +268,28 @@ def test_manifest_product_identity_survives_sku_edit(fake_client, current_sku):
     assert lines[0].product.pricebook_entry_id == row['Id']
     assert lines[0].product.id == 'product'
     assert lines[0].product.sku == current_sku
+
+
+@pytest.mark.parametrize('sku', ['SHARED-SKU', None])
+def test_auto_product_preserves_discovered_identity(fake_client, org_context, sku):
+    preferred = replace(org_context.products[0], sku=sku)
+    org_context.products = [preferred]
+    org_context.billing_ready_accounts[0].currency_iso_code = 'EUR'
+    intended = pbe('EUR')
+    intended['Product2Id'] = preferred.id
+    intended['Product2']['StockKeepingUnit'] = sku
+    other = pbe('EUR', suffix='wrong-product')
+    other['Product2Id'] = 'other-product'
+    other['Product2']['StockKeepingUnit'] = sku
+    def query(sql):
+        # Without the identity filter a duplicate SKU is ambiguous (or could
+        # select the wrong product if only that product has the target PBE).
+        if f"Product2Id = '{preferred.id}'" not in sql:
+            return [other]
+        assert "Product2.StockKeepingUnit =" not in sql
+        return [intended]
+    fake_client.query = query
+    resolved = runner.resolve_spec(fake_client, org_context,
+                                   spec([config.ProductOption(None, (1, 1))]))
+    assert resolved.options[0].product.id == preferred.id
+    assert resolved.options[0].product.pricebook_entry_id == intended['Id']

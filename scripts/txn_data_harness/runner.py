@@ -239,7 +239,7 @@ def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> R
         products.append(resolve_product(
             client, sku, selling_model=opt.selling_model,
             currency=opt.currency or account.currency_iso_code,
-            product_id=default_product.id if not sku else None))
+            product_id=default_product.id if default_product else None))
     currencies = {p.currency_iso_code for p in products}
     if len(currencies) > 1:
         raise ConfigError("All products in a transaction pool must use the same currency")
