@@ -269,6 +269,21 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="repo_paths_shared",
+        cmd=["python", "tests/test_repo_paths.py"],
+        # The shared git-tracking helpers (scripts/repo_paths.py, pack 167 — one copy of
+        # "which of these paths does git track", now used by both the plan-README gate and
+        # diff_schemas.py's --impact report) plus the diff_schemas object-name parsing fix
+        # (delegates to the subquery-aware sfdmu_export.extract_object_name). Hermetic —
+        # synthetic tempdir git repos only, green on a clean tree — so it gates for its own
+        # reason. Triggers are exactly the files the suite reads: the shared module, the
+        # diff_schemas caller it loads, the sfdmu_export parser diff_schemas delegates to,
+        # and the suite itself. This is also the only check that runs on a diff_schemas edit.
+        triggers=["scripts/repo_paths.py", "scripts/erd/schema_diff/diff_schemas.py",
+                  "scripts/sfdmu_export.py", "tests/test_repo_paths.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="branch_scope",
         cmd=["python", "tests/test_branch_scope.py"],
         # The last two are read by the suite, which asserts both cite its current size — so

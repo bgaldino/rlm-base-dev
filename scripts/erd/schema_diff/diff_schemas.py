@@ -31,6 +31,10 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import sfdmu_export  # noqa: E402
+import repo_paths  # noqa: E402
+
 
 def load_schema(path: str) -> dict:
     """Load a schema JSON file."""
@@ -202,18 +206,21 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
 
 
 def _extract_object_name(obj_def: dict) -> str:
-    """Pull SObject name from an SFDMU object entry (either explicit
-    ``objectName`` or parsed from a ``query`` clause)."""
-    obj_name = obj_def.get("objectName") or ""
-    if not obj_name:
-        query = obj_def.get("query", "") or ""
-        if "FROM " in query:
-            obj_name = query.split("FROM ")[1].split()[0].strip()
-    return obj_name
+    """Pull SObject name from an SFDMU object entry — explicit ``objectName`` if
+    present, else parsed from the ``query`` clause.
+
+    Query parsing is delegated to the shared, subquery-aware
+    ``sfdmu_export.extract_object_name`` (todo pack 167). The former inline
+    ``query.split("FROM ")[1]`` here misread a SELECT-clause subquery's inner
+    ``FROM`` as the object and matched ``FROM`` case-sensitively, both of which
+    the shared parser handles (strips parenthesized subqueries first;
+    case-insensitive ``FROM`` keyword)."""
+    return obj_def.get("objectName") or sfdmu_export.extract_object_name(
+        obj_def.get("query", "") or "")
 
 
 def _list_tracked_export_jsons(sfdmu_dir: Path) -> list[Path] | None:
-    """Return the list of `export.json` files that git is tracking under
+    """Return the list of on-disk `export.json` files that git is tracking under
     ``datasets/sfdmu/``, or ``None`` if git isn't available / this isn't a
     repo.
 
@@ -223,26 +230,21 @@ def _list_tracked_export_jsons(sfdmu_dir: Path) -> list[Path] | None:
     that .gitignore explicitly excludes. Without this filter, the
     ``--impact`` report leaks paths that don't exist on a fresh clone and
     overstates maintained-plan coverage.
+
+    The git query is delegated to the shared ``repo_paths.tracked_paths`` (todo
+    pack 167 — one implementation of "which of these paths does git track", also
+    used by the plan-README gate). This module keeps its own SOFTER failure mode:
+    ``repo_paths.tracked_paths`` raises on git failure (``check=True``), and this
+    wrapper catches it to return ``None`` so ``find_impacted_plans`` degrades to
+    an ``rglob`` walk + warning — an impact report is analysis, not a merge gate,
+    so it should still run when git is unavailable rather than crash.
     """
+    candidates = sorted(sfdmu_dir.rglob("export.json"))
     try:
-        result = subprocess.run(
-            ["git", "ls-files", "--full-name", "-z", "datasets/sfdmu"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-        )
+        tracked = repo_paths.tracked_paths([str(p) for p in candidates], str(REPO_ROOT))
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
-
-    tracked = []
-    for raw in result.stdout.split(b"\x00"):
-        if not raw:
-            continue
-        rel = raw.decode("utf-8", "replace")
-        if rel.endswith("/export.json") or rel.endswith("export.json"):
-            # ls-files returns paths relative to the git toplevel (REPO_ROOT)
-            tracked.append(REPO_ROOT / rel)
-    return tracked
+    return [p for p in candidates if str(p) in tracked]
 
 
 def find_impacted_plans(diff: dict) -> dict:

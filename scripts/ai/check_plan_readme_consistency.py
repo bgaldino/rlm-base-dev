@@ -50,7 +50,6 @@ import csv
 import json
 import os
 import re
-import subprocess
 import sys
 from collections import Counter
 
@@ -59,6 +58,7 @@ SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import sfdmu_export  # noqa: E402
+import repo_paths  # noqa: E402
 from validate_sfdmu_v5_datasets import _is_skip_segment, SFDMUValidator  # noqa: E402
 
 # A README line carrying this marker is skipped by every per-row check, but the row's
@@ -716,11 +716,13 @@ def _repo_relpath(p: str) -> str:
     deeply-'../'-prefixed path (round 15 of PR #406's review, pack 147:
     live-reproduced — `git ls-files` then exits 128, "outside repository",
     which `tracked_paths()`'s `check=True` turns into an uncaught crash
-    instead of the clean skip/report this script exists to give bad input)."""
-    root_len = len(REPO_ROOT)
-    if p[:root_len].lower() == REPO_ROOT.lower() and p[root_len:root_len + 1] in ("", os.sep):
-        return p[root_len:].lstrip(os.sep) or "."
-    return os.path.relpath(p, REPO_ROOT)
+    instead of the clean skip/report this script exists to give bad input).
+
+    Consolidated into `repo_paths.repo_relpath` by todo pack 167 (with
+    `tracked_paths` below and `diff_schemas.py`'s former copy); this stays a thin
+    wrapper passing the module's own `REPO_ROOT`, which tests monkeypatch to a temp
+    git repo, so that monkeypatch still governs the git call underneath."""
+    return repo_paths.repo_relpath(p, REPO_ROOT)
 
 
 def tracked_paths(paths: list[str]) -> set[str]:
@@ -736,31 +738,14 @@ def tracked_paths(paths: list[str]) -> set[str]:
     returns which of THOSE are tracked, not a full-repo inventory; the two scripts
     are unrelated concern domains and importing across them for a few-item lookup
     isn't worth the coupling. Named differently (tracked_paths, not tracked_files) so
-    grepping doesn't turn up two same-named helpers with different shapes."""
-    if not paths:
-        return set()
-    rels = [_repo_relpath(p) for p in paths]
-    # check=True: a git failure (e.g. run outside a checkout) must not silently yield
-    # empty stdout, which would misclassify every tracked README-less plan as
-    # untracked/optional — the exact silent-pass-by-absence defect this script exists
-    # to close. generate_plan_readme.py has no git call of its own — it imports and
-    # calls this same function, so there is nothing else to keep in sync here.
-    # -z: git's default core.quotepath=true C-quotes/octal-escapes non-ASCII (or
-    # otherwise "unusual") bytes in plain `ls-files` output (e.g. a tracked café/
-    # export.json is echoed as "caf\303\251/export.json"), which would never
-    # string-match the plain relpath below and misclassify a genuinely tracked path
-    # as untracked — the same silent-pass-by-absence defect this script exists to
-    # close, one level down. -z disables quoting and NUL-delimits instead.
-    r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=REPO_ROOT,
-                        capture_output=True, text=True, check=True)
-    # Compare case-folded, and return the CALLER's own paths rather than reconstructing
-    # from git's stdout: on a case-insensitive filesystem (macOS's default APFS), a repo
-    # with core.ignorecase set (the git-init default there) matches a pathspec
-    # case-insensitively but echoes it back in the INDEX's casing, which can differ from
-    # the caller's/disk's casing after a case-only rename the index missed. Exact-string
-    # reconstruction would then silently miss a real match.
-    tracked_rel_lower = {line.lower() for line in r.stdout.split("\0") if line}
-    return {p for p, rel in zip(paths, rels) if rel.lower() in tracked_rel_lower}
+    grepping doesn't turn up two same-named helpers with different shapes.
+
+    Consolidated into `repo_paths.tracked_paths` by todo pack 167; this stays a thin
+    wrapper passing the module's own (monkeypatchable) `REPO_ROOT`. The shared helper's
+    `check=True` propagates here on purpose — a gate must never silently look like
+    "nothing tracked" — the failure mode `diff_schemas.py` deliberately softens to an
+    rglob walk + warning instead."""
+    return repo_paths.tracked_paths(paths, REPO_ROOT)
 
 
 def tracked_plan_dirs(dirs: list[str]) -> list[str]:

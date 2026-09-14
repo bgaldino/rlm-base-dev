@@ -3993,6 +3993,9 @@ NOT_INPUTS = {
     "tests/test_check_plan_readme_discovery.py": {
         ".gitignore": "a file written inside a throwaway synthetic repo, not read from this one",
     },
+    "tests/test_repo_paths.py": {
+        ".gitignore": "a file written inside a throwaway synthetic repo, not read from this one",
+    },
 }
 
 
@@ -5120,7 +5123,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 696
+EXPECTED = 699
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5134,12 +5137,16 @@ check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the p
 # `MATRIX_SIZE_PROSE` deliberately anchors on phrases that describe CHECKS, since "fourteen" also
 # appears in unrelated incident narration that must not be rewritten.
 _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
-              18: "eighteen", 19: "nineteen", 20: "twenty"}
+              18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one"}
 _actual = len(pr_gate.CHECKS)
+# A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
+# does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT
+# fire on the correct "two of the twenty-one" (nor "twenty-two", etc.). Plain substring `in`
+# did, and every count in the twenties reintroduces that collision.
 _stale = [w for n, w in _NUM_WORDS.items() if n != _actual
           for pat in (f"of {w} validators", f"two of the {w}", f"all {w} ran",
                       f"each of the {w} trigger lists", f"run is {n} checks")
-          if pat in _readme_text]
+          if re.search(re.escape(pat) + r"(?![\w-])", _readme_text)]
 check(f"no sentence in scripts/ai/README.md describes the CHECKS matrix with a size other than "
       f"{_actual} ({_NUM_WORDS.get(_actual, _actual)})",
       not _stale, _stale)
