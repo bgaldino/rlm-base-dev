@@ -63,9 +63,19 @@ def tracked_paths(paths: list[str], repo_root: str) -> set[str]:
 
     -z: git's default core.quotepath=true C-quotes/octal-escapes non-ASCII bytes
     in plain `ls-files` output (a tracked `café/export.json` echoes as
-    `caf\\303\\251/export.json`), which would never string-match the plain
-    relpath below and misclassify a genuinely tracked path as untracked. -z
-    disables quoting and NUL-delimits instead.
+    `caf\\303\\251/export.json`), which would never match the relpath below and
+    misclassify a genuinely tracked path as untracked. -z disables quoting and
+    NUL-delimits instead.
+
+    Compares as BYTES (no `text=`): `-z` makes git emit raw filename bytes, so
+    decoding them with `text=True` under the process locale would raise
+    `UnicodeDecodeError` on a path with non-decodable bytes — an exception NEITHER
+    caller expects (the README gate would crash; `diff_schemas`' soft-failure
+    wrapper only catches `CalledProcessError`/`FileNotFoundError`, so the intended
+    rglob fallback is bypassed). We keep git's output as bytes and `os.fsencode`
+    each candidate relpath to compare, which round-trips any byte sequence and
+    can't raise. (`repo_relpath` -> `os.path.relpath` already tolerates such names
+    on input.)
 
     Matches EXACT-case, and returns the CALLER's own path (not git's stdout
     string) for each match. Case-folding the comparison — which this helper's
@@ -92,6 +102,6 @@ def tracked_paths(paths: list[str], repo_root: str) -> set[str]:
     # and, unlike `os.sep`, is exercised by the tests regardless of host platform.
     rels = [repo_relpath(p, repo_root).replace("\\", "/") for p in paths]
     r = subprocess.run(["git", "ls-files", "-z", "--"] + rels, cwd=repo_root,
-                        capture_output=True, text=True, check=True)
-    tracked_rels = {line for line in r.stdout.split("\0") if line}
-    return {p for p, rel in zip(paths, rels) if rel in tracked_rels}
+                        capture_output=True, check=True)
+    tracked = {chunk for chunk in r.stdout.split(b"\0") if chunk}
+    return {p for p, rel in zip(paths, rels) if os.fsencode(rel) in tracked}

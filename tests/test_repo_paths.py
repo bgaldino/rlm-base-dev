@@ -135,6 +135,44 @@ with tempfile.TemporaryDirectory() as td:
     check("a backslash relpath (Windows) is normalized so the tracked path still matches",
           got_win == {str(tracked_json)})
 
+# Byte-comparison (no text= decode): a tracked path with non-ASCII bytes must match.
+# A valid-UTF-8 name (café) is portable and exercises the -z raw-byte path on every
+# host; a non-decodable byte (Latin-1 é) is the surrogate-escaped case the reviewer
+# asked for, but macOS/APFS rejects such filenames, so that check is guarded.
+print("-- repo_paths.tracked_paths compares raw bytes (no locale decode)")
+with tempfile.TemporaryDirectory() as td:
+    root = os.path.realpath(td)
+    accent = pathlib.Path(root) / "datasets" / "café"
+    accent.mkdir(parents=True)
+    (accent / "export.json").write_text(json.dumps({"objectSets": []}))
+    git(root, "init", "--quiet", "-b", "base")
+    git(root, "config", "user.email", "t@example.com")
+    git(root, "config", "user.name", "test")
+    git(root, "config", "commit.gpgsign", "false")
+    git(root, "config", "core.hooksPath", os.devnull)
+    git(root, "add", "-A")
+    git(root, "commit", "--quiet", "-m", "seed")
+    accent_json = str(accent / "export.json")
+    check("a non-ASCII (UTF-8) tracked path matches via byte comparison",
+          rp.tracked_paths([accent_json], root) == {accent_json})
+
+    # Surrogate-escaped (non-UTF-8) filename: proves no UnicodeDecodeError. Skipped
+    # where the filesystem refuses to store the raw byte (macOS APFS enforces UTF-8).
+    bad_bytes = os.fsencode(root) + b"/bad_\xe9.json"
+    created = False
+    try:
+        with open(bad_bytes, "wb") as fh:
+            fh.write(b"{}")
+        created = True
+    except (OSError, ValueError, UnicodeError):
+        print("  [SKIP] filesystem rejects non-UTF-8 filenames (expected on macOS/APFS)")
+    if created:
+        git(root, "add", "-A")
+        git(root, "commit", "--quiet", "-m", "bad name")
+        bad_path = os.fsdecode(bad_bytes)  # surrogate-escaped str
+        check("a non-decodable (surrogate-escaped) tracked path matches without raising",
+              rp.tracked_paths([bad_path], root) == {bad_path})
+
 # check=True hard-fails outside a checkout — a gate must not read empty stdout as
 # "nothing tracked". The README gate lets this propagate; diff_schemas wraps it.
 print("-- repo_paths.tracked_paths raises outside a git checkout (check=True)")
