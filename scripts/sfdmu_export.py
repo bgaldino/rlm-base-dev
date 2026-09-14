@@ -44,11 +44,26 @@ def normalize_object_sets(export_data: dict) -> List[dict]:
     flat top-level `objects` list. Callers that need "the passes" must agree on
     this normalization — historically they disagreed, which is a silent wrong
     answer rather than an error, so it lives in one place.
+
+    Mirrors SFDMU's own `ScriptLoader._normalizeObjectSets` (v5.8.0), which is a
+    MERGE, not a precedence pick: a non-empty top-level `objects` array is
+    `unshift`ed as `objectSets[0]` — prepended as pass 1, ahead of any existing
+    `objectSets` — unconditionally on `objects` being non-empty. It does NOT check
+    whether `objectSets` is already populated. So a plan carrying BOTH a non-empty
+    `objectSets` and a non-empty `objects` runs `objects` as an *additional*,
+    prepended pass; the earlier "objectSets wins outright, objects never read"
+    rule silently dropped every object declared only in that top-level `objects`
+    (todo pack 168). Guarded on `objects` being a non-empty list, matching JS's
+    `Array.isArray(objects) && objects.length > 0`; an empty/absent `objects`
+    leaves `objectSets` untouched. Returns a new list — never mutates the input.
     """
-    object_sets = export_data.get("objectSets") or []
-    if not object_sets and "objects" in export_data:
-        return [{"objects": export_data["objects"]}]
-    return object_sets
+    object_sets = export_data.get("objectSets")
+    if not isinstance(object_sets, list):
+        object_sets = []
+    objects = export_data.get("objects")
+    if isinstance(objects, list) and objects:
+        return [{"objects": objects}, *object_sets]
+    return list(object_sets)
 
 
 def _strip_parenthesized(query: str) -> str:

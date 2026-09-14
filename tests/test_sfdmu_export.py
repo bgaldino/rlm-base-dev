@@ -46,6 +46,15 @@ check("empty objectSets falls back to flat objects",
       [{"objects": [1]}])
 check("neither key present -> empty list",
       se.normalize_object_sets({}), [])
+# SFDMU merge (pack 168): a non-empty top-level `objects` alongside a non-empty
+# `objectSets` is unshifted as pass 1, ahead of the existing sets (not dropped).
+check("objects + objectSets: objects unshifted as pass 1, sets follow in order",
+      se.normalize_object_sets(
+          {"objectSets": [{"objects": ["a"]}, {"objects": ["b"]}], "objects": ["flat"]}),
+      [{"objects": ["flat"]}, {"objects": ["a"]}, {"objects": ["b"]}])
+check("an empty top-level objects does not prepend a pass",
+      se.normalize_object_sets({"objectSets": [{"objects": ["a"]}], "objects": []}),
+      [{"objects": ["a"]}])
 
 # --- extract_object_name -----------------------------------------------------
 check("basic FROM", se.extract_object_name("SELECT Id FROM Account"), "Account")
