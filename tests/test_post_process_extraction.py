@@ -262,6 +262,29 @@ def test_top_level_pass_subquery_uses_outer_object(m):
           m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
 
 
+def test_excluded_uses_js_truthiness(m):
+    """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
+    falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
+    too (else the object enters plan_structure and its raw CSV is transformed/synced).
+    Falsy JS values (`0`, `False`, absent) leave the object live."""
+    excluded_js_truthy = {"objects": [
+        {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name", "excluded": []},
+        {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "StockKeepingUnit", "excluded": {}},
+    ]}
+    result, _, malformed = m.parse_plan_structure(excluded_js_truthy)
+    check("excluded: [] / {} are JS-truthy -> both dropped from plan_structure",
+          result == {}, sorted(result))
+    check("JS-truthy excluded declarations are not flagged malformed", malformed == [], malformed)
+    # Falsy JS values keep the object live.
+    live = {"objects": [
+        {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name", "excluded": 0},
+        {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "SKU", "excluded": False},
+    ]}
+    result2, _, _ = m.parse_plan_structure(live)
+    check("excluded: 0 / False are JS-falsy -> objects stay live",
+          set(result2) == {"Account", "Product2"}, sorted(result2))
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -274,6 +297,7 @@ def main():
     test_copy_to_plan_refuses_on_malformed_query(m)
     test_both_array_plan_prepends_top_level_pass(m)
     test_top_level_pass_subquery_uses_outer_object(m)
+    test_excluded_uses_js_truthiness(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

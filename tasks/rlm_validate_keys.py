@@ -77,14 +77,20 @@ def collect_key_target_objects(export_json: dict) -> Dict[str, List[List[str]]]:
     targets: Dict[str, List[List[str]]] = {}
     for oset in object_sets:
         for obj in oset.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness: SFDMU reads `excluded` in JS, where `[]`/`{}` are truthy
+            # and skip the declaration. Python's plain `if` would read them as live and
+            # query/populate keys for an object SFDMU never loads (pack 168 now walks
+            # the prepended top-level pass here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
             # Shared parser: case-insensitive, subquery-aware, and returns "" (not a
             # raise) on a non-string/malformed query — the newly-included top-level pass
             # (pack 168) must be validated without aborting on a lowercase `from`.
             name = sfdmu_export.extract_object_name(obj.get("query", ""))
             external_id = obj.get("externalId", "")
-            if not name or not external_id or external_id == "Id":
+            # A non-string externalId (a hand-edited list/dict, now reachable via the
+            # top-level pass) is truthy but would raise on `.split(";")` — skip it.
+            if not name or not isinstance(external_id, str) or not external_id or external_id == "Id":
                 continue
             comps = [c.strip() for c in external_id.split(";") if c.strip()]
             if not comps or any("." in c for c in comps):

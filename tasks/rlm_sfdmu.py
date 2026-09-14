@@ -462,7 +462,11 @@ def _sobjects_from_export_json(export_path: str) -> list:
     object_sets = sfdmu_export.normalize_object_sets(data)
     for obj_set in object_sets:
         for obj in obj_set.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness, not Python's: SFDMU reads `excluded` in JS, where
+            # `[]`/`{}` are truthy and skip the declaration — Python's plain `if`
+            # would read them as live and count an object SFDMU never loads (pack
+            # 168 now walks the prepended top-level pass through here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
             # Shared subquery-aware parser: a SELECT-clause subquery's inner FROM is not
             # mistaken for the outer object (`SELECT Id,(SELECT Id FROM Contacts) FROM
@@ -575,9 +579,16 @@ class DeleteSFDMUData(BaseSalesforceTask):
         insert_sobjects: List[str] = []
         for obj_set in object_sets:
             for obj in obj_set.get("objects", []):
-                if obj.get("excluded", False):
+                # JS truthiness (see _sobjects_from_export_json): `excluded: []`/`{}`
+                # is truthy in SFDMU's JS and skips the object, so this destructive
+                # cleanup must not delete its records — Python's plain `if` would.
+                if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
-                if obj.get("operation", "").lower() != "insert":
+                # `operation` may be a numeric enum index (SFDMU's ScriptLoader accepts
+                # `0`=Insert), which the shared resolver maps to a canonical lowercase
+                # name — a plain `.lower()` would raise AttributeError on an int, and a
+                # numeric `0` Insert would be missed by a string compare.
+                if sfdmu_export.resolve_operation(obj.get("operation")) != "insert":
                     continue
                 # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
                 # subquery's inner FROM is not mistaken for the outer object, non-string safe.
@@ -1260,13 +1271,17 @@ class ExtractSFDMUData(SFDXBaseTask):
         seen = set()
         for oset in object_sets:
             for obj in oset.get("objects", []):
-                if obj.get("excluded"):
+                # JS truthiness: `excluded: []`/`{}` is skipped by SFDMU (see
+                # _sobjects_from_export_json).
+                if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
                 # Shared parser: case-insensitive, subquery-aware, "" on non-string/malformed
                 # (the normalized top-level pass, pack 168, must map without aborting extraction).
                 objname = sfdmu_export.extract_object_name(obj.get("query", ""))
                 external_id = obj.get("externalId", "")
-                if not objname or not external_id:
+                # A non-string externalId (a hand-edited list/dict now reachable via the
+                # top-level pass) must not reach `.split(";")` and raise — skip it.
+                if not objname or not isinstance(external_id, str) or not external_id:
                     continue
                 for comp in external_id.split(";"):
                     comp = comp.strip()

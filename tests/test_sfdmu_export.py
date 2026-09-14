@@ -114,6 +114,7 @@ check("True is truthy", se.is_js_truthy(True), True)
 # --- resolve_operation -------------------------------------------------------
 check("string 'Upsert' -> upsert", se.resolve_operation("Upsert"), "upsert")
 check("padded/mixed-case ' ReadOnly ' -> readonly", se.resolve_operation(" ReadOnly "), "readonly")
+check("numeric index 0 -> insert (DeleteSFDMUData reads Insert declarations)", se.resolve_operation(0), "insert")
 check("numeric index 2 -> upsert", se.resolve_operation(2), "upsert")
 check("integral float 2.0 -> upsert", se.resolve_operation(2.0), "upsert")
 check("non-integral float 2.5 -> None", se.resolve_operation(2.5), None)

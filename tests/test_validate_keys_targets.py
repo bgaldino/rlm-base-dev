@@ -82,6 +82,33 @@ check("externalId of Id, empty, or excluded objects are not targets",
       }),
       {})
 
+# round-7: `excluded` is read with JS truthiness — `[]`/`{}` are falsy in Python but
+# truthy in JS, so SFDMU skips such a declaration and this collector must too (else it
+# queries/populates keys for an object SFDMU never loads).
+check("excluded: [] is JS-truthy -> skipped (not a target)",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "SELECT Id FROM D", "externalId": "Code", "excluded": []}]}),
+      {})
+check("excluded: {} is JS-truthy -> skipped (not a target)",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "SELECT Id FROM E", "externalId": "Code", "excluded": {}}]}),
+      {})
+check("excluded: 0 is JS-falsy -> still a target",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "SELECT Id FROM F", "externalId": "Code", "excluded": 0}]}),
+      {"F": [["Code"]]})
+
+# round-7: a non-string externalId (hand-edited list/dict) is truthy but would raise on
+# `.split(";")` — the top-level pass can now carry it, so it must be skipped, not crash.
+check("non-string (list) externalId does not raise -> no target",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "SELECT Id FROM G", "externalId": ["Code"]}]}),
+      {})
+check("non-string (dict) externalId does not raise -> no target",
+      vk.collect_key_target_objects({"objects": [
+          {"query": "SELECT Id FROM H", "externalId": {"f": "Code"}}]}),
+      {})
+
 # --- _validate_object / _populate_nulls: per-declaration populate gating ------
 # These pin the round-5 fix: POPULATE_CONFIG is object-wide but targets one key
 # field, so validating the same object on a different key must NOT populate the

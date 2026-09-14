@@ -138,7 +138,10 @@ def parse_plan_structure(export_json: dict) -> tuple:
     object_sets = sfdmu_export.normalize_object_sets(export_json)
     for idx, obj_set in enumerate(object_sets):
         for obj in obj_set.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness, not Python's: SFDMU reads `excluded` in JS, where `[]`/`{}`
+            # are truthy and skip the declaration (pack 168 now walks the prepended
+            # top-level pass through here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
             query = obj.get("query", "")
             name = get_object_name_from_query(query)
