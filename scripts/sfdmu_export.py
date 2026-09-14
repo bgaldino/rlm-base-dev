@@ -21,7 +21,7 @@ The canonical implementations were extracted verbatim from
 `validate_sfdmu_v5_datasets.py` (the most complete/guarded copy); their long-form
 rationale lives in that file's git history and in the referenced packs. Behavior
 is intentionally identical to that pre-extraction copy — the behavioral fixes
-(SFDMU unshift semantics, case-insensitive object identity, etc.) land as
+(SFDMU unshift semantics, subquery-aware `FROM`/`SELECT` parsing, etc.) land as
 follow-on commits ON this module, each with its own before/after test, so a
 regression stays attributable.
 """
@@ -113,9 +113,13 @@ def extract_object_name(query: str) -> str:
 
     Subquery-aware: parenthesized groups are stripped first so a SELECT-clause
     subquery's inner `FROM` cannot be mistaken for the outer object — see
-    `_strip_parenthesized`. The name is returned in its original SOQL casing; callers
-    that key on object *identity* fold it case-insensitively (Salesforce treats
-    `Account`/`account` as one object), while CSV filenames keep the original case.
+    `_strip_parenthesized`. The name is returned in its original SOQL casing and
+    callers key on it exactly, never case-folded: SFDMU reads each object's CSV at
+    `path.join(rootPath, sObjectName)` with `sObjectName` this raw name and no case
+    normalization (`Common.getCSVFilename`; `ScriptObject.name = parsed.sObject`), so
+    `FROM Account` and `FROM account` are different files on case-sensitive Linux.
+    Folding identity would credit a CSV SFDMU never reads and hide a missing-file
+    error (todo pack 163 — the fold was tried and reverted for exactly this).
     """
     if not isinstance(query, str):
         return ""

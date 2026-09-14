@@ -431,10 +431,11 @@ class SFDMUValidator:
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
                     if not self._override_content_should_be_checked(pass_index, use_separated_csv_files):
                         continue
-                    # The override key is the CSV filename's casing; resolve it into the query-cased
-                    # `all_pass_configs` before looking up the pass's declarations (todo pack 163).
-                    resolved = self._resolve_object_key(obj_name, all_pass_configs)
-                    writable_cfgs = self._writable_configs_for_pass(all_pass_configs, resolved, pass_index)
+                    # `obj_name` is the override CSV filename's stem — the exact string SFDMU reads
+                    # (`Common.getCSVFilename` == `path.join(root, sObjectName)`, no case normalization).
+                    # Match it against declarations by that exact casing; a differently-cased declaration
+                    # is a different file SFDMU never loads, so it must not be treated as this one.
+                    writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                     # Same bookkeeping the root fixer uses. `--dry-run` does not mutate the file, so
                     # `_is_csv_empty` / `_csv_missing_composite_key` stay true across same-pass
                     # duplicate declarations and each one printed/counted a proposal a real run
@@ -482,12 +483,13 @@ class SFDMUValidator:
             # its *content* against a file nothing loads is the false positive pack 123 exists to
             # eliminate — but the directory being wrong is not a fact about runtime reads.
             for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
-                # Resolve the CSV filename's casing into the query-cased `all_pass_configs` so a
-                # `FROM Account` declaration is found for an `account.csv` override rather than
-                # reported as "no matching object in pass" (todo pack 163). `obj_name` stays
-                # original-cased for the messages and paths below.
-                resolved = self._resolve_object_key(obj_name, all_pass_configs)
-                declared = self._get_object_configs_for_pass(all_pass_configs, resolved, pass_index)
+                # Match the override CSV's filename stem against declarations by its exact casing.
+                # SFDMU builds the path it reads as `path.join(root, sObjectName)` with `sObjectName`
+                # the raw `FROM`-clause name (`Common.getCSVFilename`, no case normalization), so on
+                # case-sensitive Linux `object-set-2/account.csv` and a `FROM Account` declaration are
+                # different files. A casing mismatch is therefore a genuine "no matching object in
+                # pass" — SFDMU will not load this file — not something to fold away (todo pack 163).
+                declared = self._get_object_configs_for_pass(all_pass_configs, obj_name, pass_index)
                 if not declared:
                     result.add_issue(Issue(
                         severity=Severity.HIGH,
@@ -500,7 +502,7 @@ class SFDMUValidator:
                     self.log(f"  Skipping content check on inert override (useSeparatedCSVFiles is "
                              f"not true): {obj_name} pass {pass_index + 1}", level="DEBUG")
                     continue
-                writable_cfgs = self._writable_configs_for_pass(all_pass_configs, resolved, pass_index)
+                writable_cfgs = self._writable_configs_for_pass(all_pass_configs, obj_name, pass_index)
                 if not writable_cfgs:
                     # `declared` is non-empty but every declaration in this pass is source-free —
                     # excluded, Readonly (queried from the target org), or Delete (skipped by the
@@ -808,13 +810,12 @@ class SFDMUValidator:
                 query = obj.get("query", "")
                 obj_name = self._extract_object_name(query)
                 if obj_name:
-                    # Fold to an already-seen casing of the same object so two passes writing
-                    # `FROM Account` and `FROM account` land under one key rather than splitting
-                    # into two unrelated objects (todo pack 163). First-seen casing wins, matching
-                    # `_parse_object_configs` — both walk the passes in the same order, so the two
-                    # maps agree on which casing is canonical, and `objects_owing_root_csv`
-                    # membership (query-cased both sides) still resolves.
-                    obj_name = self._resolve_object_key(obj_name, by_pass)
+                    # Key on the object name exactly as the `FROM` clause writes it. SFDMU reads the
+                    # CSV at `path.join(root, sObjectName)` with `sObjectName` that raw name and no case
+                    # normalization (`Common.getCSVFilename`), so `FROM Account` and `FROM account` read
+                    # `Account.csv` and `account.csv` — genuinely different files on case-sensitive
+                    # Linux. Folding them to one key would credit one CSV as covering both passes and
+                    # suppress the missing-file Critical SFDMU would actually hit (todo pack 163).
                     by_pass.setdefault(obj_name, {}).setdefault(idx, []).append(
                         self._normalize_object_config(obj, query, idx))
         return by_pass
@@ -1174,20 +1175,21 @@ class SFDMUValidator:
                 continue
             if not use_separated_csv_files:
                 continue
-            # Fold the override filename's casing into a casing already recorded here, so two
-            # passes whose override CSVs are named `Account.csv` and `account.csv` coalesce into
-            # one covered object rather than two (todo pack 163). Without this, the query-side
-            # `_resolve_object_key` below resolves to whichever single casing it finds first and
-            # the other pass's coverage is missed. Doubly latent — needs both case-split overrides
-            # and a case-split object — and a no-op on every shipped plan, whose casings agree.
-            covered.setdefault(self._resolve_object_key(obj_name, covered), set()).add(pass_index)
+            # Key coverage by the override CSV's filename stem exactly. SFDMU reads
+            # `object-set-N/<sObjectName>.csv` where `sObjectName` is the raw `FROM`-clause name with
+            # no case normalization (`Common.getCSVFilename`), so an `object-set-2/account.csv` file
+            # only ever covers a `FROM account` pass, never a `FROM Account` one. Folding the casings
+            # would credit a file SFDMU never reads as coverage and suppress the missing-root Critical
+            # it would actually hit (todo pack 163). Exact-match here; `writable_passes` is query-cased,
+            # so a genuine casing mismatch correctly leaves the pass uncovered below.
+            covered.setdefault(obj_name, set()).add(pass_index)
 
         owed: Dict[str, List[dict]] = {}
         for obj_name, passes in writable_passes.items():
-            # `covered` is keyed by the override CSV filename's casing, `obj_name` by the query's;
-            # resolve across the two case-insensitively so a `FROM Account` pass credits an
-            # `object-set-2/account.csv` override (todo pack 163). No-op when they already agree.
-            uncovered = sorted(passes - covered.get(self._resolve_object_key(obj_name, covered), set()))
+            # Both `covered` and `writable_passes` carry the raw `FROM`/filename casing SFDMU reads;
+            # match them exactly. A `FROM Account` pass is only relieved by an `Account.csv` override,
+            # not by a differently-cased file SFDMU would never load (todo pack 163).
+            uncovered = sorted(passes - covered.get(obj_name, set()))
             if uncovered:
                 # Flattened: a pass index maps to a *list* of declarations, since one objectSet may
                 # declare the object more than once. Deduped on the union of what every consumer of
@@ -1249,11 +1251,11 @@ class SFDMUValidator:
                 if not obj_name:
                     continue
 
-                # Fold to an already-seen casing of the same object (case-insensitive identity —
-                # see `_resolve_object_key`), so a later pass's differently-cased `FROM` merges into
-                # the first declaration instead of being stored as a second object and validated
-                # against a second, non-existent CSV. Matches `_all_pass_configs`' canonicalization.
-                obj_name = self._resolve_object_key(obj_name, configs)
+                # Key on the raw `FROM`-clause casing SFDMU reads (`Common.getCSVFilename` ==
+                # `path.join(root, sObjectName)`, no case normalization). A differently-cased `FROM`
+                # in a later pass is a different CSV on case-sensitive Linux, so it must key
+                # separately and owe its own file — folding would hide a real missing-CSV Critical.
+                # Matches `_all_pass_configs`' exact-casing keying (todo pack 163).
 
                 # Store first pass configuration (later passes may be activations)
                 if obj_name not in configs:
@@ -1380,35 +1382,6 @@ class SFDMUValidator:
         Implementation lives in `sfdmu_export.parse_select_fields` (extracted for reuse, pack 191).
         """
         return sfdmu_export.parse_select_fields(query)
-
-    @staticmethod
-    def _resolve_object_key(name: str, keyed) -> str:
-        """Resolve `name` to an existing key of `keyed` case-insensitively, else `name` unchanged.
-
-        Object identity is case-insensitive — Salesforce treats `Account` and `account` as one
-        object — but the two sources of an object name in this file disagree on casing freely: a
-        name read off a SOQL `FROM` clause (`_extract_object_name`) carries whatever case the author
-        wrote, while a name read off a per-pass CSV filename (`_find_objectset_source_overrides`,
-        `csv_path.stem`) carries the filename's case. When those cross-reference — a filename-cased
-        override key looked up in the query-cased `all_pass_configs`, or an override's coverage
-        matched against a query-cased writable pass — an exact-string lookup misses and the file is
-        reported as declaring no object, or its coverage silently fails to relieve the root-CSV
-        requirement (todo pack 163).
-
-        Fold the *comparison* only: the returned key is an existing original-cased key (so callers
-        still index `all_pass_configs`/`covered` with it), and callers that build CSV filenames or
-        messages keep their own original-cased `name`. An exact match short-circuits, so this is a
-        no-op on every plan whose casing already agrees — which is all 39 shipped plans, keeping the
-        baseline unchanged. `casefold` (not `lower`) for full Unicode case-folding, though API names
-        are ASCII in practice.
-        """
-        if name in keyed:
-            return name
-        folded = name.casefold()
-        for key in keyed:
-            if key.casefold() == folded:
-                return key
-        return name
 
     def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict,
                                          result: ValidationResult) -> Dict[Tuple[str, int], Tuple[Path, int]]:
