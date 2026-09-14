@@ -238,6 +238,30 @@ def test_both_array_plan_prepends_top_level_pass(m):
           result.get("Product2", {}).get("externalId") == "ProductCode", result.get("Product2"))
 
 
+def test_top_level_pass_subquery_uses_outer_object(m):
+    """pack 168 + round-6: get_object_name_from_query / parse_select_fields now delegate to
+    the shared subquery-aware parsers. A top-level pass declaration carrying a SELECT-clause
+    subquery must attribute to the OUTER object with the outer field list — not the child
+    object with a truncated one (which would skip/mis-transform the outer object's CSV)."""
+    export_json = {
+        "objects": [
+            {"query": "SELECT Id, Name, (SELECT Id FROM Contacts) FROM Account",
+             "operation": "Upsert", "externalId": "Name"},
+        ],
+    }
+    result, passes, malformed = m.parse_plan_structure(export_json)
+    check("subquery query resolves to the outer object (Account), not the child (Contacts)",
+          set(result) == {"Account"}, sorted(result))
+    check("subquery is not flagged malformed", malformed == [], malformed)
+    check("outer fields are read, not the subquery's",
+          result["Account"]["fields"] == ["Id", "Name"], result["Account"]["fields"])
+    # The helper functions delegate too (tested by name elsewhere).
+    check("get_object_name_from_query is subquery-aware",
+          m.get_object_name_from_query("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == "Account")
+    check("parse_select_fields drops the subquery's fields",
+          m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -249,6 +273,7 @@ def main():
     test_non_string_external_id_is_guarded(m)
     test_copy_to_plan_refuses_on_malformed_query(m)
     test_both_array_plan_prepends_top_level_pass(m)
+    test_top_level_pass_subquery_uses_outer_object(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

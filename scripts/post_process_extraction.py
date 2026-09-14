@@ -89,18 +89,12 @@ def get_object_name_from_query(query: str) -> str:
     on an empty name (`if not name: continue`). This mirrors the guard added to
     validate_sfdmu_v5_datasets.py's `_extract_object_name` in PR #397; see todo pack 182.
     """
-    if not isinstance(query, str):
-        return ""
-    upper = query.upper()
-    idx = upper.find(" FROM ")
-    if idx == -1:
-        return ""
-    rest = query[idx + 6:].strip()
-    # `FROM` followed by only whitespace leaves nothing to split — return "" (the caller
-    # then records it as a malformed declaration) rather than an IndexError that would
-    # crash the run with a traceback, bypassing the controlled malformed-query handling.
-    parts = rest.split()
-    return parts[0].strip() if parts else ""
+    # Delegates to the shared subquery-aware parser (sfdmu_export.extract_object_name):
+    # a SELECT-clause subquery's inner FROM is stripped first, so a top-level pass query
+    # (pack 168) like `SELECT Id, (SELECT Id FROM Contacts) FROM Account` resolves to
+    # Account, not Contacts. Non-string/malformed input returns "" (never raises), so the
+    # caller's malformed-declaration handling is preserved.
+    return sfdmu_export.extract_object_name(query)
 
 
 def parse_plan_structure(export_json: dict) -> tuple:
@@ -182,15 +176,11 @@ def parse_select_fields(query: str) -> list:
     get_object_name_from_query above — mirrors validate_sfdmu_v5_datasets.py's
     `_parse_select_fields` guard (PR #397, todo pack 182).
     """
-    if not isinstance(query, str):
-        return []
-    upper = query.upper()
-    select_idx = upper.find("SELECT ")
-    from_idx = upper.find(" FROM ")
-    if select_idx == -1 or from_idx == -1:
-        return []
-    fields_str = query[select_idx + 7:from_idx].strip()
-    return [f.strip() for f in fields_str.split(",") if f.strip()]
+    # Delegates to the shared subquery-aware parser (sfdmu_export.parse_select_fields):
+    # a SELECT-clause subquery is removed before the SELECT…FROM match, so the outer
+    # query's fields are read rather than the subquery's truncated ones (a top-level pass
+    # query, pack 168, could carry one). Non-string input returns [] (never raises).
+    return sfdmu_export.parse_select_fields(query)
 
 
 def load_plan_csv(plan_dir: str, object_name: str) -> tuple:

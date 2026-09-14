@@ -464,12 +464,12 @@ def _sobjects_from_export_json(export_path: str) -> list:
         for obj in obj_set.get("objects", []):
             if obj.get("excluded"):
                 continue
-            q = obj.get("query", "")
-            m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", q, re.IGNORECASE)
-            if m:
-                name = m.group(1)
-                if name not in sobjects:
-                    sobjects.append(name)
+            # Shared subquery-aware parser: a SELECT-clause subquery's inner FROM is not
+            # mistaken for the outer object (`SELECT Id,(SELECT Id FROM Contacts) FROM
+            # Account` -> Account), and a non-string query returns "" rather than raising.
+            name = sfdmu_export.extract_object_name(obj.get("query", ""))
+            if name and name not in sobjects:
+                sobjects.append(name)
     return sobjects
 
 
@@ -579,9 +579,11 @@ class DeleteSFDMUData(BaseSalesforceTask):
                     continue
                 if obj.get("operation", "").lower() != "insert":
                     continue
-                m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", obj.get("query", ""), re.IGNORECASE)
-                if m:
-                    insert_sobjects.append(m.group(1))
+                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
+                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
+                name = sfdmu_export.extract_object_name(obj.get("query", ""))
+                if name:
+                    insert_sobjects.append(name)
 
         if not insert_sobjects:
             self.logger.info("No Insert-operation objects found in plan. Nothing to delete.")
