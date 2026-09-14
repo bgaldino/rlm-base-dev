@@ -193,6 +193,10 @@ class LineItem:
     def to_manifest_record(self) -> dict:
         rec: dict = {
             "sku": self.product.sku,
+            "product_id": self.product.id,
+            "pricebook_entry_id": self.product.pricebook_entry_id,
+            "currency": self.product.currency_iso_code,
+            "selling_model": self.product.selling_model_name,
             "quantity": self.quantity,
             "discount_percent": self.discount_percent,
         }

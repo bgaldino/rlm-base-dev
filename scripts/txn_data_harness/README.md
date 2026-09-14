@@ -52,6 +52,15 @@ billing-ready account and a billable product; config lets one run mix shapes.
 > The live-verified endpoint/body/async contracts are locked in
 > [`CONTRACTS.md`](CONTRACTS.md) — read it before changing `lifecycle.py`.
 
+## Currency selection
+
+Sales transaction scenarios resolve PBEs in the account's currency by default.
+Use a scenario or product `currency:` pin to select another currency; the full
+product pool must agree on one currency. `plan` reports the selected currency
+and PBE id, and new manifests preserve that selection for resume. See the
+[scenario field reference](scenarios/README.md#multi-currency-product-selection)
+for precedence, single-currency behavior, and an override example.
+
 ## Quick start
 
 ```bash
@@ -225,8 +234,9 @@ count.
   `TermDefined` products drives `SubscriptionTerm` / `SubscriptionTermUnit`;
   the platform derives `EndDate` from those + `StartDate`. Defaults to the
   PSM's discovered
-  `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. Multi-PBE SKUs
-  need an explicit `selling_model:`. Evergreen / OneTime lines reject `term`.
+  `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. SKUs with multiple PBEs
+  remaining after selected/account currency filtering need an explicit
+  `selling_model:`. Evergreen / OneTime lines reject `term`.
   See `scenarios/README.md` → *Subscription terms* for the rules and
   `scenarios/sales_txn_quote/13-multi-year-terms.yaml` for worked examples.
 - **Explicit `end_date` override** (optional) — when set, the harness

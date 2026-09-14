@@ -10,6 +10,34 @@
   - Instance URL → `sf org display --target-org <alias> --json` returns
     `result.instanceUrl` (non-secret). Two calls; see plan Auth section.
 
+## Transaction currency (R264 / API 68.0, verified 2026-09-14)
+
+Verified on a fresh `ent-sb0` scratch org after the full `prepare_rlm_org`
+build completed through the build harness, with QuantumBit multi-currency data:
+
+- Account-default USD resolved the USD PBE and created a USD Opportunity and
+  Quote. SOQL confirmed the QuoteLineItem referenced that USD PBE.
+- An explicit EUR pin on the same USD account created an EUR Quote without
+  an Opportunity and an EUR direct Order. SOQL confirmed both headers and
+  their line-item PBEs were EUR.
+- Resuming the EUR Quote to `order_draft` with its manifest and account name,
+  without the original currency config, retained the exact EUR PBE. The
+  resulting Order and OrderItem PBE were EUR.
+- Single-currency discovery omits `CurrencyIsoCode` after the org rejects that
+  field. Payload omission is covered offline; this R264 write verification
+  used a multi-currency org.
+
+**QuantumBit Opportunity constraint:** `RLM_Default_Opportunity_Currency` is
+an existing before-create flow that overwrites the requested Opportunity
+currency with the Account currency. An EUR quote with `with_opportunity: true`
+on a USD account therefore failed PST placement with
+`FIELD_INTEGRITY_EXCEPTION`; the created Opportunity remained USD. Currency
+selection does not disable or bypass this flow. Use the account currency when
+including an Opportunity on these builds, or omit the optional Opportunity
+for a cross-currency quote. The failed placement also left a Quote header,
+consistent with the partial-write contract below. These checks stopped at
+Quote placement / draft Order; they do not certify cross-currency billing.
+
 ## Object describes — polling FK fields (VERIFIED live)
 
 | Object | `createable` | Polling FK | `referenceTo` | Notes |
