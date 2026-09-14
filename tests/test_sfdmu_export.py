@@ -55,6 +55,8 @@ check("objects + objectSets: objects unshifted as pass 1, sets follow in order",
 check("an empty top-level objects does not prepend a pass",
       se.normalize_object_sets({"objectSets": [{"objects": ["a"]}], "objects": []}),
       [{"objects": ["a"]}])
+check("only an empty top-level objects (no objectSets) -> no pass",
+      se.normalize_object_sets({"objects": []}), [])
 
 # --- extract_object_name -----------------------------------------------------
 check("basic FROM", se.extract_object_name("SELECT Id FROM Account"), "Account")

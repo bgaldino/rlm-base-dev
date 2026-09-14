@@ -724,17 +724,17 @@ class SFDMUValidator:
         `operation`/`externalId`/`deleteOldData`: an excluded declaration's content is inert, so a
         defect in it changes nothing SFDMU does.
 
-        Deliberately not aware of `_normalized_object_sets`'s dominance rule (non-empty
-        `objectSets` wins outright; a sibling top-level `objects` is never read). That rule is
-        about deriving what SFDMU's *runtime* will do — the right lens for `_is_live_writable`/
-        `_all_pass_configs`, which answer "what does this pass write" — not about whether the file
-        is well-formed. The two callers here (lines ~531-536) mirror the container-type sweep
-        immediately above them in this same function (lines 483-493), which also walks both
-        `objects` and `objectSets` unconditionally: a malformed element in a container SFDMU
-        happens to ignore right now is still an authoring mistake — e.g. a leftover flat `objects`
-        array from before a plan migrated to `objectSets` — and dominance can flip with an edit to
-        either container, so validating only the "live" one would make correctness depend on
-        which one is currently winning.
+        Deliberately independent of `_normalized_object_sets`'s runtime pass view. That function
+        mirrors SFDMU's own merge — a non-empty top-level `objects` is unshifted as pass 1 ahead of
+        `objectSets` (pack 168), so both containers are executed at runtime — the right lens for
+        `_is_live_writable`/`_all_pass_configs`, which answer "what does this pass write". This
+        check instead asks only whether a declaration is *well-formed*, in whichever container it
+        sits. The two callers here (lines ~531-536) mirror the container-type sweep immediately
+        above them in this same function (lines 483-493), which also walks both `objects` and
+        `objectSets` unconditionally: a malformed element is an authoring mistake regardless of the
+        pass it runs as — e.g. a leftover flat `objects` array from before a plan migrated to
+        `objectSets` (now a live prepended pass, not a dead one) — so validating only one container
+        would make correctness depend on the runtime shape.
         """
         if self._is_js_truthy(obj.get("excluded")):
             return

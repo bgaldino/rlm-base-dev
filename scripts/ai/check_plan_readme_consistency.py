@@ -150,7 +150,7 @@ def load_plan(export_json: str, data: dict | None = None) -> dict:
     a real Readonly/Delete is."""
     if data is None:
         data = load_export_data(export_json)
-    # Calls the validator's own centralized dominance rule instead of re-deriving it
+    # Calls the validator's own centralized pass-normalization rule instead of re-deriving it
     # here as a fourth independent copy — this module already imports _is_skip_segment,
     # and generate_plan_readme.py already imports _is_js_truthy, from this same sibling
     # module for the identical drift-avoidance reason (three call sites disagreeing on

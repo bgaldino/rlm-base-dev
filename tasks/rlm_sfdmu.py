@@ -546,14 +546,29 @@ class DeleteSFDMUData(BaseSalesforceTask):
         with open(export_json_path) as f:
             plan = json.load(f)
 
-        object_sets = sfdmu_export.normalize_object_sets(plan)
-
+        # Apply the optional object_sets index filter to the RAW objectSets, THEN normalize —
+        # matching LoadSFDMUData/ExtractSFDMUData (_prepare_export_json_file / _prepare_export_json),
+        # whose indices refer to the raw `objectSets` array while SFDMU unshifts the top-level
+        # `objects` pass at runtime regardless of the filter. Normalizing first would offset every
+        # index by the prepended pass, so a both-array plan's object_sets=[0] would delete a
+        # different pass than load/extract selected (records left undeleted). Normalizing AFTER the
+        # filter keeps the top-level objects pass prepended (pack 168) under one selection contract.
         selected = self.options.get("object_sets")
         if selected is not None:
             if isinstance(selected, str):
                 selected = json.loads(selected)
             selected = [int(i) for i in selected]
-            object_sets = [object_sets[i] for i in selected if 0 <= i < len(object_sets)]
+            raw_sets = plan.get("objectSets")
+            if not isinstance(raw_sets, list):
+                raw_sets = []
+            filtered = [raw_sets[i] for i in selected if 0 <= i < len(raw_sets)]
+            if len(filtered) < len(selected):
+                raise TaskOptionsError(
+                    f"object_sets {selected} out of range for {len(raw_sets)} object sets"
+                )
+            plan = {**plan, "objectSets": filtered}
+
+        object_sets = sfdmu_export.normalize_object_sets(plan)
 
         # Collect Insert-operation objects in plan array order.
         # Duplicates are preserved so that the deletion order mirrors the plan exactly.
