@@ -234,6 +234,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     except KeyError as exc:
         print(f"ERROR: unknown scenario kind: {exc}", file=sys.stderr)
         return 4
+    except ConfigError as exc:
+        print(f"ERROR: bad config:\n  {exc}", file=sys.stderr)
+        return 4
     except DiscoveryError as exc:
         print(f"ERROR: could not resolve a scenario's account/product:\n  {exc}",
               file=sys.stderr)

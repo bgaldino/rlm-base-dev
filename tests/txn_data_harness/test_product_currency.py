@@ -228,3 +228,24 @@ def test_currency_probe_uses_api_response_not_request_path(fake_client, probe, f
     else:
         assert resolve() == {}
         assert len(calls) == 1
+
+
+@pytest.mark.parametrize('dry_run', [True, False])
+def test_direct_generate_reports_mixed_currency_without_traceback(
+        monkeypatch, capsys, fake_client, dry_run):
+    from scripts.txn_data_harness import generate
+    from scripts.txn_data_harness.discovery import Account
+    account = Account(id='account', name='Account', currency_iso_code='USD')
+    ctx = SimpleNamespace(default_account=lambda: account)
+    fake_client.query_responses = [[pbe('USD')], [pbe('EUR')]]
+    mixed = spec([config.ProductOption(sku='SKU', quantity=(1, 1), currency='USD'),
+                  config.ProductOption(sku='SKU', quantity=(1, 1), currency='EUR')])
+    monkeypatch.setattr(generate.SfRestClient, 'from_alias', lambda *a, **k: fake_client)
+    monkeypatch.setattr(generate, 'discover', lambda *a, **k: ctx)
+    monkeypatch.setattr(generate, 'load_scenarios', lambda args: [mixed])
+    args = ['--org', 'test'] + (['--dry-run'] if dry_run else [])
+    assert generate.main(args) == 4
+    error = capsys.readouterr().err
+    assert 'ERROR: bad config:' in error
+    assert 'same currency' in error
+    assert 'Traceback' not in error

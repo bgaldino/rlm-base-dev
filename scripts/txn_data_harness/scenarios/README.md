@@ -289,7 +289,7 @@ them.
 ```yaml
 # 3-year deal -- explicit (count, unit). Unit must match the PSM bound to
 # the PBE (i.e. the SKU must actually be sold under an Annual selling model;
-# pin selling_model: if the SKU has more than one).
+# pin selling_model: if multiple models remain in the selected currency).
 - sku: QB-LIC-CLOUD
   term: {count: 3, unit: Annual}
 
@@ -320,7 +320,7 @@ Rules:
   `createOrderFromQuote` rejects `EndDate` (and `SubscriptionTerm`) on those
   selling models. Omit the key entirely; the line places without a term.
 - **Multi-PBE SKUs.** If a SKU has more than one active PBE on the standard
-  pricebook, the resolver fails fast with the candidate `ProductSellingModel`
+  pricebook after filtering by the selected/account currency, the resolver fails fast with the candidate `ProductSellingModel`
   names — set `selling_model:` to disambiguate.
 
 See [`13-multi-year-terms.yaml`](13-multi-year-terms.yaml) for a worked example

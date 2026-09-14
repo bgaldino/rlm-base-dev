@@ -234,8 +234,9 @@ count.
   `TermDefined` products drives `SubscriptionTerm` / `SubscriptionTermUnit`;
   the platform derives `EndDate` from those + `StartDate`. Defaults to the
   PSM's discovered
-  `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. Multi-PBE SKUs
-  need an explicit `selling_model:`. Evergreen / OneTime lines reject `term`.
+  `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. SKUs with multiple PBEs
+  remaining after selected/account currency filtering need an explicit
+  `selling_model:`. Evergreen / OneTime lines reject `term`.
   See `scenarios/README.md` → *Subscription terms* for the rules and
   `scenarios/sales_txn_quote/13-multi-year-terms.yaml` for worked examples.
 - **Explicit `end_date` override** (optional) — when set, the harness
