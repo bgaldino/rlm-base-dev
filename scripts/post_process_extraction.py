@@ -29,6 +29,12 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
+# Bootstrap the scripts/ dir onto sys.path so `import sfdmu_export` resolves both
+# when run as a script (scripts/ is already sys.path[0]) and when the test suite
+# spec-loads this module by path (its dir is NOT auto-added then).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+
 
 # Objects whose Status field should be rewritten from Active/Inactive to Draft.
 # Only objects that go through a Draft-then-Activate workflow are listed here.
@@ -128,10 +134,14 @@ def parse_plan_structure(export_json: dict) -> tuple:
     result = {}
     passes = {}
     malformed = []
-    object_sets = export_json.get("objectSets", [])
-    if not object_sets and "objects" in export_json:
-        # Single-pass plan (e.g. qb-pcm): treat as one virtual object set
-        object_sets = [{"objects": export_json["objects"]}]
+    # Normalize passes exactly as SFDMU does — a flat top-level `objects` becomes a
+    # pass, and (the fix in todo pack 168) a non-empty `objects` alongside a
+    # non-empty `objectSets` is prepended as pass 1, not dropped. The old local
+    # "objectSets wins outright" fallback here would skip a both-arrays plan's
+    # top-level pass entirely: its records land in the extraction but never enter
+    # `plan_structure`/`passes`, so the roundtrip skips their transformations and
+    # `--copy-to-plan` could sync their raw CSV incidentally.
+    object_sets = sfdmu_export.normalize_object_sets(export_json)
     for idx, obj_set in enumerate(object_sets):
         for obj in obj_set.get("objects", []):
             if obj.get("excluded"):

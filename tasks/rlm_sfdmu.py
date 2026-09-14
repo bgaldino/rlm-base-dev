@@ -10,6 +10,11 @@ import tempfile
 from abc import abstractmethod
 from typing import Dict, Any, List, Optional
 
+# Bootstrap the repo's scripts/ dir onto sys.path so the shared SFDMU parsing
+# primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+
 # ANSI escape code pattern for stripping color codes from subprocess output.
 # SFDMU and other CLI tools emit color codes; stripping them improves log readability.
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
@@ -445,16 +450,16 @@ class LoadSFDMUData(SFDXBaseTask):
 def _sobjects_from_export_json(export_path: str) -> list:
     """Parse export.json and return list of sobject API names (excluding excluded objects).
 
-    Uses the same exclusive logic as parse_plan_structure in post_process_extraction.py:
-    objectSets if present, otherwise top-level objects (single virtual set).
+    Uses the shared SFDMU pass normalization (`sfdmu_export.normalize_object_sets`):
+    a flat top-level `objects` becomes a pass, and a non-empty `objects` alongside
+    a non-empty `objectSets` is prepended as pass 1 (SFDMU's unshift, pack 168) —
+    not dropped, as the old exclusive fallback here did.
     """
     path = os.path.join(export_path, EXPORT_JSON_FILENAME)
     with open(path, "r") as f:
         data = json.load(f)
     sobjects = []
-    object_sets = data.get("objectSets", [])
-    if not object_sets and "objects" in data:
-        object_sets = [{"objects": data["objects"]}]
+    object_sets = sfdmu_export.normalize_object_sets(data)
     for obj_set in object_sets:
         for obj in obj_set.get("objects", []):
             if obj.get("excluded"):
@@ -541,9 +546,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
         with open(export_json_path) as f:
             plan = json.load(f)
 
-        object_sets = plan.get("objectSets", [])
-        if not object_sets and "objects" in plan:
-            object_sets = [{"objects": plan["objects"]}]
+        object_sets = sfdmu_export.normalize_object_sets(plan)
 
         selected = self.options.get("object_sets")
         if selected is not None:
@@ -1235,7 +1238,7 @@ class ExtractSFDMUData(SFDXBaseTask):
         except (OSError, ValueError):
             return {}
 
-        object_sets = export_json.get("objectSets") or [{"objects": export_json.get("objects", [])}]
+        object_sets = sfdmu_export.normalize_object_sets(export_json)
         code_map: Dict[str, Dict[str, dict]] = {}
         seen = set()
         for oset in object_sets:

@@ -20,8 +20,14 @@ populating) makes the task exit non-zero if any key issue remains, so it can gat
 import json
 import os
 import re
+import sys
 from collections import Counter
 from typing import Any, Dict, List, Optional
+
+# Bootstrap the repo's scripts/ dir onto sys.path so the shared SFDMU parsing
+# primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -60,7 +66,7 @@ def collect_key_target_objects(export_json: dict) -> Dict[str, List[str]]:
     Objects with any relationship-traversal externalId component are skipped (their
     keys are validated through their parent objects).
     """
-    object_sets = export_json.get("objectSets") or [{"objects": export_json.get("objects", [])}]
+    object_sets = sfdmu_export.normalize_object_sets(export_json)
     targets: Dict[str, List[str]] = {}
     for oset in object_sets:
         for obj in oset.get("objects", []):
