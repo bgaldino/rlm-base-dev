@@ -468,6 +468,9 @@ class SFDMUValidator:
             self._validate_object(dataset_path, obj_name, result,
                                   objects_owing_root_csv, all_pass_configs)
 
+        # Flag an object declared more than once within a single pass (todo pack 165).
+        self._check_same_pass_duplicates(all_pass_configs, result)
+
         # Validate per-pass CSV overrides
         if objectset_source_overrides:
             self.log(f"\nValidating {len(objectset_source_overrides)} per-pass CSV override(s)")
@@ -819,6 +822,81 @@ class SFDMUValidator:
                     by_pass.setdefault(obj_name, {}).setdefault(idx, []).append(
                         self._normalize_object_config(obj, query, idx))
         return by_pass
+
+    def _check_same_pass_duplicates(self, all_pass_configs: Dict[str, Dict[int, List[dict]]],
+                                    result: "ValidationResult") -> None:
+        """Flag an object declared more than once within a SINGLE pass's `objects` array.
+
+        SFDMU 5.8.0 does not reject this shape — but what it does with it is
+        order-dependent and almost never what the author meant, so it is a defect worth
+        gating rather than a validator false positive. Source-verified against the
+        bundled 5.8.0 checkout:
+
+        - The migration job's task map is keyed by the ScriptObject *instance*
+          (`MigrationJob._createTaskMap`: `Map<ScriptObject, MigrationJobTask>`), and
+          `_createTasks` walks every object. So each duplicate declaration becomes its
+          own task and the object is queried from source and written to target once PER
+          declaration — loaded N times, in array order.
+        - Its lookup/relationship resolution, though, is keyed by *name*
+          (`ScriptObject.setup`: `script.objectsMap.set(this.name, this)`, a last-write-
+          wins Map), so every OTHER object that looks this one up as a parent resolves
+          against the LAST declaration's config only, regardless of which one actually
+          wrote a given record.
+
+        The net is a silently doubled load whose lookup semantics depend on declaration
+        order — a copy-paste authoring mistake, not a documented use. No shipped plan has
+        this shape (verified repo-wide, todo pack 165), so this is latent; HIGH gates the
+        build before it can land. A legitimately per-pass-varying object (Upsert in pass
+        1, Update in pass 2) is unaffected — those are DIFFERENT pass indices, each with a
+        single declaration.
+
+        Counts only *non-excluded* declarations. SFDMU drops an excluded ScriptObject
+        before task creation (`MigrationJob._getAllScriptObjects` filters `!object.excluded`,
+        source-verified 5.8.0), so it becomes no task at all — two excluded declarations
+        load the object zero times, not twice, and one live beside one excluded is a single
+        load. Only two-or-more *live* declarations are the doubled load this flags.
+        `excluded` is read with JS truthiness (`[]`/`{}` truthy), matching every other
+        `excluded` read in this file.
+
+        Grouping is case-INSENSITIVE, unlike `_all_pass_configs`' keys. `_all_pass_configs`
+        keys on the exact FROM-clause casing on purpose (pack 163): SFDMU reads the source
+        CSV at `path.join(root, sObjectName)` with no case normalization, so `FROM Widget__c`
+        and `FROM widget__c` read genuinely different files on a case-sensitive filesystem.
+        But the *target* is the same object either way — Salesforce object API names are
+        case-insensitive, and `ScriptObject.name` is the case-preserved FROM name
+        (ScriptLoader `_buildObject` never folds it), so two differently-cased declarations
+        become two `objectsMap` entries and two tasks that both query and DML the SAME
+        target object. That is the same doubled load (an `Insert` plan would insert twice),
+        so it must be flagged, while CSV-path validation keeps the exact casing. Folding
+        case here can never over-flag: two casings are always one Salesforce object.
+        """
+        # (lowercased name) -> pass_idx -> [(exact_name, live_count), ...]
+        grouped: Dict[str, Dict[int, List[tuple]]] = {}
+        for obj_name, by_pass in all_pass_configs.items():
+            for pass_idx, configs in by_pass.items():
+                live = sum(1 for c in configs if not self._is_js_truthy(c.get("excluded")))
+                if live:
+                    grouped.setdefault(obj_name.lower(), {}).setdefault(pass_idx, []).append(
+                        (obj_name, live))
+        for _lower, by_pass in grouped.items():
+            for pass_idx, entries in by_pass.items():
+                total_live = sum(n for _, n in entries)
+                if total_live > 1:
+                    exact_names = sorted({nm for nm, _ in entries})
+                    spelled = ("" if len(exact_names) == 1
+                               else f" (spelled {', '.join(exact_names)} — case-insensitive"
+                                    f" object API names, so one target object)")
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name=exact_names[0],
+                        message=(
+                            f"Declared {total_live} times in pass {pass_idx + 1}'s objects "
+                            f"array{spelled}. SFDMU runs a task per declaration (loads the object "
+                            f"{total_live}x, in array order) while resolving lookups to only "
+                            f"the last — an order-dependent, silently-doubled load. Remove the "
+                            f"duplicate declaration."
+                        ),
+                    ))
 
     # Dedup keys, one tuple per *list*, each the union of what every consumer of that list reads.
     # Per-consumer keys were the obvious design and are wrong, because a dedup can only remove and

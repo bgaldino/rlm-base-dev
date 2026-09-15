@@ -89,7 +89,7 @@ BLOCK_TEMPLATE = """{begin}
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
 {rows}
-
+{notes}
 ## Files
 
 ```
@@ -118,10 +118,34 @@ def generate_block(plan_dir: str) -> str:
     count_cache: dict[str, int] = {}
     row_num = 0
     writable_missing_csv = False
+    # (object, pass) -> count of LIVE (non-excluded) declarations, to surface a same-pass
+    # duplicate as a visible note rather than two table rows indistinguishable in every
+    # compared cell (todo pack 165). The Object cell can't carry the marker —
+    # check_plan_readme_consistency keys its row match on that exact string, so an
+    # annotated name reads as a phantom object — so the note lives beneath the table where
+    # the checker's row parser doesn't look. Two skips keep the note firing on EXACTLY the
+    # set validate_sfdmu_v5_datasets.py._check_same_pass_duplicates gates (live > 1), so it
+    # never cites a gating HIGH the validator does not raise:
+    #   - Excluded declarations: SFDMU drops an excluded ScriptObject before task creation,
+    #     so a live+excluded pair is a single load, not a doubled one. `variant["excluded"]`
+    #     is already a resolved bool (load_plan runs it through _is_js_truthy).
+    #   - Unparseable-query declarations: object_name() keeps a malformed query under an
+    #     `Unparseable(...)` sentinel name so its row stays visible, but the validator's
+    #     `_all_pass_configs` drops it (`_extract_object_name` returns "" → declaration
+    #     skipped). Counting the sentinel would note a duplicate the validator never gates.
+    #     That sentinel is the only non-object key object_name() emits, so its prefix
+    #     identifies exactly the dropped set.
+    # Keyed case-INSENSITIVELY, matching the validator: Salesforce object API names are
+    # case-insensitive, so `Widget__c` and `widget__c` in one pass are one target object
+    # loaded twice. The value lists the exact casings seen for display.
+    same_pass_counts: dict[tuple[str, int], list[str]] = {}
     for name, variants in plan.items():
+        is_unparseable = name.startswith("Unparseable(")
         for variant in variants:
             row_num += 1
             pass_no = variant["pass"]
+            if not variant["excluded"] and not is_unparseable:
+                same_pass_counts.setdefault((name.lower(), pass_no), []).append(name)
             # load_plan() already resolves "absent key" to "readonly" and a present-
             # but-unresolvable value to a distinct "Unresolvable(...)" sentinel — never
             # "" — so there is no separate absent-key fallback needed here.
@@ -164,10 +188,29 @@ def generate_block(plan_dir: str) -> str:
         files_text = "\n".join(file_lines)
     else:
         files_text = "(no CSVs — every object is Readonly or excluded)"
+
+    # A same-pass duplicate declaration renders as two rows identical in every compared
+    # cell (only the leading # differs). Surface it explicitly — the underlying plan is a
+    # gating HIGH in validate_sfdmu_v5_datasets.py (SFDMU loads the object once per
+    # declaration and resolves lookups to the last), so the note points there.
+    dups = sorted((sorted(set(names))[0], pass_no, len(names), sorted(set(names)))
+                  for (_lower, pass_no), names in same_pass_counts.items() if len(names) > 1)
+    if dups:
+        listed = "; ".join(
+            f"{_escape_cell('/'.join(exact) if len(exact) > 1 else display)} (Pass {pass_no} ×{n})"
+            for display, pass_no, n, exact in dups)
+        notes = ("\n> **⚠ Same-pass duplicate declaration(s):** " + listed + ". "
+                 "SFDMU loads the object once per declaration and resolves lookups to the "
+                 "last — almost certainly an authoring mistake; see "
+                 "validate_sfdmu_v5_datasets.py (gating HIGH).\n")
+    else:
+        notes = ""
+
     return BLOCK_TEMPLATE.format(
         begin=BEGIN_MARKER,
         end=END_MARKER,
         rows="\n".join(rows),
+        notes=notes,
         files=files_text,
     )
 
