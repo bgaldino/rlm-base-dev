@@ -97,7 +97,7 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
-def deferral_issues(rel_plan_dir, passes, root_files):
+def deferral_issues(rel_plan_dir, passes, root_files, severity=None):
     """Run the validator END-TO-END with the plan materialized at its real
     `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
     resolves each CSV against `sfdmu_base`) actually fires.
@@ -116,7 +116,8 @@ def deferral_issues(rel_plan_dir, passes, root_files):
         for name, body in (root_files or {}).items():
             (plan / name).write_text(body)
         result = V.SFDMUValidator(base_dir=td, verbose=False).validate_dataset(plan)
-        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues
+                if severity is None or i.severity == severity]
 
 
 def raw_issues(body, root_files=None, per_pass_files=None):
@@ -1195,12 +1196,14 @@ _SFK = "SELECT Id, Name FROM Widget__c"  # single-field-key query used across th
 SINGLE_FIELD_KEY_UNIQUENESS = [
     ("a duplicate single-field Upsert key value is reported HIGH",
      True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
-                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"},
+                              severity=V.Severity.HIGH)
             if "duplicate value" in i]),
     # Update matches by externalId too, so it is in scope alongside Upsert.
     ("a duplicate single-field Update key value is reported HIGH",
      True, [i for i in issues([[{"query": _SFK, "operation": "Update", "externalId": "Name"}]],
-                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"},
+                              severity=V.Severity.HIGH)
             if "duplicate value" in i]),
     # Control: unique values are silent, so the positives are not firing on some unrelated finding.
     ("unique single-field key values are silent — control",
@@ -1233,7 +1236,7 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
     ("a repeated externalId:'Id' value IS flagged (the CSV can still duplicate an Id)",
      True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
                                  "externalId": "Id"}]],
-                              {"Widget__c.csv": "Id\n1\n1\n"})
+                              {"Widget__c.csv": "Id\n1\n1\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
     # Control: unique Id values are silent, so the Id positive is not firing spuriously.
     ("unique externalId:'Id' values are silent — control",
@@ -1271,7 +1274,7 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
          "qb/en-US/qb-newplan",
          [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
             "externalId": "Name"}]],
-         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"})
+         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
          if "duplicate value" in i]),
     # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the exempt
     # qb-clm ObjectStateValue path is allowlisted for key "Name" only. Re-keyed to a DIFFERENT single
@@ -1281,7 +1284,7 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
          "qb/en-US/qb-clm",
          [[{"query": "SELECT Id, Code FROM ObjectStateValue", "operation": "Upsert",
             "externalId": "Code"}]],
-         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"})
+         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
          if "duplicate value" in i]),
 ]
 
