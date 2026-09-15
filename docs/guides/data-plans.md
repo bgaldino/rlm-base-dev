@@ -115,6 +115,10 @@ datasets/sfdmu/
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](../../datasets/sfdmu/qb/en-US/qb-rates/README.md) |
 | qb-prm | `datasets/sfdmu/qb/en-US/qb-prm/` | Partner Relationship Management (channel programs, levels, members) | [README](../../datasets/sfdmu/qb/en-US/qb-prm/README.md) |
 | qb-prm-pricing | `datasets/sfdmu/qb/en-US/qb-prm-pricing/` | PRM pricing overlay data (partner accounts, channel programs, member pricing, account self-lookups) | [README](../../datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
+| qb-accounting | `datasets/sfdmu/qb/en-US/qb-accounting/` | General ledger and billing accounting reference data (not wired into CCI) | [README](../../datasets/sfdmu/qb/en-US/qb-accounting/README.md) |
+| qb-approvals | `datasets/sfdmu/qb/en-US/qb-approvals/` | Advanced Approvals notification records | [README](../../datasets/sfdmu/qb/en-US/qb-approvals/README.md) |
+| qb-clm | `datasets/sfdmu/qb/en-US/qb-clm/` | Contract clauses and lifecycle state definitions | [README](../../datasets/sfdmu/qb/en-US/qb-clm/README.md) |
+| qb-guidedselling-products | `datasets/sfdmu/qb/en-US/qb-guidedselling-products/` | Guided-selling attributes for existing products | [README](../../datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 
 #### Procedure Plans Data Plan
 

@@ -87,7 +87,7 @@ rlm-base-dev/
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
-│   │   ├── qb/en-US/           # QuantumBit data shape (10 active plans)
+│   │   ├── qb/en-US/           # QuantumBit checked-in plans (see data-plan guide for usage)
 │   │   │   ├── qb-pcm/
 │   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
@@ -97,7 +97,12 @@ rlm-base-dev/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
 │   │   │   ├── qb-rates/
-│   │   │   └── qb-prm/
+│   │   │   ├── qb-prm/
+│   │   │   ├── qb-prm-pricing/
+│   │   │   ├── qb-accounting/  # Reference data; not wired into CCI
+│   │   │   ├── qb-approvals/
+│   │   │   ├── qb-clm/
+│   │   │   └── qb-guidedselling-products/
 │   │   ├── mfg/en-US/          # Manufacturing data shape (e.g. mfg-pcm) — same patterns as qb
 │   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
@@ -125,10 +130,14 @@ rlm-base-dev/
 │   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
+│   ├── index.md                # Documentation entry point
 │   ├── guides/                 # How-to setup and build process docs
 │   │   ├── build-harness.md
 │   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── data-plans.md
+│   │   ├── local-installation.md
+│   │   ├── org-operations.md
 │   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
 │   │   ├── post-billing-portal.md
@@ -140,6 +149,7 @@ rlm-base-dev/
 │   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
 │   │   ├── decision-table-examples.md
+│   │   ├── repository-layout.md
 │   │   ├── sfdmu-composite-key-optimizations.md
 │   │   └── task-examples.md
 │   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
@@ -148,7 +158,7 @@ rlm-base-dev/
 │   ├── features/               # Feature-specific design docs
 │   │   ├── dynamic-ux-assembly.md  # Dynamic UX assembly architecture, template layout, patch format, test plan
 │   │   └── headless-configurator-context-plan.md
-│   └── salesforce/             # Vendor documentation (PDFs)
+│   └── salesforce/             # Salesforce Help and developer documentation snapshots (Markdown)
 ├── orgs/                       # Scratch org definitions
 ├── cumulusci.yml               # CumulusCI configuration
 ├── sfdx-project.json           # Salesforce DX configuration

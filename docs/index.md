@@ -66,6 +66,10 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-rates README](../datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [qb-prm README](../datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
 - [qb-prm-pricing README](../datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay
+- [qb-accounting README](../datasets/sfdmu/qb/en-US/qb-accounting/README.md) -- General ledger and billing accounting reference data (not wired into CCI)
+- [qb-approvals README](../datasets/sfdmu/qb/en-US/qb-approvals/README.md) -- Advanced Approvals notification records
+- [qb-clm README](../datasets/sfdmu/qb/en-US/qb-clm/README.md) -- Contract clauses and lifecycle state definitions
+- [qb-guidedselling-products README](../datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) -- Guided-selling attributes for existing products
 - [procedure-plans README](../datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 - [mfg README](../datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 

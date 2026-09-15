@@ -12,11 +12,14 @@ CCI commands; Salesforce CLI aliases are a separate registry. Commands without
 - [Build harness and TUI](#build-harness-and-tui)
 - [Task examples](#using-custom-tasks)
 - [Common workflows](#common-workflows)
+- [PRM Network email](#prm-network-email)
 - [Troubleshooting](#troubleshooting)
 
 For the full sequence, read the [build-process guide](prepare-rlm-org-build-guide.md).
-Task options, flow definitions and feature flags are documented in the generated
-[CCI references](../../.cursor/skills/cci-orchestration/SKILL.md).
+Use the generated [task reference](../../.cursor/skills/cci-orchestration/tasks-reference.md),
+[flow reference](../../.cursor/skills/cci-orchestration/flows-reference.md), and
+[feature flags](../../.cursor/skills/cci-orchestration/feature-flags.md) for options,
+flow definitions, and flag conditions.
 
 ## Quick Start
 
@@ -246,6 +249,30 @@ cci task run manage_decision_tables --operation refresh
 # Or use the flow: cci flow run refresh_all_decision_tables
 ```
 Decision table activate/deactivate and expression set version activation use CCI tasks only; the former SFDMU data plans for these have been removed.
+
+## PRM Network Email
+
+The tracked `unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml`
+stores `rlm-network-sender@example.com` as its sender placeholder. Never commit an
+org's real sender address to this file.
+
+For the Experience Bundle deployment, `prepare_prm` runs
+`patch_network_email_for_deploy` → `deploy_post_prm` →
+`revert_network_email_after_deploy` when `prm`, `prm_exp_bundle`, and `tso` are
+enabled. The patch reads the existing Network's sender address, which is immutable
+after creation, and substitutes it locally for deployment; the revert restores
+the placeholder afterward. Community creation precedes the patch.
+
+If deployment fails after the patch, restore the placeholder before committing:
+
+```bash
+cci task run revert_network_email_after_deploy --org <org-alias>
+git diff -- unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml
+```
+
+See the [task implementations](../../tasks/rlm_community.py) and the
+[generated PRM flow](../../.cursor/skills/cci-orchestration/flows-reference.md#prepare_prm)
+for the full behavior and conditions.
 
 ## Troubleshooting
 
