@@ -1285,6 +1285,18 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                               {"Widget__c.csv": "Id,Name\n1,N/A\n2,N/A\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
+    # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
+    # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
+    # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving
+    # entry carries the skip flag and the VALID sibling's duplicate-CSV check is silently dropped.
+    # With `externalId_malformed` in `_READING_CONFIG_KEYS` both declarations survive, so the valid
+    # sibling's duplicated column "1" still fires HIGH (the malformed one adds its own separate HIGH).
+    # Load-bearing: without the field in the key this expects True but the collapse yields False.
+    ("a valid externalId sibling's duplicate key still fires when a malformed sibling coerces to the same string",
+     True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": 1},
+                                {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "1"}]],
+                              {"Widget__c.csv": "1\ndup\ndup\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
     # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
     # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
     # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...

@@ -1013,14 +1013,24 @@ class SFDMUValidator:
     # Dedup keys, one tuple per *list*, each the union of what every consumer of that list reads.
     # Per-consumer keys were the obvious design and are wrong, because a dedup can only remove and
     # never restore: the reading-declaration list feeds both `_validate_csv_file` (externalId,
-    # operation, deleteOldData) and `_validate_external_id` (externalId, operation, fields), so
-    # keying it on the CSV check's fields dropped later passes before the externalId check could see
-    # them — silently disabling SELECT-coverage for passes 2..n, 96 lost findings across a 59,400-plan
-    # sweep. Re-deduping downstream on a wider key cannot undo it. Union per list, and dedup the
-    # *findings* rather than the declarations where multiplicity is the concern: since
-    # `ValidationResult.add_issue` drops identical findings, this dedup exists only to avoid repeated
-    # work, so erring wide is free and erring narrow loses checks.
-    _READING_CONFIG_KEYS = ("externalId", "operation", "deleteOldData", "fields")
+    # operation, deleteOldData, externalId_malformed) and `_validate_external_id` (externalId,
+    # operation, fields, externalId_malformed), so keying it on the CSV check's fields dropped later
+    # passes before the externalId check could see them — silently disabling SELECT-coverage for
+    # passes 2..n, 96 lost findings across a 59,400-plan sweep. Re-deduping downstream on a wider key
+    # cannot undo it. Union per list, and dedup the *findings* rather than the declarations where
+    # multiplicity is the concern: since `ValidationResult.add_issue` drops identical findings, this
+    # dedup exists only to avoid repeated work, so erring wide is free and erring narrow loses checks.
+    #
+    # `externalId_malformed` is in the key because both consumers skip a malformed declaration
+    # (`_validate_csv_file`'s single-field-key guard and `_validate_external_id`'s SELECT sweep), and
+    # `_normalize_object_config`'s `str()` coercion means a malformed declaration's `externalId`
+    # string can equal a well-formed sibling's (int `1` -> `"1"`, same as literal `"1"`). Without
+    # this field the two collapse into one entry; if the malformed one sorts first, the surviving
+    # entry carries the skip flag and both consumers drop the *well-formed* sibling's check instead
+    # of just skipping the malformed one. Erring wide (never collapsing a malformed onto a valid
+    # sibling) is the free direction.
+    _READING_CONFIG_KEYS = ("externalId", "operation", "deleteOldData", "fields",
+                            "externalId_malformed")
     _OPERATION_CHECK_KEYS = ("operation",)
 
     @staticmethod
@@ -1824,14 +1834,13 @@ class SFDMUValidator:
         # SELECT-clause coverage component-by-component, piling extra HIGHs onto the dedicated
         # malformed-externalId HIGH for the same root cause.
         #
-        # Dedup key adds `externalId_malformed` to `_READING_CONFIG_KEYS`: the coercion in
-        # `_normalize_object_config` means a malformed declaration's `externalId` string can equal a
-        # well-formed sibling's (e.g. int `123` coerces to `"123"`, same as a literal `"123"`), so with
-        # `_READING_CONFIG_KEYS` alone the two collapse into one entry. If the malformed one sorts
-        # first, the `continue` above then skips the *kept* entry — silently dropping the well-formed
+        # `_READING_CONFIG_KEYS` already carries `externalId_malformed` (see its definition): the
+        # coercion in `_normalize_object_config` means a malformed declaration's `externalId` string
+        # can equal a well-formed sibling's (int `123` -> `"123"`, same as a literal `"123"`), and
+        # without that field in the key the two collapse into one entry. If the malformed one sorts
+        # first, the `continue` below then skips the *kept* entry — silently dropping the well-formed
         # sibling's SELECT-coverage check instead of just skipping the malformed one, as intended.
-        for cfg in self._dedup_configs(live_declarations,
-                                        self._READING_CONFIG_KEYS + ("externalId_malformed",)):
+        for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
             if cfg.get("externalId_malformed"):
                 continue
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
