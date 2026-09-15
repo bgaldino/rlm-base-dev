@@ -287,24 +287,79 @@ class SFDMUValidator:
     # never a future regression in the same file: by EXACT plan-relative path (a NEW plan with the
     # same object still produces the gating HIGH — deliberately not by object name); by the specific
     # single-field key non-unique today (a re-key to a different single field fires again); and by
-    # the exact *count* of the collision — the value below each entry is the expected number of
-    # EXTRA duplicate rows (sum of count-1 over duplicated values). If one of these files gains a new
-    # duplicate value, OR another copy of an existing one, the observed count no longer matches and
-    # the guard fires, so a regression cannot hide behind the allowlist while packs 193/194 are
-    # pending. Delete each entry as its fix lands.
+    # the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count) pairs. Pinning
+    # the signature rather than just a total count catches a wholesale swap (one duplicate removed
+    # while a different value becomes duplicated) that would leave a bare count unchanged: any change
+    # to which values collide, or how many times, no longer matches and the guard fires, so a
+    # regression cannot hide behind the allowlist while packs 193/194 are pending. Regenerate a
+    # signature from the live CSV; delete each entry as its fix lands.
     _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
-        "qb/en-US/qb-clm/ObjectStateValue.csv": ("Name", 11),
-        "qb/en-US/qb-clm/ObjectStateTransition.csv": ("Name", 20),
-        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": ("Name", 17),
-        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", 1),
+        "qb/en-US/qb-clm/ObjectStateValue.csv": ("Name", frozenset({
+            ('Activated', 2),
+            ('Awaiting Signature', 2),
+            ('Canceled', 2),
+            ('Contract Expired', 2),
+            ('Contract Terminated', 2),
+            ('Draft', 2),
+            ('In Approval Process', 2),
+            ('Negotiating', 2),
+            ('Rejected', 2),
+            ('Signature Declined', 2),
+            ('Signed', 2),
+        })),
+        "qb/en-US/qb-clm/ObjectStateTransition.csv": ("Name", frozenset({
+            ('Activated_To_Expired', 2),
+            ('Activated_To_Terminated', 2),
+            ('AwaitingSignature_To_Canceled', 2),
+            ('AwaitingSignature_To_Negotiating', 2),
+            ('AwaitingSignature_To_SignatureDeclined', 2),
+            ('AwaitingSignature_To_Signed', 2),
+            ('Draft_To_Canceled', 2),
+            ('Draft_To_InApproval', 2),
+            ('InApproval_To_Canceled', 2),
+            ('InApproval_To_Draft', 2),
+            ('InApproval_To_Negotiating', 2),
+            ('InApproval_To_Rejected', 2),
+            ('Negotiating_To_AwaitingSignature', 2),
+            ('Negotiating_To_Canceled', 2),
+            ('Negotiating_To_Draft', 2),
+            ('Rejected_To_Canceled', 2),
+            ('Rejected_To_Draft', 2),
+            ('SignatureDeclined_To_Canceled', 2),
+            ('SignatureDeclined_To_Draft', 2),
+            ('Signed_To_Activated', 2),
+        })),
+        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": ("Name", frozenset({
+            ('Activated_To_Terminated', 2),
+            ('AwaitingSignature_To_Canceled', 2),
+            ('AwaitingSignature_To_Negotiating', 2),
+            ('AwaitingSignature_To_SignatureDeclined', 2),
+            ('AwaitingSignature_To_Signed', 2),
+            ('Draft_To_Canceled', 2),
+            ('Draft_To_InApproval', 2),
+            ('InApproval_To_Canceled', 2),
+            ('InApproval_To_Draft', 2),
+            ('Negotiating_To_AwaitingSignature', 2),
+            ('Negotiating_To_Canceled', 2),
+            ('Negotiating_To_Draft', 2),
+            ('Rejected_To_Canceled', 2),
+            ('Rejected_To_Draft', 2),
+            ('SignatureDeclined_To_Canceled', 2),
+            ('SignatureDeclined_To_Draft', 2),
+            ('Signed_To_Activated', 2),
+        })),
+        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({
+            ('Monthly', 2),
+        })),
     }
 
-    def _known_nonunique_expected_extra(self, csv_path: Path, key: str) -> Optional[int]:
-        """The frozen expected count of EXTRA duplicate rows for (csv_path, key) if it is one of the
-        enumerated pre-existing non-unique single-field-key CSVs (pack 116), else None. Matched by
-        EXACT path relative to datasets/sfdmu AND the exact key field, so a new plan with the same
-        object, or one of these plans re-keyed to a different single field, is not exempt. The caller
-        suppresses only when the file's OBSERVED extra-duplicate count equals this frozen value."""
+    def _known_nonunique_signature(self, csv_path: Path, key: str) -> Optional[frozenset]:
+        """The frozen duplicate signature — a frozenset of (duplicated value, count) pairs — for
+        (csv_path, key) if it is one of the enumerated pre-existing non-unique single-field-key CSVs
+        (pack 116), else None. Matched by EXACT path relative to datasets/sfdmu AND the exact key
+        field, so a new plan with the same object, or one of these plans re-keyed to a different
+        single field, is not exempt. The caller suppresses only when the file's OBSERVED duplicate
+        signature equals this frozen one exactly."""
         try:
             rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
         except (ValueError, AttributeError):
@@ -2128,17 +2183,16 @@ class SFDMUValidator:
         # Four shipped CSVs are non-unique today and are tracked for a proper fix elsewhere
         # (packs 193/194); exempt exactly those files so this preventive guard does not turn the
         # validator red repo-wide on pre-existing data. The exemption is pinned to the EXACT frozen
-        # collision — this (path, key) AND the expected count of extra duplicate rows — so a new
-        # duplicate introduced into an allowlisted file before its fix lands is NOT masked: the
-        # observed count diverges and the guard falls through to report. A new file with the same
+        # collision — this (path, key) AND the full duplicate signature (which values collide and how
+        # many times) — so a new duplicate introduced into an allowlisted file before its fix lands
+        # is NOT masked, even a wholesale swap that leaves the total count unchanged: the observed
+        # signature diverges and the guard falls through to report. A new file with the same
         # object/key is never exempt (keyed on exact path). Debug-logged so the exemption is visible.
-        expected_extra = self._known_nonunique_expected_extra(csv_path, key)
-        if expected_extra is not None:
-            observed_extra = sum(c - 1 for c in duplicates.values())
-            if observed_extra == expected_extra:
-                self.log(f"  {obj_name} single-field key '{key or external_id}' has the known "
-                         f"duplicates (allowlisted, tracked for fix) — not flagged", level="DEBUG")
-                return
+        known_signature = self._known_nonunique_signature(csv_path, key)
+        if known_signature is not None and frozenset(duplicates.items()) == known_signature:
+            self.log(f"  {obj_name} single-field key '{key or external_id}' has the known "
+                     f"duplicates (allowlisted, tracked for fix) — not flagged", level="DEBUG")
+            return
 
         # One finding per object. Show the offending (non-blank) values most-duplicated first,
         # capped so a wholesale-broken column does not print a novel.

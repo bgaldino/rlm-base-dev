@@ -1266,23 +1266,34 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
              if "duplicate value" in i]),
     # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
     # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
-    # (frozen at 1 extra duplicate row — the "Monthly" pair) is suppressed when its collision matches...
-    ("an allowlisted path whose collision matches the frozen count is suppressed",
+    # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...
+    ("an allowlisted path whose duplicate signature matches the frozen one is suppressed",
      False, [i for i in deferral_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
          {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"})
          if "duplicate value" in i]),
-    # ...but if that same allowlisted file gains ANOTHER duplicate row (3× "Monthly" → 2 extra, not
-    # the frozen 1), the observed count diverges and the guard fires — a regression cannot hide behind
-    # the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
-    ("an allowlisted path that gains a NEW duplicate beyond the frozen count fires HIGH",
+    # ...but if that same allowlisted file gains ANOTHER duplicate row (3× "Monthly" → count 3, not
+    # the frozen 2), the observed signature diverges and the guard fires — a regression cannot hide
+    # behind the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
+    ("an allowlisted path that gains a NEW duplicate beyond the frozen signature fires HIGH",
      True, [i for i in deferral_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
          {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n3,Monthly\n"},
+         severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # The signature is pinned by VALUE, not just total count: a wholesale swap that keeps the same
+    # number of extra duplicate rows (here "Weekly" ×2 instead of "Monthly" ×2 — total extra still 1)
+    # is a DIFFERENT collision, so its signature {("Weekly", 2)} != {("Monthly", 2)} and it fires.
+    ("an allowlisted path whose duplicate value is swapped (same total) fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Weekly\n2,Weekly\n"},
          severity=V.Severity.HIGH)
          if "duplicate value" in i]),
     # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
