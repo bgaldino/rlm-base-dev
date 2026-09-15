@@ -472,6 +472,7 @@ STDLIB_SUITES = [
     "tests/test_rlm_apex_file.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
+    "tests/test_validate_keys_targets.py",
 ]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the

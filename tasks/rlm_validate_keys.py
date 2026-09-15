@@ -20,8 +20,14 @@ populating) makes the task exit non-zero if any key issue remains, so it can gat
 import json
 import os
 import re
+import sys
 from collections import Counter
 from typing import Any, Dict, List, Optional
+
+# Bootstrap the repo's scripts/ dir onto sys.path so the shared SFDMU parsing
+# primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -54,27 +60,44 @@ def _present(value) -> bool:
     return value is not None and value != ""
 
 
-def collect_key_target_objects(export_json: dict) -> Dict[str, List[str]]:
-    """Return {object: [direct key fields]} for objects whose externalId is all-direct.
+def collect_key_target_objects(export_json: dict) -> Dict[str, List[List[str]]]:
+    """Return {object: [distinct direct-key field-sets]} for objects whose externalId is all-direct.
+
+    A multi-pass plan can declare the same object with different direct-key externalIds in
+    different passes — e.g. `Name` in the top-level `objects` pass (unshifted as pass 1 by
+    ``normalize_object_sets``) and `Code` in an `objectSets` pass. Each distinct key-field set
+    is returned and validated on its own, so a null/duplicate in a later declaration's key is
+    not silently missed by collapsing every declaration to the first. Identical field-sets are
+    de-duplicated (first-seen order preserved) to avoid redundant source-org queries.
 
     Objects with any relationship-traversal externalId component are skipped (their
     keys are validated through their parent objects).
     """
-    object_sets = export_json.get("objectSets") or [{"objects": export_json.get("objects", [])}]
-    targets: Dict[str, List[str]] = {}
+    object_sets = sfdmu_export.normalize_object_sets(export_json)
+    targets: Dict[str, List[List[str]]] = {}
     for oset in object_sets:
         for obj in oset.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness: SFDMU reads `excluded` in JS, where `[]`/`{}` are truthy
+            # and skip the declaration. Python's plain `if` would read them as live and
+            # query/populate keys for an object SFDMU never loads (pack 168 now walks
+            # the prepended top-level pass here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
-            query = obj.get("query", "")
-            name = query.split("FROM")[1].strip().split()[0] if "FROM" in query else None
+            # Shared parser: case-insensitive, subquery-aware, and returns "" (not a
+            # raise) on a non-string/malformed query — the newly-included top-level pass
+            # (pack 168) must be validated without aborting on a lowercase `from`.
+            name = sfdmu_export.extract_object_name(obj.get("query", ""))
             external_id = obj.get("externalId", "")
-            if not name or not external_id or external_id == "Id":
+            # A non-string externalId (a hand-edited list/dict, now reachable via the
+            # top-level pass) is truthy but would raise on `.split(";")` — skip it.
+            if not name or not isinstance(external_id, str) or not external_id or external_id == "Id":
                 continue
             comps = [c.strip() for c in external_id.split(";") if c.strip()]
             if not comps or any("." in c for c in comps):
                 continue  # relationship-keyed: validated via parent objects
-            targets.setdefault(name, comps)
+            variants = targets.setdefault(name, [])
+            if comps not in variants:
+                variants.append(comps)
     return targets
 
 
@@ -133,13 +156,15 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.info("No all-direct-key objects to validate in this plan.")
             return
 
+        n_decls = sum(len(v) for v in targets.values())
         self.logger.info(
-            f"Validating source keys for {len(targets)} object(s) in {plan_dir} "
-            f"(populate={populate})"
+            f"Validating source keys for {len(targets)} object(s) "
+            f"({n_decls} key declaration(s)) in {plan_dir} (populate={populate})"
         )
         total_issues = 0
         for obj in sorted(targets):
-            total_issues += self._validate_object(obj, targets[obj], populate)
+            for keyfields in targets[obj]:
+                total_issues += self._validate_object(obj, keyfields, populate)
 
         if total_issues:
             msg = f"Source-key validation found {total_issues} unresolved key issue(s)."
@@ -150,7 +175,16 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.info("All source keys are present and unique.")
 
     def _validate_object(self, obj: str, keyfields: List[str], populate: bool) -> int:
+        # POPULATE_CONFIG is object-wide but targets one specific key field
+        # (e.g. Product2 -> StockKeepingUnit). A multi-pass plan may validate the
+        # same object on a different direct key (e.g. ProductCode); applying the
+        # config there would populate StockKeepingUnit and clear the issue count
+        # while the requested key stayed null. Only honor the config for the
+        # declaration whose key IS the config's field; otherwise fall back to the
+        # default (populate the requested key itself from Name).
         cfg = POPULATE_CONFIG.get(obj)
+        if cfg and cfg.get("field") not in keyfields:
+            cfg = None
         select = ["Id"] + list(keyfields)
         extras = (cfg["basis"] + cfg.get("sync", [])) if cfg else (
             ["Name"] if (len(keyfields) == 1 and keyfields[0] != "Name") else []
@@ -193,7 +227,11 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
             self.logger.warning(
                 f"  {obj}: cannot auto-populate composite/Name key {keyfields}; report only."
             )
-            return sum(1 for r in records if not _present(r.get(field))) if field in (keyfields or []) else 0
+            # Report-only: count nulls across ALL key components (matching the caller's
+            # honest n_null), not just the first — otherwise a composite key with nulls
+            # only in a trailing component would return 0 and clear the gate while the key
+            # stayed broken.
+            return sum(1 for r in records for k in keyfields if not _present(r.get(k)))
 
         basis = (cfg or {}).get("basis", ["Name"])
         sync = (cfg or {}).get("sync", [])

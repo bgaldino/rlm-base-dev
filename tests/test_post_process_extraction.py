@@ -199,6 +199,92 @@ def test_copy_to_plan_refuses_on_malformed_query(m):
               tracked.read_bytes() == tracked_bytes, tracked.read_text(encoding="utf-8"))
 
 
+def test_both_array_plan_prepends_top_level_pass(m):
+    """pack 168 caller-level regression: a non-empty top-level `objects` alongside a
+    non-empty `objectSets` is unshifted as pass index 0 (ahead of objectSets), so its
+    declarations must reach `plan_structure` and `passes`. The old exclusive fallback
+    here ("objectSets wins outright") dropped the top-level pass entirely for a
+    both-arrays plan — its records land in the extraction but never enter the roundtrip.
+    Pins the integration point directly, so it cannot revert while the helper test
+    (normalize_object_sets) still passes."""
+    export_json = {
+        "objectSets": [
+            {"objects": [
+                {"query": "SELECT Id FROM RateCard", "operation": "Upsert", "externalId": "Name"},
+                {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "StockKeepingUnit"},
+            ]},
+        ],
+        "objects": [
+            {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name"},
+            {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "ProductCode"},
+        ],
+    }
+    result, passes, malformed = m.parse_plan_structure(export_json)
+    check("both-array: top-level-only Account reaches plan_structure",
+          "Account" in result, sorted(result))
+    check("both-array: objectSets RateCard also present",
+          "RateCard" in result, sorted(result))
+    check("both-array: no false malformed entries", malformed == [], malformed)
+    # The top-level pass is unshifted to index 0, ahead of the objectSets pass (index 1).
+    check("top-level Account is pass index 0",
+          passes["Account"][0][0] == 0, passes.get("Account"))
+    check("objectSets RateCard is pass index 1",
+          passes["RateCard"][0][0] == 1, passes.get("RateCard"))
+    # An object declared in BOTH passes appears twice in `passes`; plan_structure keeps
+    # the first (top-level) entry.
+    check("Product2 tracked in both passes", len(passes.get("Product2", [])) == 2,
+          passes.get("Product2"))
+    check("plan_structure keeps Product2's top-level (first) declaration",
+          result.get("Product2", {}).get("externalId") == "ProductCode", result.get("Product2"))
+
+
+def test_top_level_pass_subquery_uses_outer_object(m):
+    """pack 168 + round-6: get_object_name_from_query / parse_select_fields now delegate to
+    the shared subquery-aware parsers. A top-level pass declaration carrying a SELECT-clause
+    subquery must attribute to the OUTER object with the outer field list — not the child
+    object with a truncated one (which would skip/mis-transform the outer object's CSV)."""
+    export_json = {
+        "objects": [
+            {"query": "SELECT Id, Name, (SELECT Id FROM Contacts) FROM Account",
+             "operation": "Upsert", "externalId": "Name"},
+        ],
+    }
+    result, passes, malformed = m.parse_plan_structure(export_json)
+    check("subquery query resolves to the outer object (Account), not the child (Contacts)",
+          set(result) == {"Account"}, sorted(result))
+    check("subquery is not flagged malformed", malformed == [], malformed)
+    check("outer fields are read, not the subquery's",
+          result["Account"]["fields"] == ["Id", "Name"], result["Account"]["fields"])
+    # The helper functions delegate too (tested by name elsewhere).
+    check("get_object_name_from_query is subquery-aware",
+          m.get_object_name_from_query("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == "Account")
+    check("parse_select_fields drops the subquery's fields",
+          m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
+
+
+def test_excluded_uses_js_truthiness(m):
+    """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
+    falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
+    too (else the object enters plan_structure and its raw CSV is transformed/synced).
+    Falsy JS values (`0`, `False`, absent) leave the object live."""
+    excluded_js_truthy = {"objects": [
+        {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name", "excluded": []},
+        {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "StockKeepingUnit", "excluded": {}},
+    ]}
+    result, _, malformed = m.parse_plan_structure(excluded_js_truthy)
+    check("excluded: [] / {} are JS-truthy -> both dropped from plan_structure",
+          result == {}, sorted(result))
+    check("JS-truthy excluded declarations are not flagged malformed", malformed == [], malformed)
+    # Falsy JS values keep the object live.
+    live = {"objects": [
+        {"query": "SELECT Id FROM Account", "operation": "Upsert", "externalId": "Name", "excluded": 0},
+        {"query": "SELECT Id FROM Product2", "operation": "Upsert", "externalId": "SKU", "excluded": False},
+    ]}
+    result2, _, _ = m.parse_plan_structure(live)
+    check("excluded: 0 / False are JS-falsy -> objects stay live",
+          set(result2) == {"Account", "Product2"}, sorted(result2))
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -209,6 +295,9 @@ def main():
     test_whole_plan_parse_records_malformed_entry(m)
     test_non_string_external_id_is_guarded(m)
     test_copy_to_plan_refuses_on_malformed_query(m)
+    test_both_array_plan_prepends_top_level_pass(m)
+    test_top_level_pass_subquery_uses_outer_object(m)
+    test_excluded_uses_js_truthiness(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

@@ -46,6 +46,17 @@ check("empty objectSets falls back to flat objects",
       [{"objects": [1]}])
 check("neither key present -> empty list",
       se.normalize_object_sets({}), [])
+# SFDMU merge (pack 168): a non-empty top-level `objects` alongside a non-empty
+# `objectSets` is unshifted as pass 1, ahead of the existing sets (not dropped).
+check("objects + objectSets: objects unshifted as pass 1, sets follow in order",
+      se.normalize_object_sets(
+          {"objectSets": [{"objects": ["a"]}, {"objects": ["b"]}], "objects": ["flat"]}),
+      [{"objects": ["flat"]}, {"objects": ["a"]}, {"objects": ["b"]}])
+check("an empty top-level objects does not prepend a pass",
+      se.normalize_object_sets({"objectSets": [{"objects": ["a"]}], "objects": []}),
+      [{"objects": ["a"]}])
+check("only an empty top-level objects (no objectSets) -> no pass",
+      se.normalize_object_sets({"objects": []}), [])
 
 # --- extract_object_name -----------------------------------------------------
 check("basic FROM", se.extract_object_name("SELECT Id FROM Account"), "Account")
@@ -103,6 +114,7 @@ check("True is truthy", se.is_js_truthy(True), True)
 # --- resolve_operation -------------------------------------------------------
 check("string 'Upsert' -> upsert", se.resolve_operation("Upsert"), "upsert")
 check("padded/mixed-case ' ReadOnly ' -> readonly", se.resolve_operation(" ReadOnly "), "readonly")
+check("numeric index 0 -> insert (DeleteSFDMUData reads Insert declarations)", se.resolve_operation(0), "insert")
 check("numeric index 2 -> upsert", se.resolve_operation(2), "upsert")
 check("integral float 2.0 -> upsert", se.resolve_operation(2.0), "upsert")
 check("non-integral float 2.5 -> None", se.resolve_operation(2.5), None)

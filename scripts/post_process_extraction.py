@@ -29,6 +29,12 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
+# Bootstrap the scripts/ dir onto sys.path so `import sfdmu_export` resolves both
+# when run as a script (scripts/ is already sys.path[0]) and when the test suite
+# spec-loads this module by path (its dir is NOT auto-added then).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+
 
 # Objects whose Status field should be rewritten from Active/Inactive to Draft.
 # Only objects that go through a Draft-then-Activate workflow are listed here.
@@ -83,18 +89,12 @@ def get_object_name_from_query(query: str) -> str:
     on an empty name (`if not name: continue`). This mirrors the guard added to
     validate_sfdmu_v5_datasets.py's `_extract_object_name` in PR #397; see todo pack 182.
     """
-    if not isinstance(query, str):
-        return ""
-    upper = query.upper()
-    idx = upper.find(" FROM ")
-    if idx == -1:
-        return ""
-    rest = query[idx + 6:].strip()
-    # `FROM` followed by only whitespace leaves nothing to split — return "" (the caller
-    # then records it as a malformed declaration) rather than an IndexError that would
-    # crash the run with a traceback, bypassing the controlled malformed-query handling.
-    parts = rest.split()
-    return parts[0].strip() if parts else ""
+    # Delegates to the shared subquery-aware parser (sfdmu_export.extract_object_name):
+    # a SELECT-clause subquery's inner FROM is stripped first, so a top-level pass query
+    # (pack 168) like `SELECT Id, (SELECT Id FROM Contacts) FROM Account` resolves to
+    # Account, not Contacts. Non-string/malformed input returns "" (never raises), so the
+    # caller's malformed-declaration handling is preserved.
+    return sfdmu_export.extract_object_name(query)
 
 
 def parse_plan_structure(export_json: dict) -> tuple:
@@ -128,13 +128,20 @@ def parse_plan_structure(export_json: dict) -> tuple:
     result = {}
     passes = {}
     malformed = []
-    object_sets = export_json.get("objectSets", [])
-    if not object_sets and "objects" in export_json:
-        # Single-pass plan (e.g. qb-pcm): treat as one virtual object set
-        object_sets = [{"objects": export_json["objects"]}]
+    # Normalize passes exactly as SFDMU does — a flat top-level `objects` becomes a
+    # pass, and (the fix in todo pack 168) a non-empty `objects` alongside a
+    # non-empty `objectSets` is prepended as pass 1, not dropped. The old local
+    # "objectSets wins outright" fallback here would skip a both-arrays plan's
+    # top-level pass entirely: its records land in the extraction but never enter
+    # `plan_structure`/`passes`, so the roundtrip skips their transformations and
+    # `--copy-to-plan` could sync their raw CSV incidentally.
+    object_sets = sfdmu_export.normalize_object_sets(export_json)
     for idx, obj_set in enumerate(object_sets):
         for obj in obj_set.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness, not Python's: SFDMU reads `excluded` in JS, where `[]`/`{}`
+            # are truthy and skip the declaration (pack 168 now walks the prepended
+            # top-level pass through here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
             query = obj.get("query", "")
             name = get_object_name_from_query(query)
@@ -172,15 +179,11 @@ def parse_select_fields(query: str) -> list:
     get_object_name_from_query above — mirrors validate_sfdmu_v5_datasets.py's
     `_parse_select_fields` guard (PR #397, todo pack 182).
     """
-    if not isinstance(query, str):
-        return []
-    upper = query.upper()
-    select_idx = upper.find("SELECT ")
-    from_idx = upper.find(" FROM ")
-    if select_idx == -1 or from_idx == -1:
-        return []
-    fields_str = query[select_idx + 7:from_idx].strip()
-    return [f.strip() for f in fields_str.split(",") if f.strip()]
+    # Delegates to the shared subquery-aware parser (sfdmu_export.parse_select_fields):
+    # a SELECT-clause subquery is removed before the SELECT…FROM match, so the outer
+    # query's fields are read rather than the subquery's truncated ones (a top-level pass
+    # query, pack 168, could carry one). Non-string input returns [] (never raises).
+    return sfdmu_export.parse_select_fields(query)
 
 
 def load_plan_csv(plan_dir: str, object_name: str) -> tuple:
