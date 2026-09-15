@@ -207,6 +207,49 @@ def _case_generate_block_counts_and_missing():
 
 
 
+def _case_same_pass_duplicate_note():
+    """pack 165: the same object declared twice in one pass renders two rows identical in
+    every compared cell. The generator must surface it as a visible note (not two silently
+    identical rows), and the README must still round-trip through the checker cleanly (the
+    note lives below the table where parse_object_tables doesn't look)."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [UPSERT_WIDGET, UPSERT_WIDGET]}]},
+                     {"Widget__c.csv": _csv(3)})
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        content = (plan / "README.md").read_text()
+        errors, warns, _ = checker.check_plan(str(plan))
+        rows = list(checker.parse_object_tables(content.splitlines()))
+        widget_rows = [r for r in rows if r["object"] == "Widget__c"]
+        return ("Same-pass duplicate" in content,
+                len(widget_rows) == 2,
+                all(checker.parse_pass(r["pass"]) == 1 for r in widget_rows),
+                len(errors))
+
+
+def _case_no_duplicate_note_when_distinct_passes():
+    """A legitimately per-pass-varying object (two passes, one declaration each) must NOT
+    trigger the note — the '×N in one pass' condition is what matters, not two rows."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [UPSERT_WIDGET]}, {"objects": [UPSERT_WIDGET]}]},
+                     {"Widget__c.csv": _csv(3)})
+        block = G.generate_block(str(plan))
+        return "Same-pass duplicate" not in block
+
+
+def _case_excluded_duplicate_not_noted():
+    """A live declaration beside an EXCLUDED one in the same pass is a single load — SFDMU
+    drops the excluded ScriptObject before task creation. The generator must count only live
+    variants so its note fires on exactly the set validate_sfdmu_v5_datasets.py gates; else
+    the README would cite a 'gating HIGH' the validator never raises (pack 165 review)."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [
+            UPSERT_WIDGET, dict(UPSERT_WIDGET, excluded=True)]}]},
+            {"Widget__c.csv": _csv(3)})
+        block = G.generate_block(str(plan))
+        return "Same-pass duplicate" not in block
+
+
 def _case_optional_csv_roundtrip(operation, excluded=False):
     """Preserve optional-file documentation while checking writable pass counts."""
     with tempfile.TemporaryDirectory() as td:
@@ -277,6 +320,12 @@ GENERATE_BLOCK = [
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Update", excluded=True)),
     ("row count reflects the actual CSV, Readonly gets '—', a writable object with no CSV is flagged",
      (True, True, True), _case_generate_block_counts_and_missing()),
+    ("same-pass duplicate declaration renders a visible note, two Pass-1 rows, and still round-trips",
+     (True, True, True, 0), _case_same_pass_duplicate_note()),
+    ("an object appearing once per pass across two passes triggers no same-pass note",
+     True, _case_no_duplicate_note_when_distinct_passes()),
+    ("a live + excluded declaration in one pass triggers no note — only live counts, matching the validator",
+     True, _case_excluded_duplicate_not_noted()),
 ]
 
 

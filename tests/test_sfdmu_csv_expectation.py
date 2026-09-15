@@ -1155,6 +1155,37 @@ MERGED_CONFIG = [
 ]
 
 
+# The same object declared twice within ONE pass's `objects` array (todo pack 165). SFDMU 5.8.0
+# does not reject it: `MigrationJob._createTaskMap` keys the task map by ScriptObject *instance*, so
+# the object loads once PER declaration (in array order), while lookup resolution keys by *name*
+# (`ScriptObject.setup`'s last-write-wins `objectsMap`) and resolves against the LAST declaration
+# only — a silently-doubled, order-dependent load. No shipped plan has this shape, so it is latent;
+# HIGH gates it. A per-pass-VARYING object (one declaration in each of two passes) is a different
+# pass index each and must NOT trip it — that is the control the fix could otherwise over-broaden.
+SAME_PASS_DUPLICATE = [
+    ("an object declared twice in one pass's objects array is flagged HIGH",
+     True, [i for i in issues([[UPSERT, UPSERT]], {"Widget__c.csv": HEADER})
+            if "Declared 2 times in pass 1" in i and "silently-doubled" in i]),
+    ("...three times in one pass reports the count, once — control that len is read, not just >1",
+     True, [i for i in issues([[UPSERT, UPSERT, UPSERT]], {"Widget__c.csv": HEADER})
+            if "Declared 3 times in pass 1" in i]),
+    ("the same object once per pass across two passes is NOT flagged — different pass indices",
+     False, [i for i in issues([[UPSERT], [UPSERT]], {"Widget__c.csv": HEADER})
+             if "silently-doubled" in i]),
+    # SFDMU drops an excluded ScriptObject before task creation (_getAllScriptObjects filters
+    # !object.excluded, source-verified 5.8.0), so an excluded declaration is no load at all.
+    ("two EXCLUDED declarations of one object in a pass are NOT flagged — neither becomes a task",
+     False, [i for i in issues([[dict(UPSERT, excluded=True), dict(UPSERT, excluded=True)]])
+             if "silently-doubled" in i]),
+    ("one live + one excluded declaration in a pass is a single load, NOT flagged",
+     False, [i for i in issues([[UPSERT, dict(UPSERT, excluded=True)]], {"Widget__c.csv": HEADER})
+             if "silently-doubled" in i]),
+    ("two live + one excluded: flagged, and the count is the LIVE two, not the declared three",
+     True, [i for i in issues([[UPSERT, UPSERT, dict(UPSERT, excluded=True)]], {"Widget__c.csv": HEADER})
+            if "Declared 2 times in pass 1" in i]),
+]
+
+
 # `_report_non_string_query` runs on the raw declaration, before `_all_pass_configs` filters
 # `excluded` ones out — so it is the one query-validity check that can see the field at all.
 QUERY_EXCLUDED_EXEMPTION = [
@@ -1831,6 +1862,8 @@ def main() -> int:
                   DELETE_EXTERNAL_ID_SKIP),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
+                 ("an object declared more than once within one pass is a gating HIGH; once-per-pass "
+                  "across passes is not", SAME_PASS_DUPLICATE),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),
                  ("an unstripped externalId delimiter does not cause false SELECT/composite-key findings",
                   UNSTRIPPED_EXTERNAL_ID),
