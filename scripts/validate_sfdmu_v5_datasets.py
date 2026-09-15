@@ -587,12 +587,24 @@ class SFDMUValidator:
             ))
             return None
 
-        # Check required fields
+        # Check required fields. `apiVersion` must be present AND a string: SFDMU interpolates
+        # it into every query URL as the `vXX.0` path segment, so a `null`, a number (`68.0`
+        # decodes to a float, not the `"68.0"` string SFDMU needs), or a list is as unusable as
+        # an absent key — but a presence-only check let all three through. Report a
+        # present-but-wrong-type value at the same severity as a missing one (todo pack 152).
         if "apiVersion" not in data:
             result.add_issue(Issue(
                 severity=Severity.HIGH,
                 object_name="N/A",
                 message="Missing 'apiVersion' field in export.json",
+                file_path=self._make_relative_path(export_json_path)
+            ))
+        elif not isinstance(data["apiVersion"], str):
+            result.add_issue(Issue(
+                severity=Severity.HIGH,
+                object_name="N/A",
+                message=(f"'apiVersion' is {type(data['apiVersion']).__name__}, not a string — "
+                         f"expected a version like \"68.0\""),
                 file_path=self._make_relative_path(export_json_path)
             ))
 
@@ -1428,7 +1440,6 @@ class SFDMUValidator:
             "fields": self._parse_select_fields(query),
             "excluded": obj.get("excluded", False),
             "deleteOldData": obj.get("deleteOldData", False),
-            "skipExistingRecords": obj.get("skipExistingRecords", False),
         }
 
     def _extract_object_name(self, query: str) -> str:
