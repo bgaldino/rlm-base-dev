@@ -250,6 +250,18 @@ def _case_excluded_duplicate_not_noted():
         return "Same-pass duplicate" not in block
 
 
+def _case_unparseable_duplicate_not_noted():
+    """Two identical MALFORMED-query declarations in one pass must NOT be noted. object_name()
+    keeps them under an `Unparseable(...)` sentinel so their row stays visible, but the validator's
+    `_all_pass_configs` drops them (no object name resolves), so it raises no HIGH — the generator
+    must not cite one either (PR #436 review, comment 4018180287)."""
+    with tempfile.TemporaryDirectory() as td:
+        bad = {"query": "not a query", "operation": "Upsert", "externalId": "Name"}
+        plan = _plan(td, {"objectSets": [{"objects": [bad, dict(bad)]}]})
+        block = G.generate_block(str(plan))
+        return "Same-pass duplicate" not in block
+
+
 def _case_optional_csv_roundtrip(operation, excluded=False):
     """Preserve optional-file documentation while checking writable pass counts."""
     with tempfile.TemporaryDirectory() as td:
@@ -326,6 +338,8 @@ GENERATE_BLOCK = [
      True, _case_no_duplicate_note_when_distinct_passes()),
     ("a live + excluded declaration in one pass triggers no note — only live counts, matching the validator",
      True, _case_excluded_duplicate_not_noted()),
+    ("two unparseable-query declarations in one pass trigger no note — the validator drops them, so no HIGH to cite",
+     True, _case_unparseable_duplicate_not_noted()),
 ]
 
 

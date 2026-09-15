@@ -1163,11 +1163,15 @@ MERGED_CONFIG = [
 # HIGH gates it. A per-pass-VARYING object (one declaration in each of two passes) is a different
 # pass index each and must NOT trip it — that is the control the fix could otherwise over-broaden.
 SAME_PASS_DUPLICATE = [
+    # `severity=V.Severity.HIGH` on every positive case, not just a message-text filter: the
+    # feature's contract is that this GATES, and the validator process gates only CRITICAL/HIGH.
+    # A message match alone would still pass if the issue were downgraded to MEDIUM/INFO, so the
+    # severity filter is what actually pins the gating behavior (PR #436 review, comment 4018180320).
     ("an object declared twice in one pass's objects array is flagged HIGH",
-     True, [i for i in issues([[UPSERT, UPSERT]], {"Widget__c.csv": HEADER})
+     True, [i for i in issues([[UPSERT, UPSERT]], {"Widget__c.csv": HEADER}, severity=V.Severity.HIGH)
             if "Declared 2 times in pass 1" in i and "silently-doubled" in i]),
     ("...three times in one pass reports the count, once — control that len is read, not just >1",
-     True, [i for i in issues([[UPSERT, UPSERT, UPSERT]], {"Widget__c.csv": HEADER})
+     True, [i for i in issues([[UPSERT, UPSERT, UPSERT]], {"Widget__c.csv": HEADER}, severity=V.Severity.HIGH)
             if "Declared 3 times in pass 1" in i]),
     ("the same object once per pass across two passes is NOT flagged — different pass indices",
      False, [i for i in issues([[UPSERT], [UPSERT]], {"Widget__c.csv": HEADER})
@@ -1181,8 +1185,16 @@ SAME_PASS_DUPLICATE = [
      False, [i for i in issues([[UPSERT, dict(UPSERT, excluded=True)]], {"Widget__c.csv": HEADER})
              if "silently-doubled" in i]),
     ("two live + one excluded: flagged, and the count is the LIVE two, not the declared three",
-     True, [i for i in issues([[UPSERT, UPSERT, dict(UPSERT, excluded=True)]], {"Widget__c.csv": HEADER})
+     True, [i for i in issues([[UPSERT, UPSERT, dict(UPSERT, excluded=True)]], {"Widget__c.csv": HEADER},
+                              severity=V.Severity.HIGH)
             if "Declared 2 times in pass 1" in i]),
+    # `_all_pass_configs` keys on `_extract_object_name(query)` and skips it when empty, so a
+    # malformed query is dropped, not counted — no same-pass HIGH. (It IS reported elsewhere as an
+    # unparseable query; the generator mirror is pinned in test_generate_plan_readme.py.)
+    ("two unparseable-query declarations in one pass raise no same-pass-duplicate finding",
+     False, [i for i in issues([[{"query": "not a query", "operation": "Upsert", "externalId": "Name"},
+                                 {"query": "not a query", "operation": "Upsert", "externalId": "Name"}]])
+             if "silently-doubled" in i]),
 ]
 
 

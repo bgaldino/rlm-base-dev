@@ -123,18 +123,25 @@ def generate_block(plan_dir: str) -> str:
     # compared cell (todo pack 165). The Object cell can't carry the marker —
     # check_plan_readme_consistency keys its row match on that exact string, so an
     # annotated name reads as a phantom object — so the note lives beneath the table where
-    # the checker's row parser doesn't look. Excluded declarations are skipped so the note
-    # fires on EXACTLY the set validate_sfdmu_v5_datasets.py._check_same_pass_duplicates
-    # gates (live > 1): SFDMU drops an excluded ScriptObject before task creation, so a
-    # live+excluded pair is a single load, not a doubled one, and the note must not cite a
-    # gating HIGH the validator does not raise. `variant["excluded"]` is already a resolved
-    # bool (load_plan runs it through _is_js_truthy).
+    # the checker's row parser doesn't look. Two skips keep the note firing on EXACTLY the
+    # set validate_sfdmu_v5_datasets.py._check_same_pass_duplicates gates (live > 1), so it
+    # never cites a gating HIGH the validator does not raise:
+    #   - Excluded declarations: SFDMU drops an excluded ScriptObject before task creation,
+    #     so a live+excluded pair is a single load, not a doubled one. `variant["excluded"]`
+    #     is already a resolved bool (load_plan runs it through _is_js_truthy).
+    #   - Unparseable-query declarations: object_name() keeps a malformed query under an
+    #     `Unparseable(...)` sentinel name so its row stays visible, but the validator's
+    #     `_all_pass_configs` drops it (`_extract_object_name` returns "" → declaration
+    #     skipped). Counting the sentinel would note a duplicate the validator never gates.
+    #     That sentinel is the only non-object key object_name() emits, so its prefix
+    #     identifies exactly the dropped set.
     same_pass_counts: dict[tuple[str, int], int] = {}
     for name, variants in plan.items():
+        is_unparseable = name.startswith("Unparseable(")
         for variant in variants:
             row_num += 1
             pass_no = variant["pass"]
-            if not variant["excluded"]:
+            if not variant["excluded"] and not is_unparseable:
                 same_pass_counts[(name, pass_no)] = same_pass_counts.get((name, pass_no), 0) + 1
             # load_plan() already resolves "absent key" to "readonly" and a present-
             # but-unresolvable value to a distinct "Unresolvable(...)" sentinel — never
