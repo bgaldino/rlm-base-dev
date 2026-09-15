@@ -184,13 +184,19 @@ class LoadSFDMUData(SFDXBaseTask):
         if not os.path.isdir(objectset_source_dir):
             return
         for name in sorted(os.listdir(objectset_source_dir)):
-            if not name.startswith("object-set-"):
+            # Skip non-canonical names (object-set-1-backup, object-set-01) via the shared
+            # matcher — the same rule the SFDMU validator enforces. SFDMU builds the path it
+            # reads from the pass index (always canonical), so a loose `startswith` here would
+            # copy such a directory into source/ as dead weight SFDMU never reads (pack 161,
+            # finding 4).
+            set_number = sfdmu_export.object_set_dir_number(name)  # 1-based, or None
+            if set_number is None:
                 continue
             src_set = os.path.join(objectset_source_dir, name)
             if not os.path.isdir(src_set):
                 continue
             # Object set 1 uses source/ (root); sets 2+ use source/object-set-N
-            if name == "object-set-1":
+            if set_number == 1:
                 dst_set = source_dir
             else:
                 dst_set = os.path.join(source_dir, name)
@@ -204,7 +210,7 @@ class LoadSFDMUData(SFDXBaseTask):
                 shutil.copy2(src_f, dst_f)
                 self.logger.info(f"Synced objectset_source -> source: {name}/{f} -> {dst_set}/{dst_name}")
                 # Pass 1 reads object set 1 from plan root (working dir); overwrite root with object-set-1 so composites match.
-                if name == "object-set-1":
+                if set_number == 1:
                     root_f = os.path.join(base, f)
                     shutil.copy2(src_f, root_f)
                     self.logger.info(f"Synced object-set-1 to plan root: {name}/{f} -> {root_f}")
