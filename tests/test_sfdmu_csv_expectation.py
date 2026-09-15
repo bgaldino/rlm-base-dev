@@ -1183,6 +1183,91 @@ API_VERSION_TYPE = [
 ]
 
 
+# A SINGLE-field externalId must be unique in the CSV (todo pack 116). A composite key matches on
+# the tuple, so per-field duplicates are fine there; a single-field key matches on the one column,
+# so a repeated value makes an Upsert/Update silently match — and overwrite — the wrong row. The
+# guard is preventive (it protects #284's Bug-4 single-field re-keyings), and scoped to the
+# match-by-key writes: Insert legitimately allows repeated values, Delete/Readonly do not upsert,
+# and `deleteOldData` delete-then-inserts rather than matching. The message filter is
+# "duplicate value" throughout, so unrelated findings (composite-column, SELECT-coverage) do not
+# pollute a case.
+_SFK = "SELECT Id, Name FROM Widget__c"  # single-field-key query used across these cases
+SINGLE_FIELD_KEY_UNIQUENESS = [
+    ("a duplicate single-field Upsert key value is reported HIGH",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+            if "duplicate value" in i]),
+    # Update matches by externalId too, so it is in scope alongside Upsert.
+    ("a duplicate single-field Update key value is reported HIGH",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Update", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+            if "duplicate value" in i]),
+    # Control: unique values are silent, so the positives are not firing on some unrelated finding.
+    ("unique single-field key values are silent — control",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,a\n2,b\n"})
+             if "duplicate value" in i]),
+    # A composite key matches on the TUPLE — a repeated value in one component is fine as long as the
+    # tuple is distinct, so the single-field check must not fire on it (the ';' guard).
+    ("a composite key with a repeated per-field value but distinct tuples is NOT flagged",
+     False, [i for i in issues([[{"query": "SELECT Id, Name, Code FROM Widget__c",
+                                  "operation": "Upsert", "externalId": "Name;Code"}]],
+                               {"Widget__c.csv": "$$Name$Code,Name,Code\nx;c1,x,c1\nx;c2,x,c2\n"})
+             if "duplicate value" in i]),
+    # Insert never matches a target record, so a repeated value is a legitimate second insert, not a
+    # mis-upsert — not flagged.
+    ("a duplicate single-field key under Insert is NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Insert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # deleteOldData delete-then-inserts rather than upsert-matching, so uniqueness is irrelevant —
+    # the same gate the composite-column check uses.
+    ("a duplicate single-field key with deleteOldData:true is NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name",
+                                  "deleteOldData": True}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # `Id` is the always-unique record id, not a data key — skipped even if the column repeats.
+    ("a repeated externalId:'Id' value is NOT flagged (Id is not a data key)",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Id"}]],
+                               {"Widget__c.csv": "Id\n1\n1\n"})
+             if "duplicate value" in i]),
+    # The key field absent from the CSV header leaves no values to compare — silent (a missing key
+    # column is a different concern, out of this check's scope).
+    ("a single-field key whose column is absent from the CSV is silent",
+     False, [i for i in issues([[{"query": "SELECT Id, Ext__c FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Ext__c"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # Blank separator rows are not records (matching data_row_count's own rule), so two blank rows do
+    # not count as a duplicate empty-value collision.
+    ("blank separator rows are not counted as duplicate empty values",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,a\n\n\n"})
+             if "duplicate value" in i]),
+    # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
+    # guard lands green. Materialized at the real qb-clm location via `deferral_issues`, the finding
+    # is suppressed...
+    ("an allowlisted qb-clm path with a duplicate single-field key is suppressed",
+     False, [i for i in deferral_issues(
+         "qb/en-US/qb-clm",
+         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
+            "externalId": "Name"}]],
+         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"})
+         if "duplicate value" in i]),
+    # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
+    # fires — the allowlist is keyed on exact path, not object name, so a new plan is not exempted.
+    ("the same object+duplicate in a non-allowlisted plan still fires HIGH",
+     True, [i for i in deferral_issues(
+         "qb/en-US/qb-newplan",
+         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
+            "externalId": "Name"}]],
+         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"})
+         if "duplicate value" in i]),
+]
+
+
 # The same object declared twice within ONE pass's `objects` array (todo pack 165). SFDMU 5.8.0
 # does not reject it: `MigrationJob._createTaskMap` keys the task map by ScriptObject *instance*, so
 # the object loads once PER declaration (in array order), while lookup resolution keys by *name*
@@ -1912,6 +1997,9 @@ def main() -> int:
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("apiVersion is type-checked, not merely presence-checked", API_VERSION_TYPE),
+                 ("a single-field externalId must be unique in the CSV (composite keys exempt), "
+                  "scoped to match-by-key writes, with pre-existing files allowlisted by path",
+                  SINGLE_FIELD_KEY_UNIQUENESS),
                  ("an object declared more than once within one pass is a gating HIGH; once-per-pass "
                   "across passes is not", SAME_PASS_DUPLICATE),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),

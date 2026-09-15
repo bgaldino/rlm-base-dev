@@ -269,6 +269,39 @@ class SFDMUValidator:
             return False
         return rel in self._DEFERRED_EMPTY_CSV_PATHS
 
+    # Frozen snapshot of the single-field-externalId CSVs whose key values are NOT unique in
+    # the tree TODAY (todo pack 116, the guard that found them; fixes tracked in packs 193/194).
+    # The single-field uniqueness check is preventive — it protects the [[104]] Bug-4 re-keyings
+    # and any future single-field key — but it surfaced four pre-existing shipped cases the pack
+    # wrongly assumed did not exist. Three are REAL latent mis-upserts: the qb-clm state objects
+    # key on `Name`, but the same state name recurs under different `ObjectStateDefinition` parents
+    # ("Activated" under both "Contract LifeCycle Management" and "Legal"), so an Upsert collapses
+    # two distinct records into one — the correct key is composite (`Name;ObjectStateDefinition.Name`
+    # and siblings), which is behavioral data-plan surgery on a wired plan and needs live idempotency
+    # re-verification (pack 193). The fourth (q3-rating/RatingFrequencyPolicy) is a pair of BYTE-
+    # IDENTICAL `Monthly` rows — a benign redundant row, not a wrong-row overwrite — deduped in
+    # pack 194. Allowlisted here so this offline-tooling guard lands green rather than turning the
+    # validator red repo-wide; enumerated by EXACT plan-relative path, deliberately NOT by object
+    # name, so the same object in a NEW plan with a real duplicate still produces the gating HIGH.
+    # Delete each entry as its fix lands.
+    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = frozenset({
+        "qb/en-US/qb-clm/ObjectStateValue.csv",
+        "qb/en-US/qb-clm/ObjectStateTransition.csv",
+        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv",
+        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv",
+    })
+
+    def _is_known_nonunique_single_field_key(self, csv_path: Path) -> bool:
+        """True if csv_path is one of the enumerated pre-existing non-unique single-field-key CSVs
+        (pack 116 / `_KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS`), matched by EXACT path relative to
+        datasets/sfdmu so only those specific files are exempt — a new plan with the same object
+        and a real duplicate still produces the gating HIGH."""
+        try:
+            rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
+        except (ValueError, AttributeError):
+            return False
+        return rel in self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS
+
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
         """Initialize the validator.
@@ -1937,11 +1970,17 @@ class SFDMUValidator:
                     self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
                     return
 
+                # Materialize the remaining rows once (CSVs here are small) so the single-field
+                # uniqueness check below can read a key column without a second pass over the file.
+                # `data_row_count` is computed over this list with the identical predicate it used
+                # against the live `reader`, so the count is unchanged.
+                rows = list(reader)
+
                 # Count data rows. csv.reader yields [] for a blank line, so a trailing
                 # newline or a blank separator row is NOT data — a row counts only if it has
                 # at least one non-whitespace field. (Otherwise `Id,Name\n\n` would report a
                 # phantom data row and slip past the header-only check below.)
-                data_row_count = sum(1 for row in reader if any((field or "").strip() for field in row))
+                data_row_count = sum(1 for row in rows if any((field or "").strip() for field in row))
 
                 self.log(f"  CSV has {len(headers)} columns, {data_row_count} data rows", level="DEBUG")
 
@@ -1997,6 +2036,21 @@ class SFDMUValidator:
                     else:
                         self.log(f"  Composite key column '{expected_composite_col}' found", level="DEBUG")
 
+                # The single-field mirror of the composite-key column check above (pack 116). A
+                # *composite* key matches on the tuple, so per-field duplicates are fine there; a
+                # *single-field* key matches on that one column, so its values must be unique or an
+                # Upsert silently matches — and overwrites — the wrong row. The re-keyed objects in
+                # #284's Bug-4 safe subset (ProductSellingModel/Pricebook2/AccountingPeriod →
+                # `Name`, etc.) are unique in the current data, but that is now a data-dependent
+                # invariant a future duplicate value can break with nothing to catch it; this is that
+                # catch. Gated like the composite check on `deleteOldData` (delete-then-insert never
+                # upsert-matches), plus on the operation resolving to a match-by-key write: Insert
+                # legitimately allows repeated values (it never matches a target), Delete/Readonly do
+                # not upsert. `$$`/`Id`/empty keys are skipped (legacy notation is flagged elsewhere;
+                # `Id` is the always-unique record id, not a data key).
+                self._validate_single_field_key_uniqueness(
+                    external_id, obj_config, headers, rows, obj_name, csv_path, result, pass_prefix)
+
         except Exception as e:
             result.add_issue(Issue(
                 severity=Severity.HIGH,
@@ -2004,6 +2058,74 @@ class SFDMUValidator:
                 message=f"{pass_prefix}Error reading CSV: {type(e).__name__}: {e}",
                 file_path=self._make_relative_path(csv_path)
             ))
+
+    def _validate_single_field_key_uniqueness(self, external_id: str, obj_config: dict,
+                                              headers: List[str], rows: List[list], obj_name: str,
+                                              csv_path: Path, result: ValidationResult,
+                                              pass_prefix: str):
+        """Report HIGH if a single-field externalId's values are not unique in the CSV.
+
+        The scope decisions live at the only call site (`_validate_csv_file`). Here is the how:
+        a single field is one with no ';' (a composite is exempt — it matches on the tuple), that
+        is not `Id`, not `$$`-notation, whose declaration is not `deleteOldData`, and whose
+        operation resolves to `upsert`/`update` — the writes that match a target record by this key.
+        A blank data row (all fields empty) is not a record, matching `data_row_count`'s own rule.
+        The key column must be present in the CSV for there to be values to compare; when it is
+        absent this check is silent (a missing key column is a different concern, out of scope).
+        """
+        if (not external_id or external_id == "Id" or ";" in external_id
+                or external_id.startswith("$$")
+                or self._is_js_truthy(obj_config.get("deleteOldData"))):
+            return
+        if self._resolve_operation(obj_config.get("operation")) not in ("upsert", "update"):
+            return
+        # `_split_external_id_fields` strips and drops empties; for a single-field key it yields
+        # exactly one field, or none for a whitespace-only key (skip that — it is malformed, not a
+        # uniqueness question).
+        key_fields = self._split_external_id_fields(external_id)
+        if len(key_fields) != 1:
+            return
+        key = key_fields[0]
+        if key not in headers:
+            return
+        idx = headers.index(key)
+
+        # Count values in the key column across data rows (blank separator rows excluded). Values
+        # are stripped so two rows differing only by surrounding whitespace count as the collision
+        # they are. A short row missing the column contributes an empty value.
+        counts: Dict[str, int] = {}
+        for row in rows:
+            if not any((field or "").strip() for field in row):
+                continue
+            value = (row[idx] if idx < len(row) else "").strip()
+            counts[value] = counts.get(value, 0) + 1
+        duplicates = {v: c for v, c in counts.items() if c > 1}
+        if not duplicates:
+            return
+
+        # Four shipped CSVs are non-unique today and are tracked for a proper fix elsewhere
+        # (packs 193/194); exempt exactly those files so this preventive guard does not turn the
+        # validator red repo-wide on pre-existing data. A new file with the same shape is NOT
+        # exempt — the allowlist is keyed on exact path. Debug-logged so the exemption is visible.
+        if self._is_known_nonunique_single_field_key(csv_path):
+            self.log(f"  {obj_name} single-field key '{key or external_id}' has known duplicates "
+                     f"(allowlisted, tracked for fix) — not flagged", level="DEBUG")
+            return
+
+        # One finding per object. Show the offending values (an empty value rendered as '') most-
+        # duplicated first, capped so a wholesale-broken column does not print a novel.
+        shown = sorted(duplicates.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+        summary = ", ".join(f"'{v}' ×{c}" for v, c in shown)
+        more = "" if len(duplicates) <= 5 else f" (+{len(duplicates) - 5} more)"
+        result.add_issue(Issue(
+            severity=Severity.HIGH,
+            object_name=obj_name,
+            message=(f"{pass_prefix}single-field externalId '{key}' has duplicate value(s) in the "
+                     f"CSV: {summary}{more}. SFDMU matches Upsert/Update records by this key, so a "
+                     f"repeated value silently matches — and overwrites — the wrong row. A "
+                     f"single-field externalId must be unique in the CSV."),
+            file_path=self._make_relative_path(csv_path)
+        ))
 
     def _normalize_header(self, header: str) -> str:
         """Normalize CSV header (strip BOM, quotes, whitespace).
