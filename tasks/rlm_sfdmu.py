@@ -188,9 +188,12 @@ class LoadSFDMUData(SFDXBaseTask):
             # matcher — the same rule the SFDMU validator enforces. SFDMU builds the path it
             # reads from the pass index (always canonical), so a loose `startswith` here would
             # copy such a directory into source/ as dead weight SFDMU never reads (pack 161,
-            # finding 4).
+            # finding 4). Also skip `object-set-0`: the matcher admits it (returns 0) so the
+            # validator can report it as an out-of-range pass, but object sets are 1-based, so
+            # for this sync it is one more directory SFDMU never reads — copying it would
+            # create a dead `source/object-set-0/`.
             set_number = sfdmu_export.object_set_dir_number(name)  # 1-based, or None
-            if set_number is None:
+            if set_number is None or set_number < 1:
                 continue
             src_set = os.path.join(objectset_source_dir, name)
             if not os.path.isdir(src_set):

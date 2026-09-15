@@ -217,7 +217,13 @@ def resolve_operation(value) -> Optional[str]:
 # source/ (the runtime sync in tasks/rlm_sfdmu.py). `object-set-0` is admitted here so
 # callers can range-check it and report it through their own out-of-range path rather
 # than as a name error (it's the likely 1-based-vs-0-based typo).
-_OBJECT_SET_DIR_RE = re.compile(r"object-set-(0|[1-9]\d*)")
+#
+# `re.ASCII` is required: without it Python's `\d` matches Unicode decimal digits
+# (and `int()` parses them), so `object-set-1١` would match and resolve to 11 — but
+# SFDMU builds names from JS `String(index + 1)`, which is ASCII-only, so no such
+# directory is ever a real pass. Restrict `\d` to `[0-9]` so a Unicode-digit name is
+# rejected as non-canonical, matching what SFDMU can actually read.
+_OBJECT_SET_DIR_RE = re.compile(r"object-set-(0|[1-9]\d*)", re.ASCII)
 
 
 def object_set_dir_number(name) -> Optional[int]:

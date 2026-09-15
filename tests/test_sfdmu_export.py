@@ -140,6 +140,10 @@ check("object-set-1-backup -> None (trailing suffix, not anchored)",
 check("object-set-01 -> None (leading zero)", se.object_set_dir_number("object-set-01"), None)
 check("object-set- -> None (no number)", se.object_set_dir_number("object-set-"), None)
 check("object-set-1x -> None (trailing non-digit)", se.object_set_dir_number("object-set-1x"), None)
+# re.ASCII: \d must NOT match Unicode digits — SFDMU builds names from JS String(index+1),
+# always ASCII, so object-set-1<U+0661> is a name it never reads (would parse as 11 without it).
+check("object-set-1١ -> None (Arabic-Indic digit, ASCII-only \\d)",
+      se.object_set_dir_number("object-set-1١"), None)
 check("source -> None (unrelated dir)", se.object_set_dir_number("source"), None)
 check("empty string -> None", se.object_set_dir_number(""), None)
 check("non-string (None) -> None, not a crash", se.object_set_dir_number(None), None)
