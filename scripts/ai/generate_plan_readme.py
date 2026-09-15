@@ -135,14 +135,17 @@ def generate_block(plan_dir: str) -> str:
     #     skipped). Counting the sentinel would note a duplicate the validator never gates.
     #     That sentinel is the only non-object key object_name() emits, so its prefix
     #     identifies exactly the dropped set.
-    same_pass_counts: dict[tuple[str, int], int] = {}
+    # Keyed case-INSENSITIVELY, matching the validator: Salesforce object API names are
+    # case-insensitive, so `Widget__c` and `widget__c` in one pass are one target object
+    # loaded twice. The value lists the exact casings seen for display.
+    same_pass_counts: dict[tuple[str, int], list[str]] = {}
     for name, variants in plan.items():
         is_unparseable = name.startswith("Unparseable(")
         for variant in variants:
             row_num += 1
             pass_no = variant["pass"]
             if not variant["excluded"] and not is_unparseable:
-                same_pass_counts[(name, pass_no)] = same_pass_counts.get((name, pass_no), 0) + 1
+                same_pass_counts.setdefault((name.lower(), pass_no), []).append(name)
             # load_plan() already resolves "absent key" to "readonly" and a present-
             # but-unresolvable value to a distinct "Unresolvable(...)" sentinel — never
             # "" — so there is no separate absent-key fallback needed here.
@@ -190,9 +193,12 @@ def generate_block(plan_dir: str) -> str:
     # cell (only the leading # differs). Surface it explicitly — the underlying plan is a
     # gating HIGH in validate_sfdmu_v5_datasets.py (SFDMU loads the object once per
     # declaration and resolves lookups to the last), so the note points there.
-    dups = sorted((name, pass_no, n) for (name, pass_no), n in same_pass_counts.items() if n > 1)
+    dups = sorted((sorted(set(names))[0], pass_no, len(names), sorted(set(names)))
+                  for (_lower, pass_no), names in same_pass_counts.items() if len(names) > 1)
     if dups:
-        listed = "; ".join(f"{_escape_cell(name)} (Pass {pass_no} ×{n})" for name, pass_no, n in dups)
+        listed = "; ".join(
+            f"{_escape_cell('/'.join(exact) if len(exact) > 1 else display)} (Pass {pass_no} ×{n})"
+            for display, pass_no, n, exact in dups)
         notes = ("\n> **⚠ Same-pass duplicate declaration(s):** " + listed + ". "
                  "SFDMU loads the object once per declaration and resolves lookups to the "
                  "last — almost certainly an authoring mistake; see "

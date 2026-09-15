@@ -1195,6 +1195,15 @@ SAME_PASS_DUPLICATE = [
      False, [i for i in issues([[{"query": "not a query", "operation": "Upsert", "externalId": "Name"},
                                  {"query": "not a query", "operation": "Upsert", "externalId": "Name"}]])
              if "silently-doubled" in i]),
+    # Case-variant declarations key to SEPARATE _all_pass_configs buckets (case-sensitive, for
+    # CSV-path resolution, pack 163), but Salesforce object API names are case-insensitive, so
+    # `Widget__c` and `widget__c` are one target object loaded twice. _check_same_pass_duplicates
+    # groups case-insensitively to catch it. (severity=HIGH so widget__c's own missing-CSV Critical
+    # is filtered out of what this asserts.)
+    ("case-variant declarations (Widget__c + widget__c) in one pass are flagged — one target object",
+     True, [i for i in issues([[UPSERT, dict(UPSERT, query="SELECT Id, Name FROM widget__c")]],
+                              {"Widget__c.csv": HEADER}, severity=V.Severity.HIGH)
+            if "silently-doubled" in i and "case-insensitive" in i]),
 ]
 
 

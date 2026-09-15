@@ -262,6 +262,18 @@ def _case_unparseable_duplicate_not_noted():
         return "Same-pass duplicate" not in block
 
 
+def _case_case_variant_duplicate_noted():
+    """`Widget__c` and `widget__c` in one pass are one Salesforce target object (case-insensitive
+    API names) loaded twice. The generator groups the note case-insensitively to match the
+    validator's HIGH, and names both casings (PR #436 review, Codex comment 4018188326)."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [
+            UPSERT_WIDGET, dict(UPSERT_WIDGET, query="SELECT Id FROM widget__c")]}]},
+            {"Widget__c.csv": _csv(3)})
+        block = G.generate_block(str(plan))
+        return ("Same-pass duplicate" in block, "Widget__c/widget__c" in block)
+
+
 def _case_optional_csv_roundtrip(operation, excluded=False):
     """Preserve optional-file documentation while checking writable pass counts."""
     with tempfile.TemporaryDirectory() as td:
@@ -340,6 +352,8 @@ GENERATE_BLOCK = [
      True, _case_excluded_duplicate_not_noted()),
     ("two unparseable-query declarations in one pass trigger no note — the validator drops them, so no HIGH to cite",
      True, _case_unparseable_duplicate_not_noted()),
+    ("case-variant declarations in one pass are noted case-insensitively, naming both casings",
+     (True, True), _case_case_variant_duplicate_noted()),
 ]
 
 
