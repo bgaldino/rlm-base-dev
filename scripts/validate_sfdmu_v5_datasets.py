@@ -2050,8 +2050,9 @@ class SFDMUValidator:
                 # catch. Gated like the composite check on `deleteOldData` (delete-then-insert never
                 # upsert-matches), plus on the operation resolving to a match-by-key write: Insert
                 # legitimately allows repeated values (it never matches a target), Delete/Readonly do
-                # not upsert. `$$`/`Id`/empty keys are skipped (legacy notation is flagged elsewhere;
-                # `Id` is the always-unique record id, not a data key).
+                # not upsert. `$$`/composite/empty keys are skipped (composites match on the tuple;
+                # `$$` legacy notation is flagged elsewhere). `Id` IS checked: its uniqueness is a
+                # schema property, not a guarantee about this CSV, which can still repeat an Id.
                 self._validate_single_field_key_uniqueness(
                     external_id, obj_config, headers, rows, obj_name, csv_path, result, pass_prefix)
 
