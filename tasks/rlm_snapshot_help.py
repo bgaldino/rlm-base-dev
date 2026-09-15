@@ -46,11 +46,11 @@ MODES
 REQUIREMENTS
 
 This project uses pyenv + a project-local `.venv` and pipx-installed CumulusCI
-(see README §"macOS Environment Setup"). Playwright must be installed into
+(see docs/guides/local-installation.md, "macOS Environment Setup"). Playwright must be installed into
 whichever Python environment runs the task — CCI's interpreter, not the
 calling shell's.
 
-If CCI is installed via pipx (the README-recommended path, which uses
+If CCI is installed via pipx (the local-installation guide's recommended path, which uses
 the standard ~/.local/pipx/venvs/cumulusci/ location):
 
     pipx inject cumulusci playwright
@@ -71,7 +71,7 @@ above.
     #   playwright install chromium
 
 If CCI is installed via `python -m pip install cumulusci` inside the project
-venv (the alternative path in the README):
+venv (the alternative path in the local-installation guide):
 
     source .venv/bin/activate
     python -m pip install playwright
@@ -238,7 +238,7 @@ Playwright is required for this task. Install it into the SAME Python
 environment that runs CCI — a plain `pip install playwright` only works
 if CCI was installed via `pip` in that environment.
 
-For the recommended pipx-installed CCI (per the project README, which
+For the recommended pipx-installed CCI (per the local-installation guide, which
 uses the standard ~/.local/pipx/venvs/cumulusci/ path):
 
     pipx inject cumulusci playwright

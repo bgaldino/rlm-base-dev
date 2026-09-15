@@ -14,14 +14,14 @@ Robot Framework tests that configure Salesforce Setup page options that cannot b
 
 ## Prerequisites
 
-Install and verify prerequisites in the **main README**: [Setup for headless robot runs](../../../README.md#setup-for-headless-robot-runs). The main README is the single source of truth for:
+Install and verify prerequisites in the **local installation guide**: [Setup for headless robot runs](../../../../docs/guides/local-installation.md#setup-for-headless-robot-runs). That guide is the single source of truth for:
 
 - **Python packages:** Robot Framework, SeleniumLibrary, webdriver-manager, urllib3 ≥ 2.6.3
-- **Chrome or Chromium:** Required for headless runs (macOS, Linux, CI install steps in main README)
+- **Chrome or Chromium:** Required for headless runs (macOS, Linux, CI install steps in the local installation guide)
 - **ChromeDriver:** Provided by webdriver-manager at runtime, or install on PATH
 - **Salesforce CLI:** For `sf org open --url-only` authenticated sessions
 
-Run `cci task run validate_setup` to verify all dependencies. Tests run headless by default. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 ≥ 2.6.3 is installed; see the main README [Troubleshooting](../../../README.md#troubleshooting).
+Run `cci task run validate_setup` to verify all dependencies. Tests run headless by default. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 ≥ 2.6.3 is installed; see [Troubleshooting](../../../../docs/guides/org-operations.md#troubleshooting).
 
 ## Running Tests
 

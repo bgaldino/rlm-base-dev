@@ -1,6 +1,6 @@
 # Constraints Setup and Deployment Order
 
-This document describes the `prepare_constraints` flow, its dependencies, and how constraint model data is loaded. For full details on the CML constraint utility, see the [Constraints Utility Guide](../datasets/constraints/README.md).
+This document describes the `prepare_constraints` flow, its dependencies, and how constraint model data is loaded. For full details on the CML constraint utility, see the [Constraints Utility Guide](../../datasets/constraints/README.md).
 
 ## Flow Order (prepare_constraints)
 
@@ -66,7 +66,7 @@ Each directory contains:
 - CSV files for ExpressionSet, ExpressionSetDefinitionVersion, ExpressionSetDefinitionContextDefinition, ExpressionSetConstraintObj, Product2, ProductClassification, ProductRelatedComponent
 - A `blobs/` subdirectory with the ConstraintModel blob — **plain-text CML**, uploaded verbatim (not compiled)
 
-For detailed information on the data plan format, export/import workflows, and polymorphic resolution, see the [Constraints Utility Guide](../datasets/constraints/README.md).
+For detailed information on the data plan format, export/import workflows, and polymorphic resolution, see the [Constraints Utility Guide](../../datasets/constraints/README.md).
 
 ## TransactionProcessingType Data Plan
 
@@ -113,7 +113,7 @@ Before constraint data can be imported, three Revenue Settings must be configure
 2. **Set Up Asset Context for Product Configurator** must be set (default: `RLM_AssetContext`)
 3. **Set Up Configuration Rules and Constraints with Constraints Engine** toggle must be enabled
 
-The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](../README.md#installation)).
+The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](local-installation.md#setup-for-headless-robot-runs)).
 
 The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (step 24 in `prepare_rlm_org`) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
 

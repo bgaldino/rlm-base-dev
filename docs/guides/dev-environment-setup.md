@@ -15,8 +15,9 @@ ends up with the same layered structure — not the same exact patch versions.
 
 > **Audience:** new contributors bootstrapping a workstation, or existing
 > contributors replicating the setup on a second machine. For the very first
-> install steps (Homebrew, git, nvm, pyenv), follow the README's
-> *macOS Environment Setup* (Steps 1–11). This doc describes the **target
+> install steps (Homebrew, git, nvm, pyenv), follow the
+> [local installation guide](local-installation.md#macos-environment-setup-homebrew--pyenv--nvm)
+> (Steps 1–11). This doc describes the **target
 > architecture** and **ongoing maintenance** once those are in place.
 
 ---
@@ -234,7 +235,7 @@ The script handles:
    venv's python symlink
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
-   is **incompatible**; see README's *Note on setuptools*. Note CI
+   is **incompatible**; see the [local installation guide](local-installation.md#step-6--install-cumulusci), *Note on setuptools*. Note CI
    adds `<77` as well (`.github/workflows/prepare-rlm-org.yml`) because
    it's pinned to CCI 4.8.1; modern CCI 4.10+ works with setuptools
    77+ so this guide doesn't enforce the upper bound.
@@ -258,7 +259,7 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 
 For a clean macOS workstation, in order:
 
-1. **System bootstrap** — follow `README.md` § *macOS Environment Setup*
+1. **System bootstrap** — follow the [local installation guide](local-installation.md#macos-environment-setup-homebrew--pyenv--nvm), *macOS Environment Setup*,
    Steps 1–11. That installs Homebrew, git, gh, GCM, nvm + Node LTS,
    pyenv + Python 3.13.x, pipx, CumulusCI, sf CLI, and SFDMU.
 2. **Add direnv** — `brew install direnv`.

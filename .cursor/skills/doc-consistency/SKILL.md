@@ -10,9 +10,9 @@ review-loop fixes ("fix stale description", "update README task name",
 1. **If you changed `cumulusci.yml`** — run `python scripts/ai/generate_cci_reference.py` and commit the output. Verify `git diff` on `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` shows only your intended changes.
 2. **If you renamed or added a CCI task** — grep `README.md`, `AGENTS.md`, `docs/`, and `.cursor/skills/` for the **old name**; update or remove every stale reference.
 3. **If you changed an SFDMU plan** (`export.json`, CSVs, objects, operations) — update the plan's `README.md` in the **same commit**, then run `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>` to confirm the README's object table and `# N records` listings still match the plan (record counts, operations, externalIds, object presence) — `--strict` is required to also gate on operation/externalId mismatches and missing-object rows, which are WARN-level and pass by exit code without it. Also run `python scripts/validate_sfdmu_v5_datasets.py`.
-4. **If you changed feature flags** (added, removed, renamed, changed default) — update the flag table in `README.md` and verify `feature-flags.md` was regenerated (rule 1).
-5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the `README.md` Custom Tasks table, and any `docs/` guide that names it.
-6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and the `README.md` troubleshooting section.
+4. **If you changed feature flags** (added, removed, renamed, changed default) — verify the generated `feature-flags.md` was regenerated (rule 1), and update affected setup or operations guidance in `docs/guides/`.
+5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the generated CCI task reference, and any `docs/` guide that names it.
+6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and `docs/guides/org-operations.md` troubleshooting.
 7. **If you created a new skill or sub-file** — follow `.cursor/skills/skill-authoring/SKILL.md`: add top-level skills to `AGENTS.md`, `.cursor/skills/README.md`, and `.claude/skill-manifest.yml` when cross-repo discoverability applies; register sub-files in the parent `SKILL.md`, which is their only registry — `AGENTS.md` carries no second-level index.
 8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py` and then `git diff` to confirm only intended changes appear. Run `python scripts/validate_sfdmu_v5_datasets.py` — expect **0 Critical, 0 High** on a clean tree (the `mfg/en-US/mfg-multicurrency` plan that used to fail this check was removed, pack 110) and treat any Critical or High as new.
 
@@ -31,20 +31,20 @@ The core lookup: **when X changes, verify Y**.
 
 | What changed | Docs to verify or update |
 | ------------ | ------------------------ |
-| `cumulusci.yml` (tasks, flows, flags) | Generated refs (run script), `README.md` task/flag tables, `AGENTS.md` Common Workflows |
-| `tasks/*.py` (class, options, description) | `cumulusci.yml` description, `README.md` Custom Tasks table, relevant `docs/` guide |
+| `cumulusci.yml` (tasks, flows, flags) | Generated refs (run script), affected `docs/guides/` workflows, `AGENTS.md` Common Workflows |
+| `tasks/*.py` (class, options, description) | `cumulusci.yml` description, generated task reference, relevant `docs/` guide |
 | `datasets/sfdmu/**/export.json` or CSVs | Plan `README.md` in same directory, then `check_plan_readme_consistency.py` (README ↔ plan) **and** the SFDMU v5 validator (plan compliance) |
-| Feature flag add/rename/default change | `README.md` Feature Flags tables, `AGENTS.md` edition flags, generated `feature-flags.md` |
-| `robot/**` (new suite, renamed keyword) | `robot-testing/SKILL.md` task tables, `patterns.md`, `README.md` troubleshooting |
+| Feature flag add/rename/default change | Generated `feature-flags.md`, `AGENTS.md` edition flags, affected `docs/guides/` guidance |
+| `robot/**` (new suite, renamed keyword) | `robot-testing/SKILL.md` task tables, `patterns.md`, `docs/guides/org-operations.md` troubleshooting |
 | `templates/` or UX assembly logic | `ux-assembly-retrieve.md`, `docs/features/dynamic-ux-assembly.md` |
 | New `.cursor/skills/` file | Parent `SKILL.md` sub-file list (the only registry), and `.cursor/skills/README.md` Skill Router for a new *top-level* skill |
-| `orgs/*.json` (scratch org definitions) | `README.md` Quick Start if it names specific configs |
+| `orgs/*.json` (scratch org definitions) | `docs/guides/org-operations.md` Quick Start if it names specific configs |
 | `scripts/apex/*.apex` | `troubleshooting/SKILL.md` if it references the script |
 | `.forceignore` | No doc update, but verify retrieve/deploy intent is consistent |
 | `scripts/ai/*.py` | The skill that owns the script (see `AGENTS.md` **Script Reference** for the owner). Only a brand-new script *directory* earns an `AGENTS.md` row |
 | **New** `scripts/*.py` (top level) | `AGENTS.md` Repository Layout — top-level utilities are easy to add and never document |
 | **New** `scripts/apex/*.apex` | `troubleshooting/SKILL.md` (if it diagnoses a failure) and `.cursor/rules/apex-scripts.mdc` (if it establishes a pattern) |
-| **New** `docs/guides/*.md` | `README.md` **Primary Guides** table — an unindexed guide is invisible |
+| **New** `docs/guides/*.md` | Guide tables in `docs/index.md` (linked from `README.md`) — an unindexed guide is invisible |
 | `unpackaged/**/classes/*.cls` behavior change | `docs/references/revenue-cloud-permissions.md` if the class is permission-gated — especially when its **destructive scope** grows |
 | A **product/SKU added** to any dataset | *Every* plan CSV that carries that SKU, and each of their READMEs — see below |
 | `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
@@ -176,7 +176,7 @@ Understanding where truth lives prevents duplication drift.
 | Generated CCI refs | `.cursor/skills/cci-orchestration/tasks-reference.md`, `.cursor/skills/cci-orchestration/flows-reference.md`, `.cursor/skills/cci-orchestration/feature-flags.md` | `python scripts/ai/generate_cci_reference.py` |
 | SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (e.g. `datasets/sfdmu/qb/en-US/*/README.md`, `datasets/sfdmu/mfg/README.md`, `datasets/sfdmu/procedure-plans/README.md`) | Must match the plan's `export.json` + CSVs — enforce with `python scripts/ai/check_plan_readme_consistency.py --strict` (counts, operations, externalIds, object presence) |
 | Agent instructions | `AGENTS.md` (`CLAUDE.md` is a symlink) | Single source; edit `AGENTS.md` only |
-| Human setup / reference | `README.md` | Manual — task tables, flag tables, troubleshooting |
+| Human setup / reference | `README.md`, `docs/index.md`, `docs/guides/` | Manual — skills-first entry point, navigation, installation and operations; task/flow/flag tables remain generated |
 | Skill files | `.cursor/skills/*/SKILL.md` + sub-files | Manual — cross-references to task names, paths |
 | Guides and features | `docs/guides/`, `docs/features/`, `docs/references/` | Manual prose; watch for stale task/flow names |
 | Copilot instructions | `.github/copilot-instructions.md` | Pointer only — keep thin, link to `AGENTS.md` |
