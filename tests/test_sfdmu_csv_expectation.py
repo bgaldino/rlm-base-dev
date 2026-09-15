@@ -1155,6 +1155,34 @@ MERGED_CONFIG = [
 ]
 
 
+# `apiVersion` was presence-checked only, so a present-but-unusable value passed (todo pack 152 —
+# "the validator still trusts value types"). SFDMU interpolates it into every query URL as the
+# `vXX.0` path segment, so a `null`, a number, or a list is as broken as an absent key. The float
+# case is why this matters in practice: `68.0` in JSON decodes to a Python float, not the `"68.0"`
+# string SFDMU needs, and slipped straight through the old `"apiVersion" not in data` gate.
+API_VERSION_TYPE = [
+    ("a null apiVersion is reported, not accepted as merely present",
+     True, [i for i in raw_issues({"apiVersion": None, "objectSets": [{"objects": [UPSERT]}]})
+            if "'apiVersion' is NoneType" in i]),
+    ("a numeric apiVersion is reported (68.0 decodes to a float, not the \"68.0\" string)",
+     True, [i for i in raw_issues({"apiVersion": 68.0, "objectSets": [{"objects": [UPSERT]}]})
+            if "'apiVersion' is float" in i]),
+    ("a list apiVersion is reported",
+     True, [i for i in raw_issues({"apiVersion": ["68.0"], "objectSets": [{"objects": [UPSERT]}]})
+            if "'apiVersion' is list" in i]),
+    # The presence check the type branch replaces still fires — an absent key is still a finding.
+    ("a missing apiVersion is still reported (presence check preserved)",
+     True, [i for i in raw_issues({"objectSets": [{"objects": [UPSERT]}]})
+            if "Missing 'apiVersion'" in i]),
+    # Control: a well-formed string apiVersion yields no apiVersion finding of either kind, so the
+    # positives above cannot be passing on some unrelated apiVersion-mentioning message.
+    ("a string apiVersion is silent — control for the cases above",
+     False, [i for i in raw_issues({"apiVersion": "68.0", "objectSets": [{"objects": [UPSERT]}]},
+                                   {"Widget__c.csv": HEADER})
+             if "apiVersion" in i]),
+]
+
+
 # The same object declared twice within ONE pass's `objects` array (todo pack 165). SFDMU 5.8.0
 # does not reject it: `MigrationJob._createTaskMap` keys the task map by ScriptObject *instance*, so
 # the object loads once PER declaration (in array order), while lookup resolution keys by *name*
@@ -1883,6 +1911,7 @@ def main() -> int:
                   DELETE_EXTERNAL_ID_SKIP),
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
+                 ("apiVersion is type-checked, not merely presence-checked", API_VERSION_TYPE),
                  ("an object declared more than once within one pass is a gating HIGH; once-per-pass "
                   "across passes is not", SAME_PASS_DUPLICATE),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),

@@ -288,6 +288,20 @@ from the merged config: the validator's own `_parse_object_configs` keeps only t
 declaration, so an object Readonly or `excluded` in pass 1 and `Upsert` in pass 2 looks exempt when
 it is not — SFDMU itself processes each pass independently at runtime.
 
+### Decision record — `excluded`/`deleteOldData` are read with **JS** truthiness, not Python's
+
+`excluded`, `deleteOldData`, and top-level `useSeparatedCSVFiles` are booleans SFDMU reads with a
+plain JS truthiness test (`if (object.excluded) …`). The validator therefore reads them through
+`sfdmu_export.is_js_truthy`, **not** a bare `if cfg.get("excluded")` — the two disagree on
+containers. `[]` and `{}` are *falsy* in Python but *truthy* in JS, so a declaration like
+`"excluded": []` is skipped by SFDMU (JS sees it as live-excluded) while a naive Python read would
+treat the object as still writable and demand a CSV — a false missing-CSV Critical. `is_js_truthy`
+returns `True` for any list/dict and defers to `bool()` otherwise, matching what SFDMU actually does
+at runtime. Do not "simplify" a call site back to a plain Python truthiness check; the divergence is
+the whole point (pinned in `tests/test_sfdmu_export.py`). By the same rule the validator does **not**
+trust value *types* elsewhere either: a present-but-wrong-type `apiVersion` (`null`, a number, a
+list) is reported like a missing one, since SFDMU needs the `"68.0"` **string** to build query URLs.
+
 ## Which empty-CSV remedy
 
 A zero-byte or header-only CSV has three possible fixes, and the validator's own message ("Add
