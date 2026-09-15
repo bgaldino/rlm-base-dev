@@ -283,24 +283,28 @@ class SFDMUValidator:
     # pack 194. Allowlisted here so this offline-tooling guard lands green rather than turning the
     # validator red repo-wide; enumerated by EXACT plan-relative path, deliberately NOT by object
     # name, so the same object in a NEW plan with a real duplicate still produces the gating HIGH.
-    # Delete each entry as its fix lands.
-    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = frozenset({
-        "qb/en-US/qb-clm/ObjectStateValue.csv",
-        "qb/en-US/qb-clm/ObjectStateTransition.csv",
-        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv",
-        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv",
-    })
+    # The exemption is further scoped to the *specific* single-field key that is non-unique today:
+    # if one of these plans is later re-keyed to a different single field, or grows a duplicate in a
+    # different key column, the guard fires again — the allowlist protects only the known collision,
+    # not the file wholesale. Delete each entry as its fix lands.
+    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
+        "qb/en-US/qb-clm/ObjectStateValue.csv": "Name",
+        "qb/en-US/qb-clm/ObjectStateTransition.csv": "Name",
+        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": "Name",
+        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": "RatingPeriod",
+    }
 
-    def _is_known_nonunique_single_field_key(self, csv_path: Path) -> bool:
-        """True if csv_path is one of the enumerated pre-existing non-unique single-field-key CSVs
-        (pack 116 / `_KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS`), matched by EXACT path relative to
-        datasets/sfdmu so only those specific files are exempt — a new plan with the same object
-        and a real duplicate still produces the gating HIGH."""
+    def _is_known_nonunique_single_field_key(self, csv_path: Path, key: str) -> bool:
+        """True if (csv_path, key) is one of the enumerated pre-existing non-unique single-field-key
+        CSVs (pack 116 / `_KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS`), matched by EXACT path relative
+        to datasets/sfdmu AND the exact key field. Only those specific files exempt only their known
+        key — a new plan with the same object, or one of these plans re-keyed to a different single
+        field with a duplicate, still produces the gating HIGH."""
         try:
             rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
         except (ValueError, AttributeError):
             return False
-        return rel in self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS
+        return self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS.get(rel) == key
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
@@ -2067,13 +2071,16 @@ class SFDMUValidator:
 
         The scope decisions live at the only call site (`_validate_csv_file`). Here is the how:
         a single field is one with no ';' (a composite is exempt — it matches on the tuple), that
-        is not `Id`, not `$$`-notation, whose declaration is not `deleteOldData`, and whose
-        operation resolves to `upsert`/`update` — the writes that match a target record by this key.
+        is not `$$`-notation, whose declaration is not `deleteOldData`, and whose operation resolves
+        to `upsert`/`update` — the writes that match a target record by this key. `Id` is NOT exempt:
+        uniqueness of `Id` is a property of the org schema, not of these CSV contents, and a
+        hand-edited or malformed CSV can still repeat an `Id`, which upserts two rows onto the same
+        record and silently overwrites one — exactly the collision this guard exists to catch.
         A blank data row (all fields empty) is not a record, matching `data_row_count`'s own rule.
         The key column must be present in the CSV for there to be values to compare; when it is
         absent this check is silent (a missing key column is a different concern, out of scope).
         """
-        if (not external_id or external_id == "Id" or ";" in external_id
+        if (not external_id or ";" in external_id
                 or external_id.startswith("$$")
                 or self._is_js_truthy(obj_config.get("deleteOldData"))):
             return
@@ -2107,7 +2114,7 @@ class SFDMUValidator:
         # (packs 193/194); exempt exactly those files so this preventive guard does not turn the
         # validator red repo-wide on pre-existing data. A new file with the same shape is NOT
         # exempt — the allowlist is keyed on exact path. Debug-logged so the exemption is visible.
-        if self._is_known_nonunique_single_field_key(csv_path):
+        if self._is_known_nonunique_single_field_key(csv_path, key):
             self.log(f"  {obj_name} single-field key '{key or external_id}' has known duplicates "
                      f"(allowlisted, tracked for fix) — not flagged", level="DEBUG")
             return

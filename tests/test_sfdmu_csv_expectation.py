@@ -1227,11 +1227,19 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
                                   "deleteOldData": True}]],
                                {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
              if "duplicate value" in i]),
-    # `Id` is the always-unique record id, not a data key — skipped even if the column repeats.
-    ("a repeated externalId:'Id' value is NOT flagged (Id is not a data key)",
+    # `Id` uniqueness is a property of the org schema, not of these CSV contents — a hand-edited CSV
+    # can still repeat an Id, upserting two rows onto the same record. So `Id` is in scope and a
+    # repeated Id value IS flagged.
+    ("a repeated externalId:'Id' value IS flagged (the CSV can still duplicate an Id)",
+     True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Id"}]],
+                              {"Widget__c.csv": "Id\n1\n1\n"})
+            if "duplicate value" in i]),
+    # Control: unique Id values are silent, so the Id positive is not firing spuriously.
+    ("unique externalId:'Id' values are silent — control",
      False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
                                   "externalId": "Id"}]],
-                               {"Widget__c.csv": "Id\n1\n1\n"})
+                               {"Widget__c.csv": "Id\n1\n2\n"})
              if "duplicate value" in i]),
     # The key field absent from the CSV header leaves no values to compare — silent (a missing key
     # column is a different concern, out of this check's scope).
@@ -1264,6 +1272,16 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
          [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
             "externalId": "Name"}]],
          {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"})
+         if "duplicate value" in i]),
+    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the exempt
+    # qb-clm ObjectStateValue path is allowlisted for key "Name" only. Re-keyed to a DIFFERENT single
+    # field ("Code") with a duplicate, the collision is unknown and still fires HIGH.
+    ("an allowlisted path re-keyed to a DIFFERENT single field with a duplicate still fires HIGH",
+     True, [i for i in deferral_issues(
+         "qb/en-US/qb-clm",
+         [[{"query": "SELECT Id, Code FROM ObjectStateValue", "operation": "Upsert",
+            "externalId": "Code"}]],
+         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"})
          if "duplicate value" in i]),
 ]
 
