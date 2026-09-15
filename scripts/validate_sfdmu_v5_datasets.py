@@ -283,28 +283,36 @@ class SFDMUValidator:
     # pack 194. Allowlisted here so this offline-tooling guard lands green rather than turning the
     # validator red repo-wide; enumerated by EXACT plan-relative path, deliberately NOT by object
     # name, so the same object in a NEW plan with a real duplicate still produces the gating HIGH.
-    # The exemption is further scoped to the *specific* single-field key that is non-unique today:
-    # if one of these plans is later re-keyed to a different single field, or grows a duplicate in a
-    # different key column, the guard fires again — the allowlist protects only the known collision,
-    # not the file wholesale. Delete each entry as its fix lands.
+    # The exemption is scoped three ways so it grandfathers only the exact collision present today,
+    # never a future regression in the same file: by EXACT plan-relative path (a NEW plan with the
+    # same object still produces the gating HIGH — deliberately not by object name); by the specific
+    # single-field key non-unique today (a re-key to a different single field fires again); and by
+    # the exact *count* of the collision — the value below each entry is the expected number of
+    # EXTRA duplicate rows (sum of count-1 over duplicated values). If one of these files gains a new
+    # duplicate value, OR another copy of an existing one, the observed count no longer matches and
+    # the guard fires, so a regression cannot hide behind the allowlist while packs 193/194 are
+    # pending. Delete each entry as its fix lands.
     _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
-        "qb/en-US/qb-clm/ObjectStateValue.csv": "Name",
-        "qb/en-US/qb-clm/ObjectStateTransition.csv": "Name",
-        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": "Name",
-        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": "RatingPeriod",
+        "qb/en-US/qb-clm/ObjectStateValue.csv": ("Name", 11),
+        "qb/en-US/qb-clm/ObjectStateTransition.csv": ("Name", 20),
+        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": ("Name", 17),
+        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", 1),
     }
 
-    def _is_known_nonunique_single_field_key(self, csv_path: Path, key: str) -> bool:
-        """True if (csv_path, key) is one of the enumerated pre-existing non-unique single-field-key
-        CSVs (pack 116 / `_KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS`), matched by EXACT path relative
-        to datasets/sfdmu AND the exact key field. Only those specific files exempt only their known
-        key — a new plan with the same object, or one of these plans re-keyed to a different single
-        field with a duplicate, still produces the gating HIGH."""
+    def _known_nonunique_expected_extra(self, csv_path: Path, key: str) -> Optional[int]:
+        """The frozen expected count of EXTRA duplicate rows for (csv_path, key) if it is one of the
+        enumerated pre-existing non-unique single-field-key CSVs (pack 116), else None. Matched by
+        EXACT path relative to datasets/sfdmu AND the exact key field, so a new plan with the same
+        object, or one of these plans re-keyed to a different single field, is not exempt. The caller
+        suppresses only when the file's OBSERVED extra-duplicate count equals this frozen value."""
         try:
             rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
         except (ValueError, AttributeError):
-            return False
-        return self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS.get(rel) == key
+            return None
+        entry = self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS.get(rel)
+        if entry is None or entry[0] != key:
+            return None
+        return entry[1]
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
@@ -2100,12 +2108,18 @@ class SFDMUValidator:
 
         # Count values in the key column across data rows (blank separator rows excluded). Values
         # are stripped so two rows differing only by surrounding whitespace count as the collision
-        # they are. A short row missing the column contributes an empty value.
+        # they are. A BLANK key value is skipped, not counted as a shared '' collision: SFDMU does
+        # not add a blank/null external Id to its matching map, so blank-key rows never match — and
+        # so never overwrite — a target (Upsert inserts them, Update skips them). A missing key value
+        # is thus not the wrong-row-overwrite this check reports; a short row missing the column
+        # contributes such a blank and is likewise skipped.
         counts: Dict[str, int] = {}
         for row in rows:
             if not any((field or "").strip() for field in row):
                 continue
             value = (row[idx] if idx < len(row) else "").strip()
+            if not value:
+                continue
             counts[value] = counts.get(value, 0) + 1
         duplicates = {v: c for v, c in counts.items() if c > 1}
         if not duplicates:
@@ -2113,15 +2127,21 @@ class SFDMUValidator:
 
         # Four shipped CSVs are non-unique today and are tracked for a proper fix elsewhere
         # (packs 193/194); exempt exactly those files so this preventive guard does not turn the
-        # validator red repo-wide on pre-existing data. A new file with the same shape is NOT
-        # exempt — the allowlist is keyed on exact path. Debug-logged so the exemption is visible.
-        if self._is_known_nonunique_single_field_key(csv_path, key):
-            self.log(f"  {obj_name} single-field key '{key or external_id}' has known duplicates "
-                     f"(allowlisted, tracked for fix) — not flagged", level="DEBUG")
-            return
+        # validator red repo-wide on pre-existing data. The exemption is pinned to the EXACT frozen
+        # collision — this (path, key) AND the expected count of extra duplicate rows — so a new
+        # duplicate introduced into an allowlisted file before its fix lands is NOT masked: the
+        # observed count diverges and the guard falls through to report. A new file with the same
+        # object/key is never exempt (keyed on exact path). Debug-logged so the exemption is visible.
+        expected_extra = self._known_nonunique_expected_extra(csv_path, key)
+        if expected_extra is not None:
+            observed_extra = sum(c - 1 for c in duplicates.values())
+            if observed_extra == expected_extra:
+                self.log(f"  {obj_name} single-field key '{key or external_id}' has the known "
+                         f"duplicates (allowlisted, tracked for fix) — not flagged", level="DEBUG")
+                return
 
-        # One finding per object. Show the offending values (an empty value rendered as '') most-
-        # duplicated first, capped so a wholesale-broken column does not print a novel.
+        # One finding per object. Show the offending (non-blank) values most-duplicated first,
+        # capped so a wholesale-broken column does not print a novel.
         shown = sorted(duplicates.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
         summary = ", ".join(f"'{v}' ×{c}" for v, c in shown)
         more = "" if len(duplicates) <= 5 else f" (+{len(duplicates) - 5} more)"

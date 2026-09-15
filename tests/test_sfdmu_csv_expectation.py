@@ -1257,15 +1257,33 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                                {"Widget__c.csv": "Id,Name\n1,a\n\n\n"})
              if "duplicate value" in i]),
+    # Two populated rows whose KEY value is blank are NOT a collision: SFDMU does not add a blank
+    # external Id to its matching map, so neither row matches/overwrites a target (Upsert inserts
+    # them, Update skips them). A missing key value is a different concern, out of this check's scope.
+    ("populated rows with a BLANK single-field key value are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,\n2,\n"})
+             if "duplicate value" in i]),
     # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
-    # guard lands green. Materialized at the real qb-clm location via `deferral_issues`, the finding
-    # is suppressed...
-    ("an allowlisted qb-clm path with a duplicate single-field key is suppressed",
+    # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
+    # (frozen at 1 extra duplicate row — the "Monthly" pair) is suppressed when its collision matches...
+    ("an allowlisted path whose collision matches the frozen count is suppressed",
      False, [i for i in deferral_issues(
-         "qb/en-US/qb-clm",
-         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
-            "externalId": "Name"}]],
-         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"})
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"})
+         if "duplicate value" in i]),
+    # ...but if that same allowlisted file gains ANOTHER duplicate row (3× "Monthly" → 2 extra, not
+    # the frozen 1), the observed count diverges and the guard fires — a regression cannot hide behind
+    # the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
+    ("an allowlisted path that gains a NEW duplicate beyond the frozen count fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n3,Monthly\n"},
+         severity=V.Severity.HIGH)
          if "duplicate value" in i]),
     # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
     # fires — the allowlist is keyed on exact path, not object name, so a new plan is not exempted.
