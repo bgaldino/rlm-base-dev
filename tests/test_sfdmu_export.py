@@ -126,6 +126,28 @@ check("out-of-range index -> None", se.resolve_operation(99), None)
 check("unrecognized word -> None", se.resolve_operation("frobnicate"), None)
 check("None -> None", se.resolve_operation(None), None)
 
+# --- object_set_dir_number ---------------------------------------------------
+# The canonical object-set-N directory rule the SFDMU validator and the tasks/rlm_sfdmu.py
+# runtime sync each used to spell differently (pack 161, finding 4). Returns the 1-based
+# number AS WRITTEN, or None for a non-canonical name a caller must skip.
+check("object-set-1 -> 1", se.object_set_dir_number("object-set-1"), 1)
+check("object-set-2 -> 2", se.object_set_dir_number("object-set-2"), 2)
+check("object-set-10 -> 10 (multi-digit)", se.object_set_dir_number("object-set-10"), 10)
+check("object-set-0 -> 0 (admitted; caller range-checks the 1-based typo)",
+      se.object_set_dir_number("object-set-0"), 0)
+check("object-set-1-backup -> None (trailing suffix, not anchored)",
+      se.object_set_dir_number("object-set-1-backup"), None)
+check("object-set-01 -> None (leading zero)", se.object_set_dir_number("object-set-01"), None)
+check("object-set- -> None (no number)", se.object_set_dir_number("object-set-"), None)
+check("object-set-1x -> None (trailing non-digit)", se.object_set_dir_number("object-set-1x"), None)
+# re.ASCII: \d must NOT match Unicode digits — SFDMU builds names from JS String(index+1),
+# always ASCII, so object-set-1<U+0661> is a name it never reads (would parse as 11 without it).
+check("object-set-1١ -> None (Arabic-Indic digit, ASCII-only \\d)",
+      se.object_set_dir_number("object-set-1١"), None)
+check("source -> None (unrelated dir)", se.object_set_dir_number("source"), None)
+check("empty string -> None", se.object_set_dir_number(""), None)
+check("non-string (None) -> None, not a crash", se.object_set_dir_number(None), None)
+
 # --- validator still delegates to the module (no drift) ----------------------
 # A same-output comparison (`wrapper(x) == module(x)`) does NOT prove delegation: an identical
 # reimplementation left in the wrapper would pass it, so the "no drift" invariant would go

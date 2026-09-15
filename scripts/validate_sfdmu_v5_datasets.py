@@ -1497,18 +1497,14 @@ class SFDMUValidator:
             if not obj_set_dir.is_dir():
                 continue
 
-            # Extract pass number from directory name (object-set-2 -> pass_index 1). Anchored at
-            # both ends and no leading zero on a multi-digit number: `re.match` alone accepts
-            # `object-set-1-backup` as a match on the `object-set-1` prefix, and unrestricted `\d+`
-            # accepts `object-set-01` as if it were `object-set-1` — both are non-canonical names
-            # the runtime sync in `tasks/rlm_sfdmu.py` does not special-case (it string-compares
-            # against the literal `object-set-1` and otherwise preserves the directory name as-is),
-            # so a plan with such a directory has its CSVs silently never read at runtime while a
-            # loose match here would have credited it as covering the pass. `0|[1-9]\d*` still
-            # admits the bare `object-set-0` typo below it, which does not carry a leading zero and
-            # is reported through the existing out-of-range path instead.
-            match = re.fullmatch(r"object-set-(0|[1-9]\d*)", obj_set_dir.name)
-            if not match:
+            # Extract pass number from directory name (object-set-2 -> pass_index 1) via the
+            # shared canonical matcher — the same rule the runtime sync in `tasks/rlm_sfdmu.py`
+            # now uses, so a directory this credits as covering a pass is exactly one SFDMU
+            # actually reads (pack 161; the matcher's own docstring carries the anchoring /
+            # leading-zero rationale). `object-set-0` is admitted here and reported through the
+            # existing out-of-range path below instead of as a name error.
+            pass_number = sfdmu_export.object_set_dir_number(obj_set_dir.name)  # 1-based, or None
+            if pass_number is None:
                 self.log(f"Warning: {obj_set_dir.name} is not a canonical object-set-N directory",
                           level="WARN")
                 csv_names = sorted(p.name for p in obj_set_dir.glob("*.csv"))
@@ -1525,7 +1521,6 @@ class SFDMUValidator:
                 ))
                 continue
 
-            pass_number = int(match.group(1))  # 1-based
             pass_index = pass_number - 1  # Convert to 0-based index for objectSets array
 
             # Check if this pass exists in export.json. Normalized, so a flat `objects` plan counts

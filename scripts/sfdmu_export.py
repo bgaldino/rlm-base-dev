@@ -206,3 +206,37 @@ def resolve_operation(value) -> Optional[str]:
         normalized = value.strip().lower()
         return normalized if normalized in SFDMU_OPERATION_BY_INDEX else None
     return None
+
+
+# `object-set-` then a non-negative integer with NO leading zero and nothing else.
+# `re.fullmatch` (anchored both ends) rejects `object-set-1-backup`; `0|[1-9]\d*`
+# rejects `object-set-01`. Both are names SFDMU never reads — it builds the path it
+# reads from the pass index (Script.js: OBJECT_SET_SUBDIRECTORY_PREFIX +
+# String(objectSetIndex + 1)), always canonical — so a caller that matches loosely
+# either credits a directory SFDMU ignores (the validator) or copies dead weight into
+# source/ (the runtime sync in tasks/rlm_sfdmu.py). `object-set-0` is admitted here so
+# callers can range-check it and report it through their own out-of-range path rather
+# than as a name error (it's the likely 1-based-vs-0-based typo).
+#
+# `re.ASCII` is required: without it Python's `\d` matches Unicode decimal digits
+# (and `int()` parses them), so `object-set-1١` would match and resolve to 11 — but
+# SFDMU builds names from JS `String(index + 1)`, which is ASCII-only, so no such
+# directory is ever a real pass. Restrict `\d` to `[0-9]` so a Unicode-digit name is
+# rejected as non-canonical, matching what SFDMU can actually read.
+_OBJECT_SET_DIR_RE = re.compile(r"object-set-(0|[1-9]\d*)", re.ASCII)
+
+
+def object_set_dir_number(name) -> Optional[int]:
+    """The 1-based pass number encoded in a canonical `object-set-N` directory name,
+    returned AS WRITTEN (so `object-set-0` -> 0), or `None` if `name` is not canonical.
+
+    One home for the object-set directory rule the SFDMU validator and the
+    `tasks/rlm_sfdmu.py` runtime sync each used to spell differently (pack 161): the
+    validator matched strictly here and the sync matched loosely with `startswith`, so
+    a non-canonical directory was flagged by one and silently mis-copied by the other.
+    A non-string `name` returns `None` rather than raising.
+    """
+    if not isinstance(name, str):
+        return None
+    match = _OBJECT_SET_DIR_RE.fullmatch(name)
+    return int(match.group(1)) if match else None
