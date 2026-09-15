@@ -2139,13 +2139,18 @@ class SFDMUValidator:
         to `upsert`/`update` — the writes that match a target record by this key. `Id` is NOT exempt:
         uniqueness of `Id` is a property of the org schema, not of these CSV contents, and a
         hand-edited or malformed CSV can still repeat an `Id`, which upserts two rows onto the same
-        record and silently overwrites one — exactly the collision this guard exists to catch.
+        record and silently overwrites one — exactly the collision this guard exists to catch. A
+        *malformed* externalId (a non-string coerced to `str` by `_normalize_object_config`, flagged
+        `externalId_malformed`) is skipped, mirroring `_validate_external_id`: the dedicated
+        malformed-externalId HIGH already fires, and treating e.g. int `1` -> `"1"` as a real
+        single-field key would pile a misleading duplicate-key HIGH on the same root cause.
         A blank data row (all fields empty) is not a record, matching `data_row_count`'s own rule.
         The key column must be present in the CSV for there to be values to compare; when it is
         absent this check is silent (a missing key column is a different concern, out of scope).
         """
         if (not external_id or ";" in external_id
                 or external_id.startswith("$$")
+                or obj_config.get("externalId_malformed")
                 or self._is_js_truthy(obj_config.get("deleteOldData"))):
             return
         if self._resolve_operation(obj_config.get("operation")) not in ("upsert", "update"):
@@ -2167,13 +2172,16 @@ class SFDMUValidator:
         # not add a blank/null external Id to its matching map, so blank-key rows never match — and
         # so never overwrite — a target (Upsert inserts them, Update skips them). A missing key value
         # is thus not the wrong-row-overwrite this check reports; a short row missing the column
-        # contributes such a blank and is likewise skipped.
+        # contributes such a blank and is likewise skipped. SFDMU's explicit null marker `#N/A` is
+        # treated the same as blank — it imports as null, not a matchable external Id, so repeated
+        # `#N/A` keys in a raw export are not a collision. (Bare `N/A` is a literal value, not the
+        # marker, so it is NOT skipped — a repeated literal `N/A` is a real duplicate.)
         counts: Dict[str, int] = {}
         for row in rows:
             if not any((field or "").strip() for field in row):
                 continue
             value = (row[idx] if idx < len(row) else "").strip()
-            if not value:
+            if not value or value == "#N/A":
                 continue
             counts[value] = counts.get(value, 0) + 1
         duplicates = {v: c for v, c in counts.items() if c > 1}

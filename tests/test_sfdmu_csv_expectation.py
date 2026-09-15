@@ -1264,6 +1264,27 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                                {"Widget__c.csv": "Id,Name\n1,\n2,\n"})
              if "duplicate value" in i]),
+    # A malformed externalId (non-string coerced to str by _normalize_object_config, e.g. int 1 ->
+    # "1") is skipped: the dedicated malformed-externalId HIGH already fires, and treating the
+    # coerced "1" as a real single-field key would pile a misleading duplicate-key HIGH on the same
+    # root cause (mirrors _validate_external_id's own externalId_malformed skip).
+    ("a malformed (non-string) externalId is not treated as a single-field key",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": 1}]],
+                               {"Widget__c.csv": "1\ndup\ndup\n"})
+             if "duplicate value" in i]),
+    # SFDMU's explicit null marker `#N/A` imports as null, not a matchable external Id, so repeated
+    # `#N/A` keys in a raw export are not a collision — skipped like blank.
+    ("repeated SFDMU #N/A null markers in the key column are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,#N/A\n2,#N/A\n"})
+             if "duplicate value" in i]),
+    # Control: bare `N/A` is a LITERAL value, not the marker, so a repeated literal N/A IS a real
+    # duplicate and fires — proving only the exact "#N/A" marker is skipped, not any N/A-ish string.
+    ("a repeated literal 'N/A' (not the #N/A marker) IS flagged — control",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,N/A\n2,N/A\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
     # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
     # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
     # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...
