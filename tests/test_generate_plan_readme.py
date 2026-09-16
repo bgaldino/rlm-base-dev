@@ -207,6 +207,46 @@ def _case_generate_block_counts_and_missing():
 
 
 
+def _case_readonly_only_optional_csv_not_required():
+    """PR #445 review 4022308405: a Readonly-only plan's optional CSV must NOT be emitted into the
+    Files listing — the checker asserts every listed file exists on disk, so listing it would make
+    deleting that optional CSV a `no such CSV on disk` error, contradicting the org-resolved
+    contract (the row renders `—`). Generate with the CSV, confirm it isn't listed, delete it, and
+    confirm the checker stays silent."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [READONLY_GADGET]}]}, {"Gadget__c.csv": _csv(3)})
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        content = (plan / "README.md").read_text()
+        listed = "Gadget__c.csv" in content  # Files section only (row uses the bare name)
+        # The section is labeled for required source CSVs and its empty state says "no required
+        # CSVs" (not "no CSVs") — accurate now that an optional CSV may exist but be omitted here
+        # (copilot 4022353180). "Delete" is named among the source-free operations too.
+        labeled = "## Required source CSVs" in content and "no required CSVs" in content
+        (plan / "Gadget__c.csv").unlink()
+        errors, warns, _ = checker.check_plan(str(plan))
+        return (not listed, labeled, len(errors), warns)
+
+
+def _case_shared_writable_readonly_csv_still_listed():
+    """The caveat to the fix above: a CSV SHARED by a writable declaration must stay listed even
+    though a Readonly pass also references it. Upsert(pass1) + Readonly(pass2) on one object over a
+    single root CSV — the file is required by pass 1, so it must appear in the Files listing and the
+    plan must round-trip cleanly."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [UPSERT_WIDGET]}, {"objects": [READONLY_GADGET]}]},
+                     {"Widget__c.csv": _csv(4)})
+        # Reuse the same object across passes so the physical file is genuinely shared.
+        (plan / "export.json").write_text(json.dumps(
+            {"objectSets": [{"objects": [UPSERT_WIDGET]},
+                            {"objects": [dict(UPSERT_WIDGET, operation="Readonly")]}]}))
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        listed = "Widget__c.csv" in (plan / "README.md").read_text()
+        errors, warns, _ = checker.check_plan(str(plan))
+        return (listed, len(errors), warns)
+
+
 def _case_same_pass_duplicate_note():
     """pack 165: the same object declared twice in one pass renders two rows identical in
     every compared cell. The generator must surface it as a visible note (not two silently
@@ -330,20 +370,33 @@ SHARED_OPTIONAL_SOURCES = [
     for same_pass, reverse in [(True, False), (True, True), (False, False)]
 ] + [
     (f"blank-Pass row cannot reuse generated optional source: {operation}/{excluded}",
-     (1, []), _case_shared_optional_source(operation, excluded, legacy=True))
+     # pack 151 (revised): a Readonly count is generated as `—` (no org count offline), which the
+     # checker never file-matches — so a duplicate blank-Pass `—` row is NOT a reuse conflict
+     # (nothing was reserved to reuse). Delete/excluded rows stay bare counts and still flag the
+     # reuse, so only the Readonly instance is 0.
+     (0 if operation == "Readonly" else 1, []),
+     _case_shared_optional_source(operation, excluded, legacy=True))
     for operation, excluded in [("Readonly", False), ("Delete", False), ("Upsert", True)]
 ]
 
 
 GENERATE_BLOCK = [
-    ("writable + Readonly passes retain optional-file counts and round-trip cleanly",
-     (["4", "4"], [], []), _case_optional_csv_roundtrip("Readonly")),
+    # pack 151 (revised, PR #445 review): the Readonly pass's count renders `—`, not the optional
+    # CSV's row count — the generator has no org count offline and must not relabel file rows as an
+    # org count. The writable pass stays a bare `4`. Round-trips cleanly: the checker never
+    # file-matches a `—` row, so the optional CSV is documentation, not a load requirement.
+    ("writable pass keeps its file count; Readonly pass renders — and round-trips cleanly",
+     (["4", "—"], [], []), _case_optional_csv_roundtrip("Readonly")),
     ("writable + Delete passes retain optional-file counts and round-trip cleanly",
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Delete")),
     ("writable + excluded passes retain optional-file counts and round-trip cleanly",
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Update", excluded=True)),
     ("row count reflects the actual CSV, Readonly gets '—', a writable object with no CSV is flagged",
      (True, True, True), _case_generate_block_counts_and_missing()),
+    ("a Readonly-only plan's optional CSV is not listed as required; section labeled + deleting it stays silent",
+     (True, True, 0, []), _case_readonly_only_optional_csv_not_required()),
+    ("a CSV shared by a writable declaration stays listed even when a Readonly pass references it",
+     (True, 0, []), _case_shared_writable_readonly_csv_still_listed()),
     ("same-pass duplicate declaration renders a visible note, two Pass-1 rows, and still round-trips",
      (True, True, True, 0), _case_same_pass_duplicate_note()),
     ("an object appearing once per pass across two passes triggers no same-pass note",

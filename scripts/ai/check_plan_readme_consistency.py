@@ -259,6 +259,13 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
 
 FILE_STRUCT_RE = re.compile(r"([A-Za-z0-9_]+)\.csv\b.*?#\s*([\d,]+)\s+record", re.I)
 LEADING_INT_RE = re.compile(r"(\d[\d,]*)")
+# A record-count cell may carry an explicit `(org)` marker — e.g. `2 (org)` — declaring
+# that the count is *org records* (a Readonly/Delete object resolved from the target org)
+# rather than *file rows* loaded from a CSV. pack 151: the Records column meant two
+# different things depending on the operation and was indistinguishable by sight; the
+# marker disambiguates it and lets `check_plan_readme_consistency.py` skip file-count
+# matching for the row.
+ORG_COUNT_RE = re.compile(r"\(\s*org\s*\)", re.I)
 # A cell that looks like a real externalId key (single field, or `;`/`.`-joined),
 # as opposed to prose like "4-field composite".
 KEYLIKE_RE = re.compile(r"^[A-Za-z0-9_.;]+$")
@@ -570,14 +577,49 @@ def check_plan(plan_dir: str):
         # reuse one root CSV; a count from another pass's override cannot substitute.
         if row["records"] is not None:
             claimed = parse_int(row["records"])
-            if claimed is not None:
-                # Unmatched metadata cannot make a uniformly writable pass
-                # ambiguous about its source; retain the pass candidates then.
-                matched = count_variants(row, compare_variants) or compare_variants
-                # If identical displayed fields match writable AND excluded
-                # declarations, this row cannot establish a source requirement.
-                if row_pass is not None and matched and all(
-                        SFDMUValidator._is_live_writable(v) for v in matched):
+            is_org_count = bool(ORG_COUNT_RE.search(row["records"]))
+            # Which export.json declarations this row's displayed fields match. Unmatched
+            # metadata cannot make a uniformly writable pass ambiguous about its source, so
+            # fall back to the pass candidates then.
+            matched = count_variants(row, compare_variants) or compare_variants
+            if is_org_count:
+                # `N (org)` is a HUMAN-supplied assertion that the count is org records
+                # (target-org resolved), not file rows, so the row is exempt from CSV
+                # matching (pack 151). The generator never mints one — offline it has no
+                # org count and emits `—` — so an (org) marker is only ever hand-authored.
+                # Valid ONLY when every matched declaration is source-free: if ANY matched
+                # variant is live-writable, the row also vouches for that pass's loaded file
+                # rows, and the marker would let a stale writable count skip validation
+                # (PR #445 review, codex 4022218305). Checked whether or not a number is
+                # present — a bare `(org)` / `— (org)` cell on a writable row must not slip
+                # past just because parse_int() found no leading integer (copilot 4022218776).
+                # Evaluate the guard over ALL declarations this row vouches for, NOT the
+                # operation-narrowed `matched`: coverage is tracked per PASS (`seen_any_pass`
+                # for a blank cell, `seen_specific_passes` for an explicit one), and
+                # `compare_variants` is exactly that set — every pass for a blank cell, every
+                # declaration in the selected pass otherwise. `count_variants` would narrow
+                # `matched` to just the Readonly declaration when the Operation cell names it,
+                # hiding a live-writable sibling — whether it lives in another pass (blank cell,
+                # copilot 4022398078) or the SAME pass as a duplicate declaration (explicit
+                # cell, copilot 4022437332) — so the writable declaration would get neither a
+                # validated count nor a missing-row warning. `(org)` is accepted only when every
+                # declaration the row covers is source-free.
+                any_writable = bool(compare_variants) and any(
+                    SFDMUValidator._is_live_writable(v) for v in compare_variants)
+                if any_writable:
+                    errors.append(f"{rel}:{ln} `{name}` record count README="
+                                  f"{row['records'].strip()!r} carries an (org) marker on a "
+                                  "writable declaration — (org) is only for a row whose every "
+                                  "declaration is source-free (Readonly/Delete/excluded), a "
+                                  "count of org records rather than file rows")
+                # else: accepted as an org-record count; no CSV comparison.
+            elif claimed is not None:
+                # A live writable Pass binds the count to its effective source CSV. Source
+                # binding needs the row's OWN resolved pass (resolve_pass_csv), so a
+                # blank-Pass row cannot bind — it falls to the legacy `has_csv` branch.
+                writable = (row_pass is not None and bool(matched) and all(
+                    SFDMUValidator._is_live_writable(v) for v in matched))
+                if writable:
                     actual, source = resolve_pass_csv(
                         plan_dir, csvs, use_separated, name, row_pass, count_cache)
                     if actual is None:

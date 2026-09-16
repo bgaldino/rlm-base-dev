@@ -90,7 +90,12 @@ BLOCK_TEMPLATE = """{begin}
 |---|--------|------|-----------|-------------|---------|
 {rows}
 {notes}
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 {files}
@@ -152,10 +157,20 @@ def generate_block(plan_dir: str) -> str:
             op = _escape_cell(_OPERATION_DISPLAY.get(variant["operation"], variant["operation"]))
             ext_id = _escape_cell(variant["externalId"]) or "—"
             count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no, count_cache)
-            records = str(count) if count is not None else "—"
+            # A Readonly object resolves from the target ORG, not a loaded file (pack 151):
+            # its record count is *org records*, not a load dependency, even when an optional
+            # CSV happens to ship. This generator is offline and has no org count, and
+            # relabeling the optional CSV's row count as an org count would bake in a number
+            # that's never validated and silently wrong whenever the org and CSV differ
+            # (PR #445 review, codex 4022218302). Emit `—` (unknown): the checker never
+            # file-matches a `—` row, so deleting that optional CSV stays correctly silent. A
+            # human who has a real org count may hand-write `N (org)`, which the checker reads
+            # (ORG_COUNT_RE) and exempts from file matching; the generator never mints one.
+            if variant["operation"] == "readonly":
+                records = "—"
+            else:
+                records = str(count) if count is not None else "—"
             rows.append(f"| {row_num} | {_escape_cell(name)} | {pass_no} | {op} | {ext_id} | {records} |")
-            if relpath is not None and relpath not in files:
-                files[relpath] = count
             # Calls the validator's own centralized rule instead of re-deriving it as a
             # second, independent copy of "Readonly AND Delete owe no CSV" (round 17 of
             # PR #406's review, pack 147) — the same drift-avoidance reason this module
@@ -168,7 +183,19 @@ def generate_block(plan_dir: str) -> str:
             # `_resolve_operation` calls (verified: matches the prior inline check on
             # every case, including excluded, Readonly, Delete, Unresolvable, and a plain
             # writable operation).
-            elif relpath is None and SFDMUValidator._is_live_writable(variant):
+            writable = SFDMUValidator._is_live_writable(variant)
+            # Only a live-writable declaration's CSV is REQUIRED, so only it is emitted into the
+            # Files listing — which the checker asserts must exist on disk (file-structure pass).
+            # A source-free declaration's CSV, if one ships, is optional — a Readonly/Delete object
+            # resolves from the target org (not the file), and an excluded declaration is skipped
+            # entirely before load — so listing it would make deleting that optional CSV a "no such
+            # CSV on disk" error, contradicting the row rendering it `—` (PR #445 review, copilot
+            # 4022308405). A file SHARED by a writable declaration is still listed: that writable
+            # pass reaches this branch for the same relpath and adds it. `not in files` keeps each
+            # physical file listed once.
+            if writable and relpath is not None and relpath not in files:
+                files[relpath] = count
+            elif writable and relpath is None:
                 writable_missing_csv = True
 
     # A literal space precedes "#" so a path >= 40 chars (e.g. an objectset_source/
@@ -187,7 +214,8 @@ def generate_block(plan_dir: str) -> str:
     if file_lines:
         files_text = "\n".join(file_lines)
     else:
-        files_text = "(no CSVs — every object is Readonly or excluded)"
+        files_text = ("(no required CSVs — every object is source-free: "
+                      "Readonly, Delete, or excluded)")
 
     # A same-pass duplicate declaration renders as two rows identical in every compared
     # cell (only the leading # differs). Surface it explicitly — the underlying plan is a
