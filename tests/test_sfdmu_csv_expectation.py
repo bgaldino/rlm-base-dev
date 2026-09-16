@@ -1343,6 +1343,15 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                               {"Widget__c.csv": "Id,Name\n1,-0\n2,0\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
+    # Scope boundary (deliberate, pinned): the fold covers DECIMAL spellings but NOT prefixed-radix
+    # integer literals — `Number("0x10")===16` but float() rejects `0x10`, so `0x10` and `16` are
+    # left as distinct raw strings and NOT flagged. This is correct for the common TEXT external-Id
+    # case (where they ARE distinct) and avoids false positives; the fold does not chase full
+    # Number() parity offline (see the helper docstring). Pinned so a change to that scope is caught.
+    ("radix-prefixed 0x10 is NOT folded with 16 — deliberate scope boundary, not flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,0x10\n2,16\n"})
+             if "duplicate value" in i]),
     # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
     # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
     # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving

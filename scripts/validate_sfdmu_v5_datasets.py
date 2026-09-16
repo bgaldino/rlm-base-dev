@@ -390,22 +390,33 @@ class SFDMUValidator:
         A non-numeric (text) field keeps its raw string, whitespace intact (the previous round's
         fix), so ` dup ` and `dup` stay distinct.
 
-        To mirror `Number()` faithfully we coerce through `float`, which is the SAME IEEE-754
-        binary64 representation JavaScript uses — not `Decimal`. That matters at the edges the review
-        surfaced: `Number()` collapses two decimal integers that share a binary64 value
-        (`9007199254740992` and `...993`, either side of 2**53) to one key, and normalizes signed
-        zero (`String(-0) === "0"`), so a `Decimal` path preserving their distinctness would let a
-        real numeric-field collision pass validation. Equal binary64 values have equal `repr`, so
-        `repr(num)` is the canonical key; signed zero is folded to `0.0` explicitly. `inf`/`nan`
-        parse but are not finite matchable keys, and a non-numeric string raises `ValueError`; both
-        fall back to the RAW string (whitespace preserved).
+        We fold DECIMAL numeric spellings through `float`, the SAME IEEE-754 binary64 representation
+        `Number()` uses — not `Decimal`. That gets the binary64-equivalence edges right: `Number()`
+        collapses two decimal integers that share a double (`9007199254740992` and `...993`, either
+        side of 2**53) to one key, and normalizes signed zero (`String(-0) === "0"`). Equal binary64
+        values have equal `repr`, so `repr(num)` is the canonical key; signed zero is folded to
+        `0.0` explicitly. `inf`/`nan` and any string `float` cannot parse fall back to the RAW string
+        (whitespace preserved) — this is where we stop.
 
-        Offline we have no field-type metadata, so we cannot know which columns SFDMU numeric-casts;
-        this folds every numeric-looking cell. The only thing it over-folds is a *text* external Id
-        that deliberately stores numerically-equal-but-distinct strings (e.g. `1` vs `1.0`, or two
-        ints past binary64 precision); for an external Id — whose whole job is to identify one
-        record — that is a fragility worth a HIGH, not a legitimate distinction, so folding is the
-        safe default.
+        This deliberately does NOT chase full `Number()` parity — notably prefixed-radix integer
+        literals (`0x10`->16, `0o10`->8, `0b10`->2), which `float` rejects and we leave as raw
+        strings. That is a bounded scope decision, not an oversight, for two reasons that both cut
+        the same way. (1) Offline we have no field-type metadata, so we cannot know which columns
+        SFDMU even numeric-casts; `Number()` coercion applies only to numeric-typed fields, and for a
+        TEXT field `0x10` and `16` are distinct legitimate strings that folding would FALSELY flag.
+        Radix-prefixed forms are far more plausible as distinct text codes than as genuine numeric
+        external Ids, so folding them is net-negative for the common (text) case — unlike `1`/`1.0`,
+        where folding is unambiguously right. (2) `Number()` parity is a moving target that keeps
+        diverging from any offline parser (`Number("010")===10` but `int("010",0)` raises), so each
+        step widens false-positive exposure for ever-rarer gains. The correct way to close the
+        remaining numeric-field gap is describe-driven type awareness, not wider offline guessing;
+        no shipped plan has a numeric single-field externalId, let alone a radix-prefixed one.
+
+        For the decimal forms it does fold: this folds every numeric-looking cell regardless of
+        field type. The only thing it over-folds is a *text* external Id that deliberately stores
+        numerically-equal-but-distinct decimal strings (e.g. `1` vs `1.0`); for an external Id —
+        whose whole job is to identify one record — that is a fragility worth a HIGH, not a
+        legitimate distinction, so folding is the safe default.
         """
         try:
             num = float(value.strip())
