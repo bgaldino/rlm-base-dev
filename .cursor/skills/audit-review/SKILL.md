@@ -55,6 +55,11 @@ description: >-
 
 ## Entry Conditions
 
+Detailed reference: [merge-and-review-procedures.md](merge-and-review-procedures.md)
+covers mechanical gates and their enforcement history, plan README generation,
+branch checks, and manual review-thread REST/GraphQL commands. The compact
+mandatory checklist remains in `AGENTS.md`.
+
 | Situation | Use this skill? |
 |-----------|-----------------|
 | A Codex/Copilot review posted on a PR | Yes — triage, verify, sweep, fix, reply |

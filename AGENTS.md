@@ -5,6 +5,23 @@
 > Aider, or any future tool). Safety-critical rules that apply to every
 > task. Detailed guidance lives in skill files (see Skill Index below).
 
+## Agent Entry Points
+
+1. Read this file for universal rules; use the **AI Agent Skill Index** below
+   or [.cursor/skills/README.md](.cursor/skills/README.md) to select task guidance.
+   Read a skill before using its tools, and follow its linked sub-files as needed.
+2. `CLAUDE.md` is a symlink to this file; edit `AGENTS.md` only for the shared
+   contract. `.github/copilot-instructions.md` is a separate pointer to it.
+3. [`REVIEW.md`](REVIEW.md) governs how reviews are conducted; this file governs
+   required behavior and the response protocol. Keep verification, class sweeps
+   and push discipline aligned between them; do not duplicate other review detail.
+4. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers contribution conventions.
+   Governance companions: `LICENSE.txt` (Apache-2.0), `CODE_OF_CONDUCT.md`, `SECURITY.md`.
+5. [`.agents/README.md`](.agents/README.md) describes routing, model guidance and
+   project context; its adapters do not override this contract. Native discovery
+   links under `.agents/skills/` and `.claude/skills/` share `.cursor/skills/`
+   content. [Discovery setup and fallback](docs/guides/agent-skill-discovery.md).
+
 ## Project Overview
 
 **Revenue Cloud Base Foundations** automates creation and configuration of
@@ -32,39 +49,16 @@ Key technology stack:
 
 ## Repository Layout
 
-```
-cumulusci.yml          # Task/flow definitions, feature flags, org defs
-config/                # Scratch org definition JSON (project-scratch-def.json)
-force-app/             # Core SFDX metadata (deployed at step 5)
-unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
-unpackaged/post_*/     # Feature-specific metadata bundles
-unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 29)
-datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
-datasets/context_plans/# Context definition plans
-datasets/constraints/  # Configurator constraint rule data
-datasets/tooling/      # Tooling API metadata exports
-# Runtime-only output dirs (created by extract_* tasks; not tracked):
-#   datasets/bre/        — Business Rule Engine exports (extract_bre)
-#   datasets/dx/         — DX-format metadata snapshots (extract_dx_*)
-scripts/apex/          # Apex activation/deletion/validation scripts
-scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
-scripts/cml/           # CML export/import/validation utilities
-scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
-scripts/expression_sets/ # Standalone Expression Set lifecycle toolkit (inspect/trace/diff/export + guarded mutators; sf-CLI transport, no CCI). See its README.md
-scripts/soql/          # Reusable SOQL query files
-scripts/build_harness/ # Build harness runner and TUI
-scripts/*.py           # Top-level utilities: dataset validation/generation and demo
-                       #   drivers (validate_sfdmu_v5_datasets, expand_currency_*,
-                       #   qb_usage, build_quote_to_asset, post_process_extraction)
-tasks/                 # Custom Python CCI task classes
-tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
-                       #   no org needed), plus two shell integration scripts
-robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definitions (orgs/README.md; TFID: orgs/tfid/README.md)
-postman/               # Postman collections for RLM APIs
-docs/                  # Documentation (lower-kebab-case filenames)
-```
+`cumulusci.yml` defines tasks/flows/flags; `tasks/` implements Python CCI tasks.
+`force-app/` holds core metadata (step 5); `unpackaged/pre/` precedes it and
+`unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
+(step 29); `unpackaged/post_ux/` is generated output.
+
+Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
+under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
+`datasets/dx/` are runtime extraction output, not tracked source. See the
+[repository map](docs/references/repository-layout.md), [org definitions](orgs/README.md),
+[TFID guide](orgs/tfid/README.md), and **Script Reference** below for detail.
 
 ## DO NOT — Safety Guards
 
@@ -144,15 +138,8 @@ cannot decompose the composite value to resolve the referenced record. (The prim
 **Fix:** Use simple single-field references for lookup columns
 (e.g. `ParentGroup.Code`). Non-destructive — no `deleteOldData`.
 
-<details>
-<summary>Bugs 1/2/3/5 — fixed at or below the 5.6.4 floor (kept for history; do NOT apply their Insert+deleteOldData workarounds on 5.6.4+)</summary>
-
-- **Bug 1 — all-multi-hop externalId fails validation** (`{Object} has no mandatory external Id field definition`). **Fixed in 5.3.1.** *Was:* use at least one direct field in the `externalId`.
-- **Bug 2 — 2-hop traversal columns produce malformed SOQL in Upsert.** **Fixed in 5.6.3.** *Was:* `operation: Insert` + `deleteOldData: true`. *Residue by design:* dotted composite segments are still dropped from child `__r` relationship queries on **extract** — the root cause of the `#N/A` blanking that `post_process_extraction.py` backfills (5.6.3 also set `#N/A` = null marker, bare `N/A` = literal).
-- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates on every run). **Fixed in the 5.6.4 release** (commit `50be987`, `_getNestedRecordFieldValue`; source-verified). *Was:* `operation: Insert` + `deleteOldData: true`.
-- **Bug 5 — composite externalId of all relationship traversals fails upsert matching** (e.g. `Parent.Name;OtherParent.Name`). **Fixed in 5.6.4** (same relationship-path matching fix). *Was:* `operation: Insert` + `deleteOldData: true` for objects whose only logical key is a composite of parent lookups.
-
-</details>
+Historical Bugs 1/2/3/5 and their fixed versions are documented in
+`.cursor/skills/sfdmu-data-plans/SKILL.md` → **v5 Bugs**.
 
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
@@ -194,89 +181,64 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 ## Pre-merge checklists for AI agents
 
-Use these before opening or updating a PR. They complement the **PR Review Focus Areas** below.
+Before opening or updating a PR, **run `python scripts/ai/pr_gate.py --base origin/264` first**.
+Every selected check gates; missing dependencies fail rather
+than skip. Inspect every result, including skips. Run locally even though CI
+runs the same gate. Detailed procedures, generator behavior and enforcement
+history: [.cursor/skills/audit-review/merge-and-review-procedures.md](.cursor/skills/audit-review/merge-and-review-procedures.md).
 
-**Run `python scripts/ai/pr_gate.py --base origin/264` first.** It selects the mechanical
-checks your diff actually needs, runs them, and prints a status for **every** check — including the
-ones it skipped and why. That is the point: the checks below already existed and were enforced only
-by an agent reading this list, which is the enforcement that failed in `#264-27`, `#264-55` and
-`#264-56`. A missing dependency **fails** the gate rather than skipping, and every check gates —
-including `validate_sfdmu_v5_datasets.py`, which used to be **advisory** because it exited non-zero
-on a clean tree for two reasons. Two Critical findings were the validator's own false positives, and
-pack 123 fixed them: a `Readonly` object is queried from the target org and owes no CSV, and a
-per-pass object's CSV can live under `objectset_source/object-set-N/`, an alternative to its root CSV
-**for that pass only** — and only when the plan sets `useSeparatedCSVFiles: true`; pass 1 always
-reads the root regardless of the flag. Absent either qualifier, the root CSV is still owed. The other
-findings were High — zero-byte `Upsert` CSVs in `datasets/sfdmu/mfg/en-US/mfg-multicurrency/` — a real
-defect, but a dormant one: `grep -ic mfg cumulusci.yml` returned **0**, so that plan and its eleven
-`mfg` siblings were all unwired. Pack 110 removed the plan rather than adding header rows,
-following its precedent `q3-multicurrency`, deleted in `dab545ab` carrying zero-byte
-`CostBook`/`CostBookEntry` CSVs of its own — the same finding, disposed of the same way. With both
-fixes landed the check now gates like every other one. (Pack numbers refer to entries in the durable
-todo tracker under `.agents/artifacts/todos/`, which is gitignored — the reference resolves only from
-a tree that carries it.) The checklists below remain the reference for *what* each check means and for
-the judgement steps no gate can make.
+### Required CI check
 
-**The same gate now runs in CI** on every pull request (`.github/workflows/pr-checks.yml`, plus
-`check_branch_scope.py`, which needs a PR number, so only CI can supply it automatically — run it
-locally by passing `--pr <n>`, as *Merges and unintended diffs* below instructs). Run the gate
-locally anyway — a local failure costs seconds, a CI one costs a round trip. The workflow is
-deliberately **not** path-filtered, though not for the reason usually given: a path-skipped workflow
-reports *nothing*, so a required check on it sits **Pending** and blocks every PR that misses the
-paths. (What reports success is a *job-level* `if:` skip, which is a different mechanism.) Either
-way selection is the driver's job and never the trigger's.
-
-**Running is blocking, and a skipped run is too.** `Mechanical checks` is a **required status
-check** on `main`, `264` and `release/*` — the `Approvals` ruleset requires the context from the
-GitHub Actions app, so no other actor can report a same-named check to satisfy it. Three consequences
-worth knowing.
-
-A skip directive in the head commit message — `[skip ci]` and its five siblings (`[ci skip]`,
-`[no ci]`, `[skip actions]`, `[actions skip]`, or a `skip-checks: true` trailer) — no longer bypasses
-anything: it produces **no run at all**, which leaves the check **Pending**, which blocks. The bypass
-and the enforcement are the same mechanism; requiring the check is what flipped its sign. **Corollary,
-learned by tripping it:** GitHub scans commit *messages* for those strings, so a commit that merely
-quotes one skips every workflow — and the commits most likely to quote one are the commits editing this
-paragraph. Name the directives in commit messages; never write their bracketed form there. File
-contents are unaffected, which is why the list above is safe here.
-
-The requirement is matched on the **job's published name**, and the ruleset lives outside this repo,
-so renaming `name: Mechanical checks` does not un-require anything — the ruleset goes on waiting for
-a context nobody publishes, which leaves it **Pending** on every PR to `main`, `264` and `release/*`
-at once. That is the same mechanism as a skipped run, and it fails *closed*: a rename is a repo-wide
-merge outage, not a bypass. The guard suite pins that string for this reason, and the pin is not
-cosmetic. (The bypass hazard is the opposite shape — a *second* job publishing the same name, since
-the requirement is satisfied by the most recent check run bearing it. The suite pins the published
-set for that.)
-
-And admins keep `always` bypass, unchanged from the ruleset's three pre-existing rules, so a red gate
-can still be overridden deliberately. Treat doing so as a decision to record, not a workaround.
+`Mechanical checks` from the GitHub Actions app is required on `main`, `264`
+and `release/*`. Running or missing checks block landing. Do not path-filter
+away the workflow, rename the published job, or introduce another job with
+that same name. Skip directives in commit messages leave the required check
+pending; even quoting one can suppress workflows. Name the directives without
+writing their literal syntax in commit messages. An admin bypass is a deliberate
+decision to record, not a workaround.
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
-1. Run `python scripts/validate_sfdmu_v5_datasets.py`. It exits 0 on a clean tree (0 Critical, 0 High) — the former `mfg/en-US/mfg-multicurrency` baseline (zero-byte CSVs in an unwired plan) was resolved by deleting that plan (pack 110). Treat any Critical or High as new.
-2. Keep **`externalId`** (`;` delimiters) and CSV `$$` columns aligned with the skill rules in this file — do not change `Upsert` to `Insert` + `deleteOldData: true` without explicit user approval.
-3. Every tracked plan needs a **README** — a new plan without one, or an existing plan whose behavior or objects changed without a README update, both fail `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>` (repo-wide with no argument): a missing README is a named error, and an existing one fails if its object table or `# N records` listings drift from the actual `export.json`/CSVs (record counts). Operation/externalId mismatches and missing-object rows are WARN-only and pass by exit code without `--strict` — `pr_gate.py` runs this check with it specifically so they gate too; the command shown here carries it for the same reason. `scripts/ai/generate_plan_readme.py <plan_dir>` derives a minimal, mechanically-accurate object table + file listing from `export.json`/CSVs for a plan that has none, between `<!-- generate_plan_readme:begin/end -->` markers; regenerate (same command) after a real change rather than hand-editing the table — content outside the markers, e.g. hand-written narrative, is preserved. A README with no markers is left alone unless `--force` is passed. Must report **0 errors, 0 warnings**.
+1. Run `python scripts/validate_sfdmu_v5_datasets.py`: expect **0 Critical,
+   0 High**. Treat any such finding as new.
+2. Keep `externalId` delimiters and CSV `$$` columns aligned with the SFDMU
+   rules above; destructive operation changes require explicit approval.
+3. Every tracked plan needs a README. Update it when behavior or objects change,
+   including object tables, operations, externalIds and record counts. Run
+   `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>`
+   (omit the directory for repo-wide validation): require **0 errors, 0 warnings**.
+   Regenerate marked tables with `python scripts/ai/generate_plan_readme.py <plan_dir>`
+   after changes rather than editing generated rows; preserve handwritten narrative.
 
 ### `cumulusci.yml` and CCI tasks
 
-1. After editing `cumulusci.yml` (tasks, flows, options): run `python scripts/ai/generate_cci_reference.py` and commit the regenerated reference files.
-2. **If you inserted or removed a flow step, run `python tests/test_doc_build_steps.py`.** Docs cite build steps as `N.M` with no generator behind them, so one inserted step silently invalidates every citation after it — eight rows went off by one that way, and the doc that goes stale is usually **not** in the same PR as the flow change.
-3. If you rename a task or change its description, search the repo for the **old task name** in docs (`README.md`, `docs/`) and fix stale references.
-4. For Python task changes in `tasks/`, follow `.cursor/skills/cci-orchestration/custom-task-authoring.md` — especially **CLI vs REST** (`username` for `sf`, not `access_token`).
+1. After task/flow/option edits, run `python scripts/ai/generate_cci_reference.py`
+   and commit the regenerated references.
+2. After inserting or removing flow steps, run `python tests/test_doc_build_steps.py`
+   to catch shifted documentation citations.
+3. After renaming a task or changing its description, search `README.md` and
+   `docs/` for the old name and repair stale references.
+4. For Python tasks, follow `.cursor/skills/cci-orchestration/custom-task-authoring.md`;
+   use `username` for CLI calls, never `access_token`.
 
 ### Documentation consistency
 
-Follow `.cursor/skills/doc-consistency/SKILL.md` — it provides a
-**change-surface map** (when X changes, update Y) covering task names,
-flag tables, SFDMU plan READMEs, generated CCI references, skill
-indexes, and more.
+Follow `.cursor/skills/doc-consistency/SKILL.md` and its change-surface map.
+Update task names, feature flags, plan READMEs, generated references and skill
+indexes in the same change as their source.
 
 ### Merges and unintended diffs
 
-1. **Run `python scripts/ai/check_branch_scope.py --pr <n>` before merging.** It fails a branch carrying commits it does not own — the signature of a branch cut from a *composed* integration branch, which inherits other fixes **in their pre-review state** and can revert landed review fixes on merge. A branch that re-accumulated five foreign commits reached the point of merging twice (`#264-56`); this is what catches it. It reports two distinct findings: `FOREIGN` (content already upstream) and `STACKED` (built on another **open** PR, which the first signal cannot see because nothing has merged yet). Rebuild a `FOREIGN` branch from the base rather than reverting on top of it; a `STACKED` one must at minimum not merge before its parent. Pass `--pr` for both signals. Details and the two weaker checks that do *not* work: `.cursor/skills/audit-review/SKILL.md` → **Step −1**.
-2. Before push, review `git diff main --stat` (or the merge base you use). Pay extra attention to **`orgs/`**, **`datasets/`**, **`unpackaged/post_ux/`**, and scratch data — unexpected churn often means files were **swept in from another branch**.
-3. Changes under **`unpackaged/post_ux/`** should come from **`assemble_and_deploy_ux`** or the **UX drift** flows, not manual XML edits (see `.cursor/skills/repo-integration/ux-assembly-retrieve.md`).
+1. Before merging, run `python scripts/ai/check_branch_scope.py --pr <n>`.
+   Rebuild a `FOREIGN` branch from the base; do not revert on top of it.
+   A `STACKED` branch must not merge before its parent. Pass `--pr` for both
+   signals; see `.cursor/skills/audit-review/SKILL.md` → **Step −1**.
+2. Before push, inspect the diff/stat against the intended base (`origin/264`
+   for this line). Watch `orgs/`, `datasets/`, `unpackaged/post_ux/` and scratch
+   data for unrelated changes inherited from another branch.
+3. Changes under `unpackaged/post_ux/` must come from `assemble_and_deploy_ux`
+   or the UX drift flows, never manual XML edits; see
+   `.cursor/skills/repo-integration/ux-assembly-retrieve.md`.
 
 ---
 
@@ -298,55 +260,28 @@ indexes, and more.
 
 ## Responding to Automated PR Reviews
 
-> **How review is *conducted* — what to look for, the severity rubric, the defect classes
-> this repo actually produces, and push discipline — lives in [`REVIEW.md`](REVIEW.md) at
-> the repo root.** It is read automatically alongside this file, by Claude and by Copilot.
-> This section covers only the *protocol*: what to do with a review comment once it exists.
+Read [`REVIEW.md`](REVIEW.md) for review standards, severity and push discipline.
+**Every agent, every PR: handle every comment to completion and finish every
+review round with zero unresolved threads.**
 
-Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
-similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
-comment is handled to completion, and **every review round ends with zero unresolved
-threads.**
+1. Verify each finding against source; classify it **real**, **partial**, or
+   **false positive**. Refute false positives with evidence instead of changing
+   correct code.
+2. For a real finding, fix **every instance of its class** across the change.
+3. Batch the whole round, verify locally, then **push once**; do not push while
+   a review is running against the previous head.
+4. Reply to each thread with the resolution and **commit SHA**, or an
+   evidence-backed refutation. React 👍 to valid findings, then resolve threads
+   once addressed. False positives still need replies and resolution.
+5. Verify zero unresolved threads across **all pages**, not just the first 100.
 
-**Batch fixes into one push per review round.** Every push to an open PR triggers a fresh
-automated review; re-reviews are not incremental (a hosted reviewer may repeat comments
-already dismissed or resolved), and a push mid-review lands against a superseded commit,
-spending a whole round on findings that no longer apply. Fix everything from a round,
-verify locally, then push once. See `REVIEW.md` → *Push discipline*.
-
-**Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
-Code) automates the mechanical steps so a round can't be left half-finished:
-`status <pr>` lists unresolved threads (paginated), `handle <pr> --comment <id> --body "…"`
-replies + resolves one thread (adds 👍 **by default** — pass `--no-react` to refute a false
-positive without the 👍, per the "react on valid comments" rule below), and `verify <pr>`
-confirms 0 unresolved (exit 1 if any remain). It's tool-agnostic (shells out to `gh`); defaults to the current repo, or pass
-`--repo owner/name`. Verifying findings and sweeping the class (steps 1–2) stay your job.
-
-For each comment:
-
-1. **Verify against the code.** Don't trust the bot — confirm the claim in the actual
-   source and classify it *real*, *partial*, or *false positive*.
-2. **Sweep the whole class.** If a finding is real, fix **every** instance of that
-   pattern across the change, not just the cited line.
-3. **Reply in-thread** with the resolution **and the commit SHA** (or a clear,
-   evidence-backed refutation for a false positive):
-   `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
-4. **React** 👍 on a valid comment:
-   `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github+json" -f content="+1"`
-5. **Resolve the thread** (REST cannot — use GraphQL). List threads with the full query
-   root — `reviewThreads` lives under `repository(owner:, name:){ pullRequest(number:N){ … } }`
-   (`pullRequest` is **not** a GraphQL root field) — and **paginate** so PRs with >100
-   threads aren't truncated:
-   `repository(owner:$o,name:$r){ pullRequest(number:$n){ reviewThreads(first:100, after:$cursor){ pageInfo{ hasNextPage endCursor } nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }`
-   — loop, passing `endCursor` as `after`, until `hasNextPage` is false. Resolve each
-   unresolved id with `mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }`.
-6. **Confirm clean** — re-query `reviewThreads` across **all** pages (same pagination) and
-   verify `unresolved == 0` for the round.
-
-Refute false positives (with evidence) rather than changing correct code — but still
-reply, and resolve the thread once the point is settled. This matters most on branches
-headed for `main`, which mirror to the internal Salesforce repo for audit: a left-open
-thread is a finding the audit will re-raise.
+Use `python scripts/ai/pr_review.py`: `status <pr>` lists paginated threads;
+`handle <pr> --comment <id> --body "…"` replies, reacts and resolves;
+`verify <pr>` fails if any remain. Use `--no-react` when refuting a false
+positive and `--repo owner/name` to override the current repo. The
+`/pr-review <pr>` Claude command drives the same workflow. Verification and
+class sweeps remain the agent's job. Manual REST/GraphQL commands and pagination:
+[review procedures](.cursor/skills/audit-review/merge-and-review-procedures.md#responding-to-automated-pr-reviews).
 
 ---
 
@@ -462,25 +397,3 @@ Placement:
 | `docs/integration/` | Integration-related documentation |
 
 ---
-
-## Agent Entry Points
-
-This repository provides multiple entry points for different AI tools:
-
-| File | Tool | Purpose |
-|------|------|---------|
-| `AGENTS.md` | Any agent | Canonical source of truth (this file) |
-| `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
-| `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
-| `REVIEW.md` | Any agent + Copilot | **How pull requests get reviewed** — severity rubric, what to look for, this repo's recurring defect classes, push discipline. Distinct content, not a duplicate of this file. |
-| `CONTRIBUTING.md` | Humans + any agent | **How to contribute** — fork → branch → validate → PR, commit/PR conventions, review-round expectations. Governance companions at the repo root: `LICENSE.txt` (Apache-2.0), `CODE_OF_CONDUCT.md`, `SECURITY.md`. |
-| `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
-
-`AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
-same content — edit `AGENTS.md` only. `REVIEW.md` is a **separate** document with its
-own content: this file governs *what the code must do*, `REVIEW.md` governs *how review
-is conducted*. They overlap on three points by design — verifying a finding, sweeping a
-class, and push discipline — where this file carries the short operational form and
-`REVIEW.md` carries the reasoning. Keep those three in sync when either changes, and do
-not add duplication beyond them. The `.agents/` tree is a separate routing and context
-layer that points back to `AGENTS.md` and never overrides it.

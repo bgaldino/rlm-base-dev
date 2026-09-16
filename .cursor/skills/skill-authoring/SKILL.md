@@ -295,11 +295,15 @@ Update `AGENTS.md` for:
 Do **not** update `AGENTS.md` for a new sub-file (the parent `SKILL.md` owns
 that) or a new Cursor rule (`.cursor/skills/README.md` owns that).
 
-Keep `AGENTS.md` concise. It routes agents and defines global rules; it should
-not duplicate the full skill body. It is held under a hard **40,000-char**
-context limit with a working target of **30,000** — a user-level `CLAUDE.md` is
-concatenated on top of it, so headroom is not slack. Check `wc -c AGENTS.md`
-before adding to it, and prefer putting detail in the owning skill.
+Keep `AGENTS.md` concise. It routes agents and defines global rules; detailed
+procedures belong in owning skills. This repository's working ceiling is
+**25,000 bytes**, measured with `wc -c AGENTS.md`. This is a repository target,
+not a universal model context limit. Codex's default `project_doc_max_bytes`
+is **32 KiB (32,768 bytes)** for the combined project instruction chain;
+nested instruction files also consume that budget. Other clients have their
+own loading behavior. Preserve headroom and universal safety rules; move
+history and detailed procedures to linked guides before growing the root file.
+See the [Codex instruction-loading reference](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 ### `.claude/skill-manifest.yml`
 
@@ -455,7 +459,8 @@ Also review:
 
 - `git diff --stat` for unintended generated or runtime files.
 - `AGENTS.md` Skill Index and Script Reference tables, plus `wc -c AGENTS.md`
-  against the 30,000-char working target.
+  against the 25,000-byte repository ceiling; check a fresh client session for
+  truncation after changing root instructions.
 - `.cursor/skills/README.md` Skill Router and File-Specific Rules tables.
 - The parent `SKILL.md`'s own sub-file list, for any sub-file you added.
 - `.github/copilot-instructions.md` quick-start and entry-point guidance.
