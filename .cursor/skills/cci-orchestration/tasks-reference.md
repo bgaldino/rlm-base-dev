@@ -1265,7 +1265,7 @@
 
 ### `patch_network_email_for_deploy`
 
-**Description:** Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so deploy_post_prm succeeds. Repo stores a non-PII placeholder; run revert_network_email_after_deploy after deploy.
+**Description:** Replace the placeholder emailSenderAddress in a Network .network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so the community metadata deploy succeeds. Parameterized for any Network bundle via network_name / network_meta_xml_path / placeholder_email (defaults target the PRM rlm network + deploy_post_prm; the Billing Portal overrides them). Repo stores a non-PII placeholder; run revert_network_email_after_deploy after the deploy.
 
 **Class:** `tasks.rlm_community.PatchNetworkEmailForDeploy`
 
@@ -1273,7 +1273,7 @@
 
 ### `revert_network_email_after_deploy`
 
-**Description:** Restore the placeholder emailSenderAddress in rlm.network-meta.xml after deploy_post_prm so the repo never persists the target org's email.
+**Description:** Restore the placeholder emailSenderAddress in a Network .network-meta.xml after the community metadata deploy so the repo never persists the target org's email. Parameterized for any Network bundle via network_meta_xml_path / placeholder_email (defaults target the PRM rlm network; the Billing Portal overrides them).
 
 **Class:** `tasks.rlm_community.RevertNetworkEmailAfterDeploy`
 
