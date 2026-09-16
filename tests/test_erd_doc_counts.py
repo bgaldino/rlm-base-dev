@@ -45,7 +45,8 @@ claims — excluding core objects yields 239, which matches no published figure.
 `scripts/erd/build_erds.py`, which maps that label to the short name "Approvals".
 Both Approvals labels now have the same explicit color mapping in the builder
 and validator. This suite also checks map agreement, raw-label coverage and
-consistent colors for each short domain. Two operations get from 14 raw labels
+consistent colors for each short domain, and the checked-in viewer payload.
+Two operations get from 14 raw labels
 to the documented **9**: stripping
 the 4 `(Core Object)` suffixes (14 -> 10), then this fold (10 -> 9).
 
@@ -129,7 +130,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 100
+EXPECTED_CHECKS = 101
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -348,6 +349,22 @@ def main():
                  if len(colors) != 1}
     check("each_short_domain_has_one_color", not conflicts,
           f"aliases for the same displayed domain disagree: {conflicts}")
+
+    with open(os.path.join(ERD_DIR, "revenue-cloud-erd.html")) as f:
+        html = f.read()
+    marker = "const D="
+    payload, _ = json.JSONDecoder().raw_decode(html[html.index(marker) + len(marker):])
+    actual_nodes = sorted((node["id"], node.get("dom"), node.get("c"))
+                          for node in payload["nodes"])
+    expected_nodes = sorted(
+        (name, maps[0].get(obj["domain"], {}).get("short"),
+         maps[0].get(obj["domain"], {}).get("color"))
+        for name, obj in erd["objects"].items()
+    )
+    # Compare lists, not just keyed dictionaries: duplicate nodes must fail too.
+    check("html_domain_colors_match_erd_mapping", actual_nodes == expected_nodes,
+          "checked-in viewer has missing, extra, duplicate or stale domain/color nodes; "
+          "regenerate with python scripts/erd/build_erds.py")
 
     print()
     print("headline triples")
