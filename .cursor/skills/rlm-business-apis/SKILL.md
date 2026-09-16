@@ -29,7 +29,7 @@ API v68.0 (Winter '27 / Release 264). All endpoints use `/services/data/v68.0/co
 | **PCM** | `/connect/pcm/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../postman/docs/pcm-business-apis-reference.md) |
 | **Product Discovery** | `/connect/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../postman/docs/product-discovery-apis-reference.md) |
 | **Product Configurator** | `/connect/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../postman/docs/product-configurator-apis-reference.md) |
-| **Pricing** | `/connect/core-pricing/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v66.md](../../../postman/docs/pricing-business-apis-v66.md) |
+| **Pricing** | `/connect/core-pricing/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v68.md](../../../postman/docs/pricing-business-apis-v68.md) |
 | **Rate Management** | `/connect/core-rating/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../postman/docs/rate-management-apis-reference.md) |
 | **Transaction Mgmt** | `/connect/transaction-management/` | Quotes, orders, assets, amendments, renewals, cancellations | [transaction-management-apis-reference.md](../../../postman/docs/transaction-management-apis-reference.md) |
 | **Usage Mgmt** | `/connect/usage-management/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../postman/docs/usage-management-apis-reference.md) |

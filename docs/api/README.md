@@ -18,7 +18,7 @@ All content from the source markdown files in `postman/docs/`:
 | PCM | `postman/docs/pcm-business-apis-reference.md` |
 | Product Discovery | `postman/docs/product-discovery-apis-reference.md` |
 | Product Configurator | `postman/docs/product-configurator-apis-reference.md` |
-| Pricing | `postman/docs/pricing-business-apis-v66.md` |
+| Pricing | `postman/docs/pricing-business-apis-v68.md` |
 | Rate Management | `postman/docs/rate-management-apis-reference.md` |
 | Transaction Management | `postman/docs/transaction-management-apis-reference.md` |
 | Usage Management | `postman/docs/usage-management-apis-reference.md` |

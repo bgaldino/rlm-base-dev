@@ -1,7 +1,7 @@
 # Salesforce Rate Management APIs - Complete Endpoint Reference
-## Revenue Lifecycle Management API v66.0 (Spring '26)
+## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Rate Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v260. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Rate Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Rate Management APIs support usage-based billing scenarios by exposing the rating engine's rate plans and waterfall calculation details. Rate plans define how usage is priced (tiers, flat rates, per-unit), and the rating waterfall shows the step-by-step application of rate card rules during billing. These APIs are most relevant in orgs with usage-based products (Platform Usage Resources, PURs).
 
@@ -12,23 +12,28 @@ The Rate Management APIs support usage-based billing scenarios by exposing the r
 ### 1. Get Rate Plan (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/core-rating/rate-plan`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/core-rating/rate-plan`
-- **Description:** Retrieve the rate plan configuration from the rating engine. A rate plan defines the pricing model for usage-based products — including flat rates, tiered pricing, and volume-based adjustments. Use this endpoint to inspect the active rate plan before performing usage calculations or debugging unexpected billing amounts.
-- **Available Version:** 63.0
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-rating/rate-plan`
+- **Description:** Retrieve the rate plan configuration from the rating engine. A rate plan defines the pricing model for usage-based products — including flat rates, tiered pricing, and volume-based adjustments. Use this endpoint to inspect the active rate plan before performing usage calculations or debugging unexpected billing amounts. This API request supports one pricebook and one sellable product, and the product ID is required.
+- **Available Version:** 62.0
+- **Special Access Rules:** The org must have the Rate Management: Run Time User permission set, and a default usage rating discovery procedure must be defined in Revenue Settings.
+- **Query Parameters:**
+  - `contextId` (String, Required): ID of the context to specify as an input to the procedure
+  - `procedureApiName` (String, Required): API name of the procedure to be executed
 
 ---
 
 ### 2. Get Rating Waterfall (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/core-pricing/waterfall/{lineItemId}/{executionId}`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/core-pricing/waterfall/{lineItemId}/{executionId}?ratingParameters=true`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall/{lineItemId}/{executionId}?ratingParameters=true`
 - **Description:** Retrieve the detailed waterfall breakdown of how a price or rating was calculated for a specific line item and execution. Shows each step in the pricing/rating process — including which rate card tiers were applied, adjustments made, and the final computed price. Essential for debugging pricing discrepancies or auditing bill calculation.
-- **Available Version:** 63.0
+- **Available Version:** 62.0
 - **Path Parameters:**
   - `lineItemId` (String, Required): Salesforce ID of the quote, order, or billing line item
   - `executionId` (String, Required): ID of the specific pricing process execution (returned by pricing APIs)
 - **Query Parameters:**
   - `ratingParameters` (Boolean, Optional): When `true`, includes rating-specific parameters in the waterfall output (usage amounts, tier boundaries, rate multipliers). Defaults to `false`.
+  - `usageType` (String, Optional): Usage type of the waterfall log record. Valid values are `Rating` and `Pricing`. Set to `Rating` to retrieve the persisted rating waterfall; the default value is `Pricing`.
 
 ---
 
@@ -71,17 +76,17 @@ These APIs require usage-based billing to be configured in the org. Before using
 | Variable | Description | Set By |
 |----------|-------------|--------|
 | `{{_endpoint}}` | Salesforce org base URL | Manual setup |
-| `{{version}}` | API version (e.g., `66.0`) | Manual setup |
+| `{{version}}` | API version (e.g., `68.0`) | Manual setup |
 
 ---
 
 ## Related Domains
 
 - **[Usage Management APIs](usage-management-apis-reference.md)** — Retrieve usage details for assets, orders, and quotes. Usage data feeds into the rating engine.
-- **[Pricing APIs](pricing-business-apis-v66.md)** — Pricing waterfall for non-usage line items (list price, discount adjustments, etc.).
+- **[Pricing APIs](pricing-business-apis-v68.md)** — Pricing waterfall for non-usage line items (list price, discount adjustments, etc.).
 - **[Billing APIs](billing-business-apis-reference.md)** — Billing invoices and payments that are generated from rated usage data.
 - **[Transaction Management APIs](transaction-management-apis-reference.md)** — Order and asset lifecycle that generates the consumption records rated by this engine.
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v66.0 (Spring '26) | Salesforce Revenue Cloud Developer Guide v260*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*

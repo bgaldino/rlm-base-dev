@@ -39,7 +39,7 @@ Per-domain endpoint references are in `docs/`. Each guide covers HTTP method, UR
 - [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (19 endpoints)
 - [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (10 endpoints)
 - [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (13 endpoints)
-- [Pricing](docs/pricing-business-apis-v66.md) — Core pricing engine, price contexts, waterfall, API execution logs (10 endpoints)
+- [Pricing](docs/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (10 endpoints)
 - [Rate Management](docs/rate-management-apis-reference.md) — Rate plans and rating waterfall for usage-based billing (2 endpoints)
 - [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (17 endpoints)
 - [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (6 endpoints)
