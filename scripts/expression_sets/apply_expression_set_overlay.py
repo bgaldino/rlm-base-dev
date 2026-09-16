@@ -278,7 +278,7 @@ def main(argv=None) -> int:
 
 
 def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected):
-    """Compare touched step bodies with the final payload in the exact target version."""
+    """Verify the full step graph in the target version, rejecting unexpected steps."""
     definition = engine.get_definition(es_id)
     versions = definition.get("versions") or []
     if not versions:
