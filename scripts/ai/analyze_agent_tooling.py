@@ -902,7 +902,9 @@ def _mask_inline_code(text: str) -> str:
 
 def _markdown_prose(text: str) -> str:
     """Exclude comments, fenced examples, and inline code from link inspection."""
-    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    # Preserve separation and paragraph boundaries: deleting a comment can turn
+    # `[label]<!-- note -->(target)` into a link that the source never contained.
+    text = re.sub(r"<!--.*?-->", lambda m: re.sub(r"[^\n]", " ", m[0]), text, flags=re.S)
     lines = []
     fence = None
     paragraph = False

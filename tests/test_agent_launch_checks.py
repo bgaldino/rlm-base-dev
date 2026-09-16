@@ -308,6 +308,27 @@ class LaunchChecks(unittest.TestCase):
         self.write("README.md", r'\`[guide](missing.md)\`')
         self.assertEqual(self.cli().returncode, 1)
 
+    def test_comments_preserve_link_boundaries(self):
+        for content in ('[label]<!-- note -->(missing.md)',
+                        '[label]<!-- note\ncontinued -->(missing.md)',
+                        '[label]<!-- note -->\n(missing.md)',
+                        '<!-- [example](missing.md) -->'):
+            with self.subTest(nonlink=content):
+                self.write("README.md", content)
+                self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write("README.md", '[label]<!-- note -->(missing.md)')
+        self.assertEqual(self.cli().returncode, 0)
+        for content in ('[label<!-- note -->](missing.md)',
+                        '<!-- [example](ignored.md) -->\n[real](missing.md)',
+                        '[real](missing.md)<!-- note -->'):
+            with self.subTest(link=content):
+                self.write("README.md", content)
+                self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        prose = analyzer._markdown_prose('before<!-- one\ntwo -->after')
+        self.assertEqual(prose.count('\n'), 1)
+        self.assertNotIn('one', prose)
+        self.assertNotIn('two', prose)
+
     def test_bad_skill_subfile_link_and_escape(self):
         self.write(".cursor/skills/cci-orchestration/tasks-reference.md", "[bad](missing.md)")
         self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
