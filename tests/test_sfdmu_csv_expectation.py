@@ -1312,6 +1312,23 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                               {"Widget__c.csv": "Id,Name\n1, dup \n2, dup \n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
+    # A NUMERIC-typed external Id is cast via Number() before SFDMU builds its key, so `1` and `1.0`
+    # both become the JS number 1 and collide on key "1" — a collision a raw-string count misses.
+    # Offline the guard folds finite-numeric values to a canonical form, so this fires HIGH.
+    ("numerically-equivalent single-field keys (1 and 1.0) collide as SFDMU casts them — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,1\n2,1.0\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Leading-zero and whitespace spellings fold too: `1`, `01`, ` 1 ` are one numeric key.
+    ("numeric spellings 1 / 01 / ' 1 ' fold to one key — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,1\n2,01\n3, 1 \n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Control: two genuinely distinct numbers are NOT folded together — no false collision.
+    ("two distinct numeric keys (1 and 2) are NOT a collision — control",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,1\n2,2\n"})
+             if "duplicate value" in i]),
     # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
     # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
     # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving

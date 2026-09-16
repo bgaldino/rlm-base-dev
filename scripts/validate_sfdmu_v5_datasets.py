@@ -27,6 +27,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass, field
+from decimal import Decimal, localcontext
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -377,6 +378,45 @@ class SFDMUValidator:
         if entry is None or entry[0] != key:
             return None
         return entry[1]
+
+    @staticmethod
+    def _single_field_key_count_value(value: str) -> str:
+        """The value SFDMU would key a record on, for counting single-field-key collisions.
+
+        `value` is the raw, non-null cell (blank/null tokens are filtered by the caller). SFDMU
+        casts a NUMERIC-typed field via `Number()` before building the external-Id key
+        (`Common._castCsvValueByFieldType`, 5.8.0), so `1`, `1.0`, `01`, ` 1 ` and `1e0` all become
+        the one JS number `1` and collide on the key `"1"` — a collision a raw-string count misses.
+        A non-numeric (text) field keeps its raw string, whitespace intact (the previous round's
+        fix), so ` dup ` and `dup` stay distinct.
+
+        Offline we have no field-type metadata, so we cannot know which columns SFDMU numeric-casts.
+        We fold any value that parses as a finite decimal to a spelling-independent canonical form
+        via `format(dec.normalize(), "f")` — a plain (never exponent) decimal string, so `100` and
+        `1E2` both read `100` and `1` / `1.0` / `01` both read `1` — and leave everything else as the
+        RAW string, whitespace preserved. The only value this over-folds is a *text* external Id that
+        deliberately stores numerically-equal-but-distinct strings (e.g. `1` vs `1.0`); for an
+        external Id — a field whose whole job is to identify one record — that is itself a fragility
+        worth a HIGH, not a legitimate distinction, so folding is the safe default.
+
+        `Decimal` (not `float`) keeps full precision, and `normalize()` runs under a local context
+        whose precision is widened to the value's own length, so two genuinely-distinct numeric Ids
+        never collapse by rounding at the default 28-significant-digit context limit. The whole
+        parse+normalize is wrapped: a non-numeric string raises `InvalidOperation` (an
+        `ArithmeticError`) and an astronomically-large exponent raises `Overflow` (also an
+        `ArithmeticError`) — both fall back to treating the cell as its raw text, never crashing the
+        per-file check.
+        """
+        stripped = value.strip()
+        try:
+            with localcontext() as ctx:
+                ctx.prec = max(len(stripped), 28)
+                dec = Decimal(stripped)
+                if not dec.is_finite():
+                    return value
+                return format(dec.normalize(), "f")
+        except (ArithmeticError, ValueError):
+            return value
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
@@ -2207,7 +2247,11 @@ class SFDMUValidator:
             trimmed = value.strip()
             if not trimmed or trimmed.lower() in self._SFDMU_CSV_NULL_TOKENS:
                 continue
-            counts[value] = counts.get(value, 0) + 1
+            # Key on the value SFDMU matches on: a finite-numeric cell folds to a spelling-
+            # independent canonical form (so `1`/`1.0`/`01` collide as SFDMU's numeric cast makes
+            # them), a text cell keeps its raw whitespace-preserved string.
+            count_value = self._single_field_key_count_value(value)
+            counts[count_value] = counts.get(count_value, 0) + 1
         duplicates = {v: c for v, c in counts.items() if c > 1}
         if not duplicates:
             return
