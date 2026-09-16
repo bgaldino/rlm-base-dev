@@ -301,4 +301,4 @@ cci task run manage_expression_sets --operation list_versions --developer_names 
   - Flows use: `DefinitionId`, `MasterLabel`, `VersionNumber`, `CreatedDate`
   - Expression Sets use: `DeveloperName`, `MasterLabel`, `LastModifiedDate`
 
-> **PRM Network Email and App Launcher** — See [CLAUDE.md](../CLAUDE.md) (App Launcher / PRM Network Email section) and [README.md](../README.md) for the authoritative reference on these topics.
+> **PRM Network Email and App Launcher** — See [PRM Network email](../guides/org-operations.md#prm-network-email) for deploy-time sender substitution and cleanup, and [App Launcher order](../guides/org-operations.md#app-launcher-order) for capture and ordering tasks.

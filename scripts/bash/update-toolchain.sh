@@ -114,7 +114,8 @@ else
 fi
 
 # Modern CCI 4.8+ with snowfakery 4.x requires setuptools>=75.4.
-# Historical `<71` pin (older docs) is incompatible — see README ~line 219.
+# Historical `<71` pin is incompatible — see docs/guides/local-installation.md,
+# "Step 7 — Install CumulusCI" (Note on setuptools).
 # Force-inject to repair any stale legacy install.
 # Note: CI (.github/workflows/prepare-rlm-org.yml) adds `<77` because it's
 # pinned to CCI 4.8.1; setuptools 77+ broke transitive deps on that version.
