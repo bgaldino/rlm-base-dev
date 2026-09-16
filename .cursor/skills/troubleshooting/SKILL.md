@@ -1,3 +1,11 @@
+---
+name: troubleshooting
+description: >-
+  Diagnose Revenue Cloud Foundations build, metadata deployment, data load, and local
+  toolchain failures. Use when a CCI flow step fails, SFDMU loads misbehave, permissions
+  or activation block deployment, or usage and rating results are unexpected.
+---
+
 # Troubleshooting & Common Errors
 
 Use this skill when diagnosing failures in the rlm-base-dev build pipeline,

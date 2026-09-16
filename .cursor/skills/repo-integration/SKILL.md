@@ -1,3 +1,11 @@
+---
+name: repo-integration
+description: >-
+  Place and integrate new Revenue Cloud Foundations features, code, metadata, and data
+  plans. Use when choosing repository directories, sequencing metadata and data
+  dependencies, or capturing and applying UX drift through source templates.
+---
+
 # Repository Integration Guide
 
 Use this skill when adding new features, code, metadata, data plans, or

@@ -1,3 +1,12 @@
+---
+name: constraint-models
+description: >-
+  Author, deploy, and diagnose Revenue Cloud Constraint Modeling Language (CML) bundle
+  rules. Use when editing constraint .ffxblob artifacts, wiring bundle members,
+  importing models, or investigating why configurator behavior did not change after
+  deployment.
+---
+
 # Constraint Models (CML)
 
 Working with Revenue Cloud Constraint Modeling Language models — the rules that decide

@@ -1,3 +1,12 @@
+---
+name: pricing-wiring
+description: >-
+  Wire Revenue Cloud pricing recipes, recipe-table mappings, procedure plans, and
+  feature overlays in dependency order. Use when pricing changes span these layers; use
+  expression-sets for procedure authoring and decision-tables for lookup definition or
+  refresh work.
+---
+
 # Pricing Dependency and Layering Skill
 
 Use this skill when adding or changing pricing behavior that spans:

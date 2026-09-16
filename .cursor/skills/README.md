@@ -49,6 +49,13 @@ repo root.
 
 ## How Skills Are Structured
 
+Every top-level `SKILL.md` starts with YAML `name` and `description` fields
+for discovery: the name matches its directory, and the description explains
+what the skill does and when to use it. See the
+[authoring requirements](skill-authoring/SKILL.md#discovery-metadata) for the
+format and validation constraints. Native discovery paths vary by agent;
+the router above remains a plain-file entry point.
+
 Each top-level skill should include the sections below. **Quick Rules** is
 present in every skill today and **DO NOT** in most; **Entry Conditions**,
 **Examples**, and **Validation Checks** are the target structure for new skills,

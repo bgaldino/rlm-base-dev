@@ -1,3 +1,11 @@
+---
+name: audit-review
+description: >-
+  Verify PR review findings, sweep related defects, and complete review replies and
+  thread resolution. Use when processing automated or human review comments or running a
+  pre-merge audit of Revenue Cloud Foundations changes.
+---
+
 # Audit Review — PR Review-Response & Completeness-Sweep Playbook
 
 > How to process automated PR reviews (Codex, Copilot) and run the deep

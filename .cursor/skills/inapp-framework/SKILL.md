@@ -1,3 +1,11 @@
+---
+name: inapp-framework
+description: >-
+  Maintain the In-App Learning framework integration in Revenue Cloud Foundations. Use
+  when changing the inapp SFDMU converter or data plan, RLM_Learning metadata,
+  per-release learning content, or the deploy, reload, and verification workflow.
+---
+
 # In-App Learning Framework — Maintain the `inapp` Integration
 
 Use this skill when working on the **In-App Learning** navigation framework — the

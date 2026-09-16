@@ -1,3 +1,12 @@
+---
+name: decision-tables
+description: >-
+  Inspect, author, deploy, refresh, and verify Revenue Cloud decision tables. Use when
+  lookup data is stale, pricing differs from source data, adding table definitions or
+  CSV uploads, comparing orgs, or wiring refresh after catalog, pricing, rate, or
+  contract changes.
+---
+
 # Decision Tables — Manage, Refresh and Verify
 
 Decision tables are materialised lookups. A refresh reads their source objects and
