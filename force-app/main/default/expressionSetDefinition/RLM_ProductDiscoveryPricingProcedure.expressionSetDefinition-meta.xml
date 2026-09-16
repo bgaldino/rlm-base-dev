@@ -5,6 +5,7 @@
     <label>RLM Product Discovery Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
+    <usageSubtype>RevenueCloud</usageSubtype>
     <versions>
         <fullName>RLM_ProductDiscoveryPricingProcedure_V1</fullName>
         <decimalScale>2</decimalScale>

@@ -12,10 +12,11 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `254/` *(label only)* | 254 | Spring '25 | Exercises only (PDF) |
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
-| `260/` | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
+| `262/` | 262 | Summer '26 | **Current GA target** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `264/` | 264 | Winter '27 | **Next development cycle** — scaffold only. Blocked on the 264 feature index, which is itself blocked on release notes (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
-> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/` and `262/` exist as real per-release directories.
+> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
 Most "Overview" links in the journey map point out to Salesforce Help; we author **Hands-On Exercises only**.
 
@@ -25,19 +26,21 @@ Most "Overview" links in the journey map point out to Salesforce Help; we author
 
 Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey map for that release
 
-| Functional Area              | 262 (Su'26) Target | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
-|------------------------------|---|---|---|---|---|---|---|
-| Context Service              | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | — | — | — | — |
-| Product Catalog Management   | ⏳ pending (master pilot drafted) | ⚠️ draft v0.2 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
-| Salesforce Pricing           | ⏳ pending (master pilot drafted) | ⚠️ draft v0.5 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
-| Configuration / Configurator | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (filename "Product Configurator") | ✅ | ✅ | ✅ | — |
-| Transaction Management       | ⏳ pending | ⚠️ draft v0.3 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Dynamic Revenue Orchestration| ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Usage Management             | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Invoice Management           | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | ✅ | ✅ | ✅ | — |
-| Revenue Cloud Billing        | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
-| Advanced Approvals           | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
-| CLM / Contracts              | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
+| Functional Area              | 264 (W'27) | 262 (Su'26) Target | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
+|------------------------------|---|---|---|---|---|---|---|---|
+| Context Service              | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | — | — | — | — |
+| Product Catalog Management   | ❌ not started | ⏳ pending (master pilot drafted) | ⚠️ draft v0.2 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
+| Salesforce Pricing           | ❌ not started | ⏳ pending (master pilot drafted) | ⚠️ draft v0.5 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
+| Configuration / Configurator | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (filename "Product Configurator") | ✅ | ✅ | ✅ | — |
+| Transaction Management       | ❌ not started | ⏳ pending | ⚠️ draft v0.3 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Dynamic Revenue Orchestration| ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Usage Management             | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Invoice Management           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | ✅ | ✅ | ✅ | — |
+| Revenue Cloud Billing        | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
+| Advanced Approvals           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
+| CLM / Contracts              | — (dropped in W'26 and later) | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
+
+Every 264 cell is `❌ not started` by design: authoring is gated on the 264 feature index, which is gated on release notes that have not published.
 
 ### Per-release SE/partner artifacts (non-extract)
 
@@ -46,6 +49,7 @@ In addition to the per-area Hands-On extracts tracked above, `docs/enablement/{v
 | File | Release | Status | Source |
 |---|---|---|---|
 | [`262/qb-demo-script.md`](262/qb-demo-script.md) | 262 | 🚧 Draft (preview release) | Generated 2026-05-24 via [`.cursor/skills/qb-demo-script/SKILL.md`](../../.cursor/skills/qb-demo-script/SKILL.md); pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish |
+| `264/qb-demo-script.md` | 264 | ❌ not started | Same skill; author once a 264 org shape is verified |
 
 ### Notes on draft state of 258 PDFs
 
@@ -113,4 +117,4 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.*

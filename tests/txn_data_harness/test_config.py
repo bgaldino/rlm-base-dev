@@ -629,3 +629,47 @@ scenarios:
         )
         with pytest.raises(ConfigError, match="'term' is not valid for kind 'invoice_ingestion'"):
             load_scenarios(_args(config=config))
+
+
+@pytest.mark.parametrize('explicit', [True, False])
+def test_ingestion_currency_location_and_shared_default(tmp_path, explicit):
+    scenario_currency = '    currency: EUR\n' if explicit else ''
+    path = _write_yaml(tmp_path, """defaults:
+  currency: EUR
+scenarios:
+  - kind: sales_txn_quote
+    product: SKU
+  - kind: invoice_ingestion
+""" + scenario_currency + """    invoice:
+      currency: GBP
+    invoice_lines:
+      - name: API
+        quantity: 1
+        unit_price: 10
+""")
+    if explicit:
+        with pytest.raises(ConfigError, match="'currency' is not valid"):
+            load_scenarios(_args(config=path))
+    else:
+        specs = load_scenarios(_args(config=path))
+        assert specs[0].products[0].currency == 'EUR'
+        assert specs[1].invoice.currency == 'GBP'
+
+
+@pytest.mark.parametrize('value', ['false', 'true', '0', '0.0', '[]', '{}', '""', 'EUR', 'null'])
+def test_explicit_ingestion_currency_only_allows_null(tmp_path, value):
+    path = _write_yaml(tmp_path, """scenarios:
+  - kind: invoice_ingestion
+    currency: """ + value + """
+    invoice:
+      currency: GBP
+    invoice_lines:
+      - name: API
+        quantity: 1
+        unit_price: 10
+""")
+    if value == 'null':
+        assert load_scenarios(_args(config=path))[0].invoice.currency == 'GBP'
+    else:
+        with pytest.raises(ConfigError, match="'currency' is not valid"):
+            load_scenarios(_args(config=path))

@@ -1,6 +1,6 @@
 # Constraints Setup and Deployment Order
 
-This document describes the `prepare_constraints` flow, its dependencies, and how constraint model data is loaded. For full details on the CML constraint utility, see the [Constraints Utility Guide](../datasets/constraints/README.md).
+This document describes the `prepare_constraints` flow, its dependencies, and how constraint model data is loaded. For full details on the CML constraint utility, see the [Constraints Utility Guide](../../datasets/constraints/README.md).
 
 ## Flow Order (prepare_constraints)
 
@@ -32,7 +32,7 @@ These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`)
 | 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1`, `QuantumBitPCM_V1`, **`QuantumBitBundle_V1` and `Server2_V1`** — Complete/PCM so re-running switches cleanly to Bundle; Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (steps 7-10 may have uploaded into an active version, which stores the blob without redeploying). No-op on a fresh build |
 | 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
-**Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
+**Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) were removed from this checkout and replaced by the CML utility. Use the [current constraint model plans](#constraint-model-data-plans).
 
 ## Feature Flags
 
@@ -66,7 +66,7 @@ Each directory contains:
 - CSV files for ExpressionSet, ExpressionSetDefinitionVersion, ExpressionSetDefinitionContextDefinition, ExpressionSetConstraintObj, Product2, ProductClassification, ProductRelatedComponent
 - A `blobs/` subdirectory with the ConstraintModel blob — **plain-text CML**, uploaded verbatim (not compiled)
 
-For detailed information on the data plan format, export/import workflows, and polymorphic resolution, see the [Constraints Utility Guide](../datasets/constraints/README.md).
+For detailed information on the data plan format, export/import workflows, and polymorphic resolution, see the [Constraints Utility Guide](../../datasets/constraints/README.md).
 
 ## TransactionProcessingType Data Plan
 
@@ -113,9 +113,9 @@ Before constraint data can be imported, three Revenue Settings must be configure
 2. **Set Up Asset Context for Product Configurator** must be set (default: `RLM_AssetContext`)
 3. **Set Up Configuration Rules and Constraints with Constraints Engine** toggle must be enabled
 
-The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](../README.md#installation)).
+The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](local-installation.md#setup-for-headless-robot-runs)).
 
-The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (step 24 in `prepare_rlm_org`) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
+The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (inside `prepare_revenue_settings`, called at `prepare_rlm_org` step 25) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
 
 All values are configurable via `cumulusci.yml` task options:
 
@@ -135,9 +135,9 @@ cci task run enable_constraints_settings --org <org>
 
 In addition to the constraints-specific settings above, the `prepare_rlm_org` flow includes two Revenue Cloud configuration steps that run after the core data/metadata is deployed (and before the feature-extension, UX, and decision-table-refresh steps):
 
-### configure_revenue_settings (step 24 of prepare_rlm_org)
+### configure_revenue_settings (step 25 of prepare_rlm_org)
 
-Automates general Revenue Settings page configuration via Robot Framework:
+Runs inside `prepare_revenue_settings` and automates general Revenue Settings page configuration via Robot Framework:
 
 - **Pricing Procedure** -- set to `RLM Revenue Management Default Pricing Procedure` (combobox-recipe, `<li>`-scoped)
 - **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure` (combobox-recipe, `<li>`-scoped; page reload between Pricing and Usage Rating ensures clean dropdown state)
@@ -148,9 +148,9 @@ Automates general Revenue Settings page configuration via Robot Framework:
 
 All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 
-### reconfigure_pricing_discovery (step 25 of prepare_rlm_org)
+### reconfigure_pricing_discovery (step 26 of prepare_rlm_org)
 
-Salesforce autoproc creates `Salesforce_Default_Pricing_Discovery_Procedure` in scratch orgs with an incorrect context definition. This Python CCI task performs a deactivate-reconfigure-reactivate cycle via REST API:
+Runs inside `prepare_pricing_discovery`. Salesforce autoproc creates `Salesforce_Default_Pricing_Discovery_Procedure` in scratch orgs with an incorrect context definition. This Python CCI task performs a deactivate-reconfigure-reactivate cycle via REST API:
 
 1. Deactivates the expression set version
 2. Updates the `ExpressionSetDefinitionContextDefinition` junction to point at `RLM_SalesTransactionContext`
@@ -165,11 +165,12 @@ cci task run reconfigure_pricing_discovery --org <org>
 
 ## Deprecated Plans
 
-The following SFDMU constraint data plans are deprecated and archived:
+The following historical SFDMU constraint data plans were removed and are not
+checked in. Their names are listed for migration context, not as available paths:
 
-- `datasets/sfdmu/_archived/qb-constraints-product/`
-- `datasets/sfdmu/_archived/qb-constraints-component/`
-- `datasets/sfdmu/_archived/qb-constraints-consolidated/`
-- `datasets/sfdmu/_archived/qb-constraints-prc-aisummit/`
+- `qb-constraints-product`
+- `qb-constraints-component`
+- `qb-constraints-consolidated`
+- `qb-constraints-prc-aisummit`
 
-These were early attempts at loading constraint data via SFDMU that could not handle the polymorphic `ReferenceObjectId` field on `ExpressionSetConstraintObj`. They have been replaced by the CML utility.
+These were early attempts at loading constraint data via SFDMU that could not handle the polymorphic `ReferenceObjectId` field on `ExpressionSetConstraintObj`. They have been replaced by the [CML utility and current plans](../../datasets/constraints/README.md).

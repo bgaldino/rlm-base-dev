@@ -88,6 +88,8 @@ def create_opportunity(
         "CloseDate": _iso_days(30),
         "Description": run_id,
     }
+    if account.currency_iso_code:
+        body["CurrencyIsoCode"] = account.currency_iso_code
     result = client.post(_sobject_path(client, "Opportunity"), body)
     if not result or not result.get("success"):
         raise LifecycleError("opportunity", f"create failed: {result}")
@@ -164,6 +166,8 @@ def place_sales_transaction(
         "Pricebook2Id": pricebook_id,
         "Description": run_id,
     }
+    if account.currency_iso_code:
+        quote_record["CurrencyIsoCode"] = account.currency_iso_code
     if opportunity_id:
         quote_record["OpportunityId"] = opportunity_id
 
@@ -308,6 +312,8 @@ def place_order_transaction(
         "Status": "Draft",
         "Description": run_id,
     }
+    if account.currency_iso_code:
+        order_record["CurrencyIsoCode"] = account.currency_iso_code
     # NOTE: Order has no OpportunityId field on R262 (verified via describe
     # against rlm-base__jun17_1 on 2026-06-25). The quote path links via
     # Quote.OpportunityId; the direct-Order path cannot. A scenario can still

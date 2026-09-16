@@ -1,3 +1,12 @@
+---
+name: decision-tables
+description: >-
+  Inspect, author, deploy, refresh, and verify Revenue Cloud decision tables. Use when
+  lookup data is stale, pricing differs from source data, adding table definitions or
+  CSV uploads, comparing orgs, or wiring refresh after catalog, pricing, rate, or
+  contract changes.
+---
+
 # Decision Tables — Manage, Refresh and Verify
 
 Decision tables are materialised lookups. A refresh reads their source objects and
@@ -223,7 +232,7 @@ header — read it there rather than re-deriving it.
 
 | Path | Use when |
 |---|---|
-| `cci task run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
+| `cci flow run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
 | The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh, status polling, why a table is stale. |
 | Setup → Decision Tables | One table, manually. |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. |

@@ -13,7 +13,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import quote
 
-DEFAULT_API_VERSION = "67.0"
+DEFAULT_API_VERSION = "68.0"
 _REQUEST_TIMEOUT = 120  # seconds — reads
 # A REST/Metadata mutation that (de)activates or rebuilds a table can take
 # minutes server-side; mirror the expression-set / context-service timeout.

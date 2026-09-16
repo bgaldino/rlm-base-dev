@@ -22,7 +22,7 @@
  */
 public with sharing class RLM_ExpressionSetManagerController {
 
-    private static final String API_VERSION = 'v67.0';
+    private static final String API_VERSION = 'v68.0';
     private static final String OPERATION_MAKE_ACTIVE = 'make_active';
     private static final String OPERATION_MAKE_INACTIVE = 'make_inactive';
     private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{ 'Queued', 'Preparing', 'Processing', 'Holding' };

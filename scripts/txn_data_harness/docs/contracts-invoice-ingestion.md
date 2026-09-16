@@ -1,13 +1,22 @@
 # Invoice Ingestion — Contracts
 
 > ✅ VERIFIED LIVE Draft, non-taxable Posted, and tax-on Posted
-> (2026-06-25, `rlm-base__jun17_1`). Posted requires an active non-taxable
-> `TaxTreatment` (see *Posted Path Prerequisites* below); tax-on Posted
+> (2026-06-25, `rlm-base__jun17_1` — R262, API v67.0). Posted requires an active
+> non-taxable `TaxTreatment` (see *Posted Path Prerequisites* below); tax-on Posted
 > additionally requires an active taxable `TaxTreatment` (see *Tax-on
 > Posted Path* below).
+>
+> **Request examples below read `v68.0` (the Release 264 target) but every capture
+> was taken at `v67.0`** — the verification org's maximum, so a v68.0 call was not
+> merely untried there, it was impossible. Treat `VERIFIED LIVE` as attesting to
+> the body, response shape, and sequencing, *not* to the version in the path.
+> The captured **response** deliberately keeps the `v67.0` `statusURL` the server
+> actually returned — that is evidence, not an instruction. Re-verification on a
+> fresh 264 org is tracked in
+> [`followups.md`](followups.md#release-264-re-verification).
 
 The ingestion path bypasses the PST spine entirely. One POST to
-`/services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest` produces
+`/services/data/v68.0/commerce/invoicing/invoices/collection/actions/ingest` produces
 an `Invoice` with `CreationMode = External` plus its `InvoiceLine` rows in a single
 Composite Graph call — no `Opportunity`/`Quote`/`Order`/`Activate`/`BillingSchedule`.
 The wire format is the **typed graph record shape** described in the dev guide at
@@ -17,7 +26,7 @@ NOT the generic Composite Graph subrequest shape (`{url, method, body}`).
 ## Verified payload shape (Draft, against `rlm-base__jun17_1`, 2026-06-25)
 
 ```jsonc
-POST /services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest
+POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/ingest
 {
   "invoices": [{
     "shouldCalculateTax": false,      // Current invariant: no InvoiceLineTax

@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableAdvCreateOrdersFromQuote>true</enableAdvCreateOrdersFromQuote>
-    <!-- Advanced Detail Line Pricing is intentionally disabled: it is not required for the
-         base RLM configuration and changes pricing/totals behavior. Keep false here and in
-         every scratch-def settings block (config/project-scratch-def.json, orgs/*.json, and
-         orgs/internal/*.json) so deployed metadata and new scratch orgs stay in sync. -->
-    <enableAdvancedDetailLinePricing>false</enableAdvancedDetailLinePricing>
+    <!-- Advanced Detail Line Pricing is enabled by default: it is required for group-ramp
+         COMPOUND uplift (264 Help "Set Up Ramp Deals with Standard or Compound Price Uplifts"
+         — compound is hidden from the Ramp Uplift Type picklist when ADLP is off) and the
+         RLM_DefaultPricingProcedure now carries the compound PriceRevision BKM that binds the
+         ADLP detail-line uplift attributes. It changes pricing/totals behavior, so keep this
+         true here and in every scratch-def settings block (config/project-scratch-def.json,
+         orgs/*.json, and orgs/internal/*.json) so deployed metadata and new scratch orgs stay
+         in sync. -->
+    <enableAdvancedDetailLinePricing>true</enableAdvancedDetailLinePricing>
     <enableAsIsRenewals>true</enableAsIsRenewals>
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
     <enableCoreCPQ>true</enableCoreCPQ>
@@ -18,12 +22,25 @@
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
-    <enableScaleAttributes>true</enableScaleAttributes>
+    <!-- Two fields are deliberately absent — enableScaleAttributes and
+         persistChunkSizeOverride. 264 dropped them from the RevenueManagementSettings
+         schema, and a 264 org rejects the whole file with "Element {}<field> invalid at
+         this location in type DeclarativeMetadataForSettings", taking every other setting
+         here down with it. Keep them out of the scratch-def settings blocks too
+         (config/project-scratch-def.json, orgs/*.json, orgs/internal/*.json), where their
+         presence makes org creation report status 68 / ProblemDeployingSettings while
+         still exiting 0 — so the shell looks successful and you get an org with no
+         revenue settings.
+
+         enableGroupRampTrialSegmentPref is NOT one of them: it survives at 264 and stays
+         set here. Verified 2026-08-13 on a freshly built 264 scratch org (not an upgraded
+         262 org): a `Settings:RevenueManagement` retrieve at v68.0 returns
+         enableGroupRampTrialSegmentPref, and org creation from a def carrying it succeeds
+         with status 0 once only the two fields above are removed. -->
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
     <hidePriceRefreshNtfcn>false</hidePriceRefreshNtfcn>
-    <persistChunkSizeOverride>true</persistChunkSizeOverride>
     <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
     <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>

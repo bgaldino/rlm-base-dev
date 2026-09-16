@@ -4,8 +4,9 @@ Documentation     Resets the test Account by running the RLM_Reset_Account Quick
 ...               Clears transactional data (Opportunities, Quotes, Orders, Assets)
 ...               before re-running E2E tests.
 ...
-...               Run via CCI:
-...                 cci task run robot_reset_account --org beta
+...               Run via CCI (the robot_* tasks reject --org, issue #320 — select the org first):
+...                 cci org default beta
+...                 cci task run robot_reset_account
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Reset Account

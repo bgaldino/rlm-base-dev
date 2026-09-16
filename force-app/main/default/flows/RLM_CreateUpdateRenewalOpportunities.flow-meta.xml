@@ -218,7 +218,7 @@
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>67.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice.</description>
     <assignments>

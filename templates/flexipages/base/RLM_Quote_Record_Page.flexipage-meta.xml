@@ -172,6 +172,11 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>groupRampFields</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>QuoteLineGroup.RampUpliftType</value>
+                        </valueListItems>
+                    </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>sidepanelDetailFields</name>
@@ -240,6 +245,9 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.UnitPriceUplift</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.ApplUnitPriceUpliftPct</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>

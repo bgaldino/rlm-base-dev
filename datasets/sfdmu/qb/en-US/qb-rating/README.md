@@ -89,7 +89,7 @@ Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activ
 
 ## Schema: ProductUsageResource (PUR) and product relationship
 
-Org describe confirms: on **ProductUsageResource**, `ProductId` has `relationshipName: Product` (not Product2). So in SOQL we use **Product.StockKeepingUnit** and **UsageResource.Code** on PUR, and **ProductUsageResource.Product.StockKeepingUnit** when traversing from PURP/PUG. UsagePrdGrantBindingPolicy uses **Product2**.StockKeepingUnit (it has Product2Id). RatingFrequencyPolicy uses **Product**.StockKeepingUnit (relationshipName: Product).
+Org describe confirms: on **ProductUsageResource**, `ProductId` has `relationshipName: Product` (not Product2). So in SOQL we use **Product.StockKeepingUnit** and **UsageResource.Code** on PUR, and **ProductUsageResource.Product.StockKeepingUnit** when traversing from PURP/PUG. UsagePrdGrantBindingPolicy uses **Product2**.StockKeepingUnit (it has Product2Id). **`RatingFrequencyPolicy.ProductId` and `.UsageResourceId` were removed in 264** (`#264-66`) — the object's query now selects only `Name`, `RatingDelayDuration`, `RatingPeriod`.
 
 PUR, PURP, and PUG all use `operation: Insert` with `deleteOldData: true` (no WHERE clause). PURP uses `externalId: ProductUsageResourceId` (direct FK — avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs have two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code`) for FK resolution — no `$$` composite (which caused a SOQL injection bug in the deleteOldData DELETE phase).
 
@@ -392,28 +392,35 @@ billing. The three periods come from three different places:
 |--------|--------|----------|
 | Billing | `UsageEntitlementAccount.BillingPeriodUnit/Term` (runtime) | Monthly |
 | Rating | `RatingFrequencyPolicy.RatingPeriod` | Monthly |
-| Accumulation | `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
+| Accumulation | `ProductUsageResourcePolicy.UsageAggregationPolicy` → `UsageResourceBillingPolicy.UsageAccumulationPeriod` | **Daily** |
 
 Accumulation must be **strictly shorter** than rating, which is why the
-`dailytotal` / `dailypeak` policies exist and why every QB usage resource points
-at one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
-for a future model that bills quarterly or annually — pointing a monthly-billed
-resource at them reintroduces the failure.
+`dailytotal` / `dailypeak` policies exist and why every QB usage resource is bound
+to one. The `monthlytotal` / `monthlypeak` rows are retained as reference data
+for a future model that bills quarterly or annually — binding a monthly-billed
+resource to them reintroduces the failure.
 
-**Two references, one authority.** The accumulation policy is named in *both*
-`UsageResource.UsageResourceBillingPolicy.Code` and
-`ProductUsageResourcePolicy.UsageAggregationPolicy.Code`. Runtime snapshots the
-**`UsageResource`** value onto the `TransactionUsageEntitlement`, so fixing only
-the PURP reference leaves the resource default broken while looking correct.
-Keep both aligned. `tests/test_qb_multicurrency_data.py::accumulation_refs_aligned`
-enforces it. Note that `period_ordering_descending` does **not**: it checks each
-reference against billing ≥ rating > accumulation *independently*, and `dailypeak`
-and `dailytotal` are both Daily, so a mismatched pair satisfies it — which is how
-storage sat at resource=`dailypeak` / purp=`dailytotal` while the suite read green.
+**One reference as of 264.** Release 264 removed
+`UsageResource.UsageResourceBillingPolicyId`, so the accumulation policy is named
+in exactly one place: `ProductUsageResourcePolicy.UsageAggregationPolicy.Code`.
+Through 262 it was named on both `UsageResource` and the PURP row and the two had
+to agree — runtime read the `UsageResource` value, so a disagreeing PURP was
+silently ignored while reading as though it applied. With the resource-level field
+gone that alignment invariant no longer has two sides, so
+`tests/test_qb_multicurrency_data.py::accumulation_refs_aligned` is retired and
+`period_ordering_descending` checks the single remaining reference.
 
-`TransactionUsageEntitlement.UsageAggregationPolicyId` is **not writeable**, so
-existing entitlements cannot be repointed — a design-time change reaches runtime
-only via the policy record itself or a newly created asset.
+Existing entitlements cannot be repointed either way, so a design-time change
+reaches runtime only via the policy record itself or a newly created asset. What
+changed in 264 is *why*: through 262 `TransactionUsageEntitlement` carried
+`UsageAggregationPolicyId` and it was simply **not writeable**; on 264 the field is
+**gone from the object** — one of the four 264 removed from TUE, alongside
+`ChargeForOverage`, `DrawdownOrder`, and `RatingFrequencyPolicyId`. So on 264 there is
+no entitlement-level copy to repoint or to disagree with the PURP row, which is the
+same "one reference" conclusion reached from the other direction. Do not write SOQL or
+data plans against that field on 264 — see
+`.cursor/skills/revenue-cloud-data-model/domains/usage.md` for the verified TUE field
+list.
 
 ## File Structure
 
@@ -654,7 +661,7 @@ All schema-unique fields are already correctly used as externalIds.
 
 ### Portability Concern: RatingFrequencyPolicy
 
-`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there are 2 records (RatingPeriod = `Monthly` and `Daily`, each period unique), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
+`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there are 2 records (RatingPeriod = `Monthly` and `Daily`, each period unique), so it works. But if multiple policies per period are needed in the future, a composite key would be required — **not** the `Product.StockKeepingUnit`/`UsageResource.Code` traversal columns previously suggested here, since both underlying lookups (`ProductId`, `UsageResourceId`) were removed in 264 (`#264-66`); a future tie-breaker would need a different field.
 
 **Required `Name` (2026-07-23 fix):** `RatingFrequencyPolicy.Name` is a **required `Text(255)`** field (`nillable=false`, **not** auto-numbered — org describe confirmed). The CSV must supply it; the two rows are `Monthly Rating Frequency` and `Daily Rating Frequency` (the latter added for the QB-DAT-THPT throughput pack). Omitting `Name` makes the `RatingFrequencyPolicy` insert fail with *"Required fields are missing: [Name]"*, which then **silently cascades**: `ProductUsageResourcePolicy` (PURP) rows that reference `RatingFrequencyPolicy.RatingPeriod=Monthly` resolve to `#N/A`, and **Anchor** usage-model products (`QB-DB`, `QB-DB-TOKEN`) *require* `RatingFrequencyPolicyId` — so their PURP inserts are rejected with *"Complete this field when the product… is of Anchor usage model type."* Non-Anchor products (Commit/CommitmentSpend/CommitmentQuantity) leave RFP blank and are unaffected. `Name` is data-only; `RatingPeriod` remains the externalId.
 

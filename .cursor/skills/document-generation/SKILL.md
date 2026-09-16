@@ -1,3 +1,12 @@
+---
+name: document-generation
+description: >-
+  Create, modify, and troubleshoot Salesforce OmniStudio .docx templates and
+  DocumentTemplate lifecycle operations. Use for token mapping, template activation,
+  document generation, or output verification; use odt-authoring for deep
+  OmniDataTransform mapper work.
+---
+
 # OmniStudio Document Generation
 
 Use this skill when creating, modifying, or troubleshooting Salesforce OmniStudio
@@ -189,6 +198,32 @@ Use this for:
 - Transform output verification before wiring to a template
 - End-to-end template smoke tests (DGP script triggers generation + polls)
 
+### Static inspection — validate and diff without executing
+
+Two helpers read an ODT's items straight from the org, so they work before you
+have a record to execute against:
+
+```bash
+# Lint one ODT's items: null fields, duplicate keys, malformed dot notation
+python scripts/docgen/docgen_odt_validate.py RLMQuoteProposalExtract --org dev-scratch
+
+# Diff two ODTs item-by-item — the fastest way to find what a clone lost
+python scripts/docgen/docgen_odt_compare.py RLMQuoteProposalExtract RLMInvoiceExtract --org dev-scratch
+
+# Create an ODT from a JSON spec (--example extract|transform emits a starter spec)
+python scripts/docgen/docgen_odt_create.py spec.json --org dev-scratch
+```
+
+`docgen_odt_create.py`'s spec format, cloning patterns, and shell-escaping
+pitfalls are in `data-mapper-authoring.md`; `odt-authoring/SKILL.md` covers
+authoring the mapper itself.
+
+Reach for `docgen_odt_validate.py` when an Extract returns empty or partial
+output and you want to rule out the mapper before blaming the data, and for
+`docgen_odt_compare.py` when a cloned ODT misbehaves — cloning is the pattern
+this skill recommends (see `data-mapper-authoring.md`), and a silent item drop
+during a clone is its characteristic failure.
+
 ---
 
 ## Architecture Overview
@@ -256,7 +291,7 @@ Use this for:
 
 **Testable at each stage:**
 - Stage 2: `python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
-- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
+- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v68.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
 - Full pipeline: `python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
 
 ---

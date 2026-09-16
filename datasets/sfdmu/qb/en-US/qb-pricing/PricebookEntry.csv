@@ -741,13 +741,13 @@ QB-SUPP-1005;Term Annual;AUD,AUD,true,false,Gold Hardware Maintenance,Standard P
 QB-SUPP-1005;Term Annual;CAD,CAD,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,42269.5
 QB-SUPP-1005;Term Annual;CHF,CHF,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,24412.5
 QB-SUPP-1005;Term Annual;JPY,JPY,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,4892599
-QB-SUPP-2000;Term Annual;USD,USD,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;GBP,GBP,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;EUR,EUR,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;AUD,AUD,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;CAD,CAD,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;CHF,CHF,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
-QB-SUPP-2000;Term Annual;JPY,JPY,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
+QB-SUPP-2000;Term Annual;USD,USD,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,5400
+QB-SUPP-2000;Term Annual;GBP,GBP,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,4037.5
+QB-SUPP-2000;Term Annual;EUR,EUR,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,4732.5
+QB-SUPP-2000;Term Annual;AUD,AUD,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,7723
+QB-SUPP-2000;Term Annual;CAD,CAD,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,7608.5
+QB-SUPP-2000;Term Annual;CHF,CHF,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,4394.5
+QB-SUPP-2000;Term Annual;JPY,JPY,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,880668
 QB-TOKENS-PACK;One-Time;USD,USD,true,false,QuantumBit Tokens Pack,Standard Price Book;true,QB-TOKENS-PACK,One-Time;OneTime,100
 QB-TOKENS-PACK;One-Time;GBP,GBP,true,false,QuantumBit Tokens Pack,Standard Price Book;true,QB-TOKENS-PACK,One-Time;OneTime,75
 QB-TOKENS-PACK;One-Time;EUR,EUR,true,false,QuantumBit Tokens Pack,Standard Price Book;true,QB-TOKENS-PACK,One-Time;OneTime,87.5

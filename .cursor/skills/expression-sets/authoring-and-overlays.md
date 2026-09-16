@@ -8,7 +8,7 @@ removing a step safely. For the two authoring *paths* (Connect vs Metadata API),
 the mutation lifecycle, verb-specific field rules, and GET serializer gotchas,
 read the companion sub-file `metadata-vs-connect.md`.
 
-Pinned to Release 262 / API v67.0.
+Pinned to Release 264 / API v68.0.
 
 ---
 
@@ -48,6 +48,12 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf
     --step "Apply Discount" --after "Get List Price" \
     --out /tmp/apply_discount.overlay.json
 ```
+
+
+### Existing steps and verification
+
+See the toolkit guide’s [existing-step and read-back rules](../../../scripts/expression_sets/README.md#existing-steps-and-verification)
+for `addSteps` replay, `updateSteps` edits, and verification shared by the CLI and CCI task.
 
 ### Top-level vs child steps are sliced differently
 

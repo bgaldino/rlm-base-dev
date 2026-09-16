@@ -40,16 +40,20 @@ generated_at: "2026-05-23T00:00:00Z"
 # that at the time — it resolved repo roots only. It now audits every declared skill
 # and every path-shaped value, so re-stamping this date means running it.
 last_verified: "2026-07-26"
-salesforce_release_active: "262"
-salesforce_release_prior_ga: "260"
-api_version_active: "v67.0"
-api_version_prior_ga: "v66.0"
+salesforce_release_active: "264"
+salesforce_release_prior_ga: "262"
+api_version_active: "v68.0"
+api_version_prior_ga: "v67.0"
+# ⚠ "active" here is the BRANCH TARGET, not the verified-corpus release. 264 is
+# pre-GA: the grounding artifacts below (help_corpus_active, erd_data) are still
+# 262/v67.0 captures and are labeled as such. Do not infer that a 264 corpus
+# exists because api_version_active says v68.0.
 
 # ─── Foundations (this repo) ────────────────────────────────────────────────
 foundations:
   name: rlm-base-dev
   repo_url: https://github.com/bgaldino/rlm-base-dev
-  branch_active: "262"
+  branch_active: "264"
   role: build
   maintainer: Brian Galdino
   local_path_hints:
@@ -85,7 +89,21 @@ foundations:
       provenance: live-verified on scratch org 2026-07
       caveats:
         - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
-        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING in 262 (platform issue); Commit works"
+        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING (platform issue); re-verified on fresh 264 2026-08-14, still unfixed. Commit works on both releases"
+
+    - id: renewal-asset-creation
+      path: .cursor/skills/renewal-asset-creation/SKILL.md
+      purpose: "Create renewal-ready assets across the 4 expiry windows (reusing build_quote_to_asset.py) and layer Renewal/Upsell/Downsell lifecycle event history"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      tooling:
+        - scripts/renewal_assets/build_renewal_buckets.py
+        - scripts/renewal_assets/augment_asset_lifecycle.apex
+        - scripts/renewal_assets/reset_augment.apex
+        - scripts/build_quote_to_asset.py
+      provenance: ported from eng git.soma.salesforce.com/tsubramaniam/RevAssetCreation; offline (py_compile + dry-run) verified, org behavior needs-live-verification
+      caveats:
+        - "Accounts must pre-exist — build_quote_to_asset.py resolves by name and does not create them"
+        - "The two Apex scripts + end-to-end bucket build write to an org and are not covered by the offline checks; run live before relying on results"
 
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
@@ -95,6 +113,15 @@ foundations:
       caveats:
         - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
         - "Skill self-describes as 'reference, not source of truth'"
+
+    - id: ramped-quotes
+      path: .cursor/skills/ramped-quotes/SKILL.md
+      purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      provenance: live-verified on 264/v68.0 org 2026-07 (field legality + build sequence)
+      caveats:
+        - "Compound-uplift ENGINE (PriceRevision element) lives in expression-sets skill; this skill covers the transaction build + prerequisites"
+        - "Headless scripts/ramp_deals/ toolkit is on unmerged branch feat/ramp-deals-core; skill documents the raw Connect calls until it lands"
 
     - id: txn-data-harness
       path: .cursor/skills/txn-data-harness/SKILL.md
@@ -153,7 +180,7 @@ foundations:
       sub_skills:
         - docs/references/expression-set-connect-api-reference.md
       caveats:
-        - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
+        - "Endpoints target 264 / v68.0; enums and behavior were live-verified on 262 / v67.0 and are NOT yet re-verified on 264 — re-verify against a 264 org"
 
     - id: decision-tables
       path: .cursor/skills/decision-tables/SKILL.md
@@ -181,7 +208,7 @@ foundations:
         - scripts/decision_tables/upload_decision_table_data.py
         - scripts/apex/checkDecisionTableFreshness.apex
       caveats:
-        - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
+        - "Endpoints target 264 / v68.0; enums and behavior were live-verified on 262 / v67.0 and are NOT yet re-verified on 264 — re-verify against a 264 org"
         - "Toolkit reads are safe; mutators are preview-by-default (--confirm to write); destructive probing runs on disposable scratch orgs only, never beta"
         - "The CCI tasks remain the org-build path — the toolkit complements, does not duplicate, them"
         - "check_decision_table_freshness requires post_utils deployed; it delegates to RLM_DecisionTableManagerController rather than recomputing freshness"
@@ -192,7 +219,7 @@ foundations:
       consumed_by_pmos: []
       provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
       caveats:
-        - "Pinned to Release 262 / API v67.0"
+        - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264"
         - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
 
     - id: pricing-wiring
@@ -201,7 +228,7 @@ foundations:
       consumed_by_pmos: []
       provenance: hand-authored from the PRM pricing layering work
       caveats:
-        - "Pinned to Release 262 / API v67.0"
+        - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264"
         - "A decision-table-backed lookup must be refreshed when its source CRITERIA become true, not when the triggering row is written — see decision-tables"
 
     - id: build-harness
@@ -259,7 +286,7 @@ foundations:
         # standalone example — not wired into any CCI task/flow, run by hand
         - scripts/context_service/examples/contextServiceLifecycle.apex
       caveats:
-        - "Pinned to Release 262 / API v67.0 — verify edge behavior (versioning, standard-context availability) against a live org"
+        - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264 — verify edge behavior (versioning, standard-context availability) against a live 264 org"
 
     - id: sfdmu-data-plans
       path: .cursor/skills/sfdmu-data-plans/SKILL.md
@@ -302,6 +329,8 @@ foundations:
       path: .cursor/skills/doc-consistency/SKILL.md
       purpose: "Pre-merge doc-consistency review"
       consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/doc-consistency/erd-count-drift.md
 
     - id: skill-authoring
       path: .cursor/skills/skill-authoring/SKILL.md
@@ -363,6 +392,14 @@ foundations:
         - scripts/docgen/docgen_template_manage.py
         - scripts/docgen/docgen_template_generate.py
 
+    - id: df-workshop-setup
+      path: .cursor/skills/df-workshop-setup/SKILL.md
+      purpose: "Capture/replay DF Hands-On workshop org drift (seeded quotes, ramps, anchors, config) into a clone and verify it before TrialForce/OrgFarm templating"
+      consumed_by_pmos: []
+      tooling:
+        - scripts/df_workshop/extract_workshop_quotes.py
+        - scripts/df_workshop/insert_workshop_quotes.py
+
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
     - id: snapshot_salesforce_help
@@ -399,10 +436,14 @@ foundations:
   # Grounding artifacts (referenced by skills above; here for direct lookup)
   grounding:
     help_corpus_active:
+      # ⚠ Still a 262 capture. 264 is pre-GA and its Help articles have not
+      # published, so this remains the newest captured corpus even though
+      # salesforce_release_active is 264. Refresh via snapshot_salesforce_help
+      # against a 264 org once 264 Help publishes, then add a 264 entry.
       path: docs/salesforce/262/help/articles/
       manifest: docs/salesforce/262/help/manifest.json
       index: docs/salesforce/262/help/index.md
-      article_count: 932
+      article_count: 935  # = len(manifest.json articles) = files on disk, verified 2026-08-16; becomes generator-computed when generate_skill_manifest lands (todo 132)
       release: "262"
       season: "Summer '26"
       api_version: v67.0
@@ -420,6 +461,9 @@ foundations:
       partial: docs/salesforce/260/feature-index.md
 
     erd_data:
+      # ⚠ Still a 262 / v67.0 capture — deliberately NOT bumped with the branch.
+      # release/apiVersion here are provenance of the source org, not a version
+      # pin. Regenerate only from a verified 264 org (see docs/erds/README.md).
       path: docs/erds/erd-data.json
       query_cli: scripts/ai/query_erd.py
       object_count: 263
@@ -470,7 +514,7 @@ foundations:
     postman_environment: postman/Agentforce Revenue Management v66.0.postman_environment.json
     postman_v67_status: needs_refresh
 
-# ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──
+# ─── PMOS (sibling repo; owner = the `maintainer` field in the section below) ─
 #
 # Discovery is OPTIONAL: most Foundations workflows do not need a local PMOS
 # clone. The cross-repo manifest exists so PMOS-aware skills (release-enablement,
@@ -481,20 +525,25 @@ foundations:
 # repo containing it can't be located).
 pmos:
   name: pmos-revenue-cloud
-  repo_url: https://git.soma.salesforce.com/s-varadharajan/pmos-revenue-cloud
+  # Endpoint = Brian's fork (interim, per the reconciled federation plan Track A).
+  # The prior endpoint (s-varadharajan) is a departed maintainer's repo; his local
+  # clone still LENIENT-matches discovery, so keep it OUT of the hints below —
+  # a stale clone that resolves silently is the exact P0 failure this fixes.
+  repo_url: https://git.soma.salesforce.com/bgaldino/pmos-revenue-cloud
   role: author
-  maintainer: Santhanagopalan Varadharajan
+  maintainer: Brian Galdino
   optional: true   # discovery may legitimately fail on Foundations-only clones
   local_path_hints:
     - "$PMOS_REPO_ROOT"
     - "$RC_WORKSPACE/pmos"
-    - "${HOME}/Documents/GitHub/Enterprise/_s-varadharajan/pmos-revenue-cloud"
+    - "${HOME}/Documents/GitHub/Enterprise/_bgaldino/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
-  # Today PMOS has 61 skills; only the ones likely consumed across repos
-  # are listed here. Sandy can extend in his copy.
+  # Do not hand-maintain a PMOS skill count here — measure it from the resolved
+  # clone (`skill_manifest.py --check` reports what it finds). Only the skills
+  # likely consumed across repos are listed; the fork owner can extend.
   skills:
     - id: prd
       path: .claude/skills/prd/SKILL.md
@@ -590,7 +639,7 @@ pmos:
       "Winter '25": 45
       "Spring '25 (254)": 55
       "Summer '25": 1
-    note: "Content is roughly 6 releases stale as of active 262 baseline. PMOS-canonical for PM-framing layer; product-fact freshness should be sourced from Foundations Help mirror via the manifest."
+    note: "Content is roughly 7 releases stale as of the active 264 baseline. PMOS-canonical for PM-framing layer; product-fact freshness should be sourced from Foundations Help mirror via the manifest."
     packages:
       - id: revenue-cloud-billing
         knowledge_files: 21

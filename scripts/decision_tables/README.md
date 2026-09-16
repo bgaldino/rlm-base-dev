@@ -2,7 +2,7 @@
 
 Standalone commands for inspecting and managing Revenue Cloud BRE Decision
 Tables. They use the authenticated `sf` CLI, not CumulusCI, and default to API
-v67.0.
+v68.0.
 
 - Pass an **SF CLI alias or username** to `--target-org`.
 - Read commands never mutate the org.

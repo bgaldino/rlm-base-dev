@@ -71,7 +71,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "67.0"
+    api_version: "68.0"
   git:
     default_branch: "main"
   source_format: sfdx
@@ -94,8 +94,8 @@ project:
     # ── Core Revenue Cloud Features ────────────────────────────────────────────
     billing: true             # Billing
     billing_ui: true          # Billing UI LWC components (post_billing_ui)
-    billing_portal: true      # Self-Service Billing Portal community
-    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing + billing_portal)
+    billing_portal: false     # Self-Service Billing Portal community
+    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
     payments: true            # Payments
     approvals: true           # Approvals
     tax: true                 # Tax engine
@@ -120,7 +120,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: true              # Agentforce agent configurations
+    agents: true              # RLM_Revenue_Quote_Management is omitted from agent publish/activation via EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (pack 187): its Configure_Product_Attributes currency outputs fail publish on v68/264. deactivate_agents still discovers it (to clean up a version left active by a 262→264 upgrade). The other two bundles publish; re-add the omitted bundle once its 264 template is captured.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
@@ -260,26 +260,6 @@ project:
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
-    rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
-      # Product Catalog Management permission sets
-      - IndustriesConfiguratorPlatformApi
-      - ProductConfigurationRulesDesigner
-      - ProductCatalogManagementAdministrator
-      - ProductCatalogManagementViewer
-
-    rlm_blng_ps_api_names: &rlm_blng_ps_api_names
-      # Billing-related permission sets
-      - AnalyticsStoreUser
-      - RevenueLifecycleManagementAccountingAdmin
-      - RevenueLifecycleManagementBillingAdmin
-      - RevenueLifecycleManagementBillingCreateInvoiceFromBillingScheduleApi
-      - RevenueLifecycleManagementBillingCreditMemoOperations
-      - RevenueLifecycleManagementBillingInvoiceErrorRecoveryApi
-      - RevenueLifecycleManagementBillingOperations
-      - RevenueLifecycleManagementBillingTaxAdmin
-      - RevenueLifecycleManagementBillingVoidPostedInvoiceApi
-      - RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi
-
     rlm_clm_psl_api_names: &rlm_clm_psl_api_names
       # Contract Lifecycle Management permission set licenses
       - AIAcceleratorPsl
@@ -582,7 +562,22 @@ project:
     procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_name: &procedure_plan_definition_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
-    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
+    # "Default" is deliberate and is NOT a Revenue Cloud plan being mislabelled --
+    # Release 264 moved that identity out of ProcessType and into the new SubType
+    # below. 264 rejects the 262 shape (ProcessType RevenueCloud, no SubType) outright:
+    #   Process Type RevenueCloud with Subtype RevenueCloud isn't supported for Revenue
+    #   Cloud. Set Process Type to Default and Subtype to Revenue Cloud, or set Process
+    #   Type to Revenue Cloud with no Subtype.
+    # Only the first of those two alternatives actually works on a fresh 264 org; the
+    # second is what this repo already sent, and it fails with "Specify a valid subtype
+    # to create a procedure plan definition record." The platform stores the pair as
+    # ProcessTypeSubTypeKey = Default_RevenueCloud.
+    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "Default"
+    # SubType is new in 264 (absent from ProcedurePlanDefinition on 262) and its only
+    # value is RevenueCloud. Describe reports it nillable, so requiredness is enforced
+    # by Connect API validation rather than by the field -- do not trust describe here.
+    # The task omits the key entirely when unset, so it still runs against 262.
+    procedure_plan_definition_sub_type: &procedure_plan_definition_sub_type "RevenueCloud"
     procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
     context_definition_label: &context_definition_label "RLM_SalesTransactionContext"
     procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
@@ -656,7 +651,8 @@ tasks:
     description: >
       Run the full Quote-to-Order UI test (headless Chrome). Validates the complete
       sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
-      Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+      Catalogs → Add Products → Configure Bundle Line → Create Order → Activate
+      Order → Verify Assets → Verify Renewal Opportunity Includes Product.
       Requires a provisioned org with qb=true (run prepare_rlm_org first).
     class_path: tasks.rlm_robot_e2e.RunE2ETests
     options:
@@ -1010,14 +1006,6 @@ tasks:
     options:
       path: unpackaged/post_agents/aiAuthoringBundles
 
-  deploy_legacy_agents:
-    description: Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/legacy
-
-
   deploy_agent_permission_sets:
     description: Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1027,17 +1015,17 @@ tasks:
 
   publish_agents:
     group: Revenue Lifecycle Management
-    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
     class_path: tasks.rlm_publish_agents.PublishAgents
 
   deactivate_agents:
     group: Revenue Lifecycle Management
-    description: Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+    description: Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Unlike publish_agents/activate_agents, this discovers EXCLUDED_BUNDLES too (include_excluded=True, tasks/rlm_agents_common.py), so a version left active by a 262→264-upgraded org still gets deactivated. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
     class_path: tasks.rlm_deactivate_agents.DeactivateAgents
 
   activate_agents:
     group: Revenue Lifecycle Management
-    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles minus EXCLUDED_BUNDLES (tasks/rlm_agents_common.py) — the same filtered set as publish_agents, so it never activates a bundle that was not published. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
     class_path: tasks.rlm_activate_agents.ActivateAgents
 
   test_agents:
@@ -1849,18 +1837,21 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Replace the configured placeholder emailSenderAddress in a Network metadata
-      file with the target Network's actual current EmailSenderAddress (immutable
-      after creation) so community metadata can deploy. Run
-      revert_network_email_after_deploy after the deploy.
+      Replace the placeholder emailSenderAddress in a Network .network-meta.xml with
+      the Network's actual current EmailSenderAddress (immutable after creation) so the
+      community metadata deploy succeeds. Parameterized for any Network bundle via
+      network_name / network_meta_xml_path / placeholder_email (defaults target the PRM
+      rlm network + deploy_post_prm; the Billing Portal overrides them). Repo stores a
+      non-PII placeholder; run revert_network_email_after_deploy after the deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
 
   revert_network_email_after_deploy:
     group: Partner Relationship Management
     description: >
-      Restore the configured placeholder emailSenderAddress in a Network metadata
-      file after a community metadata deploy so the repo never persists the target
-      org's email.
+      Restore the placeholder emailSenderAddress in a Network .network-meta.xml after the
+      community metadata deploy so the repo never persists the target org's email.
+      Parameterized for any Network bundle via network_meta_xml_path / placeholder_email
+      (defaults target the PRM rlm network; the Billing Portal overrides them).
     class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   create_partner_central:
@@ -3072,6 +3063,9 @@ tasks:
       key_field: DeveloperName
       api_version: null
       dry_run: false
+      # 'fail' is the safe default; the flows below override it to 'skip' for the 264
+      # SalesTransactionItemGroup type mismatch. See the note on prepare_dro step 1.
+      on_invalid_context_tag: fail
 
   configure_pricing_recipe_table_mappings:
     group: Revenue Lifecycle Management
@@ -3138,6 +3132,7 @@ tasks:
       name: *procedure_plan_definition_name
       primaryObject: *procedure_plan_definition_primary_object
       processType: *procedure_plan_definition_process_type
+      subType: *procedure_plan_definition_sub_type
       versionActive: *procedure_plan_definition_version_active
       context_definition_label: *context_definition_label
       versionReadContextMapping: *procedure_plan_definition_version_read_context_mapping
@@ -3267,7 +3262,7 @@ tasks:
   # See tasks/rlm_snapshot_help.py for full docstring.
   #
   # Playwright must be installed into the same Python environment that runs
-  # CCI. With pipx-installed CCI (recommended per the project README, which
+  # CCI. With pipx-installed CCI (recommended in docs/guides/local-installation.md, which
   # uses the standard ~/.local/pipx/venvs/cumulusci/ path):
   #
   #   pipx inject cumulusci playwright
@@ -3649,6 +3644,253 @@ tasks:
       article_id_prefix: ind.collections
       mode: all
 
+  # =====================================================================
+  # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Winter '27 (264)
+  # =====================================================================
+  # Twins of the 262 variants above, added with the 264 branch cut. The 262
+  # tasks are kept as-is: each release's corpus is a frozen snapshot under
+  # docs/salesforce/{release}/, and the 260-vs-262 diff work depends on the
+  # older tasks staying runnable.
+  #
+  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for one of
+  # the eleven areas below (collections; checked but not ready, see the
+  # revenue-cloud-docs SKILL.md branch note).
+  # The other ten — configurator, transaction_mgmt, pcm, billing, dro,
+  # pricing, rating, usage, agents, approvals — were verified and captured to
+  # docs/salesforce/264/help/
+  # (see `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each
+  # now carries an `expect_min_articles` floor below. Help-portal article IDs
+  # are not stable across release reorgs — during 262 capture both
+  # ind.usage_management.htm and ind.usage.htm 404'd before the real root was
+  # found. Before any full capture of the one unverified area,
+  # validate the root:
+  #
+  #   cci task run snapshot_{area}_help_264 -o mode discover
+  #
+  # A wrong root or crashed walker now fails loudly: _validate_discovery
+  # (pack 146) raises unconditionally on a zero post-prefix result. A
+  # nonzero-but-thin result — e.g. a reorganized prefix still matching a
+  # handful of stale links — only raises if the task sets expect_min_articles;
+  # without that floor it exits 0, so read the "Discovered N unique articles"
+  # line it logs either way. Read that line from the task's own output:
+  # piping to grep would report grep's exit status instead of the task's and
+  # hide a failure occurring after the count is logged. Do not read
+  # stats.discovered from the manifest either: it sums all areas and retains
+  # prior runs, so it stays positive through a failed re-walk. If the logged
+  # count is 0 (or the task raises), start from the
+  # Revenue Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
+  # walk the sidebar, and copy the id= param into root_article_id /
+  # article_id_prefix here. See the 262 header above for the per-area domain
+  # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
+  # transaction management → ind.qocal_*).
+  #
+  # Article counts are deliberately not asserted for the unverified `collections`
+  # area — it is recorded after a capture, not predicted before one (and its
+  # 262-twin-matching discover count with zero net-new content means it isn't
+  # ready anyway — see the revenue-cloud-docs SKILL.md branch note). The ten
+  # verified areas are the exception: each carries an expect_min_articles floor
+  # (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35, pricing 55,
+  # rating 17, usage 26, agents 6, approvals 17) set at ~50% of its 262 twin's
+  # count, to tolerate real content growth/shrinkage between releases without
+  # re-flagging as unverified.
+
+  snapshot_dev_guide_264:
+    group: Documentation
+    description: >
+      Snapshot the full 264 (Winter '27) Revenue Cloud Developer Guide (atlas
+      deliverable revenue_lifecycle_management_dev_guide). Use -o section
+      "Constraint Modeling Language" to capture a single section.
+    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      deliverable: revenue_lifecycle_management_dev_guide
+      doc_version: "264.0"
+      mode: all
+
+  snapshot_industries_dev_guide_264:
+    group: Documentation
+    description: >
+      Snapshot the RC-relevant sections of the 264 (Winter '27) Industries
+      Common Resources Developer Guide (atlas deliverable industries_reference)
+      into a separate corpus (dev-guide-industries) so it never clobbers the RLM
+      dev-guide. Section list mirrors the 262 twin; edit to widen/narrow.
+    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      deliverable: industries_reference
+      output_dir: docs/salesforce/264/dev-guide-industries
+      sections: "business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer, collections_objects, action_launcher, timeline"
+      doc_version: "264.0"
+      mode: all
+
+  snapshot_pcm_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Product Catalog Management area of
+      Salesforce Help. See snapshot_pcm_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: pcm
+      root_article_id: ind.product_catalog_introduction.htm
+      article_id_prefix: ind.product_catalog
+      mode: all
+      expect_min_articles: 53
+
+  snapshot_pricing_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Pricing area of Salesforce Help. Distinct
+      from Rate Management. See snapshot_pricing_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: pricing
+      root_article_id: ind.pricing_salesforce_pricing.htm
+      article_id_prefix: ind.pricing
+      mode: all
+      expect_min_articles: 55
+
+  snapshot_rating_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Rate Management area of Salesforce Help.
+      Prefix `ind.rm_*` (NOT `ind.rate_*`). See snapshot_rating_help_262.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: rating
+      root_article_id: ind.rm_rate_management.htm
+      article_id_prefix: ind.rm
+      mode: all
+      expect_min_articles: 17
+
+  snapshot_configurator_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Product Configurator area of Salesforce
+      Help. See snapshot_configurator_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: configurator
+      root_article_id: ind.product_configurator_introduction.htm
+      article_id_prefix: ind.product_configurator
+      mode: all
+      expect_min_articles: 38
+
+  snapshot_transaction_mgmt_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Transaction Management area of Salesforce
+      Help. ONE combined area with prefix `ind.qocal_*` covering Quote, Order,
+      Contract, Asset, and lifecycle — not four separate areas. See
+      snapshot_transaction_mgmt_help_262.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: transaction_mgmt
+      root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
+      article_id_prefix: ind.qocal
+      mode: all
+      expect_min_articles: 85
+
+  snapshot_dro_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) DRO (Dynamic Revenue Orchestration) /
+      Fulfillment area of Salesforce Help. See snapshot_dro_help_262.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: dro
+      root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
+      article_id_prefix: ind.dro
+      mode: all
+      expect_min_articles: 35
+
+  snapshot_usage_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Usage Management area of Salesforce Help.
+      Prefix `ind.um_*` (NOT `ind.usage_*`). See snapshot_usage_help_262.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: usage
+      root_article_id: ind.um_usage_management.htm
+      article_id_prefix: ind.um
+      mode: all
+      expect_min_articles: 26
+
+  snapshot_billing_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Billing area of Salesforce Help. See
+      snapshot_billing_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+      expect_min_articles: 85
+
+  snapshot_agents_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Agentforce for Revenue Management area of
+      Salesforce Help. See snapshot_agents_help_262 for the subagent inventory.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: agents
+      root_article_id: ind.rev_agent_overview.htm
+      article_id_prefix: ind.rev_agent
+      mode: all
+      expect_min_articles: 6
+
+  snapshot_approvals_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Advanced Approvals area of Salesforce Help.
+      See snapshot_approvals_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: approvals
+      root_article_id: ind.approvals_advanced_approvals.htm
+      article_id_prefix: ind.approvals
+      mode: all
+      expect_min_articles: 17
+
+  snapshot_collections_help_264:
+    group: Documentation
+    description: >
+      Snapshot the 264 (Winter '27) Collections and Recovery area of Salesforce
+      Help. See snapshot_collections_help_262 for domain coverage.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "264"
+      release_name: "Winter '27"
+      area: collections
+      root_article_id: ind.collections.htm
+      article_id_prefix: ind.collections
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -3824,24 +4066,14 @@ flows:
     steps:
       1:
         task: assign_permission_sets
-        when: project_config.project__custom__tso and project_config.project__custom__psg_debug
-        options:
-          api_names: *rlm_pcm_ps_api_names
-      2:
-        task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      3:
+      2:
         task: assign_permission_sets
         when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"
         options:
           api_names: *rlm_ai_ps_enterprise_api_names
-      4:
-        task: assign_permission_sets
-        when: project_config.project__custom__billing and project_config.project__custom__psg_debug
-        options:
-          api_names: *rlm_blng_ps_api_names
 
   extend_context_definitions:
     group: Revenue Lifecycle Management
@@ -4051,6 +4283,9 @@ flows:
         options:
           operation: upsert
           input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+          # Matches prepare_dro step 1 deliberately: same file, same object, so the
+          # manual path must not behave differently from the build path.
+          on_invalid_context_tag: skip
 
   prepare_dro:
     group: Revenue Lifecycle Management
@@ -4061,6 +4296,13 @@ flows:
         options:
           operation: upsert
           input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+          # Release 264 ships SalesTransactionItemGroup typed `lookup` while
+          # CustomFulfillmentScopeCnfg validation requires String, so Group_Identifier
+          # cannot be created on a fresh 264 org by any repo-side change. Without this
+          # the whole build stops here. The task verifies the attribute's type against
+          # the org before skipping, so a misspelled tag still fails, and it prints a
+          # banner naming every record it skipped. Remove once the types agree.
+          on_invalid_context_tag: skip
       2:
         task: insert_qb_dro_data
         when: project_config.project__custom__dro and project_config.project__custom__qb
@@ -4268,8 +4510,9 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Create Self-Service Billing Portal community and optionally deploy site content.
-      When billing and billing_portal are true, creates and publishes the community. When
-      billing_portal_deploy is also true, patches the network email placeholder, deploys
+      Every step is gated on both billing and billing_portal, so with billing false this
+      flow is a no-op. When billing and billing_portal are both true, creates the community;
+      when billing_portal_deploy is also true, patches the network email placeholder, deploys
       unpackaged/post_billing_portal, and reverts the placeholder before publishing.
     steps:
       1:
@@ -4377,21 +4620,18 @@ flows:
         task: deactivate_agents
         when: project_config.project__custom__agents
       6:
-        task: deploy_legacy_agents
-        when: project_config.project__custom__agents
-      7:
         task: deploy_agents
         when: project_config.project__custom__agents
-      8:
+      7:
         task: publish_agents
         when: project_config.project__custom__agents
-      9:
+      8:
         task: activate_agents
         when: project_config.project__custom__agents
-      10:
+      9:
         task: deploy_agent_permission_sets
         when: project_config.project__custom__agents
-      11:
+      10:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:

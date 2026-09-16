@@ -6,6 +6,7 @@
     <label>RLM Price Distribution Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
+    <usageSubtype>RevenueCloud</usageSubtype>
     <versions>
         <fullName>RLM_Price_Distribution_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>

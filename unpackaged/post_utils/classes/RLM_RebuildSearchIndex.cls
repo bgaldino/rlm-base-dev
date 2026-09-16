@@ -1,6 +1,6 @@
 public with sharing class RLM_RebuildSearchIndex {
 
-    private static final String PCM_INDEX_PATH = '/services/data/v67.0/connect/pcm/index/deploy';
+    private static final String PCM_INDEX_PATH = '/services/data/v68.0/connect/pcm/index/deploy';
 
     @AuraEnabled
     public static Map<String, Object> deployIndex() {

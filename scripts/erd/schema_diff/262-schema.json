@@ -2,6 +2,7 @@
   "metadata": {
     "extracted_at": "2026-05-27T01:53:35Z",
     "object_count": 254,
+    "object_selection": "erd-data.json",
     "org_alias": "rlm-base__ent-sb0",
     "source": "sf sobject describe",
     "total_fields": 3851

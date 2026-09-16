@@ -37,10 +37,9 @@ erDiagram
     CreditMemo
     Payment
     BillingAccount
-    Invoice }o--|| BillingAccount : BillingAccountId
+    Invoice }o--|| Account : BillingAccountId
     Invoice }o--|| CreditMemo : ReferenceEntityId
     Invoice }o--|| Order : ReferenceEntityId
-    FulfillmentStep }o--|| FulfillmentStep : AssignedToId
     FulfillmentStep }o--|| FulfillmentPlan : FulfillmentPlanId
     CreditMemo }o--|| Order : ReferenceEntityId
     PriceBookEntry }o--|| Product2 : Product2Id

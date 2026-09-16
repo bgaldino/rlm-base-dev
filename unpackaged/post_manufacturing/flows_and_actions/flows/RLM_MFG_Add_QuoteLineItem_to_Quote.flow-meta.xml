@@ -21,7 +21,7 @@
         <nameSegment>placeSalesTransaction</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <description>Assign all quote fields by populating the RecordMapWrappers, to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>

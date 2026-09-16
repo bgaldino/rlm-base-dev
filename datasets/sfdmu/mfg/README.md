@@ -16,14 +16,13 @@ This directory holds SFDMU v5 data plans for the Manufacturing data shape, follo
 ## Current MFG plans
 
 The plans that exist on disk live under `mfg/en-US/`. Each has its own
-`export.json` (no per-plan README). All target API v67.0.
+`export.json` (no per-plan README). All target API v68.0.
 
 | Plan | Description | Key objects (operation, externalId) |
 |------|-------------|--------------------------------------|
 | `mfg-configflow` | Product configuration flows and their per-product assignments | `ProductConfigurationFlow` (Insert, `FlowIdentifier`); `ProductConfigFlowAssignment` (Upsert, `ProductConfigurationFlow.FlowIdentifier;Product.StockKeepingUnit`) |
 | `mfg-constraints-p` | Constraint-model **Type** associations for products | `ExpressionSetConstraintObj` (Upsert, `ConstraintModelTag;ExpressionSet.ApiName`) |
 | `mfg-constraints-prc` | Constraint-model **Port** associations for product-related components | `ExpressionSetConstraintObj` (Upsert, `ConstraintModelTag;ExpressionSet.ApiName`) |
-| `mfg-multicurrency` | Full single-pass catalog seed (35 objects) for the multicurrency MFG shape | `UnitOfMeasure`, `CurrencyType`, `ProductCatalog`, `ProductCategory`, `ProductSellingModel`, `AttributeDefinition`, `Product2`, `Pricebook2`, `PricebookEntry`, … |
 
 ---
 

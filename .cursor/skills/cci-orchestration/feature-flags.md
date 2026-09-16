@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **41 YAML anchors** under `project.custom`.
+**41 feature flags**, **86 configuration values**, **39 YAML anchors** under `project.custom`.
 
 ---
 
@@ -13,11 +13,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `True` | 11 flow step(s) |
+| `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 21 flow step(s) |
-| `billing_portal` | `True` | 5 flow step(s) |
+| `billing` | `True` | 20 flow step(s) |
+| `billing_portal` | `False` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
@@ -52,7 +52,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 18 flow step(s) |
+| `tso` | `False` | 17 flow step(s) |
 | `ux` | `True` | 2 flow step(s) |
 
 ---
@@ -66,12 +66,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_agents` step 3 → `deploy_agent_classes`
 - `prepare_agents` step 4 → `deploy_agent_flows`
 - `prepare_agents` step 5 → `deactivate_agents`
-- `prepare_agents` step 6 → `deploy_legacy_agents`
-- `prepare_agents` step 7 → `deploy_agents`
-- `prepare_agents` step 8 → `publish_agents`
-- `prepare_agents` step 9 → `activate_agents`
-- `prepare_agents` step 10 → `deploy_agent_permission_sets`
-- `prepare_agents` step 11 → `assign_permission_sets`
+- `prepare_agents` step 6 → `deploy_agents`
+- `prepare_agents` step 7 → `publish_agents`
+- `prepare_agents` step 8 → `activate_agents`
+- `prepare_agents` step 9 → `deploy_agent_permission_sets`
+- `prepare_agents` step 10 → `assign_permission_sets`
 
 ### `analytics` (default: `True`)
 
@@ -88,7 +87,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing` (default: `True`)
 
-- `assign_feature_permission_sets` step 4 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
@@ -110,7 +108,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
-### `billing_portal` (default: `True`)
+### `billing_portal` (default: `False`)
 
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
@@ -207,8 +205,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `einstein` (default: `True`)
 
 - `assign_feature_psls` step 2 → `assign_permission_set_licenses`
+- `assign_feature_permission_sets` step 1 → `assign_permission_sets`
 - `assign_feature_permission_sets` step 2 → `assign_permission_sets`
-- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
 ### `guidedselling` (default: `True`)
 
@@ -458,7 +456,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_core` step 12 → `recalculate_permission_set_groups`
 - `prepare_core` step 13 → `assign_permission_set_groups_tolerant`
 - `assign_feature_psls` step 4 → `assign_permission_set_licenses`
-- `assign_feature_permission_sets` step 1 → `assign_permission_sets`
 - `prepare_tso` step 1 → `assign_permission_set_groups`
 - `prepare_tso` step 2 → `deploy_post_utils`
 - `prepare_tso` step 3 → `deploy_post_tso`
@@ -530,7 +527,8 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_primary_object` | `Quote` |
-| `procedure_plan_definition_process_type` | `RevenueCloud` |
+| `procedure_plan_definition_process_type` | `Default` |
+| `procedure_plan_definition_sub_type` | `RevenueCloud` |
 | `procedure_plan_definition_version_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_version_effective_from` | `2026-01-01T00:00:00.000Z` |
 | `procedure_plan_definition_version_effective_to` | `None` |
@@ -826,21 +824,6 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `EinsteinGPTCopilotPsl`
 - `EinsteinGPTPromptTemplatesPsl`
 
-### `rlm_blng_ps_api_names`
-
-*10 items:*
-
-- `AnalyticsStoreUser`
-- `RevenueLifecycleManagementAccountingAdmin`
-- `RevenueLifecycleManagementBillingAdmin`
-- `RevenueLifecycleManagementBillingCreateInvoiceFromBillingScheduleApi`
-- `RevenueLifecycleManagementBillingCreditMemoOperations`
-- `RevenueLifecycleManagementBillingInvoiceErrorRecoveryApi`
-- `RevenueLifecycleManagementBillingOperations`
-- `RevenueLifecycleManagementBillingTaxAdmin`
-- `RevenueLifecycleManagementBillingVoidPostedInvoiceApi`
-- `RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi`
-
 ### `rlm_clm_psl_api_names`
 
 *11 items:*
@@ -856,15 +839,6 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Microsoft365WordPsl`
 - `ObligationManagementUser`
 - `OmniStudioDesigner`
-
-### `rlm_pcm_ps_api_names`
-
-*4 items:*
-
-- `IndustriesConfiguratorPlatformApi`
-- `ProductConfigurationRulesDesigner`
-- `ProductCatalogManagementAdministrator`
-- `ProductCatalogManagementViewer`
 
 ### `rlm_psg_api_names`
 

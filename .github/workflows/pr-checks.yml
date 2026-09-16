@@ -1,0 +1,186 @@
+name: PR Checks
+
+on:
+  pull_request:
+    # Spelled out because the default set is `opened`, `synchronize`, `reopened` — and `edited`,
+    # which fires when a pull request's *base branch* changes, is not in it. Retarget a green PR
+    # from 264 to main and no event fires: the check run stays green on that head SHA, and the
+    # merge base, the selection and both branch-scope verdicts are now all computed against a
+    # base the gate never diffed. `ready_for_review` is belt-and-braces — a draft already fires
+    # `opened`/`synchronize`, so a check run exists on the SHA before it is undrafted.
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  # A merge queue does not replay `pull_request`; a required check that has no `merge_group`
+  # trigger is simply never reported, and the documented result is that the merge fails. No queue
+  # is enabled today, so this is pre-emptive — and it is safe to wire now because `github.base_ref`
+  # is empty for this event, which takes the same branch as a dispatch and selects `--all`.
+  merge_group:
+  # Nothing else. A required check is satisfied by the *most recent* check run bearing its name on
+  # the head SHA — that is why "Re-run failed jobs" clears a red one — so any trigger that can run
+  # this workflow on a PR's head SHA can publish `Mechanical checks` for it. `workflow_dispatch`
+  # was here and did exactly that: dispatch on the PR's branch, `github.base_ref` is empty, the
+  # selection widens to `--all`, the branch-scope step skips, and a green run supersedes the PR
+  # run's red verdict — from the Actions UI, with write access rather than admin. `push:` would be
+  # the same hole with no clicking at all. Manual runs are not worth that: the gate is a local
+  # command (`python scripts/ai/pr_gate.py --all`), which is the documented primary path anyway.
+
+permissions:
+  contents: read
+  # check_branch_scope.py calls `gh pr view` and `gh pr list`. `contents: read` alone leaves
+  # every other scope at none, which happens to work while this repo is public and would stop
+  # working the moment it is private or mirrored internally. That is necessary but not sufficient
+  # for a private repo: git fetches are separate from GH_TOKEN and are not authenticated by it, so
+  # see the --no-fetch note in the branch-scope step.
+  pull-requests: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Mechanical checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Merge-base selection needs real history: past a shallow boundary `git diff base...HEAD`
+          # fails outright, and the gate turns a failed git into exit 2. (Not test_branch_scope.py,
+          # which builds its own throwaway repos and passes in a --depth 1 clone.)
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          # At or above the highest min_python in the check matrix, not the language feature any
+          # one script needs: a check below its floor reports MISSING-DEP, and a missing dependency
+          # fails the gate rather than skipping. tests/test_pr_gate.py asserts this version is
+          # *at least* that floor (3.11 today) — deliberately an inequality, since pinning equality
+          # would forbid testing on anything newer, but it does mean CI exercises only this one
+          # version. A regression that only appears on the 3.11 floor is invisible here.
+          python-version: "3.13"
+
+      - name: Resolve the base ref
+        id: base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_REF:-}" ]; then
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # checkout with fetch-depth: 0 already fetches every branch, so this is normally a
+          # no-op verify. The fetch is the fallback rather than the default because
+          # persist-credentials is false: an unconditional fetch works anonymously on a public
+          # repo and would fail on a private one, which is a bad thing to depend on. Either
+          # way the ref must exist before selection runs. Not because an unresolvable base
+          # would pass quietly — this comment claimed that and it is wrong: `git diff` fails,
+          # and the gate turns a failed git into exit 2, a tool error. It is pinned because a
+          # red run on a base nobody can resolve costs a round trip to diagnose.
+          if ! git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null; then
+            git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          fi
+          git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null
+          echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Install only what the selection needs
+        env:
+          BASE: ${{ steps.base.outputs.ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE:-}" ]; then
+            SEL="--all"
+          else
+            SEL="--base ${BASE}"
+          fi
+          echo "SEL=${SEL}" >> "$GITHUB_ENV"
+          reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"
+          if [ -n "${reqs}" ]; then
+            python -m pip install --upgrade pip
+            # Unquoted on purpose so each printed line becomes its own requirement spec, with
+            # globbing off so a spec containing extras (`pkg[extra]`) cannot be eaten by
+            # pathname expansion. --requirements emits `setuptools>=75.4,<77` ahead of the
+            # CumulusCI pin itself (CumulusCI imports fs -> pkg_resources, absent from a 3.12+
+            # venv), so this workflow never restates a pin and cannot drift from PINS.
+            set -f
+            python -m pip install ${reqs}
+            set +f
+          else
+            echo "No extra dependencies needed."
+          fi
+
+      - name: Run the gate
+        run: |
+          set -euo pipefail
+          python scripts/ai/pr_gate.py ${SEL}
+
+      # Not part of the matrix on purpose: this one takes a PR number and talks to GitHub,
+      # so it cannot be selected by path and cannot run in a hermetic local gate. The
+      # workflow is the only place that has the number.
+      - name: Branch scope
+        if: github.event_name == 'pull_request'
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+          CROSS: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${CROSS}" = "true" ]; then
+            # A fork's head is not in this checkout, and --pr refuses rather than compare
+            # against the wrong commits — exit 2, a tool error. Left alone that would paint
+            # every outside contributor's PR red for a condition they cannot fix, and would
+            # show an environment problem as a code verdict, which this repo's exit contract
+            # exists to prevent. So fetch the head and run the explicit form the checker's own
+            # error message prescribes. Signal 2 (STACKED) needs --pr and is therefore
+            # unavailable here; signal 1 still covers the branch.
+            echo "Fork PR: comparing explicit refs; STACKED detection needs --pr and is off."
+            git fetch --no-tags origin "pull/${PR}/head:pr-${PR}"
+            set -- --base "origin/${BASE_REF}" --head "pr-${PR}"
+          else
+            set -- --pr "${PR}"
+          fi
+          # --no-fetch because the checker otherwise fetches `origin` itself, and with
+          # persist-credentials: false that fetch is unauthenticated: it works anonymously on a
+          # public repo and fails on a private or internally mirrored one — exactly the case the
+          # permissions block above exists for, so leaving it in made that comment a half-truth.
+          # Skipping it is safe *here* and nowhere else: the guard exists to stop a comparison
+          # against a stale workstation clone, and checkout fetched full history seconds earlier in
+          # this same job, which the base-ref step then verified. (The fork branch's own fetch is
+          # still unauthenticated; that path is unexercised by a real fork PR and tracked as such.)
+          set -- "$@" --no-fetch
+          # The checker's exit contract is what makes this loop safe, and the reason it exists:
+          # this step first went red on an HTTP 503 from GitHub's GraphQL API, correctly reported
+          # as exit 2 — a tool error, which the contract says must never read as a verdict, yet a
+          # red check reads as exactly that. So a 2 is retried and anything else is final. The
+          # `-ne 2` line is load-bearing: widening it would make a real FOREIGN/STACKED finding
+          # retryable, turning three attempts into three chances to miss it.
+          #
+          # What the loop does *not* buy, since this comment used to imply it: a step has no third
+          # state. After three attempts it still exits 2 and the job is red, indistinguishable to
+          # GitHub from a genuine finding. Retrying converts the transient case and only narrows the
+          # window; a persistent tool error (a permissions denial, say) still reads as a verdict
+          # after 45 seconds of sleeps. Expressing "advisory" would take `continue-on-error: true`,
+          # which keeps the job green, or a separate check run with a `neutral` conclusion, which
+          # needs `checks: write`. Neither is used, and tests/test_pr_gate.py forbids both — the
+          # first because a green-on-error step cannot gate anything, the second because widening
+          # `permissions` for a nicer status is a trade someone should have to argue for. So the
+          # ambiguity is narrowed, not removed, and that is a decision rather than an oversight.
+          attempt=1
+          while :; do
+            set +e
+            python scripts/ai/check_branch_scope.py "$@"
+            code=$?
+            set -e
+            if [ "$code" -ne 2 ]; then exit "$code"; fi
+            if [ "$attempt" -ge 3 ]; then
+              echo "Branch scope could not run after ${attempt} attempts (last exit ${code})."
+              exit 2
+            fi
+            echo "Tool error (exit ${code}); retrying attempt $((attempt + 1)) of 3."
+            sleep $((attempt * 15))
+            attempt=$((attempt + 1))
+          done

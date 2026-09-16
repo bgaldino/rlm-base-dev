@@ -220,7 +220,7 @@ class CMLBaseTask(BaseSalesforceTask):
             return str(self.options["api_version"])
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
 
     @property

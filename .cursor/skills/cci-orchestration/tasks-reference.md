@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **10 groups**.
+**286 tasks** across **10 groups**.
 
 ---
 
@@ -701,7 +701,7 @@
 
 ## Documentation
 
-*16 task(s)*
+*29 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -720,6 +720,24 @@
 
 ---
 
+### `snapshot_agents_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Agentforce for Revenue Management area of Salesforce Help. See snapshot_agents_help_262 for the subagent inventory.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `agents`
+- `root_article_id`: `ind.rev_agent_overview.htm`
+- `article_id_prefix`: `ind.rev_agent`
+- `mode`: `all`
+- `expect_min_articles`: `6`
+
+---
+
 ### `snapshot_approvals_help_262`
 
 **Description:** Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles per the sidebar walk). Covers Advanced Approval Objects, approval workflow design, Smart Approvals, approval previews, Slack notifications, auto-approval rules. Note: the data-model domain is thin (1 object, ApprovalSubmission) but the Help area is rich. Root and prefix verified via sidebar walk.
@@ -734,6 +752,24 @@
 - `root_article_id`: `ind.approvals_advanced_approvals.htm`
 - `article_id_prefix`: `ind.approvals`
 - `mode`: `all`
+
+---
+
+### `snapshot_approvals_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Advanced Approvals area of Salesforce Help. See snapshot_approvals_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `approvals`
+- `root_article_id`: `ind.approvals_advanced_approvals.htm`
+- `article_id_prefix`: `ind.approvals`
+- `mode`: `all`
+- `expect_min_articles`: `17`
 
 ---
 
@@ -771,6 +807,24 @@
 
 ---
 
+### `snapshot_billing_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Billing area of Salesforce Help. See snapshot_billing_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `billing`
+- `root_article_id`: `ind.billing.htm`
+- `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+- `expect_min_articles`: `85`
+
+---
+
 ### `snapshot_collections_help_262`
 
 **Description:** Snapshot the 262 (Summer '26) Collections and Recovery area of Salesforce Help. Covers Collection Plans, Collection Plan Reasons, treatment/dunning flows, Promise to Pay, write-offs, late fees, and the decision-matrix-driven Create Case automation. Root verified via the Collections area landing page.
@@ -781,6 +835,23 @@
 
 - `release_version`: `262`
 - `release_name`: `Summer '26`
+- `area`: `collections`
+- `root_article_id`: `ind.collections.htm`
+- `article_id_prefix`: `ind.collections`
+- `mode`: `all`
+
+---
+
+### `snapshot_collections_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Collections and Recovery area of Salesforce Help. See snapshot_collections_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
 - `area`: `collections`
 - `root_article_id`: `ind.collections.htm`
 - `article_id_prefix`: `ind.collections`
@@ -805,6 +876,24 @@
 
 ---
 
+### `snapshot_configurator_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Product Configurator area of Salesforce Help. See snapshot_configurator_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `configurator`
+- `root_article_id`: `ind.product_configurator_introduction.htm`
+- `article_id_prefix`: `ind.product_configurator`
+- `mode`: `all`
+- `expect_min_articles`: `38`
+
+---
+
 ### `snapshot_dev_guide_262`
 
 **Description:** Snapshot the full 262 (Summer '26) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
@@ -816,6 +905,22 @@
 - `release_version`: `262`
 - `release_name`: `Summer '26`
 - `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `mode`: `all`
+
+---
+
+### `snapshot_dev_guide_264`
+
+**Description:** Snapshot the full 264 (Winter '27) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `doc_version`: `264.0`
 - `mode`: `all`
 
 ---
@@ -837,6 +942,24 @@
 
 ---
 
+### `snapshot_dro_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) DRO (Dynamic Revenue Orchestration) / Fulfillment area of Salesforce Help. See snapshot_dro_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `dro`
+- `root_article_id`: `ind.dro_dynamic_revenue_orchestrator.htm`
+- `article_id_prefix`: `ind.dro`
+- `mode`: `all`
+- `expect_min_articles`: `35`
+
+---
+
 ### `snapshot_industries_dev_guide_262`
 
 **Description:** Snapshot the RC-relevant sections of the 262 (Summer '26) Industries Common Resources Developer Guide (atlas deliverable industries_reference). The full guide is ~1435 pages across 37 sections, most for other Industries clouds; this captures the ~571 pages RC builds on — Business Rules Engine, Context Service, OmniStudio, Discovery Framework, Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline — into a separate corpus (dev-guide-industries) so it never clobbers the RLM dev-guide. Capture is scoped to those sections' TOC subtrees; follow_links stays off (its default when `sections` is set) so a link out of scope can't pull unrelated sections in. Edit the `sections` list to widen/narrow coverage.
@@ -850,6 +973,24 @@
 - `deliverable`: `industries_reference`
 - `output_dir`: `docs/salesforce/262/dev-guide-industries`
 - `sections`: `business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer,...`
+- `mode`: `all`
+
+---
+
+### `snapshot_industries_dev_guide_264`
+
+**Description:** Snapshot the RC-relevant sections of the 264 (Winter '27) Industries Common Resources Developer Guide (atlas deliverable industries_reference) into a separate corpus (dev-guide-industries) so it never clobbers the RLM dev-guide. Section list mirrors the 262 twin; edit to widen/narrow.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `deliverable`: `industries_reference`
+- `output_dir`: `docs/salesforce/264/dev-guide-industries`
+- `sections`: `business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer,...`
+- `doc_version`: `264.0`
 - `mode`: `all`
 
 ---
@@ -871,6 +1012,24 @@
 
 ---
 
+### `snapshot_pcm_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Product Catalog Management area of Salesforce Help. See snapshot_pcm_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `pcm`
+- `root_article_id`: `ind.product_catalog_introduction.htm`
+- `article_id_prefix`: `ind.product_catalog`
+- `mode`: `all`
+- `expect_min_articles`: `53`
+
+---
+
 ### `snapshot_pricing_help_262`
 
 **Description:** Snapshot the 262 Pricing area of Salesforce Help. Covers PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel, proration. Distinct from Rate Management. Root verified via RLM sidebar walk.
@@ -888,6 +1047,24 @@
 
 ---
 
+### `snapshot_pricing_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Pricing area of Salesforce Help. Distinct from Rate Management. See snapshot_pricing_help_262 for domain coverage.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `pricing`
+- `root_article_id`: `ind.pricing_salesforce_pricing.htm`
+- `article_id_prefix`: `ind.pricing`
+- `mode`: `all`
+- `expect_min_articles`: `55`
+
+---
+
 ### `snapshot_rating_help_262`
 
 **Description:** Snapshot the 262 Rate Management area of Salesforce Help. Required for Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction Journal → Usage Summary → Ratable Summary → Liable Summary pipeline). Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
@@ -902,6 +1079,24 @@
 - `root_article_id`: `ind.rm_rate_management.htm`
 - `article_id_prefix`: `ind.rm`
 - `mode`: `all`
+
+---
+
+### `snapshot_rating_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Rate Management area of Salesforce Help. Prefix `ind.rm_*` (NOT `ind.rate_*`). See snapshot_rating_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `rating`
+- `root_article_id`: `ind.rm_rate_management.htm`
+- `article_id_prefix`: `ind.rm`
+- `mode`: `all`
+- `expect_min_articles`: `17`
 
 ---
 
@@ -938,6 +1133,24 @@
 
 ---
 
+### `snapshot_transaction_mgmt_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Transaction Management area of Salesforce Help. ONE combined area with prefix `ind.qocal_*` covering Quote, Order, Contract, Asset, and lifecycle — not four separate areas. See snapshot_transaction_mgmt_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `transaction_mgmt`
+- `root_article_id`: `ind.qocal_sales_transactions_rev_cloud.htm`
+- `article_id_prefix`: `ind.qocal`
+- `mode`: `all`
+- `expect_min_articles`: `85`
+
+---
+
 ### `snapshot_usage_help_262`
 
 **Description:** Snapshot the 262 Usage Management area of Salesforce Help. Required for Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent, Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage Entitlement Account / Bucket / Entry). Root verified via RLM sidebar walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
@@ -955,13 +1168,31 @@
 
 ---
 
+### `snapshot_usage_help_264`
+
+**Description:** Snapshot the 264 (Winter '27) Usage Management area of Salesforce Help. Prefix `ind.um_*` (NOT `ind.usage_*`). See snapshot_usage_help_262.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `usage`
+- `root_article_id`: `ind.um_usage_management.htm`
+- `article_id_prefix`: `ind.um`
+- `mode`: `all`
+- `expect_min_articles`: `26`
+
+---
+
 ## E2E Testing
 
 *5 task(s)*
 
 ### `robot_e2e`
 
-**Description:** Run the full Quote-to-Order UI test (headless Chrome). Validates the complete sales workflow: Reset Account → Create Opportunity → Create Quote → Browse Catalogs → Add Products → Create Order → Activate Order → Verify Assets. Requires a provisioned org with qb=true (run prepare_rlm_org first).
+**Description:** Run the full Quote-to-Order UI test (headless Chrome). Validates the complete sales workflow: Reset Account → Create Opportunity → Create Quote → Browse Catalogs → Add Products → Configure Bundle Line → Create Order → Activate Order → Verify Assets → Verify Renewal Opportunity Includes Product. Requires a provisioned org with qb=true (run prepare_rlm_org first).
 
 **Class:** `tasks.rlm_robot_e2e.RunE2ETests`
 
@@ -1034,7 +1265,7 @@
 
 ### `patch_network_email_for_deploy`
 
-**Description:** Replace the configured placeholder emailSenderAddress in a Network metadata file with the target Network's actual current EmailSenderAddress (immutable after creation) so community metadata can deploy. Run revert_network_email_after_deploy after the deploy.
+**Description:** Replace the placeholder emailSenderAddress in a Network .network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so the community metadata deploy succeeds. Parameterized for any Network bundle via network_name / network_meta_xml_path / placeholder_email (defaults target the PRM rlm network + deploy_post_prm; the Billing Portal overrides them). Repo stores a non-PII placeholder; run revert_network_email_after_deploy after the deploy.
 
 **Class:** `tasks.rlm_community.PatchNetworkEmailForDeploy`
 
@@ -1042,7 +1273,7 @@
 
 ### `revert_network_email_after_deploy`
 
-**Description:** Restore the configured placeholder emailSenderAddress in a Network metadata file after a community metadata deploy so the repo never persists the target org's email.
+**Description:** Restore the placeholder emailSenderAddress in a Network .network-meta.xml after the community metadata deploy so the repo never persists the target org's email. Parameterized for any Network bundle via network_meta_xml_path / placeholder_email (defaults target the PRM rlm network; the Billing Portal overrides them).
 
 **Class:** `tasks.rlm_community.RevertNetworkEmailAfterDeploy`
 
@@ -1050,11 +1281,11 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*164 task(s)*
 
 ### `activate_agents`
 
-**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from unpackaged/post_agents/aiAuthoringBundles minus EXCLUDED_BUNDLES (tasks/rlm_agents_common.py) — the same filtered set as publish_agents, so it never activates a bundle that was not published. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
 
 **Class:** `tasks.rlm_activate_agents.ActivateAgents`
 
@@ -1527,7 +1758,8 @@
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `name`: `RLM_Quote_Pricing_Procedure_Plan`
 - `primaryObject`: `Quote`
-- `processType`: `RevenueCloud`
+- `processType`: `Default`
+- `subType`: `RevenueCloud`
 - `versionActive`: `False`
 - `context_definition_label`: `RLM_SalesTransactionContext`
 - `versionReadContextMapping`: `QuoteEntitiesMapping`
@@ -1573,7 +1805,7 @@
 
 ### `deactivate_agents`
 
-**Description:** Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+**Description:** Deactivate the active BotVersion for each agent under unpackaged/post_agents/aiAuthoringBundles via `sf agent deactivate`. Unlike publish_agents/activate_agents, this discovers EXCLUDED_BUNDLES too (include_excluded=True, tasks/rlm_agents_common.py), so a version left active by a 262→264-upgraded org still gets deactivated. Supports idempotent re-runs — the platform rejects updates to an active agent version. Agents that are already inactive, or not yet deployed, are tolerated (no-op).
 
 **Class:** `tasks.rlm_deactivate_agents.DeactivateAgents`
 
@@ -1803,18 +2035,6 @@
 
 - `path`: `force-app/main/default`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
-
----
-
-### `deploy_legacy_agents`
-
-**Description:** Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/legacy`
 
 ---
 
@@ -2806,6 +3026,7 @@
 - `key_field`: `DeveloperName`
 - `api_version`: `None`
 - `dry_run`: `False`
+- `on_invalid_context_tag`: `fail`
 
 ---
 
@@ -2847,7 +3068,7 @@
 
 ### `publish_agents`
 
-**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
 
 **Class:** `tasks.rlm_publish_agents.PublishAgents`
 

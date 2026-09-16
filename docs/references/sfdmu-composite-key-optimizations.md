@@ -7,8 +7,10 @@
 ## SFDMU v5 Migration
 
 SFDMU v5 introduced breaking changes that affect how composite `externalId` definitions
-interact with data plans. The following adjustments were made to ensure all QB data plans
-work correctly with v5 and remain **idempotent** (safe to re-run without creating duplicates).
+interact with data plans. The following adjustments document historical migration
+work. They do not guarantee that every shipped plan is safe to rerun in every org;
+read the per-plan README and the [live-org reloading guidance](../../.cursor/skills/sfdmu-data-plans/SKILL.md#reloading-a-plan-into-a-live-org)
+before reloading existing data.
 
 > **Historical record of pre-floor operation choices, not current authoring guidance.**
 > Both the behavioral-change table and the per-dataset adjustments below describe
@@ -64,6 +66,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 #### qb-clm
 - **ObjectStateActionDefinition**: externalId simplified to `Name` (was `Name;ReferenceObject.Name`); duplicate `Name` column removed from CSV
 - CSV references updated
+- **ObjectStateValue / ObjectStateTransition / ObjectStateTransitionAction** (pack 193): externalId **made composite** `Name;ObjectStateDefinition.Name` (was `Name`) — the opposite direction from the simplifications above, and required: the same state/transition name recurs under different `ObjectStateDefinition` parents (e.g. `Activated` under both `Contract LifeCycle Management` and `Legal`), so a single-field `Name` Upsert silently collapsed distinct records and the plan was non-idempotent. Added the `$$Name$ObjectStateDefinition.Name` column to each CSV and the `ObjectStateDefinition.Name` traversal to each query. `ObjectStateDefinition`/`ObjectStateActionDefinition` keep single-field `Name` (already unique). The `FromState`/`ToState`/`ObjectStateTransition` lookups stay **single-field references** (Bug-4-safe); SFDMU resolves them across passes via the in-run source→target map — live-verified on df-ws-ent (ent-sb0): idempotent re-run, 24/47 records = CSV rows (no collapse), all From/To states resolve to their own definition.
 
 #### qb-dro
 - **ProductFulfillmentDecompRule**: externalId simplified to `Name`; `$$` column removed from CSV; 1 duplicate-Name pair disambiguated with SKU suffix
@@ -83,24 +86,39 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.
 
 #### qb-rating
-- **ProductUsageResourcePolicy**, **ProductUsageGrant**: excluded (v5 cannot resolve their nested relationship-based externalIds)
+- **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
+- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes have no WHERE filter and target all records of each object. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; active records and downstream references can block deletion.
 
 ### Idempotency
 
-All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 260 scratch org.
-47/47 objects show zero record count changes on re-run.
+The historical Release 260 verification recorded zero record-count changes across
+47 objects in 10 QB data tasks on a fresh scratch org. That result does not certify
+the current plans against an org with live transactional data. In particular,
+`qb-pricing` requires its separate delete task before Insert operations, and
+`qb-rating`/`qb-rates` retain delete-and-reinsert operations that live references
+can block. Use the per-plan instructions and the live-org guidance linked above.
+
+Current examples below are classified by object, because a plan can mix operations.
+Consult each plan's `export.json` and README for its full object list and load sequence.
 
 | Strategy | Objects |
 |----------|---------|
-| Name-based Upsert matching | PCM, pricing, billing, tax, CLM, DRO (PFDR, FSD, FSDD, PFS, FSDG, FW, FFR, FSJR), rating, transaction processing types, guided selling |
-| `deleteOldData: true` (delete + reinsert) | FulfillmentWorkspaceItem, PriceBookRateCard, RateCardEntry, RateAdjustmentByTier |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`) and UsageResource (`Code`) in qb-rating; FulfillmentWorkspace (`Name`) in qb-dro |
+| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro), PriceBookRateCard (qb-rates) |
+| Insert with `deleteOldData: true` (delete + reinsert) | ProductUsageResource, ProductUsageResourcePolicy, ProductUsageGrant (qb-rating); RateCardEntry, RateAdjustmentByTier (qb-rates) |
+| Insert requiring the separate pricing delete task before reload | PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry (qb-pricing) |
 
 ### Known limitations (v5)
+
+The observations below are from the historical migration run, not a current
+failure report or excluded-object inventory. In particular, the rating policy
+and grant objects are now included as described above. Check the current plan
+and its README before deciding which objects need separate handling.
 
 - **FulfillmentStepDefinition**: 9/17 records fail to insert due to unresolved polymorphic `AssignedTo` references (`User`/`Group`) and missing `IntegrationProviderDef` records. These are data dependency issues, not SFDMU bugs.
 - **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
 - **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
-- **Excluded objects** (PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride): require manual handling if needed.
+- **Objects excluded in that historical run:** PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride.
 
 ### Bug 5 — Composite `externalId` with traversal fields failed for upsert matching (discovered 2026-04-02; FIXED in 5.6.4)
 
@@ -115,11 +133,18 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
-**Pre-5.6.4 workaround — still on the shipped plans (records; pending migration):** `deleteOldData: true` for objects whose only logical key is a composite of parent lookups with an auto-number `Name`. The objects still carrying it:
-- `FulfillmentWorkspaceItem` (qb-dro) — 7 records
-- `PriceBookRateCard` (qb-rates) — auto-number Name, all-relationship externalId
-- `RateCardEntry` (qb-rates) — auto-number Name, all-relationship externalId
-- `RateAdjustmentByTier` (qb-rates) — auto-number Name, all-relationship externalId
+**Historical workaround:** `deleteOldData: true` bypassed matching for objects
+whose logical key used parent lookups. The current qb-dro, qb-rates, and qb-rating
+plans retain deletion on the following objects; this inventory does not imply
+that every operation choice was caused by Bug 5 (the rating policy uses a direct FK):
+
+- `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
+- `PriceBookRateCard` (qb-rates) — Upsert + deleteOldData
+- `RateCardEntry` (qb-rates) — Insert + deleteOldData
+- `RateAdjustmentByTier` (qb-rates) — Insert + deleteOldData
+- `ProductUsageResource` (qb-rating) — Insert + deleteOldData
+- `ProductUsageResourcePolicy` (qb-rating) — Insert + deleteOldData; `externalId: ProductUsageResourceId`
+- `ProductUsageGrant` (qb-rating) — Insert + deleteOldData
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 
@@ -211,7 +236,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 
 Extract and idempotency tasks are grouped in CumulusCI for convenience:
 
-- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. The extract task and post-process script are **plan-agnostic**: each task uses its `pathtoexportjson` from `cumulusci.yml` (e.g. qb-rating → `datasets/sfdmu/qb/en-US/qb-rating`), and output goes to `extractions/<plan_name>/<timestamp>/`. Single-pass (flat `objects`) and multi-pass (`objectSets`) export.json formats are supported. Other data shapes (e.g. mfg) use the same pattern: place plans under `datasets/sfdmu/<shape>/<locale>/<plan-name>/` (e.g. `mfg/en-US/mfg-pcm`) and add matching anchors and tasks; the same tooling applies. List with `cci task list --group "Data Management - Extract"`.
+- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. The extract task and post-process script are **plan-agnostic**: each task uses its `pathtoexportjson` from `cumulusci.yml` (e.g. qb-rating → `datasets/sfdmu/qb/en-US/qb-rating`), and the standard shape/locale/plan layout writes to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. Other plan depths need an explicit `extractions_base_dir` (or full `output_dir`); see the [data-plan directory guidance](../guides/data-plans.md#data-plan-directory-structure). Single-pass (flat `objects`) and multi-pass (`objectSets`) export.json formats are supported. Other data shapes (e.g. mfg) use the same pattern: place plans under `datasets/sfdmu/<shape>/<locale>/<plan-name>/` (e.g. `mfg/en-US/mfg-pcm`) and add matching anchors and tasks; the same tooling applies. List with `cci task list --group "Data Management - Extract"`.
 - **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. Options: `use_extraction_roundtrip` (when true, second run uses extract → post-process → load from processed); `persist_extraction_output` (when true with roundtrip, write extraction to `extractions/<plan>/<timestamp>` instead of temp). qb-pcm idempotency uses both by default. List with `cci task list --group "Data Management - Idempotency"`.
 
-**Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See main [README](../README.md) Data Management Tasks and Flows sections.
+**Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See the generated [task reference](../../.cursor/skills/cci-orchestration/tasks-reference.md) and [flow reference](../../.cursor/skills/cci-orchestration/flows-reference.md) for data management commands.

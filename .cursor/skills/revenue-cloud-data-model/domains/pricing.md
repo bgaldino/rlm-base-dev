@@ -1,6 +1,6 @@
 # Pricing Domain
 
-14+ objects managing price books, price entries, adjustments, selling models, cost books, and derived pricing.
+27 objects managing price books, price entries, adjustments, selling models, cost books, and derived pricing.
 
 ## Objects
 

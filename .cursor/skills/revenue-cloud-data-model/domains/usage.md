@@ -10,7 +10,7 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `UsageResource` | Defines a usage resource (API calls, storage, data, etc.) | Code (unique), UsageDefinitionProductId (→ Product2), TokenResourceId (self-ref), UnitOfMeasureClassId, UsageResourceBillingPolicyId |
+| `UsageResource` | Defines a usage resource (API calls, storage, data, etc.) | Code (unique), UsageDefinitionProductId (→ Product2), TokenResourceId (self-ref), UnitOfMeasureClassId — `UsageResourceBillingPolicyId` was **removed in 264**; bind the accumulation policy via `ProductUsageResourcePolicy.UsageAggregationPolicyId` instead |
 | `ProductUsageResource` (PUR) | Binds a Product to a UsageResource | ProductId, UsageResourceId, TokenResourceId |
 | `ProductUsageResourcePolicy` (PURP) | Policy config for a PUR | ProductUsageResourceId, RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId — but see the commitment restriction below |
 | `ProductUsageGrant` (PUG) | Entitlement grant for a product/resource | ProductUsageResourceId, UsageResourceId, RenewalPolicyId, RolloverPolicyId, UnitOfMeasureClassId, UnitOfMeasureId |
@@ -26,6 +26,53 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > data-quality preference. Live-verified 2026-07-24. The offline invariant
 > `check_commitment_purp_has_no_periods` in `tests/test_qb_multicurrency_data.py`
 > guards this.
+
+> ⛔ **Only an Anchor product's PURP may carry a `UsageOveragePolicy`.** Attaching one to
+> a **Pack** product's PURP fails with *"We can't save the pack usage model type record.
+> Change the product usage model type from Pack to another valid option and try again."*,
+> and a **Commit** product's PURP is rejected as well (per the commitment restriction
+> above). So overage chargeability is an anchor-level setting in practice, whatever the
+> field-level schema allows. Live-verified on a fresh 264 org 2026-08-14 by attempting
+> both inserts.
+>
+> Consequence worth knowing, and the reason this is subtle: `ProductUsageResourcePolicy`
+> is scoped to a product-**and**-resource pair, yet only Anchors may hold the overage
+> policy — so a Pack or Commit entitlement's *own* product has no overage row to find.
+> **Keying strictly on the pair therefore resolves nothing for exactly the products the
+> Anchor rule excludes**, which is not a safe default but a silent blanking: measured on a
+> fresh 264 org, 6 of 14 entitlements resolved under pair-only keying versus 13 of 14 once
+> a resource-level fallback was allowed.
+>
+> The safe resolution is **product-preferred, then unambiguous resource, then nothing**:
+> take the exact product+resource row when it exists; otherwise accept the resource-level
+> policy *only* if every row for that resource agrees; otherwise resolve to `null`. The
+> ambiguity guard is what makes the fallback safe — resources are shared widely (6 of 7 in
+> the bundled QB data; `Quantum Tokens` by six products), so a wrong-product reading needs
+> **two Anchor products sharing one resource** with disagreeing policies. The bundled data
+> does not currently contain that, nothing prevents it, and the misread would be silent,
+> so the guard withholds instead of returning whichever row was read last. Implemented as
+> `RLM_UsageUploaderController.OverageLookup`.
+>
+> Filter the association to `ProductUsageResource.Status = 'Active'`. `ProductUsageResourcePolicy`
+> has **no status of its own**, so the parent is the only gate — and a reloaded dataset leaves
+> Draft PURs carrying PURP children that overlap the Active row until
+> `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
+> stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
+>
+> ⚠ **`Status = 'Active'` narrows to one *effective* row, not to one row.** A PUR carries
+> `EffectiveStartDate` / `EffectiveEndDate`, and `activateRatingRecords.apex` **deliberately
+> keeps** multiple Active rows per product+resource when their periods do not overlap (it
+> treats a non-overlapping row as starting a new period rather than as a duplicate). A policy
+> that legitimately changes over time therefore presents two Active rows with different
+> `OverageChargeable` values, the ambiguity guard reads them as a conflict, and the answer
+> comes back blank for every entitlement — including the one whose period is unambiguous.
+> **Not currently reachable with the bundled data** (measured on a fresh 264 org: 25 Active
+> PURs across 25 distinct product+resource pairs, so zero multi-row pairs and zero
+> disagreement), which is why it fails safe today rather than visibly. Resolving it properly
+> means matching the PUR's effective period against each `TransactionUsageEntitlement`'s
+> `EffectiveStartDateTime` / `EffectiveEndDateTime` — **not** restricting to the current date,
+> because `getGrantsForAsset` returns every entitlement for the asset and renders each row's
+> own period, so a current-only filter would blank historical and future rows by design.
 
 > ⚠ `UsageAggregationPolicy` is a **relationship name only** — there is no SObject by
 > that name. The object behind `UsageAggregationPolicyId` is `UsageResourceBillingPolicy`.
@@ -52,11 +99,30 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `UsageEntitlementBucket` | Entitlement balance tracking | BucketBalanceUomId, ParentId |
 | `UsageEntitlementEntry` | Individual entries against buckets | ParentEntitlementBucketId, TransactionUsageEntitlementId, TransactionalBucketId |
 | `UsageEntitlementAccount` | Account-level entitlement tracking | — |
-| `TransactionUsageEntitlement` | Entitlement context for transactions | UsageCommitmentPolicyId, UsageOveragePolicyId, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`) |
+| `TransactionUsageEntitlement` (TUE) | Entitlement context for transactions. **Transactional** — the platform writes it during order activation / assetization, and `ProductId` is `createable: false` | AssetId, ProductId, UsageResourceId, OrderItemId, EntitlementUomId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, EffectiveStartDateTime / EffectiveEndDateTime, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **TUE carries no commitment or overage policy lookup** — see the note below |
 | `UsageBillingPeriodItem` | Usage billing period tracking | — |
 | `UsageRatableSummary` | Ratable usage summary | `TierQuantity`, `OverageQuantity` — see caveat below |
 | `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, UsageResourceId |
 | `UsageRatableSumCmtAssetRt` | Ratable summary commitment | UsageResourceId |
+
+> ⚠ **`TransactionUsageEntitlement` has never carried `UsageCommitmentPolicyId` or
+> `UsageOveragePolicyId` — on 262 *or* 264.** This table listed both until 2026-08-14; that was
+> an authoring error, **not** a 264 removal, so do not "restore" them and do not describe them
+> as removed in 264. Verified by describing TUE on a true 262 org and a fresh 264 org: **40
+> fields → 36, exactly four removed** (`ChargeForOverage`, `DrawdownOrder`,
+> `RatingFrequencyPolicyId`, `UsageAggregationPolicyId`), none added, and both policy lookups
+> absent on **both** releases. The only policy lookups TUE has ever had are
+> `UsageGrantRefreshPolicyId` and `UsageGrantRolloverPolicyId`.
+>
+> Commitment and overage bind at the **policy** objects instead —
+> `ProductUsageResourcePolicy` and `UsageResourcePolicy` each carry all four
+> (`RatingFrequencyPolicyId`, `UsageAggregationPolicyId`, `UsageCommitmentPolicyId`,
+> `UsageOveragePolicyId`), which is why 264 re-sources overage chargeability from
+> `UsageOveragePolicy.OverageChargeable` **via `ProductUsageResourcePolicy`**. That join is
+> scoped to a *product-and-resource* pair, so code resolving an entitlement's overage should
+> match the exact pair first and treat a resource-only match as authoritative **only when it
+> is unambiguous** — resources are shared across products, so a resource with two disagreeing
+> policy rows must resolve to nothing rather than to whichever row was read last.
 
 > ⚠ **`UsageRatableSummary.OverageQuantity` mirrors `TierQuantity` on ordinary rows.**
 > It means "charged beyond the *included allowance*", **not** "beyond the
@@ -84,7 +150,9 @@ UnitOfMeasureClass ← UsageResource (UnitOfMeasureClassId)
 UsageResource ← UsageResource (TokenResourceId, self-ref)
 UsageResource ← TransactionJournal (UsageResourceId)
 UsageResource ← UsageSummary (UsageResourceId)
-UsageResourceBillingPolicy ← UsageResource (UsageResourceBillingPolicyId)
+UsageResourceBillingPolicy ← ProductUsageResourcePolicy (UsageAggregationPolicyId)
+    (through 262 also: UsageResourceBillingPolicy ← UsageResource
+     (UsageResourceBillingPolicyId) — that field was removed in 264)
 UnitOfMeasure ← UnitOfMeasureClass (BaseUnitOfMeasureId, DefaultUnitOfMeasureId)
 ```
 

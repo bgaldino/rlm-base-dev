@@ -1,3 +1,11 @@
+---
+name: context-service
+description: >-
+  Inspect, author, deploy, and debug Revenue Cloud Context Definitions, mappings, tags,
+  and runtime instances. Use when extending or upgrading definitions, validating context
+  plans, managing activation, or hydrating, querying, and persisting context data.
+---
+
 # Context Service — Context Definitions, Mappings & Lifecycle
 
 Use this skill when reading, extending, applying, deploying, or debugging a
@@ -10,7 +18,7 @@ at runtime. A context definition declares **nodes** (an object hierarchy) and
 expression-set steps that consume it. This skill is consumable by any AI agent
 (Cursor, Claude Code, Copilot, Codex, Windsurf, Aider).
 
-> **Pinned to Release 262 / API v67.0.** Enums, limits, and API behavior are
+> **Pinned to Release 264 / API v68.0.** Enums, limits, and API behavior are
 > grounded in `tasks/rlm_context_service.py`, `tasks/rlm_extend_stdctx.py`, the
 > repo's context plans, `docs/references/context-service-utility.md`, Core UDD,
 > the Connect OAS, and Salesforce Help — re-verify edge behavior on the target
@@ -299,7 +307,7 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
 - **After editing `cumulusci.yml`** context tasks: regenerate the CCI reference
   (`python scripts/ai/generate_cci_reference.py`) and update any docs that name
   the old task; if a plan's objects/counts change, update its plan README and run
-  `python scripts/ai/check_plan_readme_consistency.py <plan_dir>`.
+  `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>`.
 
 ## Related Skills / references
 
@@ -313,6 +321,11 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
   definition interfaces, the dry-run contract, and the runtime helper scripts.
 - `docs/references/context-service-utility.md` — `manage_context_definition`
   option reference.
+- `docs/references/context-service-patch-shapes.md` — live-verified accept-shapes
+  for the Connect and SObject REST mutation endpoints: the GET-vs-PATCH shape
+  gap, per-endpoint required and response-only fields, hydration nesting, the
+  active-version behavior matrix, and an error → resolution table. Read before
+  authoring any mutation payload.
 - `.cursor/skills/expression-sets/SKILL.md` — expression sets that consume a
   context via tags.
 - `.cursor/skills/pricing-wiring/SKILL.md` — where context definitions fit in the

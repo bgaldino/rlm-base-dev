@@ -1,3 +1,11 @@
+---
+name: cci-orchestration
+description: >-
+  Configure and run CumulusCI tasks and flows for Revenue Cloud Foundations. Use when
+  editing cumulusci.yml, authoring Python CCI tasks, sequencing build steps, applying
+  feature flags, or choosing CCI versus Salesforce CLI org aliases.
+---
+
 # CumulusCI Orchestration Skill
 
 Use this skill when working with CumulusCI (CCI) — the automation engine for
@@ -176,7 +184,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "67.0"    # Summer '26 (Release 262)
+    api_version: "68.0"    # Winter '27 (Release 264)
   source_format: sfdx
 ```
 
