@@ -13,8 +13,8 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Current GA target** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
-| `264/` | 264 | Winter '27 | **Next development cycle** — scaffold only. Blocked on the 264 feature index, which is itself blocked on release notes (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
+| `262/` | 262 | Summer '26 | **Prior GA reference** (the `262` maintenance branch) — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `264/` | 264 | Winter '27 | **Current release cycle — now on `main`** (preview / pre-GA) — scaffold only. Blocked on the 264 feature index, which is itself blocked on release notes (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
 > *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
@@ -26,7 +26,7 @@ Most "Overview" links in the journey map point out to Salesforce Help; we author
 
 Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey map for that release
 
-| Functional Area              | 264 (W'27) | 262 (Su'26) Target | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
+| Functional Area              | 264 (W'27) | 262 (Su'26) | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
 |------------------------------|---|---|---|---|---|---|---|---|
 | Context Service              | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | — | — | — | — |
 | Product Catalog Management   | ❌ not started | ⏳ pending (master pilot drafted) | ⚠️ draft v0.2 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
@@ -111,7 +111,7 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
    - (a) migrate exercises that still reference older data shapes (Acme, Laptop Pro) onto the QuantumBit catalog?
    - (b) update QuantumBit-aligned exercises to reflect changes within QB itself (new products, restructured bundles, renamed fields)?
    - (c) both?
-2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output.
+2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output. **(Superseded 2026-09-16 by the 264 cutover: `main` now carries the 264 / Winter '27 preview line; 262 is the prior GA reference on the `262` maintenance branch. See the version-mapping table above.)**
 3. **Advanced Approvals** for 258 — needs to be authored from scratch? The journey map includes it, but no draft exists in the 258 folder. (Lower priority now that 260 has a `.md` draft.)
 4. **Recordings** — Winter '26 page in the journey map omits the "Recording" links every prior release had. Intentional (no recordings this cycle), or TODO?
 
