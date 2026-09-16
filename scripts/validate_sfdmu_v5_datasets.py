@@ -270,85 +270,26 @@ class SFDMUValidator:
             return False
         return rel in self._DEFERRED_EMPTY_CSV_PATHS
 
-    # Frozen snapshot of the single-field-externalId CSVs whose key values are NOT unique in
-    # the tree TODAY (todo pack 116, the guard that found them; fixes tracked in packs 193/194).
-    # The single-field uniqueness check is preventive — it protects the [[104]] Bug-4 re-keyings
-    # and any future single-field key — but it surfaced four pre-existing shipped cases the pack
-    # wrongly assumed did not exist. Three are REAL latent mis-upserts: the qb-clm state objects
-    # key on `Name`, but the same state name recurs under different `ObjectStateDefinition` parents
-    # ("Activated" under both "Contract LifeCycle Management" and "Legal"), so an Upsert collapses
-    # two distinct records into one — the correct key is composite (`Name;ObjectStateDefinition.Name`
-    # and siblings), which is behavioral data-plan surgery on a wired plan and needs live idempotency
-    # re-verification (pack 193). The fourth (q3-rating/RatingFrequencyPolicy) is a pair of BYTE-
-    # IDENTICAL `Monthly` rows — a benign redundant row, not a wrong-row overwrite — deduped in
-    # pack 194. Allowlisted here so this offline-tooling guard lands green rather than turning the
-    # validator red repo-wide; enumerated by EXACT plan-relative path, deliberately NOT by object
-    # name, so the same object in a NEW plan with a real duplicate still produces the gating HIGH.
-    # The exemption is scoped three ways so it grandfathers only the exact collision present today,
-    # never a future regression in the same file: by EXACT plan-relative path (a NEW plan with the
-    # same object still produces the gating HIGH — deliberately not by object name); by the specific
-    # single-field key non-unique today (a re-key to a different single field fires again); and by
-    # the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count) pairs. Pinning
-    # the signature rather than just a total count catches a wholesale swap (one duplicate removed
-    # while a different value becomes duplicated) that would leave a bare count unchanged: any change
-    # to which values collide, or how many times, no longer matches and the guard fires, so a
-    # regression cannot hide behind the allowlist while packs 193/194 are pending. Regenerate a
-    # signature from the live CSV; delete each entry as its fix lands.
+    # Frozen snapshot of the single-field-externalId CSVs whose key values are NOT unique in the
+    # tree TODAY (todo pack 116, the guard that found them). The single-field uniqueness check is
+    # preventive — it protects the [[104]] Bug-4 re-keyings and any future single-field key — but it
+    # surfaced four pre-existing shipped cases. Three (the qb-clm ObjectState* objects, whose `Name`
+    # recurred under different `ObjectStateDefinition` parents so an Upsert collapsed distinct
+    # records) were fixed in pack 193 by re-keying to the composite `Name;ObjectStateDefinition.Name`
+    # — the guard skips composite keys, so they need no entry here. The one that remains,
+    # q3-rating/RatingFrequencyPolicy, is a pair of BYTE-IDENTICAL `Monthly` rows — a benign
+    # redundant row, not a wrong-row overwrite — deduped in pack 194.
+    #
+    # Allowlisted here so this offline-tooling guard lands green rather than turning the validator
+    # red repo-wide. The exemption is scoped three ways so it grandfathers only the exact collision
+    # present today, never a future regression in the same file: by EXACT plan-relative path (a NEW
+    # plan with the same object still produces the gating HIGH — deliberately not by object name); by
+    # the specific single-field key non-unique today (a re-key to a different single field fires
+    # again); and by the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count)
+    # pairs. Pinning the signature rather than just a total count catches a wholesale swap (one
+    # duplicate removed while a different value becomes duplicated) that would leave a bare count
+    # unchanged. Regenerate a signature from the live CSV; delete the entry when pack 194's fix lands.
     _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
-        "qb/en-US/qb-clm/ObjectStateValue.csv": ("Name", frozenset({
-            ('Activated', 2),
-            ('Awaiting Signature', 2),
-            ('Canceled', 2),
-            ('Contract Expired', 2),
-            ('Contract Terminated', 2),
-            ('Draft', 2),
-            ('In Approval Process', 2),
-            ('Negotiating', 2),
-            ('Rejected', 2),
-            ('Signature Declined', 2),
-            ('Signed', 2),
-        })),
-        "qb/en-US/qb-clm/ObjectStateTransition.csv": ("Name", frozenset({
-            ('Activated_To_Expired', 2),
-            ('Activated_To_Terminated', 2),
-            ('AwaitingSignature_To_Canceled', 2),
-            ('AwaitingSignature_To_Negotiating', 2),
-            ('AwaitingSignature_To_SignatureDeclined', 2),
-            ('AwaitingSignature_To_Signed', 2),
-            ('Draft_To_Canceled', 2),
-            ('Draft_To_InApproval', 2),
-            ('InApproval_To_Canceled', 2),
-            ('InApproval_To_Draft', 2),
-            ('InApproval_To_Negotiating', 2),
-            ('InApproval_To_Rejected', 2),
-            ('Negotiating_To_AwaitingSignature', 2),
-            ('Negotiating_To_Canceled', 2),
-            ('Negotiating_To_Draft', 2),
-            ('Rejected_To_Canceled', 2),
-            ('Rejected_To_Draft', 2),
-            ('SignatureDeclined_To_Canceled', 2),
-            ('SignatureDeclined_To_Draft', 2),
-            ('Signed_To_Activated', 2),
-        })),
-        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": ("Name", frozenset({
-            ('Activated_To_Terminated', 2),
-            ('AwaitingSignature_To_Canceled', 2),
-            ('AwaitingSignature_To_Negotiating', 2),
-            ('AwaitingSignature_To_SignatureDeclined', 2),
-            ('AwaitingSignature_To_Signed', 2),
-            ('Draft_To_Canceled', 2),
-            ('Draft_To_InApproval', 2),
-            ('InApproval_To_Canceled', 2),
-            ('InApproval_To_Draft', 2),
-            ('Negotiating_To_AwaitingSignature', 2),
-            ('Negotiating_To_Canceled', 2),
-            ('Negotiating_To_Draft', 2),
-            ('Rejected_To_Canceled', 2),
-            ('Rejected_To_Draft', 2),
-            ('SignatureDeclined_To_Canceled', 2),
-            ('SignatureDeclined_To_Draft', 2),
-            ('Signed_To_Activated', 2),
-        })),
         "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({
             ('Monthly', 2),
         })),

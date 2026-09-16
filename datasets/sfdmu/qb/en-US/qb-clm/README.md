@@ -14,9 +14,9 @@
 | 2 | DocumentClauseSet | 1 | Upsert | Name;CategoryReference.DeveloperName | 20 |
 | 3 | ObjectStateDefinition | 1 | Upsert | Name | 2 |
 | 4 | ObjectStateActionDefinition | 1 | Upsert | Name | 11 |
-| 5 | ObjectStateValue | 1 | Upsert | Name | 24 |
-| 6 | ObjectStateTransition | 1 | Upsert | Name | 47 |
-| 7 | ObjectStateTransitionAction | 1 | Upsert | Name | 41 |
+| 5 | ObjectStateValue | 1 | Upsert | Name;ObjectStateDefinition.Name | 24 |
+| 6 | ObjectStateTransition | 1 | Upsert | Name;ObjectStateDefinition.Name | 47 |
+| 7 | ObjectStateTransitionAction | 1 | Upsert | Name;ObjectStateDefinition.Name | 41 |
 
 ## Files
 
