@@ -261,8 +261,8 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/setting`
 - **Description:** Update global product index settings.
 - **Available Version:** 63.0
-- **Path Parameters:**
-  - `settingId` (String, Required): ID of the setting to update.
+- **Query Parameters:**
+  - `settingId` (String, Required): ID of the setting to update. Passed as a request parameter — the resource path `/connect/pcm/index/setting` has no path placeholder.
 - **Request Body Fields:**
   - `setting` (Object, Required): Object containing the setting details:
     - `defaultLanguage` (String, Required): Default language for the API.

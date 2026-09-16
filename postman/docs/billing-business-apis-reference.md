@@ -269,9 +269,8 @@ Distinct from the existing "Invoice Scheduler" section (section 4) — this is a
 
 ## API Version Information
 
-All endpoints are available in:
-- Salesforce API v60.0 and later
-- Revenue Cloud API v68.0 (Winter '27)
+- **Reference target:** Revenue Cloud API v68.0 (Winter '27)
+- **Minimum availability varies per endpoint** — the earliest resources appear in Salesforce API v60.0, with others introduced through v62.0–v66.0. See each endpoint's **Available Version** for its own minimum; do not assume all 47 endpoints are available from v60.0.
 - Supports REST protocol only
 
 ---

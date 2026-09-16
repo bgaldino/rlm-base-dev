@@ -3,7 +3,7 @@
 
 This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Discovery (CPQ) APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
-The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart to the PCM APIs. All operations use POST, allowing a buyer context (account, pricing model, entitlements) to be passed in the request body. This makes them the preferred choice for storefront and quoting flows where catalog content must reflect what a specific customer can see and buy. Release 264 also introduces a Product Recommendations endpoint under a separate `/revenue/product-discovery/` base path (see below).
+The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart to the PCM APIs. All operations use POST, allowing a buyer context (account, pricing model, entitlements) to be passed in the request body. This makes them the preferred choice for storefront and quoting flows where catalog content must reflect what a specific customer can see and buy. The 264 snapshot also includes a Product Recommendations endpoint (available from API v67.0 / Release 262) under a separate `/revenue/product-discovery/` base path (see below).
 
 ---
 
@@ -250,7 +250,7 @@ The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart t
   - `cursor` (String, Optional).
   - `enablePricing` (Boolean, Optional, default `true`): Cannot be overridden to `true` in orgs where Salesforce Pricing is disabled.
   - `enableQualification` (Boolean, Optional, default `true`): Cannot be overridden to `true` in orgs where Qualification Procedure is disabled.
-  - `filter` (Array, Optional): Supported property `name`; operators `eq`, `in`, `contains`.
+  - `filter` (Object, Optional): A single Filter Input object with a `criteria` array (`Filter Criteria Input[]`); each criterion has `property`, `operator` (`eq`, `in`, `contains`), and `value`. (The source properties table annotates the type as `Filter Input[]`, but every captured JSON example — including Filter Input's own — serializes `filter` as one object with the array at `criteria`.)
   - `limit` (Integer, Optional, default `10`).
   - `pricingProcedure` (String, Optional), `qualificationProcedure` (String, Optional).
   - `transactionContextId` (String, Optional).

@@ -2,7 +2,7 @@
 
 Self-contained HTML viewer for the Revenue Cloud Business API reference documentation.
 
-The reference content is re-extracted from the Release 264 (Winter '27, v68.0) developer guide — 148 endpoints across 9 API domains. 264 is pre-GA, so treat a live 264 org as ground truth over the guide. The downloadable Postman collection JSON under `postman/` is still the prior (v66.0) baseline and is being regenerated against a live 264 org.
+The reference content covers 148 endpoints across 9 API domains. Of these, 137 are re-extracted from the Release 264 (Winter '27, v68.0) developer guide; the remaining 11 are not fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (under `/commerce/payments/`, outside the 264 RLM guide) and five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), both retained for continuity. 264 is pre-GA, so treat a live 264 org as ground truth over the guide. The downloadable Postman collection JSON under `postman/` is still the prior (v66.0) baseline and is being regenerated against a live 264 org.
 
 ## Usage
 

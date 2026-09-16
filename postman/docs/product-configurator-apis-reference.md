@@ -3,7 +3,7 @@
 
 This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Configurator APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
-The Product Configurator APIs enable interactive configuration of complex products — bundles, option groups, and rule-driven selections — within a quoting or eCommerce flow. Configuration state is maintained server-side as a **context** (`contextId`), tied to a transaction (`transactionId`/`transactionLineId`), across multiple API calls — allowing incremental changes (add/update/delete nodes, quantity changes) before the final configuration is committed. Release 264 also introduces a Config Rules endpoint under a separate `/revenue/product-configurator/` base path (see below).
+The Product Configurator APIs enable interactive configuration of complex products — bundles, option groups, and rule-driven selections — within a quoting or eCommerce flow. Configuration state is maintained server-side as a **context** (`contextId`), tied to a transaction (`transactionId`/`transactionLineId`), across multiple API calls — allowing incremental changes (add/update/delete nodes, quantity changes) before the final configuration is committed. The 264 snapshot also includes a Config Rules endpoint (available from API v67.0 / Release 262) under a separate `/revenue/product-configurator/` base path (see below).
 
 ---
 
@@ -19,7 +19,7 @@ The Product Configurator APIs enable interactive configuration of complex produc
   - `transactionId` (String, Required): ID of the sales transaction (quote or order) being configured.
   - `transactionLineId` (String, Optional): ID of the specific transaction line item to configure.
   - `correlationId` (String, Optional): Unique identifier attached to the request for tracing.
-  - `configuratorOptions` (Array of Configurator Options Input, Optional): Options passed to the configurator — see item 6 (`configuratorOptions`) below for the supported sub-fields (`addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled`, `pricingProcedure`, `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`).
+  - `configuratorOptions` (Object, Optional): Options passed to the configurator — a single object (not an array). Supported sub-fields: `addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled`, `pricingProcedure`, `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`.
   - `contextResponseType` (String, Optional — 65.0+): Controls response payload size for large transactions. Values: `Delta`, `Full`, `None`, `Product`. Required when the transaction has more than 1,000 and fewer than 15,000 line items.
   - `qualificationContext` (Object, Optional): User context used for qualification rules — `accountId`, `contactId`, `contextId`.
   - `transactionContextId` (String, Optional): Context ID of an existing transaction session.
@@ -107,7 +107,7 @@ Configuration instances represent the JSON state of an active configuration sess
 - **Available Version:** 60.0
 - **Request Body Fields:**
   - `transactionId` (String, Required): ID of the quote or order to load into a configuration session.
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `contextMappingId` (String, Optional): Context mapping to apply to the loaded instance.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
@@ -133,7 +133,7 @@ Configuration instances represent the JSON state of an active configuration sess
 - **Request Body Fields:**
   - `transaction` (String, Required): JSON representation of the transaction to set as the configuration instance.
   - `contextMappingId` (String, Required): Context mapping to apply to the instance.
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
 ---
@@ -151,7 +151,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
   - `addedNodes` (Array, Required): Nodes to add — each with `path` (String[]: location within the configuration tree) and `addedObject` (Object: the node payload to add). See [Configurator Added Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_added_node_input.htm.md).
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
 ---
@@ -165,7 +165,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
   - `deletedNodes` (Array, Required): Nodes to delete — each with `path` (String[]: location of the node to remove). See [Configurator Deleted Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_deleted_node_input.htm.md).
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
 ---
@@ -179,7 +179,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
   - `updatedNodes` (Array, Required): Nodes to update — each with `path` (String[]: location of the node to update) and `updatedAttributes` (Object: key-value pairs of attributes to change). See [Configurator Updated Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_updated_node_input.htm.md).
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
 ---
@@ -194,7 +194,7 @@ Nodes represent individual components within a configuration — products, bundl
   - `contextId` (String, Required): Context ID of the active configuration instance.
   - `quantity` (Integer, Required): New quantity value to set.
   - `transactionLinePath` (String[], Required): Path to the transaction line item whose quantity to set.
-  - `configuratorOptions` (Object, Optional): See item 6's `configuratorOptions` sub-fields above.
+  - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
 ---

@@ -337,7 +337,7 @@ const DOMAINS = {
             desc:'Retrieve global index settings, including supported languages, default language, and product grouping behavior.'},
           { method:'PATCH', path:'/connect/pcm/index/setting', title:'Update Index Setting', version:'63.0',
             desc:'Update global product index settings.',
-            params:[{name:'settingId',desc:'ID of the setting to update.'}],
+            query:[{name:'settingId',desc:'ID of the setting to update. Passed as a request parameter — the path /connect/pcm/index/setting has no path placeholder.'}],
             fields:[
               {name:'setting',type:'Object',req:true,desc:'Object containing the setting details: defaultLanguage (Required), supportedLanguages (Required, list of supported language locales for indexing), and productsGrouping (Optional, e.g. GROUPING_VARIATION — shown in the dev-guide example but not itemized in the formal schema; treat as unconfirmed shape).'},
             ]},
@@ -612,7 +612,7 @@ const DOMAINS = {
               {name:'cursor',type:'String',req:false,desc:'Unique ID representing the position of each product in the dataset.'},
               {name:'enablePricing',type:'Boolean',req:false,desc:'Default true. Cannot be overridden to true in orgs where Salesforce Pricing is disabled.'},
               {name:'enableQualification',type:'Boolean',req:false,desc:'Default true. Cannot be overridden to true in orgs where Qualification Procedure is disabled.'},
-              {name:'filter',type:'Array',req:false,desc:'Supported property name; operators eq, in, contains.'},
+              {name:'filter',type:'Object',req:false,desc:'Filter object with a criteria array (Filter Criteria Input[]); each criterion has property, operator (eq, in, contains), and value.'},
               {name:'limit',type:'Integer',req:false,desc:'Default 10.'},
               {name:'pricingProcedure',type:'String',req:false,desc:'Custom pricing procedure override.'},
               {name:'qualificationProcedure',type:'String',req:false,desc:'Custom qualification procedure override.'},
@@ -641,7 +641,7 @@ const DOMAINS = {
               {name:'transactionId', type:'String', req:true, desc:'ID of the sales transaction (quote or order) being configured.'},
               {name:'transactionLineId', type:'String', req:false, desc:'ID of the specific transaction line item to configure.'},
               {name:'correlationId', type:'String', req:false, desc:'Unique identifier attached to the request for tracing.'},
-              {name:'configuratorOptions', type:'Array', req:false, desc:'Array of configurator option objects. Supported sub-fields: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled, pricingProcedure, qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog.'},
+              {name:'configuratorOptions', type:'Object', req:false, desc:'Configurator options object (single object, not an array). Supported boolean sub-fields: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled, pricingProcedure, qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog.'},
               {name:'contextResponseType', type:'String', req:false, desc:'Controls response payload size for large transactions (65.0+). Values: Delta, Full, None, Product. Required when the transaction has more than 1,000 and fewer than 15,000 line items.'},
               {name:'qualificationContext', type:'Object', req:false, desc:'User context used for qualification rules — accountId, contactId, contextId.'},
               {name:'transactionContextId', type:'String', req:false, desc:'Context ID of an existing transaction session.'},
@@ -1484,7 +1484,7 @@ function renderOverview() {
     <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264, preview / pre-GA)</p>
 
     <div class="info-box">
-      <strong>This viewer</strong> documents 148 endpoints across 9 API domains, re-extracted from the Release 264 (v68.0) developer guide. The five Context Service endpoints are v59 carryover retained for continuity — the 264 guide has no Context Service Business-API section, so they are not a fresh 264 extraction. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
+      <strong>This viewer</strong> documents 148 endpoints across 9 API domains. Of these, 137 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 11 are not fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide) and five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), both retained for continuity. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
     </div>
 
     <h2 class="section-heading">Collections</h2>
