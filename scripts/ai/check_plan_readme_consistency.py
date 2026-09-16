@@ -593,15 +593,19 @@ def check_plan(plan_dir: str):
                 # (PR #445 review, codex 4022218305). Checked whether or not a number is
                 # present — a bare `(org)` / `— (org)` cell on a writable row must not slip
                 # past just because parse_int() found no leading integer (copilot 4022218776).
-                # A blank-Pass row vouches for EVERY pass (see `seen_any_pass` above), so its
-                # single count would exempt a writable pass too — and `count_variants` would
-                # narrow `matched` to just the Readonly variant if the Operation cell names it,
-                # hiding the writable pass from the guard. Evaluate over ALL `compare_variants`
-                # when the Pass cell is blank; only an explicit Pass may narrow the marker to a
-                # source-free declaration (PR #445 review, copilot 4022398078).
-                guard_variants = matched if row_pass is not None else compare_variants
-                any_writable = bool(guard_variants) and any(
-                    SFDMUValidator._is_live_writable(v) for v in guard_variants)
+                # Evaluate the guard over ALL declarations this row vouches for, NOT the
+                # operation-narrowed `matched`: coverage is tracked per PASS (`seen_any_pass`
+                # for a blank cell, `seen_specific_passes` for an explicit one), and
+                # `compare_variants` is exactly that set — every pass for a blank cell, every
+                # declaration in the selected pass otherwise. `count_variants` would narrow
+                # `matched` to just the Readonly declaration when the Operation cell names it,
+                # hiding a live-writable sibling — whether it lives in another pass (blank cell,
+                # copilot 4022398078) or the SAME pass as a duplicate declaration (explicit
+                # cell, copilot 4022437332) — so the writable declaration would get neither a
+                # validated count nor a missing-row warning. `(org)` is accepted only when every
+                # declaration the row covers is source-free.
+                any_writable = bool(compare_variants) and any(
+                    SFDMUValidator._is_live_writable(v) for v in compare_variants)
                 if any_writable:
                     errors.append(f"{rel}:{ln} `{name}` record count README="
                                   f"{row['records'].strip()!r} carries an (org) marker on a "

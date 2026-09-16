@@ -376,6 +376,15 @@ ORG_COUNT_MARKER = [
      ([], [], True),
      _check([[dict(UPSERT_P1, operation="Readonly")], [dict(UPSERT_P1, operation="Readonly")]],
             [_row(1, "Widget__c", "", "Readonly", "Name", "5 (org)")])),
+    # copilot 4022437332: an explicit Pass does not uniquely identify a declaration when the same
+    # object is declared twice in ONE objectSet. A `Pass 1 | Readonly | 999 (org)` row where pass 1
+    # also has an Upsert declaration must be reported — the guard evaluates every declaration in the
+    # selected pass, not just the operation-named one (seen_specific_passes marks the whole pass).
+    ("`(org)` on an explicit-Pass row naming Readonly is reported when the SAME pass has a writable dup",
+     True, any("(org) marker on a writable" in e
+               for e in _check([[UPSERT_P1, dict(UPSERT_P1, operation="Readonly")]],
+                               [_row(1, "Widget__c", 1, "Readonly", "Name", "999 (org)")],
+                               csvs={"Widget__c.csv": "Id\nr\nr\n"})[0])),
     ("the marker is case-insensitive and space-tolerant (`( ORG )`)",
      ([], [], True),
      _org_marker("Readonly", "999 ( ORG )", csvs={"Widget__c.csv": "Id\none\n"})),
