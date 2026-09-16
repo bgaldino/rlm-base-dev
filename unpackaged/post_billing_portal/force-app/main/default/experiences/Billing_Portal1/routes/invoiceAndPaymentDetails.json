@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "7607c723-41ec-4b60-8cdf-153b5910baae",
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "configurationTags" : [ ],
+  "devName" : "View_Invoice_Checkout",
+  "id" : "1f8436ed-8c4c-46c4-b9ce-56b8df20de4a",
+  "label" : "Invoice and Payment Details",
+  "routeType" : "invoice-checkout",
+  "type" : "route",
+  "urlPrefix" : "invoice-checkout"
+}

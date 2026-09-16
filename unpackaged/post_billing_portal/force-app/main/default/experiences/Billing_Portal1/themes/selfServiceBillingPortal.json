@@ -1,0 +1,445 @@
+{
+  "activeBrandingSetId": "8affdae6-f607-40af-b234-908fc937dc1d",
+  "customCSS": "",
+  "developerName": "rlmSelfServicePortal",
+  "id": "2c6f6453-0bc3-44dc-9f7f-dfb6e668e2a3",
+  "label": "Self-Service Billing Portal",
+  "layouts": {
+    "Home": "cd9a756f-8726-4f93-b012-b38fc1427a51",
+    "Inner": "56b734c5-c81f-40bf-8e7a-4168563f3882",
+    "Login": "3680ae4c-c243-4c48-95ce-003f472da027",
+    "ServiceNotAvailable": "ed6a91f6-6fa6-4447-bf71-f0d3e4b17001"
+  },
+  "type": "theme",
+  "views": [
+    {
+      "componentAttributes": {},
+      "componentName": "salesforceIdentity:loginBody2",
+      "id": "3680ae4c-c243-4c48-95ce-003f472da027",
+      "label": "Login",
+      "regions": [
+        {
+          "id": "882a4b13-c40e-49bc-be94-5f5bb64513cb",
+          "regionName": "header",
+          "type": "region"
+        },
+        {
+          "id": "a8191985-aae8-47b1-bf54-113d6e96b968",
+          "regionName": "content",
+          "type": "region"
+        },
+        {
+          "id": "dc57bdd2-f9b7-4d32-a9fb-b207266b8a97",
+          "regionName": "footer",
+          "type": "region"
+        }
+      ],
+      "type": "view"
+    },
+    {
+      "componentAttributes": {
+        "fixedPageWidth": 1440,
+        "headerBgColor": "rgba(0, 0, 0, 0)",
+        "isHeaderPinned": false,
+        "isHeroUnderHeader": false,
+        "isPageWidthFixed": true,
+        "showHeader": true,
+        "showHero": false
+      },
+      "componentName": "siteforce:themeLayoutStarter",
+      "id": "56b734c5-c81f-40bf-8e7a-4168563f3882",
+      "label": "Default",
+      "regions": [
+        {
+          "components": [
+            {
+              "componentAttributes": {
+                "background": "background: #ffffff",
+                "backgroundOverlayColor": "#ffffff",
+                "borderBottomColor": "",
+                "borderTopColor": "#ffffff",
+                "bottomRowHeight": 0,
+                "bottomRowOverlayColor": "#ffffff",
+                "containHeader": true,
+                "containHeaderWidth": 1440,
+                "dropdownBackgroundColor": "#ffffff",
+                "dropdownBackgroundHoverColor": "#ffffff",
+                "dropdownBorderColor": "#ffffff",
+                "dropdownTextColor": "#0B827C",
+                "dropdownTextHoverColor": "rgb(15, 107, 100)",
+                "iconLinkColor": "#0B827C",
+                "iconLinkHoverColor": "rgb(15, 107, 100)",
+                "iconLinkTextShadowColor": "rgba(0, 0, 0, 0)",
+                "linkActiveBorderColor": "rgb(255, 255, 255)",
+                "linkColor": "#0B827C",
+                "linkHoverColor": "rgb(15, 107, 100)",
+                "linkTextShadowColor": "rgba(0, 0, 0, 0)",
+                "logoWidth": 70,
+                "searchPosition": "right",
+                "searchStyle": "expanded",
+                "showAppLauncher": false,
+                "showNotifications": true,
+                "showProfileMenu": true,
+                "showSearch": true,
+                "topRowHeight": 32
+              },
+              "componentName": "forceCommunity:themeHeaderStacked",
+              "id": "730895a8-4680-4724-a637-9e2317960f52",
+              "regions": [
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "accountManagementLabel": "Account Management",
+                        "buttonBackgroundColor": "",
+                        "buttonBackgroundHoverColor": "",
+                        "buttonBorderColor": "rgba(0, 0, 0, 0)",
+                        "buttonBorderRadius": 4,
+                        "buttonText": "Log in",
+                        "buttonTextColor": "",
+                        "buttonTextHoverColor": "",
+                        "communityBuilderLabel": "Experience Builder",
+                        "communitySetupLabel": "Salesforce Setup",
+                        "contactSupportLabel": "Contact Support",
+                        "filterName": "MyCases",
+                        "homeLabel": "Home",
+                        "logoutLabel": "Logout",
+                        "menuStyle": "iconAndName",
+                        "messagesLabel": "Messages",
+                        "myAccountLabel": "My Account",
+                        "showAccountManagement": false,
+                        "showContactSupport": false,
+                        "showMessages": false,
+                        "showUserSettings": false,
+                        "userSettingsLabel": "My Settings",
+                        "viewProfileLabel": "My Profile"
+                      },
+                      "componentName": "forceCommunity:themeProfileMenu",
+                      "id": "c620a775-289e-4ba8-9ec3-b2d6e2f42bff",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "6745a444-5ab5-4eb9-8c31-1d6d3c9cfa96",
+                  "regionName": "themeHeaderProfileMenu",
+                  "type": "region"
+                },
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "maxAutoCompleteResults": 5,
+                        "searchLabel": "Search...",
+                        "searchObjects": [
+                          {
+                            "isPublic": false,
+                            "name": "Invoice"
+                          }
+                        ]
+                      },
+                      "componentName": "forceCommunity:globalSearchInput",
+                      "id": "55eacb20-717e-4d80-8f47-bf0041351a85",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "3273ba3d-e205-4717-8969-8b6aa97ef206",
+                  "regionName": "search",
+                  "type": "region"
+                },
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "navAlignment": "left",
+                        "navItemThreshold": 7,
+                        "navigationMenuEditorRefresh": ""
+                      },
+                      "componentName": "forceCommunity:themeNav",
+                      "id": "eaa7ac28-8322-426f-8b8f-c68edd0d308e",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "0c29b03c-d513-49ab-95c3-1f2001e55ab6",
+                  "regionName": "nav",
+                  "type": "region"
+                }
+              ],
+              "renditionMap": {},
+              "type": "component"
+            }
+          ],
+          "id": "a0e544a9-4fb8-4a20-83e0-362444edf4d1",
+          "regionName": "themeHeader",
+          "type": "region"
+        },
+        {
+          "id": "645eb420-f7a0-4eec-ac2e-29518d56c076",
+          "regionName": "themeRightSidebarTop",
+          "type": "region"
+        },
+        {
+          "components": [
+            {
+              "componentAttributes": {
+                "richTextValue": "<div style='background-image: url(/sfsites/assets/themes/rlmPortal-footer.svg); background-repeat: no-repeat; background-size: cover; background-position: center; background-color: var(--slds-g-color-brand-base-50); color: #ffffff; font-family: Arial, sans-serif; padding: 2rem 4rem;'>             <div class='slds-grid slds-wrap slds-grid_vertical-align-center slds-grid_align-spread'>                 <div class='slds-col slds-size_1-of-2 slds-text-align_left'>                     <div class='slds-text-body_small slds-text-color_inverse'>                         <span style='color: inherit; text-decoration: none;'>Privacy Policy</span> \u00a0\u00a0\u2022\u00a0\u00a0                         <span style='color: inherit; text-decoration: none;'>Terms</span> \u00a0\u00a0\u2022\u00a0\u00a0                         <span style='color: inherit; text-decoration: none;'>Site Map</span>                     </div>                     <div class='slds-text-body_small slds-text-color_inverse slds-m-top_x-small'>                         <span>\u00a9 Logginsum. All rights reserved.</span>                     </div>                 </div>                 <div class='slds-col slds-size_1-of-2 slds-text-align_right'>                     <div class='slds-grid slds-grid_align-end slds-grid_vertical-align-center'>                         <a href='https://www.linkedin.com/company/salesforce' class='slds-m-right_x-small'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/linkedinIcon.svg' alt='LinkedIn' style='width: 32px; height: 32px;' />                         </a>                         <a href='https://www.facebook.com/salesforce/' class='slds-m-right_x-small'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/facebookIcon.svg' alt='Facebook' style='width: 32px; height: 32px;' />                         </a>                         <a href='https://x.com/salesforce'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/customIcon.svg' alt='X' style='width: 32px; height: 32px;' />                         </a>                     </div>                 </div>             </div>         </div>"
+              },
+              "componentName": "forceCommunity:htmlBlock",
+              "id": "cd349ace-4aa1-4ba7-b5b9-6c6fdd1aab0f",
+              "renditionMap": {},
+              "type": "component"
+            }
+          ],
+          "id": "1dbf3803-02a6-4851-9868-6d073e8bd943",
+          "regionName": "themeFooter",
+          "type": "region"
+        }
+      ],
+      "type": "view"
+    },
+    {
+      "componentAttributes": {
+        "fixedPageWidth": 1440,
+        "headerBgColor": "rgba(0, 0, 0, 0)",
+        "isHeaderPinned": false,
+        "isHeroUnderHeader": false,
+        "isPageWidthFixed": true,
+        "showHeader": true,
+        "showHero": true
+      },
+      "componentName": "siteforce:themeLayoutStarter",
+      "id": "cd9a756f-8726-4f93-b012-b38fc1427a51",
+      "label": "Home",
+      "regions": [
+        {
+          "components": [
+            {
+              "componentAttributes": {
+                "background": "background: #ffffff",
+                "backgroundOverlayColor": "#ffffff",
+                "borderBottomColor": "",
+                "borderTopColor": "#ffffff",
+                "bottomRowHeight": 0,
+                "bottomRowOverlayColor": "#ffffff",
+                "containHeader": true,
+                "containHeaderWidth": 1440,
+                "dropdownBackgroundColor": "#ffffff",
+                "dropdownBackgroundHoverColor": "#ffffff",
+                "dropdownBorderColor": "#ffffff",
+                "dropdownTextColor": "#0B827C",
+                "dropdownTextHoverColor": "rgb(15, 107, 100)",
+                "iconLinkColor": "#0B827C",
+                "iconLinkHoverColor": "rgb(15, 107, 100)",
+                "iconLinkTextShadowColor": "rgba(0, 0, 0, 0)",
+                "linkActiveBorderColor": "rgb(255, 255, 255)",
+                "linkColor": "#0B827C",
+                "linkHoverColor": "rgb(15, 107, 100)",
+                "linkTextShadowColor": "rgba(0, 0, 0, 0)",
+                "logoWidth": 70,
+                "searchPosition": "right",
+                "searchStyle": "expanded",
+                "showAppLauncher": false,
+                "showNotifications": true,
+                "showProfileMenu": true,
+                "showSearch": true,
+                "topRowHeight": 32
+              },
+              "componentName": "forceCommunity:themeHeaderStacked",
+              "id": "ce02ca23-64d3-4926-80f6-e052a26b70b1",
+              "regions": [
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "accountManagementLabel": "Account Management",
+                        "buttonBackgroundColor": "",
+                        "buttonBackgroundHoverColor": "",
+                        "buttonBorderColor": "rgba(0, 0, 0, 0)",
+                        "buttonBorderRadius": 4,
+                        "buttonText": "Log in",
+                        "buttonTextColor": "",
+                        "buttonTextHoverColor": "",
+                        "communityBuilderLabel": "Experience Builder",
+                        "communitySetupLabel": "Salesforce Setup",
+                        "contactSupportLabel": "Contact Support",
+                        "filterName": "MyCases",
+                        "homeLabel": "Home",
+                        "logoutLabel": "Logout",
+                        "menuStyle": "iconAndName",
+                        "messagesLabel": "Messages",
+                        "myAccountLabel": "My Account",
+                        "showAccountManagement": false,
+                        "showContactSupport": false,
+                        "showMessages": false,
+                        "showUserSettings": false,
+                        "userSettingsLabel": "My Settings",
+                        "viewProfileLabel": "My Profile"
+                      },
+                      "componentName": "forceCommunity:themeProfileMenu",
+                      "id": "2fb66b77-1834-4653-a8a6-980b5b903370",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "9a082489-ac6b-46ee-9afe-ed281538c0cb",
+                  "regionName": "themeHeaderProfileMenu",
+                  "type": "region"
+                },
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "maxAutoCompleteResults": 5,
+                        "searchLabel": "Search...",
+                        "searchObjects": [
+                          {
+                            "isPublic": false,
+                            "name": "Invoice"
+                          }
+                        ]
+                      },
+                      "componentName": "forceCommunity:globalSearchInput",
+                      "id": "6d870afe-43ac-480e-b629-e58d90e025c3",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "97199da2-3f0c-4e9c-8b51-728addeb9957",
+                  "regionName": "search",
+                  "type": "region"
+                },
+                {
+                  "components": [
+                    {
+                      "componentAttributes": {
+                        "navAlignment": "left",
+                        "navItemThreshold": 7,
+                        "navigationMenuEditorRefresh": ""
+                      },
+                      "componentName": "forceCommunity:themeNav",
+                      "id": "b1303f33-c3fb-4dff-95fd-42b7a6ceef65",
+                      "renditionMap": {},
+                      "type": "component"
+                    }
+                  ],
+                  "id": "ed19abfe-c1b2-409a-855a-22a0fc215238",
+                  "regionName": "nav",
+                  "type": "region"
+                }
+              ],
+              "renditionMap": {},
+              "type": "component"
+            }
+          ],
+          "id": "734a8524-f44b-4d4c-a308-dbf635d2e1ec",
+          "regionName": "themeHeader",
+          "type": "region"
+        },
+        {
+          "components": [
+            {
+              "componentAttributes": {
+                "bgImage": "background: rgba(255,255,255) url(/sfsites/assets/themes/rlmPortal-hero.png) center center /cover",
+                "bgOverlayColor": "rgba(0, 0, 0, 0)",
+                "captionText": "Hello",
+                "captionTextColor": "#181818",
+                "captionTextShadowColor": "rgba(0, 0, 0, 0)",
+                "contentAlignment": "left",
+                "contentWidth": 42,
+                "ctaBtnOneBgColor": "rgba(0, 0, 0, 1)",
+                "ctaBtnOneBgHoverColor": "rgba(0, 0, 255, 1)",
+                "ctaBtnOneBorderColor": "rgba(0, 0, 0, 1)",
+                "ctaBtnOneOpenNewTab": false,
+                "ctaBtnOneText": "Let's go!",
+                "ctaBtnOneTextColor": "rgba(255, 255, 255, 1)",
+                "ctaBtnOneTextHoverColor": "rgba(255, 255, 255, 1)",
+                "ctaBtnOneUrl": "",
+                "ctaBtnRadius": 0,
+                "ctaBtnTwoBgColor": "rgba(255, 255, 255, 1)",
+                "ctaBtnTwoBgHoverColor": "rgba(0, 0, 255, 1)",
+                "ctaBtnTwoBorderColor": "rgba(0, 0, 0, 1)",
+                "ctaBtnTwoOpenNewTab": false,
+                "ctaBtnTwoText": "Help",
+                "ctaBtnTwoTextColor": "rgba(0, 0, 0, 1)",
+                "ctaBtnTwoTextHoverColor": "rgba(255, 255, 255, 1)",
+                "ctaBtnTwoUrl": "",
+                "ctaShowBtnOne": false,
+                "ctaShowBtnTwo": true,
+                "fixedHeroWidth": true,
+                "heroHeight": 60,
+                "heroWidth": 1426,
+                "showCaption": true,
+                "showSubtitle": true,
+                "showTitle": true,
+                "subtitleText": "We are here to help you settle your outstanding invoices. You can view invoice details, download invoice documents, and pay to settle invoices.",
+                "subtitleTextColor": "#181818",
+                "subtitleTextShadowColor": "rgba(0, 0, 0, 0)",
+                "titleText": "{!CurrentUser.firstName}",
+                "titleTextColor": "#181818",
+                "titleTextShadowColor": "rgba(0, 0, 0, 0)",
+                "type": "callToAction"
+              },
+              "componentName": "forceCommunity:themeHeroStarter",
+              "id": "2e65ef3d-ef7e-403e-8a5a-3a65aa283a6d",
+              "renditionMap": {},
+              "type": "component"
+            }
+          ],
+          "id": "fd00d107-4235-4af8-848d-0a4dae40b974",
+          "regionName": "themeHero",
+          "type": "region"
+        },
+        {
+          "id": "8bb9f451-ae8b-4066-b23c-395d30d2afe4",
+          "regionName": "themeRightSidebarTop",
+          "type": "region"
+        },
+        {
+          "components": [
+            {
+              "componentAttributes": {
+                "richTextValue": "<div style='background-image: url(/sfsites/assets/themes/rlmPortal-footer.svg); background-repeat: no-repeat; background-size: cover; background-position: center; background-color: var(--slds-g-color-brand-base-50); color: #ffffff; font-family: Arial, sans-serif; padding: 2rem 4rem;'>             <div class='slds-grid slds-wrap slds-grid_vertical-align-center slds-grid_align-spread'>                 <div class='slds-col slds-size_1-of-2 slds-text-align_left'>                     <div class='slds-text-body_small slds-text-color_inverse'>                         <span style='color: inherit; text-decoration: none;'>Privacy Policy</span> \u00a0\u00a0\u2022\u00a0\u00a0                         <span style='color: inherit; text-decoration: none;'>Terms</span> \u00a0\u00a0\u2022\u00a0\u00a0                         <span style='color: inherit; text-decoration: none;'>Site Map</span>                     </div>                     <div class='slds-text-body_small slds-text-color_inverse slds-m-top_x-small'>                         <span>\u00a9 Logginsum. All rights reserved.</span>                     </div>                 </div>                 <div class='slds-col slds-size_1-of-2 slds-text-align_right'>                     <div class='slds-grid slds-grid_align-end slds-grid_vertical-align-center'>                         <a href='https://www.linkedin.com/company/salesforce' class='slds-m-right_x-small'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/linkedinIcon.svg' alt='LinkedIn' style='width: 32px; height: 32px;' />                         </a>                         <a href='https://www.facebook.com/salesforce/' class='slds-m-right_x-small'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/facebookIcon.svg' alt='Facebook' style='width: 32px; height: 32px;' />                         </a>                         <a href='https://x.com/salesforce'>                             <img src='/sfsites/assets/Images/PrmEnhancedFooter/customIcon.svg' alt='Custom Link' style='width: 32px; height: 32px;' />                         </a>                     </div>                 </div>             </div>         </div>"
+              },
+              "componentName": "forceCommunity:htmlBlock",
+              "id": "3527b479-545b-460c-85df-9f0f52056e9c",
+              "renditionMap": {},
+              "type": "component"
+            }
+          ],
+          "id": "31e1b3b5-e6f8-4d01-956e-9a48fc2baabc",
+          "regionName": "themeFooter",
+          "type": "region"
+        }
+      ],
+      "type": "view"
+    },
+    {
+      "componentAttributes": {
+        "fixedPageWidth": 1170,
+        "headerBgColor": "rgba(0, 0, 0, 0)",
+        "isHeaderPinned": false,
+        "isHeroUnderHeader": false,
+        "isPageWidthFixed": true,
+        "showHeader": true,
+        "showHero": true
+      },
+      "componentName": "siteforce:themeLayoutStarter",
+      "id": "ed6a91f6-6fa6-4447-bf71-f0d3e4b17001",
+      "label": "ServiceNotAvailable",
+      "regions": [
+        {
+          "id": "06077297-23b1-4c57-8761-75e8827770de",
+          "regionName": "themeHeader",
+          "type": "region"
+        },
+        {
+          "id": "399e2366-e9e4-48c2-88be-f68d03f7f424",
+          "regionName": "themeFooter",
+          "type": "region"
+        }
+      ],
+      "type": "view"
+    }
+  ]
+}

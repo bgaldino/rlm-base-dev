@@ -447,6 +447,25 @@ CHECKS = [
         triggers=["datasets/", "scripts/validate_sfdmu_v5_datasets.py", "scripts/sfdmu_export.py"],
         deps=[], gating=True,
     ),
+    dict(
+        # Two pytest-style suites (test_ functions, no __main__) that `python tests/<name>.py`
+        # would exit 0 on without running — the silent-green trap. Invoked through pytest for
+        # that reason. test_billing_portal_config asserts prepare_billing_portal's step gating
+        # (billing + billing_portal on all steps; billing_portal_deploy only on the bundle
+        # steps); test_generate_cci_reference pins _scan_when_clauses' exact-flag matching, so
+        # cumulusci.yml and generate_cci_reference.py are its triggers.
+        name="billing_portal_suites",
+        cmd=["python", "-m", "pytest", "-q",
+             "tests/test_billing_portal_config.py",
+             "tests/test_generate_cci_reference.py"],
+        # pyproject.toml sets [tool.pytest.ini_options], so a collection change there must select
+        # this pytest-driven check rather than let it land unexercised.
+        triggers=["cumulusci.yml", "scripts/ai/generate_cci_reference.py",
+                  "unpackaged/post_billing_portal/",
+                  "tests/test_billing_portal_config.py",
+                  "tests/test_generate_cci_reference.py", "pyproject.toml"],
+        deps=["pytest", "PyYAML"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather

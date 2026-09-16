@@ -1,0 +1,41 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "7eb17846-495e-42fb-9add-21a017515e7d",
+  "label" : "Help Center",
+  "regions" : [ {
+    "id" : "302ac5ac-050f-43de-bfb9-656d8227acff",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "allProductsLabel" : "All Services",
+        "availableViews" : "List and Tile Views",
+        "browseProductsLabel" : "Service Catalog",
+        "defaultView" : "Tile View",
+        "enableQualification" : false,
+        "isCommunity" : true,
+        "pageSize" : 12,
+        "recordId" : "{!recordId}",
+        "tileVariant" : "Detailed Tile"
+      },
+      "componentName" : "runtime_industries_epc:ecmServiceCatalogListPage",
+      "id" : "83ec2127-9d2d-4a70-860a-b783f4fec89d",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "8cb79103-4b38-407f-9c8a-1cdcc671620c",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "0b7e174d-7b8f-42ef-ac12-042e2747af53",
+    "regionName" : "footer",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "billing-help-center"
+}
