@@ -33,6 +33,9 @@ flow ordering and feature-flag conditions.
 | [Constraints Setup](guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
 | [CumulusCI Tasks Reference](../.cursor/skills/cci-orchestration/tasks-reference.md) | Generated CCI task reference; flow and feature flag references live alongside it |
 | [Decision Table Examples](references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
+| [Decision Table API Reference](references/decision-table-api-reference.md) | Programmatic management of Decision Table definitions and data |
+| [Expression Set API Reference](references/expression-set-connect-api-reference.md) | Setup and administration of Expression Sets and pricing procedures |
+| [Revenue Cloud Permissions](references/revenue-cloud-permissions.md) | Permission set licenses, groups, feature flags, and assignment order |
 | [Task Examples](references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](references/context-service-utility.md) | Context Service utility usage and plan examples |
 | [Context Service PATCH Shapes](references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
@@ -72,6 +75,16 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-guidedselling-products README](../datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) -- Guided-selling attributes for existing products
 - [procedure-plans README](../datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 - [mfg README](../datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
+
+## Features
+
+| Document | Description |
+|----------|-------------|
+| [Composable Quote Approvals](features/composable-quote-approvals.md) | QuantumBit approval workflow and approval chains |
+| [Dynamic UX Assembly](features/dynamic-ux-assembly.md) | UX templates, feature patches, and metadata assembly |
+| [E2E Test Framework](features/e2e-test-framework.md) | End-to-end UI tests, shadow DOM handling, and debugging |
+| [Git Commit Stamping](features/git-commit-stamping.md) | Build provenance recorded in Salesforce orgs |
+| [Headless Configurator Context Plan](features/headless-configurator-context-plan.md) | Context-mapping setup plan and its recorded validation status |
 
 ## Robot Framework
 

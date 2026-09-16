@@ -148,15 +148,23 @@ rlm-base-dev/
 │   ├── references/             # Technical references and task/CLI examples
 │   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
+│   │   ├── decision-table-api-reference.md
 │   │   ├── decision-table-examples.md
+│   │   ├── expression-set-connect-api-reference.md
+│   │   ├── expression-set-overlay-examples/
+│   │   │   └── facility-quantity.overlay.example.json
 │   │   ├── repository-layout.md
+│   │   ├── revenue-cloud-permissions.md
 │   │   ├── sfdmu-composite-key-optimizations.md
 │   │   └── task-examples.md
 │   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
 │   │   └── tooling-optimization-report.md
 │   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs
+│   │   ├── composable-quote-approvals.md
 │   │   ├── dynamic-ux-assembly.md  # Dynamic UX assembly architecture, template layout, patch format, test plan
+│   │   ├── e2e-test-framework.md
+│   │   ├── git-commit-stamping.md
 │   │   └── headless-configurator-context-plan.md
 │   └── salesforce/             # Salesforce Help and developer documentation snapshots (Markdown)
 ├── orgs/                       # Scratch org definitions
