@@ -117,4 +117,4 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
 
 ---
 
-*Last updated: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.*
+*Last updated: 2026-09-16 — synced the active-release rows to the 264 cutover: `main` now carries the 264 / Winter '27 preview (pre-GA) line, and 262 is the prior GA reference on the `262` maintenance branch. Prior: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.*
