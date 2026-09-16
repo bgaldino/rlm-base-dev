@@ -205,12 +205,13 @@ CHECKS = [
     dict(
         name="erd_doc_counts",
         cmd=["python", "tests/test_erd_doc_counts.py"],
-        # Exactly the files the suite reads (its TRIPLE_SITES, docs/erds/*, domains/*.md).
+        # Files the suite reads: doc citations, ERD data/diagrams and both domain maps.
         # doc-consistency/ was here and the suite never reads it — over-selection is matrix
         # drift in a matrix whose job is preventing drift.
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
                   ".cursor/skills/schema-validation/",
-                  "scripts/ai/README.md", "tests/test_erd_doc_counts.py"],
+                  "scripts/ai/README.md", "tests/test_erd_doc_counts.py",
+                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"],
         deps=[], gating=True,
     ),
     dict(
