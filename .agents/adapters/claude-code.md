@@ -5,6 +5,10 @@ separate Claude-only contract.
 
 ## Instruction mapping
 
+- **Native discovery:** `.claude/skills/<name>` links to the canonical skill
+  directory. Invoke `/skill-name` with project skills enabled. See the
+  [discovery guide](../../docs/guides/agent-skill-discovery.md) for tested
+  versions and the catalog fallback.
 - **Primary instructions:** `CLAUDE.md` is a symlink to `AGENTS.md`;
   `AGENTS.md` is the authoritative root contract — edit only `AGENTS.md`.
 - **Task-specific skills:** read the applicable `.cursor/skills/**` Markdown

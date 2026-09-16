@@ -5,6 +5,10 @@ Copilot instruction file.
 
 ## Instruction mapping
 
+- **Native discovery:** compatible Copilot clients can scan `.agents/skills/`
+  and `.claude/skills/`, whose entries link to the canonical content. This
+  layout has not been client-verified in Copilot; use the catalog fallback
+  in the [discovery guide](../../docs/guides/agent-skill-discovery.md).
 - **Copilot entry point:** `.github/copilot-instructions.md` points Copilot to
   `AGENTS.md` and summarizes the common entry points.
 - **Primary instructions:** `AGENTS.md` is the canonical safety and project

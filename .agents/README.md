@@ -54,6 +54,10 @@ task tool) is **never** the record of anything that outlives the session.
      any agent that can read repository files.
    - Use the Skill Index in `AGENTS.md` or `.cursor/skills/README.md` to choose
      the relevant entry point.
+   - `.agents/skills/<name>` and `.claude/skills/<name>` are relative directory
+     links to that same content for native client discovery. See the
+     [discovery guide](../docs/guides/agent-skill-discovery.md) for tested
+     clients, symlink limitations, and a plain-file fallback.
 
 4. **`.cursor/rules/` — Cursor-specific rule files with reusable guidance**
    - Contains `.mdc` files that Cursor can auto-inject based on edited file
