@@ -32,7 +32,7 @@ These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`)
 | 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1`, `QuantumBitPCM_V1`, **`QuantumBitBundle_V1` and `Server2_V1`** — Complete/PCM so re-running switches cleanly to Bundle; Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (steps 7-10 may have uploaded into an active version, which stores the blob without redeploying). No-op on a fresh build |
 | 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
-**Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
+**Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) were removed from this checkout and replaced by the CML utility. Use the [current constraint model plans](#constraint-model-data-plans).
 
 ## Feature Flags
 
@@ -165,11 +165,12 @@ cci task run reconfigure_pricing_discovery --org <org>
 
 ## Deprecated Plans
 
-The following SFDMU constraint data plans are deprecated and archived:
+The following historical SFDMU constraint data plans were removed and are not
+checked in. Their names are listed for migration context, not as available paths:
 
-- `datasets/sfdmu/_archived/qb-constraints-product/`
-- `datasets/sfdmu/_archived/qb-constraints-component/`
-- `datasets/sfdmu/_archived/qb-constraints-consolidated/`
-- `datasets/sfdmu/_archived/qb-constraints-prc-aisummit/`
+- `qb-constraints-product`
+- `qb-constraints-component`
+- `qb-constraints-consolidated`
+- `qb-constraints-prc-aisummit`
 
-These were early attempts at loading constraint data via SFDMU that could not handle the polymorphic `ReferenceObjectId` field on `ExpressionSetConstraintObj`. They have been replaced by the CML utility.
+These were early attempts at loading constraint data via SFDMU that could not handle the polymorphic `ReferenceObjectId` field on `ExpressionSetConstraintObj`. They have been replaced by the [CML utility and current plans](../../datasets/constraints/README.md).

@@ -1,11 +1,11 @@
-# Revenue Cloud Base Foundations
+# Revenue Cloud Skills Library
 
-**Agent skills, reference data, and automation for Salesforce Revenue Cloud.**
+**Skills, implementation patterns, and tools from Revenue Cloud Base Foundations.**
 
-Give your coding agent practical guidance for working with Revenue Cloud: explore
-its data model, configure pricing and product rules, build usage scenarios, and
-troubleshoot implementations. The skills connect to the scripts, Salesforce
-metadata, datasets, and reference documentation in this repository.
+Give your coding agent Revenue Cloud knowledge, implementation patterns, and tools
+to build, configure, and maintain Salesforce environments. The library brings
+together skills grounded in documentation, metadata, and code, supported by
+deployment automation and example datasets.
 
 **[Browse the skills](.cursor/skills/README.md)** ·
 **[Explore the documentation](docs/index.md)** ·
@@ -53,21 +53,25 @@ data loading, see the **[complete skill catalog](.cursor/skills/README.md)**.
 
 ## What this repository provides
 
-Alongside the skills, Foundations automates the creation and configuration of
-Salesforce environments for Revenue Cloud, formerly Revenue Lifecycle Management (RLM).
+Revenue Cloud Base Foundations combines the skills library with automation for
+Revenue Cloud, formerly Revenue Lifecycle Management (RLM):
 
-- **Repeatable environment builds:** CumulusCI tasks and flows deploy metadata,
-  load data, and configure features using Salesforce CLI, Python, Apex, and browser automation.
-- **Salesforce configuration:** metadata, permissions, flows, and UX templates for
-  product catalogs, pricing, quoting, fulfillment, billing, and related capabilities.
-- **Reference datasets:** QuantumBit product and pricing data, SFDMU plans,
-  constraint models, and context-definition plans.
-- **Tools and evidence:** API references, data-model diagrams, checked-in Salesforce
-  documentation, validation scripts, and workflow-specific verification guidance.
+- **Knowledge foundation:** checked-in Salesforce documentation, API references,
+  data-model diagrams, metadata, and code to ground the agent's work.
+- **Skills and tools:** task guides, scripts, and validation tools for building,
+  configuring, troubleshooting, and maintaining environments.
+- **Implementation patterns:** QuantumBit example datasets, constraint models,
+  context mappings, metadata, and UX templates to inspect and adapt to your needs.
 
-The main build flow is `prepare_rlm_org`. Feature flags select which capabilities
-are included. Read the [build-process guide](docs/guides/prepare-rlm-org-build-guide.md)
-for how these pieces fit together, or the [repository map](docs/references/repository-layout.md)
+Examples and tools cover **product catalogs, pricing, billing, tax, contract
+lifecycle management (CLM), rating**, and more. Browse the
+[data plans](docs/guides/data-plans.md) and [skill catalog](.cursor/skills/README.md).
+
+**Skills guide the agent; the repository's tools execute the work.** The main
+CumulusCI flow, `prepare_rlm_org`, coordinates deployment, data loading,
+configuration, activation, and checks. Feature flags select the capabilities to
+include. See the [build-process guide](docs/guides/prepare-rlm-org-build-guide.md)
+for sequencing and dependencies, or the [repository map](docs/references/repository-layout.md)
 to locate the source files.
 
 ## Build and configure an org
