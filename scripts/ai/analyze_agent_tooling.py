@@ -701,6 +701,213 @@ def check_rule_table_readable(root: Path) -> CheckResult:
     return CheckResult("rule table readable", ok, detail)
 
 
+# Launch checks deliberately share the existing stdlib-only baseline entry point.
+AGENTS_MAX_BYTES = 25_000
+NAVIGATION_ROOTS = (
+    "README.md", "AGENTS.md", ".agents/README.md",
+    ".github/copilot-instructions.md", "docs/guides/agent-skill-discovery.md",
+)
+
+
+def _skill_dirs(root: Path) -> list[Path]:
+    return sorted(p for p in (root / SKILLS_ROOT).glob("*") if p.is_dir())
+
+
+def _discovery_scalar(frontmatter: str, key: str) -> str:
+    """Read the repo's portable YAML scalar subset, not arbitrary YAML.
+
+    Required discovery fields use plain/quoted one-line strings or folded/literal
+    blocks. Reject ambiguous YAML types and duplicate keys rather than guessing.
+    Other frontmatter fields are outside this check's scope.
+    """
+    lines = frontmatter.splitlines()
+    hits = [(i, m.group(1)) for i, line in enumerate(lines)
+            if (m := re.fullmatch(re.escape(key) + r":\s*(.*)", line))]
+    if len(hits) != 1:
+        raise ValueError(f"{key}: expected one top-level field")
+    index, value = hits[0]
+    if value in (">", ">-", ">+", "|", "|-", "|+"):
+        block = []
+        for line in lines[index + 1:]:
+            if line and not line.startswith(" "):
+                break
+            block.append(line)
+        nonblank = [line for line in block if line.strip()]
+        if not nonblank:
+            return ""
+        indent = len(nonblank[0]) - len(nonblank[0].lstrip(" "))
+        if any(len(line) - len(line.lstrip(" ")) < indent for line in nonblank):
+            raise ValueError(f"{key}: inconsistent block indentation")
+        parts = [line[indent:] for line in block]
+        trailing = 0
+        while parts and not parts[-1]:
+            parts.pop()
+            trailing += 1
+        # Keep the portable folded subset to a single, uniformly indented paragraph;
+        # literal blocks support paragraph breaks without needing a full YAML parser.
+        if value.startswith(">") and any(not line or line.startswith((" ", "\t")) for line in parts):
+            raise ValueError(f"{key}: use a literal block for paragraphs or extra indentation")
+        rendered = (" " if value.startswith(">") else "\n").join(parts)
+        ending = "" if value.endswith("-") else "\n" * (trailing + 1 if value.endswith("+") else 1)
+        return rendered + ending
+    following = lines[index + 1:]
+    first_content = next((line for line in following if line.strip()), "")
+    if first_content.startswith((" ", "\t")):
+        raise ValueError(f"{key}: use a folded/literal block for multiline text")
+    if value.startswith('"'):
+        try:
+            parsed = json.loads(value)
+        except ValueError as exc:
+            raise ValueError(f"{key}: use a JSON-compatible quoted string or a block scalar") from exc
+        if not isinstance(parsed, str):
+            raise ValueError(f"{key}: expected a string")
+        return parsed
+    if value.startswith("'"):
+        if not re.fullmatch(r"'(?:[^']|'')*'", value):
+            raise ValueError(f"{key}: malformed single-quoted string")
+        return value[1:-1].replace("''", "'")
+    value = re.split(r"\s+#", value, maxsplit=1)[0].strip()
+    if (not value or value[0] in "#[{&*!|>" or ": " in value
+            or value.lower() in {"null", "~", "true", "false", "yes", "no", "on", "off", ".nan", ".inf", "-.inf", "+.inf"}
+            or re.fullmatch(r"[-+]?(?:\d[\d.eE+_:/-]*|0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|\.\d+(?:[eE][-+]?\d+)?)", value)):
+        raise ValueError(f"{key}: use a string (plain, quoted, or block scalar)")
+    return value
+
+
+def check_skill_discovery_metadata(root: Path) -> CheckResult:
+    failures = []
+    dirs = _skill_dirs(root)
+    for directory in dirs:
+        path = directory / "SKILL.md"
+        try:
+            fm = extract_frontmatter(path.read_text(encoding="utf-8"))
+            name = _discovery_scalar(fm, "name")
+            description = _discovery_scalar(fm, "description")
+            if (name != directory.name or not 1 <= len(name) <= 64
+                    or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)):
+                raise ValueError("name must match its directory and use 1–64 lowercase letters/digits/hyphens")
+            if not description.strip() or len(description) > 1024:
+                raise ValueError("description must be a non-empty string of at most 1,024 characters")
+        except (OSError, UnicodeError, ValueError) as exc:
+            failures.append(f"{rel(path, root)}: {exc}")
+    return CheckResult("skill discovery metadata", bool(dirs) and not failures,
+                       "; ".join(failures) if failures else f"{len(dirs)} skills checked" if dirs else "no skills found")
+
+
+def check_instruction_budget(root: Path) -> CheckResult:
+    path = root / AGENTS_PATH
+    try:
+        size = len(path.read_bytes())
+    except OSError as exc:
+        return CheckResult("root instruction budget", False, str(exc))
+    return CheckResult("root instruction budget", 0 < size <= AGENTS_MAX_BYTES,
+                       f"{AGENTS_PATH}: {size:,} bytes; repository ceiling {AGENTS_MAX_BYTES:,} (not a client context limit)")
+
+
+def check_native_skill_links(root: Path) -> CheckResult:
+    expected = {p.name for p in _skill_dirs(root)}
+    failures = []
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--stage", "-z", "--",
+             ".agents/skills", ".claude/skills", "CLAUDE.md"],
+            capture_output=True, text=True, check=True)
+        indexed = {}
+        for record in result.stdout.split("\0"):
+            if record:
+                info, path = record.split("\t", 1)
+                mode, _, stage = info.split()
+                indexed[path] = (mode, stage)
+    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+        return CheckResult("native skill links", False, f"cannot inspect Git index: {exc}")
+    for adapter in (".agents/skills", ".claude/skills"):
+        directory = root / adapter
+        actual = {p.name for p in directory.iterdir()} if directory.is_dir() else set()
+        if actual != expected:
+            failures.append(f"{adapter}: missing {sorted(expected - actual)}, unexpected {sorted(actual - expected)}")
+        for name in sorted(expected & actual):
+            link = directory / name
+            target = f"../../{SKILLS_ROOT}/{name}"
+            try:
+                valid = link.is_symlink() and str(link.readlink()) == target and (link / "SKILL.md").is_file()
+            except (OSError, RuntimeError):
+                valid = False
+            if not valid:
+                failures.append(f"{adapter}/{name}: expected directory symlink to {target}")
+            if indexed.get(f"{adapter}/{name}") != ("120000", "0"):
+                failures.append(f"{adapter}/{name}: must be staged/tracked as mode 120000")
+    claude = root / "CLAUDE.md"
+    if not claude.is_symlink() or str(claude.readlink()) != AGENTS_PATH or indexed.get("CLAUDE.md") != ("120000", "0"):
+        failures.append("CLAUDE.md: expected tracked symlink to AGENTS.md")
+    return CheckResult("native skill links", bool(expected) and not failures,
+                       "; ".join(failures) if failures else f"{len(expected) * 2} native links and CLAUDE.md verified" if expected else "no skills found")
+
+
+def _markdown_prose(text: str) -> str:
+    """Exclude comments, fenced examples, and inline code from link inspection."""
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    lines = []
+    fence = None
+    for line in text.splitlines():
+        match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if match and match[1][0] == fence[0] and len(match[1]) >= len(fence) and not match[2].strip():
+                fence = None
+        elif match:
+            fence = match[1]
+        elif not line.startswith(("    ", "\t")):
+            lines.append(line)
+    return re.sub(r"(`+).*?\1", "", "\n".join(lines), flags=re.S)
+
+
+def check_skill_navigation_links(root: Path) -> CheckResult:
+    """Check local file targets in inline links and reference definitions.
+
+    Scope is the public entry points plus canonical skill Markdown, not the whole
+    reference corpus. Fragments, external URLs and private artifact targets are
+    explicitly excluded; this is not a general Markdown renderer/link crawler.
+    """
+    from urllib.parse import unquote, urlsplit
+
+    sources = {root / p for p in NAVIGATION_ROOTS}
+    sources.update((root / SKILLS_ROOT).rglob("*.md"))
+    failures = []
+    checked = private = 0
+    # Angle-bracket paths may contain spaces; bare paths allow balanced parentheses
+    # one level deep. Optional titles are separate from the destination.
+    destination = r"(<[^>\n]+>|(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
+    inline = re.compile(r"(?<!\\)\]\(\s*" + destination + r'(?:(?:[ \t]+)(?:"[^"\n]*"|\'[^\'\n]*\'|\([^()\n]*\)))?[ \t]*\)')
+    reference = re.compile(r"^ {0,3}\[[^]\n]+\]:\s*" + destination, re.M)
+    for path in sorted(sources):
+        try:
+            text = _markdown_prose(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError) as exc:
+            failures.append(f"{rel(path, root)}: unreadable ({exc})")
+            continue
+        for match in [*inline.finditer(text), *reference.finditer(text)]:
+            target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]^_`{|}~])", r"\1", match[1].strip("<>"))
+            try:
+                parts = urlsplit(target)
+                if parts.scheme or parts.netloc or not parts.path:
+                    continue
+                local = unquote(parts.path)
+                resolved = (root / local.lstrip("/") if local.startswith("/") else path.parent / local).resolve()
+            except (OSError, RuntimeError, ValueError) as exc:
+                failures.append(f"{rel(path, root)}: invalid link {target}: {exc}")
+                continue
+            if not resolved.is_relative_to(root.resolve()):
+                failures.append(f"{rel(path, root)}: link escapes repository: {target}")
+                continue
+            if resolved.is_relative_to((root / ".agents/artifacts").resolve()):
+                private += 1
+                continue
+            checked += 1
+            if not resolved.exists():
+                failures.append(f"{rel(path, root)}: missing local link target {target}")
+    return CheckResult("skill navigation links", not failures,
+                       "; ".join(failures) if failures else f"{checked} local file targets resolve; {private} private artifact links excluded; fragments/external URLs not checked")
+
+
 def run_baseline_checks(root: Path) -> list[CheckResult]:
     return [
         check_required_files(root),
@@ -712,6 +919,10 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_readme_explains_check_modes(root),
         check_skill_subfile_registration(root),
         check_rule_table_readable(root),
+        check_skill_discovery_metadata(root),
+        check_native_skill_links(root),
+        check_instruction_budget(root),
+        check_skill_navigation_links(root),
     ]
 
 

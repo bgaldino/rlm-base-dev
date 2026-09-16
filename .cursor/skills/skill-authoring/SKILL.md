@@ -178,6 +178,13 @@ description: >-
 - **`description`**: a non-empty string of at most 1,024 characters. Describe
   both the capability and concrete task triggers. Distinguish adjacent skills
   where their scopes overlap; keep detailed procedures in the body.
+- The stdlib-only repository gate accepts plain or quoted single-line strings
+  and folded/literal blocks (`>`, `>-`, `|`, `|-`, with `+` also accepted).
+  Use JSON-compatible double quotes or YAML single quotes; use a block for
+  multiline text; folded blocks use one uniformly indented paragraph, and literal
+  blocks support paragraph breaks. Required discovery fields must be unique top-level keys.
+  Other YAML types, aliases and complex scalar syntax are outside this portable
+  subset. This is a repository authoring constraint, not the full YAML specification.
 - Preserve existing skill names and directories when adding metadata. Put
   frontmatter on the entry point; reference sub-files do not need it.
 - Frontmatter enables metadata-based discovery in compatible tools. It does
@@ -372,6 +379,14 @@ After adding a rule:
 ## Testing Non-Cursor Consumption
 
 Run these checks before committing a new or materially changed skill:
+
+Run `python scripts/ai/analyze_agent_tooling.py check` first. It gates discovery
+metadata, native link targets/Git modes, local navigation file targets and the
+root byte ceiling alongside the existing baseline checks. Stage new symlinks
+before checking their Git modes. See [scope and exclusions](../../../scripts/ai/README.md)
+for link syntax and private-reference handling. Static checks complement the
+client smoke tests below; they do not establish native client discovery.
+
 
 1. **Discovery from repository entry points**
    - Parse the entry point's YAML frontmatter. Check that `name` matches the
