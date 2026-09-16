@@ -130,7 +130,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 101
+EXPECTED_CHECKS = 102
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -353,7 +353,12 @@ def main():
     with open(os.path.join(ERD_DIR, "revenue-cloud-erd.html")) as f:
         html = f.read()
     marker = "const D="
-    payload, _ = json.JSONDecoder().raw_decode(html[html.index(marker) + len(marker):])
+    assignment = html[html.index(marker) + len(marker):].lstrip()
+    payload, end = json.JSONDecoder().raw_decode(assignment)
+    check("html_payload_ends_at_assignment_semicolon",
+          assignment[end:].lstrip().startswith(";"),
+          "viewer payload has trailing content or no assignment semicolon; "
+          "regenerate with python scripts/erd/build_erds.py")
     actual_nodes = sorted((node["id"], node.get("dom"), node.get("c"))
                           for node in payload["nodes"])
     expected_nodes = sorted(
