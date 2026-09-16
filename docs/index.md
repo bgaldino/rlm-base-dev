@@ -100,9 +100,9 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 
 ## Release context
 
-The `264` branch is the active development line, targeting Salesforce Release 264 (Winter '27, API v68.0). `main` remains the Release 262 (Summer '26, API v67.0) GA target, and `release/262` is the frozen 262 GA reference.
+`main` is now the Release 264 (Winter '27, API v68.0) line, promoted from the `264` branch (the two are in sync). 264 is preview / pre-GA. The `262` branch carries remaining Release 262 (Summer '26, API v67.0) patches through 262 GA, and `release/262` is the frozen 262 GA reference.
 
-Use the checked-in Winter '27 references below for Release 264. Verify behavior against a live 264 org where documentation and implementation disagree; an upgraded 262 org can retain settings and schema that a fresh 264 org lacks. Because the dev hub is on API 68.0, every scratch org it creates is a 264 org regardless of branch — which is why `main` is no longer buildable against it.
+Use the checked-in Winter '27 references below for Release 264. Verify behavior against a live 264 org where documentation and implementation disagree; an upgraded 262 org can retain settings and schema that a fresh 264 org lacks. Because the dev hub is on API 68.0, every scratch org it creates is a 264 org regardless of branch, and `main` (the 264 line) builds against it.
 
 ## Release 264 Salesforce references
 
