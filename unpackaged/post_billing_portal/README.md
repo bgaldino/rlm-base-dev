@@ -108,7 +108,7 @@ project_config:
     billing_portal_deploy: true  # Also deploy this bundle's site content and publish with it applied
 ```
 
-`prepare_billing_portal` is invoked automatically as step 14 of `prepare_billing` (see `README.md`'s Sub-Flows table), so it runs as part of `prepare_rlm_org` whenever `billing` and `billing_portal` are true — no separate wiring is needed. Set `billing_portal_deploy` to false to keep the generated standard-template content instead of deploying this bundle.
+`prepare_billing_portal` is invoked automatically as step 14 of `prepare_billing` (see the `prepare_billing` entry in `.cursor/skills/cci-orchestration/flows-reference.md`), so it runs as part of `prepare_rlm_org` whenever `billing` and `billing_portal` are true — no separate wiring is needed. Set `billing_portal_deploy` to false to keep the generated standard-template content instead of deploying this bundle.
 
 ## Testing
 
