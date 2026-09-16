@@ -21,14 +21,14 @@ at `.cursor/skills/doc-consistency/SKILL.md`.
    and commit updated reference files. If you renamed a task, grep for the
    old name in `README.md`, `AGENTS.md`, `docs/`, and `.cursor/skills/`.
 
-2. **`tasks/*.py`** — verify the task `description` in `cumulusci.yml` and
-   the `README.md` Custom Tasks table still match the class behavior.
+2. **`tasks/*.py`** — check the task `description` in `cumulusci.yml` and
+   the generated CCI task reference for consistency with the class behavior.
 
 3. **`export.json` / SFDMU CSVs** — update the plan's `README.md` in the
    same commit. Run `python scripts/validate_sfdmu_v5_datasets.py`.
 
 4. **`robot/**`** — check `robot-testing/SKILL.md` task tables and
-   `README.md` troubleshooting if the suite name or behavior changed.
+   `docs/guides/org-operations.md` troubleshooting if the suite name or behavior changed.
 
 5. **`.cursor/skills/**`** — if adding a new skill or sub-file, follow
    `.cursor/skills/skill-authoring/SKILL.md`; register top-level skills in

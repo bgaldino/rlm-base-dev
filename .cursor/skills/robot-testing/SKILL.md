@@ -34,8 +34,9 @@ suite, run it against a live scratch org:
 
 ```bash
 # via the CCI task wrapper (preferred — mirrors how prepare_rlm_org runs it)
-# the robot_* tasks (and their setup-UI wrapper tasks) REJECT --org — issue #320 —
-# so select the org first, then run the task with no --org flag:
+# Some setup wrappers (including reorder_app_launcher and enable_document_builder_toggle)
+# reject --org. Select the default first; running without --org also works for
+# wrappers that accept it. Check `cci task run <task> --help` for task-specific options:
 cci org default <cci_alias>                            # CCI alias, e.g. beta
 cci task run <robot_task>
 # or directly against a suite — ORG_ALIAS is passed to `sf org open -o`, so it
