@@ -1,3 +1,12 @@
+---
+name: document-generation
+description: >-
+  Create, modify, and troubleshoot Salesforce OmniStudio .docx templates and
+  DocumentTemplate lifecycle operations. Use for token mapping, template activation,
+  document generation, or output verification; use odt-authoring for deep
+  OmniDataTransform mapper work.
+---
+
 # OmniStudio Document Generation
 
 Use this skill when creating, modifying, or troubleshooting Salesforce OmniStudio

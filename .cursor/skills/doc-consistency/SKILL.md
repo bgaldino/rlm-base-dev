@@ -1,3 +1,11 @@
+---
+name: doc-consistency
+description: >-
+  Check that repository documentation matches code and configuration changes before a PR
+  is ready. Use when task names, flow steps, feature flags, SFDMU plans, generated
+  references, or skill indexes change and related docs need updating.
+---
+
 # Documentation Consistency — Pre-Merge Doc Review
 
 Use this skill **before marking a PR ready** to verify that all affected

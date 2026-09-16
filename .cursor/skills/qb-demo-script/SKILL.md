@@ -1,3 +1,12 @@
+---
+name: qb-demo-script
+description: >-
+  Generate or refresh the per-release QuantumBit Revenue Cloud demo walkthrough for SEs
+  and partners. Use when preparing demo-script Markdown for a Slack canvas, grounding
+  click paths and talk tracks in scenario references, or updating release-specific setup
+  steps.
+---
+
 # QuantumBit Demo Script Generator
 
 Use this skill when generating or refreshing the **QuantumBit demo script** that

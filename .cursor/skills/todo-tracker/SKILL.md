@@ -1,3 +1,11 @@
+---
+name: todo-tracker
+description: >-
+  Find, claim, track, and close durable work items across workstations and agents using
+  the private artifacts todo tracker. Use for /rlm-todos, choosing work from the index,
+  recording initiative progress, or retaining ownership through PR review and merge.
+---
+
 # Todo Tracker — Durable Work Items Across Workstations and Agents
 
 Open work for this repository lives as **context packs** in the private

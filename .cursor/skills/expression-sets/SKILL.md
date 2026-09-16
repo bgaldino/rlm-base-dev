@@ -1,3 +1,12 @@
+---
+name: expression-sets
+description: >-
+  Inspect and author Revenue Cloud BRE Expression Sets through Connect or Metadata APIs,
+  including step and variable overlays and activation lifecycle. Use for pricing,
+  qualification, discovery, rating, or constraint procedures; use pricing-wiring for
+  integration sequencing.
+---
+
 # Expression Sets — Programmatic CRUD & Overlay Authoring
 
 Use this skill when reading or mutating a BRE **Expression Set** (pricing

@@ -1,3 +1,11 @@
+---
+name: usage-consumption
+description: >-
+  Build, rate, verify, and reset metered Revenue Cloud consumption demos. Use when
+  creating usage-entitled assets, recording usage, configuring commitments,
+  orchestrating drawdown and rating, or diagnosing zero or incorrect rated summaries.
+---
+
 # Usage & Consumption — Building, Rating, and Verifying Metered Demos
 
 Use this skill when work involves **metered/consumption products**: building assets

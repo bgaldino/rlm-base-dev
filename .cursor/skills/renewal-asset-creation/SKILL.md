@@ -1,3 +1,11 @@
+---
+name: renewal-asset-creation
+description: >-
+  Create renewal-ready Revenue Cloud assets through Quote to Order to Activation,
+  distributed across renewal expiry windows. Use when preparing renewal test data or
+  adding multi-year Renewal, Upsell, and Downsell lifecycle event history.
+---
+
 # Renewal Asset Creation — expiry-bucket spread + lifecycle event history
 
 Use this skill to produce renewal-ready Revenue Cloud **Assets** the realistic

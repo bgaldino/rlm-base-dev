@@ -1,3 +1,11 @@
+---
+name: robot-testing
+description: >-
+  Write, modify, and debug Robot Framework org-setup automation and end-to-end tests for
+  Salesforce. Use for browser locators, LWC or shadow-DOM interactions, JavaScript
+  keywords, Python task wrappers, and required live-org behavioral verification.
+---
+
 # Robot Framework Testing
 
 Use this skill when writing, modifying, or debugging Robot Framework tests.

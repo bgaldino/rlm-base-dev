@@ -1,3 +1,11 @@
+---
+name: df-workshop-setup
+description: >-
+  Prepare Revenue Cloud clone orgs for Dreamforce hands-on workshops by capturing,
+  replaying, and verifying seeded quotes and configuration changes. Use when making a
+  clone workshop-ready before TrialForce or OrgFarm templating.
+---
+
 # DF Hands-On Workshop Setup — capture, replay & template org drift
 
 Use this skill to make a fresh Revenue Cloud clone **workshop-ready** for a DF

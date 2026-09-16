@@ -1,3 +1,12 @@
+---
+name: skill-authoring
+description: >-
+  Create, update, split, register, and validate AI-agent skills in Revenue Cloud
+  Foundations. Use when editing skill entry points or sub-files, authoring discovery
+  metadata, maintaining skill indexes, or checking tool-agnostic consumption and Cursor
+  rule parity.
+---
+
 # Skill Authoring — Lifecycle and Registration
 
 Use this skill when creating, changing, splitting, registering, or testing an
@@ -149,6 +158,32 @@ or optional, add a linked sub-file rather than a new top-level skill.
 ---
 
 ## Required Sections for Skills
+
+### Discovery metadata
+
+Every top-level `SKILL.md` must start with YAML frontmatter containing `name`
+and `description`, following the [Agent Skills specification](https://agentskills.io/specification):
+
+```yaml
+---
+name: skill-name
+description: >-
+  Describe the capability and when an agent should select this skill.
+---
+```
+
+- **`name`**: match the parent directory exactly; use 1–64 lowercase letters,
+  digits, or hyphens, with no leading, trailing, or consecutive hyphens.
+- **`description`**: a non-empty string of at most 1,024 characters. Describe
+  both the capability and concrete task triggers. Distinguish adjacent skills
+  where their scopes overlap; keep detailed procedures in the body.
+- Preserve existing skill names and directories when adding metadata. Put
+  frontmatter on the entry point; reference sub-files do not need it.
+- Frontmatter enables metadata-based discovery in compatible tools. It does
+  not replace the indexes and manifest below or configure native discovery
+  paths for every agent.
+
+### Instruction body
 
 Every top-level `SKILL.md` should include these sections near the top, in this
 order where practical:
@@ -311,6 +346,9 @@ After adding a rule:
 Run these checks before committing a new or materially changed skill:
 
 1. **Discovery from repository entry points**
+   - Parse the entry point's YAML frontmatter. Check that `name` matches the
+     directory and that both fields meet the constraints above. Read the
+     description alone to confirm it identifies when to choose this skill.
    - For a **top-level skill**: confirm `AGENTS.md` Skill Index lists it.
    - For a **sub-file**: confirm the parent `SKILL.md` describes it. That is the
      only registry — `AGENTS.md` deliberately has no second-level index, so a

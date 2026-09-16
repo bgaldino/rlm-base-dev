@@ -1,3 +1,11 @@
+---
+name: pde-org-build
+description: >-
+  Build a Partner Development Environment (PDE) or another Revenue Cloud org requiring
+  temporary feature-flag overrides. Use for the self-reverting build_pde_dev_r1.sh
+  workflow, build-only flags, scratch shape selection, and cleanup verification.
+---
+
 # PDE Org Build — Runtime Flag Overrides + Self-Reverting Build
 
 Use this skill when building a **Partner Development Environment (PDE)** org —

@@ -1,3 +1,11 @@
+---
+name: ramped-quotes
+description: >-
+  Build and verify multi-year Revenue Cloud group-ramp quotes through the Connect API.
+  Use when creating per-period quote groups, cloning ramp segments, checking price
+  uplift or compound uplift, or distinguishing group ramps from line ramps.
+---
+
 # Ramped Quotes — Build & Verify Multi-Year Group Ramps
 
 Use this skill to build, verify, or report a **multi-year ramped** Revenue Cloud

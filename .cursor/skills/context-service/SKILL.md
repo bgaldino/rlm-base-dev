@@ -1,3 +1,11 @@
+---
+name: context-service
+description: >-
+  Inspect, author, deploy, and debug Revenue Cloud Context Definitions, mappings, tags,
+  and runtime instances. Use when extending or upgrading definitions, validating context
+  plans, managing activation, or hydrating, querying, and persisting context data.
+---
+
 # Context Service — Context Definitions, Mappings & Lifecycle
 
 Use this skill when reading, extending, applying, deploying, or debugging a
