@@ -285,7 +285,7 @@ the placeholder afterward. Community creation precedes the patch.
 If deployment fails after the patch, restore the placeholder before committing:
 
 ```bash
-cci task run revert_network_email_after_deploy --org <org-alias>
+cci task run revert_network_email_after_deploy
 git diff -- unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml
 ```
 

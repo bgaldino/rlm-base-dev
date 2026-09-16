@@ -540,7 +540,7 @@ sf data query -q "SELECT Id, Name, UrlPathPrefix FROM Network" --target-org rlm-
 
 **Fix:** Run it manually:
 ```bash
-cci task run revert_network_email_after_deploy --org beta
+cci task run revert_network_email_after_deploy
 ```
 Or reset the file: `git checkout -- unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml`
 

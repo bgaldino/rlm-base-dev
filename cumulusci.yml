@@ -3258,7 +3258,7 @@ tasks:
   # See tasks/rlm_snapshot_help.py for full docstring.
   #
   # Playwright must be installed into the same Python environment that runs
-  # CCI. With pipx-installed CCI (recommended per the project README, which
+  # CCI. With pipx-installed CCI (recommended in docs/guides/local-installation.md, which
   # uses the standard ~/.local/pipx/venvs/cumulusci/ path):
   #
   #   pipx inject cumulusci playwright
