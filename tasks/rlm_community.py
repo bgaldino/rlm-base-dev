@@ -1,5 +1,11 @@
 """
-Custom CumulusCI tasks for Partner Relationship Management (PRM) community setup.
+Custom CumulusCI tasks for Experience Cloud community setup.
+
+Patch/revert the deploy-time Network email and CustomSite metadata for any community
+bundle — not just PRM. The patch tasks read the target org (Network EmailSenderAddress,
+running-user username) and the revert tasks restore repo placeholders. Used by the PRM
+'rlm' network (create_partner_central) and the Self-Service Billing Portal
+(create_billing_portal), and parameterized for future community bundles.
 """
 import os
 import re
