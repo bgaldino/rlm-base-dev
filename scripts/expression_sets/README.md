@@ -270,8 +270,9 @@ overlay is therefore not a formula-edit operation: move the edited entry into
 
 After PATCH, both the CCI task and standalone CLI re-read the selected version
 and compare the final step graph with the merged payload, including formula
-parameters and sequence numbers. Missing, duplicate, or changed steps fail
-verification; removed steps must be absent. Named parameter order and HTML
+parameters and sequence numbers, including for variable-only overlays. Missing,
+unexpected, duplicate, or changed steps fail verification; removed steps must
+be absent. Named parameter order and HTML
 entity encoding do not count as content changes. This verifies stored step
 configuration, not execution results or step labels. The CLI's `--no-verify`
 option explicitly skips this read-back.

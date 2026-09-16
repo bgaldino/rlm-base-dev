@@ -1070,6 +1070,32 @@ def test_overlay_content_verification():
     check("explicit remove then re-add verifies final state", not overlay_step_content_errors(
         {"removeSteps": [{"name": "Formula"}], "addSteps": [changed]}, expected, expected))
 
+    # Exact name-set checks must work in both directions, including an empty
+    # expected graph and overlays whose edits only concern variables.
+    extra_cases = [
+        ({"updateSteps": [{"name": "Formula"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+        ({"removeSteps": [{"name": "Removed"}]}, {"steps": []},
+         {"steps": [{"name": "Unexpected"}]}),
+        ({"addVariables": [{"name": "Variable"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+    ]
+    for index, (overlay, wanted, stored) in enumerate(extra_cases):
+        errors = overlay_step_content_errors(overlay, wanted, stored)
+        check(f"unexpected stored step fails case {index}",
+              any("unexpected step 'Unexpected'" in error for error in errors))
+        check(f"matching graph passes case {index}",
+              not overlay_step_content_errors(overlay, wanted, wanted))
+        class ExtraStepEngine:
+            def get_definition(self, _): return {"versions": [dict(stored, apiName="TEST_V1")]}
+            def log(self, _): pass
+        try:
+            cli._verify(ExtraStepEngine(), "9QLx", overlay, "TEST_V1",
+                        {"versions": [dict(wanted, apiName="TEST_V1")]})
+            check(f"CLI rejects unexpected step case {index}", False)
+        except cli.LifecycleError as exc:
+            check(f"CLI rejects unexpected step case {index}", "unexpected step" in str(exc))
+
     class Engine:
         def get_definition(self, _): return definition
         def log(self, _): pass

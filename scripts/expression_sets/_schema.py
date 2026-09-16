@@ -891,9 +891,13 @@ def overlay_step_content_errors(overlay, expected_version, actual_version):
     errors = []
     expected = {s["name"]: s for s in expected_version.get("steps", [])}
     actual = actual_version.get("steps", [])
-    touched = set(expected) if any(overlay.get(op) for op in
-        ("addSteps", "updateSteps", "removeSteps", "reorderSteps")) else set()
-    for name in sorted(touched):
+    # A full-graph PATCH must preserve exactly this set of step names, even
+    # for a variable-only overlay or removal of the last step.
+    for step in actual:
+        name = step.get("name")
+        if name not in expected:
+            errors.append(f"unexpected step '{name}' is present in the target version")
+    for name in sorted(expected):
         matches = [s for s in actual if s.get("name") == name]
         if len(matches) != 1 or name not in expected:
             errors.append(f"step '{name}' must occur exactly once in the target version")

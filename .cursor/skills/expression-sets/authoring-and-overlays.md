@@ -52,20 +52,8 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf
 
 ### Existing steps and verification
 
-`addSteps` creates missing steps. An existing name is accepted only when its
-requested content already matches; a different formula, parameter, parent, or
-other supplied field fails **before deactivation or PATCH**. Use `updateSteps`
-to change an existing step, or `reorderSteps` to move it. An exported `addSteps`
-overlay is therefore not a formula-edit operation: move the edited entry into
-`updateSteps` (and remove its `placement` metadata).
-
-After PATCH, both the CCI task and standalone CLI re-read the selected version
-and compare the final step graph with the merged payload, including formula
-parameters and sequence numbers. Missing, duplicate, or changed steps fail
-verification; removed steps must be absent. Named parameter order and HTML
-entity encoding do not count as content changes. This verifies stored step
-configuration, not execution results or step labels. The CLI's `--no-verify`
-option explicitly skips this read-back.
+See the toolkit guide’s [existing-step and read-back rules](../../../scripts/expression_sets/README.md#existing-steps-and-verification)
+for `addSteps` replay, `updateSteps` edits, and verification shared by the CLI and CCI task.
 
 ### Top-level vs child steps are sliced differently
 

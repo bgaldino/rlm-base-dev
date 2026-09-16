@@ -1515,6 +1515,31 @@ def test_overlay_content_conflict_and_readback():
         args = (overlay, expected["versions"][0], actual["versions"][0])
         check("validator copies agree for " + op,
               overlay_step_content_errors(*args) == vendored(*args))
+    # Exact name-set checks must work in both directions, including an empty
+    # expected graph and overlays whose edits only concern variables.
+    extra_cases = [
+        ({"updateSteps": [{"name": "Formula"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+        ({"removeSteps": [{"name": "Removed"}]}, {"steps": []},
+         {"steps": [{"name": "Unexpected"}]}),
+        ({"addVariables": [{"name": "Variable"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+    ]
+    for index, (overlay, wanted, stored) in enumerate(extra_cases):
+        errors = overlay_step_content_errors(overlay, wanted, stored)
+        check(f"unexpected stored step fails case {index}",
+              any("unexpected step 'Unexpected'" in error for error in errors))
+        check(f"matching graph passes case {index}",
+              not overlay_step_content_errors(overlay, wanted, wanted))
+        check(f"extra-step copies agree case {index}",
+              errors == vendored(overlay, wanted, stored))
+        task._get_expression_set_via_connect = lambda _, stored=stored: {"versions": [dict(stored, apiName="V1")]}
+        try:
+            task._verify_overlay("9QLx", overlay, {"versions": [dict(wanted, apiName="V1")]})
+            check(f"CCI rejects unexpected step case {index}", False)
+        except Exception as exc:
+            check(f"CCI rejects unexpected step case {index}", "unexpected step" in str(exc))
+
     task._get_expression_set_via_connect = lambda _: expected
     task._verify_overlay("9QLx", {"updateSteps": [changed]}, expected)
     check("CCI matching updated body verifies", True)
