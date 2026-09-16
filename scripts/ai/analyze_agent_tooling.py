@@ -721,8 +721,27 @@ def _discovery_scalar(frontmatter: str, key: str) -> str:
     Other frontmatter fields are outside this check's scope.
     """
     lines = frontmatter.splitlines()
-    hits = [(i, m.group(1)) for i, line in enumerate(lines)
-            if (m := re.fullmatch(re.escape(key) + r":\s*(.*)", line))]
+    hits = []
+    # Compare decoded keys so spacing and quoting cannot hide a duplicate.
+    field = re.compile(r'''("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^ \t:#][^:]*?)[ \t]*:(?:[ \t]+(.*)|$)''')
+    for i, line in enumerate(lines):
+        if re.match(r"[?:](?:[ \t]|$)", line):
+            raise ValueError(f"{key}: explicit mapping keys are outside the portable subset")
+        match = field.fullmatch(line)
+        if not match:
+            continue
+        label = match[1].rstrip(" \t")
+        if label.startswith(("!", "&", "*", "[", "{")):
+            raise ValueError(f"{key}: use plain or quoted string keys")
+        if label.startswith('"'):
+            try:
+                label = json.loads(label)
+            except ValueError as exc:
+                raise ValueError(f"{key}: use JSON-compatible quoted keys") from exc
+        elif label.startswith("'"):
+            label = label[1:-1].replace("''", "'")
+        if label == key:
+            hits.append((i, match[2] or ""))
     if len(hits) != 1:
         raise ValueError(f"{key}: expected one top-level field")
     index, value = hits[0]
@@ -769,9 +788,14 @@ def _discovery_scalar(frontmatter: str, key: str) -> str:
     value = re.split(r"\s+#", value, maxsplit=1)[0].strip()
     # YAML plain scalars cannot start with reserved indicators. The three
     # context-sensitive indicators (- ? :) remain legal before non-whitespace.
+    # YAML 1.1 readers also infer timestamps; quote them for portable strings.
+    timestamp = (r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)"
+                 r"[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?"
+                 r"(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?")
     if (not value or value[0] in "#,[]{}&*!|>%@`"
             or re.match(r"[-?:](?:\s|$)", value)
             or re.search(r":(?:\s|$)", value)
+            or re.fullmatch(timestamp, value)
             or value.lower() in {"null", "~", "true", "false", "yes", "no", "on", "off", ".nan", ".inf", "-.inf", "+.inf"}
             or re.fullmatch(r"[-+]?(?:\d[\d.eE+_:/-]*|0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|\.\d+(?:[eE][-+]?\d+)?)", value)):
         raise ValueError(f"{key}: use a string (plain, quoted, or block scalar)")
@@ -918,7 +942,10 @@ def check_skill_navigation_links(root: Path) -> CheckResult:
     # Angle-bracket paths may contain spaces; bare paths allow balanced parentheses
     # one level deep. Optional titles are separate from the destination.
     destination = r"(<[^>\n]+>|(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
-    inline = re.compile(r"\([ \t]*(?:\n[ \t]*)?" + destination + r'(?:(?:[ \t]+)(?:"[^"\n]*"|\'[^\'\n]*\'|\([^()\n]*\)))?[ \t]*\)')
+    spacing = r"[ \t]*(?:\n[ \t]*)?"
+    separator = r"(?:[ \t]+(?:\n[ \t]*)?|\n[ \t]*)"
+    title = r'''(?:"[^"\n]*"|'[^'\n]*'|\([^()\n]*\))'''
+    inline = re.compile(r"\(" + spacing + destination + r"(?:" + separator + title + r")?" + spacing + r"\)")
     reference = re.compile(r"^ {0,3}\[(?:\\.|[^\]\\\n])+\]:[ \t]*(?:\n[ \t]*)?" + destination, re.M)
     for path in sorted(sources):
         try:

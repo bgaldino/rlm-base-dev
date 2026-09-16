@@ -94,6 +94,39 @@ class LaunchChecks(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("[FAIL] skill discovery metadata", result.stdout)
 
+    def test_equivalent_required_keys_are_duplicates(self):
+        for key in ("name", "description"):
+            for spelling in (key + " ", key + "\t", f"'{key}'", f'"{key}"',
+                             '"\\u%04x%s"' % (ord(key[0]), key[1:])):
+                with self.subTest(key=key, spelling=spelling):
+                    self.skill.write_text(self.metadata.rsplit("---", 1)[0] + f"{spelling}: wrong\n---\n")
+                    self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
+        self.assertEqual(self.cli().returncode, 1)
+        for field in ('? name\n: wrong', '!!str name: wrong', '&key name: wrong',
+                      '"na\\x6de": wrong'):
+            with self.subTest(unsupported_key=field):
+                self.skill.write_text(self.metadata.rsplit("---", 1)[0] + field + "\n---\n")
+                self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
+        for key in ("name", "description"):
+            for spelling in (key + " ", key + "\t", f"'{key}'", f'"{key}"'):
+                self.skill.write_text(self.metadata.replace(key + ":", spelling + ":"))
+                self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
+
+    def test_timestamp_values_require_string_quoting(self):
+        timestamps = ("2026-09-16", "2026-09-16T04:35:06Z", "2026-09-16t04:35:06.12-05:00",
+                      "2026-9-6 4:35:06 +5:30", "2026-09-16 04:35:06", "2026-09-16\t04:35:06.1 Z")
+        for value in timestamps:
+            with self.subTest(value=value):
+                self.skill.write_text(f"---\nname: cci-orchestration\ndescription: {value}\n---\n")
+                self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
+                self.skill.write_text(f"---\nname: cci-orchestration\ndescription: '{value}'\n---\n")
+                self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
+        self.skill.write_text("---\nname: cci-orchestration\ndescription: 2026-09-16T04:35:06Z\n---\n")
+        self.assertEqual(self.cli().returncode, 1)
+        for value in ("Meet at 2026-09-16T04:35:06Z", "2026-09-16 release guide"):
+            self.skill.write_text(f"---\nname: cci-orchestration\ndescription: {value}\n---\n")
+            self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
+
     def test_supported_metadata_scalars(self):
         for value in ('Plain task description', '"Quoted task description"', "'A user''s task'", '|-\n  Line one.\n  Line two.', '>\n  Folded\n  text.'):
             with self.subTest(value=value):
@@ -185,6 +218,27 @@ class LaunchChecks(unittest.TestCase):
                 self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
         self.write("README.md", r"\[literal](missing.md)")
         self.assertEqual(self.cli().returncode, 0)
+
+    def test_multiline_link_title_target_deletion(self):
+        for title in ('"Title"', "'Title'", '(Title)'):
+            for prefix in ('', '!'):
+                for content in (f'{prefix}[guide](docs/guide.md\n  {title})',
+                                f'{prefix}[guide](docs/guide.md {title}\n)',
+                                f'{prefix}[guide](\n docs/guide.md\n {title}\n)',
+                                f'{prefix}[guide](docs/guide.md\n)'):
+                    with self.subTest(content=content):
+                        target = self.write("docs/guide.md", "# Guide")
+                        self.write("README.md", content)
+                        self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+                        target.unlink()
+                        result = analyzer.check_skill_navigation_links(self.root)
+                        self.assertFalse(result.ok, result.detail)
+                        self.assertIn("docs/guide.md", result.detail)
+        self.write("README.md", '[guide](missing.md\n  "Title")')
+        self.assertEqual(self.cli().returncode, 1)
+        for content in ('[guide](missing.md\n\n "Title")', '[guide](missing.md "Title"\n\n)'):
+            self.write("README.md", content)
+            self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
 
     def test_example_and_optional_links_do_not_fail(self):
         self.write("README.md", '''[external](https://example.com/not-fetched) [anchor](#not-checked)
