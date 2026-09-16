@@ -796,7 +796,7 @@ def _discovery_scalar(frontmatter: str, key: str) -> str:
             or re.match(r"[-?:](?:\s|$)", value)
             or re.search(r":(?:\s|$)", value)
             or re.fullmatch(timestamp, value)
-            or value.lower() in {"null", "~", "true", "false", "yes", "no", "on", "off", ".nan", ".inf", "-.inf", "+.inf"}
+            or value.lower() in {"null", "~", "true", "false", "yes", "no", "y", "n", "on", "off", ".nan", ".inf", "-.inf", "+.inf"}
             or re.fullmatch(r"[-+]?(?:\d[\d.eE+_:/-]*|0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|\.\d+(?:[eE][-+]?\d+)?)", value)):
         raise ValueError(f"{key}: use a string (plain, quoted, or block scalar)")
     return value
@@ -909,29 +909,59 @@ def _markdown_prose(text: str) -> str:
     fence = None
     paragraph = False
     previous_depth = 0
+    list_indents = []
     for line in text.splitlines():
+        line = line.expandtabs(4)
         depth = 0
-        while prefix := re.match(r"^ {0,3}>[ \t]?", line):
+        while (not fence or depth < fence[1]) and (prefix := re.match(r"^ {0,3}>[ \t]?", line)):
             line = line[prefix.end():]
             depth += 1
         if depth != previous_depth and (depth > previous_depth or not paragraph):
             paragraph = False
+            list_indents.clear()
             lines.append("")
         # Lazy continuation lines inherit the paragraph's quote container even
         # when they omit its marker; a later marker resumes that same paragraph.
         previous_depth = max(depth, previous_depth) if paragraph else depth
         if fence and depth < fence[1]:
             fence = None  # leaving a blockquote ends its unclosed fence
+        indent = len(line) - len(line.lstrip(" "))
+        new_block = re.match(r"^ {0,3}(?:#{1,6}(?:\s|$)|(?:[-+*]|[0-9]{1,9}[.)])(?:\s|$)|`{3,}|~{3,}|>)", line)
+        if line.strip():
+            while list_indents and indent < list_indents[-1]:
+                if paragraph and not new_block:
+                    break  # lazy paragraph continuation retains its list
+                list_indents.pop()
+                paragraph = False
+        container_indent = list_indents[-1] if list_indents else 0
+        if fence and container_indent < fence[2]:
+            fence = None  # leaving a list item also ends its unclosed fence
+        line = line[min(indent, container_indent):]
+        if not fence:
+            while (item := re.match(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])( +|$)", line)):
+                if re.fullmatch(r" {0,3}(?:(?:\* *){3,}|(?:- *){3,}|(?:_ *){3,})", line):
+                    break  # a thematic break is not a list item
+                ordered = re.match(r"^ {0,3}([0-9]+)[.)]", line)
+                if paragraph and (not line[item.end():].strip() or (ordered and ordered[1] != "1")):
+                    break  # only nonempty items, numbered 1 if ordered, interrupt paragraphs
+                # One to four spaces pad a marker; extra spaces belong to code.
+                padding = len(item[1])
+                consumed = item.end() - padding + (padding if 1 <= padding <= 4 else 1)
+                container_indent += consumed
+                list_indents.append(container_indent)
+                line = line[consumed:]
+                paragraph = False
+                lines.append("")
         match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
         if fence:
-            marker, container_depth = fence
+            marker, container_depth, fence_indent = fence
             if (depth == container_depth and match and match[1][0] == marker[0]
-                    and len(match[1]) >= len(marker) and not match[2].strip()):
+                    and container_indent == fence_indent and len(match[1]) >= len(marker) and not match[2].strip()):
                 fence = None
             lines.append("")
             paragraph = False
         elif match and (match[1][0] != "`" or "`" not in match[2]):
-            fence = (match[1], depth)
+            fence = (match[1], depth, container_indent)
             lines.append("")
             paragraph = False
         elif paragraph or not line.startswith(("    ", "\t")):

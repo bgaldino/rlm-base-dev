@@ -127,6 +127,15 @@ class LaunchChecks(unittest.TestCase):
             self.skill.write_text(f"---\nname: cci-orchestration\ndescription: {value}\n---\n")
             self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
 
+    def test_yaml_single_letter_booleans_require_quotes(self):
+        for value in ('y', 'Y', 'n', 'N'):
+            with self.subTest(value=value):
+                self.skill.write_text(f'---\nname: cci-orchestration\ndescription: {value}\n---\n')
+                self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
+                self.assertEqual(self.cli().returncode, 1)
+                self.skill.write_text(f"---\nname: cci-orchestration\ndescription: '{value}'\n---\n")
+                self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
+
     def test_supported_metadata_scalars(self):
         for value in ('Plain task description', '"Quoted task description"', "'A user''s task'", '|-\n  Line one.\n  Line two.', '>\n  Folded\n  text.'):
             with self.subTest(value=value):
@@ -328,6 +337,38 @@ class LaunchChecks(unittest.TestCase):
         self.assertEqual(prose.count('\n'), 1)
         self.assertNotIn('one', prose)
         self.assertNotIn('two', prose)
+
+    def test_list_contained_link_paragraphs(self):
+        paragraphs = ('- item\n\n    [guide](docs/guide.md)',
+                      '* item\n\n    [guide](docs/guide.md)',
+                      '+ item\n\n\t[guide](docs/guide.md)',
+                      '1. item\n\n    [guide](docs/guide.md)',
+                      '10) item\n\n    [guide](docs/guide.md)',
+                      '- parent\n  - child\n\n      [guide](docs/guide.md)',
+                      '> - item\n>\n>     [guide](docs/guide.md)',
+                      '- item\n\n    [ref]: docs/guide.md\n\n    [guide][ref]')
+        for content in paragraphs:
+            with self.subTest(content=content):
+                target = self.write('docs/guide.md', '# Guide')
+                self.write('README.md', content)
+                self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+                target.unlink()
+                self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write('README.md', paragraphs[0])
+        self.assertEqual(self.cli().returncode, 1)
+        for content in ('- item\n\n      [example](missing.md)',
+                        '1. item\n\n       [example](missing.md)',
+                        '- item\n\n  ```md\n  [example](missing.md)\n  ```',
+                        '- ```md\n  [example](missing.md)\n  ```',
+                        '- ```md\n  > [example](missing.md)\n  ```',
+                        '`code\n2. [example](missing.md)`',
+                        '`code\n2) [example](missing.md)`',
+                        '`code\n-\n[example](missing.md)`'):
+            with self.subTest(code=content):
+                self.write('README.md', content)
+                self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write('README.md', '- ```md\n  [example](ignored.md)\n\n[real](missing.md)')
+        self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
 
     def test_bad_skill_subfile_link_and_escape(self):
         self.write(".cursor/skills/cci-orchestration/tasks-reference.md", "[bad](missing.md)")
