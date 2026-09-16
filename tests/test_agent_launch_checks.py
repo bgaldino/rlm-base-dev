@@ -202,6 +202,24 @@ class LaunchChecks(unittest.TestCase):
         self.assertIn("README.md", result.detail)
         self.assertIn("docs/a%20b.md", result.detail)
 
+    def test_escaped_angle_destination_target_deletion(self):
+        cases = ((r'docs/a b\>c.md', 'docs/a b>c.md'),
+                 (r'docs/a b\<c.md', 'docs/a b<c.md'),
+                 (r'docs/a b\>', 'docs/a b>'),
+                 (r'docs/a b\\c.md', 'docs/a b\\c.md'))
+        for escaped, filename in cases:
+            for content in (f'[guide](<{escaped}>)', f'![image](<{escaped}>)',
+                            f'[guide]({escaped.replace(" ", "%20")})',
+                            f'[ref]: <{escaped}>\n\n[guide][ref]'):
+                with self.subTest(content=content):
+                    target = self.write(filename, '# Guide')
+                    self.write('README.md', content)
+                    self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+                    target.unlink()
+                    self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write('README.md', r'[guide](<docs/a b\>c.md>)')
+        self.assertEqual(self.cli().returncode, 1)
+
     def test_second_link_and_reference_definition_fail(self):
         for content in ('[ok](AGENTS.md "title") [bad](missing.md)', '[bad]: missing.md', '![image](missing.png)', '[bad](docs/a\\ b.md)'):
             self.write("README.md", content)

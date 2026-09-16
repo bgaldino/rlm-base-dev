@@ -1025,7 +1025,7 @@ def check_skill_navigation_links(root: Path) -> CheckResult:
     checked = private = 0
     # Angle-bracket paths may contain spaces; bare paths allow balanced parentheses
     # one level deep. Optional titles are separate from the destination.
-    destination = r"(<[^>\n]+>|(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
+    destination = r"(<(?:\\[^\n]|[^<>\\\n])*?>|(?!<)(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
     spacing = r"[ \t]*(?:\n[ \t]*)?"
     separator = r"(?:[ \t]+(?:\n[ \t]*)?|\n[ \t]*)"
     # Escaped delimiters and nonblank line endings are valid within all titles.
@@ -1039,7 +1039,8 @@ def check_skill_navigation_links(root: Path) -> CheckResult:
             failures.append(f"{rel(path, root)}: unreadable ({exc})")
             continue
         for match in [*_inline_link_matches(text, inline), *reference.finditer(text)]:
-            target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]^_`{|}~])", r"\1", match[1].strip("<>"))
+            raw_target = match[1][1:-1] if match[1].startswith("<") else match[1]
+            target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])", r"\1", raw_target)
             try:
                 parts = urlsplit(target)
                 if parts.scheme or parts.netloc or not parts.path:
