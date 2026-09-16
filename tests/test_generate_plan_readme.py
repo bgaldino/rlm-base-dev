@@ -217,10 +217,15 @@ def _case_readonly_only_optional_csv_not_required():
         plan = _plan(td, {"objectSets": [{"objects": [READONLY_GADGET]}]}, {"Gadget__c.csv": _csv(3)})
         G.write_readme(str(plan))
         import check_plan_readme_consistency as checker
-        listed = "Gadget__c.csv" in (plan / "README.md").read_text()  # Files section only (row uses the bare name)
+        content = (plan / "README.md").read_text()
+        listed = "Gadget__c.csv" in content  # Files section only (row uses the bare name)
+        # The section is labeled for required source CSVs and its empty state says "no required
+        # CSVs" (not "no CSVs") — accurate now that an optional CSV may exist but be omitted here
+        # (copilot 4022353180). "Delete" is named among the source-free operations too.
+        labeled = "## Required source CSVs" in content and "no required CSVs" in content
         (plan / "Gadget__c.csv").unlink()
         errors, warns, _ = checker.check_plan(str(plan))
-        return (not listed, len(errors), warns)
+        return (not listed, labeled, len(errors), warns)
 
 
 def _case_shared_writable_readonly_csv_still_listed():
@@ -388,8 +393,8 @@ GENERATE_BLOCK = [
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Update", excluded=True)),
     ("row count reflects the actual CSV, Readonly gets '—', a writable object with no CSV is flagged",
      (True, True, True), _case_generate_block_counts_and_missing()),
-    ("a Readonly-only plan's optional CSV is not listed as required; deleting it stays silent",
-     (True, 0, []), _case_readonly_only_optional_csv_not_required()),
+    ("a Readonly-only plan's optional CSV is not listed as required; section labeled + deleting it stays silent",
+     (True, True, 0, []), _case_readonly_only_optional_csv_not_required()),
     ("a CSV shared by a writable declaration stays listed even when a Readonly pass references it",
      (True, 0, []), _case_shared_writable_readonly_csv_still_listed()),
     ("same-pass duplicate declaration renders a visible note, two Pass-1 rows, and still round-trips",

@@ -90,7 +90,11 @@ BLOCK_TEMPLATE = """{begin}
 |---|--------|------|-----------|-------------|---------|
 {rows}
 {notes}
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's
+     optional CSV (Readonly/Delete/excluded) resolves from the target org, so it is
+     omitted here even if one ships. -->
 
 ```
 {files}
@@ -208,7 +212,8 @@ def generate_block(plan_dir: str) -> str:
     if file_lines:
         files_text = "\n".join(file_lines)
     else:
-        files_text = "(no CSVs — every object is Readonly or excluded)"
+        files_text = ("(no required CSVs — every object is source-free: "
+                      "Readonly, Delete, or excluded)")
 
     # A same-pass duplicate declaration renders as two rows identical in every compared
     # cell (only the leading # differs). Surface it explicitly — the underlying plan is a
