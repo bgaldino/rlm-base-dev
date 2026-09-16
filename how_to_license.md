@@ -221,7 +221,7 @@ The shorter version of license text should be added as a comment to all Salesfor
 ```
 /*
  * Copyright (c) 2025, Salesforce, Inc.
- * SPDX-License-Identifier: Apache-2
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

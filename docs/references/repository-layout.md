@@ -13,7 +13,7 @@ rlm-base-dev/
 │                               #       have been moved to templates/ — those paths are forceignored
 ├── templates/                  # Source-of-truth templates for dynamic UX assembly
 │   ├── flexipages/             # See docs/features/dynamic-ux-assembly.md
-│   │   ├── base/               # 25 base flexipages (moved from force-app)
+│   │   ├── base/               # Base flexipages (moved from force-app)
 │   │   ├── standalone/         # One canonical version per page, one feature dir per page
 │   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
@@ -21,7 +21,7 @@ rlm-base-dev/
 │   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
-│   │   ├── base/               # 17 base layouts (moved from force-app)
+│   │   ├── base/               # Base layouts (moved from force-app)
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
@@ -35,7 +35,7 @@ rlm-base-dev/
 │   │   ├── tso/                # TSO feature
 │   │   └── collections/        # Collections feature (WIP)
 │   └── profiles/
-│       ├── base/               # Canonical full profiles (Admin + PRM Partner Community User)
+│       ├── base/               # Canonical profiles: Admin, RLM Sales Representative, RLM Custom Partner Community User
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
