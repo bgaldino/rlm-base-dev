@@ -64,6 +64,21 @@ The `prepare_billing_portal` flow runs the following numbered steps:
 
 Steps 2-4 are skipped when `billing_portal_deploy` is false: the community is created from the standard template but no custom site content is deployed over it.
 
+## Customer access (required — this flow is metadata-only)
+
+`prepare_billing_portal` creates, deploys, publishes, and reverts **metadata only**. A published
+site is not yet usable by customers: portal users must still be provisioned and granted access as a
+separate admin step the flow does not perform. Per the Self-Service Billing Portal Help
+(`docs/salesforce/264/help/articles/ind.billing_self_service_portal_pay_invoices.htm.md`):
+
+- **Build/customize the site:** the **Billing Admin** permission set.
+- **Portal customers (access the published site):** the **Billing Experience Cloud User**
+  permission set, plus record access so they can view their invoices — configure the Experience
+  Cloud site's users and their sharing/record access before they log in.
+
+Assign these after publication; otherwise authenticated customers reach a published site they
+cannot use.
+
 ## PII Handling
 
 `Network.EmailSenderAddress` is immutable after community creation and required by the metadata deploy. The committed `Billing Portal.network-meta.xml` stores the non-PII placeholder `billing-portal-sender@example.com`. `patch_network_email_for_deploy` reads the target org's actual current value and substitutes it into the file for deployment; after a successful deploy, `revert_network_email_after_deploy` restores the placeholder. This is the same pattern `post_prm` uses for `rlm.network-meta.xml`, reusing the same parameterized task classes (`tasks/rlm_community.py`) via `options:` overrides — no new Python code.

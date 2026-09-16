@@ -82,19 +82,41 @@ def check_file_only_revert_tasks_stay_orgless(_):
     )
 
 
+def _notfound_raise_literals():
+    """The string literals of the *specific* `Network not found` raise, and nothing else.
+
+    An earlier version of this check joined every quoted string in the whole module, so the
+    creator names living in the module/class docstrings satisfied it — reverting the actual
+    raise to PRM-only guidance would still have passed. Scope strictly to the raise that
+    carries "not found in org" so the assertion fails exactly when that message is wrong.
+    """
+    raises = re.findall(
+        r'raise TaskOptionsError\(\s*((?:f?"[^"]*"\s*)+)\)', MODULE_SRC, re.DOTALL
+    )
+    notfound = [r for r in raises if "not found in org" in r]
+    if not notfound:
+        return None
+    return " ".join(re.findall(r'f?"([^"]*)"', notfound[0]))
+
+
 def check_missing_network_error_is_network_agnostic(_):
     # Finding: the not-found guidance used to name only create_partner_central, so a
     # failed Billing Portal setup pointed operators at an unrelated PRM prerequisite.
     # The message must reference the selected community's creation step, not a single
-    # hard-coded PRM one. Assert the generalized guidance names both known creators.
-    m = re.search(r'"([^"]*not found in org[^"]*)"', MODULE_SRC, re.DOTALL)
-    # The message spans adjacent implicitly-concatenated string literals; join them.
-    joined = " ".join(re.findall(r'f?"([^"]*)"', MODULE_SRC))
-    ok = "create_partner_central" in joined and "create_billing_portal" in joined
+    # hard-coded PRM one. Assert against ONLY the not-found raise's own literals so a
+    # revert of that message — even with the creator names still present in docstrings —
+    # fails this check.
+    frag = _notfound_raise_literals()
+    check(
+        "found_the_network_not_found_raise",
+        frag is not None,
+        "could not locate the `Network ... not found in org` raise in the module",
+    )
+    ok = frag is not None and "create_partner_central" in frag and "create_billing_portal" in frag
     check(
         "missing_network_error_names_the_owning_community_step",
         ok,
-        "error must name the selected community's create step, not only the PRM one",
+        "the not-found raise itself must name both community create steps, not only the PRM one",
     )
 
 
