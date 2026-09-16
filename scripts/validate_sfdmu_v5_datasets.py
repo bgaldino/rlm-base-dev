@@ -526,6 +526,14 @@ class SFDMUValidator:
             # Also fix per-pass CSVs
             if objectset_source_overrides:
                 self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
+                # This loop only repairs the *shape* of per-pass override files that already exist —
+                # `objectset_source_overrides` is `_find_objectset_source_overrides`'s glob of files
+                # on disk, so it never creates one, and every mutation below is additive
+                # (`_fix_empty_csv_header` writes into an empty file; `_fix_missing_composite_key`
+                # prepends a column). It never rewrites correct content or deletes a per-pass CSV, and
+                # it never treats the plan root as canonical for one — the root fixer above touches
+                # only `<plan>/<Object>.csv`, this one only the override path. So a hand-authored
+                # per-pass CSV that is already well-formed comes out of `--fix-all` byte-identical.
                 # Same gate as the validation loop below: a pass 2+ override is inert without
                 # `useSeparatedCSVFiles`, so writing into it is a fix nothing reads.
                 for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
@@ -2535,6 +2543,18 @@ class SFDMUValidator:
 
             csv_path = dataset_path / f"{obj_name}.csv"
             if not csv_path.exists():
+                # The fixer repairs an existing root CSV's shape (empty-header, missing composite
+                # key); it never *creates* one. Deliberate, not incidental — two distinct classes of
+                # missing root CSV reach this line and neither wants a file written:
+                #   - An object validation does not owe a root CSV for (Readonly-only, or its only
+                #     writable pass has a flag-gated per-pass override) never enters this loop at all
+                #     — `not reading: continue` above drops it, because `_objects_owing_root_csv`
+                #     leaves it out. Materializing a root CSV here would reintroduce exactly the shape
+                #     that function was taught to stop demanding.
+                #   - An object that genuinely owes a root CSV but whose file is absent is a
+                #     missing-data defect the validate loop reports Critical. The fixer is not an
+                #     extractor: it cannot know the rows, and an empty header alone would convert that
+                #     Critical into a silently-passing empty CSV. Leave it for `extract_*`/the author.
                 continue
 
             # The same declarations validation checks this file against, so what is reportable is

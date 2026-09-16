@@ -711,6 +711,65 @@ FIX_MODES = [
                            "externalId": "Name"}]}]},
          {"Widget__c.csv": HEADER}, {2: {"Widget__c.csv": ""}}, fix_headers=True).items()
          if n.endswith("object-set-2/Widget__c.csv") and b.strip()]),
+    # The fixer repairs an existing root CSV's shape; it never *creates* one (pack 150). Three
+    # missing-root shapes, each of which must stay missing after `--fix-all`, because a written file
+    # would either reintroduce a shape `_objects_owing_root_csv` stopped demanding or silently
+    # convert a missing-data Critical into a passing empty CSV. `fix_mode_writes` rglobs every CSV
+    # afterward, so a file the fixer refrained from creating is simply absent from its result.
+    #
+    # (a) An object validation genuinely owes a root CSV for (writable pass 1) but whose file is
+    # absent: the fixer is not an extractor — it cannot know the rows — so it leaves the missing-file
+    # Critical for the validate loop rather than writing a header-only CSV that would pass.
+    ("--fix-all does NOT create a missing root CSV for an object that owes one (fixer is not an "
+     "extractor)",
+     False, [n for n in fix_mode_writes(
+         {"objectSets": [{"objects": [UPSERT]}]}, None, None,
+         fix_headers=True, fix_composite_keys=True) if n == "Widget__c.csv"]),
+    # (b) A Readonly-only object owes no root CSV at all (`_objects_owing_root_csv` drops it), so
+    # `not reading: continue` skips it before the existence check — no file created.
+    ("--fix-all does NOT create a root CSV for a Readonly-only object",
+     False, [n for n in fix_mode_writes(
+         {"objectSets": [{"objects": [READONLY]}]}, None, None,
+         fix_headers=True, fix_composite_keys=True) if n == "Gadget__c.csv"]),
+    # ...and the skip is before any log line, so the ROOT fixer warns about nothing either — a
+    # separate stdout assertion, because (b) above uses `fix_mode_writes` and never captures stdout,
+    # so on its own its "no WARN" claim was descriptive, not pinned. The per-pass equivalent is
+    # covered separately at the Readonly per-pass override case above; this is the root-fixer side.
+    ("--fix-all logs no WARN for a Readonly-only object it declines to create a root CSV for",
+     False, [ln for ln in verbose_log_lines(
+         {"objectSets": [{"objects": [READONLY]}]}, None, None,
+         fix_headers=True, fix_composite_keys=True)
+         if "no SELECT fields" in ln or "Cannot add header" in ln]),
+    # (c) An object whose only writable pass reads a flag-gated per-pass override owes no root CSV
+    # either — the override relieves it — so `--fix-all` must not materialize a root file for it. The
+    # override itself (which does exist) is still shape-fixed by the per-pass loop; only the ROOT is
+    # not created. useSeparatedCSVFiles=True so the pass-2 override actually relieves the root.
+    ("--fix-all does NOT create a root CSV for an object relieved by a flag-gated per-pass override",
+     False, [n for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "useSeparatedCSVFiles": True, "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Gadget__c", "operation": "Readonly",
+                           "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]}]},
+         None, {2: {"Widget__c.csv": HEADER}}, fix_headers=True, fix_composite_keys=True).items()
+         if n == "Widget__c.csv"]),
+    # The inverse of every write case above (pack 150): a hand-authored per-pass override that is
+    # already well-formed — non-empty, header carries its composite `$$Name$Code` column — must come
+    # out of `--fix-all` byte-identical. The per-pass fixer only writes into an EMPTY override or
+    # PREPENDS a missing composite column; it never rewrites correct content, never deletes the file,
+    # and never treats the plan root as canonical for it. A regression that did any of those would
+    # change these bytes.
+    ("--fix-all leaves a correct non-empty per-pass override byte-identical (no rewrite, no delete)",
+     True, [b for n, b in fix_mode_writes(
+         {"apiVersion": "68.0", "useSeparatedCSVFiles": True, "objectSets": [
+             {"objects": [{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name"}]},
+             {"objects": [{"query": "SELECT Id, Name, Code FROM Widget__c", "operation": "Upsert",
+                           "externalId": "Name;Code"}]}]},
+         {"Widget__c.csv": HEADER},
+         {2: {"Widget__c.csv": "$$Name$Code,Id,Name,Code\na;x,1,a,x\n"}},
+         fix_headers=True, fix_composite_keys=True).items()
+         if n.endswith("object-set-2/Widget__c.csv") and b == b"$$Name$Code,Id,Name,Code\na;x,1,a,x\n"]),
 ]
 
 # Pins the premise the exemption rests on: that a per-pass CSV is actually validated where it
