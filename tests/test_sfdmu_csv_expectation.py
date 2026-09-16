@@ -1285,6 +1285,33 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                               {"Widget__c.csv": "Id,Name\n1,N/A\n2,N/A\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
+    # SFDMU 5.8.0 treats `#n/a`, `null`, `undefined`, `#error!`, `#value!` case-insensitively (on the
+    # trimmed cell) as null, not a matchable key — so repeated null tokens are not a collision, even
+    # when the literal spellings differ in case. `NULL` and `null` both lower to `null` in the token
+    # set and are skipped.
+    ("repeated case-insensitive null tokens (NULL/null) in the key column are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,NULL\n2,null\n"})
+             if "duplicate value" in i]),
+    # The other SFDMU null tokens beyond #N/A are likewise skipped (undefined x2, #error! case-variant
+    # x2) — none is a matchable external Id, so none is a collision.
+    ("repeated SFDMU null tokens undefined/#error! are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,undefined\n2,undefined\n3,#ERROR!\n4,#error!\n"})
+             if "duplicate value" in i]),
+    # SFDMU stores a non-null string field WITH its surrounding whitespace, so ` dup ` and `dup` are
+    # DISTINCT external Ids — not a collision. Stripping before counting would collapse them into a
+    # false duplicate; the guard counts the raw cell, so this is silent.
+    ("values differing only in surrounding whitespace are DISTINCT keys — NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2, dup \n"})
+             if "duplicate value" in i]),
+    # Control: two byte-identical whitespace-padded values ARE the same key, so a repeat still fires —
+    # proving the raw-cell counting distinguishes whitespace, it does not ignore the column.
+    ("two identical whitespace-padded values ARE a real duplicate — control",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1, dup \n2, dup \n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
     # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
     # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
     # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving

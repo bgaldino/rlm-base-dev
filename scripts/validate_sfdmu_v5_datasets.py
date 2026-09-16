@@ -353,6 +353,15 @@ class SFDMUValidator:
         })),
     }
 
+    # SFDMU 5.8.0's CSV reader imports these tokens as null, not a literal string, matched
+    # case-insensitively on the trimmed cell (`Common._CSV_NULL_TOKENS` +
+    # `_isCsvNullToken`: `value.trim().toLowerCase()`). A null external Id is never added to the
+    # matching map — so, exactly like a blank cell, repeated null-token keys can never match or
+    # overwrite a target and are not a collision. Kept lowercased; the values compared here are
+    # `.strip().lower()`ed before membership. Bare `N/A` is deliberately absent: SFDMU's marker is
+    # `#N/A`, so a literal `N/A` is a real value and a repeat of it IS a duplicate.
+    _SFDMU_CSV_NULL_TOKENS = frozenset({"#n/a", "null", "undefined", "#error!", "#value!"})
+
     def _known_nonunique_signature(self, csv_path: Path, key: str) -> Optional[frozenset]:
         """The frozen duplicate signature — a frozenset of (duplicated value, count) pairs — for
         (csv_path, key) if it is one of the enumerated pre-existing non-unique single-field-key CSVs
@@ -2175,22 +2184,28 @@ class SFDMUValidator:
             return
         idx = headers.index(key)
 
-        # Count values in the key column across data rows (blank separator rows excluded). Values
-        # are stripped so two rows differing only by surrounding whitespace count as the collision
-        # they are. A BLANK key value is skipped, not counted as a shared '' collision: SFDMU does
-        # not add a blank/null external Id to its matching map, so blank-key rows never match — and
-        # so never overwrite — a target (Upsert inserts them, Update skips them). A missing key value
-        # is thus not the wrong-row-overwrite this check reports; a short row missing the column
-        # contributes such a blank and is likewise skipped. SFDMU's explicit null marker `#N/A` is
-        # treated the same as blank — it imports as null, not a matchable external Id, so repeated
-        # `#N/A` keys in a raw export are not a collision. (Bare `N/A` is a literal value, not the
-        # marker, so it is NOT skipped — a repeated literal `N/A` is a real duplicate.)
+        # Count values in the key column across data rows (blank separator rows excluded), keying on
+        # the value SFDMU itself would match on — which is NOT the stripped value. SFDMU
+        # (`Common._normalizeCsvCellValue`, 5.8.0) trims a cell only to test for null/empty; a
+        # non-null string field is stored with its surrounding whitespace intact. So ` dup ` and
+        # `dup` are DISTINCT external Ids to SFDMU and must be counted as distinct here — stripping
+        # them would collapse two real records into a false duplicate. Count the raw cell.
+        #
+        # A cell is skipped (not a matchable key, so never a collision) when it is blank/whitespace-
+        # only OR one of SFDMU's null tokens (`_SFDMU_CSV_NULL_TOKENS`), the latter matched exactly as
+        # SFDMU does — on a `.strip().lower()`ed copy — while still counting the raw value for the
+        # non-null case. SFDMU does not add a blank/null external Id to its matching map, so such rows
+        # never match and never overwrite a target (Upsert inserts them, Update skips them); a short
+        # row missing the column contributes such a blank and is likewise skipped. Note `null`,
+        # `undefined`, `#error!`, `#value!` join `#N/A` here; a literal `N/A` is NOT a token and a
+        # repeat of it IS a real duplicate.
         counts: Dict[str, int] = {}
         for row in rows:
             if not any((field or "").strip() for field in row):
                 continue
-            value = (row[idx] if idx < len(row) else "").strip()
-            if not value or value == "#N/A":
+            value = row[idx] if idx < len(row) else ""
+            trimmed = value.strip()
+            if not trimmed or trimmed.lower() in self._SFDMU_CSV_NULL_TOKENS:
                 continue
             counts[value] = counts.get(value, 0) + 1
         duplicates = {v: c for v, c in counts.items() if c > 1}
