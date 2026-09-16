@@ -29,6 +29,12 @@ class PatchNetworkEmailForDeploy(BaseTask):
     target community is created and before deploying that community's metadata.
     """
 
+    # Reads the org's Network record over REST via self.org_config, so it needs an org.
+    # Without salesforce_task = True, BaseTask exposes no --org option, a standalone
+    # `--org <alias>` is rejected, and the task can only hit the default org — unsafe when
+    # patching a Network email. See tasks/rlm_apex_file.py for the same guard.
+    salesforce_task = True
+
     task_options = {
         "placeholder_email": {
             "description": (
@@ -84,8 +90,10 @@ class PatchNetworkEmailForDeploy(BaseTask):
         result = response.json()
         if result.get("totalSize", 0) == 0:
             raise TaskOptionsError(
-                f"Network '{network_name}' not found in org. "
-                "Ensure create_partner_central has run before this task."
+                f"Network '{network_name}' not found in org. Ensure the community that "
+                f"owns this Network has been created before this task "
+                f"(e.g. create_partner_central for the PRM 'rlm' network, "
+                f"create_billing_portal for the 'Billing Portal')."
             )
         deploy_email = result["records"][0].get("EmailSenderAddress", "").strip()
         if not deploy_email:
@@ -193,6 +201,11 @@ class PatchPaymentsSiteForDeploy(BaseTask):
 
     Run this BEFORE deploy_post_payments_site.
     """
+
+    # Reads self.org_config.username, so it needs an org. Without salesforce_task = True,
+    # BaseTask exposes no --org option and a standalone run silently targets the default
+    # org. See PatchNetworkEmailForDeploy / tasks/rlm_apex_file.py for the same guard.
+    salesforce_task = True
 
     task_options = {
         "placeholder_username": {

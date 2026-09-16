@@ -352,10 +352,11 @@ CHECKS = [
         # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
-                  "tasks/expression_set_schema.py",
+                  "tasks/expression_set_schema.py", "tasks/rlm_community.py",
                   "scripts/expression_sets/", "scripts/cml/",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
+                  "tests/test_rlm_community.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],
@@ -500,6 +501,7 @@ STDLIB_SUITES = [
 REQUESTS_SUITES = [
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
+    "tests/test_rlm_community.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and
