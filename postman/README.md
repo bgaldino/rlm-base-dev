@@ -1,24 +1,20 @@
 # Revenue Cloud Postman Collections
 
-API collections for Salesforce Revenue Cloud — Spring '26 (Release 260, API v66.0).
+API collections for Salesforce Revenue Cloud. The downloadable Postman collection JSON and environment file below are still the Spring '26 (Release 260, API v66.0) baseline and are being regenerated against a live 264 org. The per-domain reference guides under [`docs/`](docs/) have already been re-extracted for Release 264 (Winter '27, API v68.0) — see [Reference Guides](#reference-guides).
 
 ---
 
 ## Collections
 
-**Agentforce Revenue Management APIs (v66.0)** — The primary, comprehensive collection containing every documented Revenue Cloud Business API endpoint (204 endpoints across 13 API domains). Includes three pre-configured runners for end-to-end workflows: Quote-to-Cash, eCommerce, and Billing.
+**`Agentforce Revenue Management APIs (v66.0).postman_collection.json`** — The primary, comprehensive collection, covering PCM, Product Discovery, Pricing (Core Pricing + Procedure Plan Definitions), Product Configurator, Rate Management, Transaction Management (including the deprecated v63 quote/order place actions), Usage Management, Billing, and Context Service. Includes a Setup Runner plus three pre-configured runners for end-to-end workflows: Quote-to-Cash, eCommerce, and Billing.
 
-**RLM.postman_collection.json** — Foundational collection focused on core CPQ workflows: Product Catalog Management, Product Discovery, Salesforce Pricing, Asset Lifecycle, and Context Service (108 endpoints). See `archive/` for original analysis documentation.
-
-**RCA APIs - Winter'25 (258) Latest.postman_collection.json** — Extended collection from a separate contributor covering the full Revenue Cloud surface including Billing, Usage Management, Rate Management, DRO, and Product Configurator (237 endpoints). Includes demo scenario folders. See `archive/` for original analysis documentation.
+**`Agentforce Revenue Management APIs.postman_collection.json`** — A parallel Postman export of the same v66.0 collection (same domain coverage; differs only in export metadata and a handful of request-level test scripts). Prefer the versioned file above as the canonical import target.
 
 ---
 
 ## Environment
 
-**Agentforce Revenue Management v66.0.postman_environment.json** — Canonical environment file for the Agentforce collection with 174 variables covering all API domains. Configure `url`, `clientId`, and `clientSecret` for your org, then run the Setup Runner to auto-populate all remaining variables.
-
-The two original environment files (`RLM QuantumBit Default Environment.postman_environment.json` and `RCA APIs - Composable MQ25 Latest.postman_environment.json`) are retained in `archive/` for backward compatibility with the RLM and RCA collections.
+**`Agentforce Revenue Management v66.0.postman_environment.json`** — Canonical environment file for the Agentforce collection with 174 variables covering all API domains. Configure `url`, `clientId`, and `clientSecret` for your org, then run the Setup Runner to auto-populate all remaining variables.
 
 ---
 
@@ -36,17 +32,16 @@ The two original environment files (`RLM QuantumBit Default Environment.postman_
 
 Per-domain endpoint references are in `docs/`. Each guide covers HTTP method, URI path, full URL, request body fields, and environment variables.
 
-- [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (19 endpoints)
-- [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (10 endpoints)
-- [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (13 endpoints)
-- [Pricing](docs/pricing-business-apis-v66.md) — Core pricing engine, price contexts, waterfall, API execution logs (10 endpoints)
+- [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (22 endpoints)
+- [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (11 endpoints)
+- [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (14 endpoints)
+- [Pricing](docs/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (19 endpoints)
 - [Rate Management](docs/rate-management-apis-reference.md) — Rate plans and rating waterfall for usage-based billing (2 endpoints)
-- [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (17 endpoints)
-- [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (6 endpoints)
+- [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (21 endpoints)
+- [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (7 endpoints)
 - [Billing (Quick Reference)](docs/billing-apis-quick-reference.md) — Billing quick reference cheat sheet
-- [Billing (Full Reference)](docs/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (full coverage)
+- [Billing (Full Reference)](docs/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (48 endpoints)
 - [Context Service](docs/context-service-apis-reference.md) — Context definitions, nodes, and mappings that power pricing and entitlements (5 endpoints)
-- [Overall API Reference](docs/rlm-v260-business-apis-reference.md) — Master reference covering all v260 Business API endpoints across all domains
 
 ---
 
@@ -138,16 +133,17 @@ Services used in this collection:
 | `/connect/pcm/` | Product Catalog Management |
 | `/connect/cpq/` | Product Discovery and Configurator |
 | `/connect/core-pricing/` | Pricing Engine |
+| `/connect/procedure-plan-definitions/` | Pricing Procedure Plans |
 | `/connect/core-rating/` | Rate Management |
 | `/connect/revenue-management/` | Asset Lifecycle |
 | `/connect/context-definitions/` | Context Service |
 | `/commerce/sales-transactions/` | Transaction Management (v63+) |
+| `/commerce/quotes/`, `/commerce/sales-orders/` | Transaction Management (deprecated v63 quote/order place) |
 | `/industries/cpq/` | Instant Pricing |
 | `/asset-management/` | Usage Management (assets) |
 | `/revenue/usage-management/` | Usage Management (consumption, v66) |
-| `/sobjects/` | Direct SObject API |
-| `/actions/standard/` | Salesforce Standard Actions |
-| `/composite` | Composite API |
+| `/commerce/billing/` | Billing |
+| `/query` | SOQL (Setup Runner discovery queries) |
 
 ---
 
@@ -213,14 +209,4 @@ Services used in this collection:
 
 ---
 
-## Archive
-
-`archive/` contains:
-- Previous analysis documents (POSTMAN_COLLECTIONS_ANALYSIS.md, POSTMAN_ENDPOINT_REFERENCE.md, QUICK_REFERENCE.md)
-- v258 reference PDF
-- Original environment files for the RLM and RCA collections
-- `discussion-log.md` — items flagged during the v260 optimization
-
----
-
-*Spring '26 (Release 260, API v66.0) — Last updated: 2026-03-26*
+*Collections: Spring '26 (Release 260, API v66.0), last updated 2026-03-26. Reference guides: Release 264 (Winter '27, API v68.0).*
