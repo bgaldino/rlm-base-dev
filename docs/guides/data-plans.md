@@ -14,9 +14,13 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
-> **Requires SFDMU v5.6.4+.** All data plans have been migrated for SFDMU v5 compatibility
-> and idempotency. See [Composite Key Optimizations](../../docs/references/sfdmu-composite-key-optimizations.md)
-> for the full migration details and known limitations.
+> **Requires SFDMU v5.6.4+.** Re-run safety depends on the plan, its orchestration,
+> and the target org's existing data. Read the per-plan README before reloading:
+> `qb-pricing` retains Insert objects and uses a separate delete task in its flow;
+> `qb-rating` and `qb-rates` retain Insert + `deleteOldData` operations whose deletes
+> can be blocked by live records. See [reloading a plan into a live org](../../.cursor/skills/sfdmu-data-plans/SKILL.md#reloading-a-plan-into-a-live-org)
+> for these limitations and [Composite Key Optimizations](../../docs/references/sfdmu-composite-key-optimizations.md)
+> for migration history.
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
@@ -90,14 +94,22 @@ datasets/sfdmu/
 └── extractions/       # extract output: <plan-name>/<timestamp>/ and .../processed/
 ```
 
-**Examples:** `datasets/sfdmu/qb/en-US/qb-pcm`, `datasets/sfdmu/mfg/en-US/mfg-pcm`. The same tooling (extract task, post-process script, idempotency task) works for any plan path: each task gets its plan directory from `cumulusci.yml` via a path anchor, and extraction output goes to `datasets/sfdmu/extractions/<plan-name>/<timestamp>/` (and `<timestamp>/processed/` after post-process).
+**Examples:** `datasets/sfdmu/qb/en-US/qb-pcm`, `datasets/sfdmu/mfg/en-US/mfg-pcm`.
+For this standard shape/locale/plan layout, `ExtractSFDMUData` defaults to
+`datasets/sfdmu/extractions/<plan-name>/<timestamp>/`, with post-processed CSVs
+under `processed/`. The default base is derived from the plan's directory depth:
+`datasets/sfdmu/procedure-plans`, for example, would write under repository-level
+`extractions/`. For other layouts, set the extraction task's `extractions_base_dir`
+option explicitly (for example, `-o extractions_base_dir datasets/sfdmu/extractions`).
+An explicit `output_dir` instead selects the complete output directory and takes
+precedence over that base. See the [extraction task](../../tasks/rlm_sfdmu.py).
 
 **Adding a new data shape (e.g. mfg):**
 
 1. Create the directory tree: `datasets/sfdmu/mfg/en-US/<plan-name>/` (e.g. `mfg-pcm`).
 2. Add `export.json` and CSV files following the same patterns as QB (single-pass with flat `objects`, or multi-pass with `objectSets`; see [qb-pcm](../../datasets/sfdmu/qb/en-US/qb-pcm/README.md) or [qb-rating](../../datasets/sfdmu/qb/en-US/qb-rating/README.md) as reference).
 3. In `cumulusci.yml`, under **DATA PLAN NAMES AND PATHS**, add an anchor (e.g. `mfg_pcm_dataset: &mfg_pcm_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"`).
-4. Add load, extract, and idempotency tasks that reference that anchor (`pathtoexportjson: *mfg_pcm_dataset`). Use the same task classes (`LoadSFDMUData`, `ExtractSFDMUData`, `TestSFDMUIdempotency`) and groups (Data Management - Extract / Idempotency) so extract runs post-process by default and output goes to `extractions/mfg-pcm/<timestamp>/processed/`.
+4. Add load, extract, and idempotency tasks that reference that anchor (`pathtoexportjson: *mfg_pcm_dataset`). Use the same task classes (`LoadSFDMUData`, `ExtractSFDMUData`, `TestSFDMUIdempotency`) and groups (Data Management - Extract / Idempotency) so extract runs post-process by default and output goes to `datasets/sfdmu/extractions/mfg-pcm/<timestamp>/processed/` for this layout.
 5. Add a README in the plan directory and, if desired, list the plan in the table below.
 
 #### QuantumBit (QB) Data Plans
@@ -130,9 +142,11 @@ Procedure-plan overlays that require resolved parent IDs live under
 `datasets/procedure_plan_overlays/` and are applied by dedicated CCI tasks
 rather than SFDMU.
 
-#### Archived Data Plans
+#### Removed Data Plans
 
-Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference. These are no longer used:
+The following historical constraint plans were removed from this checkout and
+replaced by the CML utility. Their names are retained here for migration context;
+there is no `datasets/sfdmu/_archived/` directory to browse:
 
 - `qb-constraints-product` -- replaced by CML utility
 - `qb-constraints-component` -- replaced by CML utility

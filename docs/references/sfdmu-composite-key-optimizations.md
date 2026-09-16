@@ -7,8 +7,10 @@
 ## SFDMU v5 Migration
 
 SFDMU v5 introduced breaking changes that affect how composite `externalId` definitions
-interact with data plans. The following adjustments were made to ensure all QB data plans
-work correctly with v5 and remain **idempotent** (safe to re-run without creating duplicates).
+interact with data plans. The following adjustments document historical migration
+work. They do not guarantee that every shipped plan is safe to rerun in every org;
+read the per-plan README and the [live-org reloading guidance](../../.cursor/skills/sfdmu-data-plans/SKILL.md#reloading-a-plan-into-a-live-org)
+before reloading existing data.
 
 > **Historical record of pre-floor operation choices, not current authoring guidance.**
 > Both the behavioral-change table and the per-dataset adjustments below describe
@@ -87,8 +89,12 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 
 ### Idempotency
 
-All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 260 scratch org.
-47/47 objects show zero record count changes on re-run.
+The historical Release 260 verification recorded zero record-count changes across
+47 objects in 10 QB data tasks on a fresh scratch org. That result does not certify
+the current plans against an org with live transactional data. In particular,
+`qb-pricing` requires its separate delete task before Insert operations, and
+`qb-rating`/`qb-rates` retain delete-and-reinsert operations that live references
+can block. Use the per-plan instructions and the live-org guidance linked above.
 
 | Strategy | Objects |
 |----------|---------|
@@ -211,7 +217,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 
 Extract and idempotency tasks are grouped in CumulusCI for convenience:
 
-- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. The extract task and post-process script are **plan-agnostic**: each task uses its `pathtoexportjson` from `cumulusci.yml` (e.g. qb-rating → `datasets/sfdmu/qb/en-US/qb-rating`), and output goes to `extractions/<plan_name>/<timestamp>/`. Single-pass (flat `objects`) and multi-pass (`objectSets`) export.json formats are supported. Other data shapes (e.g. mfg) use the same pattern: place plans under `datasets/sfdmu/<shape>/<locale>/<plan-name>/` (e.g. `mfg/en-US/mfg-pcm`) and add matching anchors and tasks; the same tooling applies. List with `cci task list --group "Data Management - Extract"`.
+- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. The extract task and post-process script are **plan-agnostic**: each task uses its `pathtoexportjson` from `cumulusci.yml` (e.g. qb-rating → `datasets/sfdmu/qb/en-US/qb-rating`), and the standard shape/locale/plan layout writes to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. Other plan depths need an explicit `extractions_base_dir` (or full `output_dir`); see the [data-plan directory guidance](../guides/data-plans.md#data-plan-directory-structure). Single-pass (flat `objects`) and multi-pass (`objectSets`) export.json formats are supported. Other data shapes (e.g. mfg) use the same pattern: place plans under `datasets/sfdmu/<shape>/<locale>/<plan-name>/` (e.g. `mfg/en-US/mfg-pcm`) and add matching anchors and tasks; the same tooling applies. List with `cci task list --group "Data Management - Extract"`.
 - **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. Options: `use_extraction_roundtrip` (when true, second run uses extract → post-process → load from processed); `persist_extraction_output` (when true with roundtrip, write extraction to `extractions/<plan>/<timestamp>` instead of temp). qb-pcm idempotency uses both by default. List with `cci task list --group "Data Management - Idempotency"`.
 
 **Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See the generated [task reference](../../.cursor/skills/cci-orchestration/tasks-reference.md) and [flow reference](../../.cursor/skills/cci-orchestration/flows-reference.md) for data management commands.

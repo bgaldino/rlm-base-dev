@@ -220,13 +220,13 @@ cci task run insert_billing_data
 
 The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properly configure ID-based fields and trigger default template auto-creation:
 
-1. **Step 6** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
-2. **Step 7** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
-3. **Step 8** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
+1. **Step 1** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
+2. **Step 9** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
+3. **Step 10** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
 
-The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 6 (before step 7) because `billingContextSourceMapping` requires it to already be persisted.
+The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 1 (before step 9) because `billingContextSourceMapping` requires it to already be persisted.
 
-DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs. The task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and `UserAndGroup.csv` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. Step 4 runs `update_product_fulfillment_decomp_rules` (Apex) as a temporary fix for a 260 bug: ExecuteOnRuleId is not generated on INSERT and must be triggered by an UPDATE. No separate scratch-specific DRO plan is required.
+DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs. The task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and `UserAndGroup.csv` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. Step 5 runs `update_product_fulfillment_decomp_rules` (Apex) as a temporary fix for a 260 bug: ExecuteOnRuleId is not generated on INSERT and must be triggered by an UPDATE. No separate scratch-specific DRO plan is required.
 
 ### Extract Rating Data
 
@@ -336,10 +336,12 @@ cci task run validate_setup
 
 ### SFDMU Duplicate Records on Re-run
 
-If you see duplicate records after running data tasks multiple times, verify you are on
-SFDMU v5. The data plans have been migrated for v5 idempotency; v4.x may create duplicates
-due to differences in how composite `externalId` definitions are processed. See
-[Composite Key Optimizations](../../docs/references/sfdmu-composite-key-optimizations.md) for details.
+If you see duplicate records after reloading data, verify SFDMU v5.6.4 or later
+and review the plan's operations and its required task/flow sequence. A compatible
+plugin does not make every plan safe to rerun: Insert operations can duplicate
+rows, and delete-and-reinsert plans can fail when live records block deletion.
+See the [data-plan reloading guidance](data-plans.md#sfdmu-data-plans) and the
+per-plan README before another run.
 
 ### Permission Set Groups stuck Outdated / Updating
 

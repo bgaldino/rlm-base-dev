@@ -66,7 +66,7 @@ gh auth login
 
 > **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
 >
-> **Node LTS versions only:** Always use an even-numbered LTS release (v20, v22, v24) for tooling. Odd-numbered releases (v21, v23, v25) are short-lived "Current" releases with no long-term support — they reach end-of-life within 6 months and are not suitable for developer tools.
+> **Node.js 22 or later required:** The repository npm tooling declares `engines.node: >=22` in `package.json`. Use an LTS release meeting that floor; the build workflow uses Node 24.
 
 ```bash
 # Install nvm via Homebrew
@@ -105,7 +105,7 @@ nvm install --lts
 nvm alias default lts/*
 
 # Verify
-node --version   # Should show an even-numbered LTS version (v20, v22, v24, …)
+node --version   # Should show an LTS release >=22 (the build workflow uses Node 24)
 npm --version
 ```
 
@@ -324,7 +324,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Configured automatically after installation
 
 4. **Salesforce CLI** (`sf` CLI)
-   - Version 2.x or later; requires an LTS Node.js (v20, v22, or v24 — **not** odd-numbered releases like v25 which are unsupported)
+   - Version 2.x or later; use an LTS Node.js release **22 or later** to meet this repository's npm engine requirement
    - Installation (macOS): `npm install -g @salesforce/cli` — see https://developer.salesforce.com/tools/salesforcecli
    - Verify: `sf --version`
 
@@ -342,7 +342,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Documentation: https://help.sfdmu.com/
 
 7. **Node.js** — required by the `sf` CLI and SFDMU plugin
-   - Use an LTS version (even-numbered: v20, v22, v24); odd-numbered releases (v21, v23, v25) are not supported by sf CLI
+   - Use an LTS release **22 or later**, matching `package.json`; the build workflow uses Node 24
    - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 

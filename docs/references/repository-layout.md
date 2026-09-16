@@ -104,8 +104,7 @@ rlm-base-dev/
 │   │   │   ├── qb-clm/
 │   │   │   └── qb-guidedselling-products/
 │   │   ├── mfg/en-US/          # Manufacturing data shape (e.g. mfg-pcm) — same patterns as qb
-│   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
-│   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
+│   │   └── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
 │   │   │   ├── QuantumBitBundle/
