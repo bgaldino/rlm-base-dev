@@ -186,12 +186,13 @@ def generate_block(plan_dir: str) -> str:
             writable = SFDMUValidator._is_live_writable(variant)
             # Only a live-writable declaration's CSV is REQUIRED, so only it is emitted into the
             # Files listing — which the checker asserts must exist on disk (file-structure pass).
-            # A source-free declaration's CSV (Readonly/Delete/excluded), if one ships, is optional
-            # — SFDMU resolves the object from the org, not the file — so listing it would make
-            # deleting that optional CSV a "no such CSV on disk" error, contradicting the row
-            # rendering it `—` (PR #445 review, copilot 4022308405). A file SHARED by a writable
-            # declaration is still listed: that writable pass reaches this branch for the same
-            # relpath and adds it. `not in files` keeps each physical file listed once.
+            # A source-free declaration's CSV, if one ships, is optional — a Readonly/Delete object
+            # resolves from the target org (not the file), and an excluded declaration is skipped
+            # entirely before load — so listing it would make deleting that optional CSV a "no such
+            # CSV on disk" error, contradicting the row rendering it `—` (PR #445 review, copilot
+            # 4022308405). A file SHARED by a writable declaration is still listed: that writable
+            # pass reaches this branch for the same relpath and adds it. `not in files` keeps each
+            # physical file listed once.
             if writable and relpath is not None and relpath not in files:
                 files[relpath] = count
             elif writable and relpath is None:
