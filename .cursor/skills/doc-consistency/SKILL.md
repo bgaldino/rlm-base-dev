@@ -81,7 +81,7 @@ because they are historical.**
 
 | Hand-retargeted | Why it is excluded, and why it still must change |
 |---|---|
-| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file (`prior_ga_api_version`, "`main` (Release 262 … API `67.0` GA target)") — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
+| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file, alongside the active target (post-cutover: current `number` `264` / `api_version` `68.0` with `prior_ga_release` `262` / `prior_ga_api_version` `67.0`) — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
 
 `.agents/artifacts/**` is a private nested repo, gitignored and therefore unreachable
 by either pass; nothing there needs retargeting.

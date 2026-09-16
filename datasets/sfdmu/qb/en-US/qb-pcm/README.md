@@ -308,10 +308,10 @@ That task runs the load twice and fails if any object's record count increases o
 
 **Validated (2026-04-02)** — idempotency confirmed against rlmtrialtest (260 org). All 26 processed objects pass with zero record count increase on second run (the 2 excluded objects, ProductComponentGrpOverride and ProductRelComponentOverride, are not processed).
 
-## 260 Schema Validation Notes
+## Schema Validation Notes
 
-- **API Version**: `68.0` (Release 264)
-- **Validated (2026-04-02)** against rlmtrialtest org (Release 260); 262 re-validation pending
+- **Configured API Version**: `68.0` (Release 264)
+- **Last live validation (2026-04-02)**: against rlmtrialtest org (Release 260); 264 re-validation pending (no 264 run yet)
 - Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
 - ProductCategory self-reference (Network Adapter → PCIe) validated
 - ProductClassification: all 18 records are root-level (no hierarchy yet)

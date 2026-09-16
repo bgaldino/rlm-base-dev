@@ -7,7 +7,7 @@
 - **Salesforce target:** Release 264 / Winter '27
 - **API version:** `68.0`
 - **Source format:** SFDX
-- **Default branch:** `main` (Release 262 / Summer '26 / API `67.0` GA target)
+- **Default branch:** `main` (Release 264 / Winter '27 / API `68.0` — promoted from `264`; 264 is preview/pre-GA)
 - **Active release branch in manifest:** `264`
 - **Frozen prior-GA reference branch:** `release/262`
 
