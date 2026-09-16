@@ -593,8 +593,15 @@ def check_plan(plan_dir: str):
                 # (PR #445 review, codex 4022218305). Checked whether or not a number is
                 # present — a bare `(org)` / `— (org)` cell on a writable row must not slip
                 # past just because parse_int() found no leading integer (copilot 4022218776).
-                any_writable = bool(matched) and any(
-                    SFDMUValidator._is_live_writable(v) for v in matched)
+                # A blank-Pass row vouches for EVERY pass (see `seen_any_pass` above), so its
+                # single count would exempt a writable pass too — and `count_variants` would
+                # narrow `matched` to just the Readonly variant if the Operation cell names it,
+                # hiding the writable pass from the guard. Evaluate over ALL `compare_variants`
+                # when the Pass cell is blank; only an explicit Pass may narrow the marker to a
+                # source-free declaration (PR #445 review, copilot 4022398078).
+                guard_variants = matched if row_pass is not None else compare_variants
+                any_writable = bool(guard_variants) and any(
+                    SFDMUValidator._is_live_writable(v) for v in guard_variants)
                 if any_writable:
                     errors.append(f"{rel}:{ln} `{name}` record count README="
                                   f"{row['records'].strip()!r} carries an (org) marker on a "

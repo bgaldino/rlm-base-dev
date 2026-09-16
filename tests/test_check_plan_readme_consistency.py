@@ -363,6 +363,19 @@ ORG_COUNT_MARKER = [
     # A bare `(org)` on a source-free Readonly row is accepted (no number, no file check).
     ("a bare `(org)` (no number) on a Readonly row is accepted",
      ([], [], True), _org_marker("Readonly", "(org)")),
+    # copilot 4022398078: a blank-Pass row NAMING the Readonly variant must not bypass the guard.
+    # count_variants would narrow `matched` to Readonly, but a blank-Pass row vouches for every
+    # pass, so the guard evaluates all compare_variants — the pass-1 Upsert makes it writable.
+    ("`(org)` on a blank-Pass row naming Readonly is reported when another pass is writable",
+     True, any("(org) marker on a writable" in e
+               for e in _check([[UPSERT_P1], [dict(UPSERT_P1, operation="Readonly")]],
+                               [_row(1, "Widget__c", "", "Readonly", "Name", "999 (org)")],
+                               csvs={"Widget__c.csv": "Id\nr\nr\n"})[0])),
+    # ...but when EVERY pass is source-free, a blank-Pass `(org)` row is still legitimately accepted.
+    ("`(org)` on a blank-Pass row is accepted when every pass is source-free",
+     ([], [], True),
+     _check([[dict(UPSERT_P1, operation="Readonly")], [dict(UPSERT_P1, operation="Readonly")]],
+            [_row(1, "Widget__c", "", "Readonly", "Name", "5 (org)")])),
     ("the marker is case-insensitive and space-tolerant (`( ORG )`)",
      ([], [], True),
      _org_marker("Readonly", "999 ( ORG )", csvs={"Widget__c.csv": "Id\none\n"})),

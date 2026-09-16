@@ -92,9 +92,10 @@ BLOCK_TEMPLATE = """{begin}
 {notes}
 ## Required source CSVs
 
-<!-- Only CSVs a live-writable declaration must load. A source-free declaration's
-     optional CSV (Readonly/Delete/excluded) resolves from the target org, so it is
-     omitted here even if one ships. -->
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 {files}
