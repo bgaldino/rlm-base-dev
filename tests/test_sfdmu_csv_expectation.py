@@ -713,13 +713,16 @@ FIX_MODES = [
          if n.endswith("object-set-2/Widget__c.csv") and b.strip()]),
     # The fixer repairs an existing root CSV's shape; it never *creates* one (pack 150). Three
     # missing-root shapes, each of which must stay missing after `--fix-all`, because a written file
-    # would either reintroduce a shape `_objects_owing_root_csv` stopped demanding or silently
-    # convert a missing-data Critical into a passing empty CSV. `fix_mode_writes` rglobs every CSV
-    # afterward, so a file the fixer refrained from creating is simply absent from its result.
+    # would either reintroduce a shape `_objects_owing_root_csv` stopped demanding or downgrade a
+    # missing-data Critical to a header-only-CSV HIGH (which is what the validate loop flags a
+    # header-with-0-data-rows file for a non-allowlisted object — not a silent pass). `fix_mode_writes`
+    # rglobs every CSV afterward, so a file the fixer refrained from creating is simply absent from
+    # its result.
     #
     # (a) An object validation genuinely owes a root CSV for (writable pass 1) but whose file is
     # absent: the fixer is not an extractor — it cannot know the rows — so it leaves the missing-file
-    # Critical for the validate loop rather than writing a header-only CSV that would pass.
+    # Critical intact for the validate loop rather than writing a header-only CSV that would merely
+    # downgrade that Critical to a HIGH.
     ("--fix-all does NOT create a missing root CSV for an object that owes one (fixer is not an "
      "extractor)",
      False, [n for n in fix_mode_writes(

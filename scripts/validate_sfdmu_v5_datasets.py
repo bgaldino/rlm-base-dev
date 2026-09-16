@@ -2544,17 +2544,20 @@ class SFDMUValidator:
             csv_path = dataset_path / f"{obj_name}.csv"
             if not csv_path.exists():
                 # The fixer repairs an existing root CSV's shape (empty-header, missing composite
-                # key); it never *creates* one. Deliberate, not incidental — two distinct classes of
-                # missing root CSV reach this line and neither wants a file written:
+                # key); it never *creates* one. Deliberate, not incidental. There are two distinct
+                # classes of missing root CSV and neither wants a file written here — though only the
+                # second actually reaches this guard:
                 #   - An object validation does not owe a root CSV for (Readonly-only, or its only
-                #     writable pass has a flag-gated per-pass override) never enters this loop at all
+                #     writable pass has a flag-gated per-pass override) never reaches this line at all
                 #     — `not reading: continue` above drops it, because `_objects_owing_root_csv`
                 #     leaves it out. Materializing a root CSV here would reintroduce exactly the shape
                 #     that function was taught to stop demanding.
-                #   - An object that genuinely owes a root CSV but whose file is absent is a
-                #     missing-data defect the validate loop reports Critical. The fixer is not an
-                #     extractor: it cannot know the rows, and an empty header alone would convert that
-                #     Critical into a silently-passing empty CSV. Leave it for `extract_*`/the author.
+                #   - An object that genuinely owes a root CSV but whose file is absent — the class
+                #     that does reach this guard — is a missing-data defect the validate loop reports
+                #     Critical. The fixer is not an extractor: it cannot know the rows, and writing an
+                #     empty header alone would only *downgrade* that Critical, not clear it — the
+                #     validate loop flags a header-with-0-data-rows CSV HIGH for a non-allowlisted
+                #     object (see the `data_row_count == 0` branch). Leave it for `extract_*`/the author.
                 continue
 
             # The same declarations validation checks this file against, so what is reportable is
