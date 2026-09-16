@@ -103,7 +103,7 @@ source ~/.zshrc
 nvm install --lts
 
 # Set LTS as the default for all new shells
-nvm alias default lts/*
+nvm alias default 'lts/*'
 
 # Verify
 node --version   # Should show an LTS release >=22 (the build workflow uses Node 24)
@@ -198,9 +198,9 @@ deactivate
 # Uses the pyenv global set in Step 4 ($(pyenv prefix) resolves to that version)
 $(pyenv prefix)/bin/python3 -m pip install --user pipx
 
-# Ensure ~/.local/bin is in your PATH (pipx installs cci, snowfakery, etc. there)
+# Persist the pipx executable path for future shells, then update this shell too
 $(pyenv prefix)/bin/python3 -m pipx ensurepath
-source ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
 
 # Install CumulusCI using the same Python version
 pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
@@ -267,7 +267,7 @@ cci org default <cci-alias>
 For scratch-org creation, authenticate the Dev Hub separately in Salesforce CLI:
 
 ```bash
-sf org login web --alias devhub --instance-url https://login.salesforce.com
+sf org login web --alias devhub --set-default-dev-hub --instance-url https://login.salesforce.com
 ```
 
 Create the target scratch org using the [org-operations quick start](org-operations.md#create-a-scratch-org); `cci org scratch` registers its CCI alias.
@@ -437,7 +437,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    ```bash
    sf --version
    cci version
-   sf plugins list  # Should show sfdmu 5.x
+   sf plugins list  # Should show sfdmu 5.6.4 or later
    ```
    **Headless robot env — no org or flow required:** With pipx, run the command below. For project-venv CCI, use the [venv validation command](#step-11--verify-the-full-setup) after installing its requirements:
    ```bash

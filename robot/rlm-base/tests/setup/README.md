@@ -157,8 +157,8 @@ All tests detect current state before making changes:
 |------|------|------|
 | `enable_document_builder_toggle` | `prepare_docgen` | Step 2 |
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
-| `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
-| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
+| `configure_revenue_settings` | `prepare_rlm_org` | Step 25 (via `prepare_revenue_settings`) |
+| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 25 (via `prepare_revenue_settings`, step 3) |
 | `configure_product_discovery_settings` | `prepare_rlm_org` | Via `prepare_pricing_discovery`, step 2 (gated by `project__custom__qb`) |
 
 ## Generated Output
