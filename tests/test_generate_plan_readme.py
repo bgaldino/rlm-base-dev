@@ -207,6 +207,41 @@ def _case_generate_block_counts_and_missing():
 
 
 
+def _case_readonly_only_optional_csv_not_required():
+    """PR #445 review 4022308405: a Readonly-only plan's optional CSV must NOT be emitted into the
+    Files listing — the checker asserts every listed file exists on disk, so listing it would make
+    deleting that optional CSV a `no such CSV on disk` error, contradicting the org-resolved
+    contract (the row renders `—`). Generate with the CSV, confirm it isn't listed, delete it, and
+    confirm the checker stays silent."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [READONLY_GADGET]}]}, {"Gadget__c.csv": _csv(3)})
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        listed = "Gadget__c.csv" in (plan / "README.md").read_text()  # Files section only (row uses the bare name)
+        (plan / "Gadget__c.csv").unlink()
+        errors, warns, _ = checker.check_plan(str(plan))
+        return (not listed, len(errors), warns)
+
+
+def _case_shared_writable_readonly_csv_still_listed():
+    """The caveat to the fix above: a CSV SHARED by a writable declaration must stay listed even
+    though a Readonly pass also references it. Upsert(pass1) + Readonly(pass2) on one object over a
+    single root CSV — the file is required by pass 1, so it must appear in the Files listing and the
+    plan must round-trip cleanly."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = _plan(td, {"objectSets": [{"objects": [UPSERT_WIDGET]}, {"objects": [READONLY_GADGET]}]},
+                     {"Widget__c.csv": _csv(4)})
+        # Reuse the same object across passes so the physical file is genuinely shared.
+        (plan / "export.json").write_text(json.dumps(
+            {"objectSets": [{"objects": [UPSERT_WIDGET]},
+                            {"objects": [dict(UPSERT_WIDGET, operation="Readonly")]}]}))
+        G.write_readme(str(plan))
+        import check_plan_readme_consistency as checker
+        listed = "Widget__c.csv" in (plan / "README.md").read_text()
+        errors, warns, _ = checker.check_plan(str(plan))
+        return (listed, len(errors), warns)
+
+
 def _case_same_pass_duplicate_note():
     """pack 165: the same object declared twice in one pass renders two rows identical in
     every compared cell. The generator must surface it as a visible note (not two silently
@@ -353,6 +388,10 @@ GENERATE_BLOCK = [
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Update", excluded=True)),
     ("row count reflects the actual CSV, Readonly gets '—', a writable object with no CSV is flagged",
      (True, True, True), _case_generate_block_counts_and_missing()),
+    ("a Readonly-only plan's optional CSV is not listed as required; deleting it stays silent",
+     (True, 0, []), _case_readonly_only_optional_csv_not_required()),
+    ("a CSV shared by a writable declaration stays listed even when a Readonly pass references it",
+     (True, 0, []), _case_shared_writable_readonly_csv_still_listed()),
     ("same-pass duplicate declaration renders a visible note, two Pass-1 rows, and still round-trips",
      (True, True, True, 0), _case_same_pass_duplicate_note()),
     ("an object appearing once per pass across two passes triggers no same-pass note",

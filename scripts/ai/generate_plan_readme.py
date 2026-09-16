@@ -166,8 +166,6 @@ def generate_block(plan_dir: str) -> str:
             else:
                 records = str(count) if count is not None else "—"
             rows.append(f"| {row_num} | {_escape_cell(name)} | {pass_no} | {op} | {ext_id} | {records} |")
-            if relpath is not None and relpath not in files:
-                files[relpath] = count
             # Calls the validator's own centralized rule instead of re-deriving it as a
             # second, independent copy of "Readonly AND Delete owe no CSV" (round 17 of
             # PR #406's review, pack 147) — the same drift-avoidance reason this module
@@ -180,7 +178,18 @@ def generate_block(plan_dir: str) -> str:
             # `_resolve_operation` calls (verified: matches the prior inline check on
             # every case, including excluded, Readonly, Delete, Unresolvable, and a plain
             # writable operation).
-            elif relpath is None and SFDMUValidator._is_live_writable(variant):
+            writable = SFDMUValidator._is_live_writable(variant)
+            # Only a live-writable declaration's CSV is REQUIRED, so only it is emitted into the
+            # Files listing — which the checker asserts must exist on disk (file-structure pass).
+            # A source-free declaration's CSV (Readonly/Delete/excluded), if one ships, is optional
+            # — SFDMU resolves the object from the org, not the file — so listing it would make
+            # deleting that optional CSV a "no such CSV on disk" error, contradicting the row
+            # rendering it `—` (PR #445 review, copilot 4022308405). A file SHARED by a writable
+            # declaration is still listed: that writable pass reaches this branch for the same
+            # relpath and adds it. `not in files` keeps each physical file listed once.
+            if writable and relpath is not None and relpath not in files:
+                files[relpath] = count
+            elif writable and relpath is None:
                 writable_missing_csv = True
 
     # A literal space precedes "#" so a path >= 40 chars (e.g. an objectset_source/
