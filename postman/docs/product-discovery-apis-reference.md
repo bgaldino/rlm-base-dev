@@ -236,7 +236,7 @@ The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart t
 
 ## PRODUCT RECOMMENDATION APIs
 
-### 11. Product Recommendations (POST) — new in 264
+### 11. Product Recommendations (POST) — v67.0 (Release 262)
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/product-discovery/products/recommendations`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/product-discovery/products/recommendations`

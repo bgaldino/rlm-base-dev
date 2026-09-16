@@ -16,10 +16,10 @@ The Product Configurator APIs enable interactive configuration of complex produc
 - **Description:** Retrieve and update a product's configuration from a configurator. Executes configuration rules and notifies users of any violations for changes to a product bundle, attributes, or product quantity within a bundle. Also gets pricing details for the configured bundle. This is the entry point for interactive configuration flows, and is also used for incremental node changes (add/update/delete) in a single round trip.
 - **Available Version:** 60.0
 - **Request Body Fields:**
-  - `transactionId` (String, Required): ID of the quote or order line whose configuration is being modified.
+  - `transactionId` (String, Required): ID of the sales transaction (quote or order) being configured.
   - `transactionLineId` (String, Optional): ID of the specific transaction line item to configure.
   - `correlationId` (String, Optional): Unique identifier attached to the request for tracing.
-  - `configuratorOptions` (Object, Optional): Options passed to the configurator — see item 6 (`configuratorOptions`) below for the supported sub-fields (`addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled`, `pricingProcedure`, `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`).
+  - `configuratorOptions` (Array of Configurator Options Input, Optional): Options passed to the configurator — see item 6 (`configuratorOptions`) below for the supported sub-fields (`addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled`, `pricingProcedure`, `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`).
   - `contextResponseType` (String, Optional — 65.0+): Controls response payload size for large transactions. Values: `Delta`, `Full`, `None`, `Product`. Required when the transaction has more than 1,000 and fewer than 15,000 line items.
   - `qualificationContext` (Object, Optional): User context used for qualification rules — `accountId`, `contactId`, `contextId`.
   - `transactionContextId` (String, Optional): Context ID of an existing transaction session.
@@ -201,7 +201,7 @@ Nodes represent individual components within a configuration — products, bundl
 
 ## CONFIGURATION RULE APIs
 
-### 14. Config Rules (POST) — new in 264
+### 14. Config Rules (POST) — v67.0 (Release 262)
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/product-configurator/rules/actions/execute`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/product-configurator/rules/actions/execute`

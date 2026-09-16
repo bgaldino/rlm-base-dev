@@ -10,11 +10,11 @@ description: >-
 
 # Revenue Cloud Business APIs
 
-API v68.0 (Winter '27 / Release 264). All endpoints use `/services/data/v68.0/connect/` prefix on this branch. The Postman collection and per-domain reference docs under `postman/docs/` are version-pinned to v66 (Release 260) and have not been re-extracted for v68 yet — endpoint shapes are stable across the bump but treat the docs as reference, not source of truth.
+API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postman/docs/` and the viewer at `docs/api/index.html` are re-extracted from the 264 (v68.0) developer guide — 148 endpoints across 9 domains. Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org.
 
 ## Quick Rules
 
-1. All endpoints: `/services/data/v68.0/connect/<domain>/` (the `postman/docs/` references show v66.0 paths — substitute v68.0 when calling against a 264 org).
+1. Paths are relative to `/services/data/v68.0/`. Endpoints span several resource families (`/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/`) — use each endpoint's own path from the reference docs; do not assume a single `/connect/` prefix.
 2. Auth: Bearer token from `org_config.access_token`.
 3. Context Service: must activate context definition before use.
 4. Pricing API computes prices — never write PBE records directly via API.
@@ -22,19 +22,19 @@ API v68.0 (Winter '27 / Release 264). All endpoints use `/services/data/v68.0/co
 
 ## API Domain Index
 
-> `Base Path` values below are relative to `/services/data/v68.0` — i.e. `/connect/pcm/` is actually `/services/data/v68.0/connect/pcm/`. The shorthand is used for table compactness; full prefix per Quick Rule #1 above.
+> `Base Path` values below are relative to `/services/data/v68.0` — i.e. `/connect/pcm/` is actually `/services/data/v68.0/connect/pcm/`. Domains span multiple resource families; a domain may expose endpoints under more than one base path. Use each endpoint's own path from its reference doc.
 
-| Domain | Base Path | Key Operations | Reference Doc |
+| Domain | Base Path(s) | Key Operations | Reference Doc |
 |--------|-----------|---------------|---------------|
-| **PCM** | `/connect/pcm/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../postman/docs/pcm-business-apis-reference.md) |
-| **Product Discovery** | `/connect/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../postman/docs/product-discovery-apis-reference.md) |
-| **Product Configurator** | `/connect/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../postman/docs/product-configurator-apis-reference.md) |
-| **Pricing** | `/connect/core-pricing/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v68.md](../../../postman/docs/pricing-business-apis-v68.md) |
-| **Rate Management** | `/connect/core-rating/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../postman/docs/rate-management-apis-reference.md) |
-| **Transaction Mgmt** | `/connect/transaction-management/` | Quotes, orders, assets, amendments, renewals, cancellations | [transaction-management-apis-reference.md](../../../postman/docs/transaction-management-apis-reference.md) |
-| **Usage Mgmt** | `/connect/usage-management/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../postman/docs/usage-management-apis-reference.md) |
-| **Billing** | `/connect/billing/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../../postman/docs/billing-business-apis-reference.md) |
-| **Context Service** | `/connect/context-service/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../../postman/docs/context-service-apis-reference.md) |
+| **PCM** | `/connect/pcm/`, `/revenue/product-catalog-management/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../postman/docs/pcm-business-apis-reference.md) |
+| **Product Discovery** | `/connect/cpq/`, `/revenue/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../postman/docs/product-discovery-apis-reference.md) |
+| **Product Configurator** | `/connect/cpq/`, `/revenue/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../postman/docs/product-configurator-apis-reference.md) |
+| **Pricing** | `/connect/core-pricing/`, `/connect/procedure-plan-definitions/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v68.md](../../../postman/docs/pricing-business-apis-v68.md) |
+| **Rate Management** | `/connect/core-rating/`, `/connect/core-pricing/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../postman/docs/rate-management-apis-reference.md) |
+| **Transaction Mgmt** | `/revenue/transaction-management/`, `/commerce/`, `/industries/cpq/`, `/global-promotions-management/`, `/connect/revenue-management/` | Quotes, orders, assets, amendments, renewals, cancellations, promotions | [transaction-management-apis-reference.md](../../../postman/docs/transaction-management-apis-reference.md) |
+| **Usage Mgmt** | `/revenue/usage-management/`, `/asset-management/`, `/commerce/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../postman/docs/usage-management-apis-reference.md) |
+| **Billing** | `/commerce/` (billing, invoicing, payments, taxes), `/revenue/billing/`, `/connect/sequences/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../../postman/docs/billing-business-apis-reference.md) |
+| **Context Service** | `/connect/context-definitions/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../../postman/docs/context-service-apis-reference.md) |
 
 ## Common Patterns
 
@@ -43,7 +43,7 @@ All APIs use standard Salesforce OAuth. Use `Authorization: Bearer <access_token
 
 ### PCM vs Product Discovery
 - **PCM APIs** (`/connect/pcm/`): Direct catalog CRUD with standard REST semantics (GET/POST/PUT/PATCH). Admin/integration use cases.
-- **Product Discovery APIs** (`/connect/product-discovery/`): Context-aware, buyer-session-scoped catalog operations. All operations use POST. Apply context filters, entitlements, and pricing rules. Storefront/CPQ use cases.
+- **Product Discovery APIs** (`/connect/cpq/`, `/revenue/product-discovery/`): Context-aware, buyer-session-scoped catalog operations. Apply context filters, entitlements, and pricing rules. Storefront/CPQ use cases.
 
 ### Transaction Lifecycle APIs
 The transaction management APIs follow a standard lifecycle:
@@ -54,15 +54,15 @@ Create Quote → Add Line Items → Configure → Price → Place Order → Crea
                                               Amend / Renew / Cancel
 ```
 
-Key endpoints:
-- `POST /connect/transaction-management/quotes` — Create quote
-- `POST /connect/transaction-management/quotes/{quoteId}/line-items` — Add line items
-- `POST /connect/transaction-management/quotes/{quoteId}/actions/place-order` — Place order
-- `POST /connect/transaction-management/assets/{assetId}/actions/amend` — Amend asset
-- `POST /connect/transaction-management/assets/{assetId}/actions/renew` — Renew asset
+Key endpoints (see the reference doc for exact request shapes):
+- `POST /commerce/quotes/actions/place` — Place a quote sales transaction
+- `POST /commerce/sales-orders/actions/place` — Place an order sales transaction
+- `POST /connect/revenue-management/assets/actions/amend` — Amend asset
+- `POST /connect/revenue-management/assets/actions/renew` — Renew asset
+- `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
 ### Pricing APIs
-- `POST /connect/core-pricing/calculate` — Calculate prices for a transaction
+- `POST /connect/core-pricing/pricing` — Calculate prices for a transaction
 - `GET /connect/core-pricing/waterfall/{lineItemId}/{executionId}` — Pricing waterfall (audit trail)
 - Rate Management uses `/connect/core-rating/rate-plan` for usage-based pricing
 

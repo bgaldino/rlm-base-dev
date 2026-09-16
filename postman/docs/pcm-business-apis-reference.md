@@ -33,7 +33,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Available Version:** 60.0
 - **Path Parameters:**
   - `catalogId` (String, Required): Salesforce ID of the catalog record. Use `{{defaultCatalogId}}` from the Setup Runner.
-- **Request Body Fields:**
+- **Query Parameters:**
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `fields` (String[], Optional): For internal use only.
   - `language` (String, Optional, Available Version 64.0): Custom language for translated field data.
@@ -50,7 +50,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Available Version:** 60.0
 - **Path Parameters:**
   - `catalogId` (String, Required): Salesforce ID of the catalog. Use `{{defaultCatalogId}}`.
-- **Request Body Fields:**
+- **Query Parameters:**
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `depth` (Integer, Optional): Number of levels in the category hierarchy to return. Default: 1.
   - `fields` (String[], Optional): For internal use only.
@@ -67,7 +67,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Available Version:** 60.0
 - **Path Parameters:**
   - `categoryId` (String, Required): Salesforce ID of the category record. Use `{{defaultCategoryId}}` from the Setup Runner.
-- **Request Body Fields:**
+- **Query Parameters:**
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `fields` (String[], Optional): For internal use only.
   - `language` (String, Optional, Available Version 64.0): Custom language for translated field data.
@@ -107,7 +107,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Available Version:** 60.0
 - **Path Parameters:**
   - `productId` (String, Required): Salesforce ID of the product. Use `{{defaultTermDefinedAnnualProductId}}` or another product variable from the Setup Runner.
-- **Request Body Fields:**
+- **Query Parameters:**
   - `catalogSystems` (String[], Optional, Available Version 66.0): Name of the catalog system — `epc` (Enterprise Product Catalog) or `pcm` (Product Catalog Management, default). Only one value is honored even though the parameter accepts a list.
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `fields` (String[], Optional): For internal use only.
@@ -220,7 +220,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/configurations`
 - **Description:** Retrieve the current product index configurations. The product index drives search performance in Product Discovery APIs.
 - **Available Version:** 62.0
-- **Request Body Fields:**
+- **Query Parameters:**
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `fieldTypes` (String[], Optional): Filters returned index configurations by type. Supported values: `STANDARD`, `CUSTOM`, `ProductDynamicAttribute`, `ProductAttributeDefinitionStandard`, `ProductAttributeDefinitionCustom`.
   - `includeMetadata` (Boolean, Optional): Whether to include metadata in the response.
@@ -279,7 +279,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/snapshots`
 - **Description:** List all available product index snapshots. Snapshots represent point-in-time captures of the index that can be deployed to production.
 - **Available Version:** 62.0
-- **Request Body Fields:**
+- **Query Parameters:**
   - `numberOfIndexLogs` (Integer, Optional, Available Version 63.0): Number of index logs to include in the response. Valid values 0-100. Default: 25.
 
 ---
@@ -305,7 +305,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/error`
 - **Description:** Retrieve the count and details of errors that occurred during the indexing process.
 - **Available Version:** 63.0
-- **Request Body Fields:**
+- **Query Parameters:**
   - `indexId` (String, Required): ID of the index.
   - `snapshotIndexId` (String, Required): ID of the snapshot index.
 
@@ -319,7 +319,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/unit-of-measure/info`
 - **Description:** Retrieve metadata about units of measure (UoM) configured in the org. UoMs define how product quantities are measured and rounded.
 - **Available Version:** 63.0
-- **Request Body Fields:**
+- **Query Parameters:**
   - `correlationId` (String, Optional): Unique token to track and associate related events or transactions.
   - `ids` (String, Optional): IDs of the unit of measure records to retrieve. If unspecified, returns info for all configured UoMs.
 

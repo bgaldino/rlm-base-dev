@@ -36,17 +36,16 @@ The two original environment files (`RLM QuantumBit Default Environment.postman_
 
 Per-domain endpoint references are in `docs/`. Each guide covers HTTP method, URI path, full URL, request body fields, and environment variables.
 
-- [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (19 endpoints)
-- [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (10 endpoints)
-- [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (13 endpoints)
-- [Pricing](docs/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (10 endpoints)
+- [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (22 endpoints)
+- [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (11 endpoints)
+- [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (14 endpoints)
+- [Pricing](docs/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (19 endpoints)
 - [Rate Management](docs/rate-management-apis-reference.md) — Rate plans and rating waterfall for usage-based billing (2 endpoints)
-- [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (17 endpoints)
-- [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (6 endpoints)
+- [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (21 endpoints)
+- [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (7 endpoints)
 - [Billing (Quick Reference)](docs/billing-apis-quick-reference.md) — Billing quick reference cheat sheet
-- [Billing (Full Reference)](docs/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (full coverage)
+- [Billing (Full Reference)](docs/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (47 endpoints)
 - [Context Service](docs/context-service-apis-reference.md) — Context definitions, nodes, and mappings that power pricing and entitlements (5 endpoints)
-- [Overall API Reference](docs/rlm-v260-business-apis-reference.md) — Master reference covering all v260 Business API endpoints across all domains
 
 ---
 

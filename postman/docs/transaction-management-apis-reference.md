@@ -98,7 +98,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/sales-transactions/actions/get-eligible-promotions`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/sales-transactions/actions/get-eligible-promotions`
-- **Description:** Get eligible promotions for line items within a quote or an order. Accepts line item IDs and a sales transaction ID, then initializes the promotion-evaluation context by filtering on the specified line items. Introduced in Summer '26 (v66.0).
+- **Description:** Get eligible promotions for line items within a quote or an order. Accepts line item IDs and a sales transaction ID, then initializes the promotion-evaluation context by filtering on the specified line items. Introduced in Spring '26 (v66.0).
 - **Available Version:** 66.0
 - **Request Body Fields:**
   - `salesTransactionId` (String, Required): The sales transaction ID (order ID or quote ID) for the promotion evaluation.
@@ -202,7 +202,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/upgrade`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/upgrade`
-- **Description:** New in Summer '26 (v66.0). Move a lower-tier product to a higher-tier product. Tracked as an upgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with order actions and quote action subtypes. On assetization, the original asset receives an asset action with an `Upgrade` (or equivalent) business category, and the new asset is created with a linked "upgraded to" asset action.
+- **Description:** New in Spring '26 (v66.0). Move a lower-tier product to a higher-tier product. Tracked as an upgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with order actions and quote action subtypes. On assetization, the original asset receives an asset action with an `Upgrade` (or equivalent) business category, and the new asset is created with a linked "upgraded to" asset action.
 - **Available Version:** 66.0
 - **Request Body Fields:**
   - `swapStartDate` (String, Required): Amendment start date for the upgrade action.
@@ -219,7 +219,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/downgrade`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/downgrade`
-- **Description:** New in Summer '26 (v66.0). Move to a lower-tier or lower-value product. Tracked as a downgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with downgrade-specific order actions and quote action subtypes. On assetization, the original asset receives a `Downgrade` (or equivalent) asset action, linked to a "downgraded to" asset action on the new asset.
+- **Description:** New in Spring '26 (v66.0). Move to a lower-tier or lower-value product. Tracked as a downgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with downgrade-specific order actions and quote action subtypes. On assetization, the original asset receives a `Downgrade` (or equivalent) asset action, linked to a "downgraded to" asset action on the new asset.
 - **Available Version:** 66.0
 - **Request Body Fields:**
   - `swapStartDate` (String, Required): Amendment start date for the downgrade action.
@@ -236,7 +236,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/swap`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/swap`
-- **Description:** New in Summer '26 (v66.0). Exchange one product for another of equivalent or different value. Tracked as a swap request with linked asset actions and a net-zero order total where applicable. Creates an amendment quote and order with order actions and quote action subtypes. Supports use cases such as trading unused licenses for credits or moving spend between products while preserving contract intent. On assetization, the source asset receives a `Swap` (reduced quantity) asset action, linked to a "swapped in" asset action on the new asset.
+- **Description:** New in Spring '26 (v66.0). Exchange one product for another of equivalent or different value. Tracked as a swap request with linked asset actions and a net-zero order total where applicable. Creates an amendment quote and order with order actions and quote action subtypes. Supports use cases such as trading unused licenses for credits or moving spend between products while preserving contract intent. On assetization, the source asset receives a `Swap` (reduced quantity) asset action, linked to a "swapped in" asset action on the new asset.
 - **Available Version:** 66.0
 - **Request Body Fields:**
   - `swapStartDate` (String, Required): Amendment start date for the swap action.
@@ -328,7 +328,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 - **HTTP Method:** GET, POST, PUT
 - **URI Path:** `/global-promotions-management/promotions`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/global-promotions-management/promotions`
-- **Description:** New in Summer '26 (v66.0). Create, retrieve, or update a Unified Promotion — including `promotionDetails` (eligibility, limits, rule library) and `rules` (event configuration, reward configuration, selling-model discounts). Get rewards based on a product selling model template. Listed alongside the Transaction Management REST references in the 264 Developer Guide; full property reference lives under the Loyalty/Unified Promotions Connect API.
+- **Description:** New in Spring '26 (v66.0). Create, retrieve, or update a Unified Promotion — including `promotionDetails` (eligibility, limits, rule library) and `rules` (event configuration, reward configuration, selling-model discounts). Get rewards based on a product selling model template. Listed alongside the Transaction Management REST references in the 264 Developer Guide; full property reference lives under the Loyalty/Unified Promotions Connect API.
 - **Available Version:** 66.0
 
 *Grounded against: `connect_resources_create_promotions.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
@@ -414,7 +414,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 
 - **[Product Discovery APIs](product-discovery-apis-reference.md)** — Discover and price products before placing transactions.
 - **[Product Configurator APIs](product-configurator-apis-reference.md)** — Configure complex bundles before placing.
-- **[Pricing APIs](pricing-business-apis-v66.md)** — Pricing procedures and waterfall details.
+- **[Pricing APIs](pricing-business-apis-v68.md)** — Pricing procedures and waterfall details.
 - **[Billing APIs](billing-business-apis-reference.md)** — Invoices, payments, and credit memos generated after order activation.
 - **[Usage Management APIs](usage-management-apis-reference.md)** — Track usage against assets created by transaction orders.
 

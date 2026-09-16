@@ -1,7 +1,7 @@
 # Salesforce Context Service APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Context Service APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Context Service APIs. **Provenance caveat:** the 264 (v68.0) Developer Guide has no Context Service Business-API section, so these five endpoints are v59 carryover — retained here for continuity from the Agentforce Revenue Management APIs Postman collection and earlier guides, not a fresh 264 extraction. Verify shapes against a live 264 org before relying on them. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Context Service is the backbone of Revenue Cloud's pricing and entitlement system. A context definition describes the input data structure for a pricing or configuration operation, and a context mapping binds Salesforce object fields to that structure. Together, they allow the pricing engine to hydrate a context instance at runtime — pulling account attributes, product characteristics, and transaction data into the input record that pricing procedures operate on.
 

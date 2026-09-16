@@ -204,10 +204,10 @@ const DOMAINS = {
           { method:'GET', path:'/connect/pcm/catalogs/{catalogId}', title:'Get Catalog', version:'60.0',
             desc:'Retrieve details of a specific product catalog by its Salesforce record ID.',
             params:[{name:'catalogId',desc:'Salesforce ID of the catalog record. Use {{defaultCatalogId}} from the Setup Runner.'}],
-            fields:[
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'fields',type:'String[]',req:false,desc:'For internal use only.'},
-              {name:'language',type:'String',req:false,desc:'Custom language for translated field data. Available Version 64.0.'},
+            query:[
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'fields',desc:'(String[]) For internal use only.'},
+              {name:'language',desc:'(String) Custom language for translated field data. Available Version 64.0.'},
             ]},
         ]
       },
@@ -217,20 +217,20 @@ const DOMAINS = {
           { method:'GET', path:'/connect/pcm/catalogs/{catalogId}/categories', title:'List Categories', version:'60.0',
             desc:'Retrieve the root-level categories of a catalog based on a catalog ID, or subcategories based on a parent category. You can also search, filter, or sort the categories.',
             params:[{name:'catalogId',desc:'Salesforce ID of the catalog. Use {{defaultCatalogId}}.'}],
-            fields:[
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'depth',type:'Integer',req:false,desc:'Number of levels in the category hierarchy to return. Default: 1.'},
-              {name:'fields',type:'String[]',req:false,desc:'For internal use only.'},
-              {name:'language',type:'String',req:false,desc:'Custom language for translated field data. Available Version 64.0.'},
-              {name:'parentCategoryId',type:'String',req:false,desc:'ID of the category to fetch the associated hierarchy of subcategories. If unspecified, root-level categories are returned.'},
+            query:[
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'depth',desc:'(Integer) Number of levels in the category hierarchy to return. Default: 1.'},
+              {name:'fields',desc:'(String[]) For internal use only.'},
+              {name:'language',desc:'(String) Custom language for translated field data. Available Version 64.0.'},
+              {name:'parentCategoryId',desc:'(String) ID of the category to fetch the associated hierarchy of subcategories. If unspecified, root-level categories are returned.'},
             ]},
           { method:'GET', path:'/connect/pcm/categories/{categoryId}', title:'Get Category', version:'60.0',
             desc:'Retrieve details of a specific product category by its Salesforce record ID.',
             params:[{name:'categoryId',desc:'Salesforce ID of the category record. Use {{defaultCategoryId}} from the Setup Runner.'}],
-            fields:[
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'fields',type:'String[]',req:false,desc:'For internal use only.'},
-              {name:'language',type:'String',req:false,desc:'Custom language for translated field data. Available Version 64.0.'},
+            query:[
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'fields',desc:'(String[]) For internal use only.'},
+              {name:'language',desc:'(String) Custom language for translated field data. Available Version 64.0.'},
             ]},
         ]
       },
@@ -256,11 +256,11 @@ const DOMAINS = {
           { method:'GET', path:'/connect/pcm/products/{productId}', title:'Get Product', version:'60.0',
             desc:'Retrieve the full details of a single product record or bundle by its Salesforce record ID.',
             params:[{name:'productId',desc:'Salesforce ID of the product. Use {{defaultTermDefinedAnnualProductId}} or another product variable from the Setup Runner.'}],
-            fields:[
-              {name:'catalogSystems',type:'String[]',req:false,desc:'Name of the catalog system — epc (Enterprise Product Catalog) or pcm (Product Catalog Management, default). Only one value is honored even though the parameter accepts a list. Available Version 66.0.'},
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'fields',type:'String[]',req:false,desc:'For internal use only.'},
-              {name:'language',type:'String',req:false,desc:'Custom language for translated field data. Available Version 64.0.'},
+            query:[
+              {name:'catalogSystems',desc:'(String[]) Name of the catalog system — epc (Enterprise Product Catalog) or pcm (Product Catalog Management, default). Only one value is honored even though the parameter accepts a list. Available Version 66.0.'},
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'fields',desc:'(String[]) For internal use only.'},
+              {name:'language',desc:'(String) Custom language for translated field data. Available Version 64.0.'},
             ]},
           { method:'POST', path:'/connect/pcm/products/bulk', title:'Bulk Product Details', version:'61.0',
             desc:'Retrieve full product details for multiple products in a single request. More efficient than individual Get Product calls when loading several products at once.',
@@ -322,10 +322,10 @@ const DOMAINS = {
         endpoints: [
           { method:'GET', path:'/connect/pcm/index/configurations', title:'Index Configuration Collection', version:'62.0',
             desc:'Retrieve the current product index configurations. The product index drives search performance in Product Discovery APIs.',
-            fields:[
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'fieldTypes',type:'String[]',req:false,desc:'Filters returned index configurations by type. Supported values: STANDARD, CUSTOM, ProductDynamicAttribute, ProductAttributeDefinitionStandard, ProductAttributeDefinitionCustom.'},
-              {name:'includeMetadata',type:'Boolean',req:false,desc:'Whether to include metadata in the response.'},
+            query:[
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'fieldTypes',desc:'(String[]) Filters returned index configurations by type. Supported values: STANDARD, CUSTOM, ProductDynamicAttribute, ProductAttributeDefinitionStandard, ProductAttributeDefinitionCustom.'},
+              {name:'includeMetadata',desc:'(Boolean) Whether to include metadata in the response.'},
             ]},
           { method:'PUT', path:'/connect/pcm/index/configurations', title:'Update Index Configuration', version:'62.0',
             desc:'Replace the full set of product index configurations. Use to define which fields are included in the search index.',
@@ -348,8 +348,8 @@ const DOMAINS = {
         endpoints: [
           { method:'GET', path:'/connect/pcm/index/snapshots', title:'Snapshot Collection', version:'62.0',
             desc:'List all available product index snapshots. Snapshots represent point-in-time captures of the index that can be deployed to production.',
-            fields:[
-              {name:'numberOfIndexLogs',type:'Integer',req:false,desc:'Number of index logs to include in the response. Valid values 0-100. Default: 25. Available Version 63.0.'},
+            query:[
+              {name:'numberOfIndexLogs',desc:'(Integer) Number of index logs to include in the response. Valid values 0-100. Default: 25. Available Version 63.0.'},
             ]},
           { method:'POST', path:'/connect/pcm/index/deploy', title:'Deploy Snapshot', version:'62.0',
             desc:'Create indexes for a snapshot. Indexes improve search results and make it easier to find products at run time through search terms.',
@@ -359,9 +359,9 @@ const DOMAINS = {
             ]},
           { method:'GET', path:'/connect/pcm/index/error', title:'Snapshot Index Error', version:'63.0',
             desc:'Retrieve the count and details of errors that occurred during the indexing process.',
-            fields:[
-              {name:'indexId',type:'String',req:true,desc:'ID of the index.'},
-              {name:'snapshotIndexId',type:'String',req:true,desc:'ID of the snapshot index.'},
+            query:[
+              {name:'indexId',desc:'(String, Required) ID of the index.'},
+              {name:'snapshotIndexId',desc:'(String, Required) ID of the snapshot index.'},
             ]},
         ]
       },
@@ -370,9 +370,9 @@ const DOMAINS = {
         endpoints: [
           { method:'GET', path:'/connect/pcm/unit-of-measure/info', title:'Unit of Measure Info', version:'63.0',
             desc:'Retrieve metadata about units of measure (UoM) configured in the org. UoMs define how product quantities are measured and rounded.',
-            fields:[
-              {name:'correlationId',type:'String',req:false,desc:'Unique token to track and associate related events or transactions.'},
-              {name:'ids',type:'String',req:false,desc:'IDs of the unit of measure records to retrieve. If unspecified, returns info for all configured UoMs.'},
+            query:[
+              {name:'correlationId',desc:'(String) Unique token to track and associate related events or transactions.'},
+              {name:'ids',desc:'(String) IDs of the unit of measure records to retrieve. If unspecified, returns info for all configured UoMs.'},
             ]},
           { method:'POST', path:'/connect/pcm/unit-of-measure/rounded-data', title:'Unit of Measure Rounded Data', version:'63.0',
             desc:'Round off and scale decimal data for a specific set of fields, based on the unit of measure and its configured precision. Use to ensure quantities conform to UoM rounding rules before placing orders.',
@@ -603,7 +603,7 @@ const DOMAINS = {
         endpoints: [
           { method:'POST', path:'/revenue/product-discovery/products/recommendations', title:'Product Recommendations', version:'67.0',
             desc:'Get a list of recommended products for the current quote or order, based on applicable constraint rules, with recommendation reasons and compatibility indicators.',
-            note:'New in 264. Uses a different base path (/revenue/product-discovery/) than the rest of the Product Discovery composite APIs (/connect/cpq/).',
+            note:'New in v67.0 (Release 262, Summer \'26). Uses a different base path (/revenue/product-discovery/) than the rest of the Product Discovery composite APIs (/connect/cpq/).',
             fields:[
               {name:'catalogId',type:'String',req:false,desc:'Catalog to fetch recommended products from.'},
               {name:'priceBookId',type:'String',req:false,desc:'If omitted, prices from the standard price book are fetched.'},
@@ -638,10 +638,10 @@ const DOMAINS = {
           { method:'POST', path:'/connect/cpq/configurator/actions/configure', title:'Configure', version:'60.0',
             desc:'Retrieve and update a product\'s configuration from a configurator. Executes configuration rules and notifies users of any violations for changes to a product bundle, attributes, or product quantity within a bundle. Also gets pricing details for the configured bundle; this is the entry point for interactive configuration flows and incremental node changes (add/update/delete) in a single round trip.',
             fields:[
-              {name:'transactionId', type:'String', req:true, desc:'ID of the quote or order line whose configuration is being modified.'},
+              {name:'transactionId', type:'String', req:true, desc:'ID of the sales transaction (quote or order) being configured.'},
               {name:'transactionLineId', type:'String', req:false, desc:'ID of the specific transaction line item to configure.'},
               {name:'correlationId', type:'String', req:false, desc:'Unique identifier attached to the request for tracing.'},
-              {name:'configuratorOptions', type:'Object', req:false, desc:'Options passed to the configurator: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled, pricingProcedure, qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog.'},
+              {name:'configuratorOptions', type:'Array', req:false, desc:'Array of configurator option objects. Supported sub-fields: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled, pricingProcedure, qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog.'},
               {name:'contextResponseType', type:'String', req:false, desc:'Controls response payload size for large transactions (65.0+). Values: Delta, Full, None, Product. Required when the transaction has more than 1,000 and fewer than 15,000 line items.'},
               {name:'qualificationContext', type:'Object', req:false, desc:'User context used for qualification rules — accountId, contactId, contextId.'},
               {name:'transactionContextId', type:'String', req:false, desc:'Context ID of an existing transaction session.'},
@@ -750,7 +750,7 @@ const DOMAINS = {
       {
         id: 'cfg-configuration-rule', title: 'Configuration Rule APIs',
         endpoints: [
-          { method:'POST', path:'/revenue/product-configurator/rules/actions/execute', title:'Config Rules (new in 264)', version:'67.0',
+          { method:'POST', path:'/revenue/product-configurator/rules/actions/execute', title:'Config Rules', version:'67.0',
             desc:'Run configuration rules for a specific quote or order, based on a context ID or transaction ID. This endpoint uses a different base path (/revenue/product-configurator/) than the rest of the Product Configurator APIs (/connect/cpq/configurator/).',
             fields:[
               {name:'transactionContextId', type:'String', req:true, desc:'Context ID of the transaction whose configuration rules to run. Required if transactionId isn\'t specified.'},
@@ -961,7 +961,7 @@ const DOMAINS = {
               {name:'executionId',desc:'ID of the specific pricing process execution, returned by pricing APIs. (String, Required)'}
             ],
             query:[
-              {name:'ratingParameters',desc:'When true, includes rating-specific parameters in the waterfall output (usage amounts, tier boundaries, rate multipliers). Defaults to false. (Boolean, Optional)'},
+              {name:'tagsToFilter',desc:'Comma-separated tag names to filter the waterfall breakdown. (String, Optional)'},
               {name:'usageType',desc:'Usage type of the waterfall log record. Valid values Rating and Pricing; set to Rating for the persisted rating waterfall. Default is Pricing. (String, Optional)'}
             ]}
         ]
@@ -1017,7 +1017,7 @@ const DOMAINS = {
               {name:'inputParameters',type:'Map&lt;String, Object&gt;',req:false,desc:'v67.0+. Input parameters to preview (e.g., approverComments, requestType).'}
             ]},
           { method:'POST', path:'/revenue/transaction-management/sales-transactions/actions/get-eligible-promotions', title:'Get Eligible Promotions', version:'66.0',
-            desc:'Get eligible promotions for line items within a quote or an order. Accepts line item IDs and a sales transaction ID, then initializes the promotion-evaluation context by filtering on the specified line items. Introduced in Summer \'26 (v66.0).',
+            desc:'Get eligible promotions for line items within a quote or an order. Accepts line item IDs and a sales transaction ID, then initializes the promotion-evaluation context by filtering on the specified line items. Introduced in Spring \'26 (v66.0).',
             fields:[
               {name:'salesTransactionId',type:'String',req:true,desc:'The sales transaction ID (order ID or quote ID) for the promotion evaluation.'},
               {name:'lineItemIds',type:'String[]',req:true,desc:'List of line item IDs to evaluate for promotions; the object type is auto-determined from the sales transaction ID.'}
@@ -1071,7 +1071,7 @@ const DOMAINS = {
               {name:'renewalStartDate',type:'String',req:false,desc:'Start date of the renewal process. Required for early asset renewals and for renewing expired assets (today\'s date or a future date).'}
             ]},
           { method:'POST', path:'/revenue/transaction-management/assets/actions/upgrade', title:'Initiate Upgrade', version:'66.0',
-            desc:'New in Summer \'26 (v66.0). Move a lower-tier product to a higher-tier product. Tracked as an upgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with order actions and quote action subtypes. On assetization, the original asset receives an asset action with an Upgrade (or equivalent) business category, and the new asset is created with a linked "upgraded to" asset action.',
+            desc:'New in Spring \'26 (v66.0). Move a lower-tier product to a higher-tier product. Tracked as an upgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with order actions and quote action subtypes. On assetization, the original asset receives an asset action with an Upgrade (or equivalent) business category, and the new asset is created with a linked "upgraded to" asset action.',
             fields:[
               {name:'swapStartDate',type:'String',req:true,desc:'Amendment start date for the upgrade action.'},
               {name:'outputRecordType',type:'String',req:true,desc:'Record type of the output for the upgrade.'},
@@ -1080,7 +1080,7 @@ const DOMAINS = {
               {name:'opportunityId',type:'String',req:false,desc:'ID of the opportunity record to upgrade.'}
             ]},
           { method:'POST', path:'/revenue/transaction-management/assets/actions/downgrade', title:'Initiate Downgrade', version:'66.0',
-            desc:'New in Summer \'26 (v66.0). Move to a lower-tier or lower-value product. Tracked as a downgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with downgrade-specific order actions and quote action subtypes. On assetization, the original asset receives a Downgrade (or equivalent) asset action, linked to a "downgraded to" asset action on the new asset.',
+            desc:'New in Spring \'26 (v66.0). Move to a lower-tier or lower-value product. Tracked as a downgrade request with linked asset actions and quote/order line linkage for reporting and auditing. Creates an amendment quote and order with downgrade-specific order actions and quote action subtypes. On assetization, the original asset receives a Downgrade (or equivalent) asset action, linked to a "downgraded to" asset action on the new asset.',
             fields:[
               {name:'swapStartDate',type:'String',req:true,desc:'Amendment start date for the downgrade action.'},
               {name:'outputRecordType',type:'String',req:true,desc:'Record type of the output for the downgrade.'},
@@ -1089,7 +1089,7 @@ const DOMAINS = {
               {name:'opportunityId',type:'String',req:false,desc:'ID of the opportunity record to downgrade.'}
             ]},
           { method:'POST', path:'/revenue/transaction-management/assets/actions/swap', title:'Initiate Swap', version:'66.0',
-            desc:'New in Summer \'26 (v66.0). Exchange one product for another of equivalent or different value. Tracked as a swap request with linked asset actions and a net-zero order total where applicable. Creates an amendment quote and order with order actions and quote action subtypes. Supports use cases such as trading unused licenses for credits or moving spend between products while preserving contract intent. On assetization, the source asset receives a Swap (reduced quantity) asset action, linked to a "swapped in" asset action on the new asset.',
+            desc:'New in Spring \'26 (v66.0). Exchange one product for another of equivalent or different value. Tracked as a swap request with linked asset actions and a net-zero order total where applicable. Creates an amendment quote and order with order actions and quote action subtypes. Supports use cases such as trading unused licenses for credits or moving spend between products while preserving contract intent. On assetization, the source asset receives a Swap (reduced quantity) asset action, linked to a "swapped in" asset action on the new asset.',
             fields:[
               {name:'swapStartDate',type:'String',req:true,desc:'Amendment start date for the swap action.'},
               {name:'outputRecordType',type:'String',req:true,desc:'Record type of the output for the swap.'},
@@ -1142,7 +1142,7 @@ const DOMAINS = {
         id: 'txn-promotions', title: 'Promotions API',
         endpoints: [
           { method:'GET, POST, PUT', path:'/global-promotions-management/promotions', title:'Create Promotions', version:'66.0',
-            desc:'New in Summer \'26 (v66.0). Create, retrieve, or update a Unified Promotion — including promotionDetails (eligibility, limits, rule library) and rules (event configuration, reward configuration, selling-model discounts). Get rewards based on a product selling model template. Listed alongside the Transaction Management REST references in the 264 Developer Guide; full property reference lives under the Loyalty/Unified Promotions Connect API.'}
+            desc:'New in Spring \'26 (v66.0). Create, retrieve, or update a Unified Promotion — including promotionDetails (eligibility, limits, rule library) and rules (event configuration, reward configuration, selling-model discounts). Get rewards based on a product selling model template. Listed alongside the Transaction Management REST references in the 264 Developer Guide; full property reference lives under the Loyalty/Unified Promotions Connect API.'}
         ]
       },
       {
@@ -1484,7 +1484,7 @@ function renderOverview() {
     <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264, preview / pre-GA)</p>
 
     <div class="info-box">
-      <strong>This viewer</strong> documents 148 endpoints across 9 API domains, re-extracted from the Release 264 (v68.0) developer guide. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
+      <strong>This viewer</strong> documents 148 endpoints across 9 API domains, re-extracted from the Release 264 (v68.0) developer guide. The five Context Service endpoints are v59 carryover retained for continuity — the 264 guide has no Context Service Business-API section, so they are not a fresh 264 extraction. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
     </div>
 
     <h2 class="section-heading">Collections</h2>

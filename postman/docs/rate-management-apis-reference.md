@@ -25,14 +25,14 @@ The Rate Management APIs support usage-based billing scenarios by exposing the r
 ### 2. Get Rating Waterfall (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/core-pricing/waterfall/{lineItemId}/{executionId}`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall/{lineItemId}/{executionId}?ratingParameters=true`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall/{lineItemId}/{executionId}?usageType=Rating`
 - **Description:** Retrieve the detailed waterfall breakdown of how a price or rating was calculated for a specific line item and execution. Shows each step in the pricing/rating process — including which rate card tiers were applied, adjustments made, and the final computed price. Essential for debugging pricing discrepancies or auditing bill calculation.
 - **Available Version:** 62.0
 - **Path Parameters:**
   - `lineItemId` (String, Required): Salesforce ID of the quote, order, or billing line item
   - `executionId` (String, Required): ID of the specific pricing process execution (returned by pricing APIs)
 - **Query Parameters:**
-  - `ratingParameters` (Boolean, Optional): When `true`, includes rating-specific parameters in the waterfall output (usage amounts, tier boundaries, rate multipliers). Defaults to `false`.
+  - `tagsToFilter` (String, Optional): Comma-separated tag names to filter the waterfall breakdown.
   - `usageType` (String, Optional): Usage type of the waterfall log record. Valid values are `Rating` and `Pricing`. Set to `Rating` to retrieve the persisted rating waterfall; the default value is `Pricing`.
 
 ---
