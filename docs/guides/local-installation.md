@@ -248,16 +248,28 @@ sf plugins list
 
 ### Step 10 — Authenticate with Salesforce
 
+Salesforce CLI and CumulusCI keep separate org registries. An SF CLI login does
+not create a CCI alias. For an existing org, authenticate to the same target org
+in both tools; use `<sf-alias>` with `sf` and `<cci-alias>` with `cci`.
+
 ```bash
-# For a standard org
-sf org login web
+# Register an existing org with Salesforce CLI
+sf org login web --alias <sf-alias>
+# For a sandbox, add --instance-url https://test.salesforce.com
 
-# For a Dev Hub (required for scratch orgs)
-sf org login web --alias devhub --instance-url https://login.salesforce.com
-
-# Set your default org for CCI
-cci org default <your-org-alias>
+# Register that existing org with CCI (once per new CCI alias)
+cci org connect <cci-alias>
+# For a sandbox, add --sandbox to the connect command
+cci org default <cci-alias>
 ```
+
+For scratch-org creation, authenticate the Dev Hub separately in Salesforce CLI:
+
+```bash
+sf org login web --alias devhub --instance-url https://login.salesforce.com
+```
+
+Create the target scratch org using the [org-operations quick start](org-operations.md#create-a-scratch-org); `cci org scratch` registers its CCI alias.
 
 ### Step 11 — Verify the full setup
 
@@ -411,14 +423,17 @@ For the full architecture — shell config responsibilities, the per-project `.e
    ```
    Or manually: `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"` (pipx path; on Windows use `...\Scripts\robot.bat`). If all checks pass, your env is ready for headless robot tasks when the org is configured.
 
-5. **Authenticate with Salesforce:**
+5. **Authenticate an existing org with Salesforce CLI:**
    ```bash
-   sf org login web
-   # OR for Dev Hub (for scratch orgs)
-   sf org login web --alias devhub --instance-url https://login.salesforce.com
+   sf org login web --alias <sf-alias>
+   # For a sandbox, add --instance-url https://test.salesforce.com
    ```
+   For scratch orgs, follow [Step 10](#step-10--authenticate-with-salesforce) for Dev Hub authentication and scratch-org creation instead.
 
-6. **Initialize CumulusCI:**
+6. **Register the same existing org with CumulusCI:**
+   SF CLI and CCI aliases belong to separate registries. Connect once per new CCI alias, then select it as the default:
    ```bash
-   cci org default <your-org-alias>
+   cci org connect <cci-alias>
+   # For a sandbox, add --sandbox to the connect command
+   cci org default <cci-alias>
    ```

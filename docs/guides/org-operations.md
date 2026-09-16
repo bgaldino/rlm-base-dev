@@ -36,8 +36,12 @@ cci org scratch ent <org-alias>
 ### Deploy to an Existing Org
 
 ```bash
-# Set default org
-cci org default <org-alias>
+# Register the existing org if it does not yet have a CCI alias
+cci org connect <cci-alias>
+# For a sandbox, add --sandbox to the connect command
+
+# Set default org (an SF CLI alias alone cannot be used here)
+cci org default <cci-alias>
 
 # Run the main deployment flow
 cci flow run prepare_rlm_org
