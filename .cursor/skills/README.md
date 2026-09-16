@@ -54,7 +54,9 @@ for discovery: the name matches its directory, and the description explains
 what the skill does and when to use it. See the
 [authoring requirements](skill-authoring/SKILL.md#discovery-metadata) for the
 format and validation constraints. Native discovery paths vary by agent;
-the router above remains a plain-file entry point.
+the router above remains a plain-file entry point. The repository includes
+shared-content links under `.agents/skills/` and `.claude/skills/`; see
+[native discovery setup and verification](../../docs/guides/agent-skill-discovery.md).
 
 Each top-level skill should include the sections below. **Quick Rules** is
 present in every skill today and **DO NOT** in most; **Entry Conditions**,

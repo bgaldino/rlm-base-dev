@@ -29,7 +29,9 @@ how products, pricing, and usage grants relate. Cite the files you use.
 The skills are Markdown guides that any coding agent with repository-file access
 can read. They live under `.cursor/skills/` for historical reasons. Use the prompt
 above with Cursor, Claude Code, Codex, GitHub Copilot, or another file-capable agent;
-native skill discovery varies by tool. [AGENTS.md](AGENTS.md) provides the shared
+native skill discovery varies by tool
+([setup and verified clients](docs/guides/agent-skill-discovery.md)).
+[AGENTS.md](AGENTS.md) provides the shared
 project instructions and safety rules.
 
 You can explore the checked-in guides and references without connecting a Salesforce

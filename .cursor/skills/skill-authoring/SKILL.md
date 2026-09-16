@@ -32,6 +32,7 @@ agent that can read repository files.
    some tasks need.
 5. **Register new skills everywhere agents discover them** — update
    `.cursor/skills/README.md`, `AGENTS.md`, and `.claude/skill-manifest.yml`;
+   add matching directory links in `.agents/skills/` and `.claude/skills/`;
    update `.github/copilot-instructions.md` only when Copilot's entry-point
    guidance changes.
 6. **Add Cursor rules only for file-pattern reminders** — rules are for
@@ -182,6 +183,29 @@ description: >-
 - Frontmatter enables metadata-based discovery in compatible tools. It does
   not replace the indexes and manifest below or configure native discovery
   paths for every agent.
+
+### Native discovery links
+
+Keep skill content under `.cursor/skills/<name>/`. For each top-level skill,
+track a relative directory symlink in both `.agents/skills/` and
+`.claude/skills/`, targeting `../../.cursor/skills/<name>`. Link the whole
+directory so supporting files remain available; do not copy skill bodies.
+When adding or retiring a skill, update both link sets in the same change.
+
+For a new skill, run from the repository root, replacing `skill-name`:
+
+```sh
+ln -s ../../.cursor/skills/skill-name .agents/skills/skill-name
+ln -s ../../.cursor/skills/skill-name .claude/skills/skill-name
+```
+
+Verify both paths resolve after a fresh Git checkout and are tracked as
+symlinks (mode `120000` in `git ls-files -s`). Check the client's native
+listing for missing or duplicate entries, then invoke one representative
+skill. Record the tested client/version and any unavailable clients rather
+than claiming universal support. See
+[the discovery guide](../../../docs/guides/agent-skill-discovery.md) for
+client verification and the catalog fallback.
 
 ### Instruction body
 
@@ -356,6 +380,8 @@ Run these checks before committing a new or materially changed skill:
      enforced: `python scripts/ai/analyze_agent_tooling.py check` fails on any
      sub-file its parent does not name.
    - Confirm `.cursor/skills/README.md` lists top-level skills.
+   - Confirm both native discovery link sets match the canonical skill
+     directories and resolve to them, including their supporting files.
    - Confirm `.github/copilot-instructions.md` still points agents to
      `AGENTS.md` and `.cursor/skills/*/SKILL.md`.
 2. **Manifest resolution**

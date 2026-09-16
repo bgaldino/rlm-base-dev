@@ -5,6 +5,10 @@ file-pattern rule files in this repository.
 
 ## Instruction mapping
 
+- **Discovery coverage:** compatible skill roots may be scanned alongside
+  `.cursor/skills/`. Cursor duplicate handling for this layout has not been
+  client-verified; use the canonical catalog paths if needed. See the
+  [discovery guide](../../docs/guides/agent-skill-discovery.md).
 - **Primary instructions:** read and obey repo-root `AGENTS.md` as the canonical
   safety and project contract.
 - **Task-specific skills:** use `.cursor/skills/**` as plain Markdown skill
