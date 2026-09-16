@@ -97,7 +97,7 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
-def deferral_issues(rel_plan_dir, passes, root_files):
+def deferral_issues(rel_plan_dir, passes, root_files, severity=None):
     """Run the validator END-TO-END with the plan materialized at its real
     `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
     resolves each CSV against `sfdmu_base`) actually fires.
@@ -116,7 +116,8 @@ def deferral_issues(rel_plan_dir, passes, root_files):
         for name, body in (root_files or {}).items():
             (plan / name).write_text(body)
         result = V.SFDMUValidator(base_dir=td, verbose=False).validate_dataset(plan)
-        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues]
+        return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues
+                if severity is None or i.severity == severity]
 
 
 def raw_issues(body, root_files=None, per_pass_files=None):
@@ -1183,6 +1184,240 @@ API_VERSION_TYPE = [
 ]
 
 
+# A SINGLE-field externalId must be unique in the CSV (todo pack 116). A composite key matches on
+# the tuple, so per-field duplicates are fine there; a single-field key matches on the one column,
+# so a repeated value makes an Upsert/Update silently match — and overwrite — the wrong row. The
+# guard is preventive (it protects #284's Bug-4 single-field re-keyings), and scoped to the
+# match-by-key writes: Insert legitimately allows repeated values, Delete/Readonly do not upsert,
+# and `deleteOldData` delete-then-inserts rather than matching. The message filter is
+# "duplicate value" throughout, so unrelated findings (composite-column, SELECT-coverage) do not
+# pollute a case.
+_SFK = "SELECT Id, Name FROM Widget__c"  # single-field-key query used across these cases
+SINGLE_FIELD_KEY_UNIQUENESS = [
+    ("a duplicate single-field Upsert key value is reported HIGH",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"},
+                              severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Update matches by externalId too, so it is in scope alongside Upsert.
+    ("a duplicate single-field Update key value is reported HIGH",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Update", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"},
+                              severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Control: unique values are silent, so the positives are not firing on some unrelated finding.
+    ("unique single-field key values are silent — control",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,a\n2,b\n"})
+             if "duplicate value" in i]),
+    # A composite key matches on the TUPLE — a repeated value in one component is fine as long as the
+    # tuple is distinct, so the single-field check must not fire on it (the ';' guard).
+    ("a composite key with a repeated per-field value but distinct tuples is NOT flagged",
+     False, [i for i in issues([[{"query": "SELECT Id, Name, Code FROM Widget__c",
+                                  "operation": "Upsert", "externalId": "Name;Code"}]],
+                               {"Widget__c.csv": "$$Name$Code,Name,Code\nx;c1,x,c1\nx;c2,x,c2\n"})
+             if "duplicate value" in i]),
+    # Insert never matches a target record, so a repeated value is a legitimate second insert, not a
+    # mis-upsert — not flagged.
+    ("a duplicate single-field key under Insert is NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Insert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # deleteOldData delete-then-inserts rather than upsert-matching, so uniqueness is irrelevant —
+    # the same gate the composite-column check uses.
+    ("a duplicate single-field key with deleteOldData:true is NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name",
+                                  "deleteOldData": True}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # `Id` uniqueness is a property of the org schema, not of these CSV contents — a hand-edited CSV
+    # can still repeat an Id, upserting two rows onto the same record. So `Id` is in scope and a
+    # repeated Id value IS flagged.
+    ("a repeated externalId:'Id' value IS flagged (the CSV can still duplicate an Id)",
+     True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                 "externalId": "Id"}]],
+                              {"Widget__c.csv": "Id\n1\n1\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Control: unique Id values are silent, so the Id positive is not firing spuriously.
+    ("unique externalId:'Id' values are silent — control",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Id"}]],
+                               {"Widget__c.csv": "Id\n1\n2\n"})
+             if "duplicate value" in i]),
+    # The key field absent from the CSV header leaves no values to compare — silent (a missing key
+    # column is a different concern, out of this check's scope).
+    ("a single-field key whose column is absent from the CSV is silent",
+     False, [i for i in issues([[{"query": "SELECT Id, Ext__c FROM Widget__c", "operation": "Upsert",
+                                  "externalId": "Ext__c"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2,dup\n"})
+             if "duplicate value" in i]),
+    # Blank separator rows are not records (matching data_row_count's own rule), so two blank rows do
+    # not count as a duplicate empty-value collision.
+    ("blank separator rows are not counted as duplicate empty values",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,a\n\n\n"})
+             if "duplicate value" in i]),
+    # Two populated rows whose KEY value is blank are NOT a collision: SFDMU does not add a blank
+    # external Id to its matching map, so neither row matches/overwrites a target (Upsert inserts
+    # them, Update skips them). A missing key value is a different concern, out of this check's scope.
+    ("populated rows with a BLANK single-field key value are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,\n2,\n"})
+             if "duplicate value" in i]),
+    # A malformed externalId (non-string coerced to str by _normalize_object_config, e.g. int 1 ->
+    # "1") is skipped: the dedicated malformed-externalId HIGH already fires, and treating the
+    # coerced "1" as a real single-field key would pile a misleading duplicate-key HIGH on the same
+    # root cause (mirrors _validate_external_id's own externalId_malformed skip).
+    ("a malformed (non-string) externalId is not treated as a single-field key",
+     False, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert",
+                                  "externalId": 1}]],
+                               {"Widget__c.csv": "1\ndup\ndup\n"})
+             if "duplicate value" in i]),
+    # SFDMU's explicit null marker `#N/A` imports as null, not a matchable external Id, so repeated
+    # `#N/A` keys in a raw export are not a collision — skipped like blank.
+    ("repeated SFDMU #N/A null markers in the key column are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,#N/A\n2,#N/A\n"})
+             if "duplicate value" in i]),
+    # Control: bare `N/A` is a LITERAL value, not the marker, so a repeated literal N/A IS a real
+    # duplicate and fires — proving only the exact "#N/A" marker is skipped, not any N/A-ish string.
+    ("a repeated literal 'N/A' (not the #N/A marker) IS flagged — control",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,N/A\n2,N/A\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # SFDMU 5.8.0 treats `#n/a`, `null`, `undefined`, `#error!`, `#value!` case-insensitively (on the
+    # trimmed cell) as null, not a matchable key — so repeated null tokens are not a collision, even
+    # when the literal spellings differ in case. `NULL` and `null` both lower to `null` in the token
+    # set and are skipped.
+    ("repeated case-insensitive null tokens (NULL/null) in the key column are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,NULL\n2,null\n"})
+             if "duplicate value" in i]),
+    # The other SFDMU null tokens beyond #N/A are likewise skipped (undefined x2, #error! case-variant
+    # x2) — none is a matchable external Id, so none is a collision.
+    ("repeated SFDMU null tokens undefined/#error! are NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,undefined\n2,undefined\n3,#ERROR!\n4,#error!\n"})
+             if "duplicate value" in i]),
+    # SFDMU stores a non-null string field WITH its surrounding whitespace, so ` dup ` and `dup` are
+    # DISTINCT external Ids — not a collision. Stripping before counting would collapse them into a
+    # false duplicate; the guard counts the raw cell, so this is silent.
+    ("values differing only in surrounding whitespace are DISTINCT keys — NOT flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,dup\n2, dup \n"})
+             if "duplicate value" in i]),
+    # Control: two byte-identical whitespace-padded values ARE the same key, so a repeat still fires —
+    # proving the raw-cell counting distinguishes whitespace, it does not ignore the column.
+    ("two identical whitespace-padded values ARE a real duplicate — control",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1, dup \n2, dup \n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # A NUMERIC-typed external Id is cast via Number() before SFDMU builds its key, so `1` and `1.0`
+    # both become the JS number 1 and collide on key "1" — a collision a raw-string count misses.
+    # Offline the guard folds finite-numeric values to a canonical form, so this fires HIGH.
+    ("numerically-equivalent single-field keys (1 and 1.0) collide as SFDMU casts them — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,1\n2,1.0\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Leading-zero and whitespace spellings fold too: `1`, `01`, ` 1 ` are one numeric key.
+    ("numeric spellings 1 / 01 / ' 1 ' fold to one key — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,1\n2,01\n3, 1 \n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Control: two genuinely distinct numbers are NOT folded together — no false collision.
+    ("two distinct numeric keys (1 and 2) are NOT a collision — control",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,1\n2,2\n"})
+             if "duplicate value" in i]),
+    # SFDMU casts numeric fields through JS Number() = IEEE-754 binary64, which collapses two
+    # decimal integers either side of 2**53 (9007199254740992 and ...993) to one value. The guard
+    # coerces through float (same binary64), so these fold and the collision fires HIGH — a Decimal
+    # path preserving their distinctness would have let it pass.
+    ("integers sharing a binary64 value (either side of 2**53) collide — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,9007199254740992\n2,9007199254740993\n"},
+                              severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Signed zero: Number() normalizes -0 to 0 (String(-0) === "0"), so `-0` and `0` are one key.
+    ("signed-zero variants (-0 and 0) collide as SFDMU normalizes them — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,-0\n2,0\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Scope boundary (deliberate, pinned): the fold covers DECIMAL spellings but NOT prefixed-radix
+    # integer literals — `Number("0x10")===16` but float() rejects `0x10`, so `0x10` and `16` are
+    # left as distinct raw strings and NOT flagged. This is correct for the common TEXT external-Id
+    # case (where they ARE distinct) and avoids false positives; the fold does not chase full
+    # Number() parity offline (see the helper docstring). Pinned so a change to that scope is caught.
+    ("radix-prefixed 0x10 is NOT folded with 16 — deliberate scope boundary, not flagged",
+     False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                               {"Widget__c.csv": "Id,Name\n1,0x10\n2,16\n"})
+             if "duplicate value" in i]),
+    # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
+    # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
+    # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving
+    # entry carries the skip flag and the VALID sibling's duplicate-CSV check is silently dropped.
+    # With `externalId_malformed` in `_READING_CONFIG_KEYS` both declarations survive, so the valid
+    # sibling's duplicated column "1" still fires HIGH (the malformed one adds its own separate HIGH).
+    # Load-bearing: without the field in the key this expects True but the collapse yields False.
+    ("a valid externalId sibling's duplicate key still fires when a malformed sibling coerces to the same string",
+     True, [i for i in issues([[{"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": 1},
+                                {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "1"}]],
+                              {"Widget__c.csv": "1\ndup\ndup\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
+    # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
+    # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...
+    ("an allowlisted path whose duplicate signature matches the frozen one is suppressed",
+     False, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"})
+         if "duplicate value" in i]),
+    # ...but if that same allowlisted file gains ANOTHER duplicate row (3× "Monthly" → count 3, not
+    # the frozen 2), the observed signature diverges and the guard fires — a regression cannot hide
+    # behind the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
+    ("an allowlisted path that gains a NEW duplicate beyond the frozen signature fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n3,Monthly\n"},
+         severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # The signature is pinned by VALUE, not just total count: a wholesale swap that keeps the same
+    # number of extra duplicate rows (here "Weekly" ×2 instead of "Monthly" ×2 — total extra still 1)
+    # is a DIFFERENT collision, so its signature {("Weekly", 2)} != {("Monthly", 2)} and it fires.
+    ("an allowlisted path whose duplicate value is swapped (same total) fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Weekly\n2,Weekly\n"},
+         severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
+    # fires — the allowlist is keyed on exact path, not object name, so a new plan is not exempted.
+    ("the same object+duplicate in a non-allowlisted plan still fires HIGH",
+     True, [i for i in deferral_issues(
+         "qb/en-US/qb-newplan",
+         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
+            "externalId": "Name"}]],
+         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the exempt
+    # qb-clm ObjectStateValue path is allowlisted for key "Name" only. Re-keyed to a DIFFERENT single
+    # field ("Code") with a duplicate, the collision is unknown and still fires HIGH.
+    ("an allowlisted path re-keyed to a DIFFERENT single field with a duplicate still fires HIGH",
+     True, [i for i in deferral_issues(
+         "qb/en-US/qb-clm",
+         [[{"query": "SELECT Id, Code FROM ObjectStateValue", "operation": "Upsert",
+            "externalId": "Code"}]],
+         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+]
+
+
 # The same object declared twice within ONE pass's `objects` array (todo pack 165). SFDMU 5.8.0
 # does not reject it: `MigrationJob._createTaskMap` keys the task map by ScriptObject *instance*, so
 # the object loads once PER declaration (in array order), while lookup resolution keys by *name*
@@ -1912,6 +2147,9 @@ def main() -> int:
                  ("fix modes write where they should and nowhere else", FIX_MODES),
                  ("later passes are validated, not just the merged first declaration", MERGED_CONFIG),
                  ("apiVersion is type-checked, not merely presence-checked", API_VERSION_TYPE),
+                 ("a single-field externalId must be unique in the CSV (composite keys exempt), "
+                  "scoped to match-by-key writes, with pre-existing files allowlisted by path",
+                  SINGLE_FIELD_KEY_UNIQUENESS),
                  ("an object declared more than once within one pass is a gating HIGH; once-per-pass "
                   "across passes is not", SAME_PASS_DUPLICATE),
                  ("a missing query is exempt on an already-excluded declaration", QUERY_EXCLUDED_EXEMPTION),

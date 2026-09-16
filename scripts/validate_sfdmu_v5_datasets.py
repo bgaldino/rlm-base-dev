@@ -24,6 +24,7 @@ Options:
 import argparse
 import csv
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass, field
@@ -268,6 +269,164 @@ class SFDMUValidator:
         except (ValueError, AttributeError):
             return False
         return rel in self._DEFERRED_EMPTY_CSV_PATHS
+
+    # Frozen snapshot of the single-field-externalId CSVs whose key values are NOT unique in
+    # the tree TODAY (todo pack 116, the guard that found them; fixes tracked in packs 193/194).
+    # The single-field uniqueness check is preventive — it protects the [[104]] Bug-4 re-keyings
+    # and any future single-field key — but it surfaced four pre-existing shipped cases the pack
+    # wrongly assumed did not exist. Three are REAL latent mis-upserts: the qb-clm state objects
+    # key on `Name`, but the same state name recurs under different `ObjectStateDefinition` parents
+    # ("Activated" under both "Contract LifeCycle Management" and "Legal"), so an Upsert collapses
+    # two distinct records into one — the correct key is composite (`Name;ObjectStateDefinition.Name`
+    # and siblings), which is behavioral data-plan surgery on a wired plan and needs live idempotency
+    # re-verification (pack 193). The fourth (q3-rating/RatingFrequencyPolicy) is a pair of BYTE-
+    # IDENTICAL `Monthly` rows — a benign redundant row, not a wrong-row overwrite — deduped in
+    # pack 194. Allowlisted here so this offline-tooling guard lands green rather than turning the
+    # validator red repo-wide; enumerated by EXACT plan-relative path, deliberately NOT by object
+    # name, so the same object in a NEW plan with a real duplicate still produces the gating HIGH.
+    # The exemption is scoped three ways so it grandfathers only the exact collision present today,
+    # never a future regression in the same file: by EXACT plan-relative path (a NEW plan with the
+    # same object still produces the gating HIGH — deliberately not by object name); by the specific
+    # single-field key non-unique today (a re-key to a different single field fires again); and by
+    # the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count) pairs. Pinning
+    # the signature rather than just a total count catches a wholesale swap (one duplicate removed
+    # while a different value becomes duplicated) that would leave a bare count unchanged: any change
+    # to which values collide, or how many times, no longer matches and the guard fires, so a
+    # regression cannot hide behind the allowlist while packs 193/194 are pending. Regenerate a
+    # signature from the live CSV; delete each entry as its fix lands.
+    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
+        "qb/en-US/qb-clm/ObjectStateValue.csv": ("Name", frozenset({
+            ('Activated', 2),
+            ('Awaiting Signature', 2),
+            ('Canceled', 2),
+            ('Contract Expired', 2),
+            ('Contract Terminated', 2),
+            ('Draft', 2),
+            ('In Approval Process', 2),
+            ('Negotiating', 2),
+            ('Rejected', 2),
+            ('Signature Declined', 2),
+            ('Signed', 2),
+        })),
+        "qb/en-US/qb-clm/ObjectStateTransition.csv": ("Name", frozenset({
+            ('Activated_To_Expired', 2),
+            ('Activated_To_Terminated', 2),
+            ('AwaitingSignature_To_Canceled', 2),
+            ('AwaitingSignature_To_Negotiating', 2),
+            ('AwaitingSignature_To_SignatureDeclined', 2),
+            ('AwaitingSignature_To_Signed', 2),
+            ('Draft_To_Canceled', 2),
+            ('Draft_To_InApproval', 2),
+            ('InApproval_To_Canceled', 2),
+            ('InApproval_To_Draft', 2),
+            ('InApproval_To_Negotiating', 2),
+            ('InApproval_To_Rejected', 2),
+            ('Negotiating_To_AwaitingSignature', 2),
+            ('Negotiating_To_Canceled', 2),
+            ('Negotiating_To_Draft', 2),
+            ('Rejected_To_Canceled', 2),
+            ('Rejected_To_Draft', 2),
+            ('SignatureDeclined_To_Canceled', 2),
+            ('SignatureDeclined_To_Draft', 2),
+            ('Signed_To_Activated', 2),
+        })),
+        "qb/en-US/qb-clm/ObjectStateTransitionAction.csv": ("Name", frozenset({
+            ('Activated_To_Terminated', 2),
+            ('AwaitingSignature_To_Canceled', 2),
+            ('AwaitingSignature_To_Negotiating', 2),
+            ('AwaitingSignature_To_SignatureDeclined', 2),
+            ('AwaitingSignature_To_Signed', 2),
+            ('Draft_To_Canceled', 2),
+            ('Draft_To_InApproval', 2),
+            ('InApproval_To_Canceled', 2),
+            ('InApproval_To_Draft', 2),
+            ('Negotiating_To_AwaitingSignature', 2),
+            ('Negotiating_To_Canceled', 2),
+            ('Negotiating_To_Draft', 2),
+            ('Rejected_To_Canceled', 2),
+            ('Rejected_To_Draft', 2),
+            ('SignatureDeclined_To_Canceled', 2),
+            ('SignatureDeclined_To_Draft', 2),
+            ('Signed_To_Activated', 2),
+        })),
+        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({
+            ('Monthly', 2),
+        })),
+    }
+
+    # SFDMU 5.8.0's CSV reader imports these tokens as null, not a literal string, matched
+    # case-insensitively on the trimmed cell (`Common._CSV_NULL_TOKENS` +
+    # `_isCsvNullToken`: `value.trim().toLowerCase()`). A null external Id is never added to the
+    # matching map — so, exactly like a blank cell, repeated null-token keys can never match or
+    # overwrite a target and are not a collision. Kept lowercased; the values compared here are
+    # `.strip().lower()`ed before membership. Bare `N/A` is deliberately absent: SFDMU's marker is
+    # `#N/A`, so a literal `N/A` is a real value and a repeat of it IS a duplicate.
+    _SFDMU_CSV_NULL_TOKENS = frozenset({"#n/a", "null", "undefined", "#error!", "#value!"})
+
+    def _known_nonunique_signature(self, csv_path: Path, key: str) -> Optional[frozenset]:
+        """The frozen duplicate signature — a frozenset of (duplicated value, count) pairs — for
+        (csv_path, key) if it is one of the enumerated pre-existing non-unique single-field-key CSVs
+        (pack 116), else None. Matched by EXACT path relative to datasets/sfdmu AND the exact key
+        field, so a new plan with the same object, or one of these plans re-keyed to a different
+        single field, is not exempt. The caller suppresses only when the file's OBSERVED duplicate
+        signature equals this frozen one exactly."""
+        try:
+            rel = csv_path.resolve().relative_to(self.sfdmu_base.resolve()).as_posix()
+        except (ValueError, AttributeError):
+            return None
+        entry = self._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS.get(rel)
+        if entry is None or entry[0] != key:
+            return None
+        return entry[1]
+
+    @staticmethod
+    def _single_field_key_count_value(value: str) -> str:
+        """The value SFDMU would key a record on, for counting single-field-key collisions.
+
+        `value` is the raw, non-null cell (blank/null tokens are filtered by the caller). SFDMU
+        casts a NUMERIC-typed field via `Number()` before building the external-Id key
+        (`Common._castCsvValueByFieldType`, 5.8.0), so `1`, `1.0`, `01`, ` 1 ` and `1e0` all become
+        the one JS number `1` and collide on the key `"1"` — a collision a raw-string count misses.
+        A non-numeric (text) field keeps its raw string, whitespace intact (the previous round's
+        fix), so ` dup ` and `dup` stay distinct.
+
+        We fold DECIMAL numeric spellings through `float`, the SAME IEEE-754 binary64 representation
+        `Number()` uses — not `Decimal`. That gets the binary64-equivalence edges right: `Number()`
+        collapses two decimal integers that share a double (`9007199254740992` and `...993`, either
+        side of 2**53) to one key, and normalizes signed zero (`String(-0) === "0"`). Equal binary64
+        values have equal `repr`, so `repr(num)` is the canonical key; signed zero is folded to
+        `0.0` explicitly. `inf`/`nan` and any string `float` cannot parse fall back to the RAW string
+        (whitespace preserved) — this is where we stop.
+
+        This deliberately does NOT chase full `Number()` parity — notably prefixed-radix integer
+        literals (`0x10`->16, `0o10`->8, `0b10`->2), which `float` rejects and we leave as raw
+        strings. That is a bounded scope decision, not an oversight, for two reasons that both cut
+        the same way. (1) Offline we have no field-type metadata, so we cannot know which columns
+        SFDMU even numeric-casts; `Number()` coercion applies only to numeric-typed fields, and for a
+        TEXT field `0x10` and `16` are distinct legitimate strings that folding would FALSELY flag.
+        Radix-prefixed forms are far more plausible as distinct text codes than as genuine numeric
+        external Ids, so folding them is net-negative for the common (text) case — unlike `1`/`1.0`,
+        where folding is unambiguously right. (2) `Number()` parity is a moving target that keeps
+        diverging from any offline parser (`Number("010")===10` but `int("010",0)` raises), so each
+        step widens false-positive exposure for ever-rarer gains. The correct way to close the
+        remaining numeric-field gap is describe-driven type awareness, not wider offline guessing;
+        no shipped plan has a numeric single-field externalId, let alone a radix-prefixed one.
+
+        For the decimal forms it does fold: this folds every numeric-looking cell regardless of
+        field type. The only thing it over-folds is a *text* external Id that deliberately stores
+        numerically-equal-but-distinct decimal strings (e.g. `1` vs `1.0`); for an external Id —
+        whose whole job is to identify one record — that is a fragility worth a HIGH, not a
+        legitimate distinction, so folding is the safe default.
+        """
+        try:
+            num = float(value.strip())
+        except ValueError:
+            return value
+        if not math.isfinite(num):
+            return value
+        if num == 0:  # fold -0.0 into 0.0, as Number()->String does (`String(-0) === "0"`)
+            num = 0.0
+        return repr(num)
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):
@@ -913,14 +1072,24 @@ class SFDMUValidator:
     # Dedup keys, one tuple per *list*, each the union of what every consumer of that list reads.
     # Per-consumer keys were the obvious design and are wrong, because a dedup can only remove and
     # never restore: the reading-declaration list feeds both `_validate_csv_file` (externalId,
-    # operation, deleteOldData) and `_validate_external_id` (externalId, operation, fields), so
-    # keying it on the CSV check's fields dropped later passes before the externalId check could see
-    # them — silently disabling SELECT-coverage for passes 2..n, 96 lost findings across a 59,400-plan
-    # sweep. Re-deduping downstream on a wider key cannot undo it. Union per list, and dedup the
-    # *findings* rather than the declarations where multiplicity is the concern: since
-    # `ValidationResult.add_issue` drops identical findings, this dedup exists only to avoid repeated
-    # work, so erring wide is free and erring narrow loses checks.
-    _READING_CONFIG_KEYS = ("externalId", "operation", "deleteOldData", "fields")
+    # operation, deleteOldData, externalId_malformed) and `_validate_external_id` (externalId,
+    # operation, fields, externalId_malformed), so keying it on the CSV check's fields dropped later
+    # passes before the externalId check could see them — silently disabling SELECT-coverage for
+    # passes 2..n, 96 lost findings across a 59,400-plan sweep. Re-deduping downstream on a wider key
+    # cannot undo it. Union per list, and dedup the *findings* rather than the declarations where
+    # multiplicity is the concern: since `ValidationResult.add_issue` drops identical findings, this
+    # dedup exists only to avoid repeated work, so erring wide is free and erring narrow loses checks.
+    #
+    # `externalId_malformed` is in the key because both consumers skip a malformed declaration
+    # (`_validate_csv_file`'s single-field-key guard and `_validate_external_id`'s SELECT sweep), and
+    # `_normalize_object_config`'s `str()` coercion means a malformed declaration's `externalId`
+    # string can equal a well-formed sibling's (int `1` -> `"1"`, same as literal `"1"`). Without
+    # this field the two collapse into one entry; if the malformed one sorts first, the surviving
+    # entry carries the skip flag and both consumers drop the *well-formed* sibling's check instead
+    # of just skipping the malformed one. Erring wide (never collapsing a malformed onto a valid
+    # sibling) is the free direction.
+    _READING_CONFIG_KEYS = ("externalId", "operation", "deleteOldData", "fields",
+                            "externalId_malformed")
     _OPERATION_CHECK_KEYS = ("operation",)
 
     @staticmethod
@@ -1724,14 +1893,13 @@ class SFDMUValidator:
         # SELECT-clause coverage component-by-component, piling extra HIGHs onto the dedicated
         # malformed-externalId HIGH for the same root cause.
         #
-        # Dedup key adds `externalId_malformed` to `_READING_CONFIG_KEYS`: the coercion in
-        # `_normalize_object_config` means a malformed declaration's `externalId` string can equal a
-        # well-formed sibling's (e.g. int `123` coerces to `"123"`, same as a literal `"123"`), so with
-        # `_READING_CONFIG_KEYS` alone the two collapse into one entry. If the malformed one sorts
-        # first, the `continue` above then skips the *kept* entry — silently dropping the well-formed
+        # `_READING_CONFIG_KEYS` already carries `externalId_malformed` (see its definition): the
+        # coercion in `_normalize_object_config` means a malformed declaration's `externalId` string
+        # can equal a well-formed sibling's (int `123` -> `"123"`, same as a literal `"123"`), and
+        # without that field in the key the two collapse into one entry. If the malformed one sorts
+        # first, the `continue` below then skips the *kept* entry — silently dropping the well-formed
         # sibling's SELECT-coverage check instead of just skipping the malformed one, as intended.
-        for cfg in self._dedup_configs(live_declarations,
-                                        self._READING_CONFIG_KEYS + ("externalId_malformed",)):
+        for cfg in self._dedup_configs(live_declarations, self._READING_CONFIG_KEYS):
             if cfg.get("externalId_malformed"):
                 continue
             self._validate_external_id(obj_name, cfg.get("externalId", ""), cfg, result)
@@ -1937,11 +2105,17 @@ class SFDMUValidator:
                     self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
                     return
 
+                # Materialize the remaining rows once (CSVs here are small) so the single-field
+                # uniqueness check below can read a key column without a second pass over the file.
+                # `data_row_count` is computed over this list with the identical predicate it used
+                # against the live `reader`, so the count is unchanged.
+                rows = list(reader)
+
                 # Count data rows. csv.reader yields [] for a blank line, so a trailing
                 # newline or a blank separator row is NOT data — a row counts only if it has
                 # at least one non-whitespace field. (Otherwise `Id,Name\n\n` would report a
                 # phantom data row and slip past the header-only check below.)
-                data_row_count = sum(1 for row in reader if any((field or "").strip() for field in row))
+                data_row_count = sum(1 for row in rows if any((field or "").strip() for field in row))
 
                 self.log(f"  CSV has {len(headers)} columns, {data_row_count} data rows", level="DEBUG")
 
@@ -1997,6 +2171,22 @@ class SFDMUValidator:
                     else:
                         self.log(f"  Composite key column '{expected_composite_col}' found", level="DEBUG")
 
+                # The single-field mirror of the composite-key column check above (pack 116). A
+                # *composite* key matches on the tuple, so per-field duplicates are fine there; a
+                # *single-field* key matches on that one column, so its values must be unique or an
+                # Upsert silently matches — and overwrites — the wrong row. The re-keyed objects in
+                # #284's Bug-4 safe subset (ProductSellingModel/Pricebook2/AccountingPeriod →
+                # `Name`, etc.) are unique in the current data, but that is now a data-dependent
+                # invariant a future duplicate value can break with nothing to catch it; this is that
+                # catch. Gated like the composite check on `deleteOldData` (delete-then-insert never
+                # upsert-matches), plus on the operation resolving to a match-by-key write: Insert
+                # legitimately allows repeated values (it never matches a target), Delete/Readonly do
+                # not upsert. `$$`/composite/empty keys are skipped (composites match on the tuple;
+                # `$$` legacy notation is flagged elsewhere). `Id` IS checked: its uniqueness is a
+                # schema property, not a guarantee about this CSV, which can still repeat an Id.
+                self._validate_single_field_key_uniqueness(
+                    external_id, obj_config, headers, rows, obj_name, csv_path, result, pass_prefix)
+
         except Exception as e:
             result.add_issue(Issue(
                 severity=Severity.HIGH,
@@ -2004,6 +2194,106 @@ class SFDMUValidator:
                 message=f"{pass_prefix}Error reading CSV: {type(e).__name__}: {e}",
                 file_path=self._make_relative_path(csv_path)
             ))
+
+    def _validate_single_field_key_uniqueness(self, external_id: str, obj_config: dict,
+                                              headers: List[str], rows: List[list], obj_name: str,
+                                              csv_path: Path, result: ValidationResult,
+                                              pass_prefix: str):
+        """Report HIGH if a single-field externalId's values are not unique in the CSV.
+
+        The scope decisions live at the only call site (`_validate_csv_file`). Here is the how:
+        a single field is one with no ';' (a composite is exempt — it matches on the tuple), that
+        is not `$$`-notation, whose declaration is not `deleteOldData`, and whose operation resolves
+        to `upsert`/`update` — the writes that match a target record by this key. `Id` is NOT exempt:
+        uniqueness of `Id` is a property of the org schema, not of these CSV contents, and a
+        hand-edited or malformed CSV can still repeat an `Id`, which upserts two rows onto the same
+        record and silently overwrites one — exactly the collision this guard exists to catch. A
+        *malformed* externalId (a non-string coerced to `str` by `_normalize_object_config`, flagged
+        `externalId_malformed`) is skipped, mirroring `_validate_external_id`: the dedicated
+        malformed-externalId HIGH already fires, and treating e.g. int `1` -> `"1"` as a real
+        single-field key would pile a misleading duplicate-key HIGH on the same root cause.
+        A blank data row (all fields empty) is not a record, matching `data_row_count`'s own rule.
+        The key column must be present in the CSV for there to be values to compare; when it is
+        absent this check is silent (a missing key column is a different concern, out of scope).
+        """
+        if (not external_id or ";" in external_id
+                or external_id.startswith("$$")
+                or obj_config.get("externalId_malformed")
+                or self._is_js_truthy(obj_config.get("deleteOldData"))):
+            return
+        if self._resolve_operation(obj_config.get("operation")) not in ("upsert", "update"):
+            return
+        # `_split_external_id_fields` strips and drops empties; for a single-field key it yields
+        # exactly one field, or none for a whitespace-only key (skip that — it is malformed, not a
+        # uniqueness question).
+        key_fields = self._split_external_id_fields(external_id)
+        if len(key_fields) != 1:
+            return
+        key = key_fields[0]
+        if key not in headers:
+            return
+        idx = headers.index(key)
+
+        # Count values in the key column across data rows (blank separator rows excluded), keying on
+        # the value SFDMU itself would match on — which is NOT the stripped value. SFDMU
+        # (`Common._normalizeCsvCellValue`, 5.8.0) trims a cell only to test for null/empty; a
+        # non-null string field is stored with its surrounding whitespace intact. So ` dup ` and
+        # `dup` are DISTINCT external Ids to SFDMU and must be counted as distinct here — stripping
+        # them would collapse two real records into a false duplicate. Count the raw cell.
+        #
+        # A cell is skipped (not a matchable key, so never a collision) when it is blank/whitespace-
+        # only OR one of SFDMU's null tokens (`_SFDMU_CSV_NULL_TOKENS`), the latter matched exactly as
+        # SFDMU does — on a `.strip().lower()`ed copy — while still counting the raw value for the
+        # non-null case. SFDMU does not add a blank/null external Id to its matching map, so such rows
+        # never match and never overwrite a target (Upsert inserts them, Update skips them); a short
+        # row missing the column contributes such a blank and is likewise skipped. Note `null`,
+        # `undefined`, `#error!`, `#value!` join `#N/A` here; a literal `N/A` is NOT a token and a
+        # repeat of it IS a real duplicate.
+        counts: Dict[str, int] = {}
+        for row in rows:
+            if not any((field or "").strip() for field in row):
+                continue
+            value = row[idx] if idx < len(row) else ""
+            trimmed = value.strip()
+            if not trimmed or trimmed.lower() in self._SFDMU_CSV_NULL_TOKENS:
+                continue
+            # Key on the value SFDMU matches on: a finite-numeric cell folds to a spelling-
+            # independent canonical form (so `1`/`1.0`/`01` collide as SFDMU's numeric cast makes
+            # them), a text cell keeps its raw whitespace-preserved string.
+            count_value = self._single_field_key_count_value(value)
+            counts[count_value] = counts.get(count_value, 0) + 1
+        duplicates = {v: c for v, c in counts.items() if c > 1}
+        if not duplicates:
+            return
+
+        # Four shipped CSVs are non-unique today and are tracked for a proper fix elsewhere
+        # (packs 193/194); exempt exactly those files so this preventive guard does not turn the
+        # validator red repo-wide on pre-existing data. The exemption is pinned to the EXACT frozen
+        # collision — this (path, key) AND the full duplicate signature (which values collide and how
+        # many times) — so a new duplicate introduced into an allowlisted file before its fix lands
+        # is NOT masked, even a wholesale swap that leaves the total count unchanged: the observed
+        # signature diverges and the guard falls through to report. A new file with the same
+        # object/key is never exempt (keyed on exact path). Debug-logged so the exemption is visible.
+        known_signature = self._known_nonunique_signature(csv_path, key)
+        if known_signature is not None and frozenset(duplicates.items()) == known_signature:
+            self.log(f"  {obj_name} single-field key '{key or external_id}' has the known "
+                     f"duplicates (allowlisted, tracked for fix) — not flagged", level="DEBUG")
+            return
+
+        # One finding per object. Show the offending (non-blank) values most-duplicated first,
+        # capped so a wholesale-broken column does not print a novel.
+        shown = sorted(duplicates.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+        summary = ", ".join(f"'{v}' ×{c}" for v, c in shown)
+        more = "" if len(duplicates) <= 5 else f" (+{len(duplicates) - 5} more)"
+        result.add_issue(Issue(
+            severity=Severity.HIGH,
+            object_name=obj_name,
+            message=(f"{pass_prefix}single-field externalId '{key}' has duplicate value(s) in the "
+                     f"CSV: {summary}{more}. SFDMU matches Upsert/Update records by this key, so a "
+                     f"repeated value silently matches — and overwrites — the wrong row. A "
+                     f"single-field externalId must be unique in the CSV."),
+            file_path=self._make_relative_path(csv_path)
+        ))
 
     def _normalize_header(self, header: str) -> str:
         """Normalize CSV header (strip BOM, quotes, whitespace).
