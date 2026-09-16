@@ -14,9 +14,9 @@ rlm-base-dev/
 │                               #       have been moved to templates/ — those paths are forceignored
 ├── templates/                  # Source-of-truth templates for dynamic UX assembly
 │   ├── flexipages/             # See docs/features/dynamic-ux-assembly.md
-│   │   ├── base/               # Base flexipages (moved from force-app)
+│   │   ├── base/               # Base flexipages, including RLM_Order_Record_Page (moved from force-app)
 │   │   ├── standalone/         # One canonical version per page, one feature dir per page
-│   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
+│   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
 │   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)

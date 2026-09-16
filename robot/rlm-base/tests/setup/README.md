@@ -25,13 +25,16 @@ Run `cci task run validate_setup` to verify all dependencies. Tests run headless
 
 ## Running Tests
 
-From the repo root. **Recommended:** pass an org alias so the test uses `sf org open --url-only` to get an authenticated URL; the Selenium browser then opens that URL and is logged in without manual steps.
+Run from the repo root. CCI uses its own org aliases; direct Robot commands use an SF CLI alias or username. The wrappers pass the selected org's username to the browser suite, which uses `sf org open --url-only` for an authenticated session.
 
 ### Via CCI (recommended)
 
 ```bash
-# Run individually
-cci task run enable_document_builder_toggle --org my-scratch
+# Document Builder uses the default CCI org; its wrapper rejects --org
+cci org default my-scratch
+cci task run enable_document_builder_toggle
+
+# These wrappers also accept an explicit CCI org alias
 cci task run enable_constraints_settings --org my-scratch
 cci task run configure_revenue_settings --org my-scratch
 cci task run configure_core_pricing_setup --org my-scratch
@@ -42,6 +45,9 @@ cci flow run prepare_rlm_org --org my-scratch
 ```
 
 ### Via Robot Framework directly
+
+In the examples below, replace `my-scratch` with the **SF CLI** alias or username,
+which may differ from the CCI alias above (for example, `rlm-base__my-scratch`).
 
 ```bash
 # Document Builder
