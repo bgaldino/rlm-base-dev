@@ -136,14 +136,14 @@ security vulnerabilities privately through the process in
 
 ## Branch Information
 
-- **`264`**: Salesforce Release 264 (Winter '27, API v68.0) — **active development line**, cut from `main` at `49a494de`
-- **`main`**: Salesforce Release 262 (Summer '26, API v67.0) — current GA target
-- **`release/262`**: Frozen Release 262 GA reference, snapshotted from `main` at `49a494de`
-- **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
-- **`262`**: The original 262 upgrade branch, retained for history. It is *behind* `main` — use `release/262` for the 262 reference, not this branch.
-- Other branches exist for different release scenarios and preview features
+- **`main`**: Salesforce Release 264 (Winter '27, API v68.0) — the current published line, promoted from the `264` branch. 264 is **preview / pre-GA** (no v68.0 GA certification yet); a live 264 org remains ground truth.
+- **`264`**: The Release 264 development branch, in sync with `main` following the promotion.
+- **`262`**: Salesforce Release 262 (Summer '26, API v67.0) — active maintenance branch for remaining 262 patches through 262 GA; at the final 262 release tip.
+- **`release/262`**: Frozen Release 262 GA reference, snapshotted from the pre-cutover `main` at `49a494de`.
+- **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference.
+- Other branches exist for different release scenarios and preview features.
 
-New work targets `264`. `main` receives the promotion merge once 264 is certified, mirroring how `262` was merged into `main` via PR #208.
+`main` now carries the 264 line; the `262` branch receives any remaining Release 262 patches until 262 GA. This promotion mirrors how 262 was promoted into `main` via PR #208.
 
 ## Project Governance & Support
 
