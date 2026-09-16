@@ -871,21 +871,73 @@ def check_native_skill_links(root: Path) -> CheckResult:
                        "; ".join(failures) if failures else f"{len(expected) * 2} native links and CLAUDE.md verified" if expected else "no skills found")
 
 
+def _mask_inline_code(text: str) -> str:
+    """Mask code spans using exact delimiter runs; escapes apply only outside code."""
+    parts = re.split(r"(\n[ \t]*\n)", text)
+    for part_index in range(0, len(parts), 2):
+        paragraph = parts[part_index]
+        masked = list(paragraph)
+        index = 0
+        while index < len(paragraph):
+            if paragraph[index] == "\\" and index + 1 < len(paragraph) and paragraph[index + 1] in "\\`":
+                index += 2
+                continue
+            if paragraph[index] != "`":
+                index += 1
+                continue
+            end = index + 1
+            while end < len(paragraph) and paragraph[end] == "`":
+                end += 1
+            closing = next((m for m in re.finditer(r"`+", paragraph[end:])
+                            if len(m[0]) == end - index), None)
+            if closing:
+                stop = end + closing.end()
+                masked[index:stop] = ["\n" if ch == "\n" else " " for ch in paragraph[index:stop]]
+                index = stop
+            else:
+                index = end
+        parts[part_index] = "".join(masked)
+    return "".join(parts)
+
+
 def _markdown_prose(text: str) -> str:
     """Exclude comments, fenced examples, and inline code from link inspection."""
     text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
     lines = []
     fence = None
+    paragraph = False
+    previous_depth = 0
     for line in text.splitlines():
+        depth = 0
+        while prefix := re.match(r"^ {0,3}>[ \t]?", line):
+            line = line[prefix.end():]
+            depth += 1
+        if depth != previous_depth and (depth > previous_depth or not paragraph):
+            paragraph = False
+            lines.append("")
+        # Lazy continuation lines inherit the paragraph's quote container even
+        # when they omit its marker; a later marker resumes that same paragraph.
+        previous_depth = max(depth, previous_depth) if paragraph else depth
+        if fence and depth < fence[1]:
+            fence = None  # leaving a blockquote ends its unclosed fence
         match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
         if fence:
-            if match and match[1][0] == fence[0] and len(match[1]) >= len(fence) and not match[2].strip():
+            marker, container_depth = fence
+            if (depth == container_depth and match and match[1][0] == marker[0]
+                    and len(match[1]) >= len(marker) and not match[2].strip()):
                 fence = None
-        elif match:
-            fence = match[1]
-        elif not line.startswith(("    ", "\t")):
+            lines.append("")
+            paragraph = False
+        elif match and (match[1][0] != "`" or "`" not in match[2]):
+            fence = (match[1], depth)
+            lines.append("")
+            paragraph = False
+        elif paragraph or not line.startswith(("    ", "\t")):
             lines.append(line)
-    return re.sub(r"(`+).*?\1", "", "\n".join(lines), flags=re.S)
+            paragraph = bool(line.strip()) and not re.match(r"^ {0,3}(?:#{1,6}(?:\s|$)|(?:[-*_][ \t]*){3,}$)", line)
+        else:
+            lines.append("")
+    return _mask_inline_code("\n".join(lines))
 
 
 def _markdown_escaped(text: str, index: int) -> bool:
@@ -944,7 +996,8 @@ def check_skill_navigation_links(root: Path) -> CheckResult:
     destination = r"(<[^>\n]+>|(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
     spacing = r"[ \t]*(?:\n[ \t]*)?"
     separator = r"(?:[ \t]+(?:\n[ \t]*)?|\n[ \t]*)"
-    title = r'''(?:"[^"\n]*"|'[^'\n]*'|\([^()\n]*\))'''
+    # Escaped delimiters and nonblank line endings are valid within all titles.
+    title = r'''(?:"(?:\\(?:[^\n]|(?=\n))|[^"\\\n]|\n(?![ \t]*\n))*"|'(?:\\(?:[^\n]|(?=\n))|[^'\\\n]|\n(?![ \t]*\n))*'|\((?:\\(?:[^\n]|(?=\n))|[^()\\\n]|\n(?![ \t]*\n))*\))'''
     inline = re.compile(r"\(" + spacing + destination + r"(?:" + separator + title + r")?" + spacing + r"\)")
     reference = re.compile(r"^ {0,3}\[(?:\\.|[^\]\\\n])+\]:[ \t]*(?:\n[ \t]*)?" + destination, re.M)
     for path in sorted(sources):

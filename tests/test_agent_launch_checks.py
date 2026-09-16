@@ -258,6 +258,56 @@ class LaunchChecks(unittest.TestCase):
         self.assertTrue(result.ok, result.detail)
         self.assertIn("1 private artifact", result.detail)
 
+    def test_escaped_and_multiline_title_target_deletion(self):
+        titles = (r'"Say \"hello\""', r"'It\'s a guide'", r'(Use \(a guide\))',
+                  r'"Trailing slash\\"', '"Line one\n    line two"',
+                  "'Line one\nline two'", '(Line one\nline two)',
+                  '"Line one\\\nline two"', "'Line one\\\nline two'", '(Line one\\\nline two)')
+        for title in titles:
+            for prefix in ('', '!'):
+                with self.subTest(title=title, prefix=prefix):
+                    target = self.write("docs/guide.md", "# Guide")
+                    self.write("README.md", f'{prefix}[guide](docs/guide.md {title})')
+                    self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+                    target.unlink()
+                    self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        self.assertEqual(self.cli().returncode, 1)
+
+    def test_blockquoted_fences_and_container_exit(self):
+        for prefix in ('> ', '> > ', '  > '):
+            for fence in ('```', '~~~', '````'):
+                with self.subTest(prefix=prefix, fence=fence):
+                    code = f'{prefix}{fence}md\n{prefix}[example](missing.md)\n{prefix}{fence}\n'
+                    self.write("README.md", code)
+                    self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+                    self.write("README.md", code + f'{prefix}[real](missing.md)\n')
+                    self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        for content in ('> ```md\n> [example](missing.md)\n\n[real](missing.md)',
+                        '> > ~~~\n> > [example](missing.md)\n> [real](missing.md)'):
+            self.write("README.md", content)
+            self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write("README.md", '> ```\n> [example](missing.md)\n> ```')
+        self.assertEqual(self.cli().returncode, 0)
+
+    def test_inline_code_escape_and_run_boundaries(self):
+        active = (r'\`[guide](missing.md)\`', '``[guide](missing.md)`',
+                  '`[guide](missing.md)``', '`unclosed\n\n[guide](missing.md)`',
+                  '> paragraph\n    [guide](missing.md)')
+        for content in active:
+            with self.subTest(active=content):
+                self.write("README.md", content)
+                self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        inactive = ('`[example](missing.md)`', '`` `[example](missing.md)` ``',
+                    r'\\`[example](missing.md)`', r'`[example](missing.md)\`',
+                    r'\``[example](missing.md)`', '> `code\n[example](missing.md)`',
+                    '> `code\nlazy\n> [example](missing.md)`')
+        for content in inactive:
+            with self.subTest(inactive=content):
+                self.write("README.md", content)
+                self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write("README.md", r'\`[guide](missing.md)\`')
+        self.assertEqual(self.cli().returncode, 1)
+
     def test_bad_skill_subfile_link_and_escape(self):
         self.write(".cursor/skills/cci-orchestration/tasks-reference.md", "[bad](missing.md)")
         self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
