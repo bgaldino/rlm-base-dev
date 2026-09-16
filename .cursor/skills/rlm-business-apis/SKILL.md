@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Business APIs
 
-API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postman/docs/` and the viewer at `docs/api/index.html` cover 148 endpoints across 9 domains — 137 re-extracted from the 264 (v68.0) developer guide, plus 11 retained for continuity (six external Salesforce Commerce Payments Billing endpoints under `/commerce/payments/`, outside the 264 RLM guide; and five v59-carryover Context Service endpoints, for which the 264 guide has no Business-API section). Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org.
+API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postman/docs/` and the viewer at `docs/api/index.html` cover 149 endpoints across 9 domains — 137 re-extracted (grounded) from the 264 (v68.0) developer guide, plus 12 retained/external (six external Salesforce Commerce Payments Billing endpoints under `/commerce/payments/`, outside the 264 RLM guide; five v59-carryover Context Service endpoints, for which the 264 guide has no Business-API section; and one legacy PCM route — `/connect/pcm/products/{productId}/related-records` — with no 264 snapshot article). Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org.
 
 ## Quick Rules
 
@@ -76,14 +76,15 @@ Context definitions store session state and configuration across API calls. Used
 ## Reference
 
 The cross-domain API reference lives as per-area markdown under
-[`postman/docs/`](../../../postman/docs/) — 148 endpoints across 9 domains (PCM,
+[`postman/docs/`](../../../postman/docs/) — 149 endpoints across 9 domains (PCM,
 Product Discovery, Product Configurator, Pricing, Rate Management, Transaction
 Management, Usage Management, Billing, Context Service). Of these, 137 are
-re-extracted from the Release 264 (Winter '27, v68.0) developer guide; 11 are
-retained for continuity (six external Commerce Payments Billing endpoints under
-`/commerce/payments/`, plus five v59-carryover Context Service endpoints for which
-the 264 guide has no Business-API section). 264 is pre-GA, so treat a live 264 org
-as ground truth over the guide.
+re-extracted (grounded) from the Release 264 (Winter '27, v68.0) developer guide;
+12 are retained/external (six external Commerce Payments Billing endpoints under
+`/commerce/payments/`; five v59-carryover Context Service endpoints, for which
+the 264 guide has no Business-API section; and one legacy PCM route —
+`/connect/pcm/products/{productId}/related-records` — with no 264 snapshot
+article). 264 is pre-GA, so treat a live 264 org as ground truth over the guide.
 
 ## Interactive Viewer
 

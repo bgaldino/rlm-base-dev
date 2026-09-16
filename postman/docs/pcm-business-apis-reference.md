@@ -132,11 +132,12 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 ---
 
 ### 8. Product Related Records (POST)
+- **Retained from the prior extraction; not present in the 264 snapshot** — the Revenue Cloud Developer Guide's 264 PCM resource index lists no article for this route. Item 9 (`Product Related Records List`, `/connect/pcm/relatedRecords/{entityName}`) is the 264-grounded equivalent. Verify this route against a live 264 org before relying on it.
 - **HTTP Method:** POST
 - **URI Path:** `/connect/pcm/products/{productId}/related-records`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/products/{{defaultTermDefinedAnnualProductId}}/related-records`
 - **Description:** Retrieve related records for a product, such as variants and bundles. Use `relationshipTypes` to specify which relationship types to include.
-- **Available Version:** 59.0
+- **Available Version:** 59.0 (unverified — not confirmed against the 264 snapshot; carried over from a prior extraction)
 - **Path Parameters:**
   - `productId` (String, Required): Salesforce ID of the product
 - **Request Body Fields:**

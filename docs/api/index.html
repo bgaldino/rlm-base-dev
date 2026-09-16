@@ -274,6 +274,7 @@ const DOMAINS = {
             ]},
           { method:'POST', path:'/connect/pcm/products/{productId}/related-records', title:'Product Related Records', version:'59.0',
             desc:'Retrieve related records for a product, such as variants and bundles. Use relationshipTypes to specify which relationship types to include.',
+            note:'Legacy route retained for continuity — not present in the 264 dev-guide snapshot (last confirmed at v59.0). Distinct from the Product Related Records List endpoint below.',
             params:[{name:'productId',desc:'Salesforce ID of the product'}],
             fields:[
               {name:'relationshipTypes',type:'Array of String',req:true,desc:'Relationship types to retrieve. Supported values: "VARIANTS", "BUNDLES".'},
@@ -641,7 +642,7 @@ const DOMAINS = {
               {name:'transactionId', type:'String', req:true, desc:'ID of the sales transaction (quote or order) being configured.'},
               {name:'transactionLineId', type:'String', req:false, desc:'ID of the specific transaction line item to configure.'},
               {name:'correlationId', type:'String', req:false, desc:'Unique identifier attached to the request for tracing.'},
-              {name:'configuratorOptions', type:'Object', req:false, desc:'Configurator options object (single object, not an array). Supported boolean sub-fields: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled, pricingProcedure, qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog.'},
+              {name:'configuratorOptions', type:'Object', req:false, desc:'Configurator options object (single object, not an array). Supported boolean sub-fields: addDefaultConfiguration, executeConfigurationRules, executePricing, explainabilityEnabled (66.0+), qualifyAllProductsInTransaction, returnProductCatalogData, validateAmendRenewCancel, validateProductCatalog. Also supports pricingProcedure (String) — name of the pricing procedure to use during calls to Salesforce Pricing Management.'},
               {name:'contextResponseType', type:'String', req:false, desc:'Controls response payload size for large transactions (65.0+). Values: Delta, Full, None, Product. Required when the transaction has more than 1,000 and fewer than 15,000 line items.'},
               {name:'qualificationContext', type:'Object', req:false, desc:'User context used for qualification rules — accountId, contactId, contextId.'},
               {name:'transactionContextId', type:'String', req:false, desc:'Context ID of an existing transaction session.'},
@@ -753,8 +754,8 @@ const DOMAINS = {
           { method:'POST', path:'/revenue/product-configurator/rules/actions/execute', title:'Config Rules', version:'67.0',
             desc:'Run configuration rules for a specific quote or order, based on a context ID or transaction ID. This endpoint uses a different base path (/revenue/product-configurator/) than the rest of the Product Configurator APIs (/connect/cpq/configurator/).',
             fields:[
-              {name:'transactionContextId', type:'String', req:true, desc:'Context ID of the transaction whose configuration rules to run. Required if transactionId isn\'t specified.'},
-              {name:'transactionId', type:'String', req:true, desc:'ID of the quote or order whose configuration rules to run. Required if transactionContextId isn\'t specified.'},
+              {name:'transactionContextId', type:'String', req:false, desc:'Context ID of the transaction whose configuration rules to run. Required if transactionId is absent.'},
+              {name:'transactionId', type:'String', req:false, desc:'ID of the quote or order whose configuration rules to run. Required if transactionContextId is absent.'},
               {name:'ruleOptions', type:'Object', req:false, desc:'Options for rule execution — supports isUpdateContextRequired (Boolean).'},
             ] },
         ]
@@ -873,7 +874,7 @@ const DOMAINS = {
             query:[{name:'isTemplate',desc:'Boolean, Optional. Indicates whether to return file-based definitions (true) or database-based definitions (false, default)'}],
             fields:[
               {name:'description',type:'String',req:false,desc:'Description of the procedure plan definition'},
-              {name:'developerName',type:'String',req:true,desc:'Developer name of the procedure plan definition (Required if using POST)'},
+              {name:'developerName',type:'String',req:false,desc:'Developer name of the procedure plan definition. Required if using POST; not applicable to GET.'},
               {name:'name',type:'String',req:false,desc:'Name of the procedure plan definition'},
               {name:'processType',type:'String',req:true,desc:'Business process type (Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud; default is Default) (Required in v63.0+)'},
               {name:'primaryObject',type:'String',req:false,desc:'Primary object for the definition (e.g., Quote, Account, Order)'},
@@ -884,7 +885,7 @@ const DOMAINS = {
             params:[{name:'procedurePlanDefinitionId',desc:'ID of the procedure plan definition record'}],
             fields:[
               {name:'description',type:'String',req:false,desc:'Description for the procedure plan definition'},
-              {name:'developerName',type:'String',req:true,desc:'Developer name (Required if using POST API)'},
+              {name:'developerName',type:'String',req:false,desc:'Developer name. Required if using POST; not applicable to GET or DELETE.'},
               {name:'name',type:'String',req:false,desc:'Name of the procedure plan definition'},
               {name:'primaryObject',type:'String',req:false,desc:'Primary object'},
               {name:'procedurePlanDefinitionVersions',type:'Procedure Plan Definition Version Input[]',req:true,desc:'List of versions of a procedure plan definition'},
@@ -1211,29 +1212,29 @@ const DOMAINS = {
   },
   billing: {
     title: 'Billing',
-    subtitle: 'Credits, invoices, payments, schedules, tax, and billing arrangements (47 endpoints)',
+    subtitle: 'Credits, invoices, payments, schedules, tax, and billing arrangements (48 endpoints)',
     sections: [
       {
         id: 'bill-credits', title: 'Credits',
         endpoints: [
-          { method:'POST', path:'/commerce/invoicing/credit-memos/creditMemoId/actions/apply', title:'Apply Credit Memo', desc:'Adjust or correct already issued invoices by applying an existing credit memo to an invoice.', params:[{name:'creditMemoId', desc:'URI parameter identifying the credit memo.'}] },
-          { method:'POST', path:'/commerce/invoicing/credit-memos/actions/generate', title:'Generate Credit Memo', desc:'Create a credit memo without applying it to an invoice. You can credit the invoice at a later date.' },
-          { method:'POST', path:'/commerce/invoicing/invoices/invoiceId/actions/void', title:'Void Invoice', desc:'Void a posted invoice to rebill the customer, if necessary.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}] },
-          { method:'POST', path:'/commerce/invoicing/credit/collection/actions/post', title:'Post Draft Credit Memo', desc:'Post a draft credit memo to a credit memo record for review and approval.' },
-          { method:'POST', path:'/commerce/invoicing/credit-memo-inv-applications/creditMemoInvApplicationId/actions/unapply', title:'Unapply Credit Memo', version:'62.0', desc:'Unapply a credit memo from an invoice and return the invoice and the credit memo to their pre-application states.', params:[{name:'creditMemoInvApplicationId', desc:'URI parameter identifying the credit memo invoice application.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] },
-          { method:'POST', path:'/commerce/invoicing/credit-memo-lines/creditMemoLineId/actions/apply', title:'Apply Credit Memo Line', version:'62.0', desc:'Adjust or correct already issued invoices by applying an existing credit memo line to an invoice line.', params:[{name:'creditMemoLineId', desc:'URI parameter identifying the credit memo line.'}] },
-          { method:'POST', path:'/commerce/invoicing/credit-memo-line-invoice-line/creditMemoLineInvoiceLineId/actions/unapply', title:'Unapply Credit Memo Line', version:'62.0', desc:'Unapply a credit memo line from an invoice line and return the invoice line and the credit memo line to their pre-application states.', params:[{name:'creditMemoLineInvoiceLineId', desc:'URI parameter identifying the credit memo line to invoice line application.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] },
-          { method:'POST', path:'/commerce/invoicing/invoices/invoiceId/actions/convert-to-credit', title:'Convert Negative Invoice Lines to Credit', version:'62.0', desc:'Convert a list of invoice lines with a negative amount into a posted credit memo. Applicable for a single invoice at a time.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:true, desc:'Required effective date.'},{name:'invoiceLines', type:'String[]', req:false, desc:'Optional despite being the core payload.'}] },
-          { method:'POST', path:'/commerce/invoicing/invoices/invoiceId/actions/credit', title:'Create and Apply Credit Memo', version:'62.0', desc:'Create a credit memo and apply it to an invoice. The credit memo can fully or partially credit the invoice.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'},{name:'invoiceLines', type:'Credit Invoice Line Input[]', req:true, desc:'Array of invoice lines to credit.'},{name:'taxStrategy', type:'String', req:true, desc:'Valid values: Ignore, ManualOverride, CopyFromInvoiceLine, Calculate.'},{name:'taxEffectiveDate', type:'String', req:false, desc:'Optional tax effective date.'},{name:'type', type:'String', req:false, desc:'Valid values: Posted, Draft.'}] },
-          { method:'POST', path:'/commerce/billing/credit-memos/creditMemoId/actions/void', title:'Void Posted Credit Memo', version:'66.0', desc:'Void a credit memo in posted state.', params:[{name:'creditMemoId', desc:'URI parameter identifying the credit memo.'}], note:'No request body by design — only the creditMemoId path parameter.' }
+          { method:'POST', path:'/commerce/invoicing/credit-memos/{creditMemoId}/actions/apply', title:'Apply Credit Memo', version:'62.0', desc:'Adjust or correct already issued invoices by applying an existing credit memo to an invoice.', params:[{name:'creditMemoId', desc:'URI parameter identifying the credit memo.'}] },
+          { method:'POST', path:'/commerce/invoicing/credit-memos/actions/generate', title:'Generate Credit Memo', version:'62.0', desc:'Create a credit memo without applying it to an invoice. You can credit the invoice at a later date.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/{invoiceId}/actions/void', title:'Void Invoice', version:'62.0', desc:'Void a posted invoice to rebill the customer, if necessary.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}] },
+          { method:'POST', path:'/commerce/invoicing/credit/collection/actions/post', title:'Post Draft Credit Memo', version:'65.0', desc:'Post a draft credit memo to a credit memo record for review and approval.' },
+          { method:'POST', path:'/commerce/invoicing/credit-memo-inv-applications/{creditMemoInvApplicationId}/actions/unapply', title:'Unapply Credit Memo', version:'62.0', desc:'Unapply a credit memo from an invoice and return the invoice and the credit memo to their pre-application states.', params:[{name:'creditMemoInvApplicationId', desc:'URI parameter identifying the credit memo invoice application.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] },
+          { method:'POST', path:'/commerce/invoicing/credit-memo-lines/{creditMemoLineId}/actions/apply', title:'Apply Credit Memo Line', version:'62.0', desc:'Adjust or correct already issued invoices by applying an existing credit memo line to an invoice line.', params:[{name:'creditMemoLineId', desc:'URI parameter identifying the credit memo line.'}] },
+          { method:'POST', path:'/commerce/invoicing/credit-memo-line-invoice-line/{creditMemoLineInvoiceLineId}/actions/unapply', title:'Unapply Credit Memo Line', version:'62.0', desc:'Unapply a credit memo line from an invoice line and return the invoice line and the credit memo line to their pre-application states.', params:[{name:'creditMemoLineInvoiceLineId', desc:'URI parameter identifying the credit memo line to invoice line application.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] },
+          { method:'POST', path:'/commerce/invoicing/invoices/{invoiceId}/actions/convert-to-credit', title:'Convert Negative Invoice Lines to Credit', version:'62.0', desc:'Convert a list of invoice lines with a negative amount into a posted credit memo. Applicable for a single invoice at a time.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:true, desc:'Required effective date.'},{name:'invoiceLines', type:'String[]', req:false, desc:'Optional despite being the core payload.'}] },
+          { method:'POST', path:'/commerce/invoicing/invoices/{invoiceId}/actions/credit', title:'Create and Apply Credit Memo', version:'62.0', desc:'Create a credit memo and apply it to an invoice. The credit memo can fully or partially credit the invoice.', params:[{name:'invoiceId', desc:'URI parameter identifying the invoice.'}], fields:[{name:'description', type:'String', req:false, desc:'Optional note.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'},{name:'invoiceLines', type:'Credit Invoice Line Input[]', req:true, desc:'Array of invoice lines to credit.'},{name:'taxStrategy', type:'String', req:true, desc:'Valid values: Ignore, ManualOverride, CopyFromInvoiceLine, Calculate.'},{name:'taxEffectiveDate', type:'String', req:false, desc:'Optional tax effective date.'},{name:'type', type:'String', req:false, desc:'Valid values: Posted, Draft.'}] },
+          { method:'POST', path:'/commerce/billing/credit-memos/{creditMemoId}/actions/void', title:'Void Posted Credit Memo', version:'66.0', desc:'Void a credit memo in posted state.', params:[{name:'creditMemoId', desc:'URI parameter identifying the credit memo.'}], note:'No request body by design — only the creditMemoId path parameter.' }
         ]
       },
       {
         id: 'bill-schedules', title: 'Billing Schedules',
         endpoints: [
           { method:'POST', path:'/commerce/invoicing/billing-schedules/actions/create', title:'Create Billing Schedules', version:'62.0', desc:'Generate billing schedules for orders by using context service.', fields:[{name:'billingTransactionIds', type:'String[]', req:true, desc:'Transactions to generate billing schedules for.'}] },
-          { method:'POST', path:'/commerce/invoicing/actions/suspend-billing', title:'Suspend Billing', desc:'Suspend billing for billing schedule groups or an account for a predefined period.' },
-          { method:'POST', path:'/commerce/invoicing/actions/resume-billing', title:'Resume Billing', desc:'Resume billing for billing schedule groups or an account that\'s currently on hold.' },
+          { method:'POST', path:'/commerce/invoicing/actions/suspend-billing', title:'Suspend Billing', version:'63.0', desc:'Suspend billing for billing schedule groups or an account for a predefined period.' },
+          { method:'POST', path:'/commerce/invoicing/actions/resume-billing', title:'Resume Billing', version:'63.0', desc:'Resume billing for billing schedule groups or an account that\'s currently on hold.' },
           { method:'POST', path:'/commerce/invoicing/standalone/billing-schedules/actions/create', title:'Create Standalone Billing Schedules', version:'64.0', desc:'Generate billing schedules from any internal or external transaction by using context service.', fields:[{name:'transactionContextDetails', type:'Standalone Billing Schedule Metadata Input', req:true, desc:'Context definition and mapping names (contextDefinitionName, readContextMappingName, saveContextMappingName required; intraContextCustomMappingName optional).'},{name:'transactionDetails', type:'String', req:true, desc:'JSON-string transaction payload.'}] },
           { method:'POST', path:'/commerce/invoicing/billing-schedules/collection/actions/recover', title:'Recover Billing Schedules', version:'62.0', desc:'Recover the latest generated invoice associated with billing schedules in the Error or Processing status.', fields:[{name:'billingScheduleIds', type:'String[]', req:true, desc:'Only one billing schedule is recovered per API request despite the array type.'}] }
         ]
@@ -1241,31 +1242,63 @@ const DOMAINS = {
       {
         id: 'bill-invoices', title: 'Invoices',
         endpoints: [
-          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/post', title:'Post Invoices', desc:'Update the status of the invoice from Draft to Posted.' },
-          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/preview', title:'Preview Invoices', desc:'Generate preview invoices, which includes the estimated tax amounts, for a billing transaction for the next two billing periods.' },
-          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/ingest', title:'Ingest Invoices', desc:'Ingest or generate an invoice from an internal or external billing transaction data.' },
-          { method:'POST', path:'/commerce/invoicing/invoices/actions/write-off', title:'Write Off Invoice', desc:'Create credit memos with the total charge amount on the invoice as the write-off amount and close the invoice.' },
-          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/actions/send-email', title:'Send Invoice Batch Email', desc:'Send emails for the posted invoices of a specified invoice batch run ID.' },
-          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/generate', title:'Generate Invoices', desc:'Create an invoice for an account, order, or a list of billing schedules.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/post', title:'Post Invoices', version:'62.0', desc:'Update the status of the invoice from Draft to Posted.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/preview', title:'Preview Invoices', version:'63.0', desc:'Generate preview invoices, which includes the estimated tax amounts, for a billing transaction for the next two billing periods.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/ingest', title:'Ingest Invoices', version:'63.0', desc:'Ingest or generate an invoice from an internal or external billing transaction data.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/actions/write-off', title:'Write Off Invoice', version:'64.0', desc:'Create credit memos with the total charge amount on the invoice as the write-off amount and close the invoice.' },
+          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/actions/send-email', title:'Send Invoice Batch Email', version:'65.0', desc:'Send emails for the posted invoices of a specified invoice batch run ID.' },
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/generate', title:'Generate Invoices', version:'62.0', desc:'Create an invoice for an account, order, or a list of billing schedules.' },
           { method:'POST', path:'/revenue/billing/transactions/actions/apply', title:'Apply Rules to Billing Transactions', version:'66.0', desc:'Apply payments and credits to an account\'s invoices based on specified rules defined on the Billing Settings page.' },
           { method:'POST', path:'/revenue/billing/document/actions/generate', title:'Generate Invoice Document', version:'66.0', desc:'Generate an invoice document for a record, and update any junction object record.' },
-          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/invoiceBatchRunId/actions/draft-to-posted', title:'Batch Draft Invoices to Posted', version:'62.0', desc:'Update a batch of invoices from Draft to Posted status for a credit memo application.', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'}], note:'No request body — only the invoiceBatchRunId path parameter.' },
-          { method:'POST', path:'/commerce/billing/invoices/invoice-batch-docgen/invoiceBatchRunId/actions/actionName', title:'Generate Invoice Batch Documents (run)', version:'63.0', desc:'Asynchronously generate PDF documents for invoices in Draft or Posted status associated with an invoice batch run record (actionName = run).', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'},{name:'actionName', desc:'Path segment; set to run for this action.'}], note:'No request body documented.' },
-          { method:'POST', path:'/commerce/billing/invoices/invoice-batch-docgen/invoiceBatchRunId/actions/actionName', title:'Retry Invoice Batch Documents (retry)', version:'63.0', desc:'Asynchronously regenerate PDF documents for invoices in Draft or Posted status that failed in an earlier invoice batch run (same URI template, actionName = retry).', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'},{name:'actionName', desc:'Path segment; set to retry for this action.'}], note:'No request body documented.' }
+          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/{invoiceBatchRunId}/actions/draft-to-posted', title:'Batch Draft Invoices to Posted', version:'62.0', desc:'Update a batch of invoices from Draft to Posted status for a credit memo application.', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'}], note:'No request body — only the invoiceBatchRunId path parameter.' },
+          { method:'POST', path:'/commerce/billing/invoices/invoice-batch-docgen/{invoiceBatchRunId}/actions/{actionName}', title:'Generate Invoice Batch Documents (run)', version:'63.0', desc:'Asynchronously generate PDF documents for invoices in Draft or Posted status associated with an invoice batch run record (actionName = run).', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'},{name:'actionName', desc:'Path segment; set to run for this action.'}], note:'No request body documented.' },
+          { method:'POST', path:'/commerce/billing/invoices/invoice-batch-docgen/{invoiceBatchRunId}/actions/{actionName}', title:'Retry Invoice Batch Documents (retry)', version:'63.0', desc:'Asynchronously regenerate PDF documents for invoices in Draft or Posted status that failed in an earlier invoice batch run (same URI template, actionName = retry).', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'},{name:'actionName', desc:'Path segment; set to retry for this action.'}], note:'No request body documented.' }
         ]
       },
       {
         id: 'bill-invoice-scheduler', title: 'Invoice Scheduler',
         endpoints: [
-          { method:'POST', path:'/commerce/invoicing/invoice-schedulers', title:'Create or Update Invoice Scheduler', desc:'Create or update an invoice scheduler to automatically generate invoices. Use the criteria and filters of the invoice scheduler to set up the invoice run schedules based on your requirements.', fields:[{name:'schedulerName', type:'String', req:false, desc:'Name of the scheduler.'},{name:'status', type:'String', req:false, desc:'Draft or Active.'},{name:'invoiceStatus', type:'String', req:false, desc:'Posted or Draft.'},{name:'frequencyCadenceOptions', type:'Object', req:false, desc:'Run cadence options.'},{name:'billingBatchSchedulerId', type:'String', req:false, desc:'Related batch scheduler.'},{name:'invoiceRunSchedule', type:'Object', req:false, desc:'Invoice run schedule definition.'},{name:'filterCriteria', type:'Object', req:false, desc:'Filter criteria for the scheduler.'}] },
-          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/invoiceBatchRunId/actions/recover', title:'Recover Errored Invoice Batch Run', version:'62.0', desc:'Recover records associated with a failed invoice run. Recovery is required only when billing schedules remain in the Processing, Void In Progress, or Error status.', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'}], note:'No request body — only the invoiceBatchRunId path parameter.' }
+          { method:'POST', path:'/commerce/invoicing/invoice-schedulers', title:'Create Invoice Scheduler', version:'62.0', desc:'Create an invoice scheduler to automatically generate invoices. Use the criteria and filters of the invoice scheduler to set up the invoice run schedules based on your requirements.', fields:[
+              {name:'schedulerName', type:'String', req:true, desc:'Name of the invoice scheduler, which must be unique in your org.'},
+              {name:'status', type:'String', req:true, desc:'Status of the invoice scheduler. Valid values: Draft, Active, Inactive.'},
+              {name:'invoiceStatus', type:'String', req:true, desc:'Expected invoice status from an invoice batch run. Valid values: Draft, Posted.'},
+              {name:'startDate', type:'String', req:true, desc:'Start date of the invoice scheduler.'},
+              {name:'endDate', type:'String', req:false, desc:'End date of the invoice scheduler. (63.0+)'},
+              {name:'preferredTime', type:'String', req:true, desc:'Preferred time for the invoice batch run.'},
+              {name:'frequencyCadence', type:'String', req:true, desc:'Frequency to run the invoice scheduler. Valid values: Once, Daily, Weekly, Monthly.'},
+              {name:'frequencyCadenceOptions', type:'Object', req:true, desc:'Frequency cadence options for the invoice scheduler (e.g., recursOnDay, recurringSubType, recursOnDate, shouldExcludeWkendAndHldy, shouldStartRunImmediately).'},
+              {name:'invoiceDate', type:'String', req:false, desc:'Date shown on the invoice; also used for tax calculations. Required if frequencyCadence is Once.'},
+              {name:'invoiceDateOffset', type:'Integer', req:false, desc:'Number of days added to or subtracted from the target date to calculate the invoice date. Required if frequencyCadence is Daily, Weekly, or Monthly.'},
+              {name:'isInvoiceDateFromRunDate', type:'Boolean', req:false, desc:'Whether the invoice date is applicable from the date the invoice scheduler is run. (63.0+)'},
+              {name:'targetDate', type:'String', req:false, desc:'Target date of the invoice batch run; billing schedules with a next billing date before this date are picked up for invoicing. Required if frequencyCadence is Once.'},
+              {name:'targetDateOffset', type:'Integer', req:false, desc:'Number of days added to or subtracted from the next billing date to calculate the target date. Required if frequencyCadence is Daily, Weekly, or Monthly.'},
+              {name:'timezone', type:'String', req:false, desc:'Time zone applicable for the invoice scheduler.'},
+              {name:'filterCriteria', type:'Batch Invoice Filter Criteria Input[]', req:false, desc:'List of line items of the filter criteria.'}
+            ] },
+          { method:'PUT', path:'/commerce/invoicing/invoice-schedulers/{billingBatchSchedulerId}', title:'Update Invoice Scheduler', version:'63.0', desc:'Update an existing invoice scheduler. Supported only for invoice schedulers with Draft or Inactive status.', params:[{name:'billingBatchSchedulerId', desc:'ID of the invoice scheduler to update.'}], fields:[
+              {name:'schedulerName', type:'String', req:false, desc:'Name of the invoice scheduler, which must be unique in your org.'},
+              {name:'status', type:'String', req:false, desc:'Status of the invoice scheduler. Valid values: Draft, Active, Inactive.'},
+              {name:'invoiceStatus', type:'String', req:false, desc:'Expected invoice status from an invoice batch run. Valid values: Draft, Posted.'},
+              {name:'startDate', type:'String', req:false, desc:'Start date of the invoice scheduler.'},
+              {name:'endDate', type:'String', req:false, desc:'End date of the invoice scheduler.'},
+              {name:'preferredTime', type:'String', req:false, desc:'Preferred time for the invoice batch run.'},
+              {name:'frequencyCadence', type:'String', req:false, desc:'Frequency to run the invoice scheduler. Valid values: Once, Daily, Weekly, Monthly.'},
+              {name:'frequencyCadenceOptions', type:'Object', req:false, desc:'Frequency cadence options for the invoice scheduler.'},
+              {name:'invoiceDate', type:'String', req:false, desc:'Date shown on the invoice. Required if frequencyCadence is Once.'},
+              {name:'invoiceDateOffset', type:'Integer', req:false, desc:'Offset used to calculate the invoice date. Required if frequencyCadence is Daily, Weekly, or Monthly.'},
+              {name:'targetDate', type:'String', req:false, desc:'Target date of the invoice batch run. Required if frequencyCadence is Once.'},
+              {name:'targetDateOffset', type:'Integer', req:false, desc:'Offset used to calculate the target date. Required if frequencyCadence is Daily, Weekly, or Monthly.'},
+              {name:'timezone', type:'String', req:false, desc:'Time zone applicable for the invoice scheduler.'},
+              {name:'filterCriteria', type:'Batch Invoice Filter Criteria Input[]', req:false, desc:'List of line items of the filter criteria.'}
+            ] },
+          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/{invoiceBatchRunId}/actions/recover', title:'Recover Errored Invoice Batch Run', version:'62.0', desc:'Recover records associated with a failed invoice run. Recovery is required only when billing schedules remain in the Processing, Void In Progress, or Error status.', params:[{name:'invoiceBatchRunId', desc:'URI parameter identifying the invoice batch run.'}], note:'No request body — only the invoiceBatchRunId path parameter.' }
         ]
       },
       {
         id: 'bill-sequencing', title: 'Invoice Sequencing',
         endpoints: [
           { method:'POST', path:'/connect/sequences/policy', title:'Create Sequence Policy', version:'65.0', desc:'Create a sequence policy to configure a unique, sequential number for posted invoices or credit memos.', fields:[{name:'policyName', type:'String', req:false, desc:'Name of the sequence policy.'},{name:'patternPrefix', type:'String', req:false, desc:'Prefix pattern.'},{name:'startNumber', type:'Number', req:false, desc:'Starting sequence number.'},{name:'endNumber', type:'Number', req:false, desc:'Ending sequence number.'},{name:'objectName', type:'String', req:false, desc:'Invoice or CreditMemo.'}] },
-          { method:'PATCH', path:'/connect/sequences/policy/sequencePolicyId', title:'Update Sequence Policy', version:'65.0', desc:'Update the settings of a sequence policy that defines how unique, sequential numbers are generated by using specific patterns, values, and filters.', params:[{name:'sequencePolicyId', desc:'URI parameter identifying the sequence policy.'}] },
+          { method:'PATCH', path:'/connect/sequences/policy/{sequencePolicyId}', title:'Update Sequence Policy', version:'65.0', desc:'Update the settings of a sequence policy that defines how unique, sequential numbers are generated by using specific patterns, values, and filters.', params:[{name:'sequencePolicyId', desc:'URI parameter identifying the sequence policy.'}] },
           { method:'POST', path:'/connect/sequences/actions/assign', title:'Assign Sequence Values', version:'65.0', desc:'Assign sequence pattern values to objects based on the configured sequence policy.', fields:[{name:'sequenceNumber', type:'Number', req:false, desc:'Sequence number to assign.'},{name:'objectName', type:'String', req:false, desc:'Invoice or CreditMemo.'}] },
           { method:'POST', path:'/connect/sequences/gap-reconciliation', title:'Sequence Gap Reconciliation', version:'65.0', desc:'Restore a missing sequence value identified by using this API in gapless-enabled sequences. This sequence value can be used later in the subsequent sequence policy numbering, ensuring there are no gaps.' }
         ]
@@ -1273,15 +1306,15 @@ const DOMAINS = {
       {
         id: 'bill-statement', title: 'Account Statement',
         endpoints: [
-          { method:'POST', path:'/revenue/billing/accounts/accountId/statement', title:'Generate Account Statement', version:'66.0', desc:'Generate comprehensive financial statements with transaction history and balance information.', params:[{name:'accountId', desc:'URI parameter identifying the account.'}], fields:[{name:'statementDate', type:'String', req:false, desc:'Date of the statement.'},{name:'startDate', type:'String', req:false, desc:'Statement period start.'},{name:'endDate', type:'String', req:false, desc:'Statement period end.'}] }
+          { method:'POST', path:'/revenue/billing/accounts/{accountId}/statement', title:'Generate Account Statement', version:'66.0', desc:'Generate comprehensive financial statements with transaction history and balance information.', params:[{name:'accountId', desc:'URI parameter identifying the account.'}], fields:[{name:'statementDate', type:'String', req:false, desc:'Date of the statement.'},{name:'startDate', type:'String', req:false, desc:'Statement period start.'},{name:'endDate', type:'String', req:false, desc:'Statement period end.'}] }
         ]
       },
       {
         id: 'bill-payments', title: 'Payments',
         endpoints: [
-          { method:'POST', path:'/commerce/billing/payments/paymentId/actions/apply', title:'Apply Payment', desc:'Allocate the balance of a payment to reduce the balance of an invoice. The response includes an ID of the payment line invoice or payment line invoice line that represents the payment balance allocated against the invoice.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}] },
-          { method:'POST', path:'/commerce/billing/refunds/refundId/actions/apply', title:'Apply Refund', desc:'Make a refund transaction against a payment.', params:[{name:'refundId', desc:'URI parameter identifying the refund.'}] },
-          { method:'POST', path:'/commerce/billing/payments/paymentId/paymentlines/paymentLineId/actions/unapply', title:'Unapply Payment Line', version:'64.0', desc:'Revert the application of a payment line from an invoice, and return the payment and invoices to their pre-application state.', params:[{name:'paymentId', desc:'URI parameter identifying the payment (required).'},{name:'paymentLineId', desc:'URI parameter identifying the payment line (required).'}], fields:[{name:'comments', type:'String', req:false, desc:'Optional comments.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] }
+          { method:'POST', path:'/commerce/billing/payments/{paymentId}/actions/apply', title:'Apply Payment', version:'64.0', desc:'Allocate the balance of a payment to reduce the balance of an invoice. The response includes an ID of the payment line invoice or payment line invoice line that represents the payment balance allocated against the invoice.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}] },
+          { method:'POST', path:'/commerce/billing/refunds/{refundId}/actions/apply', title:'Apply Refund', version:'64.0', desc:'Make a refund transaction against a payment.', params:[{name:'refundId', desc:'URI parameter identifying the refund.'}] },
+          { method:'POST', path:'/commerce/billing/payments/{paymentId}/paymentlines/{paymentLineId}/actions/unapply', title:'Unapply Payment Line', version:'64.0', desc:'Revert the application of a payment line from an invoice, and return the payment and invoices to their pre-application state.', params:[{name:'paymentId', desc:'URI parameter identifying the payment (required).'},{name:'paymentLineId', desc:'URI parameter identifying the payment line (required).'}], fields:[{name:'comments', type:'String', req:false, desc:'Optional comments.'},{name:'effectiveDate', type:'String', req:false, desc:'Optional effective date.'}] }
         ]
       },
       {
@@ -1296,23 +1329,23 @@ const DOMAINS = {
         endpoints: [
           { method:'POST', path:'/commerce/payments/payment-methods', title:'Tokenize Payment Method', desc:'Tokenize a payment method.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
           { method:'POST', path:'/commerce/payments/sales', title:'Make Payment Sale', desc:'Make a payment sale.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/payments/paymentId/refunds', title:'Create Refund', desc:'Create a refund for a payment.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/payments/{paymentId}/refunds', title:'Create Refund', desc:'Create a refund for a payment.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
           { method:'POST', path:'/commerce/payments/authorizations', title:'Authorize Payment', desc:'Authorize a payment.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/authorizations/authorizationId/reversals', title:'Reverse Authorization', desc:'Reverse an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/authorizations/authorizationId/captures', title:'Capture Authorization', desc:'Capture an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' }
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/reversals', title:'Reverse Authorization', desc:'Reverse an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/captures', title:'Capture Authorization', desc:'Capture an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' }
         ]
       },
       {
         id: 'bill-arrangement', title: 'Billing Arrangement',
         endpoints: [
-          { method:'GET', path:'/revenue/billing/billing-arrangement/billingArrangementId', title:'Get Billing Arrangement', version:'66.0', desc:'Retrieve a billing arrangement and its associated billing arrangement lines.', params:[{name:'billingArrangementId', desc:'URI parameter identifying the billing arrangement (required).'}], note:'No request body (GET).' }
+          { method:'GET', path:'/revenue/billing/billing-arrangement/{billingArrangementId}', title:'Get Billing Arrangement', version:'66.0', desc:'Retrieve a billing arrangement and its associated billing arrangement lines.', params:[{name:'billingArrangementId', desc:'URI parameter identifying the billing arrangement (required).'}], note:'No request body (GET).' }
         ]
       },
       {
         id: 'bill-batch-scheduler', title: 'Batch Payment Scheduler',
         endpoints: [
           { method:'POST', path:'/commerce/payments/payment-schedulers/', title:'Create Payment Scheduler', version:'64.0', desc:'Create a payment scheduler to automate and process payment runs on a recurring basis.', fields:[{name:'schedulerName', type:'String', req:true, desc:'Name of the scheduler.'},{name:'startDate', type:'String', req:true, desc:'Start date of the scheduler.'},{name:'endDate', type:'String', req:false, desc:'Required if frequencyCadence is Monthly.'},{name:'preferredTime', type:'String', req:true, desc:'Preferred run time.'},{name:'frequencyCadence', type:'String', req:true, desc:'Valid values: Once, Daily, Weekly, Monthly.'},{name:'recursEveryMonthOnDay', type:'Number', req:false, desc:'Required if Monthly.'},{name:'criteriaMatchType', type:'String', req:false, desc:'Required if Monthly; valid values MatchAny/MatchNone.'},{name:'filterCriteria', type:'Payment Run Batch Filter Criteria Input[]', req:false, desc:'Required if Monthly; nested field detail not fully documented beyond its JSON example.'},{name:'status', type:'String', req:true, desc:'Valid values: Active, Canceled, Draft, Inactive.'}] },
-          { method:'PATCH', path:'/commerce/payments/payment-schedulers/billingBatchSchedulerId', title:'Update Payment Scheduler', version:'64.0', desc:'Activate or deactivate a payment scheduler (Active, Canceled, Draft, or Inactive).', params:[{name:'billingBatchSchedulerId', desc:'URI parameter identifying the payment scheduler.'}], fields:[{name:'status', type:'String', req:true, desc:'Valid values: Active, Canceled, Draft, Inactive.'}] }
+          { method:'PATCH', path:'/commerce/payments/payment-schedulers/{billingBatchSchedulerId}', title:'Update Payment Scheduler', version:'64.0', desc:'Activate or deactivate a payment scheduler (Active, Canceled, Draft, or Inactive).', params:[{name:'billingBatchSchedulerId', desc:'URI parameter identifying the payment scheduler.'}], fields:[{name:'status', type:'String', req:true, desc:'Valid values: Active, Canceled, Draft, Inactive.'}] }
         ]
       }
     ]
@@ -1484,7 +1517,7 @@ function renderOverview() {
     <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264, preview / pre-GA)</p>
 
     <div class="info-box">
-      <strong>This viewer</strong> documents 148 endpoints across 9 API domains. Of these, 137 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 11 are not fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide) and five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), both retained for continuity. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
+      <strong>This viewer</strong> documents 149 endpoints across 9 API domains. Of these, 137 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 12 are retained for continuity rather than fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide), five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), and one PCM entry (Product Related Records, v59.0) is a legacy route no longer present in the 264 snapshot. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
     </div>
 
     <h2 class="section-heading">Collections</h2>
@@ -1492,7 +1525,7 @@ function renderOverview() {
       <div class="ov-card">
         <h3>Revenue Management APIs (v68.0)</h3>
         <ul>
-          <li>148 endpoints across 9 API domains</li>
+          <li>149 endpoints across 9 API domains</li>
           <li>Pre-configured runners: Quote-to-Cash, eCommerce, Billing</li>
           <li>Setup Runner auto-populates all environment variables</li>
           <li>OAuth 2.0 client credentials with auto-refresh</li>

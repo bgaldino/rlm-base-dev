@@ -158,8 +158,8 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Description:** Get the persisted price waterfall that stores the process logs. Provides insights into every step of the pricing process.
 - **Available Version:** 60.0
 - **Query Parameters:**
-  - `tagsToFilter` (String, Optional): Comma-separated tags to filter (Available v61.0+)
-  - `usageType` (String, Optional): Usage type of the waterfall log record (Pricing, Discovery, Rating; default is Pricing) (Available v62.0+)
+  - `tagsToFilter` (String, Optional): Comma-separated tags to filter (Available Version 61.0)
+  - `usageType` (String, Optional): Usage type of the waterfall log record (Pricing, Discovery, Rating; default is Pricing) (Available Version 62.0)
 
 ---
 
@@ -215,8 +215,8 @@ This document provides a comprehensive reference of all REST API endpoints for t
   - `description` (String, Optional): Description of the procedure plan definition
   - `developerName` (String, Required if using POST): Developer name of the procedure plan definition
   - `name` (String, Optional): Name of the procedure plan definition
-  - `processType` (String, Required in v63.0+): Business process type (Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud; default is Default)
-  - `primaryObject` (String): Primary object for the definition (e.g., Quote, Account, Order)
+  - `processType` (String, Required, Available Version 63.0): Business process type (Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud; default is Default)
+  - `primaryObject` (String, Required if creating a procedure with rule-based criteria (Optional otherwise)): Primary object for the definition (e.g., Quote, Account, Order). Must be a valid object name, unique on the ProcedurePlanDefinition object.
   - `procedurePlanDefinitionVersions` (Procedure Plan Definition Version Input[], Required): List of versions
     - `active` (Boolean): Active status
     - `contextDefinition` (String): Context definition reference
@@ -238,7 +238,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
   - `description` (String, Optional): Description for the procedure plan definition
   - `developerName` (String, Required if using POST API): Developer name
   - `name` (String, Optional): Name of the procedure plan definition
-  - `primaryObject` (String): Primary object
+  - `primaryObject` (String, Required if using the POST API and creating a procedure with rule-based criteria (Optional otherwise)): Primary object
   - `procedurePlanDefinitionVersions` (Procedure Plan Definition Version Input[], Required): List of versions of a procedure plan definition
   - `processType` (String, Required, Available Version 63.0): Business process type (Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud; default is Default)
   - `recordId` (String, Required): ID of the procedure plan definition record
@@ -254,9 +254,9 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Request Body Fields:**
   - `idList` (String[], Required): List of object IDs
   - `evaluationDate` (String, Required): Date when the evaluation is applicable (must be within the date range when the definition is effective)
-  - `processType` (String): Business process type
-  - `sectionType` (String[]): Section type. Valid values: PricingProcedure, ProductDiscoveryProcedure, ProductQualificationProcedure, PricingDiscoveryProcedure, DiscountSpreadServiceProcedure, RatingProcedure, Custom, RatingDiscoveryProcedure
-  - `subSectionType` (String[]): Sub-section type (e.g., Revenue)
+  - `processType` (String, Optional, Available Version 63.0): Business process type
+  - `sectionType` (String[], Optional): Section type. Valid values: PricingProcedure, ProductDiscoveryProcedure, ProductQualificationProcedure, PricingDiscoveryProcedure, DiscountSpreadServiceProcedure, RatingProcedure, Custom, RatingDiscoveryProcedure
+  - `subSectionType` (String[], Optional): Sub-section type (e.g., Revenue). The combination of `sectionType` and `subSectionType` must be unique for every procedure plan version.
 
 ---
 
@@ -275,7 +275,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **URI Path:** `/connect/procedure-plan-definitions/{procedurePlanDefinitionId}/version`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/procedure-plan-definitions/{procedurePlanDefinitionId}/version`
 - **Description:** Create records of a procedure plan version with details.
-- **Available Version:** 62.0+
+- **Available Version:** 62.0
 - **Request Body Fields:**
   - `active` (Boolean): Indicates whether the procedure plan version is active. You can't edit or delete a procedure plan version that's active
   - `contextDefinition` (String): Context definition reference
@@ -305,7 +305,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **URI Path:** `/connect/procedure-plan-definitions/versions/{procedurePlanVersionId}`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/procedure-plan-definitions/versions/procedurePlanVersionId`
 - **Description:** Get, update, or delete a procedure plan definition version record by using the record ID.
-- **Available Version:** 62.0+
+- **Available Version:** 62.0
 - **Request Body Fields for PATCH:**
   - `active` (Boolean): Active status
   - `developerName` (String): Developer name
@@ -379,8 +379,8 @@ This document provides a comprehensive reference of all REST API endpoints for t
 | 15 | Procedure Plan Definition By ID | GET, PATCH, DELETE | `/connect/procedure-plan-definitions/{procedurePlanDefinitionId}` | 62.0 |
 | 16 | Procedure Plan Evaluation By Object | POST | `/connect/procedure-plan-definitions/evaluate` | 62.0 |
 | 17 | Procedure Plan Evaluation By Definition Name | POST | `/connect/procedure-plan-definitions/evaluate/{procedurePlanDefinitionName}` | 62.0 |
-| 18 | Procedure Plan Version | POST | `/connect/procedure-plan-definitions/{procedurePlanDefinitionId}/version` | 62.0+ |
-| 19 | Procedure Plan Version Details | GET, PATCH, DELETE | `/connect/procedure-plan-definitions/versions/{procedurePlanVersionId}` | 62.0+ |
+| 18 | Procedure Plan Version | POST | `/connect/procedure-plan-definitions/{procedurePlanDefinitionId}/version` | 62.0 |
+| 19 | Procedure Plan Version Details | GET, PATCH, DELETE | `/connect/procedure-plan-definitions/versions/{procedurePlanVersionId}` | 62.0 |
 
 ---
 

@@ -23,8 +23,8 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `pricingPref` (String, Optional): Pricing preference — `Force`, `Skip`, or `System` (default `System`).
   - `catalogRatesPref` (String, Optional): `Fetch` or `Skip` (default `Skip`) — retrieval of rate card entries for usage-based sales items. Available when Usage-Based Selling is enabled.
   - `configurationPref` (Configurator Preference Input, Optional): Configuration preference during the quote/order process.
-  - `taxPref` (String, Optional, **v65.0+**): Valid value `Skip` — skips tax calculation for the request. Tax calculation runs by default if omitted.
-  - `groupRampAction` (String, Optional, **v65.0+**): Action to perform on group ramp segments — `AddProducts`, `DeleteProducts`, `EditGroup`, `EditRampSchedule`, `DeleteSegment`, or `ConvertToNonRampedGroup`. Converts a non-ramped group into a ramped group and vice versa.
+  - `taxPref` (String, Optional, **Available Version 65.0**): Valid value `Skip` — skips tax calculation for the request. Tax calculation runs by default if omitted.
+  - `groupRampAction` (String, Optional, **Available Version 65.0**): Action to perform on group ramp segments — `AddProducts`, `DeleteProducts`, `EditGroup`, `EditRampSchedule`, `DeleteSegment`, or `ConvertToNonRampedGroup`. Converts a non-ramped group into a ramped group and vice versa.
 
 *Grounded against: `connect_resources_place_sales_transaction.htm.md`, `connect_requests_place_sales_transaction_input.htm.md`*
 
@@ -39,8 +39,8 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 - **Request Body Fields:**
   - `contextId` (String, Required): ID of the context to retrieve data records from.
   - `queryTags` (List<String>, Optional): List of objects to retrieve from the context (e.g., `Quote`, `QuoteLineItem`, `Product`).
-  - `sobjectFieldMap` (Map<String, List<String>>, Optional, **v67.0+**): Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.
-  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **v67.0+**): Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.
+  - `sobjectFieldMap` (Map<String, List<String>>, Optional, **Available Version 67.0**): Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.
+  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **Available Version 67.0**): Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.
 
 *Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`*
 
@@ -55,7 +55,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 - **Request Body Fields:**
   - `recordIds` (String[], Required): ID of the record to clone. Only a single record ID is supported despite the array type.
   - `salesTransactionId` (String, Required): ID of the sales transaction related to the record IDs to clone.
-  - `options` (Clone Options Input, Optional, **v65.0+**):
+  - `options` (Clone Options Input, Optional, **Available Version 65.0**):
     - `recordTypeId` (String, Optional): Record type ID for the cloned record.
     - `lineScope` (String, Optional): `AllLines` — clone all line items in a ramped group; `RampedLinesOnly` — clone only ramped line items, generating a new segment identifier with date continuity. Only the last ramp segment can be cloned.
 
@@ -88,7 +88,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `flowApiName` (String, Required): API name of the auto-launched flow.
   - `objectApiName` (String, Required): API name of the object to preview approvals for (e.g., `Quote`).
   - `recordId` (String, Required): ID of the record to preview approvals for.
-  - `inputParameters` (Map<String, Object>, Optional, **v67.0+**): Input parameters to preview (e.g., `approverComments`, `requestType`).
+  - `inputParameters` (Map<String, Object>, Optional, **Available Version 67.0**): Input parameters to preview (e.g., `approverComments`, `requestType`).
 
 *Grounded against: `connect_resources_preview_approvals.htm.md`, `connect_requests_preview_approval_input.htm.md`*
 
@@ -330,6 +330,10 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/global-promotions-management/promotions`
 - **Description:** New in Spring '26 (v66.0). Create, retrieve, or update a Unified Promotion — including `promotionDetails` (eligibility, limits, rule library) and `rules` (event configuration, reward configuration, selling-model discounts). Get rewards based on a product selling model template. Listed alongside the Transaction Management REST references in the 264 Developer Guide; full property reference lives under the Loyalty/Unified Promotions Connect API.
 - **Available Version:** 66.0
+- **Request Body Fields (POST/PUT — create/update a promotion):**
+  - `promotionDetails` (Object, Required): Promotion header — `displayName`/`name`, `isAutomatic`, `isEmailActivated`, `startDateTime`, `promotionEligibility` (eligible customer events, enrollment period, eligible products), `promotionLimits`, `ruleLibrary` (`id`/`name`), `additionalFieldValues`.
+  - `rules` (Object[], Required): Promotion rules — `journalType`, `priority`, `ruleName`, `templateName`, `eventConfiguration` (Array), `rewardConfiguration` (Array of `scope`/`scopeDetails`/`rewardDetailsList`/`childProducts`/`type`/`isPrimaryReward`).
+  - The snapshot doesn't document distinct Path/Query parameters for GET or PUT, or a separate Properties table for this resource — it defers the full request/response schema to the [Loyalty/Unified Promotions Connect API](https://developer.salesforce.com/docs/atlas.en-us.264.0.loyalty.meta/loyalty/connect_resources_unified_promotions.htm).
 
 *Grounded against: `connect_resources_create_promotions.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
 
@@ -344,7 +348,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 - **URI Path:** `/commerce/sales-orders/actions/place`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/commerce/sales-orders/actions/place`
 - **Description:** **Deprecated as of API v63.0.** Place a sales order. Requires the PlaceOrder API permission set. Replaced by [Place Sales Transaction](#1-place-sales-transaction-post) (`/connect/rev/sales-transaction/actions/place`).
-- **Available Version:** Deprecated — use `/connect/rev/sales-transaction/actions/place` instead
+- **Available Version:** 60.0 (Deprecated as of v63.0 — use `/connect/rev/sales-transaction/actions/place` instead)
 
 *Grounded against: `connect_resources_place_order.htm.md`*
 
@@ -355,7 +359,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 - **URI Path:** `/commerce/quotes/actions/place`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/commerce/quotes/actions/place`
 - **Description:** **Deprecated as of API v63.0.** Create a quote to discover and price products/services; insert, update, or delete quote line items. Requires the "Create on Quotes" user permission. Replaced by [Place Sales Transaction](#1-place-sales-transaction-post) (`/connect/rev/sales-transaction/actions/place`).
-- **Available Version:** Deprecated — use `/connect/rev/sales-transaction/actions/place` instead
+- **Available Version:** 60.0 (Deprecated as of v63.0 — use `/connect/rev/sales-transaction/actions/place` instead)
 
 *Grounded against: `connect_resources_place_quote.htm.md`*
 

@@ -1,6 +1,8 @@
 # Revenue Cloud Billing Business APIs — Quick Reference
 
-**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 47 | **Source:** RLM Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
+**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 48 | **Source:** RLM Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
+
+**Provenance split**: 42 of the 48 endpoints below are grounded in the 264 (v68.0) RLM dev-guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
 
 ---
 
@@ -41,9 +43,10 @@
 - `POST /commerce/billing/invoices/invoice-batch-docgen/{invoiceBatchRunId}/actions/run` *(new — v63.0)*
 - `POST /commerce/billing/invoices/invoice-batch-docgen/{invoiceBatchRunId}/actions/retry` *(new — v63.0, same URI template as docgen, different `actionName`)*
 
-### 4. Invoice Scheduler (2 endpoints)
+### 4. Invoice Scheduler (3 endpoints)
 
 - `POST /commerce/invoicing/invoice-schedulers`
+- `PUT /commerce/invoicing/invoice-schedulers/{billingBatchSchedulerId}` *(new — v63.0; Draft/Inactive schedulers only)*
 - `POST /commerce/invoicing/invoice-batch-runs/{invoiceBatchRunId}/actions/recover` *(new — v62.0)*
 
 ### 5. Invoice Sequencing (4 endpoints)
@@ -90,7 +93,7 @@
 
 ## HTTP Methods
 
-POST: 44 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (sequence policy updates, Payment Scheduler Update), GET: 1 endpoint (Billing Arrangement).
+POST: 44 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (sequence policy updates, Payment Scheduler Update), PUT: 1 endpoint (Invoice Scheduler Update, Draft/Inactive only), GET: 1 endpoint (Billing Arrangement).
 
 ## API Base Paths
 
@@ -107,11 +110,9 @@ POST: 44 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (se
 
 OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimum API version v60.0; current v68.0 (individual resources carry their own Available Version from v62.0–v66.0 — see `billing-business-apis-reference.md`). Standard Salesforce API rate limits apply.
 
-## Related Archive Files
+## Related Domains
 
-- `billing-business-apis-reference.md` — comprehensive endpoint details
-- `billing-endpoints.json` — machine-readable JSON format
-- `billing-apis-extraction-summary.md` — extraction methodology and findings
+- **[Billing APIs (full reference)](billing-business-apis-reference.md)** — comprehensive per-endpoint detail: request/response fields, path/query parameters, and provenance (264-grounded vs. Section 9's external Commerce Payments carryover).
 
 ---
 

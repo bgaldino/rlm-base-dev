@@ -19,7 +19,7 @@ The Product Configurator APIs enable interactive configuration of complex produc
   - `transactionId` (String, Required): ID of the sales transaction (quote or order) being configured.
   - `transactionLineId` (String, Optional): ID of the specific transaction line item to configure.
   - `correlationId` (String, Optional): Unique identifier attached to the request for tracing.
-  - `configuratorOptions` (Object, Optional): Options passed to the configurator — a single object (not an array). Supported sub-fields: `addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled`, `pricingProcedure`, `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`.
+  - `configuratorOptions` (Object, Optional): Options passed to the configurator — a single object (not an array). Sub-fields: `pricingProcedure` (String) — API name of the pricing procedure to use during calls to Salesforce Pricing Management; all other sub-fields are Boolean — `addDefaultConfiguration`, `executeConfigurationRules`, `executePricing`, `explainabilityEnabled` (66.0+), `qualifyAllProductsInTransaction`, `returnProductCatalogData`, `validateAmendRenewCancel`, `validateProductCatalog`.
   - `contextResponseType` (String, Optional — 65.0+): Controls response payload size for large transactions. Values: `Delta`, `Full`, `None`, `Product`. Required when the transaction has more than 1,000 and fewer than 15,000 line items.
   - `qualificationContext` (Object, Optional): User context used for qualification rules — `accountId`, `contactId`, `contextId`.
   - `transactionContextId` (String, Optional): Context ID of an existing transaction session.
