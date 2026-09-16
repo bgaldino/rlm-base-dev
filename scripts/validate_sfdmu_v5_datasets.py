@@ -24,10 +24,10 @@ Options:
 import argparse
 import csv
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass, field
-from decimal import Decimal, localcontext
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -390,33 +390,32 @@ class SFDMUValidator:
         A non-numeric (text) field keeps its raw string, whitespace intact (the previous round's
         fix), so ` dup ` and `dup` stay distinct.
 
-        Offline we have no field-type metadata, so we cannot know which columns SFDMU numeric-casts.
-        We fold any value that parses as a finite decimal to a spelling-independent canonical form
-        via `format(dec.normalize(), "f")` — a plain (never exponent) decimal string, so `100` and
-        `1E2` both read `100` and `1` / `1.0` / `01` both read `1` — and leave everything else as the
-        RAW string, whitespace preserved. The only value this over-folds is a *text* external Id that
-        deliberately stores numerically-equal-but-distinct strings (e.g. `1` vs `1.0`); for an
-        external Id — a field whose whole job is to identify one record — that is itself a fragility
-        worth a HIGH, not a legitimate distinction, so folding is the safe default.
+        To mirror `Number()` faithfully we coerce through `float`, which is the SAME IEEE-754
+        binary64 representation JavaScript uses — not `Decimal`. That matters at the edges the review
+        surfaced: `Number()` collapses two decimal integers that share a binary64 value
+        (`9007199254740992` and `...993`, either side of 2**53) to one key, and normalizes signed
+        zero (`String(-0) === "0"`), so a `Decimal` path preserving their distinctness would let a
+        real numeric-field collision pass validation. Equal binary64 values have equal `repr`, so
+        `repr(num)` is the canonical key; signed zero is folded to `0.0` explicitly. `inf`/`nan`
+        parse but are not finite matchable keys, and a non-numeric string raises `ValueError`; both
+        fall back to the RAW string (whitespace preserved).
 
-        `Decimal` (not `float`) keeps full precision, and `normalize()` runs under a local context
-        whose precision is widened to the value's own length, so two genuinely-distinct numeric Ids
-        never collapse by rounding at the default 28-significant-digit context limit. The whole
-        parse+normalize is wrapped: a non-numeric string raises `InvalidOperation` (an
-        `ArithmeticError`) and an astronomically-large exponent raises `Overflow` (also an
-        `ArithmeticError`) — both fall back to treating the cell as its raw text, never crashing the
-        per-file check.
+        Offline we have no field-type metadata, so we cannot know which columns SFDMU numeric-casts;
+        this folds every numeric-looking cell. The only thing it over-folds is a *text* external Id
+        that deliberately stores numerically-equal-but-distinct strings (e.g. `1` vs `1.0`, or two
+        ints past binary64 precision); for an external Id — whose whole job is to identify one
+        record — that is a fragility worth a HIGH, not a legitimate distinction, so folding is the
+        safe default.
         """
-        stripped = value.strip()
         try:
-            with localcontext() as ctx:
-                ctx.prec = max(len(stripped), 28)
-                dec = Decimal(stripped)
-                if not dec.is_finite():
-                    return value
-                return format(dec.normalize(), "f")
-        except (ArithmeticError, ValueError):
+            num = float(value.strip())
+        except ValueError:
             return value
+        if not math.isfinite(num):
+            return value
+        if num == 0:  # fold -0.0 into 0.0, as Number()->String does (`String(-0) === "0"`)
+            num = 0.0
+        return repr(num)
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,
                  fix_headers: bool = False, fix_composite_keys: bool = False, dry_run: bool = False):

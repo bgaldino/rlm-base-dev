@@ -1329,6 +1329,20 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
      False, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
                                {"Widget__c.csv": "Id,Name\n1,1\n2,2\n"})
              if "duplicate value" in i]),
+    # SFDMU casts numeric fields through JS Number() = IEEE-754 binary64, which collapses two
+    # decimal integers either side of 2**53 (9007199254740992 and ...993) to one value. The guard
+    # coerces through float (same binary64), so these fold and the collision fires HIGH — a Decimal
+    # path preserving their distinctness would have let it pass.
+    ("integers sharing a binary64 value (either side of 2**53) collide — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,9007199254740992\n2,9007199254740993\n"},
+                              severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
+    # Signed zero: Number() normalizes -0 to 0 (String(-0) === "0"), so `-0` and `0` are one key.
+    ("signed-zero variants (-0 and 0) collide as SFDMU normalizes them — flagged",
+     True, [i for i in issues([[{"query": _SFK, "operation": "Upsert", "externalId": "Name"}]],
+                              {"Widget__c.csv": "Id,Name\n1,-0\n2,0\n"}, severity=V.Severity.HIGH)
+            if "duplicate value" in i]),
     # Malformed-before-valid sibling in one pass: a malformed int externalId `1` and a well-formed
     # string externalId `"1"` both coerce to "1", so they would collapse under the dedup key were
     # `externalId_malformed` not part of it — and with the malformed one sorting first, the surviving
