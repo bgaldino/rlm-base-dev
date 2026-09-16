@@ -12,7 +12,9 @@ any deactivation**, so a bad overlay never leaves a version toggled off:
 1. Validate the overlay shape.
 2. GET the live definition and cross-check placement/update/reorder/remove
    targets against it (a typo'd target fails locally).
-3. Simulate the merge on that snapshot and validate the merged graph.
+3. Simulate the merge on that snapshot and validate the merged graph. Existing
+   addSteps entries must match; use updateSteps for edits and reorderSteps for
+   movement. Content conflicts fail before lifecycle writes.
 4. Align ``ResourceInitializationType``.
 5. Only then: deactivate (with the procedure-plan cascade) → re-GET → merge →
    validate → PATCH → verify → reactivate. A failed PATCH leaves the version
@@ -58,6 +60,7 @@ from scripts.expression_sets._overlay import (  # noqa: E402
     OverlayError,
     apply_overlay,
     overlay_labels,
+    find_version,
 )
 from scripts.expression_sets._payload import (  # noqa: E402
     normalize_html_entities,
@@ -71,6 +74,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
 )
 from scripts.expression_sets._schema import (  # noqa: E402
     validate_definition,
+    overlay_step_content_errors,
     validate_overlay_against_definition,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
@@ -91,7 +95,9 @@ def _report(result, label):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Apply a declarative overlay to a live BRE Expression Set. "
-                    "MUTATING (preview by default; --confirm to apply).",
+                    "MUTATING (preview by default; --confirm to apply). "
+                    "addSteps accepts only absent or matching steps; use updateSteps "
+                    "to change an existing step.",
     )
     parser.add_argument(
         "--target-org", required=True,
@@ -226,7 +232,7 @@ def main(argv=None) -> int:
             engine.patch_definition(es_id, patch_payload)
             engine.log(f"PATCHed expression set {es_id}.")
             if verify and not preview:
-                _verify(engine, es_id, overlay, version_api_name)
+                _verify(engine, es_id, overlay, version_api_name, patch_payload)
 
         engine.run_mutation(
             es_def_id=es_def_id, esv=esv, mutate=mutate,
@@ -271,30 +277,19 @@ def main(argv=None) -> int:
     return 0 if restore_ok else 1
 
 
-def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name):
-    """Confirm added steps are present and removed steps are gone after the PATCH."""
+def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected):
+    """Compare touched step bodies with the final payload in the exact target version."""
     definition = engine.get_definition(es_id)
     versions = definition.get("versions") or []
-    version = None
-    if version_api_name:
-        version = next((v for v in versions if v.get("apiName") == version_api_name), None)
-    if version is None and versions:
-        version = versions[0]
-    if version is None:
-        raise LifecycleError(
-            "Verification failed: post-PATCH definition returned no versions."
-        )
-    names = {s.get("name") for s in (version.get("steps") or []) if isinstance(s, dict)}
-
-    missing = [s["name"] for s in overlay.get("addSteps", []) if s.get("name") not in names]
-    if missing:
-        raise LifecycleError(f"Verification failed: added step(s) not present: {missing}.")
-    still_there = [s["name"] for s in overlay.get("removeSteps", []) if s.get("name") in names]
-    if still_there:
-        raise LifecycleError(
-            f"Verification failed: removed step(s) still present: {still_there}."
-        )
-    engine.log("Verified overlay applied (added present, removed absent).")
+    if not versions:
+        raise LifecycleError("Verification failed: post-PATCH definition returned no versions.")
+    version = find_version(versions, version_api_name, error_cls=LifecycleError)
+    expected_version = find_version(expected.get("versions", []), version_api_name,
+                                    error_cls=LifecycleError)
+    errors = overlay_step_content_errors(overlay, expected_version, version)
+    if errors:
+        raise LifecycleError("Verification failed: " + "; ".join(errors))
+    engine.log("Verified overlay step content and removals against the merged payload.")
 
 
 if __name__ == "__main__":

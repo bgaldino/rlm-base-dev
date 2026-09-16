@@ -24,6 +24,7 @@ configures handlers.
 """
 
 import logging
+from ._schema import existing_step_differences
 from copy import deepcopy
 from typing import List, Optional
 
@@ -170,7 +171,13 @@ def add_steps(steps: list, to_add: list, *, logger=None, error_cls=OverlayError)
             (s for s in steps if s.get("name") == step_def["name"]), None
         )
         if existing:
-            _log(logger, "info", "Step '%s' already exists, skipping add.", step_def["name"])
+            differences = existing_step_differences(step_def, existing)
+            if differences:
+                raise error_cls(
+                    f"addSteps target '{step_def['name']}' already exists with different "
+                    f"content ({', '.join(differences)}); use updateSteps to change it."
+                )
+            _log(logger, "info", "Step '%s' already matches the requested content.", step_def["name"])
             continue
 
         # Read placement WITHOUT mutating the caller's overlay dict: the

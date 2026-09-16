@@ -1469,6 +1469,66 @@ def test_overlay_removevariables_rejects_bad_shape():
     )
 
 
+def test_overlay_content_conflict_and_readback():
+    from copy import deepcopy
+    from tasks.expression_set_schema import overlay_step_content_errors
+    from scripts.expression_sets._schema import overlay_step_content_errors as vendored
+    task = _OverlayApplier()
+    step = {"name": "S", "sequenceNumber": 1, "customElement": {"parameters": [
+        {"name": "formula", "type": "Formula", "value": "1"}]}}
+    changed = deepcopy(step)
+    changed["customElement"]["parameters"][0]["value"] = "777"
+    raised = False
+    try:
+        task._add_steps([deepcopy(step)], [changed])
+    except Exception as exc:
+        raised = "updateSteps" in str(exc)
+    check("CCI conflicting addSteps fails before any mutation", raised)
+    check("CCI matching addSteps stays idempotent", task._add_steps([deepcopy(step)], [step]) == [step])
+    anchor = {"name": "Anchor", "sequenceNumber": 1}
+    added = {"name": "Added", "sequenceNumber": 1, "placement": {"afterStep": "Anchor"}}
+    once = task._add_steps([deepcopy(anchor)], [added])
+    check("add replay ignores overwritten top-level sequence", task._add_steps(deepcopy(once), [added]) == once)
+    shared = [{"name": "First", "placement": {"afterStep": "Anchor"}},
+              {"name": "Second", "placement": {"afterStep": "Anchor"}}]
+    shared_once = task._add_steps([deepcopy(anchor)], shared)
+    check("shared-anchor batch is replayable", task._add_steps(deepcopy(shared_once), shared) == shared_once)
+    before = {"steps": [{"name": "Anchor", "sequenceNumber": 1}, {"name": "Added", "sequenceNumber": 2}]}
+    after = {"steps": [{"name": "Anchor", "sequenceNumber": 2}, {"name": "Added", "sequenceNumber": 1}]}
+    ignored_shift = deepcopy(after)
+    ignored_shift["steps"][0]["sequenceNumber"] = 1
+    check("verification detects ignored sibling sequence shift", bool(overlay_step_content_errors(
+        {"reorderSteps": [{"name": "Added", "sequenceNumber": 1}]}, after, ignored_shift)))
+
+    expected = {"versions": [{"apiName": "V1", "steps": [changed]}]}
+    actual = {"versions": [{"apiName": "V1", "steps": [step]}]}
+    task._get_expression_set_via_connect = lambda _: actual
+    task.options = {"version_api_name": "V1"}
+    for op in ("addSteps", "updateSteps"):
+        overlay = {op: [changed]}
+        raised = False
+        try:
+            task._verify_overlay("9QLx", overlay, expected)
+        except Exception as exc:
+            raised = "formula" in str(exc)
+        check("CCI " + op + " rejects stale read-back content", raised)
+        args = (overlay, expected["versions"][0], actual["versions"][0])
+        check("validator copies agree for " + op,
+              overlay_step_content_errors(*args) == vendored(*args))
+    task._get_expression_set_via_connect = lambda _: expected
+    task._verify_overlay("9QLx", {"updateSteps": [changed]}, expected)
+    check("CCI matching updated body verifies", True)
+    placement_state = {"versions": [{"apiName": "V1", "steps": [
+        {"name": "Existing", "sequenceNumber": 1}, {"name": "Anchor", "sequenceNumber": 2}]}]}
+    task._get_expression_set_via_connect = lambda _: placement_state
+    try:
+        task._verify_overlay("9QLx", {"addSteps": [{"name": "Existing", "placement": {"afterStep": "Anchor"}}]}, placement_state)
+        check("CCI retains placement verification", False)
+    except Exception as exc:
+        check("CCI retains placement verification", "sequenceNumber" in str(exc))
+
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

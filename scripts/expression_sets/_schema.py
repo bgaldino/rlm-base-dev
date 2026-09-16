@@ -31,6 +31,7 @@ No CumulusCI or org imports here on purpose: this module is unit-testable and
 reusable from a plain ``python`` invocation.
 """
 import re
+import html
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Set
@@ -846,6 +847,63 @@ def _warn_undeclared_external_dependencies(
             f"(customFields/contextNodes) to document the requirement and "
             f"silence this warning.",
         )
+
+
+def step_content_differences(expected, actual, path="step"):
+    """Compare requested fields, allowing GET-only fields and named-list ordering.
+
+    HTML entities are transport encoding, not formula changes. Missing non-null
+    fields, changed values, missing/extra list members and duplicate names fail.
+    Overlay-only placement/label keys must be removed by the caller.
+    """
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return [path]
+        return [p for key, value in expected.items()
+                for p in step_content_differences(value, actual.get(key), f"{path}.{key}")]
+    if isinstance(expected, list):
+        if not isinstance(actual, list) or len(expected) != len(actual):
+            return [path]
+        if expected and all(isinstance(v, dict) and v.get("name") for v in expected):
+            names = [v["name"] for v in expected]
+            got = {v.get("name"): v for v in actual if isinstance(v, dict)}
+            if len(set(names)) != len(names) or len(got) != len(actual) or set(got) != set(names):
+                return [path]
+            return [p for value in expected for p in step_content_differences(
+                value, got[value["name"]], f"{path}[{value['name']}]")]
+        return [p for i, (want, got) in enumerate(zip(expected, actual))
+                for p in step_content_differences(want, got, f"{path}[{i}]")]
+    if isinstance(expected, str) and isinstance(actual, str):
+        expected, actual = html.unescape(expected), html.unescape(actual)
+    return [] if expected == actual else [path]
+
+
+def existing_step_differences(step_def, existing):
+    """Compare an add replay, excluding metadata and computed top-level sequence."""
+    requested = {k: v for k, v in step_def.items() if k not in ("placement", "label")}
+    if not step_def.get("parentStep"):
+        requested.pop("sequenceNumber", None)
+    return step_content_differences(requested, existing)
+
+
+def overlay_step_content_errors(overlay, expected_version, actual_version):
+    """Check the final step graph against the merged payload, plus removals."""
+    errors = []
+    expected = {s["name"]: s for s in expected_version.get("steps", [])}
+    actual = actual_version.get("steps", [])
+    touched = set(expected) if any(overlay.get(op) for op in
+        ("addSteps", "updateSteps", "removeSteps", "reorderSteps")) else set()
+    for name in sorted(touched):
+        matches = [s for s in actual if s.get("name") == name]
+        if len(matches) != 1 or name not in expected:
+            errors.append(f"step '{name}' must occur exactly once in the target version")
+            continue
+        errors.extend(step_content_differences(expected[name], matches[0], f"step[{name}]"))
+    for step in overlay.get("removeSteps", []):
+        name = step["name"]
+        if name not in expected and any(s.get("name") == name for s in actual):
+            errors.append(f"removed step '{name}' is still present")
+    return errors
 
 
 def validate_overlay_against_definition(

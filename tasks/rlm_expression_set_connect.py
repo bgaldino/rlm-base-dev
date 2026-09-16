@@ -67,6 +67,8 @@ except ImportError:
 
 from tasks.expression_set_schema import (
     RESOURCE_INIT_TYPES,
+    existing_step_differences,
+    overlay_step_content_errors,
     detect_kind,
     validate_definition,
     validate_overlay,
@@ -999,7 +1001,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 self.logger.info("PATCHed expression set %s.", es_id)
 
             if verify and not dry_run:
-                self._verify_overlay(es_id, overlay)
+                self._verify_overlay(es_id, overlay, patch_payload)
 
         self._run_connect_mutation(
             es_def_id=es_def_id,
@@ -1091,8 +1093,14 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 (s for s in steps if s.get("name") == step_def["name"]), None
             )
             if existing:
+                differences = existing_step_differences(step_def, existing)
+                if differences:
+                    raise TaskOptionsError(
+                        f"addSteps target '{step_def['name']}' already exists with different "
+                        f"content ({', '.join(differences)}); use updateSteps to change it."
+                    )
                 self.logger.info(
-                    "Step '%s' already exists, skipping add.", step_def["name"]
+                    "Step '%s' already matches the requested content.", step_def["name"]
                 )
                 continue
 
@@ -1286,7 +1294,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
 
     # -- Verification --------------------------------------------------
 
-    def _verify_overlay(self, es_id: str, overlay: dict):
+    def _verify_overlay(self, es_id: str, overlay: dict, expected: dict):
         post_state = self._get_expression_set_via_connect(es_id)
         versions = post_state.get("versions", [])
         if not versions:
@@ -1297,56 +1305,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             or overlay.get("versionApiName")
         )
         version = self._find_version(versions, version_api_name)
-        steps = version.get("steps", [])
-        step_names = {s.get("name") for s in steps}
-
-        # NOTE: the Connect GET serializes top-level steps in alphabetical
-        # name order, NOT execution (sequenceNumber) order. Never infer
-        # ordering from the array index of the GET response — always read
-        # sequenceNumber, which is what the engine executes on.
-        seq_by_name = {
-            s.get("name"): s.get("sequenceNumber")
-            for s in steps
-            if s.get("parentStep") is None
-        }
-
+        expected_version = self._find_version(expected.get("versions", []), version_api_name)
+        errors = overlay_step_content_errors(overlay, expected_version, version)
+        if errors:
+            raise TaskOptionsError("Verification failed: " + "; ".join(errors))
+        # Preserve the CCI task's existing placement contract in addition to
+        # checking the stored graph. Placement is overlay metadata, not a field
+        # in the PATCH payload, and cannot be verified by body comparison alone.
+        seq_by_name = {s.get("name"): s.get("sequenceNumber")
+                       for s in version.get("steps", []) if s.get("parentStep") is None}
         for added in overlay.get("addSteps", []):
-            if added["name"] not in step_names:
-                raise TaskOptionsError(
-                    f"Verification failed: step '{added['name']}' not found after apply."
-                )
             self._verify_step_placement(added, seq_by_name)
-        for removed in overlay.get("removeSteps", []):
-            if removed["name"] in step_names:
-                raise TaskOptionsError(
-                    f"Verification failed: step '{removed['name']}' still present after removal."
-                )
-        # updateSteps / reorderSteps must still be present after apply (a missing
-        # target would have raised during _apply_overlay, but verify the result
-        # against the org too); reorderSteps must also land on its sequenceNumber.
-        for updated in overlay.get("updateSteps", []):
-            if updated["name"] not in step_names:
-                raise TaskOptionsError(
-                    f"Verification failed: updated step '{updated['name']}' not "
-                    "found after apply."
-                )
-        for reordered in overlay.get("reorderSteps", []):
-            name = reordered["name"]
-            if name not in step_names:
-                raise TaskOptionsError(
-                    f"Verification failed: reordered step '{name}' not found "
-                    "after apply."
-                )
-            want = reordered.get("sequenceNumber")
-            got = seq_by_name.get(name)
-            # Only top-level steps carry a checkable sequence here (children are
-            # scoped per parent and absent from seq_by_name).
-            if got is not None and want is not None and got != want:
-                raise TaskOptionsError(
-                    f"Verification failed: reordered step '{name}' has "
-                    f"sequenceNumber {got}, expected {want}."
-                )
-        self.logger.info("Verification passed.")
+        self.logger.info("Verified overlay step content and removals against the merged payload.")
 
     @staticmethod
     def _verify_step_placement(added: dict, seq_by_name: dict):
