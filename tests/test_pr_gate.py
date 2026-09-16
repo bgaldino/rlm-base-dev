@@ -254,11 +254,10 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Selection must still be able to come up empty, or "selected" means nothing. The probe has
-# to be outside the manifest audit's roots, which are deliberately repo-wide: a manifest can
-# cite a path anywhere, so robot/ (a root) no longer qualifies as an unclaimed path.
+# Local Markdown links can target any repository file. The cheap navigation baseline
+# therefore runs for every non-empty change, while unrelated expensive checks stay skipped.
 sel = selected_names(["docker/Dockerfile"])
-check("a path no check claims selects nothing rather than everything", sel == set(), sel)
+check("an otherwise unrelated path selects only the navigation baseline", sel == {"agent_tooling"}, sel)
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.

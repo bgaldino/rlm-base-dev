@@ -106,10 +106,9 @@ CHECKS = [
     dict(
         name="agent_tooling",
         cmd=["python", "scripts/ai/analyze_agent_tooling.py", "check"],
-        # CLAUDE.md is in the script's REQUIRED_FILES, so its deletion fails this check —
-        # it was missing here, found by the read-enumeration in tests/test_pr_gate.py.
-        triggers=["AGENTS.md", "CLAUDE.md", "REVIEW.md", ".github/copilot-instructions.md",
-                  ".claude/skill-manifest.yml", ".cursor/", ".agents/", "scripts/ai/"],
+        # Navigation targets can live anywhere (including images and extensionless
+        # files). Always select this cheap check so target-only removals cannot bypass it.
+        triggers=["scripts/ai/analyze_agent_tooling.py"], always=True,
         deps=[], min_python=(3, 10), gating=True,
     ),
     dict(
@@ -335,7 +334,8 @@ CHECKS = [
         # was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
-                  ".cursor/skills/usage-consumption/", "docs/references/"],
+                  ".agents/", ".claude/", ".cursor/", "docs/references/",
+                  "AGENTS.md", "CLAUDE.md", "README.md"],
         deps=[], gating=True,
     ),
     dict(
@@ -454,6 +454,7 @@ CHECKS = [
 # and fail it for a reason that has nothing to do with the change. `unlisted_suites()`
 # reports anything in tests/ that no check claims, so adding one is not silently ignored.
 STDLIB_SUITES = [
+    "tests/test_agent_launch_checks.py",
     "tests/test_agents_common.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_context_apply.py",
@@ -643,6 +644,8 @@ def git(args, purpose):
 
 
 def selects(check, files):
+    if check.get("always") and files:
+        return True
     if any(f.startswith(t) for t in check["triggers"] for f in files):
         return True
     return any(f.endswith(s) for s in check.get("suffixes", ()) for f in files)

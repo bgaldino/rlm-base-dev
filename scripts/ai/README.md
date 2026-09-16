@@ -129,6 +129,23 @@ Two check modes:
   table is readable, and that this README documents the check modes. Exits
   non-zero on any failure, so it is safe to run as a CI/scheduled gate.
 
+  Launch checks also enforce skill discovery metadata, exact relative native-link
+  targets and Git symlink mode, and a **25,000-byte** `AGENTS.md` ceiling. Stage
+  new adapter links before running the check. Symlink-less copies can use the
+  documented plain-file consumption fallback, but cannot pass native-link validation.
+
+  Local file links are checked in `README.md`, `AGENTS.md`, `.agents/README.md`,
+  the Copilot pointer, the native-discovery guide, and every canonical skill
+  Markdown file (including sub-files). This covers inline links/images and
+  reference definitions, including URL-encoded paths and angle-bracket paths
+  with spaces. Bare destinations support one balanced parentheses level. Fenced/indented code,
+  inline code and HTML comments are excluded. External URLs, anchor fragments,
+  HTML links and links into private `.agents/artifacts/` are not validated;
+  private exclusions are counted in the result. This is a scoped navigation
+  check, not a full Markdown parser or a scan of the entire reference corpus.
+  The PR gate selects the baseline on every change so a target-only deletion
+  cannot bypass it. Regression fixtures run in `tests/test_agent_launch_checks.py`.
+
   The sub-file registration check guards a structural invariant: the parent
   `SKILL.md` is the *only* registry for sub-files, since `AGENTS.md` carries no
   second-level index. A sub-file its parent does not name is unreachable from
