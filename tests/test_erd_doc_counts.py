@@ -43,9 +43,11 @@ the only reading under which the per-domain counts sum to the 263 the headline
 claims — excluding core objects yields 239, which matches no published figure.
 `Advanced Approvals` folds into `Approvals`, mirroring `get_short_domain` in
 `scripts/erd/build_erds.py`, which maps that label to the short name "Approvals".
-Note the plain label `Approvals` is *not* a `DOMAIN_MAP` key at all — it reaches
-the same short name through that function's fallback, which is the subject of
-pack 148. Two operations get from 14 raw labels to the documented **9**: stripping
+Both Approvals labels now have the same explicit color mapping in the builder
+and validator. This suite also checks map agreement, raw-label coverage and
+consistent colors for each short domain, and the checked-in viewer payload.
+Two operations get from 14 raw labels
+to the documented **9**: stripping
 the 4 `(Core Object)` suffixes (14 -> 10), then this fold (10 -> 9).
 
 Eight directions are checked, because these fail independently:
@@ -110,6 +112,7 @@ pattern; that is now a failure of its site's `_states_the_triple` check rather
 than a silent skip.
 """
 
+import ast
 import json
 import os
 import re
@@ -127,7 +130,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 97
+EXPECTED_CHECKS = 102
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 SKILL = os.path.join(
@@ -319,6 +322,54 @@ def main():
             f"stats says {stats.get(stat_key)}, content has {totals[key]} — "
             "regenerate the ERD rather than editing the stats block",
         )
+
+    print()
+    print("domain color mappings")
+    maps = []
+    for script in ("scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"):
+        with open(os.path.join(REPO_ROOT, script)) as f:
+            tree = ast.parse(f.read(), filename=script)
+        # Read the constants without importing the live-org validator's dependencies.
+        maps.append(next(
+            ast.literal_eval(node.value) for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "DOMAIN_MAP"
+                    for target in node.targets)
+        ))
+    check("builder_and_validator_domain_maps_agree", maps[0] == maps[1],
+          "DOMAIN_MAP differs between the HTML builder and org validator")
+    raw_domains = {obj["domain"] for obj in erd["objects"].values()}
+    unmapped = sorted(raw_domains - maps[0].keys())
+    check("all_erd_domains_have_explicit_colors", not unmapped,
+          f"raw domain labels would render with the fallback color: {unmapped}")
+    colors_by_short = {}
+    for entry in maps[0].values():
+        colors_by_short.setdefault(entry["short"], set()).add(entry["color"])
+    conflicts = {name: sorted(colors) for name, colors in colors_by_short.items()
+                 if len(colors) != 1}
+    check("each_short_domain_has_one_color", not conflicts,
+          f"aliases for the same displayed domain disagree: {conflicts}")
+
+    with open(os.path.join(ERD_DIR, "revenue-cloud-erd.html")) as f:
+        html = f.read()
+    marker = "const D="
+    assignment = html[html.index(marker) + len(marker):].lstrip()
+    payload, end = json.JSONDecoder().raw_decode(assignment)
+    check("html_payload_ends_at_assignment_semicolon",
+          assignment[end:].lstrip().startswith(";"),
+          "viewer payload has trailing content or no assignment semicolon; "
+          "regenerate with python scripts/erd/build_erds.py")
+    actual_nodes = sorted((node["id"], node.get("dom"), node.get("c"))
+                          for node in payload["nodes"])
+    expected_nodes = sorted(
+        (name, maps[0].get(obj["domain"], {}).get("short"),
+         maps[0].get(obj["domain"], {}).get("color"))
+        for name, obj in erd["objects"].items()
+    )
+    # Compare lists, not just keyed dictionaries: duplicate nodes must fail too.
+    check("html_domain_colors_match_erd_mapping", actual_nodes == expected_nodes,
+          "checked-in viewer has missing, extra, duplicate or stale domain/color nodes; "
+          "regenerate with python scripts/erd/build_erds.py")
 
     print()
     print("headline triples")
