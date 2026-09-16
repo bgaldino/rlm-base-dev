@@ -1,0 +1,11 @@
+{
+  "cmsSettings" : { },
+  "currentThemeId" : "2c6f6453-0bc3-44dc-9f7f-dfb6e668e2a3",
+  "headMarkup" : null,
+  "id" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "isLockerServiceEnabled" : true,
+  "isRelaxedCSPLevel" : false,
+  "label" : "main",
+  "templateName" : "RLM Self Service Portal Template",
+  "type" : "appPage"
+}

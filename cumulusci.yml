@@ -1837,17 +1837,21 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
-      Network's actual current EmailSenderAddress (immutable after creation) so
-      deploy_post_prm succeeds. Repo stores a non-PII placeholder; run
-      revert_network_email_after_deploy after deploy.
+      Replace the placeholder emailSenderAddress in a Network .network-meta.xml with
+      the Network's actual current EmailSenderAddress (immutable after creation) so the
+      community metadata deploy succeeds. Parameterized for any Network bundle via
+      network_name / network_meta_xml_path / placeholder_email (defaults target the PRM
+      rlm network + deploy_post_prm; the Billing Portal overrides them). Repo stores a
+      non-PII placeholder; run revert_network_email_after_deploy after the deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
 
   revert_network_email_after_deploy:
     group: Partner Relationship Management
     description: >
-      Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
-      deploy_post_prm so the repo never persists the target org's email.
+      Restore the placeholder emailSenderAddress in a Network .network-meta.xml after the
+      community metadata deploy so the repo never persists the target org's email.
+      Parameterized for any Network bundle via network_meta_xml_path / placeholder_email
+      (defaults target the PRM rlm network; the Billing Portal overrides them).
     class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   create_partner_central:
@@ -4405,6 +4409,8 @@ flows:
       13:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
+      14:
+        flow: prepare_billing_portal
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -4504,17 +4510,33 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Create Self-Service Billing Portal community and optionally deploy site content.
-      When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+      Every step is gated on both billing and billing_portal, so with billing false this
+      flow is a no-op. When billing and billing_portal are both true, creates the community;
+      when billing_portal_deploy is also true, patches the network email placeholder, deploys
+      unpackaged/post_billing_portal, and reverts the placeholder before publishing.
     steps:
       1:
         task: create_billing_portal
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
       2:
-        task: deploy_post_billing_portal
-        when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        task: patch_network_email_for_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_name: "Billing Portal"
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
       3:
+        task: deploy_post_billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+      4:
+        task: revert_network_email_after_deploy
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+        options:
+          network_meta_xml_path: "unpackaged/post_billing_portal/force-app/main/default/networks/Billing Portal.network-meta.xml"
+          placeholder_email: billing-portal-sender@example.com
+      5:
         task: publish_community
-        when: project_config.project__custom__billing_portal
+        when: project_config.project__custom__billing and project_config.project__custom__billing_portal
         options:
           name: "Billing Portal"
 

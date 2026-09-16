@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "b6b4af89-62c7-49d3-88f8-746a2fbd489c",
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "configurationTags" : [ ],
+  "devName" : "View_Wallet",
+  "id" : "132769f5-b463-4551-9278-c6b4be39df09",
+  "label" : "Wallet",
+  "routeType" : "wallet",
+  "type" : "route",
+  "urlPrefix" : "wallet"
+}

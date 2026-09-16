@@ -1,0 +1,23 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "95372db0-fff2-416d-87c5-9a84f5685d32",
+  "label" : "Payment Redirect Return",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : { },
+      "componentName" : "runtime_payments:paymentRedirectReturn",
+      "id" : "032b4979-5bef-49ed-89bc-02c5836c35b0",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "907b303f-50f4-4a3a-be4f-f32525c7f01f",
+    "regionName" : "content",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "rlm-pymnt-redirect-return"
+}

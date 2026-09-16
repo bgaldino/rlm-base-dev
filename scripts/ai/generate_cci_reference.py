@@ -253,9 +253,14 @@ def _scan_when_clauses(data: dict) -> dict[str, list[str]]:
             ref = step_cfg.get("task") or step_cfg.get("flow") or "???"
             when_str = str(when)
 
+            referenced_flags = set(
+                re.findall(
+                    r"project_config\.project__custom__([A-Za-z_][A-Za-z0-9_]*)",
+                    when_str,
+                )
+            )
             for flag in custom_keys:
-                pattern = rf'project_config\.project__custom__{re.escape(flag)}'
-                if re.search(pattern, when_str):
+                if flag in referenced_flags:
                     usage[flag].append(f"`{flow_name}` step {step_num} → `{ref}`")
 
             if "org_config.scratch" in when_str:

@@ -1,5 +1,11 @@
 """
-Custom CumulusCI tasks for Partner Relationship Management (PRM) community setup.
+Custom CumulusCI tasks for Experience Cloud community setup.
+
+Patch/revert the deploy-time Network email and CustomSite metadata for any community
+bundle — not just PRM. The patch tasks read the target org (Network EmailSenderAddress,
+running-user username) and the revert tasks restore repo placeholders. Used by the PRM
+'rlm' network (create_partner_central) and the Self-Service Billing Portal
+(create_billing_portal), and parameterized for future community bundles.
 """
 import os
 import re
@@ -25,8 +31,15 @@ class PatchNetworkEmailForDeploy(BaseTask):
     a placeholder; this task reads the Network's actual current value and substitutes it
     only during deployment so the deployed value exactly matches the org's existing value.
 
-    Run AFTER create_partner_central and BEFORE deploy_post_prm.
+    This task is parameterized for any Network metadata bundle. Run it after the
+    target community is created and before deploying that community's metadata.
     """
+
+    # Reads the org's Network record over REST via self.org_config, so it needs an org.
+    # Without salesforce_task = True, BaseTask exposes no --org option, a standalone
+    # `--org <alias>` is rejected, and the task can only hit the default org — unsafe when
+    # patching a Network email. See tasks/rlm_apex_file.py for the same guard.
+    salesforce_task = True
 
     task_options = {
         "placeholder_email": {
@@ -83,8 +96,10 @@ class PatchNetworkEmailForDeploy(BaseTask):
         result = response.json()
         if result.get("totalSize", 0) == 0:
             raise TaskOptionsError(
-                f"Network '{network_name}' not found in org. "
-                "Ensure create_partner_central has run before this task."
+                f"Network '{network_name}' not found in org. Ensure the community that "
+                f"owns this Network has been created before this task "
+                f"(e.g. create_partner_central for the PRM 'rlm' network, "
+                f"create_billing_portal for the 'Billing Portal')."
             )
         deploy_email = result["records"][0].get("EmailSenderAddress", "").strip()
         if not deploy_email:
@@ -121,10 +136,12 @@ class PatchNetworkEmailForDeploy(BaseTask):
 class RevertNetworkEmailAfterDeploy(BaseTask):
     """
     Restores the placeholder emailSenderAddress in the Network .network-meta.xml
-    after deploy_post_prm so the repo never stores the target org's real email.
+    after a community metadata deploy so the repo never stores the target org's
+    real email.
 
-    Run AFTER deploy_post_prm in the same flow so the file on disk is reverted
-    before the next commit.
+    This task is parameterized for any Network metadata bundle. Run it after the
+    corresponding deploy in the same flow so the file on disk is reverted before
+    the next commit.
     """
 
     task_options = {
@@ -190,6 +207,11 @@ class PatchPaymentsSiteForDeploy(BaseTask):
 
     Run this BEFORE deploy_post_payments_site.
     """
+
+    # Reads self.org_config.username, so it needs an org. Without salesforce_task = True,
+    # BaseTask exposes no --org option and a standalone run silently targets the default
+    # org. See PatchNetworkEmailForDeploy / tasks/rlm_apex_file.py for the same guard.
+    salesforce_task = True
 
     task_options = {
         "placeholder_username": {

@@ -10,6 +10,7 @@
     { "path": "unpackaged/post_approvals" },
     { "path": "unpackaged/post_billing" },
     { "path": "unpackaged/post_billing_id_settings" },
+    { "path": "unpackaged/post_billing_portal" },
     { "path": "unpackaged/post_billing_template_id_settings" },
     { "path": "unpackaged/post_billing_template_settings" },
     { "path": "unpackaged/post_billing_ui" },
