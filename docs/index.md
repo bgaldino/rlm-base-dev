@@ -101,15 +101,20 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 
 The `264` branch is the active development line, targeting Salesforce Release 264 (Winter '27, API v68.0). `main` remains the Release 262 (Summer '26, API v67.0) GA target, and `release/262` is the frozen 262 GA reference.
 
-> **264 is pre-GA.** Feature freeze is 2026-08-14; GA waves run 2026-09-05 → 2026-10-10. No 264 release notes or v68.0 Metadata Coverage Report entry exist yet, so a live 264 org is the authority on 264 behavior. Because the dev hub is on API 68.0, every scratch org it creates is a 264 org regardless of branch — which is why `main` is no longer buildable against it.
+Use the checked-in Winter '27 references below for Release 264. Verify behavior against a live 264 org where documentation and implementation disagree; an upgraded 262 org can retain settings and schema that a fresh 264 org lacks. Because the dev hub is on API 68.0, every scratch org it creates is a 264 org regardless of branch — which is why `main` is no longer buildable against it.
+
+## Release 264 Salesforce references
+
+- [Revenue Management Developer Guide — Winter '27 snapshot](salesforce/264/dev-guide/index.md)
+- [Salesforce Help — Winter '27 snapshot](salesforce/264/help/index.md)
+
+These are checked-in snapshots, not continuously updated documentation. Each index records its capture date, coverage, and capture errors.
 
 ## Additional Resources
 
 - [CumulusCI Documentation](https://cumulusci.readthedocs.io/)
 - [Salesforce CLI Documentation](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
 - [SFDMU Documentation](https://help.sfdmu.com/)
-- [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest)
-- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (prior GA reference)
+- [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest online version; not pinned to 264)
+- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (historical reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)
-
-**Note:** This branch targets Release 264 (Winter '27), for which Salesforce has not yet published release notes or a developer guide. Until it does, the Release 262 (Summer '26) documentation above is the closest published reference, and a live 264 org is the authority where the two disagree.
