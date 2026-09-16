@@ -10,6 +10,11 @@ import tempfile
 from abc import abstractmethod
 from typing import Dict, Any, List, Optional
 
+# Bootstrap the repo's scripts/ dir onto sys.path so the shared SFDMU parsing
+# primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+
 # ANSI escape code pattern for stripping color codes from subprocess output.
 # SFDMU and other CLI tools emit color codes; stripping them improves log readability.
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
@@ -179,13 +184,22 @@ class LoadSFDMUData(SFDXBaseTask):
         if not os.path.isdir(objectset_source_dir):
             return
         for name in sorted(os.listdir(objectset_source_dir)):
-            if not name.startswith("object-set-"):
+            # Skip non-canonical names (object-set-1-backup, object-set-01) via the shared
+            # matcher — the same rule the SFDMU validator enforces. SFDMU builds the path it
+            # reads from the pass index (always canonical), so a loose `startswith` here would
+            # copy such a directory into source/ as dead weight SFDMU never reads (pack 161,
+            # finding 4). Also skip `object-set-0`: the matcher admits it (returns 0) so the
+            # validator can report it as an out-of-range pass, but object sets are 1-based, so
+            # for this sync it is one more directory SFDMU never reads — copying it would
+            # create a dead `source/object-set-0/`.
+            set_number = sfdmu_export.object_set_dir_number(name)  # 1-based, or None
+            if set_number is None or set_number < 1:
                 continue
             src_set = os.path.join(objectset_source_dir, name)
             if not os.path.isdir(src_set):
                 continue
             # Object set 1 uses source/ (root); sets 2+ use source/object-set-N
-            if name == "object-set-1":
+            if set_number == 1:
                 dst_set = source_dir
             else:
                 dst_set = os.path.join(source_dir, name)
@@ -199,7 +213,7 @@ class LoadSFDMUData(SFDXBaseTask):
                 shutil.copy2(src_f, dst_f)
                 self.logger.info(f"Synced objectset_source -> source: {name}/{f} -> {dst_set}/{dst_name}")
                 # Pass 1 reads object set 1 from plan root (working dir); overwrite root with object-set-1 so composites match.
-                if name == "object-set-1":
+                if set_number == 1:
                     root_f = os.path.join(base, f)
                     shutil.copy2(src_f, root_f)
                     self.logger.info(f"Synced object-set-1 to plan root: {name}/{f} -> {root_f}")
@@ -445,26 +459,30 @@ class LoadSFDMUData(SFDXBaseTask):
 def _sobjects_from_export_json(export_path: str) -> list:
     """Parse export.json and return list of sobject API names (excluding excluded objects).
 
-    Uses the same exclusive logic as parse_plan_structure in post_process_extraction.py:
-    objectSets if present, otherwise top-level objects (single virtual set).
+    Uses the shared SFDMU pass normalization (`sfdmu_export.normalize_object_sets`):
+    a flat top-level `objects` becomes a pass, and a non-empty `objects` alongside
+    a non-empty `objectSets` is prepended as pass 1 (SFDMU's unshift, pack 168) —
+    not dropped, as the old exclusive fallback here did.
     """
     path = os.path.join(export_path, EXPORT_JSON_FILENAME)
     with open(path, "r") as f:
         data = json.load(f)
     sobjects = []
-    object_sets = data.get("objectSets", [])
-    if not object_sets and "objects" in data:
-        object_sets = [{"objects": data["objects"]}]
+    object_sets = sfdmu_export.normalize_object_sets(data)
     for obj_set in object_sets:
         for obj in obj_set.get("objects", []):
-            if obj.get("excluded"):
+            # JS truthiness, not Python's: SFDMU reads `excluded` in JS, where
+            # `[]`/`{}` are truthy and skip the declaration — Python's plain `if`
+            # would read them as live and count an object SFDMU never loads (pack
+            # 168 now walks the prepended top-level pass through here too).
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
                 continue
-            q = obj.get("query", "")
-            m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", q, re.IGNORECASE)
-            if m:
-                name = m.group(1)
-                if name not in sobjects:
-                    sobjects.append(name)
+            # Shared subquery-aware parser: a SELECT-clause subquery's inner FROM is not
+            # mistaken for the outer object (`SELECT Id,(SELECT Id FROM Contacts) FROM
+            # Account` -> Account), and a non-string query returns "" rather than raising.
+            name = sfdmu_export.extract_object_name(obj.get("query", ""))
+            if name and name not in sobjects:
+                sobjects.append(name)
     return sobjects
 
 
@@ -496,7 +514,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             "required": True,
         },
         "api_version": {
-            "description": "Salesforce API version override (e.g. '67.0'). Defaults to org or project version.",
+            "description": "Salesforce API version override (e.g. '68.0'). Defaults to org or project version.",
             "required": False,
         },
         "object_sets": {
@@ -524,7 +542,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             return str(self.options["api_version"])
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
 
     @property
@@ -541,29 +559,51 @@ class DeleteSFDMUData(BaseSalesforceTask):
         with open(export_json_path) as f:
             plan = json.load(f)
 
-        object_sets = plan.get("objectSets", [])
-        if not object_sets and "objects" in plan:
-            object_sets = [{"objects": plan["objects"]}]
-
+        # Apply the optional object_sets index filter to the RAW objectSets, THEN normalize —
+        # matching LoadSFDMUData/ExtractSFDMUData (_prepare_export_json_file / _prepare_export_json),
+        # whose indices refer to the raw `objectSets` array while SFDMU unshifts the top-level
+        # `objects` pass at runtime regardless of the filter. Normalizing first would offset every
+        # index by the prepended pass, so a both-array plan's object_sets=[0] would delete a
+        # different pass than load/extract selected (records left undeleted). Normalizing AFTER the
+        # filter keeps the top-level objects pass prepended (pack 168) under one selection contract.
         selected = self.options.get("object_sets")
         if selected is not None:
             if isinstance(selected, str):
                 selected = json.loads(selected)
             selected = [int(i) for i in selected]
-            object_sets = [object_sets[i] for i in selected if 0 <= i < len(object_sets)]
+            raw_sets = plan.get("objectSets")
+            if not isinstance(raw_sets, list):
+                raw_sets = []
+            filtered = [raw_sets[i] for i in selected if 0 <= i < len(raw_sets)]
+            if len(filtered) < len(selected):
+                raise TaskOptionsError(
+                    f"object_sets {selected} out of range for {len(raw_sets)} object sets"
+                )
+            plan = {**plan, "objectSets": filtered}
+
+        object_sets = sfdmu_export.normalize_object_sets(plan)
 
         # Collect Insert-operation objects in plan array order.
         # Duplicates are preserved so that the deletion order mirrors the plan exactly.
         insert_sobjects: List[str] = []
         for obj_set in object_sets:
             for obj in obj_set.get("objects", []):
-                if obj.get("excluded", False):
+                # JS truthiness (see _sobjects_from_export_json): `excluded: []`/`{}`
+                # is truthy in SFDMU's JS and skips the object, so this destructive
+                # cleanup must not delete its records — Python's plain `if` would.
+                if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
-                if obj.get("operation", "").lower() != "insert":
+                # `operation` may be a numeric enum index (SFDMU's ScriptLoader accepts
+                # `0`=Insert), which the shared resolver maps to a canonical lowercase
+                # name — a plain `.lower()` would raise AttributeError on an int, and a
+                # numeric `0` Insert would be missed by a string compare.
+                if sfdmu_export.resolve_operation(obj.get("operation")) != "insert":
                     continue
-                m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", obj.get("query", ""), re.IGNORECASE)
-                if m:
-                    insert_sobjects.append(m.group(1))
+                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
+                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
+                name = sfdmu_export.extract_object_name(obj.get("query", ""))
+                if name:
+                    insert_sobjects.append(name)
 
         if not insert_sobjects:
             self.logger.info("No Insert-operation objects found in plan. Nothing to delete.")
@@ -1235,17 +1275,22 @@ class ExtractSFDMUData(SFDXBaseTask):
         except (OSError, ValueError):
             return {}
 
-        object_sets = export_json.get("objectSets") or [{"objects": export_json.get("objects", [])}]
+        object_sets = sfdmu_export.normalize_object_sets(export_json)
         code_map: Dict[str, Dict[str, dict]] = {}
         seen = set()
         for oset in object_sets:
             for obj in oset.get("objects", []):
-                if obj.get("excluded"):
+                # JS truthiness: `excluded: []`/`{}` is skipped by SFDMU (see
+                # _sobjects_from_export_json).
+                if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
-                query = obj.get("query", "")
-                objname = query.split("FROM")[1].strip().split()[0] if "FROM" in query else None
+                # Shared parser: case-insensitive, subquery-aware, "" on non-string/malformed
+                # (the normalized top-level pass, pack 168, must map without aborting extraction).
+                objname = sfdmu_export.extract_object_name(obj.get("query", ""))
                 external_id = obj.get("externalId", "")
-                if not objname or not external_id:
+                # A non-string externalId (a hand-edited list/dict now reachable via the
+                # top-level pass) must not reach `.split(";")` and raise — skip it.
+                if not objname or not isinstance(external_id, str) or not external_id:
                     continue
                 for comp in external_id.split(";"):
                     comp = comp.strip()

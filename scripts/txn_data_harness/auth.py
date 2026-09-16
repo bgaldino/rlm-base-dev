@@ -40,7 +40,7 @@ import requests
 
 log = logging.getLogger("txn_data_harness.auth")
 
-DEFAULT_API_VERSION = "67.0"  # v262 baseline; do not silently float to latest.
+DEFAULT_API_VERSION = "68.0"  # v264 baseline; do not silently float to latest.
 
 # Retry on transient transport failures only.
 _RETRYABLE_STATUS = {420, 429, 500, 502, 503, 504}
@@ -116,7 +116,7 @@ class SfRestClient:
     """Transport-agnostic Salesforce REST client.
 
     Construct via :meth:`from_alias`. All paths are absolute service paths
-    (e.g. ``/services/data/v67.0/sobjects/Order/<id>``); ``query`` builds the
+    (e.g. ``/services/data/v68.0/sobjects/Order/<id>``); ``query`` builds the
     query path for you.
     """
 
@@ -200,7 +200,14 @@ class SfRestClient:
 
         path = f"/services/data/v{self.api_version}/query?q={quote(soql)}"
         result = self._request("GET", path)
-        return result.get("records", []) if isinstance(result, dict) else []
+        records = []
+        while isinstance(result, dict):
+            records.extend(result.get("records", []))
+            next_page = result.get("nextRecordsUrl")
+            if not next_page:
+                break
+            result = self._request("GET", next_page)
+        return records
 
     # ----- transport dispatch ------------------------------------------------
     def _request(self, method: str, path: str, body: Any = None) -> Any:

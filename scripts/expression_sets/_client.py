@@ -26,7 +26,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import quote
 
-DEFAULT_API_VERSION = "67.0"
+DEFAULT_API_VERSION = "68.0"
 _REQUEST_TIMEOUT = 120  # seconds — reads
 # A Connect PATCH/POST that reactivates a large procedure can take minutes
 # server-side; mirror the context-service mutation timeout.

@@ -1,6 +1,6 @@
 # Rate Management Domain
 
-15 objects managing rate cards for usage-based pricing, including tiered adjustments and attribute-based rate adjustments.
+11 objects managing rate cards for usage-based pricing, including tiered adjustments and attribute-based rate adjustments.
 
 ## Objects
 

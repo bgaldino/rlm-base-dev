@@ -19,7 +19,7 @@ Plus the plan-level checks that apply to any dataset change:
 
 ```bash
 python scripts/validate_sfdmu_v5_datasets.py             # v5 compliance
-python scripts/ai/check_plan_readme_consistency.py       # README ↔ export.json/CSVs, repo-wide
+python scripts/ai/check_plan_readme_consistency.py --strict  # README ↔ export.json/CSVs, repo-wide
 ```
 
 ⚠ Remember the CCI vs `sf` alias split: `--org` takes a **CCI** alias,
@@ -28,7 +28,7 @@ python scripts/ai/check_plan_readme_consistency.py       # README ↔ export.jso
 
 ## Offline invariants — the fast gate
 
-18 checks, no org needed, runs in under a second. Run it before every commit that
+17 checks, no org needed, runs in under a second. Run it before every commit that
 touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 
 | Invariant | Guards against |
@@ -48,9 +48,13 @@ touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 | `rates_derived_from_base` | A non-base rate that does not match its derived value |
 | `overrides_derived_from_base` | A non-base **Override tier value** that does not match its derived value — these are money and are converted, but were unchecked by the two rules above |
 | `period_ordering_descending` | `billing >= rating > accumulation` violated |
-| `accumulation_refs_aligned` | `UsageResource` and PURP naming *different* accumulation policies — runtime uses the `UsageResource` value, so a disagreeing PURP is silently ignored while reading as though it applied. `period_ordering_descending` cannot see this: it checks each reference independently, and `dailypeak`/`dailytotal` are both `Daily` |
 | `counts_match_readme` | Plan README file-tree counts drifting from the CSVs |
 | `docs_state_the_real_count` | This page and `AGENTS.md` advertising a number of invariants that is no longer true — it counts itself, so adding a check means updating both |
+
+Retired at 264: `accumulation_refs_aligned` compared the accumulation policy named on
+`UsageResource` against the one named on ProductUsageResourcePolicy. Release 264 removed
+`UsageResource.UsageResourceBillingPolicyId`, so PURP is now the only place that policy is
+named — there is no second reference to disagree with it. Do not re-add it.
 
 ### Adding an invariant
 
@@ -112,7 +116,7 @@ Before concluding the rates are wrong:
 
 - [ ] `python tests/test_qb_multicurrency_data.py` — all checks pass
 - [ ] `python scripts/validate_sfdmu_v5_datasets.py` — no new failures against the known baseline
-- [ ] `python scripts/ai/check_plan_readme_consistency.py` — **0 errors repo-wide**
+- [ ] `python scripts/ai/check_plan_readme_consistency.py --strict` — **0 errors, 0 warnings repo-wide** (the bare command exits 0 on WARN-level drift — operation/externalId mismatch, missing-object rows — `--strict` is what `pr_gate.py` actually gates on)
 - [ ] New platform rule discovered? Add an invariant *and* record it in
       `revenue-cloud-data-model/domains/usage.md`
 - [ ] Product loaded surgically into a live org? The full-build verification is still owed — say so explicitly

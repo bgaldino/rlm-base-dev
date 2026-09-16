@@ -85,6 +85,7 @@
         "enableRatingWaterfallPersistence": true
       },
       "revenueManagementSettings": {
+        "enableAdvancedDetailLinePricing": true,
         "enableCoreCPQ": true
       },
       "productConfiguratorSettings": {

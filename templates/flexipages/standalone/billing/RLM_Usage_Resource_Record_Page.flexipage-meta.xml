@@ -201,16 +201,6 @@
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageResourceBillingPolicyId</fieldItem>
-                <identifier>RecordUsageResourceBillingPolicyIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-1f89e163-44c0-4dbf-984e-e6124a433f86</name>
         <type>Facet</type>
     </flexiPageRegions>

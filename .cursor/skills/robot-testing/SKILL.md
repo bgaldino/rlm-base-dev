@@ -1,3 +1,11 @@
+---
+name: robot-testing
+description: >-
+  Write, modify, and debug Robot Framework org-setup automation and end-to-end tests for
+  Salesforce. Use for browser locators, LWC or shadow-DOM interactions, JavaScript
+  keywords, Python task wrappers, and required live-org behavioral verification.
+---
+
 # Robot Framework Testing
 
 Use this skill when writing, modifying, or debugging Robot Framework tests.
@@ -34,14 +42,18 @@ suite, run it against a live scratch org:
 
 ```bash
 # via the CCI task wrapper (preferred — mirrors how prepare_rlm_org runs it)
-cci task run <robot_task> --org <cci_alias>           # CCI alias, e.g. beta
+# Some setup wrappers (including reorder_app_launcher and enable_document_builder_toggle)
+# reject --org. Select the default first; running without --org also works for
+# wrappers that accept it. Check `cci task run <task> --help` for task-specific options:
+cci org default <cci_alias>                            # CCI alias, e.g. beta
+cci task run <robot_task>
 # or directly against a suite — ORG_ALIAS is passed to `sf org open -o`, so it
 # takes the SF CLI alias (or username), NOT the CCI alias
 robot -v ORG_ALIAS:<sf_alias> robot/rlm-base/tests/setup/<suite>.robot   # e.g. rlm-base__beta
 ```
 
 The two commands take **different** alias forms (see AGENTS.md → *Org Identity:
-CCI vs SF CLI*): `cci task run --org` uses the CCI alias (`beta`); the direct
+CCI vs SF CLI*): `cci org default` uses the CCI alias (`beta`); the direct
 `robot` run's `ORG_ALIAS` feeds `sf org open`, so it needs the SF CLI alias
 (`rlm-base__beta`) or the org username.
 
@@ -80,7 +92,7 @@ org, state that explicitly and mark the change **unverified** (PR label
 
 | Robot File | Flow | Prerequisite |
 |-----------|------|-------------|
-| `quote_to_order` | Full Reset→Opp→Quote→Products→Order→Assets | `prepare_rlm_org` with `qb=true` |
+| `quote_to_order` | Full Reset→Opp→Quote→Products→**Configure bundle**→Order→Assets→**Renewal Opp** | `prepare_rlm_org` with `qb=true` |
 | `setup_quote` | Part 1: Reset→Opp→Quote | Same |
 | `order_from_quote` | Part 2: Products→Order→Assets | A Quote must exist |
 | `reset_account` | Reset Account via QuickAction | An account must exist |
@@ -99,10 +111,19 @@ not to copy generic Selenium), read
 
 ### Running tests
 
+⚠ **`robot_e2e` and `robot_e2e_debug` REJECT `--org`** (`Error: No such option: --org`,
+issue #320). They run against the **CCI default org** — set it first with
+`cci org default <alias>`. Verified 2026-07-28; the previous version of this block showed
+`--org beta` on all three lines, none of which could ever have run.
+
+⚠ Their **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org
+still gets `TSO:false`. Only `QB` is consumed by the suites today.
+
 ```bash
-cci task run robot_e2e --org beta              # headless
-cci task run robot_e2e_debug --org beta         # headed + CDP port 9222
-cci task run robot_e2e_debug -o pause_for_recording true --org beta  # with pauses
+cci org default beta                                     # select the target org FIRST
+cci task run robot_e2e                                   # headless
+cci task run robot_e2e_debug                             # headed + CDP port 9222
+cci task run robot_e2e_debug -o pause_for_recording true  # with pauses
 ```
 
 ---

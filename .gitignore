@@ -111,13 +111,14 @@ agents256*/**
 unpackaged/*bak/**
 # Demo data generator runtime manifests (one per run; not source)
 scripts/txn_data_harness/out/
-# Cross-repo skill manifest + shared slash commands are tracked artifacts;
+# Cross-repo skill manifest, shared slash commands and skill links are tracked;
 # everything else under .claude/ (settings.local.json, worktrees/, launch.json)
 # stays local. Pattern is .claude/* (not .claude/) so the negations below work —
 # git refuses to re-include a file whose parent directory itself is ignored.
 .claude/*
 !.claude/skill-manifest.yml
 !.claude/commands/
+!.claude/skills/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 # Raw, unmodified org metadata/data extractions for drift comparison (never committed)

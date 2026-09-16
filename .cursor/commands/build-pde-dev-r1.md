@@ -103,5 +103,5 @@ must be gated on the flow's exit status (`0` = success).
 - Scheduled runs accumulate scratch-org config entries (one per `pde<datetime>`
   alias). The underlying scratch orgs expire on their own (30 days); prune stale
   aliases with `cci org scratch_delete <alias>` if needed.
-- Per `AGENTS.md`, never push directly to `main`; this command does not commit
-  anything.
+- Per `AGENTS.md` rule 8, never push directly to `main` or the active release
+  branch (`264`); this command does not commit anything.

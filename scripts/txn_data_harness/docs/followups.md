@@ -41,6 +41,45 @@ placeholders or explicitly labeled QB example data.
 
 ## Open
 
+### Release 264 re-verification
+
+- `[verify]` **Every contract in this directory was captured at API v67.0; the
+  request examples now read v68.0.** The `264` branch retargeted the endpoint
+  paths to `v68.0` (Release 264). Nothing in these docs has been re-exercised on
+  a 264 org, and the capture org (`rlm-base__jun17_1`, R262) had a **maximum API
+  version of 67.0** — so the v68.0 requests shown were not merely untried there,
+  they were impossible to issue. The banners in
+  `contracts-sales-txn-quote.md`, `contracts-sales-txn-order.md`, and
+  `contracts-invoice-ingestion.md` say so explicitly and point here.
+  - What is *not* in doubt: the request bodies, response shapes, async barriers,
+    and sequencing rules. Those are what `VERIFIED LIVE` attests to, and the
+    retarget did not touch them.
+  - What is unverified — **scoped deliberately to endpoint-version
+    compatibility**: that each path still resolves at `v68.0`, accepts the bodies
+    recorded here, and returns the same shape on the flows the harness drives.
+    That is the whole of what the retarget put in doubt, since it changed only the
+    version segment.
+  - What this entry does **not** cover: that every documented *scenario* behaves
+    identically on 264. The quote contract separately records discounts, bundles,
+    selling-model rules, proration, and end-date fan-out, and ingestion has Draft,
+    taxable, and non-taxable variants — a happy-path run exercises none of those,
+    so it cannot establish that their request/response shapes are unchanged.
+    Re-verifying the scenario matrix is a larger job and belongs in its own entry
+    if 264 turns out to move any of it.
+  - `[probe]` Run the harness end-to-end — `python -m scripts.txn_data_harness.cli
+    run ...`, since `lifecycle.py` is a library module with no entry point of its
+    own — for `sales_txn_quote`, `sales_txn_order`, and the ingestion path on a
+    **fresh** 264 scratch org (not
+    a 262 org upgraded to 264 — an upgrade grandfathers settings and schema, so it
+    is not evidence about fresh builds). Reaching a Posted invoice on each path
+    discharges the version-compatibility question above — and only that; diff any
+    changed response shape back into the contract.
+  - Captured **responses** keep the `v67.0` paths the server actually returned
+    (e.g. the post `statusURL` in `contracts-sales-txn-quote.md` and
+    `contracts-invoice-ingestion.md`). Those are evidence, not instructions —
+    leave them alone. If 264 returns a `v68.0` `statusURL`, that is a finding to
+    record here, not a value to pre-emptively edit.
+
 ### Standalone-billing Posted ingestion
 
 Posted ingestion is live-verified end-to-end against both non-taxable

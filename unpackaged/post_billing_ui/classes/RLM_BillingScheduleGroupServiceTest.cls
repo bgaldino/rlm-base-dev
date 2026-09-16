@@ -82,7 +82,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
             'requestId' => '16PWt000005Dsir',
-            'statusUrl' => '/services/data/v67.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
+            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
         };
 
         Test.startTest();
@@ -151,7 +151,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void invokeAndParse_viaMockSeam() {
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
             'requestId' => '16PWt000005Dsir',
-            'statusUrl' => '/services/data/v67.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
+            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
         };
         Map<String, Object> out =
             RLM_BillingScheduleGroupService.invokeStandaloneBillingScheduleCreate('{"Transaction":[]}');

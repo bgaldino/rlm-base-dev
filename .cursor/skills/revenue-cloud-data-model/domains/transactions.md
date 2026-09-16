@@ -1,6 +1,6 @@
 # Transaction Management Domain
 
-37 objects covering the core commercial lifecycle: accounts, quotes, orders, assets, contracts, and their detail/attribute records.
+58 objects covering the core commercial lifecycle: accounts, quotes, orders, assets, contracts, and their detail/attribute records.
 
 ## Core Objects
 

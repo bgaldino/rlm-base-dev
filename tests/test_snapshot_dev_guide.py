@@ -12,12 +12,17 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_dev_guide import SnapshotSalesforceDevGuide  # noqa: E402
+from tasks.rlm_snapshot_dev_guide import (  # noqa: E402
+    SnapshotSalesforceDevGuide,
+    TaskOptionsError,
+)
 
-try:
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:  # stdlib-only fallback mirrors the task module
-    TaskOptionsError = Exception
+# TaskOptionsError comes from the module under test, not from CumulusCI, so the
+# assertion always names the class the code will actually raise. The task binds
+# BaseTask and TaskOptionsError in one try block, so a CumulusCI that imports
+# but whose cumulusci.core.tasks does not (3.12+ without setuptools: fs needs
+# pkg_resources) drops it to the fallback shim while a narrower import here
+# would still resolve the real class — and every raise assertion would miss.
 
 
 _passed = _total = 0
@@ -112,6 +117,53 @@ def main():
     sel_refresh = {p["page_id"] for p in t2._select_to_capture(manifest, "refresh")}
     check("_select_to_capture refresh re-includes captured requested-section pages",
           "context_service_overview.htm" in sel_refresh and "noise.htm" not in sel_refresh)
+
+    # _check_doc_version_change: a version bump on a manifest with captured pages
+    # must be rejected under capture/all (they'd skip those pages and mislabel
+    # them), allowed under refresh (recaptures everything), and allowed under
+    # discover (never fetches page bodies).
+    captured_manifest = {"pages": [
+        {"page_id": "a.htm", "status": "captured"},
+        {"page_id": "b.htm", "status": "pending"},
+    ]}
+    t3 = _task()
+    t3.options = {"doc_version": "264.0"}
+    for mode in ("capture", "all"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change raises under mode={mode}", False)
+        except TaskOptionsError:
+            check(f"doc_version change raises under mode={mode}", True)
+    for mode in ("refresh", "discover"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change allowed under mode={mode}", True)
+        except TaskOptionsError:
+            check(f"doc_version change allowed under mode={mode}", False)
+    # Same version requested, or nothing captured yet, or no prior version at
+    # all (first-ever run): none of these are a "change", so never raise.
+    check("same doc_version is not a change",
+          t3._check_doc_version_change(captured_manifest, "264.0", "capture") is None)
+    pending_only = {"pages": [{"page_id": "a.htm", "status": "pending"}]}
+    check("no captured pages yet is not a mislabel risk",
+          t3._check_doc_version_change(pending_only, "262.0", "capture") is None)
+    check("no previously-recorded version is a first run, not a change",
+          t3._check_doc_version_change(captured_manifest, None, "capture") is None)
+
+    # _may_record_doc_version: discover must NOT launder a version bump past the
+    # guard by writing it to the manifest while old-version pages sit captured —
+    # that would make a later capture/all run see "no change" and skip them.
+    check("discover defers recording a version bump over captured pages",
+          t3._may_record_doc_version(captured_manifest, "262.0", "discover") is False)
+    check("discover may record when nothing is captured yet",
+          t3._may_record_doc_version(pending_only, "262.0", "discover") is True)
+    check("discover may record the same version",
+          t3._may_record_doc_version(captured_manifest, "264.0", "discover") is True)
+    check("discover may record on a first-ever run",
+          t3._may_record_doc_version(captured_manifest, None, "discover") is True)
+    check("capture/all/refresh always record (guard already vetted them)",
+          all(t3._may_record_doc_version(captured_manifest, "262.0", m)
+              for m in ("capture", "all", "refresh")))
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

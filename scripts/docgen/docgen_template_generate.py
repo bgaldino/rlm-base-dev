@@ -170,7 +170,7 @@ def create_dgp(record_id, template_id, org, title=None, generate_only=False,
     )
 
     result = sf_api_post(
-        "/services/data/v67.0/sobjects/DocumentGenerationProcess",
+        "/services/data/v68.0/sobjects/DocumentGenerationProcess",
         body, org
     )
 

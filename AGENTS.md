@@ -5,13 +5,37 @@
 > Aider, or any future tool). Safety-critical rules that apply to every
 > task. Detailed guidance lives in skill files (see Skill Index below).
 
+## Agent Entry Points
+
+1. Read this file for universal rules; use the **AI Agent Skill Index** below
+   or [.cursor/skills/README.md](.cursor/skills/README.md) to select task guidance.
+   Read a skill before using its tools, and follow its linked sub-files as needed.
+2. `CLAUDE.md` is a symlink to this file; edit `AGENTS.md` only for the shared
+   contract. `.github/copilot-instructions.md` is a separate pointer to it.
+3. [`REVIEW.md`](REVIEW.md) governs how reviews are conducted; this file governs
+   required behavior and the response protocol. Keep verification, class sweeps
+   and push discipline aligned between them; do not duplicate other review detail.
+4. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers contribution conventions.
+   Governance companions: `LICENSE.txt` (Apache-2.0), `CODE_OF_CONDUCT.md`, `SECURITY.md`.
+5. [`.agents/README.md`](.agents/README.md) describes routing, model guidance and
+   project context; its adapters do not override this contract. Native discovery
+   links under `.agents/skills/` and `.claude/skills/` share `.cursor/skills/`
+   content. [Discovery setup and fallback](docs/guides/agent-skill-discovery.md).
+
 ## Project Overview
 
 **Revenue Cloud Base Foundations** automates creation and configuration of
-Salesforce environments for Revenue Lifecycle Management (RLM). It targets
-Salesforce Release 262 (Summer '26, API v67.0), now on the `main` branch
-(promoted from the `262` upgrade branch). The previous GA target, Release 260
-(Spring '26), is preserved on the `release/260` branch as the prior GA reference.
+Salesforce environments for Revenue Lifecycle Management (RLM). **This is the
+`264` branch — Release 264 (Winter '27, API v68.0)** — the active development
+line. `main` is the 262 (Summer '26, v67.0) GA target; `release/262` and
+`release/260` are frozen references.
+
+264 is pre-GA — no release notes or v68.0 Metadata Coverage Report yet — so **a
+live 264 org is ground truth, not documentation**. The dev hub is on API 68.0, so
+every scratch org it creates is a 264 org whatever branch you built from, and
+`main` is **not buildable on it**. Distinguish a *fresh* 264 org from a 262 org
+*upgraded* to 264: an upgrade grandfathers settings and schema, so it is not
+evidence about fresh builds.
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
@@ -25,39 +49,16 @@ Key technology stack:
 
 ## Repository Layout
 
-```
-cumulusci.yml          # Task/flow definitions, feature flags, org defs
-config/                # Scratch org definition JSON (project-scratch-def.json)
-force-app/             # Core SFDX metadata (deployed at step 5)
-unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
-unpackaged/post_*/     # Feature-specific metadata bundles
-unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 29)
-datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
-datasets/context_plans/# Context definition plans
-datasets/constraints/  # Configurator constraint rule data
-datasets/tooling/      # Tooling API metadata exports
-# Runtime-only output dirs (created by extract_* tasks; not tracked):
-#   datasets/bre/        — Business Rule Engine exports (extract_bre)
-#   datasets/dx/         — DX-format metadata snapshots (extract_dx_*)
-scripts/apex/          # Apex activation/deletion/validation scripts
-scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
-scripts/cml/           # CML export/import/validation utilities
-scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
-scripts/expression_sets/ # Standalone Expression Set lifecycle toolkit (inspect/trace/diff/export + guarded mutators; sf-CLI transport, no CCI). See its README.md
-scripts/soql/          # Reusable SOQL query files
-scripts/build_harness/ # Build harness runner and TUI
-scripts/*.py           # Top-level utilities: dataset validation/generation and demo
-                       #   drivers (validate_sfdmu_v5_datasets, expand_currency_*,
-                       #   qb_usage, build_quote_to_asset, post_process_extraction)
-tasks/                 # Custom Python CCI task classes
-tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
-                       #   no org needed), plus two shell integration scripts
-robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
-postman/               # Postman collections for RLM APIs
-docs/                  # Documentation (lower-kebab-case filenames)
-```
+`cumulusci.yml` defines tasks/flows/flags; `tasks/` implements Python CCI tasks.
+`force-app/` holds core metadata (step 5); `unpackaged/pre/` precedes it and
+`unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
+(step 29); `unpackaged/post_ux/` is generated output.
+
+Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
+under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
+`datasets/dx/` are runtime extraction output, not tracked source. See the
+[repository map](docs/references/repository-layout.md), [org definitions](orgs/README.md),
+[TFID guide](orgs/tfid/README.md), and **Script Reference** below for detail.
 
 ## DO NOT — Safety Guards
 
@@ -74,9 +75,12 @@ docs/                  # Documentation (lower-kebab-case filenames)
    — they cannot deploy via Metadata API
 7. **DO NOT** commit real emails in `rlm.network-meta.xml` — use the
    placeholder; patch/revert tasks handle deploy-time substitution
-8. **DO NOT** commit or push directly to `main` — all changes must go
-   through a feature branch and pull request. Never use `git push origin main`
-   or force-push main without explicit user approval.
+8. **DO NOT** commit or push directly to `main` **or to the active release
+   branch** (`264`; likewise `release/*`) — all changes go through a feature
+   branch and a pull request, which is how the 262 line was built. This applies
+   to docs and agent-instruction files, not just code. Never force-push any of
+   them without explicit user approval: PRs are routinely stacked on the active
+   release branch, so rewriting it invalidates every one of them.
 9. **DO NOT** present a behavioral Robot Framework change as verified —
    or merge one — on the strength of `robot --dryrun`. Dryrun validates only
    syntax and keyword resolution; it never launches a browser or runs the
@@ -134,15 +138,8 @@ cannot decompose the composite value to resolve the referenced record. (The prim
 **Fix:** Use simple single-field references for lookup columns
 (e.g. `ParentGroup.Code`). Non-destructive — no `deleteOldData`.
 
-<details>
-<summary>Bugs 1/2/3/5 — fixed at or below the 5.6.4 floor (kept for history; do NOT apply their Insert+deleteOldData workarounds on 5.6.4+)</summary>
-
-- **Bug 1 — all-multi-hop externalId fails validation** (`{Object} has no mandatory external Id field definition`). **Fixed in 5.3.1.** *Was:* use at least one direct field in the `externalId`.
-- **Bug 2 — 2-hop traversal columns produce malformed SOQL in Upsert.** **Fixed in 5.6.3.** *Was:* `operation: Insert` + `deleteOldData: true`. *Residue by design:* dotted composite segments are still dropped from child `__r` relationship queries on **extract** — the root cause of the `#N/A` blanking that `post_process_extraction.py` backfills (5.6.3 also set `#N/A` = null marker, bare `N/A` = literal).
-- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates on every run). **Fixed in the 5.6.4 release** (commit `50be987`, `_getNestedRecordFieldValue`; source-verified). *Was:* `operation: Insert` + `deleteOldData: true`.
-- **Bug 5 — composite externalId of all relationship traversals fails upsert matching** (e.g. `Parent.Name;OtherParent.Name`). **Fixed in 5.6.4** (same relationship-path matching fix). *Was:* `operation: Insert` + `deleteOldData: true` for objects whose only logical key is a composite of parent lookups.
-
-</details>
+Historical Bugs 1/2/3/5 and their fixed versions are documented in
+`.cursor/skills/sfdmu-data-plans/SKILL.md` → **v5 Bugs**.
 
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
@@ -184,31 +181,64 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 ## Pre-merge checklists for AI agents
 
-Use these before opening or updating a PR. They complement the **PR Review Focus Areas** below.
+Before opening or updating a PR, **run `python scripts/ai/pr_gate.py --base origin/264` first**.
+Every selected check gates; missing dependencies fail rather
+than skip. Inspect every result, including skips. Run locally even though CI
+runs the same gate. Detailed procedures, generator behavior and enforcement
+history: [.cursor/skills/audit-review/merge-and-review-procedures.md](.cursor/skills/audit-review/merge-and-review-procedures.md).
+
+### Required CI check
+
+`Mechanical checks` from the GitHub Actions app is required on `main`, `264`
+and `release/*`. Running or missing checks block landing. Do not path-filter
+away the workflow, rename the published job, or introduce another job with
+that same name. Skip directives in commit messages leave the required check
+pending; even quoting one can suppress workflows. Name the directives without
+writing their literal syntax in commit messages. An admin bypass is a deliberate
+decision to record, not a workaround.
 
 ### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
 
-1. Run `python scripts/validate_sfdmu_v5_datasets.py` and fix reported issues.
-2. Keep **`externalId`** (`;` delimiters) and CSV `$$` columns aligned with the skill rules in this file — do not change `Upsert` to `Insert` + `deleteOldData: true` without explicit user approval.
-3. If the plan’s behavior or objects changed, update the plan’s **README** in the same change, then run `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` — it fails if the README's object table or `# N records` listings drift from the actual `export.json`/CSVs (record counts, operations, externalIds, phantom/missing objects). Must report **0 errors**.
+1. Run `python scripts/validate_sfdmu_v5_datasets.py`: expect **0 Critical,
+   0 High**. Treat any such finding as new.
+2. Keep `externalId` delimiters and CSV `$$` columns aligned with the SFDMU
+   rules above; destructive operation changes require explicit approval.
+3. Every tracked plan needs a README. Update it when behavior or objects change,
+   including object tables, operations, externalIds and record counts. Run
+   `python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>`
+   (omit the directory for repo-wide validation): require **0 errors, 0 warnings**.
+   Regenerate marked tables with `python scripts/ai/generate_plan_readme.py <plan_dir>`
+   after changes rather than editing generated rows; preserve handwritten narrative.
 
 ### `cumulusci.yml` and CCI tasks
 
-1. After editing `cumulusci.yml` (tasks, flows, options): run `python scripts/ai/generate_cci_reference.py` and commit the regenerated reference files.
-2. If you rename a task or change its description, search the repo for the **old task name** in docs (`README.md`, `docs/`) and fix stale references.
-3. For Python task changes in `tasks/`, follow `.cursor/skills/cci-orchestration/custom-task-authoring.md` — especially **CLI vs REST** (`username` for `sf`, not `access_token`).
+1. After task/flow/option edits, run `python scripts/ai/generate_cci_reference.py`
+   and commit the regenerated references.
+2. After inserting or removing flow steps, run `python tests/test_doc_build_steps.py`
+   to catch shifted documentation citations.
+3. After renaming a task or changing its description, search `README.md` and
+   `docs/` for the old name and repair stale references.
+4. For Python tasks, follow `.cursor/skills/cci-orchestration/custom-task-authoring.md`;
+   use `username` for CLI calls, never `access_token`.
 
 ### Documentation consistency
 
-Follow `.cursor/skills/doc-consistency/SKILL.md` — it provides a
-**change-surface map** (when X changes, update Y) covering task names,
-flag tables, SFDMU plan READMEs, generated CCI references, skill
-indexes, and more.
+Follow `.cursor/skills/doc-consistency/SKILL.md` and its change-surface map.
+Update task names, feature flags, plan READMEs, generated references and skill
+indexes in the same change as their source.
 
 ### Merges and unintended diffs
 
-1. Before push, review `git diff main --stat` (or the merge base you use). Pay extra attention to **`orgs/`**, **`datasets/`**, **`unpackaged/post_ux/`**, and scratch data — unexpected churn often means files were **swept in from another branch**.
-2. Changes under **`unpackaged/post_ux/`** should come from **`assemble_and_deploy_ux`** or the **UX drift** flows, not manual XML edits (see `.cursor/skills/repo-integration/ux-assembly-retrieve.md`).
+1. Before merging, run `python scripts/ai/check_branch_scope.py --pr <n>`.
+   Rebuild a `FOREIGN` branch from the base; do not revert on top of it.
+   A `STACKED` branch must not merge before its parent. Pass `--pr` for both
+   signals; see `.cursor/skills/audit-review/SKILL.md` → **Step −1**.
+2. Before push, inspect the diff/stat against the intended base (`origin/264`
+   for this line). Watch `orgs/`, `datasets/`, `unpackaged/post_ux/` and scratch
+   data for unrelated changes inherited from another branch.
+3. Changes under `unpackaged/post_ux/` must come from `assemble_and_deploy_ux`
+   or the UX drift flows, never manual XML edits; see
+   `.cursor/skills/repo-integration/ux-assembly-retrieve.md`.
 
 ---
 
@@ -230,55 +260,28 @@ indexes, and more.
 
 ## Responding to Automated PR Reviews
 
-> **How review is *conducted* — what to look for, the severity rubric, the defect classes
-> this repo actually produces, and push discipline — lives in [`REVIEW.md`](REVIEW.md) at
-> the repo root.** It is read automatically alongside this file, by Claude and by Copilot.
-> This section covers only the *protocol*: what to do with a review comment once it exists.
+Read [`REVIEW.md`](REVIEW.md) for review standards, severity and push discipline.
+**Every agent, every PR: handle every comment to completion and finish every
+review round with zero unresolved threads.**
 
-Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
-similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
-comment is handled to completion, and **every review round ends with zero unresolved
-threads.**
+1. Verify each finding against source; classify it **real**, **partial**, or
+   **false positive**. Refute false positives with evidence instead of changing
+   correct code.
+2. For a real finding, fix **every instance of its class** across the change.
+3. Batch the whole round, verify locally, then **push once**; do not push while
+   a review is running against the previous head.
+4. Reply to each thread with the resolution and **commit SHA**, or an
+   evidence-backed refutation. React 👍 to valid findings, then resolve threads
+   once addressed. False positives still need replies and resolution.
+5. Verify zero unresolved threads across **all pages**, not just the first 100.
 
-**Batch fixes into one push per review round.** Every push to an open PR triggers a fresh
-automated review; re-reviews are not incremental (a hosted reviewer may repeat comments
-already dismissed or resolved), and a push mid-review lands against a superseded commit,
-spending a whole round on findings that no longer apply. Fix everything from a round,
-verify locally, then push once. See `REVIEW.md` → *Push discipline*.
-
-**Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
-Code) automates the mechanical steps so a round can't be left half-finished:
-`status <pr>` lists unresolved threads (paginated), `handle <pr> --comment <id> --body "…"`
-replies + resolves one thread (adds 👍 **by default** — pass `--no-react` to refute a false
-positive without the 👍, per the "react on valid comments" rule below), and `verify <pr>`
-confirms 0 unresolved (exit 1 if any remain). It's tool-agnostic (shells out to `gh`); defaults to the current repo, or pass
-`--repo owner/name`. Verifying findings and sweeping the class (steps 1–2) stay your job.
-
-For each comment:
-
-1. **Verify against the code.** Don't trust the bot — confirm the claim in the actual
-   source and classify it *real*, *partial*, or *false positive*.
-2. **Sweep the whole class.** If a finding is real, fix **every** instance of that
-   pattern across the change, not just the cited line.
-3. **Reply in-thread** with the resolution **and the commit SHA** (or a clear,
-   evidence-backed refutation for a false positive):
-   `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
-4. **React** 👍 on a valid comment:
-   `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github+json" -f content="+1"`
-5. **Resolve the thread** (REST cannot — use GraphQL). List threads with the full query
-   root — `reviewThreads` lives under `repository(owner:, name:){ pullRequest(number:N){ … } }`
-   (`pullRequest` is **not** a GraphQL root field) — and **paginate** so PRs with >100
-   threads aren't truncated:
-   `repository(owner:$o,name:$r){ pullRequest(number:$n){ reviewThreads(first:100, after:$cursor){ pageInfo{ hasNextPage endCursor } nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }`
-   — loop, passing `endCursor` as `after`, until `hasNextPage` is false. Resolve each
-   unresolved id with `mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }`.
-6. **Confirm clean** — re-query `reviewThreads` across **all** pages (same pagination) and
-   verify `unresolved == 0` for the round.
-
-Refute false positives (with evidence) rather than changing correct code — but still
-reply, and resolve the thread once the point is settled. This matters most on branches
-headed for `main`, which mirror to the internal Salesforce repo for audit: a left-open
-thread is a finding the audit will re-raise.
+Use `python scripts/ai/pr_review.py`: `status <pr>` lists paginated threads;
+`handle <pr> --comment <id> --body "…"` replies, reacts and resolves;
+`verify <pr>` fails if any remain. Use `--no-react` when refuting a false
+positive and `--repo owner/name` to override the current repo. The
+`/pr-review <pr>` Claude command drives the same workflow. Verification and
+class sweeps remain the agent's job. Manual REST/GraphQL commands and pagination:
+[review procedures](.cursor/skills/audit-review/merge-and-review-procedures.md#responding-to-automated-pr-reviews).
 
 ---
 
@@ -308,9 +311,12 @@ that topic.
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
+| Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history (Renewal/Upsell/Downsell) | `.cursor/skills/renewal-asset-creation/SKILL.md` |
+| Prep a clone as a DF Hands-On workshop org (capture/replay seeded quotes+config, verify before templating) | `.cursor/skills/df-workshop-setup/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
+| Build/verify a multi-year group **ramp** quote (place→EditGroup→clone) + per-segment/compound uplift | `.cursor/skills/ramped-quotes/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | `.cursor/skills/txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
@@ -334,143 +340,44 @@ registering, or testing skills.
 
 ### Skill Sub-Files (Progressive Disclosure)
 
-Some skills split detail into sub-files to keep entry points small.
-Read the sub-file only when you need that specific detail:
+Most skills split detail into sub-files to keep their entry point small. Every
+skill lists and describes its own sub-files, so open the parent `SKILL.md` from
+the table above and read its sub-file section — there is deliberately no
+second-level index here. When you add a sub-file, register it in its parent
+`SKILL.md`.
 
-| Sub-file | Parent Skill | Contains |
-|----------|-------------|----------|
-| `repo-integration/new-feature-guide.md` | Repository Integration | Step-by-step code templates for adding a new feature |
-| `repo-integration/dependency-ordering.md` | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map |
-| `robot-testing/patterns.md` | Robot Testing | Shadow DOM code, keyword reference, test authoring |
-| `robot-testing/setup-ui-shadow-dom.md` | Robot Testing | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
-| `audit-review/external-review-briefing.md` | Audit Review | Commissioning a review from another agent/model: local-ref framing, the do-not-re-report list, per-feature severity, adjudicating two reviewers, artifact naming that keeps their reports distinct |
-| `repo-integration/ux-assembly-retrieve.md` | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow |
-| `cci-orchestration/custom-task-authoring.md` | CCI Orchestration | Python task class patterns and examples |
-| `cci-orchestration/tasks-reference.md` | CCI Orchestration | Auto-generated task listing (regenerate after edits) |
-| `cci-orchestration/flows-reference.md` | CCI Orchestration | Auto-generated flow listing |
-| `cci-orchestration/feature-flags.md` | CCI Orchestration | Auto-generated feature flag index |
-| `revenue-cloud-data-model/domains/*.md` | Data Model | Per-domain object/field/relationship details |
-| `usage-consumption/building-usage-assets.md` | Usage & Consumption | Backdated Quote→Order→Asset chains, live v67.0 endpoint contracts (and which are gone), selling-model field rules, commitment/Pack binding |
-| `usage-consumption/verification.md` | Usage & Consumption | The three verification layers, the 18 offline invariants, how to add one, reading a suspicious result |
-| `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
-| `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
-| `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |
-| `docs/salesforce/{version}/feature-index.md` | Release Enablement | Per-area feature inventory for a Salesforce release (260, 262, …) — authoring input for `docs/enablement/{version}/` exercises |
-| `docs/enablement/_template/exercise-template.md` | Release Enablement | Canonical template for `{version}-{area}-hands-on.md` exercise files |
-| `docs/enablement/coverage-matrix.md` | Release Enablement | Cross-release inventory of which exercise artifacts exist where |
-| `release-enablement/authoring-patterns.md` | Release Enablement | Edge-case patterns: upgrade guidance, known issues, sub-features, cross-area features, recordings placeholders, QB walkthrough handling |
-| `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
-| `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
-| `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
-| `expression-sets/authoring-and-overlays.md` | Expression Sets | Building/applying overlays, capturing a step's three dependency scopes (version/custom/standard), safe step removal (structural-not-functional) |
-| `expression-sets/metadata-vs-connect.md` | Expression Sets | The two authoring paths, Connect mutation lifecycle, verb-specific field rules, GET serializer gotchas, Metadata API authoring, create-with-content |
-| `decision-tables/authoring-and-data-model.md` | Decision Tables | Tooling setup objects and ID prefixes; the `Metadata` complex value; annotated `.decisionTable-meta.xml`; Metadata/Tooling authoring; CSV data; enum catalog; definition-vs-data model |
-| `decision-tables/lifecycle-and-refresh.md` | Decision Tables | Deploy paths + source locations; active-edit restriction → deactivate/exclude/restore; activate/deactivate; refresh in depth (`isDecisionTableIncremental`, async, separate 40 Standard / 60 Advanced full-refresh pools); recipe-table mappings + `validate_lists`; runtime note |
-| `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
-| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
-| `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
-| `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
-| `docs/references/decision-table-api-reference.md` | Decision Tables | Tooling object model, Metadata XML, definition lifecycle, CSV data, refresh contract, platform errors, and recipe-mapping trace |
-| `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
-| `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
-| `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
-| `docs/references/context-service-patch-shapes.md` | Context Service | Live-verified accept-shapes for Connect + SObject REST mutation endpoints: GET-vs-PATCH shape gap, per-endpoint required fields + response-only fields, hydration nesting, active-version behavior matrix, error → resolution table |
-| `docs/references/context-service-utility.md` | Context Service | `manage_context_definition` CCI-task option reference + plan-file format (create-vs-update, mapping rules, activation/deactivation defaults) — the org-build authoring path |
+### Script Reference
 
-### File-Specific Rules (Cursor Only)
+Helper scripts are documented in the skill that owns them, with the full option
+reference and worked examples. Read that skill rather than guessing flags:
 
-Cursor IDE auto-injects `.cursor/rules/*.mdc` files when editing matching
-file patterns. Non-Cursor agents can read these files directly for the
-same guidance, or use the parent skill which covers the same content:
+| Scripts | Owning skill |
+|---------|--------------|
+| `scripts/docgen/*` — ODT authoring, validation, diffing; DocumentTemplate lifecycle; generation | `document-generation/SKILL.md` (install `scripts/docgen/requirements.txt` first) |
+| `scripts/erd/*` — ERD validation against orgs, cross-release schema diff, orphan cleanup, HTML build | `schema-validation/SKILL.md` |
+| `scripts/context_service/*` — Context Definition inspect/validate/apply, plus the runtime context-instance lifecycle | `context-service/SKILL.md` |
+| `scripts/expression_sets/*` — Expression Set inspect/trace/diff/export and guarded mutators | `expression-sets/SKILL.md` |
+| `scripts/cml/*` — constraint model export/import/validate | `constraint-models/SKILL.md` |
+| `scripts/renewal_assets/*` — renewal-asset expiry-bucket spread (`build_renewal_buckets.py`, reuses `build_quote_to_asset.py`) + lifecycle event-history augment/reset Apex | `renewal-asset-creation/SKILL.md` |
+| `scripts/df_workshop/*` — capture (`extract_workshop_quotes.py`) and replay (`insert_workshop_quotes.py`) DF workshop org drift | `df-workshop-setup/SKILL.md` |
+| `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |
+| `scripts/ai/check_help_corpus_text_artifacts.py` — non-gating spot-check for glued-link text artifacts in the Help snapshot | `revenue-cloud-docs/SKILL.md` |
+| `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
+| `scripts/ai/pr_review.py` — automated-PR-review helper | **Responding to Automated PR Reviews**, above |
+| `scripts/ai/check_branch_scope.py` — fail a branch carrying commits it does not own (already upstream, or another open PR's) | `audit-review/SKILL.md` → **Step −1** |
+| `scripts/ai/pr_gate.py` — run the mechanical checks a change needs and report the status of every one (incl. skipped) | **Pre-merge checklists**, above |
+| `scripts/ai/generate_cci_reference.py`, `scripts/ai/check_plan_readme_consistency.py`, `scripts/ai/generate_plan_readme.py`, `scripts/validate_sfdmu_v5_datasets.py` | **Pre-merge checklists**, above |
 
-| Rule File | Triggers On | Equivalent Skill |
-|-----------|-------------|------------------|
-| `.cursor/rules/analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated analysis artifacts must go to `.agents/artifacts/`, never committed to public repo)* |
-| `.cursor/rules/sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
-| `.cursor/rules/sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
-| `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |
-| `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` |
-| `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
-| `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`, `force-app/**/*.cls` | *(stand-alone — sharing keywords, `Id.valueOf` validation, SOQL safety, test patterns; complements `repo-integration/SKILL.md` for placement)* |
-| `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}`, `force-app/**/lwc/**/*.{html,js}` | *(stand-alone — template syntax, ARIA/accessibility, performance, error messages; complements `repo-integration/SKILL.md` for placement)* |
-| `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
-| `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
-| `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
-| `.cursor/rules/context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` |
+Two Context Service rules are worth obeying without a second read (rationale in
+the skill): **modifying or deleting** an existing node, attribute, or tag on an
+*active* version is blocked (`RECORD_UPDATE_FAILED`) — deactivate first, though
+pure *inserts* apply in place. And a runtime `contextId` is **request-scoped** —
+an opaque handle that does not survive separate CLI calls, so chaining
+create → query → persist needs Apex or a single Flow. Persist is **async**:
+confirm via `AsyncOperationTracker`, not the returned `referenceId`.
 
-### AI Utility Scripts
-
-Scripts in `scripts/ai/` help agents query project data:
-
-```bash
-python scripts/ai/query_erd.py describe Product2           # Query RLM data model
-python scripts/ai/query_erd.py domain Pricing               # List domain objects
-python scripts/ai/generate_cci_reference.py                 # Regenerate CCI docs
-python scripts/ai/skill_manifest.py --check                 # Verify cross-repo skill manifest can resolve PMOS clone
-python scripts/ai/skill_manifest.py --list-skills foundations
-python scripts/ai/pr_review.py status <pr>                  # Automated-PR-review helper: list unresolved threads
-python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
-python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
-python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README ↔ export.json/CSVs drift check (counts, ops, externalIds)
-```
-
-`scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
-
-`scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
-
-### Context Service Scripts
-
-Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime)
-execute Context Service — design-time Context Definitions plus the runtime
-context-instance lifecycle. Auth is delegated to the `sf` CLI (`--target-org` is
-the SF CLI alias, no access token handled). The command index, object model,
-endpoint split, lifecycle rules, runtime scoping, and persist mechanics live in
-the **context-service skill** (`.cursor/skills/context-service/SKILL.md` + its
-`data-model-and-api.md`, `authoring-and-lifecycle.md`, and
-`runtime-and-persistence.md` sub-files). Read the skill before authoring any
-mutation or runtime path.
-
-Two rules worth pinning at this level (full detail + rationale in the skill):
-
-- **Design-time active-version rule** — the platform lets you *insert* a new artifact (node/attribute/tag) on an active version, but *modifying or deleting* an existing one is blocked (`RECORD_UPDATE_FAILED`) → deactivate first. Add-only edits apply in place.
-- **Runtime `contextId` is request-scoped** — an opaque handle (never prefix-validate it) that does not survive across separate CLI calls on a normal org (create scope defaults to `REQUEST`; cross-call `SESSION` scope and REST `query-record`/`query-tags` are pilot-gated). `context_session.py` is **not** a fix for this — it still shells each lifecycle step through its own `sf api request`, so a REQUEST-scoped id expires there too; to chain create→query→persist across those calls it needs `--context-scope SESSION` (pilot) or a reused `--context-id`. The GA single-request path is Apex (`Context.IndustriesContext`) or one Flow, where the whole hydrate→query→persist runs in one transaction. Persist is **async** — confirm via `AsyncOperationTracker` (`JobType='ContextPersistence'`, `Response` JSON), not the returned `referenceId`.
-
-### Document Generation Scripts
-
-Scripts in `scripts/docgen/` drive ODT (OmniDataTransform) and DocumentTemplate workflows. See `.cursor/skills/document-generation/SKILL.md`. Install deps first: `pip install -r scripts/docgen/requirements.txt`.
-
-```bash
-python scripts/docgen/docgen_odt_validate.py <name_or_id> --org <alias>      # Validate ODT items (null fields, duplicates, dot notation)
-python scripts/docgen/docgen_odt_compare.py <source> <target> --org <alias>   # Diff two ODTs item-by-item
-python scripts/docgen/docgen_odt_create.py spec.json --org <alias>             # Create ODT from JSON spec (--example extract|transform for templates)
-python scripts/docgen/docgen_odt_inspect_hierarchy.py <name_or_id> --org <alias>  # Visualize Extract hierarchy tree + validate depth uniformity
-python scripts/docgen/docgen_odt_execute.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
-python scripts/docgen/docgen_odt_execute.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
-python scripts/docgen/docgen_template_extract_tokens.py template.docx          # List all {{mustache}} tokens in a .docx
-python scripts/docgen/docgen_template_build.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
-python scripts/docgen/docgen_template_generate.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF
-python scripts/docgen/docgen_template_manage.py list --org <alias>             # List all DocumentTemplates (name, status, ODTs, usage type)
-python scripts/docgen/docgen_template_manage.py status <name> --org <alias>    # Show template detail + ContentDocument info
-python scripts/docgen/docgen_template_manage.py replace <name> <file> --org <alias>  # Full lifecycle: deactivate → upload binary → reactivate
-python scripts/docgen/docgen_template_manage.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
-python scripts/docgen/docgen_template_manage.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
-```
-### Schema Validation Scripts
-
-Scripts for keeping `docs/erds/erd-data.json` aligned with canonical Revenue Cloud platform schema. See `.cursor/skills/schema-validation/SKILL.md` for the full workflow.
-
-```bash
-python scripts/erd/validate_erd_against_org.py --org <alias>           # Diff ERD vs org
-python scripts/erd/validate_erd_against_org.py --org <alias> --patch   # Patch ERD with org-discovered fields
-python scripts/erd/schema_diff/extract_schema.py --org <alias> --output <file>.json
-python scripts/erd/schema_diff/diff_schemas.py --baseline 260.json --target 262.json --impact
-python scripts/erd/cleanup_orphan_erd_fields.py --orgs <260>,<262> --dry-run    # Cross-validate orphans
-python scripts/erd/build_erds.py                              # Regenerate ERD HTML viewer
-```
-
-**All schema scripts skip custom fields by default** (`__c` suffix, including project `RLM_*__c` and managed-package fields). The ERD reflects canonical platform schema only. Pass `--include-custom` only for project-internal tooling that needs to see deployed custom fields.
-
----
+Cursor's file-pattern rules (`.cursor/rules/*.mdc`) and the equivalent skill for
+each are tabulated in `.cursor/skills/README.md`.
 
 ## Documentation Conventions
 
@@ -490,25 +397,3 @@ Placement:
 | `docs/integration/` | Integration-related documentation |
 
 ---
-
-## Agent Entry Points
-
-This repository provides multiple entry points for different AI tools:
-
-| File | Tool | Purpose |
-|------|------|---------|
-| `AGENTS.md` | Any agent | Canonical source of truth (this file) |
-| `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
-| `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
-| `REVIEW.md` | Any agent + Copilot | **How pull requests get reviewed** — severity rubric, what to look for, this repo's recurring defect classes, push discipline. Distinct content, not a duplicate of this file. |
-| `CONTRIBUTING.md` | Humans + any agent | **How to contribute** — fork → branch → validate → PR, commit/PR conventions, review-round expectations. Governance companions at the repo root: `LICENSE.txt` (Apache-2.0), `CODE_OF_CONDUCT.md`, `SECURITY.md`. |
-| `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
-
-`AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
-same content — edit `AGENTS.md` only. `REVIEW.md` is a **separate** document with its
-own content: this file governs *what the code must do*, `REVIEW.md` governs *how review
-is conducted*. They overlap on three points by design — verifying a finding, sweeping a
-class, and push discipline — where this file carries the short operational form and
-`REVIEW.md` carries the reasoning. Keep those three in sync when either changes, and do
-not add duplication beyond them. The `.agents/` tree is a separate routing and context
-layer that points back to `AGENTS.md` and never overrides it.

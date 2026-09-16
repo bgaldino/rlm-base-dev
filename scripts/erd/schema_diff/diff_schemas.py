@@ -31,6 +31,10 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import sfdmu_export  # noqa: E402
+import repo_paths  # noqa: E402
+
 
 def load_schema(path: str) -> dict:
     """Load a schema JSON file."""
@@ -104,6 +108,37 @@ def diff_fields(baseline_fields: dict, target_fields: dict) -> dict:
     }
 
 
+# Selection modes that enumerate the org rather than a predetermined list. Only these
+# make the object rows of a diff meaningful.
+EXHAUSTIVE_SELECTIONS = ("--all-objects (EntityDefinition)",)
+
+
+def bounded_sides(baseline: dict, target: dict) -> dict:
+    """Map org alias -> selection mode, for each side built from a fixed object list.
+
+    A snapshot enumerated from `erd-data.json` or `--objects FILE` has its key set
+    decided before the org is queried, so `objects_added` can only ever be 0 — true by
+    construction, not measured. A snapshot with no `object_selection` is *unknown* and
+    counted as bounded on purpose: assuming an unlabelled snapshot was exhaustive is
+    the fail-open direction, and every snapshot committed before that field existed
+    would silently regain a bare, authoritative-looking 0.
+    """
+    out = {}
+    for meta in (baseline.get("metadata", baseline), target.get("metadata", target)):
+        if not isinstance(meta, dict):
+            continue
+        sel = meta.get("object_selection")
+        if sel in EXHAUSTIVE_SELECTIONS:
+            continue
+        out[meta.get("org_alias", "unknown")] = sel or "unrecorded (snapshot predates provenance)"
+    return out
+
+
+def objects_measured(baseline: dict, target: dict) -> bool:
+    """True only when both sides enumerated the org, so object rows are real findings."""
+    return not bounded_sides(baseline, target)
+
+
 def diff_schemas(baseline: dict, target: dict) -> dict:
     """Produce a full diff between two schema snapshots."""
     b_objects = set(baseline["objects"].keys())
@@ -128,6 +163,11 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
         "baseline": baseline.get("metadata", {}),
         "target": target.get("metadata", {}),
         "summary": {
+            # Say outright whether the object rows mean anything. `object_selection`
+            # provenance alone would make a consumer of the JSON re-derive which
+            # selection modes are exhaustive, and the safe reading of a bare
+            # `objects_added: 0` is not obvious enough to leave implicit.
+            "objects_measured": objects_measured(baseline, target),
             "objects_added": len(objects_added),
             "objects_removed": len(objects_removed),
             "objects_changed": len(object_diffs),
@@ -166,18 +206,21 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
 
 
 def _extract_object_name(obj_def: dict) -> str:
-    """Pull SObject name from an SFDMU object entry (either explicit
-    ``objectName`` or parsed from a ``query`` clause)."""
-    obj_name = obj_def.get("objectName") or ""
-    if not obj_name:
-        query = obj_def.get("query", "") or ""
-        if "FROM " in query:
-            obj_name = query.split("FROM ")[1].split()[0].strip()
-    return obj_name
+    """Pull SObject name from an SFDMU object entry — explicit ``objectName`` if
+    present, else parsed from the ``query`` clause.
+
+    Query parsing is delegated to the shared, subquery-aware
+    ``sfdmu_export.extract_object_name`` (todo pack 167). The former inline
+    ``query.split("FROM ")[1]`` here misread a SELECT-clause subquery's inner
+    ``FROM`` as the object and matched ``FROM`` case-sensitively, both of which
+    the shared parser handles (strips parenthesized subqueries first;
+    case-insensitive ``FROM`` keyword)."""
+    return obj_def.get("objectName") or sfdmu_export.extract_object_name(
+        obj_def.get("query", "") or "")
 
 
 def _list_tracked_export_jsons(sfdmu_dir: Path) -> list[Path] | None:
-    """Return the list of `export.json` files that git is tracking under
+    """Return the list of on-disk `export.json` files that git is tracking under
     ``datasets/sfdmu/``, or ``None`` if git isn't available / this isn't a
     repo.
 
@@ -187,26 +230,21 @@ def _list_tracked_export_jsons(sfdmu_dir: Path) -> list[Path] | None:
     that .gitignore explicitly excludes. Without this filter, the
     ``--impact`` report leaks paths that don't exist on a fresh clone and
     overstates maintained-plan coverage.
+
+    The git query is delegated to the shared ``repo_paths.tracked_paths`` (todo
+    pack 167 — one implementation of "which of these paths does git track", also
+    used by the plan-README gate). This module keeps its own SOFTER failure mode:
+    ``repo_paths.tracked_paths`` raises on git failure (``check=True``), and this
+    wrapper catches it to return ``None`` so ``find_impacted_plans`` degrades to
+    an ``rglob`` walk + warning — an impact report is analysis, not a merge gate,
+    so it should still run when git is unavailable rather than crash.
     """
+    candidates = sorted(sfdmu_dir.rglob("export.json"))
     try:
-        result = subprocess.run(
-            ["git", "ls-files", "--full-name", "-z", "datasets/sfdmu"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-        )
+        tracked = repo_paths.tracked_paths([str(p) for p in candidates], str(REPO_ROOT))
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
-
-    tracked = []
-    for raw in result.stdout.split(b"\x00"):
-        if not raw:
-            continue
-        rel = raw.decode("utf-8", "replace")
-        if rel.endswith("/export.json") or rel.endswith("export.json"):
-            # ls-files returns paths relative to the git toplevel (REPO_ROOT)
-            tracked.append(REPO_ROOT / rel)
-    return tracked
+    return [p for p in candidates if str(p) in tracked]
 
 
 def find_impacted_plans(diff: dict) -> dict:
@@ -322,10 +360,16 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append("")
     lines.append("## Summary")
     lines.append("")
+    # Marked, not printed bare: a fixed object list makes `objects_added: 0` true by
+    # construction. Shares bounded_sides() with the JSON's `objects_measured` flag so the
+    # two renderings of the same fact cannot drift apart.
+    bounded = bounded_sides({"metadata": b_meta}, {"metadata": t_meta})
+    obj_note = " *(not measured)*" if bounded else ""
+
     lines.append(f"| Metric | Count |")
     lines.append(f"|--------|-------|")
-    lines.append(f"| Objects added | {summary['objects_added']} |")
-    lines.append(f"| Objects removed | {summary['objects_removed']} |")
+    lines.append(f"| Objects added | {summary['objects_added']}{obj_note} |")
+    lines.append(f"| Objects removed | {summary['objects_removed']}{obj_note} |")
     lines.append(f"| Objects with field changes | {summary['objects_changed']} |")
     lines.append(f"| Objects unchanged | {summary['objects_unchanged']} |")
     lines.append(f"| Total fields added | {summary['total_fields_added']} |")
@@ -335,6 +379,21 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"| Picklist values added | {summary.get('total_picklist_value_additions', 0)} |")
     lines.append(f"| Picklist values removed | {summary.get('total_picklist_value_removals', 0)} |")
     lines.append("")
+
+    if bounded:
+        which = "; ".join(f"`{alias}` from {sel}" for alias, sel in sorted(bounded.items()))
+        lines.append(
+            f"> **Object additions and removals are not measured by this report.** "
+            f"These snapshots were enumerated from a fixed object list ({which}), so "
+            f"their key sets were decided before either org was queried and the object "
+            f"rows above can only ever be 0. To find objects the target release added, "
+            f"enumerate them independently — "
+            f"`sf sobject list --sobject all --target-org <alias> --json`, which unlike "
+            f"`--all-objects` has no ID limit and returns canonical API names — then "
+            f"re-extract and re-diff. Field-level rows below are unaffected: they are "
+            f"measured per object from full describes."
+        )
+        lines.append("")
 
     # Objects added
     if diff["objects_added"]:

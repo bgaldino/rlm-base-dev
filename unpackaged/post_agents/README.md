@@ -1,6 +1,27 @@
 # Agentforce Agents
 
-This bundle deploys three Agentforce **Employee Agents** plus their settings and permission sets. Quoting Assistant and Billing Employee Assistance are authored as Builder Script (`.agent`) bundles; Revenue Quote Management uses the legacy decomposed format (Bot + BotVersion + GenAiPlannerBundle). No managed package is required. (The Quoting Assistant is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
+This bundle deploys three Agentforce **Employee Agents** plus their settings and permission sets. All three are authored as Builder Script (`.agent`) bundles. No managed package is required. (The Quoting Assistant is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
+
+> **Release 264 retired the legacy agent format.** Revenue Quote Management previously shipped as a decomposed Bot + BotVersion + GenAiPlannerBundle tree under `legacy/`, deployed by a `deploy_legacy_agents` step. Both `BotVersion` and `GenAiPlannerBundle` are **absent from the v68.0 metadata describe**, and the deploy fails outright (`BotDefinition/BotVersion metadata type is not supported for API version 68.0 and above for non-BOT BotType`). The agent was converted back to an authoring bundle and the legacy tree and its deploy step were removed. Do not re-introduce either type.
+>
+> **One capability did not survive the conversion, and it is a real loss rather than a
+> formatting difference.** The `.agent` restored here is byte-identical to the authoring
+> bundle that predated the legacy tree, so the revert is faithful — but the legacy planner
+> had since grown a procedure the authoring bundle never had: given a `UsageResourceId`,
+> query `ProductUsageGrant` for `UsageModelType = 'Pack'` sorted by `Quantity` descending,
+> limit 1, to find the Pack product carrying the largest grant, plus the surrounding
+> instructions for adding that product to a quote. Nothing in the `.agent` does this.
+>
+> That leaves a dead end in the conversation graph: `ConsumptionManagement` still tells the
+> model to "hand off to Quote Management … when the user asks to act on the insight," while
+> `QuoteManagement` is instructed not to handle usage or overage questions and has no way to
+> turn a usage resource into a product. A user who asks about an overage and then says "add
+> that to a quote" reaches a subagent that cannot complete the request.
+>
+> This is not a reason to keep the legacy tree — 264 cannot deploy it at all. Porting the
+> procedure into `QuoteManagement`'s instructions is the fix, and because it changes agent
+> behavior it needs a live conversational check rather than a source review. Tracked as
+> **#264-54** in `.agents/artifacts/upgrades/264-upgrade-plan.md`.
 
 ## What's in the bundle
 
@@ -8,11 +29,11 @@ This bundle deploys three Agentforce **Employee Agents** plus their settings and
 | --- | --- | --- |
 | Settings | `settings/` | `AgentPlatform`, `EinsteinCopilot`, `EinsteinGpt`. Deployed first by `deploy_agents_settings`. |
 | Product Configuration & quote-line services | `classes/` | Apex invocable services behind the agent flows: `RLM_AI_QuoteLineItemLookupService` (scored product-name matching; blank product name lists every line for selection — used by both Product Configuration and Revenue Quote Management's discount flow), `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`, plus the shared `inherited sharing` helper `RLM_AI_ConfigServiceUtils` (Id/prefix validation, null-safe JSON, SOQL LIKE escaping). |
-| Revenue Quote Management agent | `legacy/bots/Revenue_Quote_Management/` + `legacy/genAiPlannerBundles/Revenue_Quote_Management/` | Legacy-format agent (developer name `Revenue_Quote_Management`; label "Revenue Quote Management"). Deployed as standard metadata (Bot + BotVersion + GenAiPlannerBundle). Does not require publish step — activated via `sf agent activate` after deploy. |
+| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). It no longer deploys as standard metadata (see the 264 note above). **Currently omitted from publish/activate on v68/264 — pack 187:** its `Configure_Product_Attributes` currency outputs fail `sf agent publish`, so it is listed in `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) and its permission set's `<agentAccesses>` is stripped until the 264 template is recaptured. The bundle source still deploys (as the capture target); it is not published or activated. |
 | Quoting Assistant agent | `aiAuthoringBundles/RLM_Quoting_Assistant/` | Builder Script `.agent` authoring bundle (developer name `RLM_Quoting_Assistant`; label "Quoting Assistant"). A ground-up, scoped demo quoting agent — tight arc (find products → create/identify quote → add line → discount → configure → totals), unified no-redundant-confirmation policy (`require_user_confirmation: False` everywhere), and a names-not-IDs presentation contract (native record cards; Id outputs flagged `is_used_by_planner: false`). Backed by the three `RLM_AI_*` helper services/flows below. Intentionally excludes asset lifecycle and usage/consumption. |
 | Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Assistant"). |
 | Quoting Assistant helper services | `classes/RLM_AI_AddProductToQuoteService`, `RLM_AI_ApplyQuoteLineDiscountsService`, `RLM_AI_QuoteDemoSummaryService` (+ tests) | Apex invocable services behind the Quoting Assistant's three helper flows (`flows/RLM_AI_Add_Product_To_Quote`, `RLM_AI_Apply_Quote_Line_Discounts`, `RLM_AI_Get_Quote_Demo_Summary`): one-call add-product (resolves product + default selling model, then the managed add-line), one-call bulk line discount (high-level targeting: applyToAll / productName / display-ordinals; percent, target-price, percent-of-list modes), and a read-only names-only quote recap. Each isolates the managed `quotingAI__*` invocation behind a `@TestVisible` invoker seam. |
-| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
+| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each grants Lightning users access to its agent via `<agentAccesses>`. **`RLM_QuotingAgent`'s block is currently stripped (pack 187)** — its agent (`RLM_Revenue_Quote_Management`) is omitted from publish, so a live `<agentAccesses>` reference would dangle and fail deploy; restore it when the bundle is re-added. |
 
 `AiAuthoringBundle` requires **API version 65.0 or higher**.
 
@@ -36,22 +57,21 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 2. `deploy_agents_settings` → `unpackaged/post_agents/settings`
 3. `deploy_agent_classes` → `unpackaged/post_agents/classes` (Apex invocable services used by Product Configuration flows)
 4. `deploy_agent_flows` → `unpackaged/post_agents/flows` (custom autolaunched flows backing Product Configuration actions)
-5. `deactivate_agents` → deactivates legacy agents so metadata can be redeployed idempotently (tolerates not-yet-deployed or already-inactive agents)
-6. `deploy_legacy_agents` → `unpackaged/post_agents/legacy` (Bot + BotVersion + GenAiPlannerBundle — standard metadata deploy, no publish needed)
-7. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
-8. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
-9. `activate_agents` → runs `sf agent activate` for all agents (both authoring bundles and legacy bots)
-10. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
-11. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
+5. `deactivate_agents` → deactivates each discovered agent so it can be re-published idempotently (tolerates not-yet-deployed or already-inactive agents)
+6. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
+7. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
+8. `activate_agents` → runs `sf agent activate` for each authoring bundle
+9. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
+10. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
-Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `true` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
+Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`), which is **`true`**. On v68/264 the `RLM_Revenue_Quote_Management` bundle's `Configure_Product_Attributes` currency outputs fail `sf agent publish`, so that one bundle is **omitted from publish and activation** via `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) and its permission set's `<agentAccesses>` is stripped — the other two agents publish and activate normally, and the ten steps run (tracked as pack 187; the follow-up is to capture the current 264 template and re-add it). The exclusion is **operation-specific**: `deactivate_agents` (step 5) *still* discovers `RLM_Revenue_Quote_Management` (`include_excluded=True`) so it can deactivate a version left active by a 262→264-upgraded org — deactivating a missing/inactive agent is a no-op, so an upgraded org's old RQM version does not silently stay active. Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
 ## Why post-deploy publish + activation are required
 
 Two separate platform gaps are bridged by this flow:
 
-1. **Authoring bundles compile at publish time, not deploy time.** Deploying an `AiAuthoringBundle` puts the `.agent` source in the org but does not produce a `BotVersion`. `sf agent publish authoring-bundle` is the platform compile step. `publish_agents` (`tasks/rlm_publish_agents.py`) iterates every directory under `aiAuthoringBundles/` and runs the publish command for each.
-2. **`BotVersion.Status` is not part of deployable metadata and is not DML-writable.** Fresh deploys (and freshly-published bundles) always land Inactive. `activate_agents` (`tasks/rlm_activate_agents.py`) iterates every agent name under `aiAuthoringBundles/` and runs `sf agent activate --api-name <Name> --json`, which wraps the Connect REST endpoint `POST /connect/bot-versions/{botVersionId}/activation`.
+1. **Authoring bundles compile at publish time, not deploy time.** Deploying an `AiAuthoringBundle` puts the `.agent` source in the org but does not produce a `BotVersion`. `sf agent publish authoring-bundle` is the platform compile step. `publish_agents` (`tasks/rlm_publish_agents.py`) iterates the discovered bundles under `aiAuthoringBundles/` — every directory except those in `EXCLUDED_BUNDLES` — and runs the publish command for each.
+2. **`BotVersion.Status` is not part of deployable metadata and is not DML-writable.** Fresh deploys (and freshly-published bundles) always land Inactive. `activate_agents` (`tasks/rlm_activate_agents.py`) iterates the discovered agent names under `aiAuthoringBundles/` — same `EXCLUDED_BUNDLES` filter as publish, so it never activates a bundle that was not published — and runs `sf agent activate --api-name <Name> --json`, which wraps the Connect REST endpoint `POST /connect/bot-versions/{botVersionId}/activation`.
 
 Both tasks discover agents from disk, so adding a new agent's directory under `aiAuthoringBundles/` automatically enrolls it in publish + activate. No edits to the task code are needed.
 
@@ -140,7 +160,13 @@ Fix:
    cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent"
    ```
 
-4. Verify `SetupEntityAccess` rows exist for all three permission sets and current `BotDefinition` records, then hard-refresh UI.
+4. Verify `SetupEntityAccess` rows exist for `RLM_QuotingAssistant` and
+   `RLM_BillingEmployeeAgent` against their current `BotDefinition` records, then
+   hard-refresh UI. **Do not expect a row for `RLM_QuotingAgent`:** its
+   `<agentAccesses>` binding to `RLM_Revenue_Quote_Management` is intentionally
+   stripped (pack 187 — the bundle is omitted from publish/activate on v68/264),
+   so that permission set is assigned but carries no agent access until the 264
+   template is recaptured. Its absence is expected, not the fault above.
 
 ### Publish fails with restricted picklist error on `Generative AI Function Definition ID`
 

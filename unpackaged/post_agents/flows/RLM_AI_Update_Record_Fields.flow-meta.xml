@@ -95,7 +95,7 @@
             <name>errorMessage</name>
         </outputParameters>
     </actionCalls>
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>AssignError</name>

@@ -88,14 +88,10 @@ Assign feature-gated permission sets after PSGs are updated
 
 **Steps:**
 
-1. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
-   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
-2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
+1. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
    - `api_names`: `['EinsteinGPTPromptTemplateManager']`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
    - `api_names`: `['SalesCloudEinsteinAll']`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
-   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
 
 ---
 
@@ -171,12 +167,11 @@ Extract rating and rates data from an org into CSV files
 3. **task** `deploy_agent_classes`  `when: project_config.project__custom__agents`
 4. **task** `deploy_agent_flows`  `when: project_config.project__custom__agents`
 5. **task** `deactivate_agents`  `when: project_config.project__custom__agents`
-6. **task** `deploy_legacy_agents`  `when: project_config.project__custom__agents`
-7. **task** `deploy_agents`  `when: project_config.project__custom__agents`
-8. **task** `publish_agents`  `when: project_config.project__custom__agents`
-9. **task** `activate_agents`  `when: project_config.project__custom__agents`
-10. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
-11. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
+6. **task** `deploy_agents`  `when: project_config.project__custom__agents`
+7. **task** `publish_agents`  `when: project_config.project__custom__agents`
+8. **task** `activate_agents`  `when: project_config.project__custom__agents`
+9. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
    - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
 
 ---
@@ -226,7 +221,7 @@ Extract rating and rates data from an org into CSV files
 
 ### `prepare_billing_portal`
 
-Create Self-Service Billing Portal community and optionally deploy site content. When billing and billing_portal are true, creates and publishes the community. When billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
+Create Self-Service Billing Portal community and optionally deploy site content. Every step is gated on both billing and billing_portal, so with billing false this flow is a no-op. When billing and billing_portal are both true, creates the community; when billing_portal_deploy is also true, patches the network email placeholder, deploys unpackaged/post_billing_portal, and reverts the placeholder before publishing.
 
 **Steps:**
 
@@ -359,6 +354,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 1. **task** `manage_fulfillment_scope_cnfg`  `when: project_config.project__custom__dro`
    - `operation`: `upsert`
    - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+   - `on_invalid_context_tag`: `skip`
 2. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
 3. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb`
@@ -700,6 +696,7 @@ Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manu
 1. **task** `manage_fulfillment_scope_cnfg`
    - `operation`: `upsert`
    - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+   - `on_invalid_context_tag`: `skip`
 
 ---
 

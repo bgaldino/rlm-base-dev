@@ -1,0 +1,205 @@
+---
+page_id: connect_responses_rate_adjustments_output.htm
+title: Rate Adjustments
+source_url: https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_rate_adjustments_output.htm
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+section: Usage Management
+parent_page: usage_management_business_apis_responses.htm
+fetched_at: 2026-08-24
+---
+
+Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
+
+# Rate Adjustments
+
+Output representation of the details of a rate adjustment.
+
+        
+          
+
+**JSON Example**
+
+          
+: 
+            
+
+```
+      "rateAdjustments": [
+        {
+           "fields": {},
+           "lowerBound": 0.0,
+           "name": null,
+           "negotiatedRateAdjustmentId": null,
+           "rateAdjustmentId": "1ENxx0000004C9BGAU",
+           "rateAdjustmentType": "Percentage",
+           "rateAdjustmentValue": 10.0,
+           "tierUnitOfMeasure": "USD",
+           "upperBound": 50.0
+        }
+    ]
+```
+
+          
+
+        
+      
+
+If the `negotiable` property value that’s associated with a
+        rate card entry is blank, then the data is derived from Product Catalog Management. If it
+        isn’t blank, then the data is derived from Rate Management.
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
+| Property Name | Type | Description | Filter Group and Version | Available Version |
+| --- | --- | --- | --- | --- |
+| `fields` | Map<String, [Fields Response](./connect_responses_fields_output.htm.md)> | List of optional fields and their values that belong to the rate adjustment object. | Big, 63.0 | 63.0 |
+| `lowerBound` | Double | Minimum quantity for the adjustment to be applicable. | Small, 63.0 | 63.0 |
+| `name` | String | Name of the tier. | Small, 63.0 | 63.0 |
+| `negotiatedRate​Adjustment​Id` | String | ID of the negotiated rate adjustment. | Small, 63.0 | 63.0 |
+| `rateAdjustment​Id` | String | ID of the rate adjustment. | Small, 63.0 | 63.0 |
+| `rateAdjustment​Type` | String | Type of the rate adjustment. | Small, 63.0 | 63.0 |
+| `rateAdjustment​Value` | Double | Value of the rate adjustment. | Small, 63.0 | 63.0 |
+| `tierUnitOf​Measure` | String | Unit of measure representing the tier. | Small, 63.0 | 63.0 |
+| `upperBound` | Double | Maximum quantity for the adjustment to be applicable. | Small, 63.0 | 63.0 |

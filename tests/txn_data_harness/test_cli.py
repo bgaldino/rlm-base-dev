@@ -21,7 +21,7 @@ def test_plan_delegates_to_generate_with_dry_run(monkeypatch) -> None:
     assert calls == [[
         "--org", "sf-alias",
         "--config", "config.yaml",
-        "--api-version", "67.0",
+        "--api-version", "68.0",
         "--transport", "requests",
         "--concurrency", "4",
         "--poll-timeout", "180",

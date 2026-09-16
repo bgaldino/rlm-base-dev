@@ -156,7 +156,7 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
         # Retrieve via Metadata API SOAP
         instance_url = self.org_config.instance_url
         access_token = self.org_config.access_token
-        api_version = self.project_config.project__package__api_version or "66.0"
+        api_version = self.project_config.project__package__api_version or "68.0"
 
         retrieved = self._mdapi_retrieve(
             instance_url, access_token, api_version,

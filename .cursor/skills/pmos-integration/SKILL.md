@@ -1,7 +1,8 @@
 ---
 name: pmos-integration
 description: >-
-  Cross-repo skill manifest pattern connecting Foundations (rlm-base-dev) and
+  Optional cross-repo skill manifest pattern for maintainers with PMOS access,
+  connecting Foundations (rlm-base-dev) and
   PMOS (pmos-revenue-cloud). Use when a skill needs to read content from the
   other repo (PRDs, demo scripts, capability roadmap, schema, Help articles,
   scenario reference) without forking or duplicating it. Documents the temporal
@@ -12,6 +13,13 @@ description: >-
 # PMOS ↔ Foundations Integration
 
 A cross-repo skill manifest that lets agents in either repo discover and consume content from the other read-only. Both repos work standalone today; the manifest upgrades what each can do when the other is present.
+
+## Availability
+
+PMOS is an optional private repository for maintainers with access. Public users
+can use Foundations skills and checked-in references without it. Skip cross-repo
+lookups when the clone is absent; do not copy private PMOS content into public
+contributions. The [skill catalog](../README.md) provides standalone starting points.
 
 ## Quick Rules
 
@@ -38,10 +46,10 @@ A cross-repo skill manifest that lets agents in either repo discover and consume
 | 935 Salesforce Help articles per release | **Foundations** (`docs/salesforce/{release}/help/`) | Mirrored from help.salesforce.com, diffable across releases |
 | QB scenario reference (real demo records) | **Foundations** (`docs/enablement/master/qb-scenario-reference.md`) | The records `prepare_rlm_org` actually loads |
 | RLM business APIs reference | **Foundations** (`.cursor/skills/rlm-business-apis/`) | API endpoints + working examples |
-| `prepare_rlm_org` flow + 36 feature flags | **Foundations** (`cumulusci.yml`) | The build itself |
+| `prepare_rlm_org` flow + 41 feature flags | **Foundations** (`cumulusci.yml`) | The build itself |
 | PRDs (proposed features) | **PMOS** (`docs/Releases/{release}/`) | Per-release authoring layer |
 | Roadmap / capability map | **PMOS** (`context/CAPABILITIES.md`, 218 rows) | PM-owned status: Beta → GA → deprecated |
-| PM authoring skills (prd, demo-script, sales-enablement, release-notes, presentation, documentation, spec, technical-review) | **PMOS** (`.claude/skills/`) | 61 skills total in PMOS |
+| PM authoring skills (prd, demo-script, sales-enablement, release-notes, presentation, documentation, spec, technical-review) | **PMOS** (`.claude/skills/`) | Skill count is measured from the resolved clone: `skill_manifest.py --check` prints "skills on disk: N" |
 | Multi-agent review personas (csm, eng-lead, ux-designer, etc.) | **PMOS** (`.claude/agents/`) | 16 reviewer agent definitions |
 | Per-feature knowledge packages (~25k lines) | **PMOS** (`packages/available/revenue-cloud-*/`) | 11 RC packages: billing, pricing, configurator, pcm, transaction-mgmt, usage, ui-ux, performance, integrations, approvals, contracts |
 

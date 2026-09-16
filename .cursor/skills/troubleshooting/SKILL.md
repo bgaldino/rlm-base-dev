@@ -1,3 +1,11 @@
+---
+name: troubleshooting
+description: >-
+  Diagnose Revenue Cloud Foundations build, metadata deployment, data load, and local
+  toolchain failures. Use when a CCI flow step fails, SFDMU loads misbehave, permissions
+  or activation block deployment, or usage and rating results are unexpected.
+---
+
 # Troubleshooting & Common Errors
 
 Use this skill when diagnosing failures in the rlm-base-dev build pipeline,
@@ -441,7 +449,10 @@ sf data query -q "SELECT Id, Name, UsageModelType, EntitlementProcessingStatus F
 ```
 
 ⚠ Entitlements for `CommitmentQuantity` / `CommitmentSpend` products are **known to
-stay `PENDING`** in 262 — a platform issue, not a data defect. `Commit` works.
+stay `PENDING`** — a platform issue, not a data defect. **Re-verified on a fresh 264 org
+(2026-08-14): still unfixed in 264.** `QB-QTY-CMT` and `QB-MTY-CMT` stay `PENDING` while
+`Anchor` and `Commit` assets reach `PROCESSED`. Use a `Commit` model type
+(e.g. `QB-CMT-TKN-FLAT`) instead — it processes correctly on both releases.
 
 ---
 
@@ -537,7 +548,7 @@ sf data query -q "SELECT Id, Name, UrlPathPrefix FROM Network" --target-org rlm-
 
 **Fix:** Run it manually:
 ```bash
-cci task run revert_network_email_after_deploy --org beta
+cci task run revert_network_email_after_deploy
 ```
 Or reset the file: `git checkout -- unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml`
 

@@ -334,7 +334,7 @@ def cmd_upload(args):
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
     resp = requests.post(
-        f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
+        f"{instance_url}/services/data/v68.0/sobjects/ContentVersion",
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={
             "ContentDocumentId": doc_id,
@@ -376,7 +376,7 @@ def cmd_create(args):
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
     cv_resp = requests.post(
-        f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
+        f"{instance_url}/services/data/v68.0/sobjects/ContentVersion",
         headers=headers,
         json={
             "Title": args.name,
@@ -409,7 +409,7 @@ def cmd_create(args):
         dt_body["UsageType"] = args.usage_type
 
     dt_resp = requests.post(
-        f"{instance_url}/services/data/v67.0/sobjects/DocumentTemplate",
+        f"{instance_url}/services/data/v68.0/sobjects/DocumentTemplate",
         headers=headers,
         json=dt_body,
     )
@@ -423,7 +423,7 @@ def cmd_create(args):
     if args.activate:
         print(f"  Activating...")
         activate_resp = requests.patch(
-            f"{instance_url}/services/data/v67.0/sobjects/DocumentTemplate/{dt_id}",
+            f"{instance_url}/services/data/v68.0/sobjects/DocumentTemplate/{dt_id}",
             headers=headers,
             json={"IsActive": True, "Status": "Active"},
         )
@@ -495,7 +495,7 @@ def cmd_replace(args):
         version_data = base64.b64encode(f.read()).decode("utf-8")
 
     resp = requests.post(
-        f"{instance_url}/services/data/v67.0/sobjects/ContentVersion",
+        f"{instance_url}/services/data/v68.0/sobjects/ContentVersion",
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={
             "ContentDocumentId": doc_id,
@@ -569,7 +569,7 @@ def cmd_download(args):
     print(f"Downloading ContentVersion {cv_id} -> {output_path}")
 
     resp = requests.get(
-        f"{instance_url}/services/data/v67.0/sobjects/ContentVersion/{cv_id}/VersionData",
+        f"{instance_url}/services/data/v68.0/sobjects/ContentVersion/{cv_id}/VersionData",
         headers=headers,
     )
     if resp.status_code != 200:

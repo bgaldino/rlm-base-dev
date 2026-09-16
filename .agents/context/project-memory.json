@@ -1,19 +1,19 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "1.0.0",
-  "last_updated_utc": "2026-07-23T05:04:33Z",
+  "last_updated_utc": "2026-08-13T23:00:00Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
     "default_branch": "main",
-    "active_work_branch": "262",
+    "active_work_branch": "264",
     "source_format": "sfdx",
     "salesforce_release": {
-      "number": "262",
-      "name": "Summer '26",
-      "api_version": "67.0",
-      "prior_ga_release": "260",
-      "prior_ga_api_version": "66.0"
+      "number": "264",
+      "name": "Winter '27",
+      "api_version": "68.0",
+      "prior_ga_release": "262",
+      "prior_ga_api_version": "67.0"
     }
   },
   "key_directories": [
@@ -166,8 +166,8 @@
     },
     {
       "id": "SAFE-GIT-001",
-      "summary": "Do not commit or push directly to main.",
-      "details": "All changes must go through a feature branch and pull request; never push or force-push main without explicit approval."
+      "summary": "Do not commit or push directly to main or to the active release branch (264; likewise release/*).",
+        "details": "All changes must go through a feature branch and pull request, including docs and agent-instruction files. This is absolute: there is no approval exception for a direct push, so do not treat user approval as a route to one. Explicit approval is required only to force-push main or an active release branch, which is a separate act: PRs are routinely stacked on the release branch, so rewriting it invalidates every one of them."
     }
   ],
   "generated_reference_freshness": {

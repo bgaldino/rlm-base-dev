@@ -1,6 +1,7 @@
 # Decision Table Programmatic Management
 
-> Release 262 / API v67.0 reference for managing Business Rules Engine (BRE)
+> Release 264 / API v68.0 (endpoint versions); behavior live-verified on Release
+> 262 / API v67.0 and not yet re-verified on 264. Reference for managing Business Rules Engine (BRE)
 > Decision Table definitions and data. Runtime lookup and execution APIs are
 > outside this toolkit's scope.
 
@@ -129,7 +130,7 @@ entitlement matrix.
 Tooling create uses:
 
 ```text
-POST /services/data/v67.0/tooling/sobjects/DecisionTable
+POST /services/data/v68.0/tooling/sobjects/DecisionTable
 {"FullName":"...","Metadata":{...}}
 ```
 
@@ -146,7 +147,7 @@ here.
 Tooling update sends the complete `Metadata` body:
 
 ```text
-PATCH /services/data/v67.0/tooling/sobjects/DecisionTable/{id}
+PATCH /services/data/v68.0/tooling/sobjects/DecisionTable/{id}
 ```
 
 The complex value and its parameter array use replacement semantics. Sparse
@@ -178,7 +179,7 @@ version lifecycle.
 Tooling delete requires an empty request body on stdin:
 
 ```text
-DELETE /services/data/v67.0/tooling/sobjects/DecisionTable/{id}
+DELETE /services/data/v68.0/tooling/sobjects/DecisionTable/{id}
 ```
 
 Active or referenced tables are rejected by the platform. The toolkit returns
