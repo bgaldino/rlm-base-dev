@@ -73,10 +73,14 @@ Key endpoints:
 ### Context Service
 Context definitions store session state and configuration across API calls. Used by Product Discovery, Pricing, and Configuration APIs to maintain buyer context.
 
-## Master Reference
+## Reference
 
-For the complete cross-domain API reference extracted from the Release 260 (v66.0) developer guide — still the most complete cross-domain reference until a 264 (v68.0) extraction lands:
-[rlm-v260-business-apis-reference.md](../../../postman/docs/rlm-v260-business-apis-reference.md)
+The cross-domain API reference is re-extracted from the Release 264 (Winter '27,
+v68.0) developer guide as per-area markdown under
+[`postman/docs/`](../../../postman/docs/) — 148 endpoints across 9 domains (PCM,
+Product Discovery, Product Configurator, Pricing, Rate Management, Transaction
+Management, Usage Management, Billing, Context Service). 264 is pre-GA, so treat a
+live 264 org as ground truth over the guide.
 
 ## Interactive Viewer
 
