@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -416,6 +416,18 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ---
 
+### `prepare_mcp`
+
+Stand up the org-side MCP surface: deploy the ECA + clone invocable, overlay the async clone variant where the org supports it, then activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
+
+**Steps:**
+
+1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
+2. **task** `deploy_post_mcp_264`  `when: project_config.project__custom__mcp`
+3. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
+
+---
+
 ### `prepare_payments`
 
 **Steps:**
@@ -640,7 +652,8 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 31. **flow** `prepare_scratch`
 32. **flow** `refresh_all_decision_tables`
 33. **task** `rebuild_search_index`
-34. **flow** `stamp_git_commit`
+34. **flow** `prepare_mcp`
+35. **flow** `stamp_git_commit`
 
 ---
 

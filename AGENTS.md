@@ -310,6 +310,7 @@ that topic.
 | Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
+| Stand up / inspect / debug the **MCP surface** on an org (hosted + custom servers, ECA, proxy) | `.cursor/skills/mcp-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | `.cursor/skills/txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |

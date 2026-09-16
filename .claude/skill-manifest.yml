@@ -57,6 +57,10 @@ foundations:
     - "$RC_WORKSPACE/foundations"
     - "${HOME}/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev"
     - "../rlm-base-dev"
+  # Paths that identify a candidate directory as THIS repo when it does not yet
+  # ship the manifest itself. Any one existing is enough.
+  clone_markers:
+    - ".cursor/skills"
 
   # Skills that Foundations holds canonically.
   # PMOS skills can read these via cross-repo resolution.
@@ -335,6 +339,14 @@ foundations:
         - scripts/ai/skill_manifest.py
       governs: .claude/skill-manifest.yml
 
+    - id: mcp-integration
+      path: .cursor/skills/mcp-integration/SKILL.md
+      purpose: "The MCP surface on a built org — hosted + custom servers, the ECA, the proxy. A pointer skill: the surface itself is owned by the ramp_demo_kit repo, so this carries only the split, the metadata-vs-Tooling-API constraint, and the rebuild-drift check"
+      consumed_by_pmos: []
+      reads_repo: ramp_demo_kit
+      tooling:
+        - scripts/ai/skill_manifest.py
+
     - id: pde-org-build
       path: .cursor/skills/pde-org-build/SKILL.md
       purpose: "Build a PDE (or other org type) via runtime-only feature-flag overrides with a self-reverting script + Cloud-Agent command"
@@ -490,6 +502,8 @@ pmos:
     - "$RC_WORKSPACE/pmos"
     - "${HOME}/Documents/GitHub/Enterprise/_s-varadharajan/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
+  clone_markers:
+    - ".claude/skills"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
@@ -629,6 +643,127 @@ pmos:
       - release-preparation             # status → release-notes → launch → demo-script
       - problem-exploration
 
+# ─── Ramp demo kit (sibling repo; owns the MCP surface) ─────────────────────
+# Why this is a separate repo and NOT an unpackaged/post_* bundle in Foundations:
+# the MCP surface is org-runtime + client-side, not declarative metadata. Only
+# McpServerDefinition is a deployable metadata type — the activations
+# (McpServerAccess) are Tooling API records, and the rest of the surface is a
+# per-org ECA consumer key, a per-person browser OAuth login, a local proxy, and
+# a per-demo-folder .mcp.json. A CCI metadata deploy cannot express any of that.
+# Foundations builds the org; this kit makes the org talk MCP. Do not fork its
+# ECA or Apex into unpackaged/ — that would create a second source of truth.
+ramp_demo_kit:
+  name: ramp-demo-kit
+  repo_url: https://github.com/salesforce-internal/ramp-demo-kit
+  role: mcp_surface
+  maintainer: Brian Galdino
+  optional: true
+  # GitHub EMU org with OAuth app access restrictions: the git-emu MCP connector
+  # gets 403, and `gh` must be on the EMU account (`gh auth switch --user
+  # <emu-account>`) to read it over the API. A local clone avoids both.
+  local_path_hints:
+    - "$RAMP_DEMO_KIT_ROOT"
+    - "$RC_WORKSPACE/ramp-demo-kit"
+    - "${HOME}/Documents/GitHub/bgaldino_emu/_salesforce-internal/ramp-demo-kit"
+    - "../ramp-demo-kit"
+  # The kit ships no .cursor/skills or .claude/skills tree — its agent surface is
+  # a root CLAUDE.md plus per-demo-folder ones — so identify it by the bootstrap.
+  clone_markers:
+    - "setup/bootstrap_org.py"
+
+  # ⚠ The kit targets release 264 / API v68.0 — AHEAD of this manifest's active
+  # 262 / v67.0 baseline. Its preflight asserts v68.0, so it will refuse a 262
+  # org. Treat any version claim here as the kit's, not Foundations'.
+  salesforce_release: "264"
+  api_version: "v68.0"
+
+  entry_point:
+    path: CLAUDE.md
+    purpose: Agent entry point for the kit; point an agent at the repo root for setup, at a demo folder to present
+
+  # The one command that reproduces the whole org-side MCP surface. Idempotent —
+  # every step checks before it writes and reports "already"; --check is a dry run.
+  bootstrap:
+    path: setup/bootstrap_org.py
+    invocation: "python3 setup/bootstrap_org.py <sf-alias> [--check]"
+    applies:
+      - "ExternalClientApplication ClaudeMcpClientRC (5 metadata components, setup/eca/)"
+      - "ApexClass RampCloneSalesTransaction (setup/apex/, the CLASSIC-bound clone invocable)"
+      - "McpServerAccess activations for the hosted servers"
+      - "McpServerDefinition rampdealsconnect + 2 McpServerToolDefinition + 2 McpServerToolApiDefinition + its access"
+    does_not_do:
+      - "Seed demo data (Lumenix Scale, the Momentum call note) — see reference/RUNBOOK-new-org.md §6"
+      - "Authenticate — that is `tools/ramp_auth.py login`, one browser click per person"
+    ordering_constraint: "Apex must exist before the custom server, because the CLASSIC binding references the invocable by path (/actions/custom/apex/RampCloneSalesTransaction)."
+
+  # Servers the kit activates. A Foundations-built org that also wants sobject-all
+  # or headless-360 must activate those separately — they are NOT in the kit's
+  # HOSTED list, so they do not survive a rebuild from this bootstrap alone.
+  mcp_servers:
+    hosted:
+      - developer_name: industries_revenue_cloud
+        label: revenue-cloud
+      - developer_name: industries_revenue_cloud_billing
+        label: revenue-cloud-billing
+      - developer_name: industries_revenue_configurator
+        label: revenue-configurator
+    custom:
+      - developer_name: rampdealsconnect
+        label: ramp-deals-connect
+        tools:
+          - name: placeSalesTransaction
+            api_source: CONNECT
+            api_identifier: industries-revenue
+          - name: cloneSalesTransaction
+            api_source: CLASSIC
+            api_identifier: /actions/custom/apex/RampCloneSalesTransaction
+        # For a CUSTOM server, McpServerAccess.DeveloperName must EQUAL the
+        # definition's DeveloperName; the namespace_name form used for hosted
+        # servers fails FIELD_INTEGRITY_EXCEPTION.
+        caveats:
+          - "cloneSalesTransaction is async — it returns a tracker id/URL that must be polled, not a finished clone"
+
+  tools:
+    base_path: tools/
+    entries:
+      - id: ramp_org
+        path: tools/ramp_org.py
+        purpose: "Org switch; `eval \"$(python3 tools/ramp_org.py env <alias>)\"`"
+      - id: ramp_auth
+        path: tools/ramp_auth.py
+        purpose: "PKCE OAuth login against the ECA; public consumer key is read from the org, so there is no secret to distribute"
+      - id: mcp_multiplex_proxy
+        path: tools/mcp_multiplex_proxy.py
+        purpose: "Fans several hosted servers + the custom server into one connector; `--prime` expects 16 tools"
+      - id: demo_org_ids
+        path: tools/demo_org_ids.py
+        purpose: Repoint demo primers at a different org's record ids
+      - id: link_demo
+        path: setup/link_demo.py
+        purpose: Wire the per-demo-folder .mcp.json connector
+      - id: debug
+        path: tools/debug/
+        purpose: "Diagnostics off the demo path — mcp_probe, mcp_invoke, mcp_invoke_ramp, mcp_invoke_clone; three of them write to the org"
+
+  demos:
+    base_path: demos/
+    note: "Connectors do not hot-reload and .mcp.json is per demo folder — an agent must be opened ON a demo folder, not the repo root, or it gets no MCP connector."
+    entries:
+      - id: native
+        path: demos/native/
+        purpose: "True group ramps — QuoteLineGroup segments with IsRamped + a shared RampIdentifier, repriced per segment"
+      - id: cohort
+        path: demos/cohort/
+        purpose: "Flat co-terming lines, one per year's incremental users, each with its own discount; no groups"
+      - id: planner
+        path: demos/planner/
+        purpose: "Claude as the planner (needs ANTHROPIC_API_KEY)"
+
+  grounding:
+    runbook_new_org:
+      path: reference/RUNBOOK-new-org.md
+      purpose: Standing up the kit on a brand-new org, including the demo-data seeding the bootstrap deliberately skips
+
 # ─── Studio-wide concerns (neither repo owns alone) ─────────────────────────
 studio:
   cross_repo_decisions:
@@ -643,5 +778,5 @@ studio:
   sibling_repos_known:
     - distill: not_modeled_in_manifest
     - aegis: not_modeled_in_manifest
-    # See revenue-cloud-platform.md for the 4-component picture; this manifest
-    # only covers the Foundations × PMOS bridge today.
+    # See revenue-cloud-platform.md for the 4-component picture. This manifest
+    # covers the Foundations × PMOS bridge plus the ramp-demo-kit MCP surface.

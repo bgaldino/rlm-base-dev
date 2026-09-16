@@ -140,7 +140,7 @@ ${B}All commands${R}:
   ${B}rlm connect${R}            Alias for 'rlm login' (an existing target org).
   ${B}rlm orgs${R}               List the orgs you're signed in to.
   ${B}rlm build${R} [--lite] [--shape ent|dev] [--days N] [--alias NAME] [-y]
-                          Build a new scratch org (full 34-step flow; --lite skips
+                          Build a new scratch org (full 35-step flow; --lite skips
                           the heavy UI steps). Resumable if it fails.
   ${B}rlm resume${R}             Resume the last build from where it failed.
   ${B}rlm deploy${R} [--org ALIAS]
