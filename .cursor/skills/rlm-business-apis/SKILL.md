@@ -26,15 +26,15 @@ API v68.0 (Winter '27 / Release 264). All endpoints use `/services/data/v68.0/co
 
 | Domain | Base Path | Key Operations | Reference Doc |
 |--------|-----------|---------------|---------------|
-| **PCM** | `/connect/pcm/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../postman/docs/pcm-business-apis-reference.md) |
-| **Product Discovery** | `/connect/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../postman/docs/product-discovery-apis-reference.md) |
-| **Product Configurator** | `/connect/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../postman/docs/product-configurator-apis-reference.md) |
-| **Pricing** | `/connect/core-pricing/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v66.md](../../postman/docs/pricing-business-apis-v66.md) |
-| **Rate Management** | `/connect/core-rating/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../postman/docs/rate-management-apis-reference.md) |
-| **Transaction Mgmt** | `/connect/transaction-management/` | Quotes, orders, assets, amendments, renewals, cancellations | [transaction-management-apis-reference.md](../../postman/docs/transaction-management-apis-reference.md) |
-| **Usage Mgmt** | `/connect/usage-management/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../postman/docs/usage-management-apis-reference.md) |
-| **Billing** | `/connect/billing/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../postman/docs/billing-business-apis-reference.md) |
-| **Context Service** | `/connect/context-service/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../postman/docs/context-service-apis-reference.md) |
+| **PCM** | `/connect/pcm/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../postman/docs/pcm-business-apis-reference.md) |
+| **Product Discovery** | `/connect/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../postman/docs/product-discovery-apis-reference.md) |
+| **Product Configurator** | `/connect/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../postman/docs/product-configurator-apis-reference.md) |
+| **Pricing** | `/connect/core-pricing/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v66.md](../../../postman/docs/pricing-business-apis-v66.md) |
+| **Rate Management** | `/connect/core-rating/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../postman/docs/rate-management-apis-reference.md) |
+| **Transaction Mgmt** | `/connect/transaction-management/` | Quotes, orders, assets, amendments, renewals, cancellations | [transaction-management-apis-reference.md](../../../postman/docs/transaction-management-apis-reference.md) |
+| **Usage Mgmt** | `/connect/usage-management/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../postman/docs/usage-management-apis-reference.md) |
+| **Billing** | `/connect/billing/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../../postman/docs/billing-business-apis-reference.md) |
+| **Context Service** | `/connect/context-service/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../../postman/docs/context-service-apis-reference.md) |
 
 ## Common Patterns
 
@@ -76,7 +76,7 @@ Context definitions store session state and configuration across API calls. Used
 ## Master Reference
 
 For the complete cross-domain API reference extracted from the Release 260 (v66.0) developer guide — still the most complete cross-domain reference until a 264 (v68.0) extraction lands:
-[rlm-v260-business-apis-reference.md](../../postman/docs/rlm-v260-business-apis-reference.md)
+[rlm-v260-business-apis-reference.md](../../../postman/docs/rlm-v260-business-apis-reference.md)
 
 ## Interactive Viewer
 
