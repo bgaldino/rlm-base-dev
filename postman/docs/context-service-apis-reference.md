@@ -1,7 +1,7 @@
 # Salesforce Context Service APIs - Complete Endpoint Reference
-## Revenue Lifecycle Management API v66.0 (Spring '26)
+## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Context Service APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v260. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Context Service APIs. **Provenance caveat:** the 264 (v68.0) Developer Guide has no Context Service Business-API section, so these five endpoints are v59 carryover — retained here for continuity from the Agentforce Revenue Management APIs Postman collection and earlier guides, not a fresh 264 extraction. Verify shapes against a live 264 org before relying on them. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Context Service is the backbone of Revenue Cloud's pricing and entitlement system. A context definition describes the input data structure for a pricing or configuration operation, and a context mapping binds Salesforce object fields to that structure. Together, they allow the pricing engine to hydrate a context instance at runtime — pulling account attributes, product characteristics, and transaction data into the input record that pricing procedures operate on.
 
@@ -12,7 +12,7 @@ The Context Service is the backbone of Revenue Cloud's pricing and entitlement s
 ### 1. Create Context Definition (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/context-definitions`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/context-definitions`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions`
 - **Description:** Create a new context definition in the org. A context definition specifies the schema of the context input record — the fields and data types that will be populated at pricing time. Context definitions are referenced by pricing procedures and context mappings.
 - **Available Version:** 59.0
 - **Request Body Fields:**
@@ -25,7 +25,7 @@ The Context Service is the backbone of Revenue Cloud's pricing and entitlement s
 ### 2. List Context Definitions (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/context-definitions`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/context-definitions`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions`
 - **Description:** Retrieve all context definitions configured in the org. Returns definition names, IDs, types, and associated node and mapping counts. Use to find the IDs needed for pricing API calls or to audit the context configuration.
 - **Available Version:** 59.0
 
@@ -34,7 +34,7 @@ The Context Service is the backbone of Revenue Cloud's pricing and entitlement s
 ### 3. Get Context Definition (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/context-definitions/{contextDefinitionId}`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/context-definitions/{{contextDefinitionId}}`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}`
 - **Description:** Retrieve the full details of a specific context definition, including its nodes, attributes, and all associated mappings. Use when you need to inspect the complete schema of a context before writing data to hydrate it.
 - **Available Version:** 59.0
 - **Path Parameters:**
@@ -49,7 +49,7 @@ Context nodes define the hierarchical structure within a context definition — 
 ### 4. Create Context Nodes (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/context-definitions/{{contextDefinitionId}}/context`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context`
 - **Description:** Add one or more nodes to a context definition. Each node represents a logical grouping of attributes within the context schema. Nodes can represent Salesforce objects (e.g., Account), custom data structures, or classification hierarchies. After creating nodes, use Create Context Mappings to bind them to Salesforce object fields.
 - **Available Version:** 59.0
 - **Path Parameters:**
@@ -69,7 +69,7 @@ Context mappings define how Salesforce object field values are bound to context 
 ### 5. Create Context Mappings (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v66.0/connect/context-definitions/{{contextDefinitionId}}/context`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context`
 - **Description:** Define field-to-context mappings for a context definition. Each mapping specifies which Salesforce object and field provides a value for a given context attribute. Mappings are evaluated at runtime to hydrate the context instance before pricing procedures execute.
 - **Available Version:** 59.0
 - **Path Parameters:**
@@ -133,7 +133,7 @@ For new context definitions (admin setup, not runtime):
 | Variable | Description | Set By |
 |----------|-------------|--------|
 | `{{_endpoint}}` | Salesforce org base URL | Manual setup |
-| `{{version}}` | API version (e.g., `66.0`) | Manual setup |
+| `{{version}}` | API version (e.g., `68.0`) | Manual setup |
 | `{{contextDefinitionId}}` | Default context definition ID | Setup Runner |
 | `{{contextMappingId}}` | Default context mapping ID | Setup Runner |
 | `{{customContextDefinitionId}}` | Custom context definition ID | Setup Runner |
@@ -148,11 +148,11 @@ For new context definitions (admin setup, not runtime):
 
 ## Related Domains
 
-- **[Pricing APIs](pricing-business-apis-v66.md)** — All pricing calls consume context definitions and mappings. The `contextDefinitionId` and `contextMappingId` are required fields in most pricing requests.
+- **[Pricing APIs](pricing-business-apis-v68.md)** — All pricing calls consume context definitions and mappings. The `contextDefinitionId` and `contextMappingId` are required fields in most pricing requests.
 - **[Product Discovery APIs](product-discovery-apis-reference.md)** — Product Discovery uses context to apply buyer-specific entitlements and pricing.
 - **[Transaction Management APIs](transaction-management-apis-reference.md)** — Sales transactions use the pricing context to calculate line item prices.
 - **[Usage Management APIs](usage-management-apis-reference.md)** — Usage-based pricing uses context to interpret consumption dimensions.
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v66.0 (Spring '26) | Salesforce Revenue Cloud Developer Guide v260*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
