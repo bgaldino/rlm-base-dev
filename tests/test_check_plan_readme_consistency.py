@@ -309,6 +309,43 @@ COUNT_SOURCE_REQUIREMENTS = [
 
 
 
+def _org_marker(operation, records, csvs=None, excluded=False):
+    config = dict(UPSERT_P1, operation=operation, excluded=excluded)
+    return _check([[config]], [_row(1, "Widget__c", 1, operation, "Name", records)], csvs=csvs)
+
+
+# pack 151: the `N (org)` marker disambiguates the Records column. For a Readonly/Delete row
+# the count is *org records* (resolved from the target org), not *file rows* loaded from a CSV,
+# so a marked count is never validated against a file — which is what makes deleting an optional
+# Readonly CSV correctly silent. The marker is meaningful only on a source-free row; on a
+# live-writable declaration the count IS file rows, so a marker there is an authoring mistake.
+ORG_COUNT_MARKER = [
+    ("`(org)` on a Readonly row is an org-count — file rows are NOT checked even when they differ",
+     ([], [], True),
+     _org_marker("Readonly", "999 (org)", csvs={"Widget__c.csv": "Id\none\n"})),
+    ("control: the same Readonly row WITHOUT the marker is still checked against the file (mismatch → error)",
+     1, len(_org_marker("Readonly", "999", csvs={"Widget__c.csv": "Id\none\n"})[0])),
+    ("`(org)` on a fileless Readonly row is accepted (org record count, no source required)",
+     ([], [], True), _org_marker("Readonly", "2 (org)")),
+    ("`(org)` on a live-writable declaration is an authoring mistake — reported",
+     True, any("(org) marker on a writable" in e
+               for e in _org_marker("Upsert", "5 (org)",
+                                    csvs={"Widget__c.csv": "Id\n" + "row\n" * 5})[0])),
+    # A blank-Pass row does not resolve to one pass, so the source-binding branch can't fire —
+    # but if every variant is live-writable the row is still unambiguously writable, and `(org)`
+    # on its file-row count is the same authoring mistake. Without the blank-Pass arm of the
+    # guard, `(org)` would silence both the guard and the legacy file check (code-review, 151).
+    ("`(org)` on a blank-Pass row whose every variant is live-writable is also reported",
+     True, any("(org) marker on a writable" in e
+               for e in _check([[UPSERT_P1]],
+                               [_row(1, "Widget__c", "", "Upsert", "Name", "5 (org)")],
+                               csvs={"Widget__c.csv": "Id\n" + "row\n" * 5})[0])),
+    ("the marker is case-insensitive and space-tolerant (`( ORG )`)",
+     ([], [], True),
+     _org_marker("Readonly", "999 ( ORG )", csvs={"Widget__c.csv": "Id\none\n"})),
+]
+
+
 def _same_pass_counts(optional_operation="Readonly", optional_excluded=False,
                       optional_key="Name", writable_count=3, indistinguishable=False):
     optional = dict(UPSERT_P1, operation=optional_operation,
@@ -448,6 +485,7 @@ def main() -> int:
         ("same-pass declaration matching respects optional rows", SAME_PASS_DECLARATIONS),
         ("mixed explicit and legacy rows preserve distinct-CSV matching", MIXED_PASS_COUNTS),
         ("source requirements respect the declared operation", COUNT_SOURCE_REQUIREMENTS),
+        ("the `(org)` marker disambiguates org-record counts from file-row counts", ORG_COUNT_MARKER),
         ("record counts follow the CSV read by the declared pass", PASS_COUNTS),
         ("Pass-column narrowing matches a row against its own pass, not the union", PASS_NARROWING),
         ("no Pass cell falls back to ANY-variant matching", NO_PASS_CELL_FALLBACK),

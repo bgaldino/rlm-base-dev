@@ -274,11 +274,19 @@ Two shapes owe no root CSV at all:
   (`ExpressionSetDefinition.DeveloperName`) — and `ProcedurePlanOption.ExpressionSetDefinitionId`
   is populated with real ids in both fresh 264 orgs. The traversal resolved against the target org
   with no source rows in existence.
-  - Corollary worth knowing before you "fix" one: a Readonly CSV that *does* exist, such as
-    `inapp/RecordType.csv`, is maintained but not required for resolution. Its README record count
-    describes org records rather than file rows — which is exactly how `procedure-plans/README.md`
-    documents `ExpressionSetDefinition` (`Readonly`, 2 records, no file). Neither the validator nor
-    `check_plan_readme_consistency.py` reports such a file's deletion, and that is correct.
+  - Convention (pack 151), because the count column used to mean two different things by sight: a
+    Readonly object's record count is **org records, not file rows** — it is resolved from the target
+    org, and a Readonly CSV that *does* exist (e.g. `inapp/RecordType.csv`) is maintained but not
+    required for resolution. Mark such a count **`N (org)`** in the README's Records column.
+    `generate_plan_readme.py` emits the marker for Readonly rows automatically; `check_plan_readme_
+    consistency.py` reads it (`ORG_COUNT_RE`) and **skips file-count matching** for that row — and
+    reports an `(org)` marker that appears on a *live-writable* declaration, whose count genuinely
+    is file rows. **Keep the optional CSVs** (they document what the plan expects to find in the
+    org), but the marker records that their presence is *intent, not a load requirement*, so
+    deleting one is correctly silent. A bare, unmarked count stays accepted for backward
+    compatibility — existing Readonly rows migrate to `(org)` as each plan's README is regenerated,
+    not all at once (the `qb/en-US` load tables carry it as the reference example). The same shape
+    is how `procedure-plans/README.md` documents `ExpressionSetDefinition` (`Readonly`, 2, no file).
 - **every writable pass supplied per-pass** — the root path is an alternative location for the same
   file, not an additional requirement.
 

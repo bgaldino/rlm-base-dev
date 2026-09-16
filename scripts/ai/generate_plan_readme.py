@@ -153,6 +153,14 @@ def generate_block(plan_dir: str) -> str:
             ext_id = _escape_cell(variant["externalId"]) or "—"
             count, relpath = resolve_pass_csv(plan_dir, csv_idx, use_separated, name, pass_no, count_cache)
             records = str(count) if count is not None else "—"
+            # A Readonly object resolves from the target ORG, not a loaded file (pack 151):
+            # its record count describes org records, not a load dependency, even when an
+            # optional CSV happens to ship. Mark it `N (org)` so the count column is
+            # unambiguous and deleting that optional CSV stays correctly silent — the marker
+            # records that the count was never file-backed. check_plan_readme_consistency.py
+            # reads the marker (ORG_COUNT_RE) and skips file-count matching for the row.
+            if count is not None and variant["operation"] == "readonly":
+                records = f"{records} (org)"
             rows.append(f"| {row_num} | {_escape_cell(name)} | {pass_no} | {op} | {ext_id} | {records} |")
             if relpath is not None and relpath not in files:
                 files[relpath] = count

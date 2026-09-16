@@ -259,6 +259,13 @@ def resolve_pass_csv(plan_dir: str, csv_idx: dict, use_separated: bool, name: st
 
 FILE_STRUCT_RE = re.compile(r"([A-Za-z0-9_]+)\.csv\b.*?#\s*([\d,]+)\s+record", re.I)
 LEADING_INT_RE = re.compile(r"(\d[\d,]*)")
+# A record-count cell may carry an explicit `(org)` marker — e.g. `2 (org)` — declaring
+# that the count is *org records* (a Readonly/Delete object resolved from the target org)
+# rather than *file rows* loaded from a CSV. pack 151: the Records column meant two
+# different things depending on the operation and was indistinguishable by sight; the
+# marker disambiguates it and lets `check_plan_readme_consistency.py` skip file-count
+# matching for the row.
+ORG_COUNT_RE = re.compile(r"\(\s*org\s*\)", re.I)
 # A cell that looks like a real externalId key (single field, or `;`/`.`-joined),
 # as opposed to prose like "4-field composite".
 KEYLIKE_RE = re.compile(r"^[A-Za-z0-9_.;]+$")
@@ -570,14 +577,38 @@ def check_plan(plan_dir: str):
         # reuse one root CSV; a count from another pass's override cannot substitute.
         if row["records"] is not None:
             claimed = parse_int(row["records"])
+            is_org_count = bool(ORG_COUNT_RE.search(row["records"]))
             if claimed is not None:
                 # Unmatched metadata cannot make a uniformly writable pass
                 # ambiguous about its source; retain the pass candidates then.
                 matched = count_variants(row, compare_variants) or compare_variants
                 # If identical displayed fields match writable AND excluded
                 # declarations, this row cannot establish a source requirement.
-                if row_pass is not None and matched and all(
-                        SFDMUValidator._is_live_writable(v) for v in matched):
+                all_writable = bool(matched) and all(
+                    SFDMUValidator._is_live_writable(v) for v in matched)
+                # Source binding needs the row's OWN resolved pass (resolve_pass_csv). The
+                # (org)-marker guard below does NOT — a blank-Pass row whose every variant
+                # is live-writable is still unambiguously writable, and marking its
+                # file-row count `(org)` is the same authoring mistake as on a resolved
+                # pass; without the blank-Pass arm that row would escape the guard AND the
+                # legacy file check, letting `(org)` hide a real defect (code-review, 151).
+                writable = row_pass is not None and all_writable
+                # `N (org)` explicitly marks an org-record count (pack 151): a Readonly/
+                # Delete object resolves from the target org, not a file, so its count
+                # describes org records and is NOT matched against any CSV — the
+                # disambiguation the marker exists for (this column meant "file rows" for a
+                # writable row and "org records" for a Readonly one, indistinguishable
+                # until now). Meaningful only on a source-free row; on a live-writable
+                # declaration the count IS file rows, so an (org) marker there is an
+                # authoring mistake and is reported.
+                if is_org_count:
+                    if all_writable:
+                        errors.append(f"{rel}:{ln} `{name}` record count README={claimed} "
+                                      "carries an (org) marker on a writable declaration — "
+                                      "(org) is only for a Readonly/Delete row whose count is "
+                                      "org records, not file rows")
+                    # else: accepted as an org-record count; no CSV comparison.
+                elif writable:
                     actual, source = resolve_pass_csv(
                         plan_dir, csvs, use_separated, name, row_pass, count_cache)
                     if actual is None:

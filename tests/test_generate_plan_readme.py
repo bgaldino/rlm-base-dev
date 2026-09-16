@@ -330,14 +330,22 @@ SHARED_OPTIONAL_SOURCES = [
     for same_pass, reverse in [(True, False), (True, True), (False, False)]
 ] + [
     (f"blank-Pass row cannot reuse generated optional source: {operation}/{excluded}",
-     (1, []), _case_shared_optional_source(operation, excluded, legacy=True))
+     # pack 151: a Readonly count is generated with an `(org)` marker, so it is an org-record
+     # count that reserves no source — a duplicate blank-Pass `(org)` row is therefore NOT a
+     # reuse conflict (nothing was reserved to reuse). Delete/excluded rows stay bare counts
+     # and still flag the reuse, so only the Readonly instance flips to 0.
+     (0 if operation == "Readonly" else 1, []),
+     _case_shared_optional_source(operation, excluded, legacy=True))
     for operation, excluded in [("Readonly", False), ("Delete", False), ("Upsert", True)]
 ]
 
 
 GENERATE_BLOCK = [
+    # pack 151: the Readonly pass's count is marked `4 (org)` — it is org records, not a load
+    # dependency — while the writable pass stays a bare `4`. Round-trips cleanly: the checker
+    # reads the `(org)` marker and skips file-count matching for that row.
     ("writable + Readonly passes retain optional-file counts and round-trip cleanly",
-     (["4", "4"], [], []), _case_optional_csv_roundtrip("Readonly")),
+     (["4", "4 (org)"], [], []), _case_optional_csv_roundtrip("Readonly")),
     ("writable + Delete passes retain optional-file counts and round-trip cleanly",
      (["4", "4"], [], []), _case_optional_csv_roundtrip("Delete")),
     ("writable + excluded passes retain optional-file counts and round-trip cleanly",
