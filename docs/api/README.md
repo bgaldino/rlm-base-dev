@@ -2,7 +2,7 @@
 
 Self-contained HTML viewer for the Revenue Cloud Business API reference documentation.
 
-The reference content is currently extracted from the Release 260 (v66.0) developer guide; substitute v68.0 paths when calling against a 264 (Winter '27) org until a 264 extraction lands.
+The reference content is re-extracted from the Release 264 (Winter '27, v68.0) developer guide — 148 endpoints across 9 API domains. 264 is pre-GA, so treat a live 264 org as ground truth over the guide. The downloadable Postman collection JSON under `postman/` is still the prior (v66.0) baseline and is being regenerated against a live 264 org.
 
 ## Usage
 
@@ -24,7 +24,6 @@ All content from the source markdown files in `postman/docs/`:
 | Usage Management | `postman/docs/usage-management-apis-reference.md` |
 | Billing | `postman/docs/billing-business-apis-reference.md` + `billing-apis-quick-reference.md` |
 | Context Service | `postman/docs/context-service-apis-reference.md` |
-| Master Reference | `postman/docs/rlm-v260-business-apis-reference.md` |
 
 ## Features
 
