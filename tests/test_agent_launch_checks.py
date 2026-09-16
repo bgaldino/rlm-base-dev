@@ -77,6 +77,23 @@ class LaunchChecks(unittest.TestCase):
         self.skill.unlink()
         self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
 
+    def test_yaml_plain_indicator_boundaries(self):
+        invalid = ["- invalid", "? invalid", ": invalid", "-", "?", ":",
+                   ",invalid", "]invalid", "}invalid", "%invalid", "@invalid", "`invalid",
+                   "-\tinvalid", "?\tinvalid", ":\tinvalid", "trailing:", "key:\tvalue"]
+        for value in invalid:
+            with self.subTest(value=value):
+                self.skill.write_text(f"---\nname: cci-orchestration\ndescription: {value}\n---\n")
+                self.assertFalse(analyzer.check_skill_discovery_metadata(self.root).ok)
+        for value in ("-valid", "?valid", ":valid", "https://example.com", "Use foo:bar", '"- quoted"', "'@quoted'"):
+            with self.subTest(value=value):
+                self.skill.write_text(f"---\nname: cci-orchestration\ndescription: {value}\n---\n")
+                self.assertTrue(analyzer.check_skill_discovery_metadata(self.root).ok)
+        self.skill.write_text("---\nname: cci-orchestration\ndescription: - invalid\n---\n")
+        result = self.cli()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("[FAIL] skill discovery metadata", result.stdout)
+
     def test_supported_metadata_scalars(self):
         for value in ('Plain task description', '"Quoted task description"', "'A user''s task'", '|-\n  Line one.\n  Line two.', '>\n  Folded\n  text.'):
             with self.subTest(value=value):
@@ -147,6 +164,27 @@ class LaunchChecks(unittest.TestCase):
         for content in ('[ok](AGENTS.md "title") [bad](missing.md)', '[bad]: missing.md', '![image](missing.png)', '[bad](docs/a\\ b.md)'):
             self.write("README.md", content)
             self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok, content)
+
+    def test_link_openers_and_escape_parity(self):
+        nonlinks = [r"\[literal](missing.md)", "literal](missing.md)",
+                    r"\![literal\](missing.md)", r"\[ref]: missing.md",
+                    r"[ref\]: missing.md", "[outer [inner](AGENTS.md)](missing.md)",
+                    "[literal\n\ntext](missing.md)"]
+        for content in nonlinks:
+            with self.subTest(nonlink=content):
+                self.write("README.md", content)
+                self.assertTrue(analyzer.check_skill_navigation_links(self.root).ok)
+        links = ["[real](missing.md)", "![image](missing.png)", r"\\[real](missing.md)",
+                 r"\![real](missing.md)", r"[escaped \] text](missing.md)",
+                 "[outer [inner]](missing.md)", r"[ref\]]: missing.md",
+                 "[![image](AGENTS.md)](missing.md)", "![outer [inner](AGENTS.md)](missing.png)",
+                 "[ref]:\n  missing.md", "[real](\n  missing.md)"]
+        for content in links:
+            with self.subTest(link=content):
+                self.write("README.md", content)
+                self.assertFalse(analyzer.check_skill_navigation_links(self.root).ok)
+        self.write("README.md", r"\[literal](missing.md)")
+        self.assertEqual(self.cli().returncode, 0)
 
     def test_example_and_optional_links_do_not_fail(self):
         self.write("README.md", '''[external](https://example.com/not-fetched) [anchor](#not-checked)

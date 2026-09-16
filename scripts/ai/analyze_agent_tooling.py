@@ -767,7 +767,11 @@ def _discovery_scalar(frontmatter: str, key: str) -> str:
             raise ValueError(f"{key}: malformed single-quoted string")
         return value[1:-1].replace("''", "'")
     value = re.split(r"\s+#", value, maxsplit=1)[0].strip()
-    if (not value or value[0] in "#[{&*!|>" or ": " in value
+    # YAML plain scalars cannot start with reserved indicators. The three
+    # context-sensitive indicators (- ? :) remain legal before non-whitespace.
+    if (not value or value[0] in "#,[]{}&*!|>%@`"
+            or re.match(r"[-?:](?:\s|$)", value)
+            or re.search(r":(?:\s|$)", value)
             or value.lower() in {"null", "~", "true", "false", "yes", "no", "on", "off", ".nan", ".inf", "-.inf", "+.inf"}
             or re.fullmatch(r"[-+]?(?:\d[\d.eE+_:/-]*|0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|\.\d+(?:[eE][-+]?\d+)?)", value)):
         raise ValueError(f"{key}: use a string (plain, quoted, or block scalar)")
@@ -860,6 +864,44 @@ def _markdown_prose(text: str) -> str:
     return re.sub(r"(`+).*?\1", "", "\n".join(lines), flags=re.S)
 
 
+def _markdown_escaped(text: str, index: int) -> bool:
+    start = index
+    while start > 0 and text[start - 1] == "\\":
+        start -= 1
+    return (index - start) % 2 == 1
+
+
+def _inline_link_matches(text: str, destination: re.Pattern):
+    """Require balanced, unescaped label brackets before inspecting a target.
+
+    Track images separately: links cannot contain links, but an image can occur
+    inside a link or contain link text. Escaped punctuation never opens/closes a
+    label; two backslashes escape each other, leaving a following bracket active.
+    """
+    brackets = []  # (image opener, active opener)
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\" and index + 1 < len(text) and text[index + 1] in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~":
+            index += 2
+            continue
+        if char == "\n" and re.match(r"\n[ \t]*\n", text[index:]):
+            brackets.clear()  # labels cannot span paragraphs
+        if char == "[":
+            is_image = index > 0 and text[index - 1] == "!" and not _markdown_escaped(text, index - 1)
+            brackets.append((is_image, True))
+        elif char == "]" and brackets:
+            is_image, active = brackets.pop()
+            match = destination.match(text, index + 1) if active else None
+            if match:
+                yield match
+                if not is_image:
+                    brackets = [(image, active and image) for image, active in brackets]
+                index = match.end()
+                continue
+        index += 1
+
+
 def check_skill_navigation_links(root: Path) -> CheckResult:
     """Check local file targets in inline links and reference definitions.
 
@@ -876,15 +918,15 @@ def check_skill_navigation_links(root: Path) -> CheckResult:
     # Angle-bracket paths may contain spaces; bare paths allow balanced parentheses
     # one level deep. Optional titles are separate from the destination.
     destination = r"(<[^>\n]+>|(?:[^\s()\\]|\\.|\([^()\n]*\))+)"
-    inline = re.compile(r"(?<!\\)\]\(\s*" + destination + r'(?:(?:[ \t]+)(?:"[^"\n]*"|\'[^\'\n]*\'|\([^()\n]*\)))?[ \t]*\)')
-    reference = re.compile(r"^ {0,3}\[[^]\n]+\]:\s*" + destination, re.M)
+    inline = re.compile(r"\([ \t]*(?:\n[ \t]*)?" + destination + r'(?:(?:[ \t]+)(?:"[^"\n]*"|\'[^\'\n]*\'|\([^()\n]*\)))?[ \t]*\)')
+    reference = re.compile(r"^ {0,3}\[(?:\\.|[^\]\\\n])+\]:[ \t]*(?:\n[ \t]*)?" + destination, re.M)
     for path in sorted(sources):
         try:
             text = _markdown_prose(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError) as exc:
             failures.append(f"{rel(path, root)}: unreadable ({exc})")
             continue
-        for match in [*inline.finditer(text), *reference.finditer(text)]:
+        for match in [*_inline_link_matches(text, inline), *reference.finditer(text)]:
             target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]^_`{|}~])", r"\1", match[1].strip("<>"))
             try:
                 parts = urlsplit(target)
