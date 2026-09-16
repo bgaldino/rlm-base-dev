@@ -64,6 +64,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 #### qb-clm
 - **ObjectStateActionDefinition**: externalId simplified to `Name` (was `Name;ReferenceObject.Name`); duplicate `Name` column removed from CSV
 - CSV references updated
+- **ObjectStateValue / ObjectStateTransition / ObjectStateTransitionAction** (pack 193): externalId **made composite** `Name;ObjectStateDefinition.Name` (was `Name`) — the opposite direction from the simplifications above, and required: the same state/transition name recurs under different `ObjectStateDefinition` parents (e.g. `Activated` under both `Contract LifeCycle Management` and `Legal`), so a single-field `Name` Upsert silently collapsed distinct records and the plan was non-idempotent. Added the `$$Name$ObjectStateDefinition.Name` column to each CSV and the `ObjectStateDefinition.Name` traversal to each query. `ObjectStateDefinition`/`ObjectStateActionDefinition` keep single-field `Name` (already unique). The `FromState`/`ToState`/`ObjectStateTransition` lookups stay **single-field references** (Bug-4-safe); SFDMU resolves them across passes via the in-run source→target map — live-verified on df-ws-ent (ent-sb0): idempotent re-run, 24/47 records = CSV rows (no collapse), all From/To states resolve to their own definition.
 
 #### qb-dro
 - **ProductFulfillmentDecompRule**: externalId simplified to `Name`; `$$` column removed from CSV; 1 duplicate-Name pair disambiguated with SKU suffix
