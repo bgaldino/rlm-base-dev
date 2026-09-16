@@ -235,7 +235,7 @@ The script handles:
    venv's python symlink
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
-   is **incompatible**; see the [local installation guide](local-installation.md#step-6--install-cumulusci), *Note on setuptools*. Note CI
+   is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
    adds `<77` as well (`.github/workflows/prepare-rlm-org.yml`) because
    it's pinned to CCI 4.8.1; modern CCI 4.10+ works with setuptools
    77+ so this guide doesn't enforce the upper bound.

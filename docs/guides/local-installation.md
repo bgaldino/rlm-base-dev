@@ -3,7 +3,8 @@
 [Home](../../README.md) · [Documentation](../index.md) · [Org operations](org-operations.md)
 
 Install the local toolchain and authenticate before running Salesforce workflows.
-Run the commands from the repository root unless a step says otherwise.
+Before cloning, run the bootstrap commands from your chosen workspace directory.
+After cloning, run commands from the repository root unless a step says otherwise.
 For a containerized toolchain, use the [Docker guide](../../docker/README.md).
 
 - [macOS bootstrap](#macos-environment-setup-homebrew--pyenv--nvm)
@@ -152,11 +153,20 @@ python --version   # Should show the latest 3.13.x patch
 
 > **Non-interactive shell note:** The `~/.zshenv` additions above ensure that IDE tools, CI runners, and Claude Code (which spawn non-interactive shells) can find your pyenv-managed Python. Without `~/.zshenv`, only interactive terminal sessions see pyenv.
 
-### Step 5 — Create and activate a virtual environment (venv)
+### Step 5 — Clone the repository
 
-After cloning the repository (Step 8 below), create a project-specific virtual environment. This isolates the project's Python dependencies from your system and other projects.
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
 
-> **If you install CumulusCI via pipx (recommended, Step 6), you do not need to manually install packages into this venv** — pipx manages CCI in its own isolated environment. Still create a venv if you want to run project scripts (`scripts/`, `tasks/`) directly outside of CCI, or if you choose `pip install cumulusci` instead.
+> Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
+
+### Step 6 — Create and activate a virtual environment (venv)
+
+From the repository cloned in Step 5, create a project-specific virtual environment. This isolates the project's Python dependencies from your system and other projects.
+
+> **If you install CumulusCI via pipx (recommended, Step 7), you do not need to manually install packages into this venv** — pipx manages CCI in its own isolated environment. Still create a venv if you want to run project scripts (`scripts/`, `tasks/`) directly outside of CCI, or if you choose `pip install cumulusci` instead.
 
 ```bash
 # From the repo root (uses whichever Python pyenv points to — 3.12 recommended)
@@ -179,7 +189,7 @@ deactivate
 
 > **Tip:** Add `.venv/` to your `.gitignore` if it isn't already (this project's `.gitignore` covers it).
 
-### Step 6 — Install CumulusCI
+### Step 7 — Install CumulusCI
 
 **Recommended: use pipx** — pipx installs CumulusCI in its own isolated Python environment, keeping it separate from your project venv and system Python.
 
@@ -201,14 +211,14 @@ cci version   # Should show CumulusCI 4.x running on Python 3.13.x
 
 > **Note on setuptools:** Earlier versions of this guide instructed `pipx inject cumulusci "setuptools<71"` to work around a `pkg_resources` issue in `pyfilesystem2`. This pin is **no longer needed or valid** — modern CumulusCI (4.8+) with snowfakery 4.x requires `setuptools>=75.4`, making the `<71` pin incompatible. If you have an older CCI install with the pin, remove it: `pipx inject --force cumulusci "setuptools>=75.4"`.
 
-If you prefer to use the project venv instead (activate it first per Step 5, then):
+If you prefer to use the project venv instead (activate it first per Step 6, then):
 
 ```bash
 pip install cumulusci
 cci version
 ```
 
-### Step 7 — Install Salesforce CLI (`sf`)
+### Step 8 — Install Salesforce CLI (`sf`)
 
 Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This is the Salesforce-recommended installation method.
 
@@ -217,7 +227,7 @@ Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This i
 npm install -g @salesforce/cli
 
 # Verify (must be 2.x or later)
-sf --version   # Should show @salesforce/cli/2.x darwin-arm64 node-v24.x.x
+sf --version   # Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
 ```
 
 > **Why npm instead of Homebrew?** The Homebrew `sf` formula and `--cask sf` cask bundle their own copy of Node.js independently of nvm. This creates redundant Node installations and potential version conflicts. Installing via npm ties sf to your nvm-managed Node version, giving you a single Node installation to manage.
@@ -225,15 +235,6 @@ sf --version   # Should show @salesforce/cli/2.x darwin-arm64 node-v24.x.x
 > **After switching from Homebrew sf to npm:** If you previously had `brew install --cask sf` or `brew install sf`, remove it first: `brew uninstall sf`.
 
 > **npm globals and nvm versions:** npm global packages (like `@salesforce/cli`) are installed per nvm Node version. If you switch Node versions with `nvm use`, run `npm install -g @salesforce/cli` again in the new version, or use `nvm reinstall-packages <old-version>` to copy all globals.
-
-### Step 8 — Clone the repository
-
-```bash
-git clone <repository-url>
-cd <repository-directory>
-```
-
-> Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
 
 ### Step 9 — Install SFDMU plugin (v5.6.4+)
 
@@ -273,15 +274,36 @@ Create the target scratch org using the [org-operations quick start](org-operati
 
 ### Step 11 — Verify the full setup
 
-Run the built-in setup validator (no org connection required):
+The validator checks Python, CumulusCI, Salesforce CLI, SFDMU, Node.js, and
+Robot/browser dependencies without connecting to an org. Install Chrome or
+Chromium yourself before running it: `brew install --cask google-chrome` on
+macOS, or your distribution's Chromium package on Linux.
+
+**CCI installed with pipx:** Robot dependency auto-fix targets the pipx CumulusCI
+environment via `pipx inject cumulusci --force -r robot/requirements.txt`.
+With the default `auto_fix_robot=true`, missing or outdated Robot Framework,
+selenium (4.10+), SeleniumLibrary, and webdriver-manager can be installed there:
 
 ```bash
 cci task run validate_setup
 ```
 
-This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, selenium (4.10+), and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing or outdated Robot Framework pieces (including selenium) are auto-installed via `pipx inject cumulusci --force -r robot/requirements.txt`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
+**CCI installed in a project venv:** activate that venv and install the Robot
+requirements there first. The validator's Robot and urllib3 auto-fixes use pipx,
+so disable them to avoid modifying a separate environment:
 
-> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, selenium>=4.10, SeleniumLibrary, webdriver-manager via `pipx inject cumulusci --force -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+```bash
+source .venv/bin/activate
+python -m pip install --upgrade -r robot/requirements.txt
+cci task run validate_setup -o auto_fix_robot false -o auto_fix_urllib3 false
+```
+
+A passing result requires the Robot packages in the environment running CCI,
+Chrome/Chromium, and either webdriver-manager or a compatible ChromeDriver on
+PATH. SFDMU updates are controlled by `auto_fix` (default true). The independent
+`auto_fix_urllib3` option defaults to false and also targets pipx when enabled;
+`robot/requirements.txt` includes the required urllib3 version for either setup.
+The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 
 ### Using Claude Code with this project
 
@@ -310,7 +332,7 @@ It walks `brew update && brew upgrade` → latest patch in your pinned Python li
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
-**Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and — when the relevant auto-fix options are enabled — can auto-fix missing robot deps (default on) and update the SFDMU version (default on). urllib3 is upgraded as a side-effect of the robot dep fix, or independently with `auto_fix_urllib3=true`. No org connection needed. It is the fastest way to confirm your environment is ready before running flows.
+**Validating the full setup from an agent:** Follow [Step 11](#step-11--verify-the-full-setup) using the command for your CCI installation method. The Robot and urllib3 auto-fixes target pipx, not a project venv. No org connection is needed.
 
 ---
 
@@ -391,9 +413,9 @@ For the full architecture — shell config responsibilities, the per-project `.e
      ```bash
      pipx inject cumulusci --force -r robot/requirements.txt
      ```
-     If you use a project virtual environment: `pip install -r robot/requirements.txt` inside the venv. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
+     If you use a project virtual environment: `python -m pip install --upgrade -r robot/requirements.txt` inside the venv. Use the [venv validation command](#step-11--verify-the-full-setup) with pipx auto-fixes disabled. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
 
-     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.10,<5`. If you have an older selenium installed, `cci task run validate_setup` will detect and auto-upgrade it.
+     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.10,<5`. If selenium is older, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
 
    2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
@@ -404,7 +426,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    4. **Salesforce CLI** — The task uses `sf org open --url-only` to authenticate the browser; ensure `sf` is installed and the org is logged in.
 
-   5. **Verify** — Run `cci task run validate_setup` (no org required) to check all dependencies including Chrome/Chromium and ChromeDriver.
+   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver.
 
 3. **Install SFDMU (v5.6.4+):**
    ```bash
@@ -417,7 +439,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    cci version
    sf plugins list  # Should show sfdmu 5.x
    ```
-   **Headless robot env — no org or flow required:** To confirm all headless robot dependencies (Robot, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3), run:
+   **Headless robot env — no org or flow required:** With pipx, run the command below. For project-venv CCI, use the [venv validation command](#step-11--verify-the-full-setup) after installing its requirements:
    ```bash
    cci task run validate_setup
    ```

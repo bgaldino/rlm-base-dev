@@ -85,7 +85,8 @@ before reloading existing data.
 - **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.
 
 #### qb-rating
-- **ProductUsageResourcePolicy**, **ProductUsageGrant**: excluded (v5 cannot resolve their nested relationship-based externalIds)
+- **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
+- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes have no WHERE filter and target all records of each object. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; active records and downstream references can block deletion.
 
 ### Idempotency
 
@@ -96,17 +97,27 @@ the current plans against an org with live transactional data. In particular,
 `qb-rating`/`qb-rates` retain delete-and-reinsert operations that live references
 can block. Use the per-plan instructions and the live-org guidance linked above.
 
+Current examples below are classified by object, because a plan can mix operations.
+Consult each plan's `export.json` and README for its full object list and load sequence.
+
 | Strategy | Objects |
 |----------|---------|
-| Name-based Upsert matching | PCM, pricing, billing, tax, CLM, DRO (PFDR, FSD, FSDD, PFS, FSDG, FW, FFR, FSJR), rating, transaction processing types, guided selling |
-| `deleteOldData: true` (delete + reinsert) | FulfillmentWorkspaceItem, PriceBookRateCard, RateCardEntry, RateAdjustmentByTier |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`) and UsageResource (`Code`) in qb-rating; FulfillmentWorkspace (`Name`) in qb-dro |
+| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro), PriceBookRateCard (qb-rates) |
+| Insert with `deleteOldData: true` (delete + reinsert) | ProductUsageResource, ProductUsageResourcePolicy, ProductUsageGrant (qb-rating); RateCardEntry, RateAdjustmentByTier (qb-rates) |
+| Insert requiring the separate pricing delete task before reload | PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry (qb-pricing) |
 
 ### Known limitations (v5)
+
+The observations below are from the historical migration run, not a current
+failure report or excluded-object inventory. In particular, the rating policy
+and grant objects are now included as described above. Check the current plan
+and its README before deciding which objects need separate handling.
 
 - **FulfillmentStepDefinition**: 9/17 records fail to insert due to unresolved polymorphic `AssignedTo` references (`User`/`Group`) and missing `IntegrationProviderDef` records. These are data dependency issues, not SFDMU bugs.
 - **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
 - **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
-- **Excluded objects** (PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride): require manual handling if needed.
+- **Objects excluded in that historical run:** PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride.
 
 ### Bug 5 — Composite `externalId` with traversal fields failed for upsert matching (discovered 2026-04-02; FIXED in 5.6.4)
 
@@ -121,11 +132,18 @@ can block. Use the per-plan instructions and the live-org guidance linked above.
 
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
-**Pre-5.6.4 workaround — still on the shipped plans (records; pending migration):** `deleteOldData: true` for objects whose only logical key is a composite of parent lookups with an auto-number `Name`. The objects still carrying it:
-- `FulfillmentWorkspaceItem` (qb-dro) — 7 records
-- `PriceBookRateCard` (qb-rates) — auto-number Name, all-relationship externalId
-- `RateCardEntry` (qb-rates) — auto-number Name, all-relationship externalId
-- `RateAdjustmentByTier` (qb-rates) — auto-number Name, all-relationship externalId
+**Historical workaround:** `deleteOldData: true` bypassed matching for objects
+whose logical key used parent lookups. The current qb-dro, qb-rates, and qb-rating
+plans retain deletion on the following objects; this inventory does not imply
+that every operation choice was caused by Bug 5 (the rating policy uses a direct FK):
+
+- `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
+- `PriceBookRateCard` (qb-rates) — Upsert + deleteOldData
+- `RateCardEntry` (qb-rates) — Insert + deleteOldData
+- `RateAdjustmentByTier` (qb-rates) — Insert + deleteOldData
+- `ProductUsageResource` (qb-rating) — Insert + deleteOldData
+- `ProductUsageResourcePolicy` (qb-rating) — Insert + deleteOldData; `externalId: ProductUsageResourceId`
+- `ProductUsageGrant` (qb-rating) — Insert + deleteOldData
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 

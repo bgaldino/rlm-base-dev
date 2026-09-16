@@ -230,7 +230,21 @@ The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properl
 
 The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 1 (before step 9) because `billingContextSourceMapping` requires it to already be persisted.
 
-DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs. The task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and `UserAndGroup.csv` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. Step 5 runs `update_product_fulfillment_decomp_rules` (Apex) as a temporary fix for a 260 bug: ExecuteOnRuleId is not generated on INSERT and must be triggered by an UPDATE. No separate scratch-specific DRO plan is required.
+For **QuantumBit** (`dro=true`, `qb=true`), `prepare_dro` uses one **qb-dro**
+plan for scratch and non-scratch orgs. `insert_qb_dro_data` replaces
+`__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and
+`UserAndGroup.csv` with the target org's default user Name before loading. No
+separate scratch-specific **QuantumBit** DRO plan is required.
+
+For **Q3** (`dro=true`, `q3=true`, `qb=false`), the flow selects
+`insert_q3_dro_data_scratch` for scratch orgs and `insert_q3_dro_data_prod` for
+non-scratch orgs. The QB path takes precedence when `qb=true`.
+
+In `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`, an Apex
+update applies the workaround for the Release 260 ExecuteOnRuleId-on-insert bug.
+That step runs whenever `dro=true`. See the
+[generated flow](../../.cursor/skills/cci-orchestration/flows-reference.md#prepare_dro)
+for the complete sequence and conditions.
 
 ### Extract Rating Data
 
@@ -292,25 +306,26 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```bash
    pipx inject cumulusci --force -r robot/requirements.txt
    ```
-3. Run `cci task run validate_setup` to confirm all headless robot dependencies (Robot, selenium 4.10+, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver). Once the org is ready, run the task to confirm end-to-end.
+   For project-venv CCI, activate its venv and run `python -m pip install --upgrade -r robot/requirements.txt` instead.
+3. Follow [setup validation for your CCI environment](local-installation.md#step-11--verify-the-full-setup). Robot and urllib3 auto-fixes target pipx only; venv users must install requirements in their venv and disable those auto-fixes. Once the org is ready, run the task to confirm end-to-end.
 
 ### Headless robot: Chrome/Chromium or ChromeDriver not found
 
-Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Run `cci task run validate_setup` to diagnose. Common fixes:
+Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Use the [validation command for your CCI environment](local-installation.md#step-11--verify-the-full-setup) to diagnose. Common fixes:
 
 - **Chrome/Chromium missing:** Install per [Setup for headless robot runs](local-installation.md#setup-for-headless-robot-runs) (macOS: `brew install chromium`; Linux: `apt install chromium`).
-- **ChromeDriver missing:** Install webdriver-manager (`pipx inject cumulusci webdriver-manager`) so it downloads ChromeDriver at runtime, or install chromedriver on PATH (e.g. `apt install chromium-driver` on Debian/Ubuntu).
+- **ChromeDriver missing:** Install webdriver-manager in the CCI environment (`pipx inject cumulusci webdriver-manager` for pipx, or `python -m pip install webdriver-manager` inside the CCI venv) so it downloads ChromeDriver at runtime, or install chromedriver on PATH (e.g. `apt install chromium-driver` on Debian/Ubuntu).
 - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`).
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, selenium 3.x is still installed in the CCI pipx venv. Upgrade it:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, an older selenium may still be installed in the environment running CCI. For pipx, upgrade it:
 
 ```bash
 pipx inject cumulusci --force -r robot/requirements.txt
 ```
 
-The `--force` flag is required to upgrade already-installed packages. Then re-run the Document Builder task or flow.
+The pipx `--force` flag replaces already-installed packages. For project-venv CCI, activate the venv and run `python -m pip install --upgrade -r robot/requirements.txt` instead. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 
