@@ -166,9 +166,9 @@ GitHub will display a **Compare & pull request** button.
 
 ## 8. Open a Pull Request
 
-Target **base branch `main`** (Release 262 / Summer '26, API v67.0). Release
-260 work targets `release/260` — see *Branch Information* in the
-[README](README.md).
+Target **base branch `main`** (Release 264 / Winter '27, API v68.0). Remaining
+Release 262 maintenance targets the `262` branch; `release/262` and `release/260`
+are frozen references — see *Branch Information* in the [README](README.md).
 
 Prefix the PR title with the Conventional Commit type that matches your
 commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`), and write a
