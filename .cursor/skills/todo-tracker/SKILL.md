@@ -1,8 +1,9 @@
 ---
 name: todo-tracker
 description: >-
-  Find, claim, track, and close durable work items across workstations and agents using
-  the private artifacts todo tracker. Use for /rlm-todos, choosing work from the index,
+  Optional maintainer workflow for users with private artifacts repository access.
+  Find, claim, track, and close durable work items across workstations and agents.
+  Use for /rlm-todos, choosing work from the private tracker index,
   recording initiative progress, or retaining ownership through PR review and merge.
 ---
 
@@ -15,6 +16,13 @@ dates and evidence), approaches already tried and rejected, and how to verify.
 
 Use this skill when picking up work, claiming an item, or closing one out — and
 especially when starting a session in this repo with no idea what is in flight.
+
+## Availability
+
+This is an optional maintainer workflow requiring access to the private artifacts
+repository. It is not a prerequisite for using the public skills library or
+contributing: public contributors follow [CONTRIBUTING.md](../../../CONTRIBUTING.md).
+The claim and closeout rules below apply when participating in this tracker.
 
 ## Quick Rules
 

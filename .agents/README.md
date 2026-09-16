@@ -5,25 +5,17 @@ start from the same project contract and then opt into more specific guidance.
 The path names reflect the tools that introduced each file, but most of the
 content is intentionally reusable across agents.
 
-## Before picking up work — the todo tracker
+## Start with the public library
 
-Open work items live in the **private** artifacts repo, not in this one, because most
-carry detail that cannot be public (org aliases, unreleased-release work, investigations
-with retracted conclusions). If `.agents/artifacts/` is empty on this workstation, clone
-it first — otherwise you will not see what is in flight, or what is already claimed:
+1. Read [AGENTS.md](../AGENTS.md) for shared project instructions and safety rules.
+2. Choose a workflow from the [skill catalog](../.cursor/skills/README.md).
+3. Follow the skill's references and validation steps. For native client discovery,
+   see the [setup guide](../docs/guides/agent-skill-discovery.md).
 
-```bash
-git clone https://github.com/bgaldino/rlm-base-artifacts.git .agents/artifacts
-```
-
-Then read **`.agents/artifacts/todos/INDEX.md`** for the current state and
-**`.agents/artifacts/todos/README.md`** for the claim protocol. Work is coordinated across
-three workstations, so **claim an item and push the claim before starting** — that is what
-turns a simultaneous start into a rejected push instead of duplicated effort.
-
-Public-safe items are also GitHub issues on `bgaldino/rlm-base-dev`; the issue is the
-pointer and the todo pack is the payload. A session-local task list (e.g. Claude Code's
-task tool) is **never** the record of anything that outlives the session.
+The checked-in skills and references work without a private artifacts repository
+or a PMOS clone. Reading guides does not require a Salesforce org; running tools
+or changing an org requires the setup and access described in the chosen skill.
+For contributions, follow [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Canonical stack
 
@@ -66,12 +58,13 @@ task tool) is **never** the record of anything that outlives the session.
      same file types; the guidance is reusable, but the auto-injection mechanism
      is Cursor-specific.
 
-5. **`.claude/skill-manifest.yml` — cross-repo skill manifest**
+5. **`.claude/skill-manifest.yml` — optional cross-repo skill manifest**
    - Advertises Foundations skills, grounding artifacts, and cross-repo paths so
      agents can resolve shared guidance between this repo and related repos such
      as PMOS.
    - Use it with `scripts/ai/skill_manifest.py` when cross-repo discovery or
-     validation is needed.
+     validation is needed. PMOS access is optional; an absent sibling clone
+     does not prevent standalone use of Foundations.
 
 6. **`.github/copilot-instructions.md` — Copilot pointer**
    - Directs GitHub Copilot to `AGENTS.md` and summarizes the shared entry
@@ -122,3 +115,26 @@ this README):
   validated against `.agents/schemas/project-memory.schema.json`.
 
 None of these override `AGENTS.md`; they are routing and context aids.
+
+## Optional maintainer workflows
+
+### Private work tracker
+
+Maintainers with access to the private artifacts repository use the
+[todo-tracker skill](../.cursor/skills/todo-tracker/SKILL.md) for setup and the claim
+protocol. Read the index, claim and push before starting tracked work, and retain
+the claim through review and merge. Session-local task lists do not replace that
+record. These requirements apply when participating in that private workflow;
+public contributors can use GitHub issues and pull requests under the contribution
+guidelines above.
+
+Keep private tracker payloads and generated working artifacts out of public
+commits. `.agents/artifacts/` is gitignored; authorized maintainers synchronize
+it as a private nested repository.
+
+### PMOS integration
+
+The [PMOS integration skill](../.cursor/skills/pmos-integration/SKILL.md) explains
+optional cross-repository grounding for maintainers with access to that repository.
+Its absence is supported; use this repository's checked-in references for standalone
+work. Do not copy private PMOS content into public contributions.

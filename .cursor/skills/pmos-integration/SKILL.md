@@ -1,7 +1,8 @@
 ---
 name: pmos-integration
 description: >-
-  Cross-repo skill manifest pattern connecting Foundations (rlm-base-dev) and
+  Optional cross-repo skill manifest pattern for maintainers with PMOS access,
+  connecting Foundations (rlm-base-dev) and
   PMOS (pmos-revenue-cloud). Use when a skill needs to read content from the
   other repo (PRDs, demo scripts, capability roadmap, schema, Help articles,
   scenario reference) without forking or duplicating it. Documents the temporal
@@ -12,6 +13,13 @@ description: >-
 # PMOS ↔ Foundations Integration
 
 A cross-repo skill manifest that lets agents in either repo discover and consume content from the other read-only. Both repos work standalone today; the manifest upgrades what each can do when the other is present.
+
+## Availability
+
+PMOS is an optional private repository for maintainers with access. Public users
+can use Foundations skills and checked-in references without it. Skip cross-repo
+lookups when the clone is absent; do not copy private PMOS content into public
+contributions. The [skill catalog](../README.md) provides standalone starting points.
 
 ## Quick Rules
 
