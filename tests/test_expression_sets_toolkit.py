@@ -890,7 +890,7 @@ def test_cli_restore_boundary():
             return {"versions": []}
 
     try:
-        apply_mod._verify(_EmptyPostPatchEngine(), "9QLx", {}, None)
+        apply_mod._verify(_EmptyPostPatchEngine(), "9QLx", {}, None, {"versions": []})
         check("apply _verify empty versions raises", False)
     except Exception as exc:
         check("apply _verify empty versions raises LifecycleError",
@@ -1018,6 +1018,120 @@ def test_export_overlay_with_labels():
 # Shipped fixtures still validate (parity with the vendored validator)
 # --------------------------------------------------------------------------- #
 
+def test_overlay_content_verification():
+    import scripts.expression_sets.apply_expression_set_overlay as cli
+    from scripts.expression_sets._schema import overlay_step_content_errors
+    step = {"name": "Formula", "sequenceNumber": 1, "customElement": {"parameters": [
+        {"name": "formula", "type": "Formula", "value": 'IF(x < 2, 1, 0)'},
+        {"name": "result", "value": "NetPrice"}]}}
+    version = {"apiName": "TEST_V1", "steps": [step]}
+    definition = {"versions": [version]}
+    changed = deepcopy(step)
+    changed["customElement"]["parameters"][0]["value"] = "777"
+    try:
+        add_steps(deepcopy(version["steps"]), [changed])
+        check("conflicting addSteps rejects changed formula", False)
+    except OverlayError as exc:
+        check("conflicting addSteps directs to updateSteps", "updateSteps" in str(exc))
+    equal = deepcopy(step)
+    equal["customElement"]["parameters"][0]["value"] = 'IF(x &lt; 2, 1, 0)'
+    equal["customElement"]["parameters"].reverse()
+    check("matching addSteps tolerates GET encoding and parameter order",
+          len(add_steps(deepcopy(version["steps"]), [equal])) == 1)
+
+    anchor = {"name": "Anchor", "sequenceNumber": 1}
+    added = {"name": "Added", "sequenceNumber": 1, "placement": {"afterStep": "Anchor"}}
+    once = add_steps([deepcopy(anchor)], [added])
+    check("add replay ignores overwritten top-level sequence", add_steps(deepcopy(once), [added]) == once)
+    shared = [{"name": "First", "placement": {"afterStep": "Anchor"}},
+              {"name": "Second", "placement": {"afterStep": "Anchor"}}]
+    shared_once = add_steps([deepcopy(anchor)], shared)
+    check("shared-anchor batch is replayable", add_steps(deepcopy(shared_once), shared) == shared_once)
+    before = {"steps": [{"name": "Anchor", "sequenceNumber": 1}, {"name": "Added", "sequenceNumber": 2}]}
+    after = {"steps": [{"name": "Anchor", "sequenceNumber": 2}, {"name": "Added", "sequenceNumber": 1}]}
+    ignored_shift = deepcopy(after)
+    ignored_shift["steps"][0]["sequenceNumber"] = 1
+    check("verification detects ignored sibling sequence shift", bool(overlay_step_content_errors(
+        {"reorderSteps": [{"name": "Added", "sequenceNumber": 1}]}, after, ignored_shift)))
+
+    expected = {"apiName": "TEST_V1", "steps": [changed]}
+    for operation in ("addSteps", "updateSteps"):
+        ov = {operation: [changed]}
+        errors = overlay_step_content_errors(ov, expected, version)
+        check(operation + " rejects stale formula despite presence",
+              any("formula" in e for e in errors), errors)
+        check(operation + " accepts independently matching content",
+              not overlay_step_content_errors(ov, expected, expected))
+    for label, steps in (("missing", []), ("duplicate", [changed, changed])):
+        check(label + " touched step fails", bool(overlay_step_content_errors(
+            {"updateSteps": [changed]}, expected, {"steps": steps})))
+    check("removed step still present fails", bool(overlay_step_content_errors(
+        {"removeSteps": [{"name": "Formula"}]}, {"steps": []}, version)))
+    check("explicit remove then re-add verifies final state", not overlay_step_content_errors(
+        {"removeSteps": [{"name": "Formula"}], "addSteps": [changed]}, expected, expected))
+
+    # Exact name-set checks must work in both directions, including an empty
+    # expected graph and overlays whose edits only concern variables.
+    extra_cases = [
+        ({"updateSteps": [{"name": "Formula"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+        ({"removeSteps": [{"name": "Removed"}]}, {"steps": []},
+         {"steps": [{"name": "Unexpected"}]}),
+        ({"addVariables": [{"name": "Variable"}]}, {"steps": [{"name": "Formula"}]},
+         {"steps": [{"name": "Formula"}, {"name": "Unexpected"}]}),
+    ]
+    for index, (overlay, wanted, stored) in enumerate(extra_cases):
+        errors = overlay_step_content_errors(overlay, wanted, stored)
+        check(f"unexpected stored step fails case {index}",
+              any("unexpected step 'Unexpected'" in error for error in errors))
+        check(f"matching graph passes case {index}",
+              not overlay_step_content_errors(overlay, wanted, wanted))
+        class ExtraStepEngine:
+            def get_definition(self, _): return {"versions": [dict(stored, apiName="TEST_V1")]}
+            def log(self, _): pass
+        try:
+            cli._verify(ExtraStepEngine(), "9QLx", overlay, "TEST_V1",
+                        {"versions": [dict(wanted, apiName="TEST_V1")]})
+            check(f"CLI rejects unexpected step case {index}", False)
+        except cli.LifecycleError as exc:
+            check(f"CLI rejects unexpected step case {index}", "unexpected step" in str(exc))
+
+    class Engine:
+        def get_definition(self, _): return definition
+        def log(self, _): pass
+    try:
+        cli._verify(Engine(), "9QLx", {}, "missing", definition)
+        check("verification refuses wrong-version fallback", False)
+    except cli.LifecycleError:
+        check("verification refuses wrong-version fallback", True)
+    try:
+        cli._verify(Engine(), "9QLx", {"updateSteps": [changed]}, "TEST_V1",
+                    {"versions": [expected]})
+        check("CLI read-back rejects stale stored formula", False)
+    except cli.LifecycleError as exc:
+        check("CLI read-back rejects stale stored formula", "formula" in str(exc))
+
+    calls = []
+    class PreflightEngine(_FakeEngine):
+        def get_definition(self, _): return definition
+        def run_mutation(self, **kwargs): calls.append("mutation")
+        def ensure_resource_initialization_type(self, *a): calls.append("write")
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "overlay.json"
+        path.write_text(json.dumps({"addSteps": [changed]}))
+        undo = _patch(cli, LifecycleEngine=PreflightEngine, Transport=lambda **k: None,
+                      resolve_expression_set_id=lambda *a, **k: "9QLx",
+                      resolve_definition_id=lambda *a, **k: "9QAx",
+                      resolve_version_by_es_id=lambda *a, **k: {"ApiName": "TEST_V1"},
+                      validate_overlay_against_definition=lambda *a: _passing_validation())
+        try:
+            rc = cli.main(["--target-org", "x", "--expression-set", "TEST",
+                           "--overlay", str(path), "--confirm"])
+        finally:
+            undo()
+        check("conflicting CLI add fails before mutation or lifecycle writes", rc == 1 and not calls)
+
+
 def test_shipped_fixtures():
     print("test_shipped_fixtures")
     overlays_dir = REPO_ROOT / "datasets" / "expression_set_overlays"
@@ -1034,7 +1148,7 @@ def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
-               test_shipped_fixtures):
+               test_overlay_content_verification, test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

@@ -49,6 +49,12 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf
     --out /tmp/apply_discount.overlay.json
 ```
 
+
+### Existing steps and verification
+
+See the toolkit guide’s [existing-step and read-back rules](../../../scripts/expression_sets/README.md#existing-steps-and-verification)
+for `addSteps` replay, `updateSteps` edits, and verification shared by the CLI and CCI task.
+
 ### Top-level vs child steps are sliced differently
 
 | | Top-level step | Child step |

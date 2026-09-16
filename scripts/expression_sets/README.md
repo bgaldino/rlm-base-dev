@@ -257,3 +257,22 @@ expected behavior; the outputs are not dead code.
   `.cursor/skills/expression-sets/metadata-vs-connect.md` → *Step names vs. labels*.
 - **`--target-org` is the SF CLI alias**, never the CCI alias. CCI alias `beta`
   → SF CLI alias `rlm-base__beta`.
+
+
+### Existing steps and verification
+
+`addSteps` creates missing steps. An existing name is accepted only when its
+requested content already matches; a different formula, parameter, parent, or
+other supplied field fails **before deactivation or PATCH**. Use `updateSteps`
+to change an existing step, or `reorderSteps` to move it. An exported `addSteps`
+overlay is therefore not a formula-edit operation: move the edited entry into
+`updateSteps` (and remove its `placement` metadata).
+
+After PATCH, both the CCI task and standalone CLI re-read the selected version
+and compare the final step graph with the merged payload, including formula
+parameters and sequence numbers, including for variable-only overlays. Missing,
+unexpected, duplicate, or changed steps fail verification; removed steps must
+be absent. Named parameter order and HTML
+entity encoding do not count as content changes. This verifies stored step
+configuration, not execution results or step labels. The CLI's `--no-verify`
+option explicitly skips this read-back.
