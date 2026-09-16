@@ -277,16 +277,19 @@ Two shapes owe no root CSV at all:
   - Convention (pack 151), because the count column used to mean two different things by sight: a
     Readonly object's record count is **org records, not file rows** — it is resolved from the target
     org, and a Readonly CSV that *does* exist (e.g. `inapp/RecordType.csv`) is maintained but not
-    required for resolution. Mark such a count **`N (org)`** in the README's Records column.
-    `generate_plan_readme.py` emits the marker for Readonly rows automatically; `check_plan_readme_
-    consistency.py` reads it (`ORG_COUNT_RE`) and **skips file-count matching** for that row — and
-    reports an `(org)` marker that appears on a *live-writable* declaration, whose count genuinely
-    is file rows. **Keep the optional CSVs** (they document what the plan expects to find in the
-    org), but the marker records that their presence is *intent, not a load requirement*, so
-    deleting one is correctly silent. A bare, unmarked count stays accepted for backward
-    compatibility — existing Readonly rows migrate to `(org)` as each plan's README is regenerated,
-    not all at once (the `qb/en-US` load tables carry it as the reference example). The same shape
-    is how `procedure-plans/README.md` documents `ExpressionSetDefinition` (`Readonly`, 2, no file).
+    required for resolution. So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
+    it runs offline with no org access, and labeling the optional CSV's row count as an org count
+    would bake in a number that is never validated and silently wrong whenever the org and the CSV
+    differ. `check_plan_readme_consistency.py` never file-matches a `—` row, so deleting an optional
+    Readonly CSV stays correctly silent. When a human **does** have a real org count and wants to
+    document it, write it **`N (org)`** in the Records column: the checker reads the marker
+    (`ORG_COUNT_RE`) and **skips file-count matching** for that row, and **rejects** an `(org)`
+    marker (numbered or bare) on any row that matches a *live-writable* declaration, whose count
+    genuinely is file rows. The generator never mints `(org)` — it is only ever hand-authored. **Keep
+    the optional CSVs** (they document what the plan expects to find in the org): their presence is
+    *intent, not a load requirement*. A bare, unmarked count stays accepted for backward
+    compatibility. The same shape is how `procedure-plans/README.md` documents
+    `ExpressionSetDefinition` (`Readonly`, no file).
 - **every writable pass supplied per-pass** — the root path is an alternative location for the same
   file, not an additional requirement.
 

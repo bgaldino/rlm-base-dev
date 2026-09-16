@@ -51,7 +51,7 @@ to Product2
 | #  | Object                       | Operation | External ID                                | Records |
 |----|------------------------------|-----------|--------------------------------------------|---------|
 | 1  | AccountingPeriod             | Upsert    | `Name;FinancialYear`                       | 84      |
-| 2  | LegalEntity                  | Readonly  | `Name`                                     | 7 (org)   |
+| 2  | LegalEntity                  | Readonly  | `Name`                                     | 7       |
 | 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 588     |
 | 4  | PaymentTerm                  | Upsert    | `Name`                                     | 2       |
 | 5  | PaymentTermItem              | Upsert    | `PaymentTerm.Name;Type`                    | 2       |

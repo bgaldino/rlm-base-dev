@@ -54,9 +54,9 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 |----|------------------------------|-----------|--------------|---------------------------------------------------------------------------------------------------------|---------|
 | 1  | CurrencyType                 | Upsert    |              | `IsoCode`                                                                                               | 7       |
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
-| 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9 (org)   |
-| 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39 (org)  |
-| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 316 (org) |
+| 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
+| 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
+| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 316     |
 | 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentSchedule      | Upsert    |              | `Name`                                                                                                 | 3        |

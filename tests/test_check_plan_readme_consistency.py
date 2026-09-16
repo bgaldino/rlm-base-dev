@@ -314,11 +314,12 @@ def _org_marker(operation, records, csvs=None, excluded=False):
     return _check([[config]], [_row(1, "Widget__c", 1, operation, "Name", records)], csvs=csvs)
 
 
-# pack 151: the `N (org)` marker disambiguates the Records column. For a Readonly/Delete row
-# the count is *org records* (resolved from the target org), not *file rows* loaded from a CSV,
+# pack 151: the `N (org)` marker disambiguates the Records column. It is a HUMAN-supplied assertion
+# that the count is *org records* (resolved from the target org), not *file rows* loaded from a CSV,
 # so a marked count is never validated against a file — which is what makes deleting an optional
-# Readonly CSV correctly silent. The marker is meaningful only on a source-free row; on a
-# live-writable declaration the count IS file rows, so a marker there is an authoring mistake.
+# Readonly CSV correctly silent. The marker is valid only when EVERY matched declaration is
+# source-free; if any matched variant is live-writable the count IS file rows, so the marker
+# (numbered or bare) is an authoring mistake. The generator never mints `(org)` — it renders `—`.
 ORG_COUNT_MARKER = [
     ("`(org)` on a Readonly row is an org-count — file rows are NOT checked even when they differ",
      ([], [], True),
@@ -340,6 +341,28 @@ ORG_COUNT_MARKER = [
                for e in _check([[UPSERT_P1]],
                                [_row(1, "Widget__c", "", "Upsert", "Name", "5 (org)")],
                                csvs={"Widget__c.csv": "Id\n" + "row\n" * 5})[0])),
+    # codex 4022218305: a blank-Pass row matching BOTH a writable and a Readonly variant is
+    # rejected — `any_writable`, not `all_writable`. It still vouches for the writable pass's
+    # file rows, so `(org)` must not exempt it (was silently accepted when not ALL were writable).
+    ("`(org)` on a blank-Pass row matching a writable AND a Readonly variant is reported",
+     True, any("(org) marker on a writable" in e
+               for e in _check([[UPSERT_P1], [dict(UPSERT_P1, operation="Readonly")]],
+                               [_row(1, "Widget__c", "", "", "Name", "999 (org)")],
+                               csvs={"Widget__c.csv": "Id\nr\nr\n"})[0])),
+    # copilot 4022218776: a bare `(org)` / `— (org)` cell with NO leading integer on a writable
+    # row must still be rejected — the guard runs before parse_int(), so a missing number can't
+    # let it slip past (previously the whole count block was skipped when claimed was None).
+    ("a bare `(org)` (no number) on a writable declaration is still reported",
+     True, any("(org) marker on a writable" in e
+               for e in _org_marker("Upsert", "(org)",
+                                    csvs={"Widget__c.csv": "Id\n" + "row\n" * 5})[0])),
+    ("a `— (org)` (dash, no number) on a writable declaration is still reported",
+     True, any("(org) marker on a writable" in e
+               for e in _org_marker("Upsert", "— (org)",
+                                    csvs={"Widget__c.csv": "Id\n" + "row\n" * 5})[0])),
+    # A bare `(org)` on a source-free Readonly row is accepted (no number, no file check).
+    ("a bare `(org)` (no number) on a Readonly row is accepted",
+     ([], [], True), _org_marker("Readonly", "(org)")),
     ("the marker is case-insensitive and space-tolerant (`( ORG )`)",
      ([], [], True),
      _org_marker("Readonly", "999 ( ORG )", csvs={"Widget__c.csv": "Id\none\n"})),

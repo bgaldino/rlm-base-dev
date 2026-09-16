@@ -28,7 +28,7 @@ The plan uses two object sets:
 
 | # | Object                  | Operation | External ID | Records |
 | - | ----------------------- | --------- | ----------- | ------- |
-| 1 | EmailTemplate           | Readonly  | --          | 2 (org) |
+| 1 | EmailTemplate           | Readonly  | --          | 2       |
 | 2 | ApprovalAlertContentDef | Upsert    | `Name`      | 2       |
 
 `ApprovalAlertContentDef` uses a direct-field external ID (`Name`), so it stays
