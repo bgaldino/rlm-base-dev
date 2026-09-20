@@ -1,0 +1,54 @@
+---
+description: Customer demo attribute-based pricing rules (ABR via SFDMU, AAC/ABA via Apex)
+globs: **/customer-template-pricing/**
+alwaysApply: false
+---
+
+# customer-template-pricing
+
+Full guidance: `.cursor/skills/rlm-customer-demo-pricing/SKILL.md`.
+Lessons 1-8: `datasets/sfdmu/customer-template/en-US/customer-template-pricing/README.md`.
+
+## Two-phase load
+
+| Phase | Task | Mechanism | Objects |
+|---|---|---|---|
+| 1 | `insert_customer_demo_pricing_data` | SFDMU | `AttributeBasedAdjRule` Upsert |
+| 2 | `insert_customer_demo_pricing_adjustments` | Apex | AAC + ABA Insert |
+
+## AAC/ABA cannot use SFDMU
+
+For `Insert`, SFDMU resolves FK columns from the parent's SOURCE collection. `Readonly`
+parents live in TARGET only, so SOURCE is empty and every child row is silently filtered
+(`SOURCE: 0`). Restructuring `objectSets` or splitting into separate SFDMU tasks does not
+fix it. Use the Apex task. The CSVs remain as shape documentation.
+
+## Apex constraints
+
+- `Operator` is the word `equals`, never `=` (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`).
+- Omit ABA read-only fields from constructors: `AttributeAdjConditionsHash`,
+  `AttributeCount`, `PricingTerm`, `PricingTermUnit`, `ScheduleType`, `SellingModelType`.
+  Including any is a compile error. Leave them blank in CSVs.
+- `AttributeAdjustmentCondition` has no direct delete DML — it is master-detail. Delete
+  `AttributeBasedAdjustment` first, then `AttributeBasedAdjRule` (cascades AAC).
+- Scope deletes to the customer prefix. Never use `DeleteSFDMUData` here — it would wipe
+  coexisting QB pricing data.
+
+## export.json
+
+SELECT must use direct ID fields (`AttributeBasedAdjRuleId`, `AttributeDefinitionId`,
+`ProductId`), not traversals. Traversal fields trigger "Referenced field removed" and a
+`COMMAND_UNEXPECTED_ERROR` crash during INSERT payload construction.
+
+## AAC CSV shape
+
+11 columns; five value columns are empty for string conditions, requiring six commas between
+`AttributeDefinition.Code` and `Operator`. One missing comma shifts `equals` into
+`IntegerValue` and SFDMU reads zero source records.
+
+`RULE;ATTR;SKU,RULE,ATTR,,,,,,equals,SKU,Enterprise`
+
+## Verification
+
+ABA count per SKU must equal `ExpectedPricingRules` in
+`scripts/customer-demo/customer-pricebook-entries.csv`.

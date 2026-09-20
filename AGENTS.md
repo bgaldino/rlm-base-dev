@@ -2,62 +2,85 @@
 
 ## Customer Demo Product Onboarding UX
 
-When a user asks to set up products for a customer demonstration:
+When a user asks to set up, onboard, or build products for a customer demonstration, you are
+the **conductor** of a multi-agent flow. Read
+[`.cursor/skills/rlm-customer-demo-conductor/SKILL.md`](.cursor/skills/rlm-customer-demo-conductor/SKILL.md)
+and follow it. This section is the contract that skill implements; the skill holds the
+operational detail.
 
-1. Treat this as onboarding intent.
-2. Ask for **either**:
-   - a company description, or
-   - a company website URL.
-3. Ask for additional context when available (services, pricing model, recurring vs one-time offers, add-ons, known SKUs, billing expectations, and product image preferences/URLs). If product images are requested, ask for a preferred customer logo URL and confirm it can be used.
-4. Research the customer inputs and propose a product vision:
-   - categories/families,
-   - 10-15 SKU set,
-   - selling model assumptions (prefer term-defined subscriptions over evergreen for recurring offers),
-   - bundle assumptions (parent bundles, component groups, required vs optional components),
-   - initial Product2 typing assumptions (which SKUs are `Type=Bundle` vs `Type` blank/null),
-   - attribute/configuration assumptions (definitions, picklists, product attribute behavior),
-   - relationship assumptions (relationship types, related components, qualification/disqualification rules when needed),
-   - pricing assumptions,
-   - billing assumptions (for example payment term and billing policy intent),
-   - image coverage assumptions (which SKUs require product images).
-5. Ask the user to confirm the vision before creating or deploying records.
-6. After confirmation, use repo assets:
-   - **Dataset templates** (paths under `datasets/sfdmu/customer-template/en-US/`):
-     - `customer-template-pcm` — products, catalog, bundles, **and (for usage demos) `UnitOfMeasureClass` / `UnitOfMeasure`** rows referenced by `UsageResource` (template codes include `DATAVOL` + `SNFCRED`; keep codes aligned if you rename)
-     - `customer-template-product-images` — `Product2.DisplayUrl` by SKU (typically `/resource/<StaticResourceApiName>` after deploy)
-     - `customer-template-billing` — legal entity, billing policy/treatment, `Product2` billing assignment. **Billing stack must be activated after load** (`activate_customer_demo_billing` — step 6b): BillingPolicy/Treatment/Item are created as `Draft` (platform rejects `Active` on create); activation runs in order BTI → BT → BP, setting `DefaultBillingTreatmentId` first. **`BillingTreatmentItem.CurrencyIsoCode` is read-only** — omit from the SFDMU SELECT and CSV header or the BTI insert silently fails. **Deletion also requires deactivation first** — the delete script deactivates in reverse order (Policy → Draft + clear `DefaultBillingTreatmentId`, Treatment → Draft, TreatmentItem → Draft) before deleting; skipping this step causes `Database.delete(..., false)` to silently leave Active records behind.
-     - **`customer-template-pricing`** — attribute-based pricing: **`AttributeBasedAdjRule`** (Upsert via SFDMU — phase 1), **`AttributeAdjustmentCondition`** + **`AttributeBasedAdjustment`** (Insert via **Apex** — phase 2). **AAC/ABA cannot be loaded via SFDMU under any objectSet configuration** — SFDMU's FK resolution for Insert uses the SOURCE collection; Readonly parents are stored in TARGET only, so all child rows are silently filtered (SOURCE: 0). Use `scripts/apex/insertCustomerDemoPricingAdjustments.apex` (wired as `insert_customer_demo_pricing_adjustments`). `delete_customer_demo_pricing_data` (Apex, customer-prefix scoped) runs before each load for idempotency. Full model + SFDMU pitfalls: **`customer-template-pricing/README.md`**. Reference plan shape: **`datasets/sfdmu/qb/en-US/qb-pricing/`**.
-     - **Optional usage + rates:** `customer-template-rating` + `customer-template-rates` — enable with `customer_demo_usage: true` (project `custom`) **or** run `prepare_customer_demo_usage` **after** catalog steps through pricebook + verify (products must already exist). **`UsageResource`** binds **Category=Usage**, **UnitOfMeasureClass**, **DefaultUnitOfMeasure** (unit must belong to the class), **UsageDefinitionProduct** (`SF-BLNG-*`), and **UsageResourceBillingPolicy** (`monthlypeak` / `monthlytotal` in template). Full model: **`docs/references/customer-template-usage-resource.md`**. Rating loads **`ProductUsageResource`**, **`ProductUsageResourcePolicy`**, **`ProductUsageGrant`** (QuantumBit **`QB-DB`**-style), plus grant binding / renewal / rollover / overage / rating-frequency helper rows. **Rates** (after active PUR/UR): **`customer-template-rates`** loads **`CD-DEMO Base Rate Card`** (flat **`Rate`** on **`RateCardEntry`**) **and** **`CD-DEMO Tier Rate Card`** (**`Type = Tier`**) with **`RateAdjustmentByTier`** stepped bands — **not** **`PriceAdjustmentTier`** (that object sits on **`PriceAdjustmentSchedule`** / list pricing; see **`qb-pricing`**). Tier rows need **empty `Rate`** on the parent **`RateCardEntry`**; **RABT inserts in the same SFDMU pass while RCE is `Draft`**, then **`activate_rates`**. **`RateCardEntry.ProductSellingModel`** on **both** Base and Tier lines must match **Standard PricebookEntry** per SKU (**`customer-pricebook-entries.csv`**). Stitching, effective dates, Base vs Tier: **`docs/references/customer-template-rate-card-entry.md`**. Consolidated tier + SFDMU + delete-order notes: **`docs/references/customer-template-tier-rate-card-lessons-learned.md`**. **`delete_customer_demo_rates_data`** removes **both** CD-DEMO cards, **RCE**, **RABT** (cascade), and **PriceBookRateCard** links — always run it before re-inserting rates. Operational pitfalls (SFDMU UOM **Name** columns, pricebook API, CCI **`activate_*` org passing): **`.cursor/skills/rlm-customer-demo-usage-rates/`** (`SKILL.md` + `reference.md`).
-   - **Order of operations (`prepare_customer_demo_catalog`):** (1) optional Apex purge `customer_demo_purge_records`, (2) `insert_customer_demo_pcm_data`, (3) `deploy_customer_demo_staticresources`, (4) **if `customer_demo_branding`:** `deploy_customer_demo_branding` (ContentAsset + BrandingSet + LightningExperienceTheme; **manual activation required**), (5) `insert_customer_demo_product_images_data`, (6) `insert_customer_demo_billing_data`, (7) `customer_demo_recreate_pricebook_via_api` (`scripts/customer-demo/customer-pricebook-entries.csv`), **(8) `delete_customer_demo_pricing_data` (Apex scoped to customer prefix)**, **(9) `insert_customer_demo_pricing_data` (SFDMU: ABR Upsert only)**, **(9b) `insert_customer_demo_pricing_adjustments` (Apex: AAC + ABA Insert — must run after step 9 commits ABRs)**, (10) `customer_demo_verify_catalog` (checks images, billing, PSM, PBE, categories, and **ABA count per `ExpectedPricingRules`**), (11–16) **if `customer_demo_usage`:** `delete_customer_demo_rates_data` (removes **CD-DEMO Base + Tier** rate cards, **RCE**, **RABT** cascade, **PriceBookRateCard**) → `delete_customer_demo_rating_data` → `insert_customer_demo_rating_data` (two-pass object set; activates `UsageResource` in pass 2) → `insert_customer_demo_rates_data` (**RateCard**, **PriceBookRateCard**, **RateCardEntry**, **`RateAdjustmentByTier`**) → `activate_rating_records` → `activate_rates`. Never load rating before PCM has created the SKUs and UoM rows the plan references. **(17–19) if `customer_demo_dro`:** `delete_customer_demo_dro_data` (Apex scoped to customer-prefix PFDR + PFS) → `insert_customer_demo_dro_data` (Upsert PFDR + PFS + Update Product2.DecompositionScope; two-objectSet plan; `dynamic_assigned_to_user: true`) → `update_customer_demo_fulfillment_decomp_rules` (re-save PFDR/PFS). Requires `prepare_dro` (`dro: true`, `qb: true`) — QB fulfillment step groups and routing products (`QB-DRO-BILL`, `QB-DRO-PROJ`) must exist. **CRITICAL: before writing `ProductFulfillmentScenario.csv`, query `SELECT Id, Name FROM FulfillmentStepDefinitionGroup` on the target org.** Group names are org-specific; "Order Processing" often does not exist. SFDMU silently sets `FulfillmentStepDefnGroupId = null` when the name doesn't match — the Fulfillment tab shows empty with no error. Typical mapping: Finance → `Finance`; Services → `Services`; subscription provisioning/activation → `Provisioning & Activation`; platform → `Platform`; usage metering → `Usage Provisioning & Activation`. Apex fix for null group IDs is in the DRO README. **After activation, DRO may require a manual "Submit Orchestration Request" click in the order's Fulfillment tab** — auto-trigger on activation is not guaranteed in all orgs. Standalone: `cci flow run prepare_customer_demo_dro --org <alias>`. Full reference: `datasets/sfdmu/customer-template/en-US/customer-template-dro/README.md` and `docs/features/customer-demo-dro.md`.
-   - Model customer-specific PCM using `datasets/sfdmu/qb/en-US/qb-pcm` as the reference shape for advanced objects (attributes, classifications, bundles, related components, ramp/proration, qualifications).
-   - Before import/deploy, validate that all `ProductSellingModel.Name` + `SellingModelType` values used in customer CSVs **and** in `customer-pricebook-entries.csv` exist in the target org; align `ProductSellingModelOption` **ProrationPolicy.Name** (template defaults to **`Default Proration Policy`**) with the org or change the CSV.
-   - Default recurring offers to term-based models (for example `TermDefined` monthly/annual) so proration and cancel/replace/amend can be demonstrated; use evergreen only when the org lacks usable term models and call out that trade-off.
-   - Decide `Product2.Type` before first insert for each SKU; treat it as effectively immutable in onboarding runs. **Many RLM orgs restrict `Product2.Type` to `Base`, `Bundle`, and `Set` only** — in customer-template flows the convention is: **`Type=Bundle` only for parent bundle SKUs; leave `Type` blank (null) for everything else** (do not use `Base` or `Set` for that template unless the org requires it). `scripts/customer-demo/customer-pricebook-entries.csv` can include **`ProductTypeExpected`**: `Bundle` for bundle SKUs, empty for all others — `customer_demo_verify_catalog` then enforces Bundle vs blank per row instead of “any non-null type”.
-     - **Every SKU that appears in `ProductAttributeDefinition.csv` MUST have `ConfigureDuringSale=Allowed`** — without it the attribute panel never appears on the quote and attribute-based pricing rules never fire. Cross-check PAD rows against Product2.csv before loading.
-     - For any SKU with `Type=Bundle`, set `Product2.ConfigureDuringSale=Allowed` in the initial PCM row
-     - Bundle **child** products must still satisfy org rules (some orgs reject certain types as bundle components)
-   - **Logo:** run `prepare_customer_demo_logo_staticresource` (URL) **or** add files under `unpackaged/post_customer_demo/staticresources/`; deploy via `deploy_customer_demo_staticresources` **before** the product-images SFDMU step so `DisplayUrl` resolves.
-   - **Branding (Lightning Experience Theme):** run `prepare_customer_demo_branding` with `--company-name`, `--logo-url` OR `--logo-path /path/to/logo.png` (auto-resized to 600×120 PNG), `--brand-color` (hex, e.g. `#0176D3`), and optional `--bg-color` (letterbox background, default white). Requires `Pillow`. **Use `--logo-path` when `--logo-url` fails (403/CDN-blocked)** — download the logo manually first, or generate a placeholder with Pillow. Generates ContentAsset + BrandingSet + LightningExperienceTheme (SLDS v2) under `unpackaged/post_customer_demo/branding/`. Deploy via `deploy_customer_demo_branding`. Set `customer_demo_branding: true` to include in the `prepare_customer_demo_catalog` flow (step 4, after static resources). **Theme activation is manual** — no Salesforce API exists to activate themes; after deploy, open `<org-url>/lightning/setup/ThemingAndBranding/home` and activate. Full design: `docs/features/customer-demo-branding.md`.
-   - **Product2 + SFDMU (failure mode we hit in the wild):** the PCM `Product2` query includes **`BasedOnId` / `UnitOfMeasureId` / `QuantityUnitOfMeasure`**. CSVs that only list a short set of columns can cause SFDMU to emit **invalid parent keys** (`ID000…` placeholders) in **`customer-template-pcm/reports/MissingParentRecordsReport.csv`**. The job may still log Product2 “processed” rows while **products never become queryable by SKU**, and **`customer_demo_recreate_pricebook_via_api`** then errors with **Missing Product2 records**. **Fix:** mirror **`datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`** headers and fill **`BasedOn.Code`** (empty), **`CanRamp=false`**, **`IsSoldOnlyWithOtherProds=false`**, **`QuantityUnitOfMeasure` + `UnitOfMeasure.UnitCode`** (commonly **`EACH`** — confirm that UOM exists in the target org). After a load, spot-check: `sf data query` on a few SKUs from `customer-pricebook-entries.csv`.
-   - **Human / reviewer runbook:** `docs/guides/customer-demo-onboarding.md` (flow, Product2 shape, troubleshooting, quote-testing SKUs).
-   - **Usage-metered demo products (any customer):** `docs/guides/customer-demo-usage-metered-products.md` — durable lessons: **`UsageModelType=Anchor`** (not **`Pack`**) for PURP, **PUG** UOM **Name** columns for SFDMU v5, delete/purge order vs **QLIURG**, quote lines vs definition SKUs, verification. Example SKU rows in **`customer-template-*`** plans are replaceable when switching customers; the **QB-DB** / **`qb-rating`** shape is the reference.
-   - **Quote / CPQ testing (usage demos):** user-facing usage lines are the sellable **`SF-USG-*`** SKUs (merchandised like a pack; **`UsageModelType`** in data is **`Anchor`**, same as **QB-DB**, so **`ProductUsageResourcePolicy`** / quotes work). Do **not** tell testers to add **`SF-BLNG-*`** usage-definition-only products to a quote for normal metering demos.
-   - Primary flow: `prepare_customer_demo_catalog`; verification: `customer_demo_verify_catalog`.
-   - **Attribute pitfalls (from real deploys):**
-     - **`AttributePicklistValue.Code`** is a **global externalId** — must be unique across all picklists in the org. Two values with the same `Code` but in different `Picklist.Name`s collide and cascade-fail `AttributeDefinition`, `AttributeCategoryAttribute`, `ProductClassificationAttr`, and `ProductAttributeDefinition`. Use prefixed codes when the same label appears in multiple picklists (e.g. `XLarge` instead of reusing `Enterprise`).
-     - **`AttributeDefinition.DeveloperName`** is org-unique. Prefix customer-specific names (e.g. `RK_Service_Tier`) to avoid collisions with packages or prior demos.
-   - **Attribute-based pricing pitfalls (from real deploys — see `customer-template-pricing/README.md` for full details):**
-     - **AAC/ABA inserts must use Apex, not SFDMU (any objectSet configuration).** SFDMU resolves FK columns in `Insert` operations from the parent's SOURCE collection. For `Readonly` parents, IDs are in the TARGET collection only — the SOURCE is always empty. All child rows are silently filtered (SOURCE: 0) even when ABR records exist in the org and the Readonly CSV is populated. Use `insert_customer_demo_pricing_adjustments` (Apex task). This is not fixable by changing objectSet structure or running as a separate SFDMU task.
-     - **SELECT queries must use direct ID fields** (`AttributeBasedAdjRuleId`, `AttributeDefinitionId`, `ProductId`), NOT relationship traversals (`AttributeBasedAdjRule.Name`). When traversal fields appear in SELECT, SFDMU warns "Referenced field removed" and strips them from FK resolution context → internal crash during INSERT payload construction.
-     - **`AttributeAdjustmentCondition` CSV has 5 empty columns (4–8) requiring 6 commas** between `AttributeDefinition.Code` (col 3) and `Operator` (col 9). One missing comma silently shifts `equals` into `IntegerValue`, making all rows unresolvable (SFDMU reads 0 source records).
-     - **`AttributeAdjustmentCondition` cannot be deleted via direct Apex DML** — it is a master-detail child; only cascade-delete from `AttributeBasedAdjRule` works. Delete `AttributeBasedAdjustment` (not cascade) first, then `AttributeBasedAdjRule` (cascades AAC).
-     - **`AttributeAdjustmentCondition.Operator` picklist value is `equals`** (the word), not `=`. Using `=` causes `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST` from both SFDMU and Apex.
-     - **ABA read-only fields (`AttributeAdjConditionsHash`, `AttributeCount`, `PricingTerm`, `PricingTermUnit`, `ScheduleType`, `SellingModelType`) must be omitted from Apex constructors** — including them causes compile errors (`Field is not writeable`). Leave them blank in CSVs too.
-   - **`CategoryCode` in `customer-pricebook-entries.csv`** — must be populated with the `ProductCategory.Code` for each SKU. `customer_demo_verify_catalog` checks that `ProductCategoryProduct` records exist per SKU + category pair. Empty `CategoryCode` reports false "missing category" errors on all SKUs.
-   - **Static resource + DisplayUrl sequencing:** leave `DisplayUrl` **empty** in PCM `Product2.csv`. Static resources deploy at step 3; product-images SFDMU (step 5) sets `DisplayUrl` to `/resource/<StaticResourceApiName>`. Setting `DisplayUrl` before resources exist produces a broken URL.
-   - **Re-run safety:** PCM Upsert operations are safe to re-run after fixing data issues — existing records match on `externalId` and update in place. Downstream steps (static resources, billing, pricebook) are also idempotent.
-   - **Rating grant policies (SFDMU v5 silent failure):**
-     - **`UsageGrantRenewalPolicy`**, **`UsageGrantRolloverPolicy`**, **`UsageOveragePolicy`** — SFDMU silently fails to create these records (REST Insert logs "Inserted 1" but records never persist). **Always reference existing org policies** (e.g. `SF-DEMO-USG-RENEW`, `SF-DEMO-USG-ROLL`, `Default Usage Overage Policy`). Query the org before populating rating CSVs. If a needed policy doesn't exist, create via Apex or UI before the SFDMU load.
-     - **`UsageOveragePolicy`** name must be **exact** — `Default Usage Overage Policy` not `Default Overage`. Query the org with `SELECT Name FROM UsageOveragePolicy` and use the exact name.
-   - **`ProductUsageGrant` — always verify after load (SFDMU v5 silent failure):** SFDMU `Insert` for `ProductUsageGrant` reports "1 records processed, 0 records failed" while the record never appears in the org. This is a confirmed bug. After every rating load, verify: `sf data query -q "SELECT Id, Quantity, Status FROM ProductUsageGrant WHERE ProductUsageResource.Product.StockKeepingUnit = '<usage-sku>'"`. If missing, insert via Apex fallback and activate.
-7. Do not run deployment/import steps without explicit user approval.
+Domain pitfalls (SFDMU shapes, Apex constraints, org quirks) intentionally live in the
+specialist skills and in file-scoped rules under [`.cursor/rules/`](.cursor/rules/), not here.
+Loading them all into every conversation is what this architecture exists to avoid.
+
+### The two hard gates
+
+1. **Vision gate** — do not create or modify any file until the user confirms the product
+   vision.
+2. **Deploy gate** — do not run deployment or import steps (`cci`, `sf sfdmu`,
+   `sf project deploy`) without explicit user approval.
+
+### Flow
+
+| Wave | Mode | What happens |
+|---|---|---|
+| 0 Intake | series | Ask for a company description **or** website URL. Also collect services, pricing motion, recurring vs one-time, add-ons, known SKUs, billing expectations, image/logo preferences, target org alias, and whether usage metering, DRO, and branding are in scope. |
+| 1 Research + Org Discovery | **parallel** | Researcher drafts the vision. Org Discovery writes `org-context.json` (selling models, UOMs, proration and grant policies, fulfillment step groups) with read-only SOQL. |
+| 2 Vision gate | human | Present categories/families, a 10-15 SKU set, selling model, bundle, typing, attribute, relationship, pricing, billing, and image assumptions. Prefer term-defined over evergreen for recurring offers. **Wait for confirmation.** |
+| 3 Contract | series | Write `datasets/sfdmu/customer-template/en-US/sku-contract.yaml` and project it onto `scripts/customer-demo/customer-pricebook-entries.csv`. |
+| 4 Domain builders | **parallel** | Launch PCM, Billing, Pricing, and — per flag — Usage-Rates, DRO, Experience. Disjoint directory ownership. |
+| 5 Integrate + lint | series | Cross-dataset checks, then `python scripts/validate_sfdmu_v5_datasets.py`. |
+| 6 Deploy gate then load | human, then series | On approval: `cci flow run prepare_customer_demo_catalog --org <alias>`. |
+| 7 Verify | series parent | `customer_demo_verify_catalog` plus parallel read-only probes. |
+
+### Specialists
+
+| Builder | Skill | Owns |
+|---|---|---|
+| PCM | [`rlm-customer-demo-pcm`](.cursor/skills/rlm-customer-demo-pcm/SKILL.md) | `customer-template-pcm/` |
+| Billing | [`rlm-customer-demo-billing`](.cursor/skills/rlm-customer-demo-billing/SKILL.md) | `customer-template-billing/` |
+| Pricing | [`rlm-customer-demo-pricing`](.cursor/skills/rlm-customer-demo-pricing/SKILL.md) | `customer-template-pricing/` + pricing Apex |
+| Usage-Rates | [`rlm-customer-demo-usage-rates`](.cursor/skills/rlm-customer-demo-usage-rates/SKILL.md) | `customer-template-rating/` + `customer-template-rates/` |
+| DRO | [`rlm-customer-demo-dro`](.cursor/skills/rlm-customer-demo-dro/SKILL.md) | `customer-template-dro/` |
+| Experience | [`rlm-customer-demo-experience`](.cursor/skills/rlm-customer-demo-experience/SKILL.md) | product images, static resources, branding |
+| Integrator | [`rlm-customer-demo-integrator`](.cursor/skills/rlm-customer-demo-integrator/SKILL.md) | cross-file checks only |
+
+Launch every applicable builder for a wave in a **single message**. Each launch prompt must
+carry the contract path, the org-context path, the skill path, the allowed write glob, and an
+explicit "do not deploy" — subagents cannot see the parent conversation. Templates are in
+[`reference.md`](.cursor/skills/rlm-customer-demo-conductor/reference.md).
+
+### Parallelism boundaries
+
+**Parallel:** research and org discovery; all domain builders after the contract is frozen;
+read-only verification probes.
+
+**Series:** everything that touches an org. Never run two SFDMU jobs against one org, never
+reorder `prepare_customer_demo_catalog`, and never parallelize CCI — the flow's step order
+encodes FK dependencies and activation ordering.
+
+### Rules that survive regardless of which agent is running
+
+- The SKU contract, `customer-pricebook-entries.csv`, and `org-context.json` have exactly one
+  writer (the conductor, or Org Discovery for the last). Builders read them and report
+  mismatches instead of editing.
+- Builders never invent org values. Selling models, units of measure, proration policies,
+  usage grant policies, and fulfillment step group names come from `org-context.json`.
+- Decide `Product2.Type` before the first insert and treat it as immutable:
+  `Type=Bundle` only for parent bundles, blank for everything else. Any SKU with attributes
+  or `Type=Bundle` needs `ConfigureDuringSale=Allowed`.
+- Never convert an existing `operation: Upsert` to `Insert` + `deleteOldData: true` without
+  explaining the specific SFDMU v5 bug, confirming no direct-field externalId exists, and
+  getting explicit user approval. It is destructive.
+- Report quote-test SKUs as the sellable usage SKUs (`*-USG-*`), never the usage-definition
+  SKUs (`*-BLNG-*`).
+- Lightning Experience theme activation is manual — there is no Salesforce API for it.
+
+### Reference material
+
+- Contract schema: [`docs/references/customer-demo-sku-contract.md`](docs/references/customer-demo-sku-contract.md)
+- Human runbook: [`docs/guides/customer-demo-onboarding.md`](docs/guides/customer-demo-onboarding.md)
+- Product onboarding UX detail: [`docs/guides/customer-demo-product-onboarding.md`](docs/guides/customer-demo-product-onboarding.md)
+- Usage-metered products: [`docs/guides/customer-demo-usage-metered-products.md`](docs/guides/customer-demo-usage-metered-products.md)
+- DRO design: [`docs/features/customer-demo-dro.md`](docs/features/customer-demo-dro.md)
+- Branding design: [`docs/features/customer-demo-branding.md`](docs/features/customer-demo-branding.md)
+- Reference plan shapes: `datasets/sfdmu/qb/en-US/qb-pcm`, `qb-pricing`, `qb-rating`, `qb-rates`

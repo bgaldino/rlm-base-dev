@@ -1,0 +1,52 @@
+---
+description: Customer demo usage, rating, and rate card dataset rules
+globs: **/customer-template-rating/**, **/customer-template-rates/**
+alwaysApply: false
+---
+
+# customer-template-rating and customer-template-rates
+
+Full guidance: `.cursor/skills/rlm-customer-demo-usage-rates/SKILL.md` and its
+`reference.md`.
+
+## Load order
+
+PCM first (SKUs + UOM), then rating, then rates. Activations run after SFDMU:
+`activate_rating_records`, then `activate_rates`.
+
+Deleting: `delete_customer_demo_rates_data` **before** `delete_customer_demo_rating_data` —
+`RateCardEntry` references the meters, so UsageResource delete fails otherwise.
+
+## Silent failures to design around
+
+- **`ProductUsageGrant`** — SFDMU v5 reports "1 processed, 0 failed" while nothing persists.
+  Always verify with SOQL after load; fall back to Apex insert plus activation.
+- **`UsageGrantRenewalPolicy`, `UsageGrantRolloverPolicy`, `UsageOveragePolicy`** — SFDMU
+  silently fails to create these. Reference policies that **already exist** in the org
+  (e.g. `SF-DEMO-USG-RENEW`, `SF-DEMO-USG-ROLL`, `Default Usage Overage Policy`). Query for
+  exact names; `Default Overage` is not the same as `Default Usage Overage Policy`.
+
+## Parent resolution (SFDMU v5)
+
+`UsageResource.csv` needs `UnitOfMeasureClass.Name` and `DefaultUnitOfMeasure.Name` — the
+`.Code` / `.UnitCode` columns alone do not resolve. `ProductUsageGrant.csv` needs
+`UnitOfMeasure.Name` and `UnitOfMeasureClass.Name`. Check
+`reports/MissingParentRecordsReport.csv` when counts look wrong.
+
+## UsageModelType
+
+Sellable usage SKUs use **`Anchor`**, not `Pack`. `Pack` makes the platform reject
+`ProductUsageResourcePolicy` and can fail quote save with
+`PlaceSalesTransactionPersistException`.
+
+## Rate cards
+
+`RateCardEntry.ProductSellingModel` must match the SKU's Standard `PricebookEntry` in
+`scripts/customer-demo/customer-pricebook-entries.csv` — on **both** Base and Tier rows.
+
+Base rows carry `Rate`. Tier rows leave `Rate` empty; stepped bands go on
+**`RateAdjustmentByTier`** (not `PriceAdjustmentTier`, which belongs to
+`PriceAdjustmentSchedule`). Keep `RateCardEntry` before `RateAdjustmentByTier` in
+`export.json` so RABT inserts while the parent is still `Draft`.
+
+Quote the sellable `*-USG-*` SKUs, never the `*-BLNG-*` usage-definition products.

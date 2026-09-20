@@ -1,0 +1,47 @@
+---
+description: Customer demo PCM dataset rules (Product2 shape, type, attributes, UOM)
+globs: **/customer-template-pcm/**
+alwaysApply: false
+---
+
+# customer-template-pcm
+
+Full guidance: `.cursor/skills/rlm-customer-demo-pcm/SKILL.md`.
+Reference shape: `datasets/sfdmu/qb/en-US/qb-pcm/`.
+
+## Product2.csv
+
+Mirror the qb-pcm header layout. The SOQL selects `BasedOnId`, `UnitOfMeasureId`, and
+`QuantityUnitOfMeasure`; a short column set produces `ID000…` placeholder parent keys in
+`reports/MissingParentRecordsReport.csv`, products that are not queryable by SKU, and a
+later "Missing Product2 records" failure in `customer_demo_recreate_pricebook_via_api`.
+
+Fill `BasedOn.Code` (empty), `CanRamp=false`, `IsSoldOnlyWithOtherProds=false`,
+`QuantityUnitOfMeasure` + `UnitOfMeasure.UnitCode` (usually `EACH`).
+
+Leave `DisplayUrl` **empty** — the product-images plan sets it after static resources deploy.
+
+## Type and ConfigureDuringSale
+
+- `Type = Bundle` on parent bundles only; blank elsewhere. Effectively immutable after load.
+- `ConfigureDuringSale = Allowed` is required for `Type = Bundle` **and** for every SKU
+  appearing in `ProductAttributeDefinition.csv`. Missing it means no attribute panel on the
+  quote and no attribute-based pricing.
+
+## Attribute namespaces
+
+- `AttributePicklistValue.Code` is a **global** externalId across all picklists in the org.
+  Duplicates cascade-fail AttributeDefinition, AttributeCategoryAttribute,
+  ProductClassificationAttr, and ProductAttributeDefinition. Always prefix.
+- `AttributeDefinition.DeveloperName` is org-unique. Always customer-prefixed.
+
+## Selling models
+
+`ProductSellingModel.Name` + `SellingModelType` must exist in the target org and match
+`scripts/customer-demo/customer-pricebook-entries.csv`. Prefer `TermDefined` for recurring.
+`ProductSellingModelOption` references a `ProrationPolicy.Name` that must exist in the org.
+
+## SFDMU v5
+
+`externalId` uses `;` delimiters. Do not convert `Upsert` to `Insert` + `deleteOldData`
+without explicit user approval — it is destructive. PCM Upserts are safe to re-run.

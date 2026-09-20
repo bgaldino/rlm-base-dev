@@ -1,0 +1,46 @@
+---
+description: Customer demo DRO overlay rules (step group names, decomposition scope)
+globs: **/customer-template-dro/**
+alwaysApply: false
+---
+
+# customer-template-dro
+
+Full guidance: `.cursor/skills/rlm-customer-demo-dro/SKILL.md`.
+
+## Query step groups before writing ProductFulfillmentScenario.csv
+
+```bash
+sf data query -q "SELECT Id, Name FROM FulfillmentStepDefinitionGroup" --target-org <alias>
+```
+
+Group names are **org-specific**. "Order Processing" often does not exist. When the name
+does not match, SFDMU silently sets `FulfillmentStepDefnGroupId = null` — no error, and the
+Fulfillment tab stays empty.
+
+Typical mapping (verify per org): Finance to `Finance`; services delivery to `Services`;
+subscription provisioning to `Provisioning & Activation`; platform to `Platform`; usage
+metering to `Usage Provisioning & Activation`.
+
+## Scope
+
+This overlay adds `ProductFulfillmentDecompRule`, `ProductFulfillmentScenario`, and a
+`Product2.DecompositionScope` Update only. Step groups, step definitions, workspaces, and
+jeopardy rules come from `prepare_dro` and must already exist, along with `QB-DRO-BILL` and
+`QB-DRO-PROJ`.
+
+`DecompositionScope` is `Bundle` on bundle parents, `OrderLineItem` on everything else.
+
+## Two object sets
+
+Set 1: `Product2` + `FulfillmentStepDefinitionGroup` as `Readonly`, plus PFDR and PFS
+Upserts. Set 2: `Product2` Update scoped to customer SKUs. This avoids two `Product2`
+entries in one object set.
+
+PFDR and PFS use `Upsert` on `externalId: Name`, so re-runs are idempotent.
+
+## Known non-issues
+
+`ExecuteOnRuleId` and `ScenarioRuleId` are null on all records in most orgs — normal.
+Decomposition may require a manual **Submit Orchestration Request** click on the order's
+Fulfillment tab after activation.

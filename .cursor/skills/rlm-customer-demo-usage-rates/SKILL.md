@@ -17,6 +17,23 @@ description: >-
 
 # RLM customer demo — usage, rating, and rates
 
+## Role in the multi-agent flow
+
+This is the **Usage-Rates builder** in the onboarding flow orchestrated by
+`.cursor/skills/rlm-customer-demo-conductor/SKILL.md`. Launched in parallel with the other
+domain builders when `customer_demo_usage` is true.
+
+- **Owns:** `datasets/sfdmu/customer-template/en-US/customer-template-rating/**` and
+  `customer-template-rates/**`
+- **Reads:** `sku-contract.yaml` (`usage`, `uom`, SKU `psm_name`) and `org-context.json`
+  (existing grant policies, UOM codes, selling models)
+- **Never writes:** the contract, `customer-pricebook-entries.csv`, or another builder's
+  directory. `RateCardEntry.ProductSellingModel` must match the contract, not be chosen here.
+- **Never runs:** `cci`, `sf`, or any deploy/import command. Authoring only.
+
+Usage and rates stay in one agent on purpose — splitting them drifts selling models and
+units of measure between the rating plan and the rate cards.
+
 ## When to read this
 
 Apply when working on **`datasets/sfdmu/customer-template`**, **`customer_demo_usage`**, sellable usage SKUs (**`SF-USG-*`**; **`UsageModelType` = `Anchor`** for PURP/PUG), **`UsageResource`**, **`ProductUsageResource`**, **`RateCard` / `RateCardEntry` / `RateAdjustmentByTier`** (**`CD-DEMO`** Base + Tier template), or extending toward **QuantumBit `qb-rating` / `qb-rates`** patterns.

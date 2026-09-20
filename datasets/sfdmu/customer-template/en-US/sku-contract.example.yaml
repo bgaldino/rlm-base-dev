@@ -1,0 +1,196 @@
+# SKU Contract — example
+#
+# The conductor writes this file AFTER the user confirms the product vision and
+# BEFORE any domain builder runs. Every builder reads it; no builder edits it.
+#
+# Schema and field rules: docs/references/customer-demo-sku-contract.md
+# Copy to: datasets/sfdmu/customer-template/en-US/sku-contract.yaml
+
+contract_version: 1
+
+customer:
+  name: Acme Robotics
+  # Prefix scopes AttributeDefinition.DeveloperName, AttributeBasedAdjRule.Name,
+  # PFDR/PFS names, and every scoped Apex delete. Must be org-unique.
+  prefix: ACME
+  website: https://www.example.com
+
+flags:
+  customer_demo_usage: true
+  customer_demo_dro: false
+  customer_demo_branding: true
+
+org:
+  alias: dev-sb0
+  # Written by Org Discovery. Builders read org facts from here, never re-query.
+  context_file: datasets/sfdmu/customer-template/en-US/org-context.json
+
+categories:
+  - code: PC-ACME-PLATFORM
+    name: Platform
+  - code: PC-ACME-SERVICES
+    name: Professional Services
+
+# Every SKU row projects 1:1 onto scripts/customer-demo/customer-pricebook-entries.csv.
+skus:
+  - sku: ACME-PLAT-SUITE
+    name: Acme Platform Suite
+    category_code: PC-ACME-PLATFORM
+    type: Bundle                    # Bundle only for parent bundles; "" otherwise
+    configure_during_sale: Allowed  # required when type=Bundle OR SKU has attributes
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 1200
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: ACME Standard Monthly
+    product_type_expected: Bundle
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: ACME-PLAT-CORE
+    name: Acme Platform Core
+    category_code: PC-ACME-PLATFORM
+    type: ""
+    configure_during_sale: Allowed  # has attributes -> must be Allowed
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 800
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: ACME Standard Monthly
+    product_type_expected: ""
+    expected_pricing_rules: 2       # ABA count verify_catalog enforces
+    usage: { role: none }
+
+  - sku: ACME-USG-API
+    name: Acme API Calls
+    category_code: PC-ACME-PLATFORM
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: true
+    billing_policy_name: ACME Standard Monthly
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: sellable                # quote this SKU, not the definition SKU
+      usage_model_type: Anchor      # Pack breaks ProductUsageResourcePolicy
+      usage_resource_code: ACME-UR-API
+
+  - sku: ACME-BLNG-API
+    name: Acme API Usage Definition
+    category_code: PC-ACME-PLATFORM
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: false
+    billing_policy_name: ""
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: definition              # UsageResource.UsageDefinitionProduct
+      usage_resource_code: ACME-UR-API
+
+bundles:
+  - parent_sku: ACME-PLAT-SUITE
+    component_group: Core Platform
+    children:
+      - { sku: ACME-PLAT-CORE, required: true, min: 1, max: 1 }
+
+attributes:
+  picklists:
+    - name: ACME Service Tier
+      values:
+        # Code is a GLOBAL externalId. Prefix it — collisions cascade-fail all of PCM.
+        - { code: ACME-TIER-PRO, value: Professional }
+        - { code: ACME-TIER-ENT, value: Enterprise }
+  definitions:
+    - developer_name: ACME_Service_Tier   # org-unique; always customer-prefixed
+      code: ACME-SVC-TIER
+      label: Service Tier
+      picklist: ACME Service Tier
+      is_price_impacting: true
+      applies_to_skus: [ACME-PLAT-CORE]
+
+pricing_rules:
+  # Drives customer-template-pricing (ABR via SFDMU) and the Apex AAC/ABA insert.
+  - rule_name: ACME-CORE-ENT-TIER
+    sku: ACME-PLAT-CORE
+    attribute_code: ACME-SVC-TIER
+    operator: equals                # the word "equals", never "="
+    string_value: Enterprise
+    adjustment_type: Percentage
+    adjustment_value: 25
+    psm_name: Term Monthly
+
+uom:
+  classes:
+    - { code: ACMEAPI, name: Acme API Volume, type: Usage,
+        base_unit: ACME-CALL, default_unit: ACME-CALL }
+  units:
+    # EACH must exist in the org; confirm via org-context.json.
+    - { unit_code: EACH, name: Each, class_code: "" }
+    - { unit_code: ACME-CALL, name: API Call, class_code: ACMEAPI }
+
+usage:
+  # Only read when flags.customer_demo_usage is true.
+  resources:
+    - code: ACME-UR-API
+      name: Acme API Calls
+      category: Usage
+      uom_class_name: Acme API Volume    # SFDMU v5 needs the Name column, not only Code
+      default_uom_name: API Call
+      definition_sku: ACME-BLNG-API
+      billing_policy_code: monthlytotal
+  # Grant policies must ALREADY EXIST in the org — SFDMU silently fails to create them.
+  # Names come from org-context.json, not from invention.
+  grant_policies:
+    renewal_code: SF-DEMO-USG-RENEW
+    rollover_code: SF-DEMO-USG-ROLL
+    overage_name: Default Usage Overage Policy
+  rate_cards:
+    - name: CD-DEMO Base Rate Card
+      type: Base
+      entries:
+        - { sku: ACME-USG-API, usage_resource_code: ACME-UR-API,
+            rate: 0.004, rate_uom: EACH, psm_name: Term Monthly }
+    - name: CD-DEMO Tier Rate Card
+      type: Tier
+      entries:
+        # Tier RCE rows leave rate empty; bands live on RateAdjustmentByTier.
+        - sku: ACME-USG-API
+          usage_resource_code: ACME-UR-API
+          rate: ""
+          rate_uom: EACH
+          psm_name: Term Monthly
+          tiers:
+            - { lower: 0, upper: 100000, adjustment_type: Override, adjustment_value: 0.004 }
+            - { lower: 100000, upper: null, adjustment_type: Override, adjustment_value: 0.002 }
+
+dro:
+  # Only read when flags.customer_demo_dro is true.
+  # step_group values MUST come from org-context.json (org-specific names).
+  scenarios:
+    - sku: ACME-PLAT-CORE
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-BILL]
+      step_group: Finance
+      actions: [Add, Amend, Renew, Cancel]
+
+experience:
+  # Only read when images or branding are in scope.
+  logo_source: /tmp/acme-logo.png     # --logo-path beats --logo-url (CDNs 403)
+  brand_color: "#0176D3"
+  bg_color: "#FFFFFF"
+  static_resource_prefix: acme

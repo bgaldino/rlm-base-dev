@@ -1,0 +1,52 @@
+---
+description: SFDMU v5 export.json rules — externalId format, operation choice, object order
+globs: **/export.json
+alwaysApply: false
+---
+
+# SFDMU v5 export.json
+
+Full detail: `CLAUDE.md` and `docs/references/sfdmu-composite-key-optimizations.md`.
+
+## externalId
+
+Use `;` delimiters (`Field1;Field2`). The v4 `$$Field1$Field2` syntax is invalid here.
+`$$` composite **column names inside CSVs** remain correct for Upsert target matching.
+
+## Operation choice
+
+| Situation | Pattern |
+|---|---|
+| Direct unique field | `Upsert`, `externalId: Name` |
+| Composite of direct fields | `Upsert`, `externalId: Field1;Field2`, `$$Field1$Field2` CSV column |
+| externalId uses any relationship traversal | `Insert` + `deleteOldData: true` |
+| Auto-number Name, all-relationship externalId | `Insert` + `deleteOldData: true` |
+| Empty CSV (no records yet) | `excluded: true` |
+
+## Never silently switch Upsert to Insert + deleteOldData
+
+`deleteOldData: true` is destructive — it deletes all existing records before inserting.
+Before proposing the change you must explain which specific v5 bug applies, confirm no
+direct-field externalId exists, and get **explicit user approval**. When in doubt keep
+`Upsert` and explain the trade-off.
+
+Customer demo plans deliberately avoid global `deleteOldData` on `RateCardEntry`,
+`RateAdjustmentByTier`, `ProductUsageResourcePolicy`, and `ProductUsageGrant` so non-demo
+org data survives. Scoped Apex deletes handle the demo slice instead.
+
+## Ordering
+
+SFDMU deletes `deleteOldData: true` objects in **reverse array order**. Order objects parent
+to child so deletions run child to parent and satisfy FK constraints.
+
+## SELECT clauses
+
+Include every `ORDER BY` field in the SELECT. Relationship traversal columns must match what
+the CSV headers expect. For `Insert` operations on pricing objects, use direct ID fields —
+traversal fields get stripped ("Referenced field removed") and break FK resolution.
+
+## Validate
+
+```bash
+python scripts/validate_sfdmu_v5_datasets.py
+```

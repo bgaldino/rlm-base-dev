@@ -1,0 +1,6 @@
+{
+  "_comment": "Copy to .cursor/onboarding-gates.json to ACTIVATE the deploy gate for a customer demo onboarding run. Delete that file when the run is done. While it is absent, .cursor/hooks/onboarding-gate.sh allows every command.",
+  "customer": "",
+  "visionConfirmed": false,
+  "deployApproved": false
+}

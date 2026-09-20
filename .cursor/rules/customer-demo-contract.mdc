@@ -1,0 +1,40 @@
+---
+description: SKU contract and pricebook CSV are conductor-owned; builders read, never write
+globs: **/sku-contract*.yaml, **/customer-pricebook-entries.csv, **/org-context.json
+alwaysApply: false
+---
+
+# SKU contract — single writer
+
+Schema: `docs/references/customer-demo-sku-contract.md`.
+Example: `datasets/sfdmu/customer-template/en-US/sku-contract.example.yaml`.
+
+These three files are the shared interface between parallel customer demo builders.
+
+| File | Written by | Read by |
+|---|---|---|
+| `sku-contract.yaml` | conductor, after the user confirms the vision | all builders |
+| `customer-pricebook-entries.csv` | conductor, projected from the contract `skus` list | all builders, `customer_demo_recreate_pricebook_via_api`, `customer_demo_verify_catalog` |
+| `org-context.json` | Org Discovery agent | all builders |
+
+A domain builder that edits any of these breaks the other builders running in parallel. If a
+builder needs a different value, it reports the mismatch and the conductor amends the
+contract.
+
+## Pricebook CSV columns
+
+`SKU, UnitPrice, CurrencyIsoCode, PSMName, PSMSellingModelType, IsActive, CategoryCode,
+ImageRequired, BillingRequired, BillingPolicyName, ProductTypeExpected, ExpectedPricingRules`
+
+- `CategoryCode` must be populated — empty values make `customer_demo_verify_catalog` report
+  a missing `ProductCategoryProduct` on every SKU.
+- `ProductTypeExpected` is `Bundle` on bundle SKUs and empty on all others; verify then
+  enforces Bundle vs blank rather than "any non-null type".
+- `ExpectedPricingRules` drives the ABA count check.
+- `PSMName` + `PSMSellingModelType` must exist in the org and match both
+  `ProductSellingModelOption` in PCM and `RateCardEntry.ProductSellingModel` in rates.
+
+## Changing the contract mid-run
+
+Editing after builders have started invalidates their output. Stop the wave, edit the
+contract, re-launch the affected builders, then re-run the Integrator.

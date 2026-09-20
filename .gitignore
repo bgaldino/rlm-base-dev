@@ -114,6 +114,10 @@ datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
 tmp-metadata/
 .cursor/plans/**
+# Run-local onboarding gate state (see .cursor/onboarding-gates.example.json)
+.cursor/onboarding-gates.json
+# Org snapshot written by the Org Discovery agent
+datasets/sfdmu/customer-template/en-US/org-context.json
 retrieved_rlm_bundle/
 postman/archive/
 core.code-workspace
