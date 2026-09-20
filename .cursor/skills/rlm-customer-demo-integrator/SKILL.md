@@ -15,11 +15,24 @@ Runs after all domain builders, before the deploy gate. You **report and fix cro
 drift only**. You do not author new domain rows — if a dataset is wrong, name the owning
 builder and the specific mismatch so the conductor can re-launch it.
 
-Never run `cci`, `sf project deploy`, or `sf sfdmu`. The one command you do run:
+Never run `cci`, `sf project deploy`, or `sf sfdmu`. The two commands you do run:
 
 ```bash
+# 1. Contract-level checks (fast, mechanical — run this first)
+python scripts/customer-demo/validate_sku_contract.py \
+  datasets/sfdmu/customer-template/en-US/sku-contract.yaml
+
+# 2. Dataset-level SFDMU v5 lint
 python scripts/validate_sfdmu_v5_datasets.py
 ```
+
+`validate_sku_contract.py` needs PyYAML; if the system `python3` lacks it, run it with the
+CumulusCI interpreter (`~/.local/pipx/venvs/cumulusci/bin/python3`). It automatically loads
+`org-context.json` when present and skips org-dependent checks when it is not.
+
+The contract validator covers checks 1, 2, 3, 4, 5, 6, 7, 9, and 11 below mechanically.
+Your remaining job is the dataset-level checks the script cannot see — whether the CSVs the
+builders actually wrote match the contract they were given.
 
 ## Checks
 

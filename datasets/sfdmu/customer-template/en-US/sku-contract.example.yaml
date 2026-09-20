@@ -25,11 +25,29 @@ org:
   # Written by Org Discovery. Builders read org facts from here, never re-query.
   context_file: datasets/sfdmu/customer-template/en-US/org-context.json
 
+catalog:
+  name: Acme Product Catalog
+  code: CAT-ACME
+
 categories:
   - code: PC-ACME-PLATFORM
     name: Platform
   - code: PC-ACME-SERVICES
     name: Professional Services
+
+billing:
+  # The Billing builder needs these named up front; every skus[].billing_policy_name
+  # must appear in policies[].name below.
+  legal_entity: Acme Robotics Inc.
+  payment_terms:
+    - { name: Net 30, days: 30 }
+  policies:
+    # All three billing objects are created Draft; activate_customer_demo_billing
+    # promotes them after load.
+    - name: ACME Standard Monthly
+      payment_term: Net 30
+      treatment: Acme Monthly Recurring
+      frequency: Monthly
 
 # Every SKU row projects 1:1 onto scripts/customer-demo/customer-pricebook-entries.csv.
 skus:
@@ -125,10 +143,19 @@ attributes:
 
 pricing_rules:
   # Drives customer-template-pricing (ABR via SFDMU) and the Apex AAC/ABA insert.
-  - rule_name: ACME-CORE-ENT-TIER
+  # The rule count per SKU must equal that SKU's expected_pricing_rules.
+  - rule_name: ACME-CORE-PRO-TIER
     sku: ACME-PLAT-CORE
     attribute_code: ACME-SVC-TIER
     operator: equals                # the word "equals", never "="
+    string_value: Professional
+    adjustment_type: Percentage
+    adjustment_value: -10
+    psm_name: Term Monthly
+  - rule_name: ACME-CORE-ENT-TIER
+    sku: ACME-PLAT-CORE
+    attribute_code: ACME-SVC-TIER
+    operator: equals
     string_value: Enterprise
     adjustment_type: Percentage
     adjustment_value: 25

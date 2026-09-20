@@ -55,6 +55,27 @@ Billing: **Bulls Standard Billing** (advance, Net 30) assigned to all 13 SKUs vi
 - `customer-purge-and-reimport.apex`: step-1 cleanup for `prepare_customer_demo_catalog` — deletes **QuotLineItmUseRsrcGrant** / **OrderItemUsageRsrcGrant** on **`SF-UR-*`** meters so rating delete is not blocked by **QLIURG** / order grants.
 - `customer-pricebook-entries.csv`: input for API-based PricebookEntry recreation and verification checks.
 - `prepare_customer_logo_static_resource.py`: downloads a customer logo URL and generates a square static resource payload/metadata.
+- `validate_sku_contract.py`: validates the SKU contract that drives the multi-agent onboarding flow, and can emit `customer-pricebook-entries.csv` from it. See `docs/references/customer-demo-sku-contract.md`.
+
+## SKU contract (multi-agent onboarding)
+
+Onboarding runs as a conductor plus parallel domain builders coordinated by a **SKU contract**
+(`datasets/sfdmu/customer-template/en-US/sku-contract.yaml`). The contract is the single
+source for SKUs, selling models, categories, attributes, pricing rules, billing policies, and
+usage wiring; `customer-pricebook-entries.csv` is a projection of it.
+
+```bash
+# validate before launching builders (org checks run when org-context.json exists)
+python3 scripts/customer-demo/validate_sku_contract.py
+
+# regenerate the pricebook CSV from the contract
+python3 scripts/customer-demo/validate_sku_contract.py --emit-pricebook \
+  > scripts/customer-demo/customer-pricebook-entries.csv
+```
+
+Requires PyYAML; if the system `python3` lacks it, use the CumulusCI interpreter
+(`~/.local/pipx/venvs/cumulusci/bin/python3`). Orchestration:
+`.cursor/skills/rlm-customer-demo-conductor/SKILL.md`.
 
 ## Product2 bootstrap rules for onboarding
 

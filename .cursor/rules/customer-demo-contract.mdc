@@ -9,6 +9,14 @@ alwaysApply: false
 Schema: `docs/references/customer-demo-sku-contract.md`.
 Example: `datasets/sfdmu/customer-template/en-US/sku-contract.example.yaml`.
 
+Validate after any edit — a bad contract multiplies across six parallel builders:
+
+```bash
+python scripts/customer-demo/validate_sku_contract.py
+python scripts/customer-demo/validate_sku_contract.py --emit-pricebook \
+  > scripts/customer-demo/customer-pricebook-entries.csv
+```
+
 These three files are the shared interface between parallel customer demo builders.
 
 | File | Written by | Read by |

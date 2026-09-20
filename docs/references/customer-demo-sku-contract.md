@@ -35,6 +35,21 @@ One writer per path. Builders never edit files outside their own column.
 
 Mirror the CumulusCI `project → custom` flags. They gate which builders launch at all: `customer_demo_usage`, `customer_demo_dro`, `customer_demo_branding`.
 
+### `catalog`
+
+`name` and `code` for the `ProductCatalog` row the PCM builder creates. Without it the PCM
+builder has to invent a catalog name, which then disagrees with anything referencing it.
+
+### `billing`
+
+`legal_entity`, `payment_terms`, and `policies` are what the Billing builder needs to create
+`LegalEntity`, `PaymentTerm`/`PaymentTermItem`, and the `BillingPolicy` /
+`BillingTreatment` / `BillingTreatmentItem` chain. Every `skus[].billing_policy_name` must
+appear in `billing.policies[].name` — otherwise the Product2 billing assignment points at a
+policy that was never created, and the load reports a misleading "Same data" success.
+
+All three billing objects load as `Draft`; `activate_customer_demo_billing` promotes them.
+
 ### `org`
 
 `alias` is the CCI/sf org alias. `context_file` points at the Org Discovery snapshot (`org-context.json`) holding real org values: available `ProductSellingModel` names and types, `UnitOfMeasure` codes, existing grant policy names, `FulfillmentStepDefinitionGroup` names, `ProrationPolicy` names. **Builders read org facts from this file. They do not invent them and do not re-query.**
@@ -80,6 +95,31 @@ Read only when the matching flag is true. Two hard rules:
 
 - `usage.grant_policies` must name policies that **already exist** in the org — SFDMU silently fails to create `UsageGrantRenewalPolicy`, `UsageGrantRolloverPolicy`, and `UsageOveragePolicy`.
 - `dro.scenarios[].step_group` must be a name read from `org-context.json`. A wrong name makes SFDMU set `FulfillmentStepDefnGroupId = null` with no error and an empty Fulfillment tab.
+
+## Validation
+
+```bash
+python scripts/customer-demo/validate_sku_contract.py [contract.yaml] [--org-context org-context.json]
+python scripts/customer-demo/validate_sku_contract.py --emit-pricebook > scripts/customer-demo/customer-pricebook-entries.csv
+```
+
+Checks the mechanical half of the Integrator's list: selling model existence and type,
+category coverage, `ConfigureDuringSale` on bundle and attribute SKUs, `ProductTypeExpected`
+agreement, pricing rule counts and `equals` operator, globally unique
+`AttributePicklistValue.Code`, prefixed `AttributeDefinition.DeveloperName`, billing policy
+and payment term resolution, `Anchor` on sellable usage SKUs, usage resource UOM stitching,
+grant policies present in the org, Base vs Tier rate card shape, `RateCardEntry` selling
+model agreement with the pricebook, and DRO step group existence.
+
+Org-dependent checks are skipped when `org-context.json` is missing or reports
+`"reachable": false`; everything else still runs. Requires PyYAML — use the CumulusCI
+interpreter if the system `python3` lacks it.
+
+## UOM declaration semantics
+
+In `uom.units`, a unit with a `class_code` is **created** by the PCM builder. A unit with an
+empty `class_code` (e.g. `EACH`) is a **reference** to an org-native UOM and must already
+exist. The validator enforces only the latter against the org.
 
 ## Changing the contract mid-run
 

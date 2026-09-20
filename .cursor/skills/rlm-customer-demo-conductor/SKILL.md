@@ -82,6 +82,15 @@ Write `datasets/sfdmu/customer-template/en-US/sku-contract.yaml`, then project i
 list onto `scripts/customer-demo/customer-pricebook-entries.csv`. You do this yourself —
 it is small, and a single writer prevents SKU drift.
 
+Validate the contract before launching any builder — a bad contract multiplies across six
+parallel agents:
+
+```bash
+python scripts/customer-demo/validate_sku_contract.py
+python scripts/customer-demo/validate_sku_contract.py --emit-pricebook \
+  > scripts/customer-demo/customer-pricebook-entries.csv
+```
+
 ## Wave 4 — domain builders (parallel)
 
 Launch every applicable builder in **one message**. Each gets its own directory; the file
@@ -109,10 +118,11 @@ Run the Integrator (`.cursor/skills/rlm-customer-demo-integrator/SKILL.md`) for
 cross-dataset checks, then:
 
 ```bash
+python scripts/customer-demo/validate_sku_contract.py
 python scripts/validate_sfdmu_v5_datasets.py
 ```
 
-Both must pass before you ask to deploy. Fix by re-launching the owning builder, not by
+All must pass before you ask to deploy. Fix by re-launching the owning builder, not by
 editing another builder's files yourself.
 
 ## Wave 6 — deploy gate (human, series)
