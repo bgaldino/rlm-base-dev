@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **67** Markdown files under `.cursor/skills/`
+- Skills inventoried: **72** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **32** checked, **0** missing
+- AGENTS.md skill references: **35** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -30,6 +30,7 @@
 - `.cursor/skills/apex-security-hardening/SKILL.md`
 - `.cursor/skills/audit-review/SKILL.md`
 - `.cursor/skills/audit-review/external-review-briefing.md`
+- `.cursor/skills/audit-review/merge-and-review-procedures.md`
 - `.cursor/skills/build-harness/SKILL.md`
 - `.cursor/skills/cci-orchestration/SKILL.md`
 - `.cursor/skills/cci-orchestration/custom-task-authoring.md`
@@ -44,7 +45,9 @@
 - `.cursor/skills/decision-tables/SKILL.md`
 - `.cursor/skills/decision-tables/authoring-and-data-model.md`
 - `.cursor/skills/decision-tables/lifecycle-and-refresh.md`
+- `.cursor/skills/df-workshop-setup/SKILL.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
+- `.cursor/skills/doc-consistency/erd-count-drift.md`
 - `.cursor/skills/document-generation/SKILL.md`
 - `.cursor/skills/document-generation/data-mapper-authoring.md`
 - `.cursor/skills/document-generation/dynamic-images.md`
@@ -58,9 +61,11 @@
 - `.cursor/skills/pmos-integration/SKILL.md`
 - `.cursor/skills/pricing-wiring/SKILL.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
+- `.cursor/skills/ramped-quotes/SKILL.md`
 - `.cursor/skills/release-enablement/SKILL.md`
 - `.cursor/skills/release-enablement/authoring-patterns.md`
 - `.cursor/skills/release-enablement/resume-enablement-work.md`
+- `.cursor/skills/renewal-asset-creation/SKILL.md`
 - `.cursor/skills/repo-integration/SKILL.md`
 - `.cursor/skills/repo-integration/dependency-ordering.md`
 - `.cursor/skills/repo-integration/new-feature-guide.md`
@@ -120,6 +125,7 @@
 - ✅ `.cursor/skills/constraint-models/SKILL.md`
 - ✅ `.cursor/skills/context-service/SKILL.md`
 - ✅ `.cursor/skills/decision-tables/SKILL.md`
+- ✅ `.cursor/skills/df-workshop-setup/SKILL.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `.cursor/skills/document-generation/SKILL.md`
 - ✅ `.cursor/skills/expression-sets/SKILL.md`
@@ -129,7 +135,9 @@
 - ✅ `.cursor/skills/pmos-integration/SKILL.md`
 - ✅ `.cursor/skills/pricing-wiring/SKILL.md`
 - ✅ `.cursor/skills/qb-demo-script/SKILL.md`
+- ✅ `.cursor/skills/ramped-quotes/SKILL.md`
 - ✅ `.cursor/skills/release-enablement/SKILL.md`
+- ✅ `.cursor/skills/renewal-asset-creation/SKILL.md`
 - ✅ `.cursor/skills/repo-integration/SKILL.md`
 - ✅ `.cursor/skills/repo-integration/ux-assembly-retrieve.md`
 - ✅ `.cursor/skills/revenue-cloud-data-model/SKILL.md`
@@ -173,7 +181,7 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
 - Manifest version: `2`
 - Last verified: `2026-07-26`
 - Active Salesforce release: `264`
-- Manifest skill count: **29**
+- Manifest skill count: **32**
   - `apex-security-hardening`
   - `audit-review`
   - `build-harness`
@@ -181,6 +189,7 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `constraint-models`
   - `context-service`
   - `decision-tables`
+  - `df-workshop-setup`
   - `doc-consistency`
   - `document-generation`
   - `expression-sets`
@@ -190,7 +199,9 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `pmos-integration`
   - `pricing-wiring`
   - `qb-demo-script`
+  - `ramped-quotes`
   - `release-enablement`
+  - `renewal-asset-creation`
   - `repo-integration`
   - `revenue-cloud-data-model`
   - `revenue-cloud-docs`
