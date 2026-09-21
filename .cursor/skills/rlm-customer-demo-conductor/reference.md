@@ -124,6 +124,9 @@ prompt: |
   so the conductor can decide org.load_mode.
 
   Read-only. Do not insert, update, delete, or deploy anything.
+  This snapshot must describe the org BEFORE this customer is loaded — existingNames and
+  occupiedSkuPrefixes exist to catch collisions with OTHER customers' records. Never
+  refresh it after a load; if you must, exclude the customer's own prefix and namespace.
   If the org alias is unreachable, write an empty snapshot with a "reachable": false
   key and report that.
 ```

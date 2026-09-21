@@ -112,6 +112,17 @@ sf data query -q "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit !
 Write all of it to `org-context.json` under `unitsOfMeasure[].ClassCode`, `existingNames`,
 and `occupiedSkuPrefixes`. Schema: `docs/references/customer-demo-sku-contract.md`.
 
+**Capture the snapshot before the load, once, and do not refresh it afterward.** The whole
+point of `existingNames` and `occupiedSkuPrefixes` is to describe what the org held *before*
+this customer existed. Re-capturing after a load fills them with the contract's own output,
+at which point the collision checks are comparing the contract against itself and can no
+longer see a foreign record. The validator detects that case and downgrades to
+`prefix-collision-self` / `name-collision-self` so the contract still passes, but the
+protection is gone until a clean pre-load snapshot exists.
+
+If you must refresh mid-project, exclude the customer's own prefix and namespace from
+`existingNames` and `occupiedSkuPrefixes` as you write them.
+
 If no org alias is available yet, Org Discovery writes an empty snapshot and the
 Integrator flags every org-dependent value as unverified.
 

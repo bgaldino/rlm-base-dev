@@ -179,13 +179,18 @@ def check_prefix(c, org, rep):
         if not theirs:
             continue
         if theirs == mine:
-            rep.fail("prefix-collision",
-                     f"customer.prefix '{prefix}' produces {mine}-* SKUs and '{occ}' is already "
-                     "in use in this org. If another demo owns it, pick an unused prefix — "
-                     f"scoped deletes and verify queries (WHERE Name LIKE '{mine}-%') cannot "
-                     "tell the two catalogs apart. If it is this contract's own catalog from an "
-                     "earlier load, re-capture org-context.json before the load so the snapshot "
-                     "reflects pre-load state")
+            if _snapshot_postdates_load(c, org):
+                rep.warn("prefix-collision-self",
+                         f"occupied prefix '{occ}' matches customer.prefix '{prefix}', but the "
+                         "snapshot also holds this contract's own records, so it was captured "
+                         "after a load of this catalog — re-capture before the next load if you "
+                         "need this check to mean anything")
+            else:
+                rep.fail("prefix-collision",
+                         f"customer.prefix '{prefix}' produces {mine}-* SKUs but '{occ}' is "
+                         "already owned by another demo in this org — pick an unused prefix; "
+                         f"scoped deletes and verify queries (WHERE Name LIKE '{mine}-%') "
+                         "cannot tell the two catalogs apart")
         elif mine.startswith(theirs) or theirs.startswith(mine):
             rep.warn("prefix-near-miss",
                      f"customer.prefix '{prefix}' overlaps occupied prefix '{occ}' — the SKUs "
@@ -202,6 +207,7 @@ def check_name_collisions(c, org, rep):
                        "'existingNames'")
         return
     prefix = c["customer"]["prefix"]
+    own_hits = []
     billing = c.get("billing") or {}
     attrs = c.get("attributes") or {}
     declared = {
@@ -227,23 +233,30 @@ def check_name_collisions(c, org, rep):
             if hit is None:
                 continue
             if _self_owned(value, c):
-                rep.warn("name-collision-self",
-                         f"{path} '{value}' already exists in the org as '{hit}'. It is inside "
-                         "this customer's namespace, so it is almost certainly this contract's "
-                         "own record from an earlier load and the Upsert will update it in "
-                         "place — confirm that, or rename if it belongs to someone else")
+                own_hits.append(value)
             else:
                 rep.fail("name-collision",
-                         f"{path} '{value}' already exists in the org and is outside this "
-                         "customer's namespace — it loads via Upsert on the name key, so the "
-                         "load would silently overwrite that record; prefix it with the "
+                         f"{path} '{value}' already exists in the org as '{hit}' and is outside "
+                         "this customer's namespace — it loads via Upsert on the name key, so "
+                         "the load would silently overwrite that record; prefix it with the "
                          f"customer prefix '{prefix}'")
+    if own_hits:
+        rep.warn("name-collision-self",
+                 f"{len(own_hits)} name(s) inside this customer's namespace already exist in "
+                 f"the org ({', '.join(own_hits[:3])}"
+                 f"{', …' if len(own_hits) > 3 else ''}) — the snapshot postdates a load of this "
+                 "contract, so these Upserts update this catalog's own records; re-capture "
+                 "org-context.json before the next load to restore the collision check")
 
 
 def check_unprefixed_names(c, rep):
     prefix = str(c["customer"]["prefix"] or "").strip()
     if not prefix:
         return
+    # The full customer name namespaces a record just as well as the short prefix does:
+    # "Salesforce Demo Catalog" is no more likely to collide than "SFDC Demo Catalog".
+    name = str(c["customer"].get("name") or "").strip()
+    markers = [m.casefold() for m in (prefix, name) if m]
     billing = c.get("billing") or {}
     targets = [("billing.payment_terms[].name", t.get("name"))
                for t in billing.get("payment_terms", []) or []]
@@ -251,11 +264,11 @@ def check_unprefixed_names(c, rep):
                 for p in billing.get("policies", []) or []]
     targets.append(("catalog.name", (c.get("catalog") or {}).get("name")))
     for path, value in targets:
-        if value and prefix.casefold() not in str(value).casefold():
+        if value and not any(m in str(value).casefold() for m in markers):
             rep.warn("name-unprefixed",
-                     f"{path} '{value}' does not carry the customer prefix '{prefix}' — this "
-                     "record upserts on its name, so a generic name can land on an unrelated "
-                     "record that already exists in the org")
+                     f"{path} '{value}' carries neither the customer prefix '{prefix}' nor the "
+                     f"customer name '{name}' — this record upserts on its name, so a generic "
+                     "name can land on an unrelated record that already exists in the org")
 
 
 def check_skus(c, org, rep):
@@ -528,24 +541,23 @@ def main():
           f"{len(contract.get('pricing_rules', []) or [])} pricing rules")
     print(f"  flags: {', '.join(enabled)}")
     print(f"  load mode: {load_mode}")
-    print(f"  org context: {'loaded' if org else 'UNAVAILABLE — org-dependent checks skipped'}\n")
+    print(f"  org context: {'loaded' if org else 'UNAVAILABLE — org-dependent checks skipped'}")
+
+    sections = [
+        (rep.issues, f"{len(rep)} issue(s):"),
+        (rep.warnings, f"{len(rep.warnings)} warning(s):"),
+        (rep.notes, f"{len(rep.notes)} check(s) unverified — re-run Org Discovery to populate:"),
+    ]
+    for entries, heading in sections:
+        if not entries:
+            continue
+        print(f"\n{heading}")
+        for entry in entries:
+            print(f"  [{entry[0]}] {entry[1]}" if isinstance(entry, tuple) else f"  {entry}")
 
     if rep.issues:
-        print(f"{len(rep)} issue(s):")
-        for check, detail in rep.issues:
-            print(f"  [{check}] {detail}")
-    if rep.warnings:
-        print(f"\n{len(rep.warnings)} warning(s):")
-        for check, detail in rep.warnings:
-            print(f"  [{check}] {detail}")
-    if rep.notes:
-        print(f"\n{len(rep.notes)} check(s) unverified — re-run Org Discovery to populate:")
-        for detail in rep.notes:
-            print(f"  {detail}")
-    if rep.issues:
         return 1
-    print("\nAll contract checks passed." if (rep.warnings or rep.notes)
-          else "All contract checks passed.")
+    print("\nAll contract checks passed.")
     return 0
 
 

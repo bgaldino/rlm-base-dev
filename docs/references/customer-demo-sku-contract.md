@@ -147,7 +147,7 @@ Plus the shared-org checks:
 | `load-mode-missing`, `load-mode-invalid` | error | `org.load_mode` absent or not `additive`/`clean`. |
 | `prefix-collision` | error | `customer.prefix` is a prefix another demo already owns. `SFDC` against an occupied `SF-` is fine — the literal SKU namespace is `SFDC-` — but against an occupied `SFDC-` it is not. |
 | `prefix-near-miss` | warning | One prefix is a strict prefix of the other (`SFDC` vs `SF-`). The SKUs do not collide, but a scoped `LIKE` pattern written against the shorter one matches both catalogs. |
-| `name-collision` | error | A payment term, billing policy, billing treatment, legal entity, `AttributeDefinition.DeveloperName`, or `AttributePicklistValue.Code` already exists in the org. All load via Upsert on that key, so the load mutates the existing record instead of failing. |
+| `name-collision` | error | A payment term, billing policy, billing treatment, legal entity, `AttributeDefinition.DeveloperName`, or `AttributePicklistValue.Code` already exists in the org outside this customer's namespace. All load via Upsert on that key, so the load mutates the existing record instead of failing. |
 | `name-unprefixed` | warning | A payment term, billing policy, or `catalog.name` does not contain the customer prefix. Fires with no org context at all, which is what catches a bare `Net 30`. |
 | `uom-class-owned` | error | A `uom.units[]` entry claims a `class_code`, but that `unit_code` already exists in the org under a different `UnitOfMeasureClass`. A unit belongs to exactly one class and cannot be moved — give this customer a new unit code. |
 
@@ -156,6 +156,16 @@ Org-dependent checks are skipped when `org-context.json` is missing or reports
 the shared-org keys, the affected checks print under "unverified" rather than passing.
 Warnings and unverified notes are reported but do not change the exit code. Requires
 PyYAML — use the CumulusCI interpreter if the system `python3` lacks it.
+
+### Capture the snapshot before the load
+
+The collision checks compare the contract against what the org held **before** this catalog
+existed. Re-capture `org-context.json` after a load and every name the contract owns comes
+back as taken. The validator detects that — names carrying the customer prefix or customer
+name collapse into a single `name-collision-self` warning, and an occupied prefix equal to
+the contract's own becomes `prefix-collision-self` — but a post-load snapshot still means
+the checks are no longer looking for foreign records. Re-run Org Discovery before the next
+load to get them back.
 
 ## UOM declaration semantics
 
