@@ -1,1 +1,6 @@
 Action,FulfillmentProcess.Name,FulfillmentStepDefnGroup.Name,Name,Product.StockKeepingUnit,ProductClassification.Name,SourceClassIdentifier,SourceIdentifier,Type
+Add;Amend;Renew;Cancel,,Finance,SFDC Sales Cloud Core - Finance,SFDC-SALES-CORE,,,,
+Add;Amend;Renew;Cancel,,Provisioning & Activation,SFDC Sales Cloud Max - Provisioning and Activation,SFDC-SALES-MAX,,,,
+Add;Amend;Renew;Cancel,,Provisioning & Activation,SFDC Revenue Cloud Growth - Provisioning and Activation,SFDC-RC-GROWTH,,,,
+Add;Amend;Cancel,,Usage Provisioning & Activation,SFDC Agentforce Flex Credits - Usage Provisioning and Activation,SFDC-USG-FLEX,,,,
+Add;Cancel,,Services,SFDC Implementation Services - Services,SFDC-SVC-IMPL,,,,

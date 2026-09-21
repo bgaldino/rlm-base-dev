@@ -1,1 +1,3 @@
 $$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
+Salesforce Annual Subscription Item;Salesforce Annual Subscription,Salesforce Annual Subscription,Advance,BillingScheduleGroup,Invoice the full annual term in advance,,,,,,Salesforce Annual Subscription Item,,1,Manual,Draft,Remainder,CreateInvoice
+Salesforce Monthly Usage Item;Salesforce Monthly Usage,Salesforce Monthly Usage,Arrears,BillingScheduleGroup,Invoice each monthly period in arrears,,,,,,Salesforce Monthly Usage Item,,1,Manual,Draft,Remainder,CreateInvoice

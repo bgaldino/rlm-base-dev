@@ -6,7 +6,7 @@
       "name": "Set 1 \u2014 AttributeBasedAdjRule Upsert (phase 1 of 2-phase pricing load)",
       "objects": [
         {
-          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'OAI-%' ORDER BY Name ASC",
+          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'SFDC-%' ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         }

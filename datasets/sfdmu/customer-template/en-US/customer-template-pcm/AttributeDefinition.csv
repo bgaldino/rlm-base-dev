@@ -1,1 +1,2 @@
 Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+SFDC-SVC-PLAN,Picklist,Select the Success Plan tier for this subscription.,Standard,Success Plan tier that adjusts the net license price.,SFDC_Service_Plan,true,false,Success Plan,Success Plan,SFDC Service Plan,,,

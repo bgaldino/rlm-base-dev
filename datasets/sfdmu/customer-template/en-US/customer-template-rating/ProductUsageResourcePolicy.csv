@@ -1,1 +1,3 @@
 ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,RatingFrequencyPolicy.RatingPeriod,UsageAggregationPolicy.Code,UsageCommitmentPolicy.Name,UsageOveragePolicy.Name
+SFDC-USG-FLEX,SFDC-UR-FLEX,Monthly,monthlytotal,,Default Usage Overage Policy
+SFDC-USG-CONV,SFDC-UR-CONV,Monthly,monthlytotal,,Default Usage Overage Policy

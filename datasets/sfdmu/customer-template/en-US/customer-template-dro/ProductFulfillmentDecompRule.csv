@@ -1,1 +1,6 @@
 DestinationProduct.StockKeepingUnit,Name,Priority,SourceClassIdentifier,SourceIdentifier,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
+QB-DRO-BILL,SFDC Sales Cloud Core to Finance,,,,SFDC-SALES-CORE,
+QB-DRO-BILL,SFDC Sales Cloud Max to Finance,,,,SFDC-SALES-MAX,
+QB-DRO-BILL,SFDC Revenue Cloud Growth to Finance,,,,SFDC-RC-GROWTH,
+QB-DRO-BILL,SFDC Agentforce Flex Credits to Finance,,,,SFDC-USG-FLEX,
+QB-DRO-PROJ,SFDC Implementation Services to Services,,,,SFDC-SVC-IMPL,

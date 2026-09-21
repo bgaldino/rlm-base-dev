@@ -1,1 +1,15 @@
 SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName,ProductTypeExpected,ExpectedPricingRules
+SFDC-MAX-SUITE,6600,USD,Term Annual,TermDefined,true,PC-SFDC-CRM,true,true,SFDC Annual Advance,Bundle,0
+SFDC-SALES-CORE,2340,USD,Term Annual,TermDefined,true,PC-SFDC-CRM,true,true,SFDC Annual Advance,,2
+SFDC-SALES-ADV,4740,USD,Term Annual,TermDefined,true,PC-SFDC-CRM,true,true,SFDC Annual Advance,,0
+SFDC-SALES-MAX,6600,USD,Term Annual,TermDefined,true,PC-SFDC-CRM,true,true,SFDC Annual Advance,,0
+SFDC-SVC-CORE,2340,USD,Term Annual,TermDefined,true,PC-SFDC-CRM,true,true,SFDC Annual Advance,,0
+SFDC-RC-GROWTH,1800,USD,Term Annual,TermDefined,true,PC-SFDC-ADDON,true,true,SFDC Annual Advance,,0
+SFDC-AF-FLAT,1500,USD,Term Annual,TermDefined,true,PC-SFDC-AI,true,true,SFDC Annual Advance,,0
+SFDC-TABLEAU-NEXT,480,USD,Term Annual,TermDefined,true,PC-SFDC-ADDON,false,true,SFDC Annual Advance,,0
+SFDC-SLACK-BIZPLUS,15,USD,Term Monthly,TermDefined,true,PC-SFDC-ADDON,false,true,SFDC Monthly Arrears,,0
+SFDC-USG-FLEX,0,USD,Term Monthly,TermDefined,true,PC-SFDC-AI,false,true,SFDC Monthly Arrears,,0
+SFDC-BLNG-FLEX,0,USD,Term Monthly,TermDefined,true,PC-SFDC-AI,false,false,,,0
+SFDC-USG-CONV,0,USD,Term Monthly,TermDefined,true,PC-SFDC-AI,false,true,SFDC Monthly Arrears,,0
+SFDC-BLNG-CONV,0,USD,Term Monthly,TermDefined,true,PC-SFDC-AI,false,false,,,0
+SFDC-SVC-IMPL,25000,USD,One-Time,OneTime,true,PC-SFDC-SVC,true,true,SFDC Annual Advance,,0

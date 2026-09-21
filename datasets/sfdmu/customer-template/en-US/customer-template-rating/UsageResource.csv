@@ -1,1 +1,3 @@
 Category,Code,DefaultUnitOfMeasure.UnitCode,DefaultUnitOfMeasure.Name,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UnitOfMeasureClass.Name,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,SFDC-UR-FLEX,FLEXCRD,Flex Credit,Agentforce Flex Credit consumption (Flex PayGo),Agentforce Flex Credits,Draft,,SFDCCRED,Salesforce Flex Credits,SFDC-BLNG-FLEX,monthlytotal
+Usage,SFDC-UR-CONV,AFCONV,Agentforce Conversation,Agentforce conversations handled by the agent,Agentforce Conversations,Draft,,SFDCCONV,Agentforce Conversations,SFDC-BLNG-CONV,monthlytotal

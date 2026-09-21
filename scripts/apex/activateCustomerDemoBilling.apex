@@ -10,18 +10,22 @@
  * on create). This script runs after insert_customer_demo_billing_data to make the
  * policy usable on orders.
  *
- * Scoped to policies whose name contains 'Billing' and whose treatment name contains
- * 'Billing Treatment' — safe to run on any customer-template billing stack.
+ * Scoped to an explicit allowlist. A broad "every Draft policy" query also matches other
+ * customers' demo stacks living in the same org and would activate them.
  *
  * Idempotent: already-Active records are skipped without error.
  */
+
+final Set<String> CUSTOMER_BILLING_POLICIES = new Set<String>{
+    'SFDC Annual Advance',
+    'SFDC Monthly Arrears'
+};
 
 List<BillingPolicy> policies = [
     SELECT Id, Name, Status, DefaultBillingTreatmentId
     FROM BillingPolicy
     WHERE Status = 'Draft'
-    AND Name NOT LIKE 'QB%'
-    AND Name NOT LIKE 'SF-%'
+    AND Name IN :CUSTOMER_BILLING_POLICIES
 ];
 
 if (policies.isEmpty()) {

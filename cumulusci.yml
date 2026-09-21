@@ -116,7 +116,7 @@ project:
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
-    customer_demo_usage: false # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
+    customer_demo_usage: true # After PCM catalog load: usage SKUs + meters + CD-DEMO rate cards (see prepare_customer_demo_usage)
     customer_demo_branding: true  # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
     customer_demo_dro: true   # After catalog steps 1-10: load customer DRO overlay (PFDR + PFS + Product2.DecompositionScope). Requires prepare_dro (dro: true, qb: true) to have run on the org first.
 
@@ -1438,6 +1438,19 @@ tasks:
     options:
       path: scripts/apex/activateCustomerDemoBilling.apex
 
+  activate_customer_demo_rating_records:
+    group: Revenue Lifecycle Management
+    description: >
+      Activate the customer demo rating stack (UnitOfMeasureClass → UsageResource →
+      ProductUsageResource → ProductUsageGrant) scoped to the customer's meters. Use instead
+      of activate_rating_records in orgs that hold other customers' demo data: the QB task
+      activates every non-Active record org-wide, which flips other demos' rows and aborts
+      outright on any pre-existing UnitOfMeasureClass whose DefaultUnitOfMeasure belongs to
+      no class. Idempotent.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateCustomerDemoRatingRecords.apex
+
   customer_demo_recreate_pricebook_via_api:
     group: Revenue Lifecycle Management
     description: Recreate Standard PricebookEntry rows with explicit ProductSellingModelId from CSV.
@@ -2721,6 +2734,61 @@ flows:
         task: insert_customer_demo_dro_data
         when: project_config.project__custom__customer_demo_dro
       19:
+        task: update_customer_demo_fulfillment_decomp_rules
+        when: project_config.project__custom__customer_demo_dro
+
+  prepare_customer_demo_catalog_additive:
+    group: Revenue Lifecycle Management
+    description: >
+      Additive variant of prepare_customer_demo_catalog for orgs that already hold another
+      customer's demo data. Identical step order, with every scoped-delete and purge task
+      removed: customer_demo_purge_records, delete_customer_demo_pricing_data,
+      delete_customer_demo_rates_data, delete_customer_demo_rating_data, and
+      delete_customer_demo_dro_data. Nothing in this flow deletes an existing org record.
+      Trade-off: it is NOT idempotent for the Insert-operation objects (ProductUsageResource,
+      ProductUsageResourcePolicy, ProductUsageGrant, RateCardEntry, RateAdjustmentByTier,
+      AttributeAdjustmentCondition, AttributeBasedAdjustment) — running it twice duplicates
+      those rows. Use prepare_customer_demo_catalog when a clean reload is acceptable.
+      customer_demo_recreate_pricebook_via_api keeps delete_first, which only removes
+      PricebookEntry rows for the SKUs in customer-pricebook-entries.csv.
+    steps:
+      1:
+        task: insert_customer_demo_pcm_data
+      2:
+        task: deploy_customer_demo_staticresources
+      3:
+        task: deploy_customer_demo_branding
+        when: project_config.project__custom__customer_demo_branding
+      4:
+        task: insert_customer_demo_product_images_data
+      5:
+        task: insert_customer_demo_billing_data
+      5b:
+        task: activate_customer_demo_billing
+      6:
+        task: customer_demo_recreate_pricebook_via_api
+      7:
+        task: insert_customer_demo_pricing_data
+      7b:
+        task: insert_customer_demo_pricing_adjustments
+      8:
+        task: customer_demo_verify_catalog
+      9:
+        task: insert_customer_demo_rating_data
+        when: project_config.project__custom__customer_demo_usage
+      10:
+        task: insert_customer_demo_rates_data
+        when: project_config.project__custom__customer_demo_usage
+      11:
+        task: activate_customer_demo_rating_records
+        when: project_config.project__custom__customer_demo_usage
+      12:
+        task: activate_rates
+        when: project_config.project__custom__customer_demo_usage
+      13:
+        task: insert_customer_demo_dro_data
+        when: project_config.project__custom__customer_demo_dro
+      14:
         task: update_customer_demo_fulfillment_decomp_rules
         when: project_config.project__custom__customer_demo_dro
 

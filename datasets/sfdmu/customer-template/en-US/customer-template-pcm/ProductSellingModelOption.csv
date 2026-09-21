@@ -1,1 +1,15 @@
 $$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+SFDC-MAX-SUITE;Term Annual;TermDefined,true,SFDC-MAX-SUITE,Term Annual;TermDefined,Default Proration Policy
+SFDC-SALES-CORE;Term Annual;TermDefined,true,SFDC-SALES-CORE,Term Annual;TermDefined,Default Proration Policy
+SFDC-SALES-ADV;Term Annual;TermDefined,true,SFDC-SALES-ADV,Term Annual;TermDefined,Default Proration Policy
+SFDC-SALES-MAX;Term Annual;TermDefined,true,SFDC-SALES-MAX,Term Annual;TermDefined,Default Proration Policy
+SFDC-SVC-CORE;Term Annual;TermDefined,true,SFDC-SVC-CORE,Term Annual;TermDefined,Default Proration Policy
+SFDC-RC-GROWTH;Term Annual;TermDefined,true,SFDC-RC-GROWTH,Term Annual;TermDefined,Default Proration Policy
+SFDC-AF-FLAT;Term Annual;TermDefined,true,SFDC-AF-FLAT,Term Annual;TermDefined,Default Proration Policy
+SFDC-TABLEAU-NEXT;Term Annual;TermDefined,true,SFDC-TABLEAU-NEXT,Term Annual;TermDefined,Default Proration Policy
+SFDC-SLACK-BIZPLUS;Term Monthly;TermDefined,true,SFDC-SLACK-BIZPLUS,Term Monthly;TermDefined,Default Proration Policy
+SFDC-USG-FLEX;Term Monthly;TermDefined,true,SFDC-USG-FLEX,Term Monthly;TermDefined,Default Proration Policy
+SFDC-BLNG-FLEX;Term Monthly;TermDefined,true,SFDC-BLNG-FLEX,Term Monthly;TermDefined,Default Proration Policy
+SFDC-USG-CONV;Term Monthly;TermDefined,true,SFDC-USG-CONV,Term Monthly;TermDefined,Default Proration Policy
+SFDC-BLNG-CONV;Term Monthly;TermDefined,true,SFDC-BLNG-CONV,Term Monthly;TermDefined,Default Proration Policy
+SFDC-SVC-IMPL;One-Time;OneTime,true,SFDC-SVC-IMPL,One-Time;OneTime,

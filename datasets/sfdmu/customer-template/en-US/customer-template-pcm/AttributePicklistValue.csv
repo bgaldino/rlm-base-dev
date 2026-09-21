@@ -1,1 +1,4 @@
 Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+STD,SFDC-SP-STD,Standard,true,Standard,SFDC Service Plan,1,Active,Standard
+PREM,SFDC-SP-PREM,Premier,false,Premier,SFDC Service Plan,2,Active,Premier
+SIG,SFDC-SP-SIG,Signature,false,Signature,SFDC Service Plan,3,Active,Signature

@@ -33,7 +33,7 @@ sf data query -q "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit I
 ## CCI Tasks
 
 ```bash
-# Delete existing customer DRO records (scoped to MCC-* prefix)
+# Delete existing customer DRO records (scoped to the customer name prefix — currently `SFDC `)
 cci task run delete_customer_demo_dro_data --org <alias>
 
 # Load PFDR + PFS + Product2 DecompositionScope update
@@ -58,9 +58,9 @@ cci flow run prepare_customer_demo_catalog --org <alias>
 |---|---|---|---|
 | `Product2` | Readonly (Set 1) | — | `StockKeepingUnit` |
 | `FulfillmentStepDefinitionGroup` | Readonly (Set 1) | — | `Name` |
-| `ProductFulfillmentDecompRule` | Upsert (Set 1) | 15 | `Name` |
-| `ProductFulfillmentScenario` | Upsert (Set 1) | 22 | `Name` |
-| `Product2` | Update (Set 2) | 13 | `StockKeepingUnit` |
+| `ProductFulfillmentDecompRule` | Upsert (Set 1) | 5 | `Name` |
+| `ProductFulfillmentScenario` | Upsert (Set 1) | 5 | `Name` |
+| `Product2` | Update (Set 2) | 5 | `StockKeepingUnit` |
 
 **Why two objectSets?** PFDR and PFS need Product2 FKs resolved from the full org (including QB-DRO-* routing products), but the Product2 Update in Set 2 only touches customer SKUs. Separating Readonly (FK map building) from Update (field write) into different sets avoids having two Product2 entries in the same objectSet.
 
@@ -69,6 +69,19 @@ cci flow run prepare_customer_demo_catalog --org <alias>
 ## CSV Data
 
 `ProductFulfillmentDecompRule.csv` and `ProductFulfillmentScenario.csv` are populated per customer. See `datasets/sfdmu/_archived/` for reference examples from previous customers. When building the PFS CSV, use the verified group names from the target org (see pitfall above) — not assumed names like "Order Processing".
+
+Current content — Salesforce demo (prefix `SFDC`), from `sku-contract.yaml` → `dro.scenarios`:
+
+| SKU | Routes to | Step group | Actions |
+|---|---|---|---|
+| `SFDC-SALES-CORE` | `QB-DRO-BILL` | Finance | Add;Amend;Renew;Cancel |
+| `SFDC-SALES-MAX` | `QB-DRO-BILL` | Provisioning & Activation | Add;Amend;Renew;Cancel |
+| `SFDC-RC-GROWTH` | `QB-DRO-BILL` | Provisioning & Activation | Add;Amend;Renew;Cancel |
+| `SFDC-USG-FLEX` | `QB-DRO-BILL` | Usage Provisioning & Activation | Add;Amend;Cancel |
+| `SFDC-SVC-IMPL` | `QB-DRO-PROJ` | Services | Add;Cancel |
+
+All five use `DecompositionScope = OrderLineItem`. The bundle parent `SFDC-MAX-SUITE` has no
+routing scenario in the contract, so it is intentionally absent from `Product2.csv`.
 
 ---
 

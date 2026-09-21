@@ -6,8 +6,8 @@
 //   2) delete_customer_demo_rates_data — CD-DEMO rate cards
 //   3) delete_customer_demo_rating_data — PUR/PUG/PURP/SF-UR-* / OC-UR-*
 //
-// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, SF-BLNG-%, OC-%, or APT-%;
-// ProductCatalog Code = SF-DEMO-CAT, OC-DEMO-CAT, or CAT-APT-DEMO; ProductClassification Code = SF-SW or OC-CLUB;
+// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, SF-BLNG-%, OC-%, APT-%, OAI-%, or SFDC-%;
+// ProductCatalog and ProductClassification codes are listed below;
 // demo UsageGrantRenewalPolicy / UsageGrantRolloverPolicy codes SF-DEMO-USG-*;
 // billing records named in customer-template-billing CSVs.
 //
@@ -17,8 +17,8 @@
 // Quote lines or order items referencing demo SKUs will block PricebookEntry/Product2 delete — remove those
 // transaction rows first, then re-run this script.
 
-final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT', 'CAT-APT-DEMO', 'OAI-CATALOG' };
-final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB', 'OAI-PC-API' };
+final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT', 'CAT-APT-DEMO', 'OAI-CATALOG', 'CAT-SFDC' };
+final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB', 'OAI-PC-API', 'SFDC-PC-CRM-APP' };
 final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
     new List<String>{
         'Snowflake Demo Billing Policy',
@@ -39,6 +39,18 @@ final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
         'OpenAI Standard Billing',
         'OpenAI Billing Treatment',
         'OpenAI Legal Entity'
+    },
+    // Both Salesforce policies share one legal entity; the second delete no-ops
+    // because every DML below runs allOrNone=false.
+    new List<String>{
+        'SFDC Annual Advance',
+        'Salesforce Annual Subscription',
+        'Salesforce, Inc.'
+    },
+    new List<String>{
+        'SFDC Monthly Arrears',
+        'Salesforce Monthly Usage',
+        'Salesforce, Inc.'
     }
 };
 
@@ -53,6 +65,7 @@ List<Product2> demoProducts = [
         OR (StockKeepingUnit LIKE 'OC-%')
         OR (StockKeepingUnit LIKE 'APT-%')
         OR (StockKeepingUnit LIKE 'OAI-%')
+        OR (StockKeepingUnit LIKE 'SFDC-%')
 ];
 Set<Id> demoProductIds = new Map<Id, Product2>(demoProducts).keySet();
 
@@ -277,7 +290,7 @@ for (List<String> stack : DEMO_BILLING_STACKS) {
 }
 
 // customer-template-billing demo payment terms
-final List<String> DEMO_PAYMENT_TERM_NAMES = new List<String>{ 'APTIM Demo Net 30', 'OpenAI Net 30' };
+final List<String> DEMO_PAYMENT_TERM_NAMES = new List<String>{ 'APTIM Demo Net 30', 'OpenAI Net 30', 'SFDC Net 30' };
 for (String termName : DEMO_PAYMENT_TERM_NAMES) {
     List<PaymentTerm> demoTerms = [SELECT Id FROM PaymentTerm WHERE Name = :termName LIMIT 1];
     if (!demoTerms.isEmpty()) {

@@ -1,41 +1,64 @@
 # customer-template-product-images Data Plan
 
-Template SFDMU plan for customer demo product images.
+Sets `Product2.DisplayUrl` on customer demo products, matched by `StockKeepingUnit`.
 
-## Scope
+Current customer: **Salesforce** (prefix `sfdc`, brand `#00B4FF` on `#FFFFFF`).
 
-- Updates `Product2.DisplayUrl` by matching `Product2.StockKeepingUnit`.
-- Intended to run after product records are loaded by `customer-template-pcm`.
+## Sequencing
+
+`DisplayUrl` resolves to `/resource/<StaticResourceName>`, so the resource has to be in the org
+first. `prepare_customer_demo_catalog` enforces the order:
+
+| Step | Task | Effect |
+|---|---|---|
+| 2 | `insert_customer_demo_pcm_data` | Creates Product2 with `DisplayUrl` **empty** |
+| 3 | `deploy_customer_demo_staticresources` | Deploys the tiles from `unpackaged/post_customer_demo/staticresources/` |
+| 4 | `deploy_customer_demo_branding` | Theme ContentAsset/BrandingSet (independent of DisplayUrl) |
+| 5 | `insert_customer_demo_product_images_data` | This plan — sets `DisplayUrl` by SKU |
+
+Never set `DisplayUrl` in the PCM plan.
 
 ## CSV contract
 
-`Product2.csv` headers:
+`Product2.csv` headers: `DisplayUrl`, `Name`, `StockKeepingUnit`. One row per SKU with
+`image_required: true` in `sku-contract.yaml` (8 rows for this catalog). `export.json` uses
+`operation: Update` with `externalId: StockKeepingUnit`, so the products must already exist —
+this plan never creates a Product2.
 
-- `DisplayUrl` (image URL shown on product experiences)
-- `Name` (optional for readability)
-- `StockKeepingUnit` (required lookup key)
+`Product2.csv` is generated. Do not hand-edit it; re-run the generator instead.
 
-## DisplayUrl conventions
+## Tile generator
 
-- Preferred: Salesforce static resource path
-  - `DisplayUrl=/resource/<StaticResourceName>`
-  - Example: `/resource/RLM_customer_acme_logo_sq`
-- Allowed fallback: external `https://...` URL when static resource deployment is not used.
+`tools/generate_branded_tiles.py` reads the contract and writes both sides of the wiring in one
+pass — the static resources and this plan's CSV — so resource names and `DisplayUrl` values
+cannot drift apart.
 
-For customer demos, prefer static resources so image rendering is stable and independent of third-party hosting.
+```bash
+# Tiles + Product2.csv
+.venv/bin/python tools/generate_branded_tiles.py --logo-path tools/assets/sfdc-logo.png
 
-## Customer logo workflow
+# Regenerate the wordmark placeholder (only when the customer name or brand color changes)
+.venv/bin/python tools/generate_branded_tiles.py --emit-logo-placeholder
+```
 
-1. Generate static resource files from a public customer logo URL:
-   - `python3 scripts/customer-demo/prepare_customer_logo_static_resource.py --company-name "Acme" --logo-url "https://example.com/logo.png"`
-2. Deploy generated resources:
-   - `cci task run deploy_customer_demo_staticresources --org <org-alias>`
-3. Set `DisplayUrl` in `Product2.csv` to `/resource/<StaticResourceName>`.
-4. Run `insert_customer_demo_product_images_data` (or `prepare_customer_demo_catalog` flow).
+Requires PyYAML, plus Pillow for `--emit-logo-placeholder`. The repo venv has both:
+`.venv/bin/python -m pip install pyyaml Pillow`.
 
-## Usage
+Each tile is a 512×512 SVG: solid brand-color field, a white logo band, the product name, and
+the SKU. Everything is inlined — Salesforce renders static resource images in secure static
+mode, which blocks references to other resources and external URLs.
 
-1. Copy this template into your customer dataset path if needed.
-2. Add image URLs for SKUs that require visual representation in the demo.
-3. Keep values consistent with the deployed static resource names.
-4. Run via customer demo flow/task after PCM records exist.
+## Logo
+
+`tools/assets/sfdc-logo.png` is the single source of truth for customer imagery. It is
+currently a generated wordmark placeholder, because salesforce.com and Wikimedia both return
+403 to server-side fetches. Dropping in the real logo is a one-file change: overwrite that
+file, re-run the generator, and re-run `scripts/customer-demo/prepare_customer_branding.py`
+with the same `--logo-path`.
+
+## Reusing for the next customer
+
+Update `experience` and `image_required` in `sku-contract.yaml`, delete the previous customer's
+resources from `unpackaged/post_customer_demo/staticresources/`, emit a new placeholder, and
+re-run the generator. Prefixing resources with the customer's `static_resource_prefix` keeps
+several demo catalogs coexisting in one org without name collisions.

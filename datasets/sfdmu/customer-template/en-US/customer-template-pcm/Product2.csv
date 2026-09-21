@@ -1,1 +1,15 @@
 BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,Allowed,Configurable suite pairing Sales Cloud Max with optional Slack and Tableau Next add-ons (demo).,,Software,true,true,false,Salesforce Max Suite,SFDC-MAX-SUITE,EACH,,SFDC-MAX-SUITE,Bundle,EACH
+SFDC-PC-CRM-APP,false,Allowed,Sales Cloud Core edition with a configurable Success Plan that drives price (demo).,,Software,true,true,false,Sales Cloud Core,SFDC-SALES-CORE,EACH,,SFDC-SALES-CORE,,EACH
+,false,,Sales Cloud Advanced edition with forecasting and advanced automation (demo).,,Software,true,true,false,Sales Cloud Advanced,SFDC-SALES-ADV,EACH,,SFDC-SALES-ADV,,EACH
+,false,,Sales Cloud Max edition with Agentforce and Data Cloud entitlements (demo).,,Software,true,true,false,Sales Cloud Max,SFDC-SALES-MAX,EACH,,SFDC-SALES-MAX,,EACH
+,false,,Service Cloud Core edition for case management and service console (demo).,,Software,true,true,false,Service Cloud Core,SFDC-SVC-CORE,EACH,,SFDC-SVC-CORE,,EACH
+,false,,Revenue Cloud Growth edition for quoting billing and revenue lifecycle (demo).,,Software,true,true,false,Revenue Cloud Growth,SFDC-RC-GROWTH,EACH,,SFDC-RC-GROWTH,,EACH
+,false,,Flat-rate Agentforce platform access independent of metered consumption (demo).,,Software,true,true,false,Agentforce Flat Access,SFDC-AF-FLAT,EACH,,SFDC-AF-FLAT,,EACH
+,false,,Tableau Next analytics add-on licensed per user (demo).,,Software,true,true,false,Tableau Next,SFDC-TABLEAU-NEXT,EACH,,SFDC-TABLEAU-NEXT,,EACH
+,false,,Slack Business Plus collaboration license billed monthly (demo).,,Software,true,true,false,Slack Business Plus,SFDC-SLACK-BIZPLUS,EACH,,SFDC-SLACK-BIZPLUS,,EACH
+,false,,Sellable Agentforce Flex Credits meter rated against consumed credits (demo).,,Software,true,true,false,Agentforce Flex Credits,SFDC-USG-FLEX,EACH,,SFDC-USG-FLEX,,EACH
+,false,,Rating usage-definition product for Flex Credit metering. Not sold standalone.,,,true,true,false,Flex Credit Usage Definition,SFDC-BLNG-FLEX,EACH,,SFDC-BLNG-FLEX,,EACH
+,false,,Sellable Agentforce Conversations meter rated per conversation (demo).,,Software,true,true,false,Agentforce Conversations,SFDC-USG-CONV,EACH,,SFDC-USG-CONV,,EACH
+,false,,Rating usage-definition product for Agentforce Conversation metering. Not sold standalone.,,,true,true,false,Conversation Usage Definition,SFDC-BLNG-CONV,EACH,,SFDC-BLNG-CONV,,EACH
+,false,,Fixed-fee Salesforce Professional Services implementation engagement (demo).,,Services,true,false,false,Implementation Services,SFDC-SVC-IMPL,EACH,,SFDC-SVC-IMPL,,EACH

@@ -1,4 +1,4 @@
-// Delete customer-demo usage rating slice (Snowflake SF-* / OC-* usage SKUs, SF-UR-* / OC-UR-*),
+// Delete customer-demo usage rating slice (SF-* / OC-* / SFDC-* usage SKUs and their meters),
 // including ProductUsageGrant, ProductUsageResourcePolicy, PUR, then UsageResource.
 // Does not delete shared UnitOfMeasure / UnitOfMeasureClass rows or UsageResourceBillingPolicy (monthlypeak / monthlytotal).
 //
@@ -16,13 +16,19 @@ final Set<String> demoProductSkus = new Set<String>{
     'SF-BLNG-EGRESS',
     'SF-BLNG-COMPUTE',
     'OC-USG-GREEN-ROUNDS',
-    'OC-BLNG-GREEN'
+    'OC-BLNG-GREEN',
+    'SFDC-USG-FLEX',
+    'SFDC-USG-CONV',
+    'SFDC-BLNG-FLEX',
+    'SFDC-BLNG-CONV'
 };
 final Set<String> demoUsageResourceCodes = new Set<String>{
     'SF-UR-STORAGE',
     'SF-UR-EGRESS',
     'SF-UR-COMPUTE',
-    'OC-UR-GREEN'
+    'OC-UR-GREEN',
+    'SFDC-UR-FLEX',
+    'SFDC-UR-CONV'
 };
 List<Product2> demoProducts = [
     SELECT Id FROM Product2 WHERE StockKeepingUnit IN :demoProductSkus

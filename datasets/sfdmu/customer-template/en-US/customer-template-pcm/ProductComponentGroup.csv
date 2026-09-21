@@ -1,1 +1,2 @@
 $$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.StockKeepingUnit,Sequence
+PCG-SFDC-MAX;SFDC-MAX-SUITE,PCG-SFDC-MAX,Sales Cloud Max plus optional Slack and Tableau Next add-ons.,3,1,Max Suite Components,SFDC-MAX-SUITE,1

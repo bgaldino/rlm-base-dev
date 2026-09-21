@@ -1,1 +1,9 @@
 DisplayUrl,Name,StockKeepingUnit
+/resource/sfdc_tile_af_flat,Agentforce Flat Access,SFDC-AF-FLAT
+/resource/sfdc_tile_max_suite,Salesforce Max Suite,SFDC-MAX-SUITE
+/resource/sfdc_tile_rc_growth,Revenue Cloud Growth,SFDC-RC-GROWTH
+/resource/sfdc_tile_sales_adv,Sales Cloud Advanced,SFDC-SALES-ADV
+/resource/sfdc_tile_sales_core,Sales Cloud Core,SFDC-SALES-CORE
+/resource/sfdc_tile_sales_max,Sales Cloud Max,SFDC-SALES-MAX
+/resource/sfdc_tile_svc_core,Service Cloud Core,SFDC-SVC-CORE
+/resource/sfdc_tile_svc_impl,Implementation Services,SFDC-SVC-IMPL

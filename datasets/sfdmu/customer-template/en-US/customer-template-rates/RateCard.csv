@@ -1,1 +1,3 @@
 $$Name$Type,Description,EffectiveFrom,EffectiveTo,Name,Type
+CD-DEMO Base Rate Card;Base,Salesforce demo flat Agentforce consumption rates,2025-01-01T00:00:00.000+0000,,CD-DEMO Base Rate Card,Base
+CD-DEMO Tier Rate Card;Tier,Salesforce demo volume-tiered Agentforce Flex Credit rates (RateAdjustmentByTier),2025-01-01T00:00:00.000+0000,,CD-DEMO Tier Rate Card,Tier

@@ -1,1 +1,3 @@
 BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+SFDC Annual Advance,USD,Yearly billing frequency invoiced in advance,false,No,"Salesforce, Inc.",Salesforce Annual Subscription,Draft,"Salesforce Annual Subscription;SFDC Annual Advance;Salesforce, Inc."
+SFDC Monthly Arrears,USD,Monthly billing frequency invoiced in arrears,false,No,"Salesforce, Inc.",Salesforce Monthly Usage,Draft,"Salesforce Monthly Usage;SFDC Monthly Arrears;Salesforce, Inc."

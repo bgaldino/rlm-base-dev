@@ -1,1 +1,2 @@
 Code,Name,Status,UsageAccumulationMethod,UsageAccumulationPeriod
+monthlytotal,Monthly Total,Active,Sum,Monthly

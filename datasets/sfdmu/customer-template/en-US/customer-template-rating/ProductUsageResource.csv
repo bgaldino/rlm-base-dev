@@ -1,1 +1,3 @@
 $$Product.StockKeepingUnit$UsageResource.Code,EffectiveEndDate,EffectiveStartDate,Product.StockKeepingUnit,Status,IsOptional,TokenResource.Code,UsageResource.Code
+SFDC-USG-FLEX;SFDC-UR-FLEX,,2025-01-01T00:00:00.000+0000,SFDC-USG-FLEX,Draft,false,,SFDC-UR-FLEX
+SFDC-USG-CONV;SFDC-UR-CONV,,2025-01-01T00:00:00.000+0000,SFDC-USG-CONV,Draft,false,,SFDC-UR-CONV

@@ -1,4 +1,4 @@
-// Delete customer-demo DRO records scoped to OAI-* prefix.
+// Delete customer-demo DRO records scoped to the OAI-* and SFDC-* customer prefixes.
 // Safe to run when QB DRO data coexists in the same org — WHERE clause is name-scoped.
 //
 // Both ProductFulfillmentDecompRule and ProductFulfillmentScenario are standalone records
@@ -13,23 +13,23 @@
 // before the SFDMU Upsert in step 12.
 
 List<ProductFulfillmentScenario> scenarios = [
-    SELECT Id FROM ProductFulfillmentScenario WHERE Name LIKE 'OAI %'
+    SELECT Id FROM ProductFulfillmentScenario WHERE Name LIKE 'OAI %' OR Name LIKE 'SFDC %'
 ];
 
 if (!scenarios.isEmpty()) {
     delete scenarios;
     System.debug('deleteCustomerDemoDROData: deleted ' + scenarios.size() + ' ProductFulfillmentScenario row(s).');
 } else {
-    System.debug('deleteCustomerDemoDROData: no OAI ProductFulfillmentScenario rows — nothing to delete.');
+    System.debug('deleteCustomerDemoDROData: no demo ProductFulfillmentScenario rows — nothing to delete.');
 }
 
 List<ProductFulfillmentDecompRule> rules = [
-    SELECT Id FROM ProductFulfillmentDecompRule WHERE Name LIKE 'OAI %'
+    SELECT Id FROM ProductFulfillmentDecompRule WHERE Name LIKE 'OAI %' OR Name LIKE 'SFDC %'
 ];
 
 if (!rules.isEmpty()) {
     delete rules;
     System.debug('deleteCustomerDemoDROData: deleted ' + rules.size() + ' ProductFulfillmentDecompRule row(s).');
 } else {
-    System.debug('deleteCustomerDemoDROData: no OAI ProductFulfillmentDecompRule rows — nothing to delete.');
+    System.debug('deleteCustomerDemoDROData: no demo ProductFulfillmentDecompRule rows — nothing to delete.');
 }

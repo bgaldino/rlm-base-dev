@@ -1,1 +1,4 @@
 Name,UnitCode,UnitOfMeasureClass.Name
+Flex Credit,FLEXCRD,Salesforce Flex Credits
+Agentforce Conversation,AFCONV,Agentforce Conversations
+USD,USD,Currency

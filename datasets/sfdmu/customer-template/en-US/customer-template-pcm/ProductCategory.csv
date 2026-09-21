@@ -1,1 +1,5 @@
 Code,Description,IsNavigational,Name,ParentCategory.Code,Catalog.Code,SortOrder
+PC-SFDC-CRM,Core CRM application licenses.,true,CRM Applications,,CAT-SFDC,10
+PC-SFDC-AI,Agentforce and Data Cloud offerings including metered consumption.,true,AI & Data,,CAT-SFDC,20
+PC-SFDC-ADDON,Attachable add-on licenses.,true,Add-Ons,,CAT-SFDC,30
+PC-SFDC-SVC,Success plans and professional services.,true,Success & Services,,CAT-SFDC,40

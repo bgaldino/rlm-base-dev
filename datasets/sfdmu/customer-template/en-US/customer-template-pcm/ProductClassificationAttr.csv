@@ -1,1 +1,2 @@
 AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+SFDC-SUCCESS-OPTIONS,SFDC-SVC-PLAN,,Standard,,,,false,true,false,false,,,,,SFDC Success Plan,SFDC-PC-CRM-APP,1,Active,,,

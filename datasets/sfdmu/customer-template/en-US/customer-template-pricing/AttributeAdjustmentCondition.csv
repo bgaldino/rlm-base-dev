@@ -1,1 +1,3 @@
 $$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+SFDC-CORE-PREMIER;SFDC-SVC-PLAN;SFDC-SALES-CORE,SFDC-CORE-PREMIER,SFDC-SVC-PLAN,,,,,,equals,SFDC-SALES-CORE,Premier
+SFDC-CORE-SIGNATURE;SFDC-SVC-PLAN;SFDC-SALES-CORE,SFDC-CORE-SIGNATURE,SFDC-SVC-PLAN,,,,,,equals,SFDC-SALES-CORE,Signature

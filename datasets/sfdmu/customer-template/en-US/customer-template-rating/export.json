@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "Customer-template usage rating (populate CSVs per onboarding): sellable usage SKUs, matching UsageResource codes, PUR/PURP/PUG + grant policies. UsageAggregationPolicy.Code on PURP must match UsageResourceBillingPolicy.Code (e.g. monthlypeak/monthlytotal). Run delete_customer_demo_rating_data before each reload. See docs/references/customer-template-usage-resource.md.",
+  "$comment_plan": "Salesforce customer demo usage rating: SFDC-USG-* sellable meters (UsageModelType Anchor), SFDC-UR-FLEX / SFDC-UR-CONV UsageResources, PUR/PURP/PUG. Grant policies (SF-DEMO-USG-RENEW / SF-DEMO-USG-ROLL / Default Usage Overage Policy) already exist in the org \u2014 SFDMU v5 silently fails to create them, so the rows only serve parent resolution. UsageAggregationPolicy.Code on PURP matches UsageResourceBillingPolicy.Code (monthlytotal). UOM classes SFDCCRED / SFDCCONV and units FLEXCRD / AFCONV come from customer-template-pcm and must load first. Run delete_customer_demo_rating_data before each reload. See docs/references/customer-template-usage-resource.md.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,

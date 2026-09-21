@@ -1,1 +1,2 @@
 CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
+"Salesforce, Inc.",USD,Salesforce customer demo legal entity,San Francisco,US,94105,CA,415 Mission Street,"Salesforce, Inc.",Active

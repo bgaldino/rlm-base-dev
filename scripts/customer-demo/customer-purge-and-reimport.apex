@@ -15,7 +15,9 @@ final Set<String> demoUsageProductSkus = new Set<String>{
     'SF-USG-STORAGE',
     'SF-USG-EGRESS',
     'SF-USG-COMPUTE',
-    'OC-USG-GREEN-ROUNDS'
+    'OC-USG-GREEN-ROUNDS',
+    'SFDC-USG-FLEX',
+    'SFDC-USG-CONV'
 };
 
 List<ProductUsageResource> demoPurs = [
@@ -57,7 +59,9 @@ final Set<String> demoUsageResourceCodes = new Set<String>{
     'SF-UR-STORAGE',
     'SF-UR-EGRESS',
     'SF-UR-COMPUTE',
-    'OC-UR-GREEN'
+    'OC-UR-GREEN',
+    'SFDC-UR-FLEX',
+    'SFDC-UR-CONV'
 };
 
 List<UsageResource> demoUrs = [
@@ -66,7 +70,7 @@ List<UsageResource> demoUrs = [
 Set<Id> demoUrIds = new Map<Id, UsageResource>(demoUrs).keySet();
 
 if (demoUrIds.isEmpty()) {
-    System.debug('customer-purge: no SF-UR-* UsageResource rows — skip usage-grant cleanup.');
+    System.debug('customer-purge: no demo UsageResource rows — skip usage-grant cleanup.');
 } else {
     List<QuotLineItmUseRsrcGrant> qlGrants = [
         SELECT Id FROM QuotLineItmUseRsrcGrant WHERE UsageResourceId IN :demoUrIds

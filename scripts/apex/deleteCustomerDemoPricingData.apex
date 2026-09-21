@@ -1,5 +1,6 @@
-// Delete customer-demo attribute-based pricing records scoped to OAI-* rules.
-// Safe to run even when QB pricing data coexists in the same org — WHERE clause is name-scoped.
+// Delete customer-demo attribute-based pricing records scoped to SFDC-* rules (Salesforce demo).
+// Safe to run even when QB or other customer-demo pricing data coexists in the same org —
+// the WHERE clause is name-scoped to the customer prefix from sku-contract.yaml.
 //
 // AttributeAdjustmentCondition is a master-detail child of AttributeBasedAdjRule with
 // cascade delete — direct DML Delete on AAC is not permitted. Deletion order:
@@ -7,14 +8,14 @@
 //   2. AttributeBasedAdjRule (cascades AttributeAdjustmentCondition automatically)
 //
 // Runs as step 8 of prepare_customer_demo_catalog (delete_customer_demo_pricing_data)
-// before the SFDMU Insert of the same objects in step 9.
+// before the SFDMU Upsert of AttributeBasedAdjRule in step 9.
 
 List<AttributeBasedAdjRule> rules = [
-    SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'OAI-%'
+    SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'SFDC-%'
 ];
 
 if (rules.isEmpty()) {
-    System.debug('deleteCustomerDemoPricingData: no OAI-* AttributeBasedAdjRule rows — nothing to delete.');
+    System.debug('deleteCustomerDemoPricingData: no SFDC-* AttributeBasedAdjRule rows — nothing to delete.');
     return;
 }
 

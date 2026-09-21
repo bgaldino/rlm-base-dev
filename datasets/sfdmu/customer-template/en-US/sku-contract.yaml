@@ -1,0 +1,428 @@
+# SKU Contract — Salesforce demo catalog
+#
+# Written by the conductor after the vision gate. Builders READ this file; none edit it.
+# Schema: docs/references/customer-demo-sku-contract.md
+#
+# Prefix note: SFDC, not SF. The Snowflake demo already owns SF-USG-*, SF-BLNG-*,
+# SF-UR-*, and SF-DEMO-USG-* in this org.
+
+contract_version: 1
+
+customer:
+  name: Salesforce
+  prefix: SFDC
+  website: https://www.salesforce.com
+
+flags:
+  customer_demo_usage: true
+  customer_demo_dro: true
+  customer_demo_branding: true
+
+org:
+  alias: rc-apr8-customer-template
+  context_file: datasets/sfdmu/customer-template/en-US/org-context.json
+
+catalog:
+  name: Salesforce Demo Catalog
+  code: CAT-SFDC
+
+categories:
+  - code: PC-SFDC-CRM
+    name: CRM Applications
+  - code: PC-SFDC-AI
+    name: AI & Data
+  - code: PC-SFDC-ADDON
+    name: Add-Ons
+  - code: PC-SFDC-SVC
+    name: Success & Services
+
+billing:
+  legal_entity: Salesforce, Inc.
+  # Prefixed: the org already has a generic "Net 30" and PaymentTerm upserts on Name.
+  payment_terms:
+    - { name: SFDC Net 30, days: 30 }
+  policies:
+    # Licenses invoice annually in advance; metered Agentforce usage bills
+    # monthly in arrears, matching Flex PayGo.
+    - name: SFDC Annual Advance
+      payment_term: SFDC Net 30
+      treatment: Salesforce Annual Subscription
+      frequency: Yearly
+    - name: SFDC Monthly Arrears
+      payment_term: SFDC Net 30
+      treatment: Salesforce Monthly Usage
+      frequency: Monthly
+
+# Prices are annual totals (published monthly list x 12) on Term Annual.
+skus:
+  - sku: SFDC-MAX-SUITE
+    name: Salesforce Max Suite
+    category_code: PC-SFDC-CRM
+    type: Bundle
+    configure_during_sale: Allowed
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 6600
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: Bundle
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-SALES-CORE
+    name: Sales Cloud Core
+    category_code: PC-SFDC-CRM
+    type: ""
+    configure_during_sale: Allowed   # has a price-impacting attribute
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 2340
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 2
+    usage: { role: none }
+
+  - sku: SFDC-SALES-ADV
+    name: Sales Cloud Advanced
+    category_code: PC-SFDC-CRM
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 4740
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-SALES-MAX
+    name: Sales Cloud Max
+    category_code: PC-SFDC-CRM
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 6600
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-SVC-CORE
+    name: Service Cloud Core
+    category_code: PC-SFDC-CRM
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 2340
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-RC-GROWTH
+    name: Revenue Cloud Growth
+    category_code: PC-SFDC-ADDON
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 1800
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-AF-FLAT
+    name: Agentforce Flat Access
+    category_code: PC-SFDC-AI
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 1500
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-TABLEAU-NEXT
+    name: Tableau Next
+    category_code: PC-SFDC-ADDON
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Annual
+    psm_selling_model_type: TermDefined
+    unit_price: 480
+    currency: USD
+    image_required: false
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-SLACK-BIZPLUS
+    name: Slack Business Plus
+    category_code: PC-SFDC-ADDON
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 15
+    currency: USD
+    image_required: false
+    billing_required: true
+    billing_policy_name: SFDC Monthly Arrears
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+  - sku: SFDC-USG-FLEX
+    name: Agentforce Flex Credits
+    category_code: PC-SFDC-AI
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: true
+    billing_policy_name: SFDC Monthly Arrears
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: sellable
+      usage_model_type: Anchor
+      usage_resource_code: SFDC-UR-FLEX
+
+  - sku: SFDC-BLNG-FLEX
+    name: Flex Credit Usage Definition
+    category_code: PC-SFDC-AI
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: false
+    billing_policy_name: ""
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: definition
+      usage_resource_code: SFDC-UR-FLEX
+
+  - sku: SFDC-USG-CONV
+    name: Agentforce Conversations
+    category_code: PC-SFDC-AI
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: true
+    billing_policy_name: SFDC Monthly Arrears
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: sellable
+      usage_model_type: Anchor
+      usage_resource_code: SFDC-UR-CONV
+
+  - sku: SFDC-BLNG-CONV
+    name: Conversation Usage Definition
+    category_code: PC-SFDC-AI
+    type: ""
+    configure_during_sale: ""
+    psm_name: Term Monthly
+    psm_selling_model_type: TermDefined
+    unit_price: 0
+    currency: USD
+    image_required: false
+    billing_required: false
+    billing_policy_name: ""
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage:
+      role: definition
+      usage_resource_code: SFDC-UR-CONV
+
+  - sku: SFDC-SVC-IMPL
+    name: Implementation Services
+    category_code: PC-SFDC-SVC
+    type: ""
+    configure_during_sale: ""
+    psm_name: One-Time
+    psm_selling_model_type: OneTime
+    unit_price: 25000
+    currency: USD
+    image_required: true
+    billing_required: true
+    billing_policy_name: SFDC Annual Advance
+    product_type_expected: ""
+    expected_pricing_rules: 0
+    usage: { role: none }
+
+bundles:
+  - parent_sku: SFDC-MAX-SUITE
+    component_group: Max Suite Components
+    children:
+      - { sku: SFDC-SALES-MAX, required: true, min: 1, max: 1 }
+      - { sku: SFDC-SLACK-BIZPLUS, required: false, min: 0, max: 500 }
+      - { sku: SFDC-TABLEAU-NEXT, required: false, min: 0, max: 500 }
+
+attributes:
+  picklists:
+    - name: SFDC Service Plan
+      values:
+        - { code: SFDC-SP-STD, value: Standard }
+        - { code: SFDC-SP-PREM, value: Premier }
+        - { code: SFDC-SP-SIG, value: Signature }
+  definitions:
+    - developer_name: SFDC_Service_Plan
+      code: SFDC-SVC-PLAN
+      label: Success Plan
+      picklist: SFDC Service Plan
+      is_price_impacting: true
+      applies_to_skus: [SFDC-SALES-CORE]
+
+pricing_rules:
+  # Premier Success is published at 30% of net license fees. Signature is
+  # quote-only; 60% is a demo estimate.
+  - rule_name: SFDC-CORE-PREMIER
+    sku: SFDC-SALES-CORE
+    attribute_code: SFDC-SVC-PLAN
+    operator: equals
+    string_value: Premier
+    adjustment_type: Percentage
+    adjustment_value: 30
+    psm_name: Term Annual
+  - rule_name: SFDC-CORE-SIGNATURE
+    sku: SFDC-SALES-CORE
+    attribute_code: SFDC-SVC-PLAN
+    operator: equals
+    string_value: Signature
+    adjustment_type: Percentage
+    adjustment_value: 60
+    psm_name: Term Annual
+
+uom:
+  # CRD is owned by the Snowflake class (SNFCRED) and EVENT by DEVICE_EVENTS.
+  # A unit belongs to exactly one class, so Salesforce metering gets its own.
+  classes:
+    - { code: SFDCCRED, name: Salesforce Flex Credits, type: Usage,
+        base_unit: FLEXCRD, default_unit: FLEXCRD }
+    - { code: SFDCCONV, name: Agentforce Conversations, type: Usage,
+        base_unit: AFCONV, default_unit: AFCONV }
+  units:
+    - { unit_code: EACH, name: Each, class_code: "" }   # pre-exists in org
+    - { unit_code: FLEXCRD, name: Flex Credit, class_code: SFDCCRED }
+    - { unit_code: AFCONV, name: Agentforce Conversation, class_code: SFDCCONV }
+
+usage:
+  resources:
+    - code: SFDC-UR-FLEX
+      name: Agentforce Flex Credits
+      category: Usage
+      uom_class_name: Salesforce Flex Credits
+      default_uom_name: Flex Credit
+      definition_sku: SFDC-BLNG-FLEX
+      billing_policy_code: monthlytotal
+    - code: SFDC-UR-CONV
+      name: Agentforce Conversations
+      category: Usage
+      uom_class_name: Agentforce Conversations
+      default_uom_name: Agentforce Conversation
+      definition_sku: SFDC-BLNG-CONV
+      billing_policy_code: monthlytotal
+  # These must already exist in the org — SFDMU silently fails to create them.
+  grant_policies:
+    renewal_code: SF-DEMO-USG-RENEW
+    rollover_code: SF-DEMO-USG-ROLL
+    overage_name: Default Usage Overage Policy
+  rate_cards:
+    # rate_uom names the CONSUMPTION unit the rate is quoted per. On RateCardEntry
+    # it lands as DefaultUnitOfMeasure; RateUnitOfMeasure is the money unit (USD).
+    - name: CD-DEMO Base Rate Card
+      type: Base
+      entries:
+        # $500 per 100k credits = $0.005/credit
+        - { sku: SFDC-USG-FLEX, usage_resource_code: SFDC-UR-FLEX,
+            rate: 0.005, rate_uom: FLEXCRD, psm_name: Term Monthly }
+        - { sku: SFDC-USG-CONV, usage_resource_code: SFDC-UR-CONV,
+            rate: 2.00, rate_uom: AFCONV, psm_name: Term Monthly }
+    - name: CD-DEMO Tier Rate Card
+      type: Tier
+      entries:
+        - sku: SFDC-USG-FLEX
+          usage_resource_code: SFDC-UR-FLEX
+          rate: ""
+          rate_uom: FLEXCRD
+          psm_name: Term Monthly
+          tiers:
+            - { lower: 0, upper: 1000000, adjustment_type: Override, adjustment_value: 0.005 }
+            - { lower: 1000000, upper: 5000000, adjustment_type: Override, adjustment_value: 0.004 }
+            - { lower: 5000000, upper: null, adjustment_type: Override, adjustment_value: 0.003 }
+
+dro:
+  scenarios:
+    - sku: SFDC-SALES-CORE
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-BILL]
+      step_group: Finance
+      actions: [Add, Amend, Renew, Cancel]
+    - sku: SFDC-SALES-MAX
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-BILL]
+      step_group: Provisioning & Activation
+      actions: [Add, Amend, Renew, Cancel]
+    - sku: SFDC-RC-GROWTH
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-BILL]
+      step_group: Provisioning & Activation
+      actions: [Add, Amend, Renew, Cancel]
+    - sku: SFDC-USG-FLEX
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-BILL]
+      step_group: Usage Provisioning & Activation
+      actions: [Add, Amend, Cancel]
+    - sku: SFDC-SVC-IMPL
+      decomposition_scope: OrderLineItem
+      routes: [QB-DRO-PROJ]
+      step_group: Services
+      actions: [Add, Cancel]
+
+experience:
+  # salesforce.com and Wikimedia both 403'd, so the Experience builder generated a
+  # branded wordmark placeholder instead. Overwrite this file with a real logo and
+  # re-run the tile generator plus prepare_customer_branding.py to swap it in.
+  logo_source: datasets/sfdmu/customer-template/en-US/customer-template-product-images/tools/assets/sfdc-logo.png
+  brand_color: "#00B4FF"
+  bg_color: "#FFFFFF"
+  static_resource_prefix: sfdc

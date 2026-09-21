@@ -1,1 +1,6 @@
 CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
+,OrderLineItem,,Sales Cloud Core,SFDC-SALES-CORE
+,OrderLineItem,,Sales Cloud Max,SFDC-SALES-MAX
+,OrderLineItem,,Revenue Cloud Growth,SFDC-RC-GROWTH
+,OrderLineItem,,Agentforce Flex Credits,SFDC-USG-FLEX
+,OrderLineItem,,Implementation Services,SFDC-SVC-IMPL

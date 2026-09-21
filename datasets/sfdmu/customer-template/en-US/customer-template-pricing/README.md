@@ -1,6 +1,6 @@
 # customer-template-pricing
 
-Attribute-based pricing plan for customer demo catalogs. Implements attribute-driven **Percentage** price adjustments on API platform products using the three-object RLM pricing chain:
+Attribute-based pricing plan for customer demo catalogs. Implements attribute-driven **Percentage** price adjustments using the three-object RLM pricing chain:
 
 ```
 AttributeBasedAdjRule → AttributeAdjustmentCondition → AttributeBasedAdjustment
@@ -10,17 +10,20 @@ AttributeBasedAdjRule → AttributeAdjustmentCondition → AttributeBasedAdjustm
 
 ## What This Plan Does
 
-API Model Tier (`OAI-MODEL-TIER`) is a price-impacting attribute on the two API platform SKUs. When a buyer configures their model tier during quoting, the platform evaluates all `AttributeBasedAdjRule` records associated with the product and its `PriceAdjustmentSchedule`, finds the matching condition, and applies the corresponding `AttributeBasedAdjustment` percentage adjustment.
+Current customer: **Salesforce** (prefix `SFDC`, see `sku-contract.yaml`).
+
+Success Plan (`SFDC-SVC-PLAN`, `AttributeDefinition.DeveloperName = SFDC_Service_Plan`) is a price-impacting attribute on `SFDC-SALES-CORE` (Sales Cloud Core, 2340 USD, Term Annual). When a buyer picks a success plan during quoting, the platform evaluates all `AttributeBasedAdjRule` records associated with the product and its `PriceAdjustmentSchedule`, finds the matching condition, and applies the corresponding `AttributeBasedAdjustment` percentage adjustment.
 
 ### Pricing Table
 
-| SKU | Tier | Adjustment |
-|---|---|---|
-| `OAI-API-DEV` | Frontier | +25% (monthly) |
-| `OAI-API-ENT` | Efficient | −15% (annual) |
-| `OAI-API-ENT` | Frontier | +30% (annual) |
+| Rule | SKU | Success Plan | Adjustment |
+|---|---|---|---|
+| `SFDC-CORE-PREMIER` | `SFDC-SALES-CORE` | Premier | +30% (Term Annual) |
+| `SFDC-CORE-SIGNATURE` | `SFDC-SALES-CORE` | Signature | +60% (Term Annual) |
 
-Professional is the default tier (no rule; uses Standard PricebookEntry list price).
+Premier Success is published at 30% of net license fees. Signature is quote-only in reality; 60% is a demo estimate.
+
+Standard is the default success plan — it has **no rule** and sells at the Standard PricebookEntry list price. Every other SKU in the catalog carries `expected_pricing_rules: 0`.
 
 ---
 
@@ -39,9 +42,9 @@ AAC and ABA records **cannot be loaded via SFDMU** due to an FK resolution bug (
 
 | Object | Operation | Count | ExternalId |
 |---|---|---|---|
-| `AttributeBasedAdjRule` | Upsert (SFDMU) | 3 | `Name` |
-| `AttributeAdjustmentCondition` | Insert (Apex) | 3 | n/a — Apex, not SFDMU |
-| `AttributeBasedAdjustment` | Insert (Apex) | 3 | n/a — Apex, not SFDMU |
+| `AttributeBasedAdjRule` | Upsert (SFDMU) | 2 | `Name` |
+| `AttributeAdjustmentCondition` | Insert (Apex) | 2 | n/a — Apex, not SFDMU |
+| `AttributeBasedAdjustment` | Insert (Apex) | 2 | n/a — Apex, not SFDMU |
 
 **Readonly CSVs in `export.json`** (`Product2`, `AttributeDefinition`, `ProductSellingModel`, `PriceAdjustmentSchedule`, `AttributeBasedAdjRule`) are present for reference only — they are not queried for the Apex phase. The SFDMU phase only loads ABRs.
 
@@ -78,7 +81,7 @@ Step 10: customer_demo_verify_catalog
 
 **Why delete runs before insert (step 8):** `AttributeAdjustmentCondition` and `AttributeBasedAdjustment` use Insert (not Upsert) because their externalIds are all-relationship-traversal — SFDMU Bug 3 would cause Upsert to always insert and never match. The Apex insert script is idempotent (skips if records already exist), but running the delete first keeps re-runs clean.
 
-**Why delete is scoped (Apex, not DeleteSFDMUData):** `DeleteSFDMUData` deletes **all** records of Insert-operation object types. If QB pricing data coexists in the same org, this would wipe those records too. The Apex script scopes deletion to `WHERE Name LIKE 'OAI-%'`.
+**Why delete is scoped (Apex, not DeleteSFDMUData):** `DeleteSFDMUData` deletes **all** records of Insert-operation object types. QB pricing rules (`Rule_*`) and rules from other customer demos coexist in the same org, so this would wipe those records too. The Apex script scopes deletion to `WHERE Name LIKE 'SFDC-%'`, matching the `customer.prefix` in `sku-contract.yaml`.
 
 ---
 
@@ -142,7 +145,7 @@ For a string-value condition: `RULE;ATTR;SKU,RULE,ATTR,,,,,,equals,SKU,StringVal
 **Fix:** Delete `AttributeBasedAdjRule` (which cascades AAC automatically). Delete `AttributeBasedAdjustment` first (explicit DML — ABA is NOT cascade from ABR):
 ```apex
 delete [SELECT Id FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRuleId IN :ruleIds];
-delete [SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'OAI-%'];
+delete [SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'SFDC-%'];
 ```
 
 ### 6. ABA Read-Only Fields — Leave Blank in CSV, Omit from Apex Constructor
@@ -181,13 +184,19 @@ This is the **authoritative approach** for all customer demo AAC/ABA loads. The 
 
 The `Operator` field uses the picklist value `equals`, not `=`. Any other value (including `=`) causes `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST` at INSERT time.
 
+### 9. AttributeBasedAdjustment.EffectiveFrom Is a Datetime, Not a Date
+
+Extracted QB and archived customer-demo data always renders `EffectiveFrom` with a time component and offset (`2023-01-01T08:00:00.000+0000`). SFDMU writes true Date fields bare (`AccountingPeriod.StartDate` → `2023-01-01`), so a non-zero time proves the field is a Datetime.
+
+In Apex, `EffectiveFrom = Date.valueOf('2024-01-01')` is therefore a compile error (`Illegal assignment from Date to Datetime`). Use `Datetime.newInstanceGmt(2024, 1, 1, 0, 0, 0)`, which round-trips to the `2024-01-01T00:00:00.000+0000` form seen in the CSVs.
+
 ---
 
 ## Verification
 
-The `customer_demo_verify_catalog` task checks attribute-based pricing when `ExpectedPricingRules` is non-empty in `customer-pricebook-entries.csv`. For OAI API products:
-- `OAI-API-DEV`: `ExpectedPricingRules=1` (one ABA record — Frontier tier premium)
-- `OAI-API-ENT`: `ExpectedPricingRules=2` (two ABA records — Efficient discount + Frontier premium)
+The `customer_demo_verify_catalog` task checks attribute-based pricing when `ExpectedPricingRules` is non-empty in `customer-pricebook-entries.csv`:
+- `SFDC-SALES-CORE`: `ExpectedPricingRules=2` (Premier uplift + Signature uplift)
+- every other SKU: `0`
 
 ```bash
 cci task run customer_demo_verify_catalog --org <alias>
@@ -195,12 +204,12 @@ cci task run customer_demo_verify_catalog --org <alias>
 
 Verify manually:
 ```bash
-sf data query -q "SELECT AttributeBasedAdjRule.Name, AdjustmentType, AdjustmentValue, Product.StockKeepingUnit, ProductSellingModel.Name FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'OAI-%' ORDER BY AttributeBasedAdjRule.Name" --target-org <username>
+sf data query -q "SELECT AttributeBasedAdjRule.Name, AdjustmentType, AdjustmentValue, Product.StockKeepingUnit, ProductSellingModel.Name FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'SFDC-%' ORDER BY AttributeBasedAdjRule.Name" --target-org <username>
 
-sf data query -q "SELECT AttributeBasedAdjRule.Name, Operator, StringValue, Product.StockKeepingUnit FROM AttributeAdjustmentCondition WHERE AttributeBasedAdjRule.Name LIKE 'OAI-%'" --target-org <username>
+sf data query -q "SELECT AttributeBasedAdjRule.Name, Operator, StringValue, Product.StockKeepingUnit FROM AttributeAdjustmentCondition WHERE AttributeBasedAdjRule.Name LIKE 'SFDC-%'" --target-org <username>
 ```
 
-Expected: 3 ABR + 3 AAC + 3 ABA records.
+Expected: 2 ABR + 2 AAC + 2 ABA records, all on `SFDC-SALES-CORE`.
 
 ---
 
@@ -208,7 +217,7 @@ Expected: 3 ABR + 3 AAC + 3 ABA records.
 
 To adapt this pricing plan for a new customer:
 
-1. **Update `AttributeBasedAdjRule.csv`** — replace `OAI-*` names with the new customer's prefix (e.g., `ACME-API-PRO-TIER`).
+1. **Update `AttributeBasedAdjRule.csv`** — replace `SFDC-*` names with the new customer's prefix (e.g., `ACME-API-PRO-TIER`).
 2. **Update `AttributeAdjustmentCondition.csv`** — update the `$$` key, `AttributeBasedAdjRule.Name`, `AttributeDefinition.Code`, `Product.StockKeepingUnit`, and `StringValue` columns.
 3. **Update `AttributeBasedAdjustment.csv`** — update rule names, product SKUs, selling models, and adjustment values.
 4. **Update `scripts/apex/insertCustomerDemoPricingAdjustments.apex`** — change ABR name patterns, attribute codes, SKUs, and adjustment values.
@@ -222,9 +231,9 @@ To adapt this pricing plan for a new customer:
 
 | File | Purpose |
 |---|---|
-| `scripts/apex/deleteCustomerDemoPricingData.apex` | Scoped delete (OAI-* rules only) |
+| `scripts/apex/deleteCustomerDemoPricingData.apex` | Scoped delete (SFDC-* rules only) |
 | `scripts/apex/insertCustomerDemoPricingAdjustments.apex` | Insert AAC + ABA (phase 2) |
 | `scripts/customer-demo/customer-pricebook-entries.csv` | `ExpectedPricingRules` column drives ABA count verification |
 | `tasks/rlm_customer_demo.py` | `VerifyCustomerDemoCatalog._run_task()` — `ExpectedPricingRules` check |
-| `datasets/sfdmu/customer-template/en-US/customer-template-pcm/ProductAttributeDefinition.csv` | `IsPriceImpacting=true` on `OAI-MODEL-TIER` for API SKUs |
+| `datasets/sfdmu/customer-template/en-US/customer-template-pcm/ProductAttributeDefinition.csv` | `IsPriceImpacting=true` on `SFDC-SVC-PLAN` for `SFDC-SALES-CORE` |
 | `datasets/sfdmu/qb/en-US/qb-pricing/` | Reference plan (QB attribute-based pricing pattern) |

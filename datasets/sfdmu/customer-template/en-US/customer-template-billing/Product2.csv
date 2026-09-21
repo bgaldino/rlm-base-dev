@@ -1,1 +1,13 @@
 BillingPolicy.Name,StockKeepingUnit
+SFDC Annual Advance,SFDC-MAX-SUITE
+SFDC Annual Advance,SFDC-SALES-CORE
+SFDC Annual Advance,SFDC-SALES-ADV
+SFDC Annual Advance,SFDC-SALES-MAX
+SFDC Annual Advance,SFDC-SVC-CORE
+SFDC Annual Advance,SFDC-RC-GROWTH
+SFDC Annual Advance,SFDC-AF-FLAT
+SFDC Annual Advance,SFDC-TABLEAU-NEXT
+SFDC Annual Advance,SFDC-SVC-IMPL
+SFDC Monthly Arrears,SFDC-SLACK-BIZPLUS
+SFDC Monthly Arrears,SFDC-USG-FLEX
+SFDC Monthly Arrears,SFDC-USG-CONV
