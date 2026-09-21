@@ -13,6 +13,45 @@ Runbook for loading the **customer-template** datasets and avoiding common SFDMU
 cci flow run prepare_customer_demo_catalog --org <alias>
 ```
 
+### Dedicated org or shared org?
+
+Check before you pick a flow. A typical demo org is not empty — one recent target held
+**214 SKUs across nine prefixes** (`LF-`, `OAI-`, `OC-`, `QB-`, `RES-`, `RK-`, `SF-`,
+`TEST-`) from six earlier customer catalogs.
+
+```bash
+sf data query -q "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit != null" --target-org <user>
+```
+
+| Org holds | `org.load_mode` | Flow |
+|---|---|---|
+| only this customer | `clean` | `prepare_customer_demo_catalog` |
+| other customers' demos | `additive` | `prepare_customer_demo_catalog_additive` |
+
+The additive flow is the same steps in the same order with step 1
+(`customer_demo_purge_records`) and the four `delete_customer_demo_*` steps removed, so it
+never deletes an existing record. In exchange it is **not idempotent** — `ProductUsageResource`,
+`ProductUsageResourcePolicy`, `ProductUsageGrant`, `RateCardEntry`, `RateAdjustmentByTier`,
+`AttributeAdjustmentCondition`, and `AttributeBasedAdjustment` all load via `Insert`, so a
+second run duplicates them.
+
+In a shared org, also swap step 15: use `activate_customer_demo_rating_records` rather than
+`activate_rating_records`. The QB task activates every non-Active record org-wide and aborts
+outright on any pre-existing `UnitOfMeasureClass` whose `DefaultUnitOfMeasure` belongs to no
+class — `CAS01` → `EACH` is the common offender, and one bad row blocks activation for
+everything else.
+
+### Names are Upsert keys
+
+`PaymentTerm`, `BillingPolicy`, `BillingTreatment`, `LegalEntity`, `ProductCatalog`,
+`ProductClassification`, `AttributeDefinition`, and `AttributePicklistValue` all Upsert on a
+name or code. An unprefixed value does not create a record — it **rewrites** the org's
+existing one, silently. A contract declaring a payment term named `Net 30` would have
+overwritten the live `Net 30` in the target org; `SFDC Net 30` was correct.
+
+Prefix everything, and pick the customer prefix against what the org already uses — the
+natural abbreviation is often taken (`SF-` was Snowflake's, so Salesforce became `SFDC`).
+
 **Step order (summary):**
 
 | Step | Task | Notes |

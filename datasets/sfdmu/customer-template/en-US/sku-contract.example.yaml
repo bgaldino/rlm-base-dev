@@ -11,7 +11,8 @@ contract_version: 1
 customer:
   name: Acme Robotics
   # Prefix scopes AttributeDefinition.DeveloperName, AttributeBasedAdjRule.Name,
-  # PFDR/PFS names, and every scoped Apex delete. Must be org-unique.
+  # PFDR/PFS names, and every scoped Apex delete. Must be org-unique: check it
+  # against org-context.json occupiedSkuPrefixes before freezing the contract.
   prefix: ACME
   website: https://www.example.com
 
@@ -24,6 +25,12 @@ org:
   alias: dev-sb0
   # Written by Org Discovery. Builders read org facts from here, never re-query.
   context_file: datasets/sfdmu/customer-template/en-US/org-context.json
+  # clean    = org is dedicated to this customer; prepare_customer_demo_catalog runs
+  #            and its scoped delete steps are safe.
+  # additive = org already holds another customer's demo data; run
+  #            prepare_customer_demo_catalog_additive, which drops every delete
+  #            and purge step.
+  load_mode: clean
 
 catalog:
   name: Acme Product Catalog
@@ -37,15 +44,16 @@ categories:
 
 billing:
   # The Billing builder needs these named up front; every skus[].billing_policy_name
-  # must appear in policies[].name below.
-  legal_entity: Acme Robotics Inc.
+  # must appear in policies[].name below. Every name here upserts on the name key,
+  # so carry the prefix: a bare "Net 30" silently overwrites the org's own PaymentTerm.
+  legal_entity: ACME Robotics Inc.
   payment_terms:
-    - { name: Net 30, days: 30 }
+    - { name: ACME Net 30, days: 30 }
   policies:
     # All three billing objects are created Draft; activate_customer_demo_billing
     # promotes them after load.
     - name: ACME Standard Monthly
-      payment_term: Net 30
+      payment_term: ACME Net 30
       treatment: Acme Monthly Recurring
       frequency: Monthly
 
@@ -168,6 +176,9 @@ uom:
   units:
     # EACH must exist in the org; confirm via org-context.json.
     - { unit_code: EACH, name: Each, class_code: "" }
+    # A UnitOfMeasure belongs to exactly one class and cannot be moved, so a unit
+    # another demo already created (e.g. CRD under SNFCRED) has to be replaced with
+    # a new code rather than reused. Check org-context.json unitsOfMeasure.ClassCode.
     - { unit_code: ACME-CALL, name: API Call, class_code: ACMEAPI }
 
 usage:

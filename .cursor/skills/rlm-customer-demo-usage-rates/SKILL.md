@@ -23,16 +23,45 @@ This is the **Usage-Rates builder** in the onboarding flow orchestrated by
 `.cursor/skills/rlm-customer-demo-conductor/SKILL.md`. Launched in parallel with the other
 domain builders when `customer_demo_usage` is true.
 
-- **Owns:** `datasets/sfdmu/customer-template/en-US/customer-template-rating/**` and
-  `customer-template-rates/**`
+- **Owns:** `datasets/sfdmu/customer-template/en-US/customer-template-rating/**`,
+  `customer-template-rates/**`, and the `CUSTOMER_METER_CODES` allowlist inside
+  `scripts/apex/activateCustomerDemoRatingRecords.apex`
 - **Reads:** `sku-contract.yaml` (`usage`, `uom`, SKU `psm_name`) and `org-context.json`
-  (existing grant policies, UOM codes, selling models)
+  (existing grant policies, UOM codes **and their classes**, selling models)
 - **Never writes:** the contract, `customer-pricebook-entries.csv`, or another builder's
   directory. `RateCardEntry.ProductSellingModel` must match the contract, not be chosen here.
 - **Never runs:** `cci`, `sf`, or any deploy/import command. Authoring only.
 
 Usage and rates stay in one agent on purpose — splitting them drifts selling models and
 units of measure between the rating plan and the rate cards.
+
+## A unit of measure belongs to exactly one class
+
+`UnitOfMeasure.UnitOfMeasureClassId` is single-valued and cannot be reassigned. Generic-looking
+unit codes are usually already spoken for by an earlier demo — in one org `CRD` is named
+"Snowflake Credit" under class `SNFCRED`, and `EVENT` sits under `DEVICE_EVENTS`.
+
+Check `unitsOfMeasure[].ClassCode` in `org-context.json` before reusing a code. When the unit
+you want is taken, create a customer-prefixed class **and** unit rather than trying to move
+the existing one. PCM creates them; you reference them by **Name** in the rating CSVs, because
+SFDMU v5 resolves `UsageResource` parents through the Name columns.
+
+Units with an empty `class_code` in the contract (like `EACH`) are references to pre-existing
+org units — never recreate those.
+
+## Update the activation allowlist
+
+`scripts/apex/activateCustomerDemoRatingRecords.apex` opens with:
+
+```apex
+final Set<String> CUSTOMER_METER_CODES = new Set<String>{ ... };
+```
+
+Set it to the meter codes you authored. Prefer this task
+(`activate_customer_demo_rating_records`) over the QB `activate_rating_records` in any org
+holding other demos: the QB script activates every non-Active record org-wide and aborts
+outright on a pre-existing `UnitOfMeasureClass` whose default unit belongs to no class. See
+`.cursor/rules/customer-demo-apex.mdc`.
 
 ## When to read this
 

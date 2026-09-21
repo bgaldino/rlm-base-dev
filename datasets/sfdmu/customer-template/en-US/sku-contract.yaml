@@ -21,6 +21,9 @@ flags:
 org:
   alias: rc-apr8-customer-template
   context_file: datasets/sfdmu/customer-template/en-US/org-context.json
+  # Org already holds Snowflake, OpenAI, LeafFilter, Rentokil, Olympic and APTIM demo data,
+  # so the load must not run any scoped delete.
+  load_mode: additive
 
 catalog:
   name: Salesforce Demo Catalog

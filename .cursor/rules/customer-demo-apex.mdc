@@ -1,0 +1,90 @@
+---
+description: Customer demo Apex rules (SOQL NOT LIKE is invalid, allowlist scoping, shared-org safety)
+globs: scripts/apex/*CustomerDemo*.apex,scripts/customer-demo/*.apex
+alwaysApply: false
+---
+
+# Customer demo Apex
+
+These scripts run against orgs that usually hold **several** customers' demo catalogs at
+once. Every query is therefore a scoping decision, not just a filter.
+
+## SOQL has no `NOT LIKE` operator
+
+```apex
+// INVALID — will not compile
+WHERE Name NOT LIKE 'QB%'
+
+// valid
+WHERE (NOT Name LIKE 'QB%')
+```
+
+The compiler does not point at the `WHERE` clause. It reports the error at the first `<` in
+the file, so a broken query on line 22 surfaces as:
+
+```
+Apex compilation failed on line 19: Unexpected token '<'.
+```
+
+where line 19 is an innocent `List<BillingPolicy> policies = [`. If a generics declaration
+that looks obviously correct is rejected, check the SOQL below it before suspecting the type.
+Verify with `sf apex run --file <script>` before wiring a script into a flow — anonymous
+Apex compile errors do not appear until execution.
+
+## Activate by allowlist, never by "everything Draft"
+
+```apex
+// WRONG — also activates other customers' demo stacks
+WHERE Status = 'Draft' AND (NOT Name LIKE 'QB%')
+
+// right
+final Set<String> CUSTOMER_BILLING_POLICIES = new Set<String>{
+    'SFDC Annual Advance',
+    'SFDC Monthly Arrears'
+};
+WHERE Status = 'Draft' AND Name IN :CUSTOMER_BILLING_POLICIES
+```
+
+The exclusion form matched five policies in a live org — two belonging to the current
+customer and three belonging to LeafFilter, OpenAI, and Rentokil.
+
+The allowlist is **per customer**. Whoever owns the dataset owns the constant:
+
+| Script | Owner | Constant |
+|---|---|---|
+| `activateCustomerDemoBilling.apex` | Billing builder | `CUSTOMER_BILLING_POLICIES` |
+| `activateCustomerDemoRatingRecords.apex` | Usage-Rates builder | `CUSTOMER_METER_CODES` |
+
+## Prefer the scoped rating activation
+
+`activate_rating_records` (`scripts/apex/activateRatingRecords.apex`) is the QB task. It
+activates every non-Active `UnitOfMeasureClass`, `UsageResource`, `ProductUsageResource`, and
+`ProductUsageGrant` in the org, and its org-wide `UnitOfMeasureClass` update hard-fails on
+any pre-existing class whose `DefaultUnitOfMeasure` belongs to no class:
+
+```
+INVALID_INPUT, Enter a unit of measure as the default unit of measure
+that's associated with the unit of measure class.: [DefaultUnitOfMeasureId]
+```
+
+One malformed pre-existing row aborts activation for everything else. Use
+`activate_customer_demo_rating_records` instead in any shared org.
+
+`activate_rates` is org-wide too, but in practice only the current load leaves
+`RateCardEntry` rows non-Active, so it is safe as-is. Check before assuming.
+
+## Teardown scripts accumulate prefixes
+
+`deleteCustomerDemo*.apex` and `customer-purge-and-reimport.apex` hold lists of SKU patterns,
+catalog codes, classification codes, billing-stack names, and payment-term names. **Add** the
+new customer's values; never replace the previous customer's, or their data becomes
+unremovable.
+
+`LIKE 'SF-%'` does not match `SFDC-FOO` — the literal hyphen saves you. `LIKE 'SF%'` would.
+
+## Bulk safety and partial success
+
+No SOQL or DML in loops. Prefer `Database.update(records, false)` with per-row error logging
+over bare `update`, so one bad row does not abort the rest — several of these scripts
+deliberately rely on that, including duplicate legal-entity deletes that are expected to fail
+on the first of two shared billing stacks.

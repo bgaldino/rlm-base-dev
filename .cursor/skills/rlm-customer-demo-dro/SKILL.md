@@ -59,6 +59,11 @@ Upserts. Set 2 holds the `Product2` Update scoped to customer SKUs. This split a
 
 Both PFDR and PFS use `operation: Upsert` with `externalId: Name`, so re-runs are safe.
 
+`FulfillmentStepDefinitionGroup.csv` must exist even though the object is `Readonly` and
+never written to the target. Without it the repo validator reports a Critical "declared
+object has no CSV". A single `Name` column listing the org's step groups from
+`org-context.json` satisfies it, and changes nothing at load time.
+
 ## Naming and scoping
 
 Follow `<Prefix> <ProductName> to/- <Function>`. Scope
@@ -80,7 +85,12 @@ orgs — the user clicks **Submit Orchestration Request**.
 1. Every `step_group` value appears verbatim in `org-context.json`.
 2. Every contract DRO SKU has PFDR rows and PFS rows for each listed action.
 3. `DecompositionScope` is `Bundle` only on bundle parents.
-4. Apex delete scope matches `customer.prefix`.
+4. Apex delete scope **adds** `customer.prefix` without dropping earlier customers'.
+5. `FulfillmentStepDefinitionGroup.csv` exists.
+
+If the contract routes a bundle parent's children unevenly, say so in your report rather than
+inventing scenarios — selling a bundle whose children mostly lack scenarios decomposes only
+the routed lines, which may or may not be the intended demo story.
 
 Deeper detail: `datasets/sfdmu/customer-template/en-US/customer-template-dro/README.md`,
 `docs/features/customer-demo-dro.md`.

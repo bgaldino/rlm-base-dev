@@ -66,13 +66,29 @@ prompt: |
   - Never run cci, sf, or any deploy/import command. Authoring only.
   - Use only ProductSellingModel names and UnitOfMeasure codes present in org-context.json.
   - Do not change any export.json operation from Upsert to Insert + deleteOldData.
+  - This org is shared with other customers' demo data. Every name or code you author must
+    carry the customer prefix, and must not appear in existingNames in org-context.json —
+    these objects Upsert on name, so a collision overwrites a live record instead of
+    creating one. Never delete, activate, or modify a record you did not author.
 
   Return: files written, any contract value you could not satisfy, and any org fact
   that was missing from org-context.json.
 ```
 
-Swap the skill path, directory glob, and task line per builder. Keep the four hard rules
-verbatim in every launch — subagents have no other source for them.
+Swap the skill path, directory glob, and task line per builder. Keep the hard rules verbatim
+in every launch — subagents have no other source for them.
+
+State the prior state explicitly when it matters. Builders repeatedly reported "the directory
+was already header-only, so this was a fill-in rather than a replace"; if you expect them to
+replace a previous customer's rows, say so, and name the customer whose data is there.
+
+Two builders also own a slice of Apex outside their dataset directory. Widen their write glob
+accordingly, or they will correctly refuse to touch it:
+
+| Builder | Extra path |
+|---|---|
+| Billing | `scripts/apex/activateCustomerDemoBilling.apex` |
+| Usage-Rates | `scripts/apex/activateCustomerDemoRatingRecords.apex` |
 
 ## Launch template — org discovery
 
@@ -83,11 +99,29 @@ prompt: |
   Run read-only SOQL against org alias <alias> and write a snapshot to
   datasets/sfdmu/customer-template/en-US/org-context.json.
 
-  Query and record: ProductSellingModel (Name + SellingModelType), UnitOfMeasure
-  (UnitCode + Name), ProrationPolicy (Name), UsageGrantRenewalPolicy (Code),
-  UsageGrantRolloverPolicy (Code), UsageOveragePolicy (Name),
-  FulfillmentStepDefinitionGroup (Id + Name), and whether Product2 records
-  QB-DRO-BILL and QB-DRO-PROJ exist.
+  Use the sf username, not the CCI org name — sf data query --target-org does not resolve
+  CCI aliases.
+
+  Reference data: ProductSellingModel (Name + SellingModelType), ProrationPolicy (Name),
+  UsageGrantRenewalPolicy (Code), UsageGrantRolloverPolicy (Code), UsageOveragePolicy
+  (Name), UsageResourceBillingPolicy (Code + Name), FulfillmentStepDefinitionGroup
+  (Id + Name), and whether Product2 records QB-DRO-BILL and QB-DRO-PROJ exist.
+
+  Units of measure MUST include their class — a unit belongs to exactly one class and
+  cannot be moved:
+    SELECT UnitCode, Name, UnitOfMeasureClass.Code FROM UnitOfMeasure
+    SELECT Code, Name FROM UnitOfMeasureClass
+  Record as unitsOfMeasure[].ClassCode.
+
+  Existing names, recorded under an "existingNames" object. Everything here Upserts on
+  name or code, so the contract must not reuse any of them:
+    PaymentTerm.Name, BillingPolicy.Name, BillingTreatment.Name, LegalEntity.Name,
+    ProductCatalog (Name + Code), ProductClassification.Code,
+    AttributeDefinition.DeveloperName, AttributePicklistValue.Code
+
+  Occupied SKU prefixes: query Product2.StockKeepingUnit and record every distinct
+  leading token as "occupiedSkuPrefixes". Also report how many foreign demo SKUs exist,
+  so the conductor can decide org.load_mode.
 
   Read-only. Do not insert, update, delete, or deploy anything.
   If the org alias is unreachable, write an empty snapshot with a "reachable": false

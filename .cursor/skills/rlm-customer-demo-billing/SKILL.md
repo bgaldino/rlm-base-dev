@@ -11,10 +11,33 @@ disable-model-invocation: true
 
 # Billing builder
 
-Owns `datasets/sfdmu/customer-template/en-US/customer-template-billing/**`. Authoring only —
-never run `cci`, `sf`, or any deploy/import command.
+Owns `datasets/sfdmu/customer-template/en-US/customer-template-billing/**` and the allowlist
+inside `scripts/apex/activateCustomerDemoBilling.apex`. Authoring only — never run `cci`,
+`sf`, or any deploy/import command.
 
 Input: `sku-contract.yaml` (`skus[].billing_required`, `billing_policy_name`, `customer.name`).
+
+## Every name you write must carry the customer prefix
+
+`LegalEntity`, `PaymentTerm`, `BillingPolicy`, and `BillingTreatment` all Upsert on `Name`.
+A generic name does not create a new record — it **overwrites** whatever the org already has
+under that name, silently, including its status and description.
+
+A run nearly shipped a payment term named `Net 30` into an org that already had one. Use
+`<PREFIX> Net 30`. Check `existingNames` in `org-context.json` before choosing any name; the
+contract validator flags collisions, but only when the org snapshot has been captured.
+
+## Update the activation allowlist
+
+`scripts/apex/activateCustomerDemoBilling.apex` opens with:
+
+```apex
+final Set<String> CUSTOMER_BILLING_POLICIES = new Set<String>{ ... };
+```
+
+Replace those with the policy names you just authored. It is an allowlist rather than a
+"every Draft policy" query because the broad form activated three other customers' billing
+stacks in a shared demo org. See `.cursor/rules/customer-demo-apex.mdc`.
 
 ## Status must be Draft on create
 
@@ -68,5 +91,8 @@ Skipping deactivation makes `Database.delete(..., false)` silently leave Active 
 2. No `CurrencyIsoCode` column in the BTI CSV or its SELECT.
 3. Every `billing_required: true` SKU has a Product2 row with a policy name that exists in
    `BillingPolicy.csv`.
+4. Every legal entity, payment term, policy, and treatment name is customer-prefixed and
+   absent from `existingNames` in `org-context.json`.
+5. `CUSTOMER_BILLING_POLICIES` in `activateCustomerDemoBilling.apex` matches your policy names.
 
 Deeper detail: `datasets/sfdmu/customer-template/en-US/customer-template-billing/README.md`.

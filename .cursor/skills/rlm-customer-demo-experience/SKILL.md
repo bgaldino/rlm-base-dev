@@ -43,6 +43,15 @@ Never set `DisplayUrl` in the PCM dataset, and never ask the PCM builder to.
 Either run `prepare_customer_demo_logo_staticresource` with a URL, or place the `.resource`
 plus `-meta.xml` files under `unpackaged/post_customer_demo/staticresources/` directly.
 
+**Expect logo URLs to fail.** Corporate CDNs and Wikimedia both return 403 to scripted
+fetches, so treat a remote logo as a bonus, not a dependency. Generate the tiles locally
+instead — a self-contained SVG per SKU with the contract's `brand_color` field, the product
+name, and the SKU is a perfectly good demo asset and removes the network entirely. Drive the
+generator from the contract so resource names and `DisplayUrl` values cannot drift, and make
+swapping in a real logo later a single-file overwrite plus a regeneration.
+
+`--logo-path` beats `--logo-url` whenever a local file exists.
+
 `Product2.csv` in the product-images plan needs one row per SKU with
 `image_required: true`, setting `DisplayUrl` to `/resource/<StaticResourceApiName>`.
 

@@ -23,13 +23,13 @@ Loading them all into every conversation is what this architecture exists to avo
 
 | Wave | Mode | What happens |
 |---|---|---|
-| 0 Intake | series | Ask for a company description **or** website URL. Also collect services, pricing motion, recurring vs one-time, add-ons, known SKUs, billing expectations, image/logo preferences, target org alias, and whether usage metering, DRO, and branding are in scope. |
+| 0 Intake | series | Ask for a company description **or** website URL. Also collect services, pricing motion, recurring vs one-time, add-ons, known SKUs, billing expectations, image/logo preferences, target org alias, whether usage metering, DRO, and branding are in scope, and whether the org is dedicated or shared with other demos. |
 | 1 Research + Org Discovery | **parallel** | Researcher drafts the vision. Org Discovery writes `org-context.json` (selling models, UOMs, proration and grant policies, fulfillment step groups) with read-only SOQL. |
-| 2 Vision gate | human | Present categories/families, a 10-15 SKU set, selling model, bundle, typing, attribute, relationship, pricing, billing, and image assumptions. Prefer term-defined over evergreen for recurring offers. **Wait for confirmation.** |
+| 2 Vision gate | human | Present categories/families, a 10-15 SKU set, selling model, bundle, typing, attribute, relationship, pricing, billing, and image assumptions, plus the **customer prefix** and why you chose it. Prefer term-defined over evergreen for recurring offers. **Wait for confirmation.** |
 | 3 Contract | series | Write `datasets/sfdmu/customer-template/en-US/sku-contract.yaml` and project it onto `scripts/customer-demo/customer-pricebook-entries.csv`. |
 | 4 Domain builders | **parallel** | Launch PCM, Billing, Pricing, and — per flag — Usage-Rates, DRO, Experience. Disjoint directory ownership. |
 | 5 Integrate + lint | series | Cross-dataset checks, then `python scripts/validate_sfdmu_v5_datasets.py`. |
-| 6 Deploy gate then load | human, then series | On approval: `cci flow run prepare_customer_demo_catalog --org <alias>`. |
+| 6 Deploy gate then load | human, then series | On approval, pick the flow from `org.load_mode`: `clean` → `prepare_customer_demo_catalog`, `additive` → `prepare_customer_demo_catalog_additive` (same steps, every scoped delete removed, **not idempotent**). |
 | 7 Verify | series parent | `customer_demo_verify_catalog` plus parallel read-only probes. |
 
 ### Specialists
@@ -69,8 +69,16 @@ encodes FK dependencies and activation ordering.
   `Type=Bundle` only for parent bundles, blank for everything else. Any SKU with attributes
   or `Type=Bundle` needs `ConfigureDuringSale=Allowed`.
 - Never convert an existing `operation: Upsert` to `Insert` + `deleteOldData: true` without
-  explaining the specific SFDMU v5 bug, confirming no direct-field externalId exists, and
-  getting explicit user approval. It is destructive.
+ explaining the specific SFDMU v5 bug, confirming no direct-field externalId exists, and
+ getting explicit user approval. It is destructive.
+- **Assume the org is shared.** Demo orgs usually hold two or three older customer catalogs.
+ Never delete, activate, or overwrite a record you did not create. Upsert-on-name is the
+ quiet version of this mistake: a payment term named `Net 30` does not create a record, it
+ rewrites the org's existing one. Prefix every name and code you load.
+- Pick the customer prefix against `occupiedSkuPrefixes`, not from the abbreviation that
+ reads best. Activation Apex allowlists (`CUSTOMER_BILLING_POLICIES`, `CUSTOMER_METER_CODES`)
+ are per-customer and owned by the Billing and Usage-Rates builders respectively; teardown
+ script prefix lists are **appended to**, never replaced.
 - Report quote-test SKUs as the sellable usage SKUs (`*-USG-*`), never the usage-definition
   SKUs (`*-BLNG-*`).
 - Lightning Experience theme activation is manual — there is no Salesforce API for it.

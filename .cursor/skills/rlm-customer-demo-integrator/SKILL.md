@@ -109,7 +109,39 @@ snapshot reports `"reachable": false`.
 
 Each customer Apex delete script (`deleteCustomerDemoPricingData.apex`,
 `deleteCustomerDemoDROData.apex`) scopes its `LIKE` pattern to `customer.prefix`, so
-coexisting QB data in the same org is untouched.
+coexisting QB data in the same org is untouched. Confirm the new prefix was **added** to the
+existing list rather than replacing it — dropping an older customer's pattern makes their
+data unremovable.
+
+### 13. Activation allowlists match the contract
+
+Two scripts name records explicitly and go stale silently:
+
+| Script | Constant | Must equal |
+|---|---|---|
+| `activateCustomerDemoBilling.apex` | `CUSTOMER_BILLING_POLICIES` | `billing.policies[].name` |
+| `activateCustomerDemoRatingRecords.apex` | `CUSTOMER_METER_CODES` | `usage.resources[].code` |
+
+A stale allowlist does not error — it activates nothing, or worse, the previous customer's
+records. Also confirm no customer Apex uses `Name NOT LIKE`, which is not valid SOQL and
+fails to compile with a misleading "Unexpected token '<'" on an unrelated line.
+
+### 14. Nothing collides with a live org record
+
+Everything the plans load by name or code — payment terms, billing policies, treatments,
+legal entities, catalog code, classification codes, `AttributeDefinition.DeveloperName`,
+`AttributePicklistValue.Code`, UOM class and unit codes — Upserts on that key. A value that
+already exists in `existingNames` in `org-context.json` silently **overwrites** the org's
+record instead of creating one. The contract validator checks this; confirm it ran with a
+populated org snapshot, and flag every name that lacks the customer prefix.
+
+For units of measure specifically, compare `uom.units[].class_code` against
+`unitsOfMeasure[].ClassCode`. A unit already assigned to a different class cannot be moved.
+
+### 15. Load mode matches the org
+
+`org.load_mode` must be `additive` whenever the org holds foreign demo SKUs. Report the flow
+the conductor should run, and warn that the additive flow is not idempotent.
 
 ## SFDMU v5 lint
 
