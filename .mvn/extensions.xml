@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extensions>
+   <extension>
+      <artifactId>polyglot-exchange</artifactId>
+      <groupId>org.mule.maven.exchange</groupId>
+      <version>2.5.2</version>
+   </extension>
+</extensions>
