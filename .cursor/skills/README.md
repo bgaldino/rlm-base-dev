@@ -21,6 +21,7 @@ repo root.
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
+| Load products / pricing into the RLM catalog from a vendor PDF, URL, spec, or free-form description | RLM Catalog Administration | `rlm-catalog-administration/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |

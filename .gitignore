@@ -139,6 +139,8 @@ docs/erds/erd-data.json.bak*
 docs/erds/orphan-candidates*.md
 unpackaged/post_ux/drift_report.json
 tmp-metadata/
+# Agent-generated catalog load working dirs (vendor extracts, companion CSVs)
+tmp/catalog-loads/
 .cursor/plans/**
 retrieved_rlm_bundle/
 postman/archive/
