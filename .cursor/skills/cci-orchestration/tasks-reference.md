@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**286 tasks** across **10 groups**.
+**288 tasks** across **10 groups**.
 
 ---
 
@@ -1281,7 +1281,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -1445,6 +1445,43 @@
 **Options:**
 
 - `path`: `scripts/apex/activateTaxRecords.apex`
+
+---
+
+### `apply_approval_flags_overlay`
+
+**Description:** Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice resets each quote line to level 0 / blank, then bands the line Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes RLM_Approval_Level_Calc__c and RLM_Approval__c.
+
+**Class:** `tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay`
+
+**Options:**
+
+- `overlay_file`: `datasets/expression_set_overlays/approval_flags.json`
+- `dry_run`: `False`
+- `verify`: `True`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `activate_after_apply`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
+
+---
+
+### `apply_context_approvals`
+
+**Description:** Adds the quote-line approval flag attributes and QuoteLineItem mappings to RLM_SalesTransactionContext (RLM_Approval_Level_Calc__c and RLM_Approval__c) using an additive Context Service plan, so the approval-flags overlay on RLM_DefaultPricingProcedure can write them.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/Approvals/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
 
 ---
 

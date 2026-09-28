@@ -43,10 +43,10 @@ A `manifest.json` points at each plan file:
     "planFile": "contexts/ramp_mode.json" } ] }
 ```
 
-Current plans: **Billing**, **ConstraintEngineNodeStatus**, **DocGen**
+Current plans: **Approvals**, **Billing**, **ConstraintEngineNodeStatus**, **DocGen**
 (`create: true` — a net-new custom definition), **PartnerAccount**,
-**PrmPricing**, **RampMode**. Four extend `RLM_SalesTransactionContext`
-(`ConstraintEngineNodeStatus`, `PartnerAccount`, `PrmPricing`, `RampMode`);
+**PrmPricing**, **RampMode**. Five extend `RLM_SalesTransactionContext`
+(`Approvals`, `ConstraintEngineNodeStatus`, `PartnerAccount`, `PrmPricing`, `RampMode`);
 `Billing` and `DocGen` target their own definitions.
 
 ## Schema, enums, limits, `__c` rule — see the skill

@@ -1,0 +1,49 @@
+{
+  "planName": "Approvals",
+  "developerName": "RLM_SalesTransactionContext",
+  "activate": true,
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Approval_Level_Calc__c",
+      "dataType": "NUMBER",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Approval__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Approval_Level_Calc__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Approval_Level_Calc__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Approval__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Approval__c"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Approval_Level_Calc__c",
+      "name": "RLM_Approval_Level_Calc__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Approval__c",
+      "name": "RLM_Approval__c"
+    }
+  ]
+}

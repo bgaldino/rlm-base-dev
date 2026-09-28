@@ -15,7 +15,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 |------|---------|------------------------|
 | `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
-| `approvals` | `True` | 5 flow step(s) |
+| `approvals` | `True` | 7 flow step(s) |
 | `billing` | `True` | 20 flow step(s) |
 | `billing_portal` | `False` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 18 flow step(s) |
+| `quantumbit` | `True` | 20 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
@@ -83,6 +83,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
+- `prepare_approvals_pricing` step 1 → `apply_context_approvals`
+- `prepare_approvals_pricing` step 2 → `apply_approval_flags_overlay`
 - `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
 
 ### `billing` (default: `True`)
@@ -387,6 +389,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
+- `prepare_approvals_pricing` step 1 → `apply_context_approvals`
+- `prepare_approvals_pricing` step 2 → `apply_approval_flags_overlay`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 - `prepare_personas` step 8 → `assign_permission_sets`

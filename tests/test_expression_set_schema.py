@@ -303,6 +303,28 @@ def test_shipped_discount_distribution_ships_constants():
     )
 
 
+def test_shipped_approval_flags_passes_and_resets_first():
+    # The approval-flags overlay must validate clean, run its reset step before
+    # the three band steps (so a reprice that lowers the discount clears the old
+    # flag), and never write the line Description.
+    path = "datasets/expression_set_overlays/approval_flags.json"
+    if not os.path.exists(path):
+        print("  [SKIP] approval_flags.json not present")
+        return
+    ov = json.load(open(path))
+    r = validate_overlay(ov)
+    check("shipped approval_flags.json validates clean", r.passed and not r.errors)
+    top = [s["name"] for s in ov.get("addSteps", []) if not s.get("parentStep")]
+    check(
+        "approval_flags reset step is the first top-level step",
+        bool(top) and top[0] == "RLMApprovalFlagsReset" and len(top) == 4,
+    )
+    check(
+        "approval_flags steps never reference ItemDescription",
+        "ItemDescription" not in json.dumps(ov.get("addSteps", [])),
+    )
+
+
 def test_reference_facility_quantity_example_passes():
     # Environment-specific example retained outside the shipped overlay folder:
     # validates all-three-scope dependency capture without implying broad

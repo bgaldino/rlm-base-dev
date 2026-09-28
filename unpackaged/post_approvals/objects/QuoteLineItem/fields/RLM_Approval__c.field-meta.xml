@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval__c</fullName>
+    <description>Discount approval indicator (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice.</description>
     <externalId>false</externalId>
-    <formula>IF( RLM_Approval_Level_Calc__c = 1, (IMAGE(&apos;/img/samples/flag_red.gif&apos;, &quot;&quot;) + &quot; Manager&quot;),
-IF( RLM_Approval_Level_Calc__c = 2, (IMAGE(&apos;/img/samples/flag_red.gif&apos;, &quot;&quot;) + &quot; Director&quot;),
-IF( RLM_Approval_Level_Calc__c = 3, (IMAGE(&apos;/img/samples/flag_red.gif&apos;, &quot;&quot;) + &quot; VP&quot;),&quot;&quot;)))</formula>
-    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Approval</label>
+    <length>32</length>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <type>Text</type>
