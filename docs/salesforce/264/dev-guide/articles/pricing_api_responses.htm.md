@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Response Bodies
 
@@ -34,7 +32,7 @@ Output representation of the line item waterfall response.
 - 
 **[PBE Derived Pricing](./connect_responses_p_b_e_derived_pricing_out_put.htm.md)**  
 
-Output representation of the response that includes the source product for the Price Book     Entry (PBE) derived pricing.
+Output representation of the response that includes the source product for the Price Book Entry (PBE) derived pricing.
 
 - 
 **[Pricing Error Response](./connect_responses_pricing_error_response.htm.md)**  
@@ -44,7 +42,7 @@ Output representation of the pricing error response.
 - 
 **[Pricing Execution Waterfall Response](./connect_responses_api_execution_waterfall_response.htm.md)**  
 
-Output representation of the execution process that's associated with a pricing     waterfall.
+Output representation of the execution process that's associated with a pricing waterfall.
 
 - 
 **[Pricing Generic Response](./connect_responses_pricing_generic_response.htm.md)**  
@@ -75,6 +73,21 @@ Output representation of the pricing recipe after the API request.
 **[Pricing Recipe Response](./connect_responses_pricing_recipe_response.htm.md)**  
 
 Output representation of the pricing recipe.
+
+- 
+**[Pricing Recipe Clone](./connect_responses_pricing_recipe_clone_output.htm.md)**  
+
+Output representation of the payload for the pricing recipe clone operation.
+
+- 
+**[Pricing Recipe Clone Error](./connect_responses_pricing_recipe_clone_error.htm.md)**  
+
+Output representation of the error response for the Pricing Recipe Clone     API.
+
+- 
+**[Pricing Recipe Valid Elements](./connect_responses_pricing_valid_elements_output.htm.md)**  
+
+Output representation containing the list of valid pricing element type API names for a given Pricing Usage Sub Type.
 
 - 
 **[Pricing Response](./connect_responses_pricing_response.htm.md)**  
@@ -124,7 +137,7 @@ Output representation of the details of procedure plan definitions.
 - 
 **[Procedure Plan Generic](./connect_responses_procedure_plan_generic_output.htm.md)**  
 
-Output representation of the details of the created procedure plan definition     record.
+Output representation of the details of the created procedure plan definition record.
 
 - 
 **[Procedure Plan Generic Error](./connect_responses_procedure_plan_generic_error.htm.md)**  
@@ -149,27 +162,27 @@ Output representation of the results from the procedure plan evaluation.
 - 
 **[Procedure Plan Evaluation](./connect_responses_procedure_plan_evaluation.htm.md)**  
 
-Output representation of the evaluation details of a procedure plan     definition.
+Output representation of the evaluation details of a procedure plan definition.
 
 - 
 **[Procedure Plan Evaluation Response](./connect_responses_procedure_plan_evaluation_response.htm.md)**  
 
-Output representation of the evaluation details of a procedure plan     definition.
+Output representation of the evaluation details of a procedure plan definition.
 
 - 
 **[Procedure Plan Evaluation Result](./connect_responses_procedure_plan_evaluation_result.htm.md)**  
 
-Output representation of the evaluation result of a procedure plan     definition.
+Output representation of the evaluation result of a procedure plan definition.
 
 - 
 **[Pricing Process Execution Details for Line Items](./connect_responses_process_execution_line_item_details_get_output.htm.md)**  
 
-Output representation of the pricing process execution details for the line items along     with the error details and response generation status.
+Output representation of the pricing process execution details for the line items along with the error details and response generation status.
 
 - 
 **[Line Item Details Response](./connect_responses_process_execution_line_item_details_response.htm.md)**  
 
-Output representation of the pricing process execution details for the line     items.
+Output representation of the pricing process execution details for the line items.
 
 - 
 **[Pricing Process Execution Response](./connect_responses_pricing_process_execution_get_output.htm.md)**  
@@ -179,7 +192,7 @@ Output representation of the details of a pricing process execution.
 - 
 **[Pricing Process Execution List](./connect_responses_pricing_process_execution_output.htm.md)**  
 
-Output representation of the execution details for different types of the pricing     processes.
+Output representation of the execution details for different types of the pricing processes.
 
 - 
 **[Pricing Simulation Input Variables With Data](./connect_responses_pricing_simulation_input_variables_with_data_output.htm.md)**  

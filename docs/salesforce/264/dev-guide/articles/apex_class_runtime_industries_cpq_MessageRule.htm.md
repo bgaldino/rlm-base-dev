@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # MessageRule Class
 
@@ -56,33 +54,71 @@ The `MessageRule` class includes this
 
 Constructor to create a MessageRule instance with the specified STI ID, severity, and messages.
 
+  
+
 ### MessageRule(stiId, severity, messages)
 
+  
+  
+  
 Constructor to create a MessageRule instance with the specified STI ID, severity, and messages.
+
+    
 
 #### Signature
 
+      
+      
+
 `public MessageRule(String stiId, String severity, List<String> messages)`
+
+      
+    
+
+    
 
 #### Parameters
 
+      
+      
+
 **stiId**
 
-: Type: String
+      
 
-: The ID of the Sales Transaction Item (STI) associated with this message rule.
+Type: String
+
+      
+
+The ID of the Sales Transaction Item (STI) associated with this message rule.
+
+      
 
 **severity**
 
-: Type: String
+      
 
-: The severity level of the message (for example, Error, Warning, or Info).
+Type: String
+
+      
+
+The severity level of the message (for example, Error, Warning, or Info).
+
+      
 
 **messages**
 
-: Type: List<String>
+      
 
-: List of message strings to display to the user.
+Type: List<String>
+
+      
+
+List of message strings to display to the user.
+
+    
+
+  
 
   
 

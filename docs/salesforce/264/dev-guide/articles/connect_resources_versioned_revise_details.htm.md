@@ -7,92 +7,75 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Versioned Revision Details (POST)
 
-Create revisions of a pricing request with versions for adjustment
-      entities.
+Create revisions of a pricing request with versions for adjustment entities.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/core-pricing/versioned-revise-details
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/versioned-revise-details
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
-          
+POST
 
-**JSON example**
+    
 
-          
-: 
-            
+    
 
-This example shows the input for versioned revision details for attribute-based
-              adjustment.
+## Request Body for POST
 
-          
+      
+      
 
-          
-: 
-            
+**JSON Example**
+
+      
+
+This example shows the input for versioned revision details for attribute-based adjustment.
+
+      
 
 ```
 
@@ -113,20 +96,11 @@ This example shows the input for versioned revision details for attribute-based
 
 ```
 
-          
+      
 
-          
-: 
-            
+This example shows the input for versioned revision details for bundle-based adjustment.
 
-This example shows the input for versioned revision details for bundle-based
-              adjustment.
-
-          
-
-          
-: 
-            
+      
 
 ```
 
@@ -148,14 +122,167 @@ This example shows the input for versioned revision details for bundle-based
 
 ```
 
-          
-
-        
+      
 
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `additional​Fields​ToValue​Map` | Map<String, String> | Map containing the additional fields specific to the entity. | Optional | 60.0 |
@@ -169,14 +296,13 @@ This example shows the input for versioned revision details for bundle-based
 | `productId` | String | Product ID of the record. | Required | 60.0 |
 | `product​Selling​ModelId` | String | Product selling model ID associated to the record. | Optional | 60.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Pricing Versioned
-              Revision Details](./connect_responses_pricing_versioned_revise_details_output.htm.md)
+      
+      
+
+[Pricing Versioned Revision Details](./connect_responses_pricing_versioned_revise_details_output.htm.md)

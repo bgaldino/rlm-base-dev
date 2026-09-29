@@ -7,26 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Process Execution List
 
-Output representation of the execution details for different types of the pricing
-    processes.
+Output representation of the execution details for different types of the pricing processes.
 
     
+
+## JSON Example
+
       
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+      
 
 ```
 
@@ -73,13 +66,11 @@ Output representation of the execution details for different types of the pricin
 }
 ```
 
-          
+    
 
-        
+    
       
 
-      
-
           
           
           
@@ -160,9 +151,6 @@ Output representation of the execution details for different types of the pricin
               
 
               
-- 
-- 
-- 
 
               
 
@@ -179,4 +167,4 @@ Output representation of the execution details for different types of the pricin
 | `executionType` | String | Type of the execution that's defined internally within the pricing API. | Small, 63.0 | 63.0 |
 | `executionTypeId` | String | Unique execution type ID that's generated internally for process executions, such as pricing or discovery procedures. | Small, 63.0 | 63.0 |
 | `message` | String | Message that's generated when a pricing process is executed. | Small, 63.0 | 63.0 |
-| `status` | String | Execution process status for a line item. Valid values are: `Failure` `Partial_Success`—Applies to `Pricing` and `Discovery` procedures when execution for some line items fails. `Success` | Small, 63.0 | 63.0 |
+| `status` | String | Execution process status for a line item. Valid values are `Failure`, `Partial_Success`—Applies to `Pricing` and `Discovery` procedures when execution for some line items fails, or `Success`. | Small, 63.0 | 63.0 |

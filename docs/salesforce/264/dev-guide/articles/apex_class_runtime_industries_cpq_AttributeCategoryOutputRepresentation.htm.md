@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # AttributeCategoryOutputRepresentation Class
 
@@ -70,6 +68,11 @@ Get the name of the attribute category.
 **[records](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_AttributeCategoryOutputRepresentation_records)**  
 
 Get the attributes of the attribute category.
+
+- 
+**[sequence](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_AttributeCategoryOutputRepresentation_sequence)**  
+
+Get the sequence of the attribute category.
 
 - 
 **[status](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_AttributeCategoryOutputRepresentation_status)**  
@@ -145,6 +148,18 @@ Get the attributes of the attribute category.
 #### Property Value
 
 Type: List<[runtime_industries_cpq.ProductAttributeOutputRepresentation](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation)>
+
+### sequence
+
+Get the sequence of the attribute category.
+
+#### Signature
+
+`public Integer sequence {get; set;}`
+
+#### Property Value
+
+Type: Integer
 
 ### status
 

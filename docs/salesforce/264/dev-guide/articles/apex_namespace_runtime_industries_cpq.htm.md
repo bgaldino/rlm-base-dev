@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_apex_reference.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # runtime_industries_cpq Namespace
 
@@ -221,6 +219,26 @@ Represents the record type information for a product specification, which define
 **[ProductSpecificationTypeOutputRepresentation Class](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_class_ricpq_ProductSpecificationTypeOR)**  
 
 Represents a product specification type that defines the structure and attributes available for configuring a product.
+
+- 
+**[ProductUnitOfMeasureOutputRepresentation Class](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation)**  
+
+Represents a unit of measure that's available for a product, including whether it's the base or default unit and whether it's orderable.
+
+- 
+**[ProductVariantAttributeOutputRepresentation Class](./apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation)**  
+
+Stores details of an attribute that defines a product variation, including the field and its label.
+
+- 
+**[ProductVariantAttributeSetOutputRepresentation Class](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)**  
+
+Stores the set of attributes that define the variations of a product.
+
+- 
+**[ProductVariantAttributeValueOutputRepresentation Class](./apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation)**  
+
+Stores the value of a product variation attribute.
 
 - 
 **[QocQualificationOutputRepresentation Class](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation)**  

@@ -7,22 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Procedure Plan Definition Input
 
 Input representation of the details of a procedure plan definition.
 
-**JSON example**
+    
 
-          
-: 
-This example shows a sample request to
-            create a procedure plan definition record by using the Procedure Plan Definitions (POST)
-            API.
+## JSON Example
+
+      
+      
+
+This example shows a sample request to create a procedure plan definition record by using the Procedure Plan Definitions (POST) API.
+
+      
 
 ```
   {
@@ -45,17 +46,15 @@ This example shows a sample request to
 }
 ```
 
-: 
-This example shows a sample request to update a
-            procedure plan definition by using the Procedure Plan Definition By ID (PATCH) API.
-              
+      
 
-#### Note
+This example shows a sample request to update a procedure plan definition by using the Procedure Plan Definition By ID (PATCH) API.
 
-The properties that aren’t specified in the input are deleted when updating the
-              record.
+      
 
-            
+**Note:** The properties that aren’t specified in the input are deleted when updating the record.
+
+      
 
 ```
 {
@@ -67,137 +66,144 @@ The properties that aren’t specified in the input are deleted when updating th
 }
 ```
 
-          
+    
 
-**
-Properties**
+    
+
+## Properties
+
+      
+      
 
           
-: 
+          
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `description` | String | Description of the procedure plan definition. | Optional | 62.0 |
@@ -205,5 +211,6 @@ Properties**
 | `name` | String | Name of the procedure plan definition. | Optional | 62.0 |
 | `primary​Object` | String | Source object that’s used to create a procedure with rule-based criteria. This property value must be a valid object name and must be unique in the ProcedurePlanDefinition object. | Required if you’re invoking the [Procedure Plan Definitions API (POST)](./connect_resources_get_procedure_plan_definition_records.htm.md) and if you’re creating a procedure with rule-based criteria. | 62.0 |
 | `procedurePlan​Definition​Versions` | [Procedure Plan Definition Version Input](./connect_requests_procedure_plan_definition_version_input.htm.md)[] | List of versions of a procedure plan definition. | Required | 62.0 |
-| `processType` | String | Specifies the business processes that need a procedure plan for each sObject and definition. Valid values are: `Billing` `DRO` `DeepClone` `ProductDiscovery` `Revenue Cloud` These values can be used based on the available license. If unspecified, the value is set to `Default`. | Required | 63.0 |
+| `processType` | String | Specifies the business processes that need a procedure plan for each sObject and definition. Valid values are `Billing`, `DRO`, `DeepClone`, `ProductDiscovery`, or `Revenue Cloud`. These values can be used based on the available license. If unspecified, the value is set to `Default`. | Required | 63.0 |
 | `recordId` | String | ID of the procedure plan definition record. | Required if you’re invoking the [Procedure Plan Definition By ID API (PATCH)](./connect_resources_get_procedure_plan_definition_by_ID.htm.md). | 62.0 |
+| `subType` | String | Specifies the vertical or cloud-specific subclassification for the procedure plan definition. | Optional | 68.0 |

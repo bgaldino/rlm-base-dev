@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # ProductDetailsRepresentation Class
 
@@ -116,6 +114,11 @@ Get the list of the associated catalogs returned with the Product List API (POST
 Get the hierarchy of the child products.
 
 - 
+**[childVariationIds](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_childVariationIds)**  
+
+Get the list of IDs of the child variations of the product.
+
+- 
 **[configureDuringSale](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_configureDuringSale)**  
 
 Determines whether to allow or prevent configuration when a bundle is sold.
@@ -191,6 +194,11 @@ Get the type of the node, such as a product or bundled product.
 Get the price details associated with the products.
 
 - 
+**[productClass](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_productClass)**  
+
+Get the class of the product.
+
+- 
 **[productClassification](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_ricpq_ProductDetailsR_productClassification)**  
 
 Get the details of the product classification that the product is based on.
@@ -241,6 +249,11 @@ Get the details of the product specification type.
 Get the product type.
 
 - 
+**[productUnitOfMeasures](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_productUnitOfMeasures)**  
+
+Get the list of units of measure for the product.
+
+- 
 **[qualificationContext](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_ricpq_ProductDetailsR_qualificationContext)**  
 
 Get the context details of a user, which are used for qualification rules.
@@ -254,6 +267,11 @@ Get or set the status of the product, such as Active or Inactive.
 **[unitOfMeasure](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_unitOfMeasure)**  
 
 Get details about the unit of measure for a specific set of records.
+
+- 
+**[variationAttributeSet](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md#apex_runtime_industries_cpq_ProductDetailsRepresentation_variationAttributeSet)**  
+
+Get the variation attribute set of the product.
 
 ### additionalFields
 
@@ -330,6 +348,18 @@ Get the hierarchy of the child products.
 #### Property Value
 
 Type: List<[runtime_industries_cpq.ProductDetailsRepresentation](#apex_class_runtime_industries_cpq_ProductDetailsRepresentation)>
+
+### childVariationIds
+
+Get the list of IDs of the child variations of the product.
+
+#### Signature
+
+`public List<String> childVariationIds {get; set;}`
+
+#### Property Value
+
+Type: List<String>
 
 ### configureDuringSale
 
@@ -529,6 +559,18 @@ Get the price details associated with the products.
 
 Type: List<[runtime_industries_cpq.ProductPricesOutputRepresentation](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation)>
 
+### productClass
+
+Get the class of the product.
+
+#### Signature
+
+`public String productClass {get; set;}`
+
+#### Property Value
+
+Type: String
+
 ### productClassification
 
 Get the details of the product classification that the product is based on.
@@ -651,6 +693,18 @@ Get the product type.
 
 Type: String
 
+### productUnitOfMeasures
+
+Get the list of units of measure for the product.
+
+#### Signature
+
+`public List<runtime_industries_cpq.ProductUnitOfMeasureOutputRepresentation> productUnitOfMeasures {get; set;}`
+
+#### Property Value
+
+Type: List<[runtime_industries_cpq.ProductUnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation)>
+
 ### qualificationContext
 
 Get the context details of a user, which are used for qualification rules.
@@ -686,3 +740,15 @@ Get details about the unit of measure for a specific set of records.
 #### Property Value
 
 Type: ConnectApi.UnitOfMeasureOutputRepresentation
+
+### variationAttributeSet
+
+Get the variation attribute set of the product.
+
+#### Signature
+
+`public runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation variationAttributeSet {get; set;}`
+
+#### Property Value
+
+Type: [runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)

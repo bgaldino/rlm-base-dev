@@ -7,80 +7,71 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # PBE Derived Pricing (POST)
 
-Get the source product for the Price Book Entry (PBE) derived
-      pricing.
+Get the source product for the Price Book Entry (PBE) derived pricing.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/core-pricing/pbeDerivedPricingSourceProduct
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pbeDerivedPricingSourceProduct
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 61.0
+      
+      
 
-        
-        
-          
+61.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
+POST
 
-**JSON example**
+    
 
-: 
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -91,10 +82,89 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pbe
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `effective​From` | String | Date from when the price book entry is effective. | Required | 61.0 |
@@ -102,13 +172,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pbe
 | `pricebook​EntryId` | String | ID of the price book entry. | Required | 61.0 |
 | `product​Id` | String | ID of the price book. | Required | 61.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [PBE Derived Pricing](./connect_responses_p_b_e_derived_pricing_out_put.htm.md)
+      
+      
+
+[PBE Derived Pricing](./connect_responses_p_b_e_derived_pricing_out_put.htm.md)

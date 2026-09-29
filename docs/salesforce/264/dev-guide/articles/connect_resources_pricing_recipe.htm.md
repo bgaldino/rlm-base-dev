@@ -7,73 +7,66 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Recipe (GET)
 
-Get the mapping details of pricing recipes to the associated pricing
-      recipe table.
+Get the mapping details of pricing recipes to the associated pricing recipe table.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/core-pricing/recipe
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/recipe
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: GET
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Response body for GET**
+      
+      
 
-          
-: [Pricing Recipe
-              Response](./connect_responses_pricing_recipe_response.htm.md)
+GET
+
+    
+
+    
+
+## Response Body for GET
+
+      
+      
+
+[Pricing Recipe Response](./connect_responses_pricing_recipe_response.htm.md)

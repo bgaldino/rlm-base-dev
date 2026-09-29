@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # ProductOutputRepresentation Class
 
@@ -65,6 +63,11 @@ Get the date when the part is used in the product or is made available for     s
 **[catalogs](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_catalogs)**  
 
 Get the list of associated catalogs. Returns the name and id values only.
+
+- 
+**[childVariationIds](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_childVariationIds)**  
+
+Get the list of IDs of the child variations of the product.
 
 - 
 **[configureDuringSale](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_configureDuringSale)**  
@@ -137,6 +140,11 @@ Get the name of the product. If data translation is set up and specified in the 
 Get the type of the node, such as a product or bundled product.
 
 - 
+**[productClass](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productClass)**  
+
+Get the class of the product.
+
+- 
 **[productClassification](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productClassification)**  
 
 Get the details of the product classification that the product is based on.
@@ -196,6 +204,11 @@ Get the context details of a user, which are used for qualification rules.
 
 Get or set the status of the product, such as Active or Inactive.
 
+- 
+**[variationAttributeSet](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_variationAttributeSet)**  
+
+Get the variation attribute set of the product.
+
 ### additionalFields
 
 Get the key-value pair of additional standard or custom fields with their
@@ -245,6 +258,18 @@ Get the list of associated catalogs. Returns the name and id values only.
 #### Property Value
 
 Type: List<[runtime_industries_cpq.CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CatalogOutputRepresentation)>
+
+### childVariationIds
+
+Get the list of IDs of the child variations of the product.
+
+#### Signature
+
+`public List<String> childVariationIds {get; set;}`
+
+#### Property Value
+
+Type: List<String>
 
 ### configureDuringSale
 
@@ -418,6 +443,18 @@ Get the type of the node, such as a product or bundled product.
 
 Type: String
 
+### productClass
+
+Get the class of the product.
+
+#### Signature
+
+`public String productClass {get; set;}`
+
+#### Property Value
+
+Type: String
+
 ### productClassification
 
 Get the details of the product classification that the product is based on.
@@ -563,3 +600,15 @@ Get or set the status of the product, such as Active or Inactive.
 #### Property Value
 
 Type: String
+
+### variationAttributeSet
+
+Get the variation attribute set of the product.
+
+#### Signature
+
+`public runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation variationAttributeSet {get; set;}`
+
+#### Property Value
+
+Type: [runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)

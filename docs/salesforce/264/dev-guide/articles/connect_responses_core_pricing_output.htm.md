@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
 
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
-
-# Pricing Output 
+# Pricing Output
 
 Output representation of a Salesforce pricing request.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
 {
@@ -76,9 +72,9 @@ Output representation of a Salesforce pricing request.
 }
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -174,9 +170,6 @@ Output representation of a Salesforce pricing request.
               
 
               
-- 
-- 
-- 
 
               
 
@@ -194,4 +187,4 @@ Output representation of a Salesforce pricing request.
 | `pricingExecutionId` | String | Unique ID that's generated each time a pricing process is executed. | Small, 63.0 | 63.0 |
 | `pricing​Result` | [Pricing Result](./connect_responses_core_pricing_result.htm.md) | Represents the outcomes associated with the output tags defined in the contextual definition for which the pricing engine establishes values. The initial attribute name is substituted for the output tag's designation. For instance, if the original attribute name specified in the Context Definition is "Subtotal," but during contextual setup, the output tag is denoted as "Total Price," the API output exhibits the initial attribute name "Subtotal" in the response. | Small, 60.0 | 60.0 |
 | `pricing​Result​Errors` | [Pricing Result Error[]](./connect_responses_core_pricing_result_error.htm.md) | Errors from the pricing request, if any. | Small, 60.0 | 60.0 |
-| `status` | String | Status of the pricing request. Valid values are: `Completed` — Pricing is completed for all the line items. `Partially Completed` — Pricing is completed for some line items. `Failed` — Pricing isn’t completed for the line items. | Small, 60.0 | 60.0 |
+| `status` | String | Status of the pricing request. Valid values are `Completed` — Pricing is completed for all the line items, `Partially Completed` — Pricing is completed for some line items, or `Failed` — Pricing isn’t completed for the line items. | Small, 60.0 | 60.0 |

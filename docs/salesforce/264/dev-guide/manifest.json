@@ -117,6 +117,15 @@
       "file": "articles/actions_obj_create_billing_schedules_from_transaction.htm.md"
     },
     {
+      "page_id": "actions_obj_create_collection_plan.htm",
+      "title": "Create Collection Plan Action",
+      "section": "Billing",
+      "parent_page": "billing_invocable_actions_parent.htm",
+      "status": "captured",
+      "body_length": 3308,
+      "file": "articles/actions_obj_create_collection_plan.htm.md"
+    },
+    {
       "page_id": "actions_obj_create_contract_from_quote.htm",
       "title": "Create Contract Action",
       "section": "Transaction Management",
@@ -423,6 +432,15 @@
       "file": "articles/actions_obj_process_consumption_overages.htm.md"
     },
     {
+      "page_id": "actions_obj_process_refund_credit_memo.htm",
+      "title": "Process Refund Credit Memo Action",
+      "section": "Billing",
+      "parent_page": "billing_invocable_actions_parent.htm",
+      "status": "captured",
+      "body_length": 5091,
+      "file": "articles/actions_obj_process_refund_credit_memo.htm.md"
+    },
+    {
       "page_id": "actions_obj_reassign_approval_work_item.htm",
       "title": "Reassign Approval Work Item Action",
       "section": "Advanced Approvals",
@@ -556,6 +574,15 @@
       "status": "captured",
       "body_length": 7792,
       "file": "articles/actions_obj_submit_sales_transaction.htm.md"
+    },
+    {
+      "page_id": "actions_obj_sync_quote_opportunity.htm",
+      "title": "Sync Quote to Opportunity Action",
+      "section": "Transaction Management",
+      "parent_page": "qoc_invocable_actions_parent.htm",
+      "status": "captured",
+      "body_length": 2825,
+      "file": "articles/actions_obj_sync_quote_opportunity.htm.md"
     },
     {
       "page_id": "actions_obj_unapply_payment.htm",
@@ -1283,7 +1310,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 9299,
+      "body_length": 8863,
       "file": "articles/apex_class_ricpq_ProductRelatedComponentOR.htm.md"
     },
     {
@@ -1292,7 +1319,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3033,
+      "body_length": 2597,
       "file": "articles/apex_class_ricpq_ProductSellingModelOptionOR.htm.md"
     },
     {
@@ -1301,7 +1328,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1753,
+      "body_length": 1317,
       "file": "articles/apex_class_ricpq_ProductSpecificationRecordTypeOR.htm.md"
     },
     {
@@ -1310,7 +1337,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2227,
+      "body_length": 1791,
       "file": "articles/apex_class_ricpq_ProductSpecificationTypeOR.htm.md"
     },
     {
@@ -1319,7 +1346,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2055,
+      "body_length": 1619,
       "file": "articles/apex_class_runtime_industries_cpq_AdditionalContextData.htm.md"
     },
     {
@@ -1328,7 +1355,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1988,
+      "body_length": 1552,
       "file": "articles/apex_class_runtime_industries_cpq_AdditionalFields.htm.md"
     },
     {
@@ -1337,7 +1364,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1588,
+      "body_length": 1152,
       "file": "articles/apex_class_runtime_industries_cpq_AdditionalFieldsInput.htm.md"
     },
     {
@@ -1346,7 +1373,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2236,
+      "body_length": 1800,
       "file": "articles/apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md"
     },
     {
@@ -1355,7 +1382,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 4314,
+      "body_length": 4251,
       "file": "articles/apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md"
     },
     {
@@ -1364,7 +1391,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3524,
+      "body_length": 3088,
       "file": "articles/apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm.md"
     },
     {
@@ -1373,7 +1400,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 4886,
+      "body_length": 4450,
       "file": "articles/apex_class_runtime_industries_cpq_AttributePickListValueOutputRepresentation.htm.md"
     },
     {
@@ -1382,7 +1409,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1941,
+      "body_length": 1505,
       "file": "articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBody.htm.md"
     },
     {
@@ -1391,7 +1418,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1799,
+      "body_length": 1363,
       "file": "articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBodyList.htm.md"
     },
     {
@@ -1400,7 +1427,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 18640,
+      "body_length": 20518,
       "file": "articles/apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm.md"
     },
     {
@@ -1409,7 +1436,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5182,
+      "body_length": 4746,
       "file": "articles/apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md"
     },
     {
@@ -1418,7 +1445,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5654,
+      "body_length": 5218,
       "file": "articles/apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md"
     },
     {
@@ -1427,7 +1454,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5463,
+      "body_length": 5197,
       "file": "articles/apex_class_runtime_industries_cpq_ConfigRuleResult.htm.md"
     },
     {
@@ -1436,7 +1463,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1624,
+      "body_length": 1188,
       "file": "articles/apex_class_runtime_industries_cpq_ContextDataInput.htm.md"
     },
     {
@@ -1445,7 +1472,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1865,
+      "body_length": 1429,
       "file": "articles/apex_class_runtime_industries_cpq_FacetValueRepresentation.htm.md"
     },
     {
@@ -1454,7 +1481,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1594,
+      "body_length": 1158,
       "file": "articles/apex_class_runtime_industries_cpq_Filter.htm.md"
     },
     {
@@ -1463,7 +1490,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 4343,
+      "body_length": 3475,
       "file": "articles/apex_class_runtime_industries_cpq_FilterCriteriaInputRepresentation.htm.md"
     },
     {
@@ -1472,7 +1499,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2261,
+      "body_length": 1681,
       "file": "articles/apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md"
     },
     {
@@ -1481,7 +1508,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 16674,
+      "body_length": 18825,
       "file": "articles/apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md"
     },
     {
@@ -1490,7 +1517,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3584,
+      "body_length": 3238,
       "file": "articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md"
     },
     {
@@ -1499,7 +1526,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2831,
+      "body_length": 2395,
       "file": "articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTermList.htm.md"
     },
     {
@@ -1508,7 +1535,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3250,
+      "body_length": 2944,
       "file": "articles/apex_class_runtime_industries_cpq_MessageRule.htm.md"
     },
     {
@@ -1517,7 +1544,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3411,
+      "body_length": 2975,
       "file": "articles/apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm.md"
     },
     {
@@ -1526,7 +1553,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 12674,
+      "body_length": 12238,
       "file": "articles/apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md"
     },
     {
@@ -1535,7 +1562,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1590,
+      "body_length": 1154,
       "file": "articles/apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md"
     },
     {
@@ -1544,7 +1571,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5740,
+      "body_length": 5304,
       "file": "articles/apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md"
     },
     {
@@ -1553,7 +1580,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 7123,
+      "body_length": 6777,
       "file": "articles/apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md"
     },
     {
@@ -1562,7 +1589,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 19737,
+      "body_length": 21493,
       "file": "articles/apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md"
     },
     {
@@ -1571,7 +1598,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 18469,
+      "body_length": 20580,
       "file": "articles/apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md"
     },
     {
@@ -1580,7 +1607,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 16238,
+      "body_length": 17283,
       "file": "articles/apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md"
     },
     {
@@ -1589,7 +1616,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5303,
+      "body_length": 4867,
       "file": "articles/apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md"
     },
     {
@@ -1598,7 +1625,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2196,
+      "body_length": 1760,
       "file": "articles/apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md"
     },
     {
@@ -1607,7 +1634,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 4885,
+      "body_length": 4639,
       "file": "articles/apex_class_runtime_industries_cpq_ProductRecommendationRule.htm.md"
     },
     {
@@ -1616,8 +1643,44 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3853,
+      "body_length": 3417,
       "file": "articles/apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md"
+    },
+    {
+      "page_id": "apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm",
+      "title": "ProductUnitOfMeasureOutputRepresentation Class",
+      "section": "Product Catalog Management",
+      "parent_page": "apex_namespace_runtime_industries_cpq.htm",
+      "status": "captured",
+      "body_length": 5104,
+      "file": "articles/apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md"
+    },
+    {
+      "page_id": "apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation.htm",
+      "title": "ProductVariantAttributeOutputRepresentation Class",
+      "section": "Product Catalog Management",
+      "parent_page": "apex_namespace_runtime_industries_cpq.htm",
+      "status": "captured",
+      "body_length": 3484,
+      "file": "articles/apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation.htm.md"
+    },
+    {
+      "page_id": "apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm",
+      "title": "ProductVariantAttributeSetOutputRepresentation Class",
+      "section": "Product Catalog Management",
+      "parent_page": "apex_namespace_runtime_industries_cpq.htm",
+      "status": "captured",
+      "body_length": 4255,
+      "file": "articles/apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md"
+    },
+    {
+      "page_id": "apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation.htm",
+      "title": "ProductVariantAttributeValueOutputRepresentation Class",
+      "section": "Product Catalog Management",
+      "parent_page": "apex_namespace_runtime_industries_cpq.htm",
+      "status": "captured",
+      "body_length": 2841,
+      "file": "articles/apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation.htm.md"
     },
     {
       "page_id": "apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm",
@@ -1625,7 +1688,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3066,
+      "body_length": 2630,
       "file": "articles/apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md"
     },
     {
@@ -1634,7 +1697,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2254,
+      "body_length": 1818,
       "file": "articles/apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md"
     },
     {
@@ -1643,7 +1706,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 2112,
+      "body_length": 1676,
       "file": "articles/apex_class_runtime_industries_cpq_RelatedObjectFilter.htm.md"
     },
     {
@@ -1652,7 +1715,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 1813,
+      "body_length": 1377,
       "file": "articles/apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md"
     },
     {
@@ -1661,7 +1724,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 3704,
+      "body_length": 3268,
       "file": "articles/apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md"
     },
     {
@@ -1670,7 +1733,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 16915,
+      "body_length": 19709,
       "file": "articles/apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm.md"
     },
     {
@@ -1679,7 +1742,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 4302,
+      "body_length": 3956,
       "file": "articles/apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md"
     },
     {
@@ -1688,7 +1751,7 @@
       "section": "Product Catalog Management",
       "parent_page": "apex_namespace_runtime_industries_cpq.htm",
       "status": "captured",
-      "body_length": 5953,
+      "body_length": 5767,
       "file": "articles/apex_class_runtime_industries_cpq_VisibilityRule.htm.md"
     },
     {
@@ -2417,7 +2480,7 @@
       "section": "Product Catalog Management",
       "parent_page": "product_discovery_apex_reference.htm",
       "status": "captured",
-      "body_length": 14697,
+      "body_length": 15550,
       "file": "articles/apex_namespace_runtime_industries_cpq.htm.md"
     },
     {
@@ -2795,7 +2858,7 @@
       "section": "Product Configurator",
       "parent_page": "cml_annotation_examples.htm",
       "status": "captured",
-      "body_length": 5936,
+      "body_length": 6137,
       "file": "articles/cml_annotation_example_defaultValue.htm.md"
     },
     {
@@ -2889,6 +2952,168 @@
       "file": "articles/cml_appendix_model_structure.htm.md"
     },
     {
+      "page_id": "cml_best_practice_access_quantity.htm",
+      "title": "Access Quantity in CML: Cardinality and Attribute Constraints",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 1809,
+      "file": "articles/cml_best_practice_access_quantity.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_add_product.htm",
+      "title": "Automatically Add a Product: Define as a Separate Constraint",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 737,
+      "file": "articles/cml_best_practice_add_product.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_attribute_name.htm",
+      "title": "Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 3482,
+      "file": "articles/cml_best_practice_attribute_name.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_calculations.htm",
+      "title": "Calculating Values: Put Calculations Inside of Constraints",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 543,
+      "file": "articles/cml_best_practice_calculations.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_cardinality.htm",
+      "title": "Relationship Cardinality: Specify the Smallest Range Required",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 985,
+      "file": "articles/cml_best_practice_cardinality.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_combine_relationships.htm",
+      "title": "Relationships: Combine Relationships to Reduce Performance Impact",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 743,
+      "file": "articles/cml_best_practice_combine_relationships.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_consolidate_defaults.htm",
+      "title": "Consolidate Multiple Default Configurations",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 3132,
+      "file": "articles/cml_best_practice_consolidate_defaults.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_dependent_logic.htm",
+      "title": "Dependent Logic: Use Configurable Variable Annotation to Prevent Premature Default Assignment",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 3074,
+      "file": "articles/cml_best_practice_dependent_logic.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_domains.htm",
+      "title": "Variable Domains: Keep Domains as Small as Possible",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 695,
+      "file": "articles/cml_best_practice_domains.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_parent_products.htm",
+      "title": "Configure Child or Grandchild Products Based on Parent Product",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 2944,
+      "file": "articles/cml_best_practice_parent_products.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_pcg_group_relations.htm",
+      "title": "PCG Group Relations: Follow Order in Constraints",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 1089,
+      "file": "articles/cml_best_practice_pcg_group_relations.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_pricing_fields.htm",
+      "title": "Pricing Fields Not Supported in CML",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 668,
+      "file": "articles/cml_best_practice_pricing_fields.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_relation_aggregates.htm",
+      "title": "Relation Aggregates: Stabilize Preferences Using Staged Variables",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 2734,
+      "file": "articles/cml_best_practice_relation_aggregates.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_relation_order.htm",
+      "title": "Relations Without PCG: Follow Order in Constraints",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 341,
+      "file": "articles/cml_best_practice_relation_order.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_scale.htm",
+      "title": "Decimals and Doubles: Consider the Impact of Scale on Performance",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 858,
+      "file": "articles/cml_best_practice_scale.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_sequence.htm",
+      "title": "Sequence: Use the Sequence Variable Annotation to Specify the Order of Execution",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 2246,
+      "file": "articles/cml_best_practice_sequence.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_sequence_configurable.htm",
+      "title": "Sequence and Configurable",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 2526,
+      "file": "articles/cml_best_practice_sequence_configurable.htm.md"
+    },
+    {
+      "page_id": "cml_best_practice_virtual_quote_root.htm",
+      "title": "Virtual Quote Root: Model Cross-Bundle Logic Using a Shared Transaction Parent",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_best_practices.htm",
+      "status": "captured",
+      "body_length": 2657,
+      "file": "articles/cml_best_practice_virtual_quote_root.htm.md"
+    },
+    {
       "page_id": "cml_business-centric_cml_guidelines_quantity_and_aggregation_fun.htm",
       "title": "Business-Centric Constraint Modeling Language (CML) Guidelines",
       "section": "Product Configurator",
@@ -2923,6 +3148,15 @@
       "status": "captured",
       "body_length": 2099,
       "file": "articles/cml_cml_core_concepts.htm.md"
+    },
+    {
+      "page_id": "cml_configure_business_api_pipeline.htm",
+      "title": "How CML Fits in the Product Configure Business API Pipeline",
+      "section": "Product Configurator",
+      "parent_page": "cml_cml_core_concepts.htm",
+      "status": "captured",
+      "body_length": 4868,
+      "file": "articles/cml_configure_business_api_pipeline.htm.md"
     },
     {
       "page_id": "cml_constraint_model_example_modeling_a_generator_set.htm",
@@ -2993,7 +3227,7 @@
       "section": "Product Configurator",
       "parent_page": "cml_types.htm",
       "status": "captured",
-      "body_length": 10352,
+      "body_length": 10276,
       "file": "articles/cml_group_type.htm.md"
     },
     {
@@ -3236,7 +3470,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 3028,
+      "body_length": 3275,
       "file": "articles/connect_requests_add_nodes_configurator_input.htm.md"
     },
     {
@@ -3254,7 +3488,7 @@
       "section": "Billing",
       "parent_page": "billing_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1538,
+      "body_length": 2101,
       "file": "articles/connect_requests_address_input.htm.md"
     },
     {
@@ -3272,7 +3506,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 1240,
+      "body_length": 1451,
       "file": "articles/connect_requests_adjustment_details_input.htm.md"
     },
     {
@@ -3301,6 +3535,78 @@
       "status": "captured",
       "body_length": 13144,
       "file": "articles/connect_requests_batch_invoice_scheduler_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_billing_contact_input.htm",
+      "title": "Billing Contact Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_input.htm",
+      "status": "captured",
+      "body_length": 1420,
+      "file": "articles/connect_requests_billing_checkout_billing_contact_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_bundle_product_details_input.htm",
+      "title": "Bundle Product Details Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_line_item_input.htm",
+      "status": "captured",
+      "body_length": 5158,
+      "file": "articles/connect_requests_billing_checkout_bundle_product_details_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_customer_details_input.htm",
+      "title": "Billing Checkout Customer Details Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_input.htm",
+      "status": "captured",
+      "body_length": 1441,
+      "file": "articles/connect_requests_billing_checkout_customer_details_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_input.htm",
+      "title": "Billing Checkout Input",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_requests.htm",
+      "status": "captured",
+      "body_length": 10007,
+      "file": "articles/connect_requests_billing_checkout_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_line_item_input.htm",
+      "title": "Billing Checkout Line Item Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_input.htm",
+      "status": "captured",
+      "body_length": 6537,
+      "file": "articles/connect_requests_billing_checkout_line_item_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_payment_details_input.htm",
+      "title": "Billing Checkout Payment Details Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_input.htm",
+      "status": "captured",
+      "body_length": 1964,
+      "file": "articles/connect_requests_billing_checkout_payment_details_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_ramp_input.htm",
+      "title": "Billing Checkout Ramp Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_line_item_input.htm",
+      "status": "captured",
+      "body_length": 4591,
+      "file": "articles/connect_requests_billing_checkout_ramp_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_billing_checkout_saved_payment_method_details_input.htm",
+      "title": "Saved Payment Method Details Input",
+      "section": "Billing",
+      "parent_page": "connect_requests_billing_checkout_payment_details_input.htm",
+      "status": "captured",
+      "body_length": 1853,
+      "file": "articles/connect_requests_billing_checkout_saved_payment_method_details_input.htm.md"
     },
     {
       "page_id": "connect_requests_billing_schedule_input_for_amendment.htm",
@@ -3479,7 +3785,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 2278,
+      "body_length": 1588,
       "file": "articles/connect_requests_clone_options_input.htm.md"
     },
     {
@@ -3492,12 +3798,39 @@
       "file": "articles/connect_requests_clone_sales_transaction_input.htm.md"
     },
     {
+      "page_id": "connect_requests_collection_plan_input.htm",
+      "title": "Collection Plan Input",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_requests.htm",
+      "status": "captured",
+      "body_length": 3306,
+      "file": "articles/connect_requests_collection_plan_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_collection_plan_item_input.htm",
+      "title": "Collection Plan Item Input",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1374,
+      "file": "articles/connect_requests_collection_plan_item_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_composite_collection_plan_input.htm",
+      "title": "Composite Collection Plan Input",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1452,
+      "file": "articles/connect_requests_composite_collection_plan_input.htm.md"
+    },
+    {
       "page_id": "connect_requests_config_rule_input.htm",
       "title": "Configuration Rule Input",
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1482,
+      "body_length": 1632,
       "file": "articles/connect_requests_config_rule_input.htm.md"
     },
     {
@@ -3506,7 +3839,7 @@
       "section": "Product Configurator",
       "parent_page": "connect_requests_config_rule_input.htm",
       "status": "captured",
-      "body_length": 1125,
+      "body_length": 1051,
       "file": "articles/connect_requests_config_rule_options_input.htm.md"
     },
     {
@@ -3515,7 +3848,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 1538,
+      "body_length": 1785,
       "file": "articles/connect_requests_configuration_options_input.htm.md"
     },
     {
@@ -3524,7 +3857,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 4306,
+      "body_length": 3301,
       "file": "articles/connect_requests_configuration_override_input.htm.md"
     },
     {
@@ -3533,7 +3866,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 4427,
+      "body_length": 8378,
       "file": "articles/connect_requests_configurator_added_node_input.htm.md"
     },
     {
@@ -3542,7 +3875,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 900,
+      "body_length": 826,
       "file": "articles/connect_requests_configurator_deleted_node_input.htm.md"
     },
     {
@@ -3551,7 +3884,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 6047,
+      "body_length": 15596,
       "file": "articles/connect_requests_configurator_input.htm.md"
     },
     {
@@ -3560,7 +3893,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 3285,
+      "body_length": 3784,
       "file": "articles/connect_requests_configurator_options_input.htm.md"
     },
     {
@@ -3569,7 +3902,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 1755,
+      "body_length": 1647,
       "file": "articles/connect_requests_configurator_preference_input.htm.md"
     },
     {
@@ -3578,7 +3911,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1250,
+      "body_length": 2524,
       "file": "articles/connect_requests_configurator_updated_node_input.htm.md"
     },
     {
@@ -3587,7 +3920,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 2007,
+      "body_length": 1254,
       "file": "articles/connect_requests_configurator_user_context_input.htm.md"
     },
     {
@@ -3641,7 +3974,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 1110,
+      "body_length": 1033,
       "file": "articles/connect_requests_context_info_input.htm.md"
     },
     {
@@ -3668,7 +4001,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 5524,
+      "body_length": 4813,
       "file": "articles/connect_requests_core_pricing_input.htm.md"
     },
     {
@@ -3830,7 +4163,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1970,
+      "body_length": 2209,
       "file": "articles/connect_requests_delete_nodes_configurator_input.htm.md"
     },
     {
@@ -3857,7 +4190,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 1086,
+      "body_length": 1119,
       "file": "articles/connect_requests_execution_settings_input.htm.md"
     },
     {
@@ -3866,7 +4199,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 4327,
+      "body_length": 4574,
       "file": "articles/connect_requests_favorite_input.htm.md"
     },
     {
@@ -3920,7 +4253,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1020,
+      "body_length": 816,
       "file": "articles/connect_requests_get_configuration_instance_input.htm.md"
     },
     {
@@ -3956,7 +4289,7 @@
       "section": "Transaction Management",
       "parent_page": "connect_requests_place_sales_transaction_input.htm",
       "status": "captured",
-      "body_length": 9860,
+      "body_length": 9039,
       "file": "articles/connect_requests_group_ramp_action_input.htm.md"
     },
     {
@@ -4100,7 +4433,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1989,
+      "body_length": 1976,
       "file": "articles/connect_requests_load_configuration_instance_input.htm.md"
     },
     {
@@ -4109,7 +4442,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 1866,
+      "body_length": 1163,
       "file": "articles/connect_requests_object_graph_input.htm.md"
     },
     {
@@ -4118,7 +4451,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 2167,
+      "body_length": 1464,
       "file": "articles/connect_requests_object_input_representation_map.htm.md"
     },
     {
@@ -4127,7 +4460,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 2789,
+      "body_length": 2069,
       "file": "articles/connect_requests_object_with_reference_input.htm.md"
     },
     {
@@ -4163,7 +4496,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 1247,
+      "body_length": 1490,
       "file": "articles/connect_requests_p_b_e_derived_pricing_input.htm.md"
     },
     {
@@ -4257,12 +4590,21 @@
       "file": "articles/connect_requests_preview_approval_input.htm.md"
     },
     {
+      "page_id": "connect_requests_pricing_recipe_clone_input.htm",
+      "title": "Pricing Recipe Clone Input",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_api_requests.htm",
+      "status": "captured",
+      "body_length": 1552,
+      "file": "articles/connect_requests_pricing_recipe_clone_input.htm.md"
+    },
+    {
       "page_id": "connect_requests_pricing_recipe_input.htm",
       "title": "Pricing Recipe Input",
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 1586,
+      "body_length": 1726,
       "file": "articles/connect_requests_pricing_recipe_input.htm.md"
     },
     {
@@ -4271,7 +4613,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 1198,
+      "body_length": 1231,
       "file": "articles/connect_requests_pricing_recipe_look_up_table_input.htm.md"
     },
     {
@@ -4280,7 +4622,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 862,
+      "body_length": 788,
       "file": "articles/connect_requests_pricing_recipe_procedure_input.htm.md"
     },
     {
@@ -4289,7 +4631,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 1125,
+      "body_length": 1158,
       "file": "articles/connect_requests_pricing_request.htm.md"
     },
     {
@@ -4298,7 +4640,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 3133,
+      "body_length": 3840,
       "file": "articles/connect_requests_pricing_versioning_revise_details_input.htm.md"
     },
     {
@@ -4307,7 +4649,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 3266,
+      "body_length": 3620,
       "file": "articles/connect_requests_pricing_waterfall_input.htm.md"
     },
     {
@@ -4316,7 +4658,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 4056,
+      "body_length": 5054,
       "file": "articles/connect_requests_pricing_waterfall_log_input.htm.md"
     },
     {
@@ -4325,7 +4667,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 2691,
+      "body_length": 3259,
       "file": "articles/connect_requests_procedure_plan_criterion_input.htm.md"
     },
     {
@@ -4334,7 +4676,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 4907,
+      "body_length": 4250,
       "file": "articles/connect_requests_procedure_plan_definition_input.htm.md"
     },
     {
@@ -4343,7 +4685,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 5147,
+      "body_length": 5978,
       "file": "articles/connect_requests_procedure_plan_definition_version_input.htm.md"
     },
     {
@@ -4352,7 +4694,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 3944,
+      "body_length": 3368,
       "file": "articles/connect_requests_procedure_plan_evaluation_input.htm.md"
     },
     {
@@ -4361,7 +4703,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 3502,
+      "body_length": 4284,
       "file": "articles/connect_requests_procedure_plan_option_input.htm.md"
     },
     {
@@ -4370,7 +4712,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_requests.htm",
       "status": "captured",
-      "body_length": 3629,
+      "body_length": 4182,
       "file": "articles/connect_requests_procedure_plan_section_input.htm.md"
     },
     {
@@ -4480,6 +4822,15 @@
       "status": "captured",
       "body_length": 2912,
       "file": "articles/connect_requests_read_sales_transaction_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_refund_credit_memo_input.htm",
+      "title": "Refund Credit Memo Input",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_requests.htm",
+      "status": "captured",
+      "body_length": 2179,
+      "file": "articles/connect_requests_refund_credit_memo_input.htm.md"
     },
     {
       "page_id": "connect_requests_refund_line_apply_input.htm",
@@ -4595,7 +4946,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1020,
+      "body_length": 816,
       "file": "articles/connect_requests_save_configuration_instance_input.htm.md"
     },
     {
@@ -4667,7 +5018,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 2209,
+      "body_length": 2290,
       "file": "articles/connect_requests_set_configuration_instance_input.htm.md"
     },
     {
@@ -4676,7 +5027,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1998,
+      "body_length": 2352,
       "file": "articles/connect_requests_set_product_quantity_configurator_input.htm.md"
     },
     {
@@ -4770,12 +5121,21 @@
       "file": "articles/connect_requests_swap_group.htm.md"
     },
     {
+      "page_id": "connect_requests_unlock_transaction_input.htm",
+      "title": "Unlock Transaction Input",
+      "section": "Transaction Management",
+      "parent_page": "qoc_api_requests.htm",
+      "status": "captured",
+      "body_length": 966,
+      "file": "articles/connect_requests_unlock_transaction_input.htm.md"
+    },
+    {
       "page_id": "connect_requests_update_favorite_input.htm",
       "title": "Configuration Update Input",
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 4205,
+      "body_length": 4345,
       "file": "articles/connect_requests_update_favorite_input.htm.md"
     },
     {
@@ -4784,7 +5144,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 2052,
+      "body_length": 2291,
       "file": "articles/connect_requests_update_nodes_configurator_input.htm.md"
     },
     {
@@ -4820,7 +5180,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_requests.htm",
       "status": "captured",
-      "body_length": 9489,
+      "body_length": 8473,
       "file": "articles/connect_requests_usage_based_product_input.htm.md"
     },
     {
@@ -4883,7 +5243,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 3809,
+      "body_length": 3822,
       "file": "articles/connect_resources_add_nodes.htm.md"
     },
     {
@@ -4939,6 +5299,15 @@
       "status": "captured",
       "body_length": 2377,
       "file": "articles/connect_resources_batch_draft_invoices_to_posted.htm.md"
+    },
+    {
+      "page_id": "connect_resources_billing_checkout.htm",
+      "title": "Billing Checkout (POST)",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_resources.htm",
+      "status": "captured",
+      "body_length": 10006,
+      "file": "articles/connect_resources_billing_checkout.htm.md"
     },
     {
       "page_id": "connect_resources_bulk_product_details.htm",
@@ -5004,13 +5373,31 @@
       "file": "articles/connect_resources_category_details.htm.md"
     },
     {
+      "page_id": "connect_resources_clone_pricing_recipe.htm",
+      "title": "Pricing Recipe Clone (POST)",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_business_apis_rest_references.htm",
+      "status": "captured",
+      "body_length": 2110,
+      "file": "articles/connect_resources_clone_pricing_recipe.htm.md"
+    },
+    {
       "page_id": "connect_resources_clone_sales_transaction.htm",
       "title": "Clone Sales Transaction (POST)",
       "section": "Transaction Management",
       "parent_page": "qoc_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 3714,
+      "body_length": 2745,
       "file": "articles/connect_resources_clone_sales_transaction.htm.md"
+    },
+    {
+      "page_id": "connect_resources_collections_composite_collection_plan.htm",
+      "title": "Composite Collection Plan Creation (POST)",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_resources.htm",
+      "status": "captured",
+      "body_length": 2639,
+      "file": "articles/connect_resources_collections_composite_collection_plan.htm.md"
     },
     {
       "page_id": "connect_resources_config_rules.htm",
@@ -5018,7 +5405,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2074,
+      "body_length": 1994,
       "file": "articles/connect_resources_config_rules.htm.md"
     },
     {
@@ -5126,7 +5513,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 5917,
+      "body_length": 6516,
       "file": "articles/connect_resources_create_procedure_plan_version_record.htm.md"
     },
     {
@@ -5144,7 +5531,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 4607,
+      "body_length": 4836,
       "file": "articles/connect_resources_create_ramp_deal.htm.md"
     },
     {
@@ -5207,7 +5594,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2681,
+      "body_length": 2700,
       "file": "articles/connect_resources_delete_nodes.htm.md"
     },
     {
@@ -5234,7 +5621,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 4587,
+      "body_length": 3703,
       "file": "articles/connect_resources_evaluate_procedure_plan_by_definition_name.htm.md"
     },
     {
@@ -5243,7 +5630,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 4493,
+      "body_length": 3609,
       "file": "articles/connect_resources_evaluate_procedure_plan_definition_by_object.htm.md"
     },
     {
@@ -5252,7 +5639,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2003,
+      "body_length": 1211,
       "file": "articles/connect_resources_execution_logs.htm.md"
     },
     {
@@ -5324,7 +5711,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 1951,
+      "body_length": 1507,
       "file": "articles/connect_resources_get_configurator_instance.htm.md"
     },
     {
@@ -5360,7 +5747,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2965,
+      "body_length": 2047,
       "file": "articles/connect_resources_get_pricing_simulation_data_with_variables.htm.md"
     },
     {
@@ -5369,7 +5756,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 5503,
+      "body_length": 4481,
       "file": "articles/connect_resources_get_procedure_plan_definition_by_ID.htm.md"
     },
     {
@@ -5378,7 +5765,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 6274,
+      "body_length": 2279,
       "file": "articles/connect_resources_get_procedure_plan_definition_records.htm.md"
     },
     {
@@ -5387,7 +5774,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 6433,
+      "body_length": 7003,
       "file": "articles/connect_resources_get_procedure_plan_version_details.htm.md"
     },
     {
@@ -5418,6 +5805,15 @@
       "file": "articles/connect_resources_get_rate_plan.htm.md"
     },
     {
+      "page_id": "connect_resources_get_valid_pricing_elements.htm",
+      "title": "Pricing Recipe Valid Elements (GET)",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_business_apis_rest_references.htm",
+      "status": "captured",
+      "body_length": 1430,
+      "file": "articles/connect_resources_get_valid_pricing_elements.htm.md"
+    },
+    {
       "page_id": "connect_resources_global_search.htm",
       "title": "Global Search (POST)",
       "section": "Product Catalog Management",
@@ -5441,7 +5837,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 6759,
+      "body_length": 5780,
       "file": "articles/connect_resources_headless.htm.md"
     },
     {
@@ -5513,7 +5909,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2888,
+      "body_length": 2647,
       "file": "articles/connect_resources_load_configurator_instance.htm.md"
     },
     {
@@ -5549,7 +5945,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 1957,
+      "body_length": 1984,
       "file": "articles/connect_resources_pbe_source_pricing_derived_product.htm.md"
     },
     {
@@ -5576,7 +5972,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 21026,
+      "body_length": 19843,
       "file": "articles/connect_resources_place_sales_transaction.htm.md"
     },
     {
@@ -5621,7 +6017,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2226,
+      "body_length": 2028,
       "file": "articles/connect_resources_price_context.htm.md"
     },
     {
@@ -5630,7 +6026,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2388,
+      "body_length": 2294,
       "file": "articles/connect_resources_price_recipe_mapping.htm.md"
     },
     {
@@ -5639,7 +6035,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2523,
+      "body_length": 1759,
       "file": "articles/connect_resources_pricing_data_sync.htm.md"
     },
     {
@@ -5648,7 +6044,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 3290,
+      "body_length": 2270,
       "file": "articles/connect_resources_pricing_process_execution.htm.md"
     },
     {
@@ -5657,7 +6053,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 1159,
+      "body_length": 555,
       "file": "articles/connect_resources_pricing_recipe.htm.md"
     },
     {
@@ -5666,7 +6062,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 3560,
+      "body_length": 2697,
       "file": "articles/connect_resources_pricing_waterfall_fetch.htm.md"
     },
     {
@@ -5675,7 +6071,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 4805,
+      "body_length": 5572,
       "file": "articles/connect_resources_pricing_waterfall_post.htm.md"
     },
     {
@@ -5684,7 +6080,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 2512,
+      "body_length": 1645,
       "file": "articles/connect_resources_process_execution_line_item_details.htm.md"
     },
     {
@@ -5720,7 +6116,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 6907,
+      "body_length": 16598,
       "file": "articles/connect_resources_product_configurator_configure.htm.md"
     },
     {
@@ -5811,6 +6207,15 @@
       "file": "articles/connect_resources_recover_errored_invoices_batch_run.htm.md"
     },
     {
+      "page_id": "connect_resources_refund_credit_memo.htm",
+      "title": "Refund Credit Memo (POST)",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_resources.htm",
+      "status": "captured",
+      "body_length": 2899,
+      "file": "articles/connect_resources_refund_credit_memo.htm.md"
+    },
+    {
       "page_id": "connect_resources_related_records.htm",
       "title": "Product Related Records List (POST)",
       "section": "Product Catalog Management",
@@ -5861,7 +6266,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2018,
+      "body_length": 1589,
       "file": "articles/connect_resources_save_configuration_instance.htm.md"
     },
     {
@@ -5870,7 +6275,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 6347,
+      "body_length": 6128,
       "file": "articles/connect_resources_save_product_configurations.htm.md"
     },
     {
@@ -5879,7 +6284,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 5360,
+      "body_length": 5234,
       "file": "articles/connect_resources_saved_configuration.htm.md"
     },
     {
@@ -5915,7 +6320,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 3116,
+      "body_length": 2957,
       "file": "articles/connect_resources_set_configurator_instance.htm.md"
     },
     {
@@ -5924,7 +6329,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2767,
+      "body_length": 2889,
       "file": "articles/connect_resources_set_product_quantity.htm.md"
     },
     {
@@ -5973,12 +6378,21 @@
       "file": "articles/connect_resources_unit_of_measure_rounded_data.htm.md"
     },
     {
+      "page_id": "connect_resources_unlock_transaction.htm",
+      "title": "Unlock Transaction (POST)",
+      "section": "Transaction Management",
+      "parent_page": "qoc_business_apis_rest_references.htm",
+      "status": "captured",
+      "body_length": 2496,
+      "file": "articles/connect_resources_unlock_transaction.htm.md"
+    },
+    {
       "page_id": "connect_resources_update_nodes.htm",
       "title": "Configurator Update Nodes (POST)",
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_resources.htm",
       "status": "captured",
-      "body_length": 2759,
+      "body_length": 2778,
       "file": "articles/connect_resources_update_nodes.htm.md"
     },
     {
@@ -6032,7 +6446,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 3933,
+      "body_length": 4407,
       "file": "articles/connect_resources_versioned_revise_details.htm.md"
     },
     {
@@ -6077,7 +6491,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2898,
+      "body_length": 3061,
       "file": "articles/connect_responses_add_nodes_configurator_output.htm.md"
     },
     {
@@ -6104,7 +6518,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1255,
+      "body_length": 1418,
       "file": "articles/connect_responses_adjustment_detail.htm.md"
     },
     {
@@ -6122,7 +6536,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1715,
+      "body_length": 1220,
       "file": "articles/connect_responses_api_execution_log.htm.md"
     },
     {
@@ -6131,7 +6545,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 4165,
+      "body_length": 3666,
       "file": "articles/connect_responses_api_execution_waterfall_response.htm.md"
     },
     {
@@ -6225,6 +6639,24 @@
       "file": "articles/connect_responses_batch_invoice_scheduler_output.htm.md"
     },
     {
+      "page_id": "connect_responses_batch_metadata_output.htm",
+      "title": "Batch Metadata",
+      "section": "Transaction Management",
+      "parent_page": "qoc_api_responses.htm",
+      "status": "captured",
+      "body_length": 1382,
+      "file": "articles/connect_responses_batch_metadata_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_batch_records_output.htm",
+      "title": "Batch Records",
+      "section": "Transaction Management",
+      "parent_page": "qoc_api_responses.htm",
+      "status": "captured",
+      "body_length": 1770,
+      "file": "articles/connect_responses_batch_records_output.htm.md"
+    },
+    {
       "page_id": "connect_responses_billing_arrangement_line.htm",
       "title": "Billing Arrangement Line",
       "section": "Billing",
@@ -6250,6 +6682,24 @@
       "status": "captured",
       "body_length": 1245,
       "file": "articles/connect_responses_billing_batch_scheduler.htm.md"
+    },
+    {
+      "page_id": "connect_responses_billing_checkout_error.htm",
+      "title": "Billing Checkout Error",
+      "section": "Billing",
+      "parent_page": "connect_responses_billing_checkout_output.htm",
+      "status": "captured",
+      "body_length": 1069,
+      "file": "articles/connect_responses_billing_checkout_error.htm.md"
+    },
+    {
+      "page_id": "connect_responses_billing_checkout_output.htm",
+      "title": "Billing Checkout",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2772,
+      "file": "articles/connect_responses_billing_checkout_output.htm.md"
     },
     {
       "page_id": "connect_responses_billing_period_output.htm",
@@ -6401,7 +6851,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1855,
+      "body_length": 1132,
       "file": "articles/connect_responses_clone_sales_transaction_error_response.htm.md"
     },
     {
@@ -6410,8 +6860,35 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 2710,
+      "body_length": 1982,
       "file": "articles/connect_responses_clone_sales_transaction_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_collection_plan_error.htm",
+      "title": "Collection Plan Error",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1309,
+      "file": "articles/connect_responses_collection_plan_error.htm.md"
+    },
+    {
+      "page_id": "connect_responses_collection_plan_output.htm",
+      "title": "Collection Plan",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1741,
+      "file": "articles/connect_responses_collection_plan_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_composite_collection_plan_output.htm",
+      "title": "Composite Collection Plan",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1016,
+      "file": "articles/connect_responses_composite_collection_plan_output.htm.md"
     },
     {
       "page_id": "connect_responses_config_rule_errors_output.htm",
@@ -6419,7 +6896,7 @@
       "section": "Product Configurator",
       "parent_page": "connect_responses_config_rule_output.htm",
       "status": "captured",
-      "body_length": 848,
+      "body_length": 412,
       "file": "articles/connect_responses_config_rule_errors_output.htm.md"
     },
     {
@@ -6428,7 +6905,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 6129,
+      "body_length": 5664,
       "file": "articles/connect_responses_config_rule_output.htm.md"
     },
     {
@@ -6437,7 +6914,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1407,
+      "body_length": 926,
       "file": "articles/connect_responses_configuration_list_error_response.htm.md"
     },
     {
@@ -6446,7 +6923,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 869,
+      "body_length": 433,
       "file": "articles/connect_responses_configurator_additional_fields_output.htm.md"
     },
     {
@@ -6455,7 +6932,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 23929,
+      "body_length": 23454,
       "file": "articles/connect_responses_configurator_attribute_category_output.htm.md"
     },
     {
@@ -6464,7 +6941,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 28108,
+      "body_length": 27620,
       "file": "articles/connect_responses_configurator_attribute_output.htm.md"
     },
     {
@@ -6473,7 +6950,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1166,
+      "body_length": 730,
       "file": "articles/connect_responses_configurator_attribute_picklist_output.htm.md"
     },
     {
@@ -6482,7 +6959,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1525,
+      "body_length": 1089,
       "file": "articles/connect_responses_configurator_attribute_picklist_value_output.htm.md"
     },
     {
@@ -6491,7 +6968,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 3812,
+      "body_length": 3323,
       "file": "articles/connect_responses_configurator_message_output.htm.md"
     },
     {
@@ -6500,7 +6977,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 26349,
+      "body_length": 25874,
       "file": "articles/connect_responses_configurator_output.htm.md"
     },
     {
@@ -6509,7 +6986,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1659,
+      "body_length": 1223,
       "file": "articles/connect_responses_configurator_price_output.htm.md"
     },
     {
@@ -6518,7 +6995,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1146,
+      "body_length": 710,
       "file": "articles/connect_responses_configurator_pricing_model_output.htm.md"
     },
     {
@@ -6527,7 +7004,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 20891,
+      "body_length": 20416,
       "file": "articles/connect_responses_configurator_product_catalog_output.htm.md"
     },
     {
@@ -6536,7 +7013,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1252,
+      "body_length": 773,
       "file": "articles/connect_responses_configurator_product_classification_output.htm.md"
     },
     {
@@ -6545,7 +7022,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 11466,
+      "body_length": 10987,
       "file": "articles/connect_responses_configurator_product_component_group_output.htm.md"
     },
     {
@@ -6554,7 +7031,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1119,
+      "body_length": 1068,
       "file": "articles/connect_responses_configurator_product_recommendation_output.htm.md"
     },
     {
@@ -6563,7 +7040,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 6181,
+      "body_length": 5689,
       "file": "articles/connect_responses_configurator_product_related_component_output.htm.md"
     },
     {
@@ -6572,7 +7049,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 3036,
+      "body_length": 2557,
       "file": "articles/connect_responses_configurator_product_selling_model_option_output.htm.md"
     },
     {
@@ -6581,7 +7058,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2422,
+      "body_length": 1943,
       "file": "articles/connect_responses_configurator_product_selling_model_output.htm.md"
     },
     {
@@ -6590,7 +7067,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 888,
+      "body_length": 452,
       "file": "articles/connect_responses_configurator_qualification_context_output.htm.md"
     },
     {
@@ -6599,7 +7076,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 3222,
+      "body_length": 2710,
       "file": "articles/connect_responses_configurator_u_i_treatment_output.htm.md"
     },
     {
@@ -6608,7 +7085,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1382,
+      "body_length": 1652,
       "file": "articles/connect_responses_configurator_unit_of_measure_output.htm.md"
     },
     {
@@ -6671,7 +7148,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 3666,
+      "body_length": 3183,
       "file": "articles/connect_responses_core_pricing_output.htm.md"
     },
     {
@@ -6680,7 +7157,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2679,
+      "body_length": 2203,
       "file": "articles/connect_responses_core_pricing_result.htm.md"
     },
     {
@@ -6689,7 +7166,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1895,
+      "body_length": 1420,
       "file": "articles/connect_responses_core_pricing_result_error.htm.md"
     },
     {
@@ -6743,7 +7220,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1845,
+      "body_length": 1329,
       "file": "articles/connect_responses_create_favorite_output.htm.md"
     },
     {
@@ -6860,7 +7337,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2914,
+      "body_length": 3073,
       "file": "articles/connect_responses_delete_nodes_configurator_output.htm.md"
     },
     {
@@ -6950,7 +7427,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 5124,
+      "body_length": 4643,
       "file": "articles/connect_responses_favorite_list_output_represenation.htm.md"
     },
     {
@@ -6959,7 +7436,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 5277,
+      "body_length": 4796,
       "file": "articles/connect_responses_favorite_output_represenation.htm.md"
     },
     {
@@ -7004,7 +7481,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1184,
+      "body_length": 740,
       "file": "articles/connect_responses_get_configuration_instance_output.htm.md"
     },
     {
@@ -7175,7 +7652,7 @@
       "section": "Billing",
       "parent_page": "billing_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1638,
+      "body_length": 1480,
       "file": "articles/connect_responses_invoice_preview_output.htm.md"
     },
     {
@@ -7211,7 +7688,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 14436,
+      "body_length": 15365,
       "file": "articles/connect_responses_line_item_waterfall_response.htm.md"
     },
     {
@@ -7220,7 +7697,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 3880,
+      "body_length": 3386,
       "file": "articles/connect_responses_load_configuration_instance_output.htm.md"
     },
     {
@@ -7238,7 +7715,7 @@
       "section": "Product Configurator",
       "parent_page": "connect_responses_config_rule_output.htm",
       "status": "captured",
-      "body_length": 1955,
+      "body_length": 1475,
       "file": "articles/connect_responses_message_rules_output.htm.md"
     },
     {
@@ -7292,7 +7769,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1874,
+      "body_length": 1395,
       "file": "articles/connect_responses_p_b_e_derived_pricing_out_put.htm.md"
     },
     {
@@ -7391,7 +7868,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1811,
+      "body_length": 1317,
       "file": "articles/connect_responses_place_sales_transaction_error_response.htm.md"
     },
     {
@@ -7400,7 +7877,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 3420,
+      "body_length": 2896,
       "file": "articles/connect_responses_place_sales_transaction_output.htm.md"
     },
     {
@@ -7436,7 +7913,7 @@
       "section": "Billing",
       "parent_page": "billing_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2043,
+      "body_length": 2634,
       "file": "articles/connect_responses_prev_inv_line_output.htm.md"
     },
     {
@@ -7445,7 +7922,7 @@
       "section": "Billing",
       "parent_page": "billing_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2559,
+      "body_length": 3150,
       "file": "articles/connect_responses_prev_inv_output.htm.md"
     },
     {
@@ -7490,7 +7967,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1262,
+      "body_length": 826,
       "file": "articles/connect_responses_pricing_error_response.htm.md"
     },
     {
@@ -7499,7 +7976,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1468,
+      "body_length": 993,
       "file": "articles/connect_responses_pricing_generic_response.htm.md"
     },
     {
@@ -7517,7 +7994,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2845,
+      "body_length": 2370,
       "file": "articles/connect_responses_pricing_process_execution_get_output.htm.md"
     },
     {
@@ -7526,8 +8003,26 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 3296,
+      "body_length": 2792,
       "file": "articles/connect_responses_pricing_process_execution_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_pricing_recipe_clone_error.htm",
+      "title": "Pricing Recipe Clone Error",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_api_responses.htm",
+      "status": "captured",
+      "body_length": 854,
+      "file": "articles/connect_responses_pricing_recipe_clone_error.htm.md"
+    },
+    {
+      "page_id": "connect_responses_pricing_recipe_clone_output.htm",
+      "title": "Pricing Recipe Clone",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_api_responses.htm",
+      "status": "captured",
+      "body_length": 1553,
+      "file": "articles/connect_responses_pricing_recipe_clone_output.htm.md"
     },
     {
       "page_id": "connect_responses_pricing_recipe_look_up_table_response.htm",
@@ -7535,7 +8030,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1607,
+      "body_length": 1663,
       "file": "articles/connect_responses_pricing_recipe_look_up_table_response.htm.md"
     },
     {
@@ -7544,7 +8039,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2606,
+      "body_length": 3518,
       "file": "articles/connect_responses_pricing_recipe_output.htm.md"
     },
     {
@@ -7553,7 +8048,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1493,
+      "body_length": 1018,
       "file": "articles/connect_responses_pricing_recipe_post_output.htm.md"
     },
     {
@@ -7562,7 +8057,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1891,
+      "body_length": 1840,
       "file": "articles/connect_responses_pricing_recipe_response.htm.md"
     },
     {
@@ -7571,7 +8066,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1231,
+      "body_length": 1287,
       "file": "articles/connect_responses_pricing_response.htm.md"
     },
     {
@@ -7580,8 +8075,17 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2186,
+      "body_length": 1711,
       "file": "articles/connect_responses_pricing_simulation_input_variables_with_data_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_pricing_valid_elements_output.htm",
+      "title": "Pricing Recipe Valid Elements",
+      "section": "Salesforce Pricing",
+      "parent_page": "pricing_api_responses.htm",
+      "status": "captured",
+      "body_length": 1082,
+      "file": "articles/connect_responses_pricing_valid_elements_output.htm.md"
     },
     {
       "page_id": "connect_responses_pricing_versioned_revise_details_output.htm",
@@ -7589,7 +8093,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 921,
+      "body_length": 485,
       "file": "articles/connect_responses_pricing_versioned_revise_details_output.htm.md"
     },
     {
@@ -7598,7 +8102,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1934,
+      "body_length": 2204,
       "file": "articles/connect_responses_pricing_water_fall_response.htm.md"
     },
     {
@@ -7607,7 +8111,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 4603,
+      "body_length": 4102,
       "file": "articles/connect_responses_procedure_plan_criterion_output.htm.md"
     },
     {
@@ -7616,7 +8120,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 4140,
+      "body_length": 3679,
       "file": "articles/connect_responses_procedure_plan_definition_output.htm.md"
     },
     {
@@ -7625,7 +8129,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 5161,
+      "body_length": 4686,
       "file": "articles/connect_responses_procedure_plan_definition_version_output.htm.md"
     },
     {
@@ -7634,7 +8138,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 3845,
+      "body_length": 3370,
       "file": "articles/connect_responses_procedure_plan_definitions_output.htm.md"
     },
     {
@@ -7643,7 +8147,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2365,
+      "body_length": 1886,
       "file": "articles/connect_responses_procedure_plan_evaluation.htm.md"
     },
     {
@@ -7652,7 +8156,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2234,
+      "body_length": 1755,
       "file": "articles/connect_responses_procedure_plan_evaluation_response.htm.md"
     },
     {
@@ -7661,7 +8165,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1649,
+      "body_length": 1170,
       "file": "articles/connect_responses_procedure_plan_evaluation_result.htm.md"
     },
     {
@@ -7670,7 +8174,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 855,
+      "body_length": 419,
       "file": "articles/connect_responses_procedure_plan_generic_error.htm.md"
     },
     {
@@ -7679,7 +8183,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1970,
+      "body_length": 1483,
       "file": "articles/connect_responses_procedure_plan_generic_output.htm.md"
     },
     {
@@ -7688,7 +8192,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 6084,
+      "body_length": 5557,
       "file": "articles/connect_responses_procedure_plan_option_output.htm.md"
     },
     {
@@ -7697,7 +8201,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 4653,
+      "body_length": 4163,
       "file": "articles/connect_responses_procedure_plan_section_evaluation_runtime.htm.md"
     },
     {
@@ -7706,7 +8210,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 5901,
+      "body_length": 5411,
       "file": "articles/connect_responses_procedure_plan_section_output.htm.md"
     },
     {
@@ -7715,7 +8219,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 2234,
+      "body_length": 1735,
       "file": "articles/connect_responses_process_execution_line_item_details_get_output.htm.md"
     },
     {
@@ -7724,7 +8228,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_api_responses.htm",
       "status": "captured",
-      "body_length": 1754,
+      "body_length": 1272,
       "file": "articles/connect_responses_process_execution_line_item_details_response.htm.md"
     },
     {
@@ -7904,7 +8408,7 @@
       "section": "Product Configurator",
       "parent_page": "connect_responses_config_rule_output.htm",
       "status": "captured",
-      "body_length": 2221,
+      "body_length": 1746,
       "file": "articles/connect_responses_product_recommendation_rules_output.htm.md"
     },
     {
@@ -8057,7 +8561,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1325,
+      "body_length": 889,
       "file": "articles/connect_responses_ramp_deal_service_error_response.htm.md"
     },
     {
@@ -8066,7 +8570,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 9859,
+      "body_length": 10148,
       "file": "articles/connect_responses_ramp_deal_service_output.htm.md"
     },
     {
@@ -8156,7 +8660,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1968,
+      "body_length": 1485,
       "file": "articles/connect_responses_read_sales_transaction_records_output.htm.md"
     },
     {
@@ -8185,6 +8689,33 @@
       "status": "captured",
       "body_length": 1881,
       "file": "articles/connect_responses_reference_line_error.htm.md"
+    },
+    {
+      "page_id": "connect_responses_refund_application_output.htm",
+      "title": "Refund Application",
+      "section": "Billing",
+      "parent_page": "connect_responses_refund_credit_memo_output.htm",
+      "status": "captured",
+      "body_length": 1110,
+      "file": "articles/connect_responses_refund_application_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_refund_credit_memo_output.htm",
+      "title": "Refund Credit Memo",
+      "section": "Billing",
+      "parent_page": "billing_business_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2152,
+      "file": "articles/connect_responses_refund_credit_memo_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_refund_error_output.htm",
+      "title": "Refund Error",
+      "section": "Billing",
+      "parent_page": "connect_responses_refund_credit_memo_output.htm",
+      "status": "captured",
+      "body_length": 1101,
+      "file": "articles/connect_responses_refund_error_output.htm.md"
     },
     {
       "page_id": "connect_responses_refund_line_apply_output.htm",
@@ -8300,7 +8831,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1724,
+      "body_length": 1231,
       "file": "articles/connect_responses_sales_transaction_context_output.htm.md"
     },
     {
@@ -8309,7 +8840,7 @@
       "section": "Transaction Management",
       "parent_page": "qoc_api_responses.htm",
       "status": "captured",
-      "body_length": 1759,
+      "body_length": 1284,
       "file": "articles/connect_responses_sales_transaction_record_output.htm.md"
     },
     {
@@ -8318,7 +8849,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1035,
+      "body_length": 591,
       "file": "articles/connect_responses_save_configuration_instance_output.htm.md"
     },
     {
@@ -8417,7 +8948,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 3119,
+      "body_length": 3385,
       "file": "articles/connect_responses_set_configuration_instance_output.htm.md"
     },
     {
@@ -8426,7 +8957,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2906,
+      "body_length": 3069,
       "file": "articles/connect_responses_set_product_quantity_configurator_output.htm.md"
     },
     {
@@ -8619,12 +9150,21 @@
       "file": "articles/connect_responses_unit_of_measure_status.htm.md"
     },
     {
+      "page_id": "connect_responses_unlock_transaction_output.htm",
+      "title": "Unlock Transaction",
+      "section": "Transaction Management",
+      "parent_page": "qoc_api_responses.htm",
+      "status": "captured",
+      "body_length": 1500,
+      "file": "articles/connect_responses_unlock_transaction_output.htm.md"
+    },
+    {
       "page_id": "connect_responses_update_favorite_output.htm",
       "title": "Configuration Update",
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 1870,
+      "body_length": 1353,
       "file": "articles/connect_responses_update_favorite_output.htm.md"
     },
     {
@@ -8633,7 +9173,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_apis_responses.htm",
       "status": "captured",
-      "body_length": 2904,
+      "body_length": 3067,
       "file": "articles/connect_responses_update_nodes_configurator_output.htm.md"
     },
     {
@@ -8750,7 +9290,7 @@
       "section": "Product Configurator",
       "parent_page": "connect_responses_config_rule_output.htm",
       "status": "captured",
-      "body_length": 4148,
+      "body_length": 3655,
       "file": "articles/connect_responses_visibility_rules_output.htm.md"
     },
     {
@@ -9524,7 +10064,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis.htm",
       "status": "captured",
-      "body_length": 3331,
+      "body_length": 3025,
       "file": "articles/pricing_api_requests.htm.md"
     },
     {
@@ -9533,7 +10073,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis.htm",
       "status": "captured",
-      "body_length": 6349,
+      "body_length": 6440,
       "file": "articles/pricing_api_responses.htm.md"
     },
     {
@@ -9542,7 +10082,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_overview.htm",
       "status": "captured",
-      "body_length": 7205,
+      "body_length": 7286,
       "file": "articles/pricing_business_apis.htm.md"
     },
     {
@@ -9551,7 +10091,7 @@
       "section": "Salesforce Pricing",
       "parent_page": "pricing_business_apis.htm",
       "status": "captured",
-      "body_length": 4486,
+      "body_length": 4293,
       "file": "articles/pricing_business_apis_rest_references.htm.md"
     },
     {
@@ -9767,7 +10307,7 @@
       "section": "Product Configurator",
       "parent_page": "prod_config_overview.htm",
       "status": "captured",
-      "body_length": 5536,
+      "body_length": 5048,
       "file": "articles/product_configurator_business_api_overview.htm.md"
     },
     {
@@ -9776,7 +10316,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_api_overview.htm",
       "status": "captured",
-      "body_length": 3565,
+      "body_length": 3093,
       "file": "articles/product_configurator_business_apis_requests.htm.md"
     },
     {
@@ -9785,7 +10325,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_api_overview.htm",
       "status": "captured",
-      "body_length": 3219,
+      "body_length": 2699,
       "file": "articles/product_configurator_business_apis_resources.htm.md"
     },
     {
@@ -9794,7 +10334,7 @@
       "section": "Product Configurator",
       "parent_page": "product_configurator_business_api_overview.htm",
       "status": "captured",
-      "body_length": 6719,
+      "body_length": 6243,
       "file": "articles/product_configurator_business_apis_responses.htm.md"
     },
     {
@@ -9949,6 +10489,15 @@
       "status": "captured",
       "body_length": 5308,
       "file": "articles/qoc_business_apis_rest_references.htm.md"
+    },
+    {
+      "page_id": "qoc_commercetax_namespace.htm",
+      "title": "CommerceTax Namespace",
+      "section": "Transaction Management",
+      "parent_page": "qoc_apex_reference.htm",
+      "status": "captured",
+      "body_length": 4720,
+      "file": "articles/qoc_commercetax_namespace.htm.md"
     },
     {
       "page_id": "qoc_flow_metadata_api.htm",
@@ -12521,7 +13070,7 @@
       "section": "Transaction Management",
       "parent_page": "quote_and_order_capture_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 7302,
+      "body_length": 6216,
       "file": "articles/tooling_api_objects_transactionprocessingtype.htm.md"
     },
     {
@@ -12642,12 +13191,12 @@
       "file": "articles/usage_management_std_objects_parent.htm.md"
     }
   ],
-  "last_updated": "2026-08-24T20:42:06Z",
+  "last_updated": "2026-09-29T23:45:31Z",
   "stats": {
-    "discovered": 1404,
-    "captured": 1403,
+    "discovered": 1465,
+    "captured": 1464,
     "pending": 0,
     "errored": 1,
-    "total_captured_body_chars": 6648463
+    "total_captured_body_chars": 6776940
   }
 }
