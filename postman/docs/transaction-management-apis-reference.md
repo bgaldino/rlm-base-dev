@@ -138,11 +138,24 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 
 ---
 
+### 9. Unlock Transaction (POST)
+- **HTTP Method:** POST
+- **URI Path:** `/revenue/transaction-management/sales-transactions/actions/unlock-transaction`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/sales-transactions/actions/unlock-transaction`
+- **Description:** Unlock a quote or order whose calculation is stuck in a non-terminal status so you can retry the transaction — for example, after a [Place Sales Transaction](#1-place-sales-transaction-post) call gets stuck instead of settling into a terminal status. Sets the calculation status to the appropriate failure status (`ConfigurationFailed` or `PriceCalculationFailed`). Requires the `userCanAccessRLMPlaceSalesTransaction` or `userCanAccessCoreCPQ` permission. This release supports only one record ID in `salesTransactionIds`. If the status is already terminal (`CompletedWithPricing`, `CompletedWithoutPricing`, `CompletedWithTax`, `PriceCalculationFailed`, `ConfigurationFailed`), the API returns an error and doesn't change the status.
+- **Available Version:** 68.0
+- **Request Body Fields:**
+  - `salesTransactionIds` (String[], Required): List of record IDs (quote or order) whose calculation status is unlocked. This release supports only one record ID.
+
+*Grounded against: `connect_resources_unlock_transaction.htm.md`, `connect_requests_unlock_transaction_input.htm.md`*
+
+---
+
 ## ASSET LIFECYCLE APIs
 
 Asset Lifecycle APIs manage changes to existing assets after an order has been activated and assets have been created. These operations generate new sales transactions (quotes/orders) representing the requested change.
 
-### 9. Asset Amendment (POST)
+### 10. Asset Amendment (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/assets/actions/amend`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/assets/actions/amend`
@@ -161,7 +174,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 ---
 
-### 10. Asset Cancellation (POST)
+### 11. Asset Cancellation (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/assets/actions/cancel`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/assets/actions/cancel`
@@ -179,7 +192,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 ---
 
-### 11. Asset Renewal (POST)
+### 12. Asset Renewal (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/assets/actions/renew`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/assets/actions/renew`
@@ -198,7 +211,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 ---
 
-### 12. Initiate Upgrade (POST) — v66.0
+### 13. Initiate Upgrade (POST) — v66.0
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/upgrade`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/upgrade`
@@ -215,7 +228,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 ---
 
-### 13. Initiate Downgrade (POST) — v66.0
+### 14. Initiate Downgrade (POST) — v66.0
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/downgrade`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/downgrade`
@@ -232,7 +245,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 ---
 
-### 14. Initiate Swap (POST) — v66.0
+### 15. Initiate Swap (POST) — v66.0
 - **HTTP Method:** POST
 - **URI Path:** `/revenue/transaction-management/assets/actions/swap`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/swap`
@@ -253,7 +266,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
 
 Ramp deals allow structured, multi-period pricing commitments on a single quote/order line — for example, a customer who starts with a free trial segment and then commits to a yearly term. These APIs are applicable to **line ramps**; for **group ramps**, use the Place Sales Transaction API's `groupRampAction` property instead (see [Place Sales Transaction](#1-place-sales-transaction-post)).
 
-### 15. Create Ramp Deal (POST)
+### 16. Create Ramp Deal (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/sales-transaction-contexts/{resourceId}/actions/ramp-deal-create`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/sales-transaction-contexts/0QLxx0000004CfIGAU/actions/ramp-deal-create`
@@ -275,12 +288,14 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 
 ---
 
-### 16. Update Ramp Deal (POST)
+### 17. Update Ramp Deal (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/sales-transaction-contexts/{resourceId}/actions/ramp-deal-update`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/sales-transaction-contexts/4f23961a5c98806f89305e064c67b397e93f1bb8a2a7a3a80db506f1d4110ee9/actions/ramp-deal-update`
 - **Description:** Modify a ramp deal when a segment has quantity, discount, or (for a trial or custom segment) a date change. Custom segments can be updated during the initial sale, before assetization. Returns the updated context; call [Place Sales Transaction](#1-place-sales-transaction-post) with the context ID to apply the updates.
 - **Available Version:** 62.0 *(corrected — a prior extraction of this document stated 63.0 and only supported a flat `commitment` update)*
+- **Path Parameters:**
+  - `resourceId` (String, Required): ID of the context data used to build the pricing procedure. Get the context instance ID by invoking the Context Service API.
 - **Request Body Fields:**
   - `addedNodes` (Context Node Input[], Required): Nodes to add, each keyed by a `contextNodePath` (context ID → quote/order ID → line item ID) with a `contextNode` payload (e.g. `Discount`, `Quantity`, `ItemSegmentName`, `StartDate`, `EndDate`).
   - `updatedNodes` (Context Node Input[], Required): Nodes to update, addressed the same way.
@@ -291,7 +306,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 
 ---
 
-### 17. Delete Ramp Deal (POST)
+### 18. Delete Ramp Deal (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/connect/revenue-management/sales-transaction-contexts/{resourceId}/actions/ramp-deal-delete`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/sales-transaction-contexts/0QLxx0000004CfIGAU/actions/ramp-deal-delete`
@@ -306,7 +321,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 
 ---
 
-### 18. View Ramp Deal (GET)
+### 19. View Ramp Deal (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/revenue-management/sales-transaction-contexts/{resourceId}/actions/ramp-deal-view`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/sales-transaction-contexts/0QLxx0000004CSOGA2/actions/ramp-deal-view?transactionId=0Q0xx0000004CDxCAM&transactionLineId=0QLxx0000004CSOGA2`
@@ -324,7 +339,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 
 ## PROMOTIONS API
 
-### 19. Create Promotions (GET, POST, PUT) — v66.0
+### 20. Create Promotions (GET, POST, PUT) — v66.0
 - **HTTP Method:** GET, POST, PUT
 - **URI Path:** `/global-promotions-management/promotions`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/global-promotions-management/promotions`
@@ -343,7 +358,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 
 The following endpoints were deprecated in v63.0 and replaced by the [Place Sales Transaction](#1-place-sales-transaction-post) API. They are retained in the collection for backward compatibility but should not be used in new integrations. Both endpoints cap at 300 transaction line items.
 
-### 20. Place Order [DEPRECATED v63] (POST)
+### 21. Place Order [DEPRECATED v63] (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/commerce/sales-orders/actions/place`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/commerce/sales-orders/actions/place`
@@ -354,7 +369,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 
 ---
 
-### 21. Place Quote [DEPRECATED v63] (POST)
+### 22. Place Quote [DEPRECATED v63] (POST)
 - **HTTP Method:** POST
 - **URI Path:** `/commerce/quotes/actions/place`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/commerce/quotes/actions/place`

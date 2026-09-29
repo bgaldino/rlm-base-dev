@@ -172,13 +172,14 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Request Body Fields:**
   - `contextDefinitionVersionId` (String, Optional): Context definition version ID of the pricing procedure
   - `contextMappingId` (String, Optional): Context mapping ID of the pricing procedure
-  - `currencyCode` (String): Currency code (e.g., USD)
-  - `executionEndTimestamp` (String): End timestamp of execution (ISO 8601 format)
+  - `currencyCode` (String, Optional): Currency code (e.g., USD)
+  - `executionEndTimestamp` (String, Optional): End timestamp of execution (ISO 8601 format)
   - `executionId` (String, Required): ID of the execution
-  - `executionStartTimestamp` (String): Start timestamp of execution (ISO 8601 format)
+  - `apiExecutionId` (String, Required): Identifies a pricing procedure execution in the Revenue Cloud Operations Console
+  - `executionStartTimestamp` (String, Optional): Start timestamp of execution (ISO 8601 format)
   - `lineItemId` (String, Required): ID of the line item
-  - `output` (Object): Output containing Subtotal, ListPrice, NetUnitPrice, etc.
-  - `waterfall` (Array of Objects): Waterfall step details with:
+  - `output` (Object, Optional): Output containing Subtotal, ListPrice, NetUnitPrice, etc.
+  - `waterfall` (Array of Objects, Required): Waterfall step details with:
     - `fieldToTagNameMapping` (Map): Maps field names to tag names
     - `inputParameters` (Map): Input parameters for the step
     - `outputParameters` (Map): Output parameters (e.g., Subtotal, ListPrice, NetUnitPrice)
@@ -242,6 +243,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
   - `procedurePlanDefinitionVersions` (Procedure Plan Definition Version Input[], Required): List of versions of a procedure plan definition
   - `processType` (String, Required, Available Version 63.0): Business process type (Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud; default is Default)
   - `recordId` (String, Required): ID of the procedure plan definition record
+  - `subType` (String, Optional, Available Version 68.0): Vertical or cloud-specific subclassification for the procedure plan definition
 
 ---
 
@@ -257,6 +259,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
   - `processType` (String, Optional, Available Version 63.0): Business process type
   - `sectionType` (String[], Optional): Section type. Valid values: PricingProcedure, ProductDiscoveryProcedure, ProductQualificationProcedure, PricingDiscoveryProcedure, DiscountSpreadServiceProcedure, RatingProcedure, Custom, RatingDiscoveryProcedure
   - `subSectionType` (String[], Optional): Sub-section type (e.g., Revenue). The combination of `sectionType` and `subSectionType` must be unique for every procedure plan version.
+  - `subType` (String, Optional, Available Version 68.0): Vertical or cloud-specific subclassification for the procedure plan definition
 
 ---
 
@@ -266,7 +269,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/procedure-plan-definitions/evaluate/procedurePlanDefinitionName`
 - **Description:** Evaluate a procedure plan definition based on the name of a definition to check for prerequisites such as usage type and context mapping details.
 - **Available Version:** 62.0
-- **Request Body Fields:** Same as Procedure Plan Evaluation By Object
+- **Request Body Fields:** Same as Procedure Plan Evaluation By Object (including `subType`, Optional, Available Version 68.0)
 
 ---
 
@@ -277,15 +280,15 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Description:** Create records of a procedure plan version with details.
 - **Available Version:** 62.0
 - **Request Body Fields:**
-  - `active` (Boolean): Indicates whether the procedure plan version is active. You can't edit or delete a procedure plan version that's active
-  - `contextDefinition` (String): Context definition reference
-  - `developerName` (String): Developer name for the version
-  - `effectiveFrom` (String): When the version becomes effective (ISO 8601 format)
+  - `active` (Boolean, Required): Indicates whether the procedure plan version is active. You can't edit or delete a procedure plan version that's active
+  - `contextDefinition` (String, Required): Context definition reference
+  - `developerName` (String, Required): Developer name for the version
+  - `effectiveFrom` (String, Required): When the version becomes effective (ISO 8601 format)
   - `effectiveTo` (String, Required): Date and time from when the procedure plan definition version is no longer in effect
   - `inheritedFrom` (String, read-only): Template this procedure plan definition version is created from
-  - `procedurePlanSections` (Array): Array of procedure plan sections
-    - `isInherited` (Boolean): Whether the section is inherited
-    - `procedurePlanOptions` (Array): Options with:
+  - `procedurePlanSections` (Procedure Plan Section Input[], Required): Array of procedure plan sections
+    - `isInherited` (Boolean, read-only): Whether the section is inherited
+    - `procedurePlanOptions` (Procedure Plan Option Input[], Required): Options with:
       - `saveContextMapping` (String)
       - `expressionSetDefinition` (String): Reference to expression set
       - `expressionSetLabel` (String)
@@ -293,7 +296,12 @@ This document provides a comprehensive reference of all REST API endpoints for t
       - `logic` (String): Logical operators (e.g., "1 AND 2 AND 3")
       - `priority` (Integer)
       - `procedurePlanCriterion` (Array): Criteria conditions
-  - `rank` (Integer): Rank of the version
+    - `recordId` (String, Required): ID of the procedure plan section record
+    - `resolutionType` (String, Required): Type of resolution used to filter the procedure. Can't be edited if the section includes a procedure plan option record
+    - `sectionType` (String, Required): Section type. Valid values: PricingProcedure, ProductDiscoveryProcedure, ProductQualificationProcedure, PricingDiscoveryProcedure, DiscountSpreadServiceProcedure, RatingProcedure, Custom, RatingDiscoveryProcedure
+    - `sequence` (Integer, Required): Processing order; must be > 0 and unique within a procedure plan version
+    - `subSectionType` (String, Required): Procedure subsection added to the procedure plan definition
+  - `rank` (Integer, Required): Rank of the version
   - `readContextMapping` (String, Optional): Context mapping for reading
   - `saveContextMapping` (String, Optional): Mapping used to save data from the context definition and populate the mapped object
   - `status` (String, Optional): Status of the procedure plan definition version record
@@ -307,18 +315,43 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - **Description:** Get, update, or delete a procedure plan definition version record by using the record ID.
 - **Available Version:** 62.0
 - **Request Body Fields for PATCH:**
-  - `active` (Boolean): Active status
-  - `developerName` (String): Developer name
-  - `effectiveFrom` (String): Effective from date (ISO 8601 format)
+  - `active` (Boolean, Required): Active status
+  - `developerName` (String, Required): Developer name
+  - `effectiveFrom` (String, Required): Effective from date (ISO 8601 format)
   - `effectiveTo` (String, Required): Date and time from when the procedure plan definition version is no longer in effect
-  - `contextDefinition` (String): Context definition
+  - `contextDefinition` (String, Required): Context definition
   - `inheritedFrom` (String, read-only): Template this procedure plan definition version is created from
-  - `procedurePlanSections` (Array): Section definitions
-  - `rank` (Integer): Rank
+  - `procedurePlanSections` (Procedure Plan Section Input[], Required): Section definitions — see entry 18 for the full nested schema (`isInherited`, `procedurePlanOptions`, `recordId`, `resolutionType`, `sectionType`, `sequence`, `subSectionType`)
+  - `rank` (Integer, Required): Rank
   - `readContextMapping` (String, Optional): Mapping used to read data from the mapped object and populate the context definition
   - `recordId` (String, Required): ID of the procedure plan definition version record
   - `saveContextMapping` (String, Optional): Mapping used to save data from the context definition and populate the mapped object
   - `status` (String, Optional): Status of the procedure plan definition version record
+
+---
+
+### 20. Pricing Recipe Clone (POST)
+- **HTTP Method:** POST
+- **URI Path:** `/connect/core-pricing/revenue/pricing-recipe/clone`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/revenue/pricing-recipe/clone`
+- **Description:** Clone a pricing recipe with all its associated pricing recipe table mappings.
+- **Available Version:** 68.0
+- **Request Body Fields:**
+  - `recordId` (String, Required): ID of the source pricing recipe to clone
+  - `newPricingRecipeApiName` (String, Required): API name of the cloned pricing recipe
+  - `newPricingRecipeName` (String, Required): Name for the cloned pricing recipe
+  - `pricingUsageSubType` (String, Optional): Pricing usage subtype of the cloned pricing recipe. If unspecified, the value from the source pricing recipe is used
+
+---
+
+### 21. Pricing Recipe Valid Elements (GET)
+- **HTTP Method:** GET
+- **URI Path:** `/connect/core-pricing/revenue/pricing-recipe/valid-elements`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/revenue/pricing-recipe/valid-elements?pricingUsageSubType=RevenueCloud`
+- **Description:** Get the list of valid pricing element type API names for a given Pricing Usage Sub Type.
+- **Available Version:** 68.0
+- **Query Parameters:**
+  - `pricingUsageSubType` (String, Required): Pricing usage subtype to retrieve valid element types for. Must match an entry in the PricingUsageSubType picklist (e.g., `RevenueCloud`, `Loyalty`, `LifeSciences`, `Commercial`)
 
 ---
 
@@ -330,6 +363,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - Pricing Process Execution for Line Items
 - Pricing Data Sync
 - Pricing Recipe
+- Pricing Recipe Valid Elements
 - Pricing Waterfall (retrieve persisted waterfall)
 - Pricing Simulation Input Variables With Data
 - Procedure Plan Definitions
@@ -341,6 +375,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 - Price Context
 - Pricing
 - Pricing Recipe Mapping
+- Pricing Recipe Clone
 - Pricing Versioned Revision Details
 - Pricing Waterfall (create waterfall log)
 - Procedure Plan Definitions
@@ -381,11 +416,13 @@ This document provides a comprehensive reference of all REST API endpoints for t
 | 17 | Procedure Plan Evaluation By Definition Name | POST | `/connect/procedure-plan-definitions/evaluate/{procedurePlanDefinitionName}` | 62.0 |
 | 18 | Procedure Plan Version | POST | `/connect/procedure-plan-definitions/{procedurePlanDefinitionId}/version` | 62.0 |
 | 19 | Procedure Plan Version Details | GET, PATCH, DELETE | `/connect/procedure-plan-definitions/versions/{procedurePlanVersionId}` | 62.0 |
+| 20 | Pricing Recipe Clone | POST | `/connect/core-pricing/revenue/pricing-recipe/clone` | 68.0 |
+| 21 | Pricing Recipe Valid Elements | GET | `/connect/core-pricing/revenue/pricing-recipe/valid-elements` | 68.0 |
 
 ---
 
 ## Document Info
 - **Source:** Revenue Cloud Developer Guide v264 (Winter '27, API v68.0)
 - **Section:** Salesforce Pricing Business APIs (pages 441-528)
-- **Total Endpoints:** 19 unique endpoints (with some supporting multiple HTTP methods)
+- **Total Endpoints:** 21 unique endpoints (with some supporting multiple HTTP methods)
 - **Base URL:** `https://yourInstance.salesforce.com/services/data/v68.0`
