@@ -1132,6 +1132,25 @@ def test_overlay_content_verification():
         check("conflicting CLI add fails before mutation or lifecycle writes", rc == 1 and not calls)
 
 
+def test_empty_description_reads_back_null():
+    # build_step fills description "" on an added step; the Connect GET returns
+    # null for it. Both verifier copies must treat that as a match, while a
+    # real description that reads back null still fails.
+    from scripts.expression_sets._overlay import build_step
+    from scripts.expression_sets._schema import overlay_step_content_errors as toolkit
+    from tasks.expression_set_schema import overlay_step_content_errors as frozen
+    sent = build_step({"name": "Added", "stepType": "ListGroup"})
+    stored = dict(sent, description=None)
+    described = dict(sent, description="Real description")
+    for label, verify in (("toolkit", toolkit), ("tasks", frozen)):
+        check(f"{label}: empty description read back as null verifies",
+              not verify({}, {"steps": [sent]}, {"steps": [stored]}))
+        check(f"{label}: explicit empty description read back as null verifies",
+              not verify({}, {"steps": [dict(sent, description="")]}, {"steps": [stored]}))
+        check(f"{label}: real description read back as null still fails",
+              bool(verify({}, {"steps": [described]}, {"steps": [stored]})))
+
+
 def test_shipped_fixtures():
     print("test_shipped_fixtures")
     overlays_dir = REPO_ROOT / "datasets" / "expression_set_overlays"
@@ -1148,7 +1167,8 @@ def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
-               test_overlay_content_verification, test_shipped_fixtures):
+               test_overlay_content_verification, test_empty_description_reads_back_null,
+               test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

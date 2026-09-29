@@ -272,7 +272,8 @@ After PATCH, both the CCI task and standalone CLI re-read the selected version
 and compare the final step graph with the merged payload, including formula
 parameters and sequence numbers, including for variable-only overlays. Missing,
 unexpected, duplicate, or changed steps fail verification; removed steps must
-be absent. Named parameter order and HTML
-entity encoding do not count as content changes. This verifies stored step
+be absent. Named parameter order, HTML entity encoding, and an empty string
+that reads back as null (such as a blank step `description`) do not count as
+content changes. This verifies stored step
 configuration, not execution results or step labels. The CLI's `--no-verify`
 option explicitly skips this read-back.

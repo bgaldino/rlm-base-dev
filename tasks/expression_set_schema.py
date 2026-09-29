@@ -799,8 +799,10 @@ def _warn_undeclared_external_dependencies(
 def step_content_differences(expected, actual, path="step"):
     """Compare requested fields, allowing GET-only fields and named-list ordering.
 
-    HTML entities are transport encoding, not formula changes. Missing non-null
-    fields, changed values, missing/extra list members and duplicate names fail.
+    HTML entities are transport encoding, not formula changes, and an empty
+    string reads back as null (e.g. a step ``description``), so the two compare
+    equal. Missing non-empty fields, changed values, missing/extra list members
+    and duplicate names fail.
     Overlay-only placement/label keys must be removed by the caller.
     """
     if isinstance(expected, dict):
@@ -822,6 +824,8 @@ def step_content_differences(expected, actual, path="step"):
                 for p in step_content_differences(want, got, f"{path}[{i}]")]
     if isinstance(expected, str) and isinstance(actual, str):
         expected, actual = html.unescape(expected), html.unescape(actual)
+    if expected in ("", None) and actual in ("", None):
+        return []
     return [] if expected == actual else [path]
 
 
