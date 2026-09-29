@@ -308,7 +308,10 @@ Shipped examples: `datasets/expression_set_overlays/map_line_item.json` (flat,
 single step) and `discount_distribution.json` (nested — three `ListGroup` parents
 each with an `AdvancedListFilter` + `AssignmentElement` child, followed by the
 `DiscountDistributionService` element, **plus** 4 `Constant_DDS_*` version
-constants in `addVariables`).
+constants in `addVariables`), and `approval_flags.json` (nested — a reset
+`ListGroup` that clears every line, followed by three band `ListGroup`s, each
+with an `AdvancedListFilter` + `AssignmentElement` child, plus 8 Constants in
+`addVariables`).
 
 Environment-specific examples belong under
 `docs/references/expression-set-overlay-examples/`, not the shipped overlay
