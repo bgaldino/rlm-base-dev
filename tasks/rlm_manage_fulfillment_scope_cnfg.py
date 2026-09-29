@@ -6,6 +6,11 @@ introduced in API v65.0. It is inaccessible via standard SOAP/REST APIs
 (apiAccess="never") and must be accessed through the Tooling API at:
   /services/data/v{api_version}/tooling/sobjects/CustomFulfillmentScopeCnfg
 
+ItemContextTag must resolve to a STRING context attribute, including when the
+scope is used for product decomposition. A LOOKUP attribute is rejected even
+if its runtime value is an ID represented as text. See the qb-dro README for
+the live-verified Group_Identifier limitation and the Ramp_Identifier alternative.
+
 Supported operations:
   list     — query records and log to console
   extract  — query records and write to output_file (JSON array)
@@ -480,8 +485,8 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 "agrees with itself and this will create normally."
             )
             self.logger.warning(
-                "Downstream data in datasets/sfdmu/qb/en-US/qb-dro names Group_Identifier "
-                "on 9 records, and the two objects react differently — both without an "
+                "Historical fresh-264 qb-dro loads referenced Group_Identifier "
+                "on 9 records (the current dataset no longer does). The two objects reacted differently — both without an "
                 "error, so the load reports success either way. Measured on a fresh 264 "
                 "org after a full prepare_rlm_org:"
             )

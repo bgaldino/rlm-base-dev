@@ -680,29 +680,17 @@ def check_upsert_honours_the_option(_):
               "the part that makes the 8 rows unconfigured rather than dangling. The claim "
               f"must name the bare field. Got: {_joined[-400:]}")
 
-        # The counts in the banner are a claim about data in this repo, so check them
-        # against the data rather than trusting the string. Without this the numbers
-        # rot the first time someone adds a usage product to the DRO dataset.
+        # The banner documents historical behavior. Current seed data must not
+        # reintroduce references to the uncreatable group scope.
         import csv as _csv
-
-        banner = " ".join(warnings)
         dro = REPO / "datasets/sfdmu/qb/en-US/qb-dro"
         for filename, column in (("Product2.csv", "CustomDecompositionScope"),
                                  ("FulfillmentStepDefinition.csv", "CustomFulfillmentScope")):
-            path = dro / filename
-            if not path.exists():
-                check(f"banner_count_source_exists[{filename}]", False,
-                      f"{path} is missing, so the banner's count cannot be verified")
-                continue
-            with path.open(encoding="utf-8-sig") as fh:
+            with (dro / filename).open(encoding="utf-8-sig") as fh:
                 rows = list(_csv.DictReader(fh))
-            actual = sum(
-                1 for r in rows if (r.get(column) or "").strip() == "Group_Identifier"
-            )
-            check(f"banner_count_matches_data[{filename}]",
-                  f"{actual} {filename.replace('.csv', '')}" in banner,
-                  f"banner must say '{actual} {filename.replace('.csv', '')}' rows "
-                  f"for {column}; data says {actual}. Banner: {banner[-320:]}")
+            check(f"no_unsupported_group_scope[{filename}]",
+                  all((r.get(column) or "").strip() != "Group_Identifier" for r in rows),
+                  "Current seed data must not depend on the missing Group_Identifier scope")
 
         # skip + an unrelated rejection must still fail.
         task, raised = _drive(tmp, on_invalid_context_tag="skip",
