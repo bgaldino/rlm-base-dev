@@ -53,6 +53,7 @@ import time
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import requests
 
@@ -370,6 +371,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         )
         if not resp.ok:
             raise self._connect_error("PATCH", es_id, resp)
+        # A full-graph PATCH rebuilds every step label from its spaceless name;
+        # _run_connect_mutation reads this flag to restore them afterwards.
+        self._labels_clobbered = True
         return resp.json() if resp.content else {}
 
     def _post_expression_set_via_connect(self, payload: dict) -> dict:
@@ -537,6 +541,65 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         activate_after: bool,
         cascade: bool,
         verb: str = "mutation",
+        reactivate_on_failure: bool = False,
+        es_id: Optional[str] = None,
+        extra_labels: Optional[Dict[str, str]] = None,
+        preserve_labels: bool = True,
+    ) -> None:
+        """Run a Connect mutation and keep the version's step labels intact.
+
+        Every Connect full-graph PATCH resets all step labels to the spaceless
+        step names, so label preservation lives HERE rather than in each
+        caller: any mutator routed through this method gets it without opting
+        in. Labels are snapshotted from the Tooling API before ``mutate``; if
+        ``mutate`` PATCHed (``_patch_expression_set_via_connect`` sets
+        ``_labels_clobbered``), they are written back in a second
+        deactivate→Tooling PATCH→reactivate cycle. ``extra_labels`` (e.g. an
+        overlay's labels for the steps it adds) are layered on top.
+
+        Label restore is best-effort and runs only after the mutation fully
+        succeeded; the ``preserve_labels`` task option (default true) or the
+        ``preserve_labels`` argument turns it off. See
+        ``_run_activation_cycle`` for the activation guarantees.
+        """
+        preserve = (
+            preserve_labels
+            and not dry_run
+            and es_id is not None
+            and self._bool_option(self.options.get("preserve_labels"), True)
+        )
+        labels: Dict[str, str] = {}
+        if preserve:
+            labels = self._capture_step_labels(es_def_id, esv)
+            labels.update(extra_labels or {})
+        elif dry_run and preserve_labels and es_id is not None:
+            self.logger.info("[dry-run] Would restore step labels after the PATCH.")
+        self._labels_clobbered = False
+
+        self._run_activation_cycle(
+            es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=dry_run,
+            activate_after=activate_after, cascade=cascade, verb=verb,
+            reactivate_on_failure=reactivate_on_failure,
+        )
+
+        if preserve and labels and self._labels_clobbered:
+            self._restore_step_labels(
+                es_id=es_id, es_def_id=es_def_id,
+                version_api_name=esv.get("ApiName"), labels=labels,
+                cascade=cascade,
+            )
+
+    def _run_activation_cycle(
+        self,
+        *,
+        es_def_id: str,
+        esv: dict,
+        mutate,
+        dry_run: bool,
+        activate_after: bool,
+        cascade: bool,
+        verb: str,
+        reactivate_on_failure: bool,
     ) -> None:
         """Run the safety-critical deactivate→mutate→reactivate lifecycle.
 
@@ -557,6 +620,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             corrupted pricing procedure is worse than leaving it offline. So
             reactivation happens only when ``activate_after`` AND the mutate body
             succeeded (or in dry-run, where nothing changed).
+
+        ``reactivate_on_failure`` is for mutations that cannot corrupt the
+        definition (a label-only Tooling PATCH): reactivate even when ``mutate``
+        fails, so a cosmetic error never takes a live procedure offline.
 
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
@@ -588,7 +655,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after and (mutate_succeeded or dry_run)
+            should_activate = activate_after and (
+                mutate_succeeded or dry_run or reactivate_on_failure
+            )
             if should_activate:
                 try:
                     self._set_version_active(esv_id, True, dry_run)
@@ -625,6 +694,167 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
         if failure:
             raise failure
+
+    # -- Step labels (Tooling API) -------------------------------------
+    #
+    # A step's readable label is not part of the Connect representation, and a
+    # Connect full-graph PATCH rebuilds every label from the spaceless step name
+    # ("Get Base Prices from Pricebook" -> "Getbasepricesfrompricebook"). Labels
+    # live only on the Tooling ExpressionSetDefinitionVersion
+    # Metadata.steps[].label, so the Connect mutators snapshot them before the
+    # PATCH and write them back afterwards (wired in _run_connect_mutation).
+    # scripts/expression_sets/_tooling.py is the standalone toolkit's copy.
+
+    _ESDV_SOBJECT = "ExpressionSetDefinitionVersion"
+
+    def _tooling_request(self, method: str, path: str, payload=None):
+        url = f"{self._base_url}/tooling/{path}"
+        resp = requests.request(
+            method, url, headers=self._headers, json=payload,
+            timeout=_REQUEST_TIMEOUT,
+        )
+        if not resp.ok:
+            raise TaskOptionsError(
+                f"Tooling {method} {path} failed ({resp.status_code}): {resp.text}"
+            )
+        return resp.json() if resp.content else {}
+
+    def _resolve_esdv_id(self, es_def_id: str, version_number) -> str:
+        # Resolve by definition Id + VersionNumber, never by DeveloperName: a
+        # Connect PATCH rewrites the ESDV DeveloperName in place, so a lookup
+        # by the version ApiName right after one can miss.
+        where = f"ExpressionSetDefinitionId = '{self._soql_escape(es_def_id)}'"
+        if version_number is not None:
+            where += f" AND VersionNumber = {int(version_number)}"
+        soql = (
+            f"SELECT Id FROM {self._ESDV_SOBJECT} WHERE {where} "
+            "ORDER BY VersionNumber DESC"
+        )
+        body = self._tooling_request("GET", f"query?q={quote(soql)}")
+        records = body.get("records") or []
+        if not records:
+            raise TaskOptionsError(
+                f"No {self._ESDV_SOBJECT} found for definition {es_def_id}."
+            )
+        return records[0]["Id"]
+
+    def _get_step_metadata(self, esdv_id: str) -> dict:
+        body = self._tooling_request("GET", f"sobjects/{self._ESDV_SOBJECT}/{esdv_id}")
+        metadata = body.get("Metadata")
+        if not isinstance(metadata, dict):
+            raise TaskOptionsError(f"{self._ESDV_SOBJECT} {esdv_id} returned no Metadata.")
+        return metadata
+
+    @staticmethod
+    def _step_labels(metadata: dict) -> Dict[str, Optional[str]]:
+        return {
+            step["name"]: step.get("label")
+            for step in metadata.get("steps") or []
+            if isinstance(step, dict) and step.get("name")
+        }
+
+    @staticmethod
+    def _overlay_labels(overlay: dict) -> Dict[str, str]:
+        """Labels an overlay ships for its steps: a top-level ``labels`` map
+        and/or a ``label`` on an ``addSteps`` entry (the per-step one wins)."""
+        out: Dict[str, str] = {}
+        top = overlay.get("labels")
+        if isinstance(top, dict):
+            out.update({k: v for k, v in top.items() if isinstance(v, str)})
+        for step in overlay.get("addSteps") or []:
+            if isinstance(step, dict) and step.get("name") and isinstance(step.get("label"), str):
+                out[step["name"]] = step["label"]
+        return out
+
+    def _capture_step_labels(self, es_def_id: str, esv: dict) -> Dict[str, str]:
+        """Snapshot the readable labels a Connect PATCH is about to reset.
+
+        Best-effort: a failure logs a warning and returns ``{}`` so capturing
+        labels can never block the mutation itself.
+        """
+        try:
+            esdv_id = self._resolve_esdv_id(es_def_id, esv.get("VersionNumber"))
+            labels = self._step_labels(self._get_step_metadata(esdv_id))
+        except Exception as exc:  # noqa: BLE001 — labels are cosmetic
+            self.logger.warning(
+                "Could not read step labels before the PATCH (%s); they will "
+                "not be restored.", exc,
+            )
+            return {}
+        return {n: l for n, l in labels.items() if l and l != n}
+
+    def _restore_step_labels(
+        self,
+        *,
+        es_id: str,
+        es_def_id: str,
+        version_api_name: Optional[str],
+        labels: Dict[str, str],
+        cascade: bool,
+    ) -> bool:
+        """Write step labels back after a Connect PATCH reset them.
+
+        Runs its own deactivate → Tooling PATCH → reactivate cycle (a Tooling
+        Metadata PATCH on an active version does not persist). Non-fatal: the
+        Connect mutation has already succeeded, so a failure is logged and
+        reported as ``False`` rather than raised. Steps the mutation removed or
+        renamed are skipped.
+        """
+        if not labels or not version_api_name:
+            return True
+        try:
+            rows = self._soql_query(
+                "SELECT Id, ApiName, IsActive, VersionNumber "
+                "FROM ExpressionSetVersion "
+                f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
+                f"AND ApiName = '{self._soql_escape(version_api_name)}'"
+            )
+            if not rows:
+                raise TaskOptionsError(
+                    f"version '{version_api_name}' not found after the mutation"
+                )
+            esv = rows[0]
+            esdv_id = self._resolve_esdv_id(es_def_id, esv.get("VersionNumber"))
+            current = self._step_labels(self._get_step_metadata(esdv_id))
+            planned = {
+                n: l for n, l in labels.items()
+                if l and n in current and current[n] != l
+            }
+            if not planned:
+                self.logger.info("Step labels already current; nothing to restore.")
+                return True
+
+            def mutate():
+                metadata = self._get_step_metadata(esdv_id)
+                for step in metadata.get("steps") or []:
+                    if isinstance(step, dict) and step.get("name") in planned:
+                        step["label"] = planned[step["name"]]
+                # `urls` is server-emitted and rejected on write.
+                body = {k: v for k, v in metadata.items() if k != "urls"}
+                self._tooling_request(
+                    "PATCH", f"sobjects/{self._ESDV_SOBJECT}/{esdv_id}",
+                    {"Metadata": body},
+                )
+                stored = self._step_labels(self._get_step_metadata(esdv_id))
+                missing = sorted(n for n, l in planned.items() if stored.get(n) != l)
+                if missing:
+                    raise TaskOptionsError(f"labels did not persist for {missing}")
+
+            self._run_activation_cycle(
+                es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=False,
+                activate_after=bool(esv.get("IsActive")), cascade=cascade,
+                verb="Label restore", reactivate_on_failure=True,
+            )
+        except Exception as exc:  # noqa: BLE001 — labels are cosmetic
+            self.logger.warning(
+                "The Connect mutation succeeded, but restoring step labels "
+                "failed (%s). The procedure is live; only its labels show the "
+                "spaceless step names. Re-run scripts/expression_sets/"
+                "relabel_expression_set.py to restore them.", exc,
+            )
+            return False
+        self.logger.info("Restored %d step label(s).", len(planned))
+        return True
 
     # -- Payload sanitization -----------------------------------------
     #
@@ -891,6 +1121,13 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             ),
             "required": False,
         },
+        "preserve_labels": {
+            "description": (
+                "Restore readable step labels after the Connect PATCH, which "
+                "resets them to the spaceless step names (default: true)."
+            ),
+            "required": False,
+        },
         "activate_after_apply": {
             "description": "Reactivate version after overlay (default: true).",
             "required": False,
@@ -1011,6 +1248,8 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             activate_after=activate_after,
             cascade=cascade,
             verb="Overlay apply",
+            es_id=es_id,
+            extra_labels=self._overlay_labels(overlay),
         )
 
         self.logger.info(
@@ -1210,7 +1449,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
     # Overlay-only metadata that must NOT be forwarded to the Connect payload.
     # `placement` directs _add_steps to compute sequenceNumber and never goes
     # to the API. Add new overlay-local keys here as the schema evolves.
-    _OVERLAY_ONLY_STEP_KEYS = frozenset({"placement"})
+    _OVERLAY_ONLY_STEP_KEYS = frozenset({"placement", "label"})
 
     def _build_step(self, step_def: dict) -> dict:
         # Pass through every field the overlay author wrote (minus overlay-only
@@ -1394,6 +1633,13 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             ),
             "required": False,
         },
+        "preserve_labels": {
+            "description": (
+                "Restore readable step labels after the Connect PATCH, which "
+                "resets them to the spaceless step names (default: true)."
+            ),
+            "required": False,
+        },
         "activate_after_import": {
             "description": "Activate version after import (default: true).",
             "required": False,
@@ -1478,6 +1724,7 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 activate_after=activate_after,
                 cascade=cascade,
                 verb="Import",
+                es_id=es_id,
             )
         else:
             self.logger.info("Expression set '%s' does not exist, creating...", api_name)

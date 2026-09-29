@@ -102,6 +102,7 @@
   "addSteps": [
     {
       "name": "RLMApprovalFlagsReset",
+      "label": "Reset Approval Flags",
       "stepType": "ListGroup",
       "description": "Reset every line to approval level 0 and a blank indicator",
       "placement": {
@@ -118,6 +119,7 @@
     },
     {
       "name": "RLMApprovalFlagsResetAllLines",
+      "label": "All Lines",
       "stepType": "AdvancedListFilter",
       "description": "All lines (discount blank or set)",
       "parentStep": "RLMApprovalFlagsReset",
@@ -148,6 +150,7 @@
     },
     {
       "name": "RLMApprovalFlagsAssignNone",
+      "label": "Assign No Approval",
       "stepType": "BusinessKnowledgeModel",
       "description": "Assign level 0 and blank indicator",
       "actionType": "AssignmentElement",
@@ -224,6 +227,7 @@
     },
     {
       "name": "RLMApprovalFlagsManager",
+      "label": "Manager Approval",
       "stepType": "ListGroup",
       "description": "Manager approval: discount 15% to under 25%",
       "placement": {
@@ -240,6 +244,7 @@
     },
     {
       "name": "RLMApprovalFlagsManagerBand",
+      "label": "Discount 15% to Under 25%",
       "stepType": "AdvancedListFilter",
       "description": "Discount 15% to under 25%",
       "parentStep": "RLMApprovalFlagsManager",
@@ -279,6 +284,7 @@
     },
     {
       "name": "RLMApprovalFlagsAssignManager",
+      "label": "Assign Manager Approval",
       "stepType": "BusinessKnowledgeModel",
       "description": "Assign level 1 and Manager indicator",
       "actionType": "AssignmentElement",
@@ -355,6 +361,7 @@
     },
     {
       "name": "RLMApprovalFlagsDirector",
+      "label": "Director Approval",
       "stepType": "ListGroup",
       "description": "Director approval: discount 25% to under 35%",
       "placement": {
@@ -371,6 +378,7 @@
     },
     {
       "name": "RLMApprovalFlagsDirectorBand",
+      "label": "Discount 25% to Under 35%",
       "stepType": "AdvancedListFilter",
       "description": "Discount 25% to under 35%",
       "parentStep": "RLMApprovalFlagsDirector",
@@ -410,6 +418,7 @@
     },
     {
       "name": "RLMApprovalFlagsAssignDirector",
+      "label": "Assign Director Approval",
       "stepType": "BusinessKnowledgeModel",
       "description": "Assign level 2 and Director indicator",
       "actionType": "AssignmentElement",
@@ -486,6 +495,7 @@
     },
     {
       "name": "RLMApprovalFlagsVP",
+      "label": "VP Approval",
       "stepType": "ListGroup",
       "description": "VP approval: discount 35% to under 100%",
       "placement": {
@@ -502,6 +512,7 @@
     },
     {
       "name": "RLMApprovalFlagsVPBand",
+      "label": "Discount 35% to Under 100%",
       "stepType": "AdvancedListFilter",
       "description": "Discount 35% to under 100%",
       "parentStep": "RLMApprovalFlagsVP",
@@ -541,6 +552,7 @@
     },
     {
       "name": "RLMApprovalFlagsAssignVP",
+      "label": "Assign VP Approval",
       "stepType": "BusinessKnowledgeModel",
       "description": "Assign level 3 and VP indicator",
       "actionType": "AssignmentElement",

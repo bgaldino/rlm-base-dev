@@ -1576,6 +1576,200 @@ def test_overlay_content_conflict_and_readback():
 
 
 
+class _LabelTask(Connect):
+    """Bare instance with an in-memory ESV/ESDV for label-preservation tests.
+
+    Only HTTP is faked: the real ``_patch_expression_set_via_connect`` runs
+    (against a stubbed ``requests``) so the tests exercise the same
+    clobber-flag path production does.
+    """
+
+    def __init__(self, labels, active=True, tooling_patch_fails=False, options=None):
+        import logging
+
+        self.logger = logging.getLogger("test_label_task")
+        self.logger.addHandler(logging.NullHandler())
+        self.options = dict(options or {})
+        self.active = active
+        self.tooling_patch_fails = tooling_patch_fails
+        self.steps = [{"name": n, "label": l} for n, l in labels.items()]
+        self.events = []
+
+    # activation
+    def _set_version_active(self, version_id, active, dry_run):
+        self.events.append(("active", active))
+        self.active = active
+
+    def _wait_for_version_state(self, version_id, active):
+        pass
+
+    def _soql_query(self, soql):
+        return [{"Id": "9QMx", "ApiName": "V1", "IsActive": self.active, "VersionNumber": 1}]
+
+    # Tooling
+    def _tooling_request(self, method, path, payload=None):
+        if method == "GET" and path.startswith("query"):
+            return {"records": [{"Id": "9QBx"}]}
+        if method == "GET":
+            return {"Metadata": {"steps": [dict(s) for s in self.steps],
+                                 "urls": {"x": "y"}}}
+        self.events.append(("tooling_patch", self.active))
+        if self.tooling_patch_fails:
+            raise RuntimeError("simulated Tooling failure")
+        if "urls" in payload["Metadata"]:
+            raise RuntimeError("urls must be stripped")
+        self.steps = [dict(s) for s in payload["Metadata"]["steps"]]
+        return {}
+
+    # Connect PATCH: the real helper, with requests stubbed to "succeed" and
+    # the platform side effect of resetting every label to its name.
+    def connect_patch(self, add=()):
+        import tasks.rlm_expression_set_connect as mod
+
+        class _Resp:
+            ok = True
+            content = b""
+
+        real = mod.requests.patch
+        mod.requests.patch = lambda *a, **k: _Resp()
+        try:
+            type(self)._base_url = "https://x/services/data/v68.0"
+            type(self)._headers = {}
+            self._patch_expression_set_via_connect("9QLx", {})
+        finally:
+            mod.requests.patch = real
+        self.steps = [{"name": s["name"], "label": s["name"]} for s in self.steps]
+        self.steps += [{"name": n, "label": n} for n in add]
+
+    def run(self, mutate, **kw):
+        kw.setdefault("es_id", "9QLx")
+        self._run_connect_mutation(
+            es_def_id="9QAx", esv={"Id": "9QMx", "ApiName": "V1",
+                                   "IsActive": self.active, "VersionNumber": 1},
+            mutate=mutate, dry_run=kw.pop("dry_run", False),
+            activate_after=kw.pop("activate_after", True), cascade=False,
+            verb="test", **kw,
+        )
+
+    def label(self, name):
+        return next(s["label"] for s in self.steps if s["name"] == name)
+
+
+def test_connect_mutation_restores_clobbered_labels():
+    task = _LabelTask({"GetPrices": "Get Prices", "Map": "Map Line Item"})
+    task.run(lambda: task.connect_patch(add=["NewStep"]),
+             extra_labels={"NewStep": "New Step"})
+    check("labels restored after Connect PATCH",
+          task.label("GetPrices") == "Get Prices" and task.label("Map") == "Map Line Item")
+    check("overlay labels applied to added steps", task.label("NewStep") == "New Step")
+    check("relabel ran while deactivated, then reactivated",
+          ("tooling_patch", False) in task.events and task.active is True)
+
+
+def test_connect_mutation_skips_restore_without_patch():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: None)
+    check("no Tooling PATCH when nothing was PATCHed",
+          not any(e[0] == "tooling_patch" for e in task.events))
+
+
+def test_connect_mutation_label_restore_opt_out():
+    task = _LabelTask({"A": "A Label"}, options={"preserve_labels": "false"})
+    task.run(lambda: task.connect_patch())
+    check("preserve_labels=false leaves labels clobbered", task.label("A") == "A")
+
+
+def test_connect_mutation_dry_run_does_not_relabel():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: None, dry_run=True)
+    check("dry-run makes no Tooling PATCH",
+          not any(e[0] == "tooling_patch" for e in task.events))
+
+
+def test_label_restore_failure_is_nonfatal_and_reactivates():
+    task = _LabelTask({"A": "A Label"}, tooling_patch_fails=True)
+    try:
+        task.run(lambda: task.connect_patch())
+        raised = False
+    except Exception:
+        raised = True
+    check("label-restore failure does not fail the mutation", not raised)
+    check("label-restore failure still reactivates the version", task.active is True)
+
+
+def test_label_restore_keeps_version_inactive_when_requested():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: task.connect_patch(), activate_after=False)
+    check("labels restored with activate_after=false",
+          task.label("A") == "A Label" and task.active is False)
+
+
+def test_failed_mutation_skips_label_restore():
+    task = _LabelTask({"A": "A Label"})
+
+    def mutate():
+        task.connect_patch()
+        raise RuntimeError("verify failed")
+
+    try:
+        task.run(mutate)
+    except RuntimeError:
+        pass
+    check("failed mutation is not relabelled or reactivated",
+          not any(e[0] == "tooling_patch" for e in task.events) and task.active is False)
+
+
+def test_overlay_labels_merge_top_level_and_per_step():
+    labels = Connect._overlay_labels({
+        "labels": {"A": "Top A", "B": "Top B"},
+        "addSteps": [{"name": "B", "label": "Step B"}, {"name": "C"}],
+    })
+    check("overlay labels: per-step wins over top-level",
+          labels == {"A": "Top A", "B": "Step B"})
+
+
+def test_overlay_step_label_not_sent_to_connect():
+    check("label is an overlay-only step key",
+          "label" in ApplyExpressionSetOverlay._OVERLAY_ONLY_STEP_KEYS)
+
+
+def test_every_connect_patch_goes_through_label_preservation():
+    """Guard: a Connect full-graph PATCH resets every step label, so each one
+    must run inside a mutate body handed to _run_connect_mutation(es_id=...)."""
+    import ast
+
+    path = os.path.join(REPO_ROOT, "tasks", "rlm_expression_set_connect.py")
+    tree = ast.parse(open(path, encoding="utf-8").read())
+    bad = []
+
+    def calls(fn):
+        # Direct calls only: nested defs are visited as their own ``fn``.
+        stack = list(fn.body)
+        while stack:
+            node = stack.pop()
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            if isinstance(node, ast.Call):
+                yield node
+            stack.extend(ast.iter_child_nodes(node))
+
+    for fn in ast.walk(tree):
+        if not isinstance(fn, ast.FunctionDef):
+            continue
+        for node in calls(fn):
+            if not isinstance(node.func, ast.Attribute):
+                continue
+            attr = node.func.attr
+            if attr == "_patch_expression_set_via_connect" and fn.name != "mutate":
+                bad.append(f"{fn.name}: PATCH outside a mutate body")
+            if attr == "_run_connect_mutation":
+                kws = {k.arg for k in node.keywords}
+                if "es_id" not in kws and "preserve_labels" not in kws:
+                    bad.append(f"{fn.name}: _run_connect_mutation without es_id")
+    check("every Connect PATCH is label-preserving " + (str(bad) if bad else ""), not bad)
+
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

@@ -297,3 +297,5 @@ surfaces consumed-with-no-producer names left behind. Always do removals on a
 - Exhaustive object/ID model, schema enums, every error + resolution:
   `docs/references/expression-set-connect-api-reference.md`
 - Worked overlay examples (all three scopes): `SKILL.md` → *Examples*.
+- The shipped overlays, which of them run in the build, and the file format:
+  `datasets/expression_set_overlays/README.md`
