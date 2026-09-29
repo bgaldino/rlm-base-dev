@@ -380,7 +380,8 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 ```
 1. Query assets              → Find the customer's active asset (SOQL)
 2. Asset Amendment           → Submit amendment request (assetIds, amendmentStartDate, quantityChange)
-3. Read Sales Transaction    → Review the generated amendment quote/order
+3. Query quote/order (SOQL)  → Review the generated amendment quote/order by its record ID
+                                 (Read Sales Transaction needs a hydrated contextId, not this record ID)
 4. [Activate order]          → Asset is updated upon activation
 ```
 
@@ -388,16 +389,19 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 ```
 1. Query assets              → Find the customer's active asset (SOQL)
 2. Initiate Upgrade/Downgrade/Swap → Submit swapGroups (outgoing asset + incoming product graph)
-3. Read Sales Transaction    → Review the generated amendment quote/order and linked asset actions
+3. Query quote/order (SOQL)  → Review the generated amendment quote/order and linked asset actions
+                                 (Read Sales Transaction needs a hydrated contextId, not this record ID)
 4. [Activate order]          → Source asset is relinked and the new asset is assetized
 ```
 
 ### Ramp Deal
 ```
-1. Create Ramp Deal          → Define segments on a quote/order line (term, segment type, trial)
-2. Place Sales Transaction   → Apply the returned context ID to persist the ramp
-3. View Ramp Deal            → Track segment status over time
-4. Update Ramp Deal          → Adjust segments (added/updated/deleted nodes) if renegotiated
+1. Place Sales Transaction   → Create the quote/order with the term-defined product line
+2. Create Ramp Deal          → Define segments on that line (term, segment type, trial)
+3. Place Sales Transaction   → Apply the returned context ID to persist the ramp
+4. View Ramp Deal            → Track segment status over time
+5. Update Ramp Deal          → Adjust segments (added/updated/deleted nodes) if renegotiated
+6. Place Sales Transaction   → Apply the returned context ID to persist the update
 ```
 
 ---
