@@ -4,7 +4,7 @@
     <description>Discount approval indicator (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice. Manual edits are overwritten on the next reprice.</description>
     <externalId>false</externalId>
     <label>Approval</label>
-    <length>32</length>
+    <length>255</length>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <type>Text</type>

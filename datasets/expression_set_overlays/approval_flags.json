@@ -5,7 +5,7 @@
   "externalDependencies": {
     "customFields": [
       "QuoteLineItem.RLM_Approval_Level_Calc__c (Number 18,0; tag RLM_Approval_Level_Calc__c on SalesTransactionItem)",
-      "QuoteLineItem.RLM_Approval__c (Text 32; tag RLM_Approval__c on SalesTransactionItem)"
+      "QuoteLineItem.RLM_Approval__c (Text 255; tag RLM_Approval__c on SalesTransactionItem)"
     ],
     "note": "Both fields ship in unpackaged/post_approvals and are mapped into RLM_SalesTransactionContext by datasets/context_plans/Approvals (apply_context_approvals) before this overlay is applied."
   },
