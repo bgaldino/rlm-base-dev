@@ -1,0 +1,7 @@
+Code,DataType,Description,Name,Status
+DS Release,Text,Release values for Dassault Systèmes items,DS Release,Active
+DS License Scheme,Text,License Scheme values for Dassault Systèmes items,DS License Scheme,Active
+DS License Type,Text,License Type values for Dassault Systèmes items,DS License Type,Active
+DS Deployment,Text,Deployment values for Dassault Systèmes items,DS Deployment,Active
+DS License Commitment,Text,License Commitment values for Dassault Systèmes items,DS License Commitment,Active
+DS Subscription Commitment,Text,Subscription Commitment values for Dassault Systèmes items,DS Subscription Commitment,Active

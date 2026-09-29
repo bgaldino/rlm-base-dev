@@ -1,0 +1,4 @@
+Description,IsActive,IsStandard,Name
+,true,true,Standard Price Book
+Dassault Systèmes price list for EuroZone customers (EUR),true,false,EuroZone Price List
+Dassault Systèmes price list for USA customers (USD),true,false,USA Price List

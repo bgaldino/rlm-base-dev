@@ -1,0 +1,3 @@
+CatalogType,Code,Description,EffectiveEndDate,EffectiveStartDate,Name
+Sales,DS-CAT-REF,Reference portfolios: every product belongs to exactly one. Portfolio > Theme > Discipline.,,,Dassault Systèmes Reference Portfolio
+Sales,DS-CAT-IND,Industry solution experiences: Industry > Segment > Industry Solution Experience > Industry Process Experience.,,,Dassault Systèmes Industry Portfolio

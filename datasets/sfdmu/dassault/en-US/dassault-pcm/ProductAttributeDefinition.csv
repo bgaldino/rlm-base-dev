@@ -1,0 +1,469 @@
+$$AttributeDefinition.Code$Product2.StockKeepingUnit,AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,Name,Product2.StockKeepingUnit,ProductClassificationAttribute.Name,Sequence,Status
+DS_RELEASE;5CC-AP2,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5CC-AP2,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5CC-AP2,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Concurrent,,ComboBox,false,false,true,false,License Scheme,5CC-AP2,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5CC-AP2,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Configuration,,ComboBox,false,false,true,false,License Type,5CC-AP2,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5CC-AP2,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5CC-AP2,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5CC-AP2,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5CC-AP2,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5CC-AP2,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5CC-AP2,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-ARW,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-ARW,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-ARW,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-ARW,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-ARW,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-ARW,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-ARW,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-ARW,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-ARW,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-ARW,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-ARW,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-ARW,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5CC-BP2,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5CC-BP2,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5CC-BP2,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Concurrent,,ComboBox,false,false,true,false,License Scheme,5CC-BP2,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5CC-BP2,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Configuration,,ComboBox,false,false,true,false,License Type,5CC-BP2,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5CC-BP2,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5CC-BP2,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5CC-BP2,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5CC-BP2,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5CC-BP2,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5CC-BP2,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-DBG,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-DBG,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-DBG,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-DBG,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-DBG,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-DBG,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-DBG,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-DBG,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-DBG,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-DBG,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-DBG,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-DBG,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AB-GTS,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AB-GTS,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AB-GTS,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AB-GTS,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AB-GTS,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,5AB-GTS,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AB-GTS,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AB-GTS,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AB-GTS,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AB-GTS,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AB-GTS,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AB-GTS,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MEC,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MEC,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MEC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MEC,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MEC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MEC,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MEC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MEC,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MEC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MEC,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MEC,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MEC,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MEQ,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MEQ,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MEQ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MEQ,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MEQ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MEQ,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MEQ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MEQ,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MEQ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MEQ,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MEQ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MEQ,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MHA,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MHA,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MHA,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MHA,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MHA,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MHA,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MHA,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MHA,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MHA,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MHA,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MHA,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MHA,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MHB,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MHB,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MHB,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MHB,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MHB,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MHB,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MHB,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MHB,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MHB,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MHB,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MHB,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MHB,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MTR,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MTR,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MTR,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MTR,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MTR,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MTR,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MTR,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MTR,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MTR,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MTR,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MTR,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MTR,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5AP-MTT,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5AP-MTT,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5AP-MTT,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Add-On,,ComboBox,false,false,true,false,License Scheme,5AP-MTT,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5AP-MTT,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Add-On,,ComboBox,false,false,true,false,License Type,5AP-MTT,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5AP-MTT,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5AP-MTT,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5AP-MTT,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5AP-MTT,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5AP-MTT,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5AP-MTT,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;5CC-WL2,DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,Release,5CC-WL2,DELMIA V5 (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;5CC-WL2,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Concurrent,,ComboBox,false,false,true,false,License Scheme,5CC-WL2,DELMIA V5 (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;5CC-WL2,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Configuration,,ComboBox,false,false,true,false,License Type,5CC-WL2,DELMIA V5 (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;5CC-WL2,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,5CC-WL2,DELMIA V5 (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;5CC-WL2,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,DELMIA V5,,Text,false,false,true,false,Reference Portfolio,5CC-WL2,DELMIA V5 (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;5CC-WL2,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,5CC-WL2,DELMIA V5 (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-ACDEM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ACDEM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ACDEM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NB-ACDEM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ACDEM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6NB-ACDEM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ACDEM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-ACDEM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ACDEM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ACDEM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-ACDEM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NB-ACDEM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-ASZ,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ASZ,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ASZ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-ASZ,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ASZ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-ASZ,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ASZ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-ASZ,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ASZ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ASZ,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-ASZ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-ASZ,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-BCMEC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BCMEC,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BCMEC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-BCMEC,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BCMEC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-BCMEC,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BCMEC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-BCMEC,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BCMEC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-BCMEC,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-BCMEC,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-BCMEC,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-BODET,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BODET,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BODET,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-BODET,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BODET,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-BODET,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BODET,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-BODET,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BODET,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-BODET,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-BODET,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-BODET,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-BTZ,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BTZ,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BTZ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-BTZ,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BTZ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-BTZ,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BTZ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-BTZ,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BTZ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-BTZ,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-BTZ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-BTZ,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-DCZ,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-DCZ,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-DCZ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-DCZ,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-DCZ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-DCZ,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-DCZ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-DCZ,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-DCZ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-DCZ,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-DCZ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-DCZ,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-ELG,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ELG,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ELG,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-ELG,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ELG,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-ELG,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ELG,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-ELG,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ELG,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ELG,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-ELG,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-ELG,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6TB-GFC-M,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6TB-GFC-M,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6TB-GFC-M,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Credit Base,,ComboBox,false,false,true,false,License Scheme,6TB-GFC-M,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6TB-GFC-M,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6TB-GFC-M,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6TB-GFC-M,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6TB-GFC-M,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6TB-GFC-M,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6TB-GFC-M,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6TB-GFC-M,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6TB-GFC-M,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-SGCML,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-SGCML,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-SGCML,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-SGCML,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-SGCML,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-SGCML,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-SGCML,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-SGCML,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-SGCML,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-SGCML,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-SGCML,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-SGCML,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-CHG,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CHG,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CHG,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-CHG,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CHG,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-CHG,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CHG,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-CHG,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CHG,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CHG,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-CHG,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-CHG,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-CSV,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CSV,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CSV,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-CSV,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CSV,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-CSV,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CSV,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-CSV,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CSV,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CSV,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-CSV,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-CSV,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-DPM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-DPM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-DPM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-DPM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-DPM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-DPM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-DPM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-DPM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-DPM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-DPM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-DPM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-DPM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-PCS,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-PCS,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-PCS,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NB-PCS,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-PCS,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6NB-PCS,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-PCS,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-PCS,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-PCS,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NB-PCS,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-PCS,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NB-PCS,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6KB-PCS-K,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6KB-PCS-K,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6KB-PCS-K,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Casual Named User,,ComboBox,false,false,true,false,License Scheme,6KB-PCS-K,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6KB-PCS-K,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6KB-PCS-K,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6KB-PCS-K,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6KB-PCS-K,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6KB-PCS-K,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6KB-PCS-K,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6KB-PCS-K,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6KB-PCS-K,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-ACDEM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NB-ACDEM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-ASZ-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-ASZ-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-BCMEC-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-BCMEC-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-BTZ-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-BTZ-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-DCZ-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-DCZ-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-ELG-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ELG-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ELG-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ELG-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ELG-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-ELG-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-ELG-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Credit Base,,ComboBox,false,false,true,false,License Scheme,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6TB-GFC-M-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6TB-GFC-M-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-SGCML-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-SGCML-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-CHG-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CHG-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CHG-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CHG-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CHG-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-CHG-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-CHG-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-CSV-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CSV-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CSV-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CSV-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CSV-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-CSV-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-CSV-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-DPM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-DPM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-DPM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Named User,,ComboBox,false,false,true,false,License Type,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-DPM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-DPM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-DPM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NP-DPM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Casual Named User,,ComboBox,false,false,true,false,License Scheme,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6KB-PCS-K-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6KB-PCS-K-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-PCS-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-PCS-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,Named User,,ComboBox,false,false,true,false,License Scheme,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-PCS-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,Package,,ComboBox,false,false,true,false,License Type,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-PCS-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-PCS-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-PCS-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,Commitment,6NB-PCS-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-ECB,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ECB,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ECB,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-ECB,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ECB,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-ECB,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ECB,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-ECB,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ECB,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ECB,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-ECB,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-ECB,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-EIM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-EIM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-EIM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-EIM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-EIM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-EIM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-EIM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-EIM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-EIM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-EIM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-EIM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-EIM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-ELG,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-ELG,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-ELG,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-ELG,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-ELG,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-ELG,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-ELG,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-ELG,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-ELG,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-ELG,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-ELG,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-ELG,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-ELM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ELM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ELM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-ELM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ELM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-ELM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ELM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-ELM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ELM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ELM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-ELM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-ELM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-ELX,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ELX,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ELX,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-ELX,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ELX,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-ELX,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ELX,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-ELX,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ELX,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ELX,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-ELX,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-ELX,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-ELX,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-ELX,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-ELX,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-ELX,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-ELX,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-ELX,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-ELX,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-ELX,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-ELX,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-ELX,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-ELX,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-ELX,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-EWZ,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-EWZ,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-EWZ,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-EWZ,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-EWZ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-EWZ,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-EWZ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-EWZ,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-EWZ,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-EWZ,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-EWZ,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-EWZ,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-EWZ,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-EWZ,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-EWZ,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-EWZ,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-EWZ,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-EWZ,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-EWZ,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-RGD,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-RGD,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-RGD,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-RGD,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-RGD,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-RGD,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-RGD,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-RGD,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-RGD,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-RGD,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-RGD,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-RGD,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-SHE,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-SHE,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-SHE,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-SHE,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-SHE,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-SHE,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-SHE,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-SHE,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-SHE,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-SHE,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-SHE,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-SHE,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-SHE,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-SHE,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-SHE,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-SHE,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-SHE,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-SHE,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-SHE,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-SHE,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-SHE,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-SHE,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-SHE,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-SHE,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-SNK,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-SNK,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-SNK,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-SNK,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-SNK,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-SNK,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-SNK,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-SNK,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-SNK,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-SNK,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-SNK,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-SNK,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-TAD,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TAD,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TAD,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TAD,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TAD,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TAD,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TAD,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-TAD,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TAD,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-TAD,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-TAD,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TAD,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-TAD,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-TAD,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-TAD,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-TAD,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-TAD,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-TAD,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-TAD,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-TAD,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-TAD,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-TAD,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-TAD,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-TAD,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-TER,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TER,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TER,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TER,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TER,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TER,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TER,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-TER,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TER,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-TER,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-TER,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TER,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6CP-TER,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6CP-TER,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6CP-TER,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6CP-TER,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6CP-TER,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6CP-TER,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6CP-TER,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6CP-TER,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6CP-TER,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6CP-TER,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6CP-TER,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6CP-TER,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NB-TIC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-TIC,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-TIC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-TIC,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-TIC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-TIC,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NB-TIC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NB-TIC,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-TIC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-TIC,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NB-TIC,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-TIC,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-TRM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TRM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TRM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TRM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TRM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TRM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TRM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-TRM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TRM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-TRM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-TRM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TRM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-CCM,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CCM,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CCM,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-CCM,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CCM,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-CCM,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CCM,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-CCM,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CCM,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CCM,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-CCM,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-CCM,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-CIU,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CIU,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CIU,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-CIU,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CIU,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-CIU,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CIU,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-CIU,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CIU,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Business Analytics,,Text,false,false,true,false,Reference Portfolio,6NP-CIU,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-CIU,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-CIU,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6NP-IIU,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-IIU,3DEXPERIENCE (On Premise) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-IIU,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-IIU,3DEXPERIENCE (On Premise) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-IIU,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-IIU,3DEXPERIENCE (On Premise) - License Type,3,Active
+DS_DEPLOYMENT;6NP-IIU,DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,Deployment,6NP-IIU,3DEXPERIENCE (On Premise) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-IIU,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Business Analytics,,Text,false,false,true,false,Reference Portfolio,6NP-IIU,3DEXPERIENCE (On Premise) - Reference Portfolio,5,Active
+DS_LICENSE_COMMITMENT;6NP-IIU,DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-IIU,3DEXPERIENCE (On Premise) - Commitment,6,Active
+DS_RELEASE;6TP-BPK-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6TP-BPK-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6TP-BPK-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6TP-BPK-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6TP-BPK-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6TP-BPK-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6TP-BPK-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-BPO-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BPO-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BPO-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BPO-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BPO-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-BPO-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-BPO-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-BPR-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BPR-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BPR-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BPR-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BPR-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-BPR-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-BPR-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-BPW-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-BPW-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-BPW-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-BPW-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-BPW-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-BPW-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-BPW-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-CCM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CCM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CCM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CCM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CCM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-CCM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-CCM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-CUS-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-CUS-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-CUS-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-CUS-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-CUS-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Business Analytics,,Text,false,false,true,false,Reference Portfolio,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-CUS-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-CUS-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-ECB-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ECB-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ECB-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ECB-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ECB-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-ECB-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-ECB-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-EIM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-EIM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-EIM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-EIM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-EIM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-EIM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-EIM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-ELM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-ELM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-ELM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-ELM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-ELM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-ELM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-ELM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-ELX-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-ELX-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-ELX-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-ELX-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-ELX-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-ELX-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-ELX-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-EWZ-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-EWZ-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-RGD-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-RGD-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-RGD-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-RGD-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-RGD-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-RGD-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-RGD-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-SHE-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-SHE-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-SHE-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-SHE-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-SHE-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-SHE-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-SHE-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-SNK-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-SNK-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-SNK-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-SNK-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-SNK-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-SNK-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-SNK-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-TAD-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TAD-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TAD-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TAD-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TAD-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-TAD-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TAD-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-TER-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TER-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TER-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TER-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TER-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-TER-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TER-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NB-TIC-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NB-TIC-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NB-TIC-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NB-TIC-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NB-TIC-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Design/Engineering,,Text,false,false,true,false,Reference Portfolio,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NB-TIC-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NB-TIC-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active
+DS_RELEASE;6NP-TRM-OC,DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,Release,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - Release,1,Active
+DS_LICENSE_SCHEME;6NP-TRM-OC,DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,true,false,false,false,License Scheme,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - License Scheme,2,Active
+DS_LICENSE_TYPE;6NP-TRM-OC,DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,true,false,false,false,License Type,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - License Type,3,Active
+DS_DEPLOYMENT;6NP-TRM-OC,DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,Deployment,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - Deployment,4,Active
+DS_REFERENCE_PORTFOLIO;6NP-TRM-OC,DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,Public Cloud Governance/Lifecycle,,Text,false,false,true,false,Reference Portfolio,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - Reference Portfolio,5,Active
+DS_SUBSCRIPTION_COMMITMENT;6NP-TRM-OC,DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,true,true,false,false,Commitment,6NP-TRM-OC,3DEXPERIENCE (Public Cloud) - Commitment,7,Active

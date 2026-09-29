@@ -1,0 +1,19 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,Name,ProductClassification.Code,Sequence,Status
+DS-ATTR-LICENSING,DS_RELEASE,,V5-6R2026,,ComboBox,false,false,false,true,DELMIA V5 (On Premise) - Release,DS-PC-V5-ONPREM,1,Active
+DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,false,false,false,false,DELMIA V5 (On Premise) - License Scheme,DS-PC-V5-ONPREM,2,Active
+DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,false,false,false,false,DELMIA V5 (On Premise) - License Type,DS-PC-V5-ONPREM,3,Active
+DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,DELMIA V5 (On Premise) - Deployment,DS-PC-V5-ONPREM,4,Active
+DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,,,Text,false,false,false,false,DELMIA V5 (On Premise) - Reference Portfolio,DS-PC-V5-ONPREM,5,Active
+DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,DELMIA V5 (On Premise) - Commitment,DS-PC-V5-ONPREM,6,Active
+DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,3DEXPERIENCE (On Premise) - Release,DS-PC-3DX-ONPREM,1,Active
+DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,false,false,false,false,3DEXPERIENCE (On Premise) - License Scheme,DS-PC-3DX-ONPREM,2,Active
+DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,false,false,false,false,3DEXPERIENCE (On Premise) - License Type,DS-PC-3DX-ONPREM,3,Active
+DS-ATTR-LICENSING,DS_DEPLOYMENT,,On Premise,,ComboBox,false,false,true,false,3DEXPERIENCE (On Premise) - Deployment,DS-PC-3DX-ONPREM,4,Active
+DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,,,Text,false,false,false,false,3DEXPERIENCE (On Premise) - Reference Portfolio,DS-PC-3DX-ONPREM,5,Active
+DS-ATTR-LICENSING,DS_LICENSE_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,3DEXPERIENCE (On Premise) - Commitment,DS-PC-3DX-ONPREM,6,Active
+DS-ATTR-LICENSING,DS_RELEASE,,3DEXPERIENCE R2026x,,ComboBox,false,false,false,true,3DEXPERIENCE (Public Cloud) - Release,DS-PC-3DX-CLOUD,1,Active
+DS-ATTR-LICENSING,DS_LICENSE_SCHEME,,,,ComboBox,false,false,false,false,3DEXPERIENCE (Public Cloud) - License Scheme,DS-PC-3DX-CLOUD,2,Active
+DS-ATTR-LICENSING,DS_LICENSE_TYPE,,,,ComboBox,false,false,false,false,3DEXPERIENCE (Public Cloud) - License Type,DS-PC-3DX-CLOUD,3,Active
+DS-ATTR-LICENSING,DS_DEPLOYMENT,,Public Cloud,,ComboBox,false,false,true,false,3DEXPERIENCE (Public Cloud) - Deployment,DS-PC-3DX-CLOUD,4,Active
+DS-ATTR-LICENSING,DS_REFERENCE_PORTFOLIO,,,,Text,false,false,false,false,3DEXPERIENCE (Public Cloud) - Reference Portfolio,DS-PC-3DX-CLOUD,5,Active
+DS-ATTR-LICENSING,DS_SUBSCRIPTION_COMMITMENT,,1 Year,,ComboBox,false,true,false,true,3DEXPERIENCE (Public Cloud) - Commitment,DS-PC-3DX-CLOUD,7,Active

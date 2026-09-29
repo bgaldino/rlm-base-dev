@@ -1,0 +1,19 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,DS-REL-V5-6R2026,V5-6R2026,false,V5-6R2026,DS Release,1,Active,V5-6R2026
+,DS-REL-3DEXPERIENCE-R2026X,3DEXPERIENCE R2026x,false,3DEXPERIENCE R2026x,DS Release,2,Active,3DEXPERIENCE R2026x
+,DS-LS-NAMED-USER,Named User,false,Named User,DS License Scheme,1,Active,Named User
+,DS-LS-CASUAL-NAMED-USER,Casual Named User,false,Casual Named User,DS License Scheme,2,Active,Casual Named User
+,DS-LS-CONCURRENT,Concurrent,false,Concurrent,DS License Scheme,3,Active,Concurrent
+,DS-LS-ADD-ON,Add-On,false,Add-On,DS License Scheme,4,Active,Add-On
+,DS-LS-CREDIT-BASE,Credit Base,false,Credit Base,DS License Scheme,5,Active,Credit Base
+,DS-LT-NAMED-USER,Named User,false,Named User,DS License Type,1,Active,Named User
+,DS-LT-CONFIGURATION,Configuration,false,Configuration,DS License Type,2,Active,Configuration
+,DS-LT-PACKAGE,Package,false,Package,DS License Type,3,Active,Package
+,DS-LT-ADD-ON,Add-On,false,Add-On,DS License Type,4,Active,Add-On
+,DS-DEP-ON-PREMISE,On Premise,false,On Premise,DS Deployment,1,Active,On Premise
+,DS-DEP-PUBLIC-CLOUD,Public Cloud,false,Public Cloud,DS Deployment,2,Active,Public Cloud
+,DS-LC-1-YEAR,1 Year,false,1 Year,DS License Commitment,1,Active,1 Year
+,DS-LC-2-YEARS,2 Years,false,2 Years,DS License Commitment,2,Active,2 Years
+,DS-LC-3-YEARS,3 Years,false,3 Years,DS License Commitment,3,Active,3 Years
+,DS-SC-1-YEAR,1 Year,false,1 Year,DS Subscription Commitment,1,Active,1 Year
+,DS-SC-3-YEARS,3 Years,false,3 Years,DS Subscription Commitment,2,Active,3 Years

@@ -1,0 +1,48 @@
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
+DS-CAT-REF,DS-DELMIAV5,,true,DELMIA V5,,10
+DS-CAT-REF,DS-SOL000014,,true,DELMIA PROCESS & RESOURCE PLAN DEFINITION,DS-DELMIAV5,10
+DS-CAT-REF,DS-GRP000022,,true,Process Detailing,DS-SOL000014,10
+DS-CAT-REF,DS-SOL000015,,true,DELMIA FACTORY DEFINITION & SIMULATION,DS-DELMIAV5,20
+DS-CAT-REF,DS-GRP000030,,true,Robotics,DS-SOL000015,10
+DS-CAT-REF,DS-GRP000026,,true,Factory Layout,DS-SOL000015,20
+DS-CAT-REF,DS-SOL000080,,true,DELMIA V5 Packages,DS-DELMIAV5,30
+DS-CAT-REF,DS-GRP000134,,true,DELMIA V5 Packages,DS-SOL000080,10
+DS-CAT-REF,DS-GRP000032,,true,Ergonomics,DS-SOL000015,30
+DS-CAT-REF,DS-GRP000028,,true,Factory DMU Solutions,DS-SOL000015,40
+DS-CAT-REF,DS-PRTF083,,true,Design/Engineering,,20
+DS-CAT-REF,DS-SOL001261,,true,Design & Engineering for Products & Systems,DS-PRTF083,10
+DS-CAT-REF,DS-GRP003333,,true,Multi-Discipline Engineering,DS-SOL001261,10
+DS-CAT-REF,DS-SOL001285,,true,Systems Engineering & V+R Testing,DS-PRTF083,20
+DS-CAT-REF,DS-GRP003366,,true,Model Based Systems Design,DS-SOL001285,10
+DS-CAT-REF,DS-SOL001297,,true,Construction Engineering,DS-PRTF083,30
+DS-CAT-REF,DS-GRP003387,,true,Integrated Design for Construction,DS-SOL001297,10
+DS-CAT-REF,DS-GRP003346,,true,Mechanical Engineering,DS-SOL001261,20
+DS-CAT-REF,DS-GRP003412,,true,Electrical & Fluids Engineering,DS-SOL001261,30
+DS-CAT-REF,DS-PRTF086,,true,Governance/Lifecycle,,30
+DS-CAT-REF,DS-SOL001311,,true,Planning,DS-PRTF086,10
+DS-CAT-REF,DS-GRP003434,,true,Program and Project Performance & Execution,DS-SOL001311,10
+DS-CAT-REF,DS-SOL001310,,true,Collaboration & Intelligence,DS-PRTF086,20
+DS-CAT-REF,DS-GRP003433,,true,Structured Collaboration & Collaborative Content,DS-SOL001310,10
+DS-CAT-REF,DS-PRTF070,,true,Public Cloud Design/Engineering,,40
+DS-CAT-REF,DS-SOL001263,,true,Design & Engineering for Products & Systems,DS-PRTF070,10
+DS-CAT-REF,DS-GRP003335,,true,Multi-Discipline Engineering,DS-SOL001263,10
+DS-CAT-REF,DS-SOL001287,,true,Systems Engineering & V+R Testing,DS-PRTF070,20
+DS-CAT-REF,DS-GRP003368,,true,Model Based Systems Design,DS-SOL001287,10
+DS-CAT-REF,DS-SOL001265,,true,Construction Engineering,DS-PRTF070,30
+DS-CAT-REF,DS-GRP003337,,true,Integrated Design for Construction,DS-SOL001265,10
+DS-CAT-REF,DS-GRP003414,,true,Electrical & Fluids Engineering,DS-SOL001263,20
+DS-CAT-REF,DS-PRTF071,,true,Public Cloud Governance/Lifecycle,,50
+DS-CAT-REF,DS-SOL001315,,true,Planning,DS-PRTF071,10
+DS-CAT-REF,DS-GRP003438,,true,Program and Project Performance & Execution,DS-SOL001315,10
+DS-CAT-REF,DS-SOL001321,,true,Collaboration & Intelligence,DS-PRTF071,20
+DS-CAT-REF,DS-GRP003452,,true,Structured Collaboration & Collaborative Content,DS-SOL001321,10
+DS-CAT-IND,DS-IND-02,,true,Aerospace & Defense,,10
+DS-CAT-IND,DS-SEG-02-1,,true,Commercial Aviation,DS-IND-02,10
+DS-CAT-IND,DS-ISE00006474,,true,Co-Design to Target (On Premise),DS-SEG-02-1,10
+DS-CAT-IND,DS-IPE00050900,,true,04-Electrical Wire Harness Engineering,DS-ISE00006474,10
+DS-CAT-IND,DS-ISE00006490,,true,Program Excellence (On Premise),DS-SEG-02-1,20
+DS-CAT-IND,DS-IPE00050472,,true,08-End to End Change Management,DS-ISE00006490,10
+DS-CAT-IND,DS-ISE00006555,,true,Program Excellence (Public Cloud),DS-SEG-02-1,30
+DS-CAT-IND,DS-IPE00050538,,true,08-End to End Change Management,DS-ISE00006555,10
+DS-CAT-IND,DS-ISE00006594,,true,Co-Design to Target (Public Cloud),DS-SEG-02-1,40
+DS-CAT-IND,DS-IPE00050658,,true,04-Electrical Wire Harness Engineering,DS-ISE00006594,10

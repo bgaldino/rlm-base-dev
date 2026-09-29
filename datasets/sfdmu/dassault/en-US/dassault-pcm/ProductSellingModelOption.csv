@@ -1,0 +1,139 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.Name,ProrationPolicy.Name
+5CC-AP2;One-Time,false,5CC-AP2,One-Time,
+5CC-AP2;Evergreen Annual,false,5CC-AP2,Evergreen Annual,Default Proration Policy
+5CC-AP2;Term Annual,true,5CC-AP2,Term Annual,Default Proration Policy
+5CC-AP2;Term Based - Quarterly,false,5CC-AP2,Term Based - Quarterly,Default Proration Policy
+5AP-ARW;One-Time,false,5AP-ARW,One-Time,
+5AP-ARW;Evergreen Annual,false,5AP-ARW,Evergreen Annual,Default Proration Policy
+5AP-ARW;Term Annual,true,5AP-ARW,Term Annual,Default Proration Policy
+5AP-ARW;Term Based - Quarterly,false,5AP-ARW,Term Based - Quarterly,Default Proration Policy
+5CC-BP2;One-Time,false,5CC-BP2,One-Time,
+5CC-BP2;Evergreen Annual,false,5CC-BP2,Evergreen Annual,Default Proration Policy
+5CC-BP2;Term Annual,true,5CC-BP2,Term Annual,Default Proration Policy
+5CC-BP2;Term Based - Quarterly,false,5CC-BP2,Term Based - Quarterly,Default Proration Policy
+5AP-DBG;One-Time,false,5AP-DBG,One-Time,
+5AP-DBG;Evergreen Annual,false,5AP-DBG,Evergreen Annual,Default Proration Policy
+5AP-DBG;Term Annual,true,5AP-DBG,Term Annual,Default Proration Policy
+5AP-DBG;Term Based - Quarterly,false,5AP-DBG,Term Based - Quarterly,Default Proration Policy
+5AB-GTS;One-Time,false,5AB-GTS,One-Time,
+5AB-GTS;Evergreen Annual,false,5AB-GTS,Evergreen Annual,Default Proration Policy
+5AB-GTS;Term Annual,true,5AB-GTS,Term Annual,Default Proration Policy
+5AB-GTS;Term Based - Quarterly,false,5AB-GTS,Term Based - Quarterly,Default Proration Policy
+5AP-MEC;One-Time,false,5AP-MEC,One-Time,
+5AP-MEC;Evergreen Annual,false,5AP-MEC,Evergreen Annual,Default Proration Policy
+5AP-MEC;Term Annual,true,5AP-MEC,Term Annual,Default Proration Policy
+5AP-MEC;Term Based - Quarterly,false,5AP-MEC,Term Based - Quarterly,Default Proration Policy
+5AP-MEQ;One-Time,false,5AP-MEQ,One-Time,
+5AP-MEQ;Evergreen Annual,false,5AP-MEQ,Evergreen Annual,Default Proration Policy
+5AP-MEQ;Term Annual,true,5AP-MEQ,Term Annual,Default Proration Policy
+5AP-MEQ;Term Based - Quarterly,false,5AP-MEQ,Term Based - Quarterly,Default Proration Policy
+5AP-MHA;One-Time,false,5AP-MHA,One-Time,
+5AP-MHA;Evergreen Annual,false,5AP-MHA,Evergreen Annual,Default Proration Policy
+5AP-MHA;Term Annual,true,5AP-MHA,Term Annual,Default Proration Policy
+5AP-MHA;Term Based - Quarterly,false,5AP-MHA,Term Based - Quarterly,Default Proration Policy
+5AP-MHB;One-Time,false,5AP-MHB,One-Time,
+5AP-MHB;Evergreen Annual,false,5AP-MHB,Evergreen Annual,Default Proration Policy
+5AP-MHB;Term Annual,true,5AP-MHB,Term Annual,Default Proration Policy
+5AP-MHB;Term Based - Quarterly,false,5AP-MHB,Term Based - Quarterly,Default Proration Policy
+5AP-MTR;One-Time,false,5AP-MTR,One-Time,
+5AP-MTR;Evergreen Annual,false,5AP-MTR,Evergreen Annual,Default Proration Policy
+5AP-MTR;Term Annual,true,5AP-MTR,Term Annual,Default Proration Policy
+5AP-MTR;Term Based - Quarterly,false,5AP-MTR,Term Based - Quarterly,Default Proration Policy
+5AP-MTT;One-Time,false,5AP-MTT,One-Time,
+5AP-MTT;Evergreen Annual,false,5AP-MTT,Evergreen Annual,Default Proration Policy
+5AP-MTT;Term Annual,true,5AP-MTT,Term Annual,Default Proration Policy
+5AP-MTT;Term Based - Quarterly,false,5AP-MTT,Term Based - Quarterly,Default Proration Policy
+5CC-WL2;One-Time,false,5CC-WL2,One-Time,
+5CC-WL2;Evergreen Annual,false,5CC-WL2,Evergreen Annual,Default Proration Policy
+5CC-WL2;Term Annual,true,5CC-WL2,Term Annual,Default Proration Policy
+5CC-WL2;Term Based - Quarterly,false,5CC-WL2,Term Based - Quarterly,Default Proration Policy
+6NB-ACDEM;One-Time,false,6NB-ACDEM,One-Time,
+6NB-ACDEM;Evergreen Annual,false,6NB-ACDEM,Evergreen Annual,Default Proration Policy
+6NB-ACDEM;Term Annual,true,6NB-ACDEM,Term Annual,Default Proration Policy
+6NB-ACDEM;Term Based - Quarterly,false,6NB-ACDEM,Term Based - Quarterly,Default Proration Policy
+6NP-ASZ;One-Time,false,6NP-ASZ,One-Time,
+6NP-ASZ;Evergreen Annual,false,6NP-ASZ,Evergreen Annual,Default Proration Policy
+6NP-ASZ;Term Annual,true,6NP-ASZ,Term Annual,Default Proration Policy
+6NP-ASZ;Term Based - Quarterly,false,6NP-ASZ,Term Based - Quarterly,Default Proration Policy
+6NP-BCMEC;One-Time,false,6NP-BCMEC,One-Time,
+6NP-BCMEC;Evergreen Annual,false,6NP-BCMEC,Evergreen Annual,Default Proration Policy
+6NP-BCMEC;Term Annual,true,6NP-BCMEC,Term Annual,Default Proration Policy
+6NP-BCMEC;Term Based - Quarterly,false,6NP-BCMEC,Term Based - Quarterly,Default Proration Policy
+6NP-BODET;One-Time,false,6NP-BODET,One-Time,
+6NP-BODET;Evergreen Annual,false,6NP-BODET,Evergreen Annual,Default Proration Policy
+6NP-BODET;Term Annual,true,6NP-BODET,Term Annual,Default Proration Policy
+6NP-BODET;Term Based - Quarterly,false,6NP-BODET,Term Based - Quarterly,Default Proration Policy
+6NP-BTZ;One-Time,false,6NP-BTZ,One-Time,
+6NP-BTZ;Evergreen Annual,false,6NP-BTZ,Evergreen Annual,Default Proration Policy
+6NP-BTZ;Term Annual,true,6NP-BTZ,Term Annual,Default Proration Policy
+6NP-BTZ;Term Based - Quarterly,false,6NP-BTZ,Term Based - Quarterly,Default Proration Policy
+6NP-DCZ;One-Time,false,6NP-DCZ,One-Time,
+6NP-DCZ;Evergreen Annual,false,6NP-DCZ,Evergreen Annual,Default Proration Policy
+6NP-DCZ;Term Annual,true,6NP-DCZ,Term Annual,Default Proration Policy
+6NP-DCZ;Term Based - Quarterly,false,6NP-DCZ,Term Based - Quarterly,Default Proration Policy
+6NP-ELG;One-Time,false,6NP-ELG,One-Time,
+6NP-ELG;Evergreen Annual,false,6NP-ELG,Evergreen Annual,Default Proration Policy
+6NP-ELG;Term Annual,true,6NP-ELG,Term Annual,Default Proration Policy
+6NP-ELG;Term Based - Quarterly,false,6NP-ELG,Term Based - Quarterly,Default Proration Policy
+6TB-GFC-M;Term Annual,true,6TB-GFC-M,Term Annual,Default Proration Policy
+6NP-SGCML;One-Time,false,6NP-SGCML,One-Time,
+6NP-SGCML;Evergreen Annual,false,6NP-SGCML,Evergreen Annual,Default Proration Policy
+6NP-SGCML;Term Annual,true,6NP-SGCML,Term Annual,Default Proration Policy
+6NP-SGCML;Term Based - Quarterly,false,6NP-SGCML,Term Based - Quarterly,Default Proration Policy
+6NP-CHG;One-Time,false,6NP-CHG,One-Time,
+6NP-CHG;Evergreen Annual,false,6NP-CHG,Evergreen Annual,Default Proration Policy
+6NP-CHG;Term Annual,true,6NP-CHG,Term Annual,Default Proration Policy
+6NP-CHG;Term Based - Quarterly,false,6NP-CHG,Term Based - Quarterly,Default Proration Policy
+6NP-CSV;One-Time,false,6NP-CSV,One-Time,
+6NP-CSV;Evergreen Annual,false,6NP-CSV,Evergreen Annual,Default Proration Policy
+6NP-CSV;Term Annual,true,6NP-CSV,Term Annual,Default Proration Policy
+6NP-CSV;Term Based - Quarterly,false,6NP-CSV,Term Based - Quarterly,Default Proration Policy
+6NP-DPM;One-Time,false,6NP-DPM,One-Time,
+6NP-DPM;Evergreen Annual,false,6NP-DPM,Evergreen Annual,Default Proration Policy
+6NP-DPM;Term Annual,true,6NP-DPM,Term Annual,Default Proration Policy
+6NP-DPM;Term Based - Quarterly,false,6NP-DPM,Term Based - Quarterly,Default Proration Policy
+6NB-PCS;One-Time,false,6NB-PCS,One-Time,
+6NB-PCS;Evergreen Annual,false,6NB-PCS,Evergreen Annual,Default Proration Policy
+6NB-PCS;Term Annual,true,6NB-PCS,Term Annual,Default Proration Policy
+6NB-PCS;Term Based - Quarterly,false,6NB-PCS,Term Based - Quarterly,Default Proration Policy
+6KB-PCS-K;One-Time,false,6KB-PCS-K,One-Time,
+6KB-PCS-K;Evergreen Annual,false,6KB-PCS-K,Evergreen Annual,Default Proration Policy
+6KB-PCS-K;Term Annual,true,6KB-PCS-K,Term Annual,Default Proration Policy
+6KB-PCS-K;Term Based - Quarterly,false,6KB-PCS-K,Term Based - Quarterly,Default Proration Policy
+6NB-ACDEM-OC;One-Time,false,6NB-ACDEM-OC,One-Time,
+6NB-ACDEM-OC;Evergreen Annual,false,6NB-ACDEM-OC,Evergreen Annual,Default Proration Policy
+6NB-ACDEM-OC;Term Annual,true,6NB-ACDEM-OC,Term Annual,Default Proration Policy
+6NP-ASZ-OC;One-Time,false,6NP-ASZ-OC,One-Time,
+6NP-ASZ-OC;Evergreen Annual,false,6NP-ASZ-OC,Evergreen Annual,Default Proration Policy
+6NP-ASZ-OC;Term Annual,true,6NP-ASZ-OC,Term Annual,Default Proration Policy
+6NP-BCMEC-OC;One-Time,false,6NP-BCMEC-OC,One-Time,
+6NP-BCMEC-OC;Evergreen Annual,false,6NP-BCMEC-OC,Evergreen Annual,Default Proration Policy
+6NP-BCMEC-OC;Term Annual,true,6NP-BCMEC-OC,Term Annual,Default Proration Policy
+6NP-BTZ-OC;One-Time,false,6NP-BTZ-OC,One-Time,
+6NP-BTZ-OC;Evergreen Annual,false,6NP-BTZ-OC,Evergreen Annual,Default Proration Policy
+6NP-BTZ-OC;Term Annual,true,6NP-BTZ-OC,Term Annual,Default Proration Policy
+6NP-DCZ-OC;One-Time,false,6NP-DCZ-OC,One-Time,
+6NP-DCZ-OC;Evergreen Annual,false,6NP-DCZ-OC,Evergreen Annual,Default Proration Policy
+6NP-DCZ-OC;Term Annual,true,6NP-DCZ-OC,Term Annual,Default Proration Policy
+6NP-ELG-OC;One-Time,false,6NP-ELG-OC,One-Time,
+6NP-ELG-OC;Evergreen Annual,false,6NP-ELG-OC,Evergreen Annual,Default Proration Policy
+6NP-ELG-OC;Term Annual,true,6NP-ELG-OC,Term Annual,Default Proration Policy
+6TB-GFC-M-OC;Term Annual,true,6TB-GFC-M-OC,Term Annual,Default Proration Policy
+6NP-SGCML-OC;One-Time,false,6NP-SGCML-OC,One-Time,
+6NP-SGCML-OC;Evergreen Annual,false,6NP-SGCML-OC,Evergreen Annual,Default Proration Policy
+6NP-SGCML-OC;Term Annual,true,6NP-SGCML-OC,Term Annual,Default Proration Policy
+6NP-CHG-OC;One-Time,false,6NP-CHG-OC,One-Time,
+6NP-CHG-OC;Evergreen Annual,false,6NP-CHG-OC,Evergreen Annual,Default Proration Policy
+6NP-CHG-OC;Term Annual,true,6NP-CHG-OC,Term Annual,Default Proration Policy
+6NP-CSV-OC;One-Time,false,6NP-CSV-OC,One-Time,
+6NP-CSV-OC;Evergreen Annual,false,6NP-CSV-OC,Evergreen Annual,Default Proration Policy
+6NP-CSV-OC;Term Annual,true,6NP-CSV-OC,Term Annual,Default Proration Policy
+6NP-DPM-OC;One-Time,false,6NP-DPM-OC,One-Time,
+6NP-DPM-OC;Evergreen Annual,false,6NP-DPM-OC,Evergreen Annual,Default Proration Policy
+6NP-DPM-OC;Term Annual,true,6NP-DPM-OC,Term Annual,Default Proration Policy
+6KB-PCS-K-OC;One-Time,false,6KB-PCS-K-OC,One-Time,
+6KB-PCS-K-OC;Evergreen Annual,false,6KB-PCS-K-OC,Evergreen Annual,Default Proration Policy
+6KB-PCS-K-OC;Term Annual,true,6KB-PCS-K-OC,Term Annual,Default Proration Policy
+6NB-PCS-OC;One-Time,false,6NB-PCS-OC,One-Time,
+6NB-PCS-OC;Evergreen Annual,false,6NB-PCS-OC,Evergreen Annual,Default Proration Policy
+6NB-PCS-OC;Term Annual,true,6NB-PCS-OC,Term Annual,Default Proration Policy

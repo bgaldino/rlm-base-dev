@@ -1,0 +1,277 @@
+$$Pricebook2.Name$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Pricebook2.Name,Product2.StockKeepingUnit,ProductSellingModel.Name,UnitPrice,UseStandardPrice
+Standard Price Book;5CC-AP2;One-Time;EUR,EUR,true,false,Standard Price Book,5CC-AP2,One-Time,56270,false
+Standard Price Book;5CC-AP2;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5CC-AP2,Evergreen Annual,7875,false
+Standard Price Book;5CC-AP2;Term Annual;EUR,EUR,true,false,Standard Price Book,5CC-AP2,Term Annual,24220,false
+Standard Price Book;5CC-AP2;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5CC-AP2,Term Based - Quarterly,9536,false
+Standard Price Book;5AP-ARW;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-ARW,One-Time,9986,false
+Standard Price Book;5AP-ARW;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-ARW,Evergreen Annual,1404,false
+Standard Price Book;5AP-ARW;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-ARW,Term Annual,4301,false
+Standard Price Book;5AP-ARW;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-ARW,Term Based - Quarterly,1693,false
+Standard Price Book;5CC-BP2;One-Time;EUR,EUR,true,false,Standard Price Book,5CC-BP2,One-Time,72840,false
+Standard Price Book;5CC-BP2;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5CC-BP2,Evergreen Annual,10200,false
+Standard Price Book;5CC-BP2;Term Annual;EUR,EUR,true,false,Standard Price Book,5CC-BP2,Term Annual,31330,false
+Standard Price Book;5CC-BP2;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5CC-BP2,Term Based - Quarterly,12340,false
+Standard Price Book;5AP-DBG;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-DBG,One-Time,9986,false
+Standard Price Book;5AP-DBG;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-DBG,Evergreen Annual,1404,false
+Standard Price Book;5AP-DBG;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-DBG,Term Annual,4301,false
+Standard Price Book;5AP-DBG;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-DBG,Term Based - Quarterly,1693,false
+Standard Price Book;5AB-GTS;One-Time;EUR,EUR,true,false,Standard Price Book,5AB-GTS,One-Time,13650,false
+Standard Price Book;5AB-GTS;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AB-GTS,Evergreen Annual,1908,false
+Standard Price Book;5AB-GTS;Term Annual;EUR,EUR,true,false,Standard Price Book,5AB-GTS,Term Annual,5879,false
+Standard Price Book;5AB-GTS;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AB-GTS,Term Based - Quarterly,2314,false
+Standard Price Book;5AP-MEC;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MEC,One-Time,17940,false
+Standard Price Book;5AP-MEC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MEC,Evergreen Annual,2510,false
+Standard Price Book;5AP-MEC;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MEC,Term Annual,7718,false
+Standard Price Book;5AP-MEC;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MEC,Term Based - Quarterly,3038,false
+Standard Price Book;5AP-MEQ;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MEQ,One-Time,8530,false
+Standard Price Book;5AP-MEQ;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MEQ,Evergreen Annual,1199,false
+Standard Price Book;5AP-MEQ;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MEQ,Term Annual,3674,false
+Standard Price Book;5AP-MEQ;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MEQ,Term Based - Quarterly,1446,false
+Standard Price Book;5AP-MHA;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MHA,One-Time,25580,false
+Standard Price Book;5AP-MHA;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MHA,Evergreen Annual,3580,false
+Standard Price Book;5AP-MHA;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MHA,Term Annual,11020,false
+Standard Price Book;5AP-MHA;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MHA,Term Based - Quarterly,4337,false
+Standard Price Book;5AP-MHB;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MHB,One-Time,20460,false
+Standard Price Book;5AP-MHB;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MHB,Evergreen Annual,2871,false
+Standard Price Book;5AP-MHB;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MHB,Term Annual,8817,false
+Standard Price Book;5AP-MHB;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MHB,Term Based - Quarterly,3472,false
+Standard Price Book;5AP-MTR;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MTR,One-Time,3415,false
+Standard Price Book;5AP-MTR;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MTR,Evergreen Annual,487.9,false
+Standard Price Book;5AP-MTR;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MTR,Term Annual,1482,false
+Standard Price Book;5AP-MTR;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MTR,Term Based - Quarterly,583.7,false
+Standard Price Book;5AP-MTT;One-Time;EUR,EUR,true,false,Standard Price Book,5AP-MTT,One-Time,8990,false
+Standard Price Book;5AP-MTT;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5AP-MTT,Evergreen Annual,1273,false
+Standard Price Book;5AP-MTT;Term Annual;EUR,EUR,true,false,Standard Price Book,5AP-MTT,Term Annual,3886,false
+Standard Price Book;5AP-MTT;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5AP-MTT,Term Based - Quarterly,1530,false
+Standard Price Book;5CC-WL2;One-Time;EUR,EUR,true,false,Standard Price Book,5CC-WL2,One-Time,74830,false
+Standard Price Book;5CC-WL2;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,5CC-WL2,Evergreen Annual,10490,false
+Standard Price Book;5CC-WL2;Term Annual;EUR,EUR,true,false,Standard Price Book,5CC-WL2,Term Annual,32230,false
+Standard Price Book;5CC-WL2;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,5CC-WL2,Term Based - Quarterly,12700,false
+Standard Price Book;6NB-ACDEM;One-Time;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM,One-Time,28040,false
+Standard Price Book;6NB-ACDEM;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM,Evergreen Annual,5047,false
+Standard Price Book;6NB-ACDEM;Term Annual;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM,Term Annual,14390,false
+Standard Price Book;6NB-ACDEM;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM,Term Based - Quarterly,5398,false
+Standard Price Book;6NP-ASZ;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-ASZ,One-Time,8951,false
+Standard Price Book;6NP-ASZ;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-ASZ,Evergreen Annual,1611,false
+Standard Price Book;6NP-ASZ;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-ASZ,Term Annual,4595,false
+Standard Price Book;6NP-ASZ;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-ASZ,Term Based - Quarterly,1723,false
+Standard Price Book;6NP-BCMEC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC,One-Time,12700,false
+Standard Price Book;6NP-BCMEC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC,Evergreen Annual,2286,false
+Standard Price Book;6NP-BCMEC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC,Term Annual,6520,false
+Standard Price Book;6NP-BCMEC;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC,Term Based - Quarterly,2445,false
+Standard Price Book;6NP-BODET;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-BODET,One-Time,34590,false
+Standard Price Book;6NP-BODET;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-BODET,Evergreen Annual,6227,false
+Standard Price Book;6NP-BODET;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-BODET,Term Annual,17750,false
+Standard Price Book;6NP-BODET;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-BODET,Term Based - Quarterly,6658,false
+Standard Price Book;6NP-BTZ;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-BTZ,One-Time,8951,false
+Standard Price Book;6NP-BTZ;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-BTZ,Evergreen Annual,1611,false
+Standard Price Book;6NP-BTZ;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-BTZ,Term Annual,4595,false
+Standard Price Book;6NP-BTZ;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-BTZ,Term Based - Quarterly,1723,false
+Standard Price Book;6NP-DCZ;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-DCZ,One-Time,5884,false
+Standard Price Book;6NP-DCZ;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-DCZ,Evergreen Annual,1059,false
+Standard Price Book;6NP-DCZ;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-DCZ,Term Annual,3021,false
+Standard Price Book;6NP-DCZ;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-DCZ,Term Based - Quarterly,1133,false
+Standard Price Book;6NP-ELG;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-ELG,One-Time,33470,false
+Standard Price Book;6NP-ELG;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-ELG,Evergreen Annual,6023,false
+Standard Price Book;6NP-ELG;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-ELG,Term Annual,17180,false
+Standard Price Book;6NP-ELG;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-ELG,Term Based - Quarterly,6441,false
+Standard Price Book;6TB-GFC-M;Term Annual;EUR,EUR,true,false,Standard Price Book,6TB-GFC-M,Term Annual,572.7,false
+Standard Price Book;6NP-SGCML;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-SGCML,One-Time,32220,false
+Standard Price Book;6NP-SGCML;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-SGCML,Evergreen Annual,5798,false
+Standard Price Book;6NP-SGCML;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-SGCML,Term Annual,16530,false
+Standard Price Book;6NP-SGCML;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-SGCML,Term Based - Quarterly,6201,false
+Standard Price Book;6NP-CHG;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-CHG,One-Time,1192,false
+Standard Price Book;6NP-CHG;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-CHG,Evergreen Annual,214.6,false
+Standard Price Book;6NP-CHG;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-CHG,Term Annual,612.1,false
+Standard Price Book;6NP-CHG;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-CHG,Term Based - Quarterly,229.6,false
+Standard Price Book;6NP-CSV;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-CSV,One-Time,1285,false
+Standard Price Book;6NP-CSV;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-CSV,Evergreen Annual,231.4,false
+Standard Price Book;6NP-CSV;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-CSV,Term Annual,657.8,false
+Standard Price Book;6NP-CSV;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-CSV,Term Based - Quarterly,246.7,false
+Standard Price Book;6NP-DPM;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-DPM,One-Time,1432,false
+Standard Price Book;6NP-DPM;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-DPM,Evergreen Annual,257.7,false
+Standard Price Book;6NP-DPM;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-DPM,Term Annual,735.1,false
+Standard Price Book;6NP-DPM;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NP-DPM,Term Based - Quarterly,275.7,false
+Standard Price Book;6NB-PCS;One-Time;EUR,EUR,true,false,Standard Price Book,6NB-PCS,One-Time,1797,false
+Standard Price Book;6NB-PCS;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NB-PCS,Evergreen Annual,323.4,false
+Standard Price Book;6NB-PCS;Term Annual;EUR,EUR,true,false,Standard Price Book,6NB-PCS,Term Annual,919.8,false
+Standard Price Book;6NB-PCS;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6NB-PCS,Term Based - Quarterly,345,false
+Standard Price Book;6KB-PCS-K;One-Time;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K,One-Time,894.8,false
+Standard Price Book;6KB-PCS-K;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K,Evergreen Annual,161.1,false
+Standard Price Book;6KB-PCS-K;Term Annual;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K,Term Annual,459.3,false
+Standard Price Book;6KB-PCS-K;Term Based - Quarterly;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K,Term Based - Quarterly,172.3,false
+Standard Price Book;6NB-ACDEM-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM-OC,One-Time,28040,false
+Standard Price Book;6NB-ACDEM-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM-OC,Evergreen Annual,8412,false
+Standard Price Book;6NB-ACDEM-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NB-ACDEM-OC,Term Annual,15120,false
+Standard Price Book;6NP-ASZ-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-ASZ-OC,One-Time,8951,false
+Standard Price Book;6NP-ASZ-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-ASZ-OC,Evergreen Annual,2686,false
+Standard Price Book;6NP-ASZ-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-ASZ-OC,Term Annual,4836,false
+Standard Price Book;6NP-BCMEC-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC-OC,One-Time,12700,false
+Standard Price Book;6NP-BCMEC-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC-OC,Evergreen Annual,3811,false
+Standard Price Book;6NP-BCMEC-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-BCMEC-OC,Term Annual,6852,false
+Standard Price Book;6NP-BTZ-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-BTZ-OC,One-Time,8951,false
+Standard Price Book;6NP-BTZ-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-BTZ-OC,Evergreen Annual,2686,false
+Standard Price Book;6NP-BTZ-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-BTZ-OC,Term Annual,4836,false
+Standard Price Book;6NP-DCZ-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-DCZ-OC,One-Time,5884,false
+Standard Price Book;6NP-DCZ-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-DCZ-OC,Evergreen Annual,1765,false
+Standard Price Book;6NP-DCZ-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-DCZ-OC,Term Annual,3156,false
+Standard Price Book;6NP-ELG-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-ELG-OC,One-Time,33470,false
+Standard Price Book;6NP-ELG-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-ELG-OC,Evergreen Annual,10040,false
+Standard Price Book;6NP-ELG-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-ELG-OC,Term Annual,18000,false
+Standard Price Book;6TB-GFC-M-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6TB-GFC-M-OC,Term Annual,588,false
+Standard Price Book;6NP-SGCML-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-SGCML-OC,One-Time,32220,false
+Standard Price Book;6NP-SGCML-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-SGCML-OC,Evergreen Annual,9664,false
+Standard Price Book;6NP-SGCML-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-SGCML-OC,Term Annual,17400,false
+Standard Price Book;6NP-CHG-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-CHG-OC,One-Time,1192,false
+Standard Price Book;6NP-CHG-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-CHG-OC,Evergreen Annual,357.7,false
+Standard Price Book;6NP-CHG-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-CHG-OC,Term Annual,636,false
+Standard Price Book;6NP-CSV-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-CSV-OC,One-Time,1285,false
+Standard Price Book;6NP-CSV-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-CSV-OC,Evergreen Annual,539.5,false
+Standard Price Book;6NP-CSV-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-CSV-OC,Term Annual,720,false
+Standard Price Book;6NP-DPM-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NP-DPM-OC,One-Time,1432,false
+Standard Price Book;6NP-DPM-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NP-DPM-OC,Evergreen Annual,429.6,false
+Standard Price Book;6NP-DPM-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NP-DPM-OC,Term Annual,792,false
+Standard Price Book;6KB-PCS-K-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K-OC,One-Time,894.8,false
+Standard Price Book;6KB-PCS-K-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K-OC,Evergreen Annual,375.8,false
+Standard Price Book;6KB-PCS-K-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6KB-PCS-K-OC,Term Annual,624,false
+Standard Price Book;6NB-PCS-OC;One-Time;EUR,EUR,true,false,Standard Price Book,6NB-PCS-OC,One-Time,1797,false
+Standard Price Book;6NB-PCS-OC;Evergreen Annual;EUR,EUR,true,false,Standard Price Book,6NB-PCS-OC,Evergreen Annual,754.5,false
+Standard Price Book;6NB-PCS-OC;Term Annual;EUR,EUR,true,false,Standard Price Book,6NB-PCS-OC,Term Annual,1176,false
+Standard Price Book;5CC-AP2;One-Time;USD,USD,true,false,Standard Price Book,5CC-AP2,One-Time,50920,false
+Standard Price Book;5CC-AP2;Evergreen Annual;USD,USD,true,false,Standard Price Book,5CC-AP2,Evergreen Annual,7130,false
+Standard Price Book;5CC-AP2;Term Annual;USD,USD,true,false,Standard Price Book,5CC-AP2,Term Annual,21900,false
+Standard Price Book;5CC-AP2;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5CC-AP2,Term Based - Quarterly,8624,false
+Standard Price Book;5AP-ARW;One-Time;USD,USD,true,false,Standard Price Book,5AP-ARW,One-Time,9032,false
+Standard Price Book;5AP-ARW;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-ARW,Evergreen Annual,1265,false
+Standard Price Book;5AP-ARW;Term Annual;USD,USD,true,false,Standard Price Book,5AP-ARW,Term Annual,3889,false
+Standard Price Book;5AP-ARW;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-ARW,Term Based - Quarterly,1531,false
+Standard Price Book;5CC-BP2;One-Time;USD,USD,true,false,Standard Price Book,5CC-BP2,One-Time,65930,false
+Standard Price Book;5CC-BP2;Evergreen Annual;USD,USD,true,false,Standard Price Book,5CC-BP2,Evergreen Annual,9230,false
+Standard Price Book;5CC-BP2;Term Annual;USD,USD,true,false,Standard Price Book,5CC-BP2,Term Annual,28380,false
+Standard Price Book;5CC-BP2;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5CC-BP2,Term Based - Quarterly,11170,false
+Standard Price Book;5AP-DBG;One-Time;USD,USD,true,false,Standard Price Book,5AP-DBG,One-Time,9032,false
+Standard Price Book;5AP-DBG;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-DBG,Evergreen Annual,1265,false
+Standard Price Book;5AP-DBG;Term Annual;USD,USD,true,false,Standard Price Book,5AP-DBG,Term Annual,3889,false
+Standard Price Book;5AP-DBG;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-DBG,Term Based - Quarterly,1531,false
+Standard Price Book;5AB-GTS;One-Time;USD,USD,true,false,Standard Price Book,5AB-GTS,One-Time,12340,false
+Standard Price Book;5AB-GTS;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AB-GTS,Evergreen Annual,1727,false
+Standard Price Book;5AB-GTS;Term Annual;USD,USD,true,false,Standard Price Book,5AB-GTS,Term Annual,5318,false
+Standard Price Book;5AB-GTS;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AB-GTS,Term Based - Quarterly,2094,false
+Standard Price Book;5AP-MEC;One-Time;USD,USD,true,false,Standard Price Book,5AP-MEC,One-Time,16210,false
+Standard Price Book;5AP-MEC;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MEC,Evergreen Annual,2269,false
+Standard Price Book;5AP-MEC;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MEC,Term Annual,6970,false
+Standard Price Book;5AP-MEC;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MEC,Term Based - Quarterly,2744,false
+Standard Price Book;5AP-MEQ;One-Time;USD,USD,true,false,Standard Price Book,5AP-MEQ,One-Time,7715,false
+Standard Price Book;5AP-MEQ;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MEQ,Evergreen Annual,1080,false
+Standard Price Book;5AP-MEQ;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MEQ,Term Annual,3322,false
+Standard Price Book;5AP-MEQ;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MEQ,Term Based - Quarterly,1308,false
+Standard Price Book;5AP-MHA;One-Time;USD,USD,true,false,Standard Price Book,5AP-MHA,One-Time,23150,false
+Standard Price Book;5AP-MHA;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MHA,Evergreen Annual,3242,false
+Standard Price Book;5AP-MHA;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MHA,Term Annual,9958,false
+Standard Price Book;5AP-MHA;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MHA,Term Based - Quarterly,3921,false
+Standard Price Book;5AP-MHB;One-Time;USD,USD,true,false,Standard Price Book,5AP-MHB,One-Time,18490,false
+Standard Price Book;5AP-MHB;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MHB,Evergreen Annual,2593,false
+Standard Price Book;5AP-MHB;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MHB,Term Annual,7967,false
+Standard Price Book;5AP-MHB;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MHB,Term Based - Quarterly,3138,false
+Standard Price Book;5AP-MTR;One-Time;USD,USD,true,false,Standard Price Book,5AP-MTR,One-Time,3084,false
+Standard Price Book;5AP-MTR;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MTR,Evergreen Annual,431.9,false
+Standard Price Book;5AP-MTR;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MTR,Term Annual,1332,false
+Standard Price Book;5AP-MTR;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MTR,Term Based - Quarterly,524.5,false
+Standard Price Book;5AP-MTT;One-Time;USD,USD,true,false,Standard Price Book,5AP-MTT,One-Time,8130,false
+Standard Price Book;5AP-MTT;Evergreen Annual;USD,USD,true,false,Standard Price Book,5AP-MTT,Evergreen Annual,1138,false
+Standard Price Book;5AP-MTT;Term Annual;USD,USD,true,false,Standard Price Book,5AP-MTT,Term Annual,3500,false
+Standard Price Book;5AP-MTT;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5AP-MTT,Term Based - Quarterly,1379,false
+Standard Price Book;5CC-WL2;One-Time;USD,USD,true,false,Standard Price Book,5CC-WL2,One-Time,67730,false
+Standard Price Book;5CC-WL2;Evergreen Annual;USD,USD,true,false,Standard Price Book,5CC-WL2,Evergreen Annual,9485,false
+Standard Price Book;5CC-WL2;Term Annual;USD,USD,true,false,Standard Price Book,5CC-WL2,Term Annual,29150,false
+Standard Price Book;5CC-WL2;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,5CC-WL2,Term Based - Quarterly,11480,false
+Standard Price Book;6NB-ACDEM;One-Time;USD,USD,true,false,Standard Price Book,6NB-ACDEM,One-Time,28040,false
+Standard Price Book;6NB-ACDEM;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NB-ACDEM,Evergreen Annual,5047,false
+Standard Price Book;6NB-ACDEM;Term Annual;USD,USD,true,false,Standard Price Book,6NB-ACDEM,Term Annual,14390,false
+Standard Price Book;6NB-ACDEM;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NB-ACDEM,Term Based - Quarterly,5398,false
+Standard Price Book;6NP-ASZ;One-Time;USD,USD,true,false,Standard Price Book,6NP-ASZ,One-Time,8951,false
+Standard Price Book;6NP-ASZ;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-ASZ,Evergreen Annual,1611,false
+Standard Price Book;6NP-ASZ;Term Annual;USD,USD,true,false,Standard Price Book,6NP-ASZ,Term Annual,4595,false
+Standard Price Book;6NP-ASZ;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-ASZ,Term Based - Quarterly,1723,false
+Standard Price Book;6NP-BCMEC;One-Time;USD,USD,true,false,Standard Price Book,6NP-BCMEC,One-Time,12700,false
+Standard Price Book;6NP-BCMEC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-BCMEC,Evergreen Annual,2286,false
+Standard Price Book;6NP-BCMEC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-BCMEC,Term Annual,6520,false
+Standard Price Book;6NP-BCMEC;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-BCMEC,Term Based - Quarterly,2445,false
+Standard Price Book;6NP-BODET;One-Time;USD,USD,true,false,Standard Price Book,6NP-BODET,One-Time,34590,false
+Standard Price Book;6NP-BODET;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-BODET,Evergreen Annual,6227,false
+Standard Price Book;6NP-BODET;Term Annual;USD,USD,true,false,Standard Price Book,6NP-BODET,Term Annual,17750,false
+Standard Price Book;6NP-BODET;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-BODET,Term Based - Quarterly,6658,false
+Standard Price Book;6NP-BTZ;One-Time;USD,USD,true,false,Standard Price Book,6NP-BTZ,One-Time,8951,false
+Standard Price Book;6NP-BTZ;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-BTZ,Evergreen Annual,1611,false
+Standard Price Book;6NP-BTZ;Term Annual;USD,USD,true,false,Standard Price Book,6NP-BTZ,Term Annual,4595,false
+Standard Price Book;6NP-BTZ;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-BTZ,Term Based - Quarterly,1723,false
+Standard Price Book;6NP-DCZ;One-Time;USD,USD,true,false,Standard Price Book,6NP-DCZ,One-Time,5884,false
+Standard Price Book;6NP-DCZ;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-DCZ,Evergreen Annual,1059,false
+Standard Price Book;6NP-DCZ;Term Annual;USD,USD,true,false,Standard Price Book,6NP-DCZ,Term Annual,3021,false
+Standard Price Book;6NP-DCZ;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-DCZ,Term Based - Quarterly,1133,false
+Standard Price Book;6NP-ELG;One-Time;USD,USD,true,false,Standard Price Book,6NP-ELG,One-Time,33470,false
+Standard Price Book;6NP-ELG;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-ELG,Evergreen Annual,6023,false
+Standard Price Book;6NP-ELG;Term Annual;USD,USD,true,false,Standard Price Book,6NP-ELG,Term Annual,17180,false
+Standard Price Book;6NP-ELG;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-ELG,Term Based - Quarterly,6441,false
+Standard Price Book;6TB-GFC-M;Term Annual;USD,USD,true,false,Standard Price Book,6TB-GFC-M,Term Annual,572.7,false
+Standard Price Book;6NP-SGCML;One-Time;USD,USD,true,false,Standard Price Book,6NP-SGCML,One-Time,32220,false
+Standard Price Book;6NP-SGCML;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-SGCML,Evergreen Annual,5798,false
+Standard Price Book;6NP-SGCML;Term Annual;USD,USD,true,false,Standard Price Book,6NP-SGCML,Term Annual,16530,false
+Standard Price Book;6NP-SGCML;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-SGCML,Term Based - Quarterly,6201,false
+Standard Price Book;6NP-CHG;One-Time;USD,USD,true,false,Standard Price Book,6NP-CHG,One-Time,1192,false
+Standard Price Book;6NP-CHG;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-CHG,Evergreen Annual,214.6,false
+Standard Price Book;6NP-CHG;Term Annual;USD,USD,true,false,Standard Price Book,6NP-CHG,Term Annual,612.1,false
+Standard Price Book;6NP-CHG;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-CHG,Term Based - Quarterly,229.6,false
+Standard Price Book;6NP-CSV;One-Time;USD,USD,true,false,Standard Price Book,6NP-CSV,One-Time,1285,false
+Standard Price Book;6NP-CSV;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-CSV,Evergreen Annual,231.4,false
+Standard Price Book;6NP-CSV;Term Annual;USD,USD,true,false,Standard Price Book,6NP-CSV,Term Annual,657.8,false
+Standard Price Book;6NP-CSV;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-CSV,Term Based - Quarterly,246.7,false
+Standard Price Book;6NP-DPM;One-Time;USD,USD,true,false,Standard Price Book,6NP-DPM,One-Time,1432,false
+Standard Price Book;6NP-DPM;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-DPM,Evergreen Annual,257.7,false
+Standard Price Book;6NP-DPM;Term Annual;USD,USD,true,false,Standard Price Book,6NP-DPM,Term Annual,735.1,false
+Standard Price Book;6NP-DPM;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NP-DPM,Term Based - Quarterly,275.7,false
+Standard Price Book;6NB-PCS;One-Time;USD,USD,true,false,Standard Price Book,6NB-PCS,One-Time,1797,false
+Standard Price Book;6NB-PCS;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NB-PCS,Evergreen Annual,323.4,false
+Standard Price Book;6NB-PCS;Term Annual;USD,USD,true,false,Standard Price Book,6NB-PCS,Term Annual,919.8,false
+Standard Price Book;6NB-PCS;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6NB-PCS,Term Based - Quarterly,345,false
+Standard Price Book;6KB-PCS-K;One-Time;USD,USD,true,false,Standard Price Book,6KB-PCS-K,One-Time,894.8,false
+Standard Price Book;6KB-PCS-K;Evergreen Annual;USD,USD,true,false,Standard Price Book,6KB-PCS-K,Evergreen Annual,161.1,false
+Standard Price Book;6KB-PCS-K;Term Annual;USD,USD,true,false,Standard Price Book,6KB-PCS-K,Term Annual,459.3,false
+Standard Price Book;6KB-PCS-K;Term Based - Quarterly;USD,USD,true,false,Standard Price Book,6KB-PCS-K,Term Based - Quarterly,172.3,false
+Standard Price Book;6NB-ACDEM-OC;One-Time;USD,USD,true,false,Standard Price Book,6NB-ACDEM-OC,One-Time,28040,false
+Standard Price Book;6NB-ACDEM-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NB-ACDEM-OC,Evergreen Annual,8412,false
+Standard Price Book;6NB-ACDEM-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NB-ACDEM-OC,Term Annual,15120,false
+Standard Price Book;6NP-ASZ-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-ASZ-OC,One-Time,8951,false
+Standard Price Book;6NP-ASZ-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-ASZ-OC,Evergreen Annual,2686,false
+Standard Price Book;6NP-ASZ-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-ASZ-OC,Term Annual,4836,false
+Standard Price Book;6NP-BCMEC-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-BCMEC-OC,One-Time,12700,false
+Standard Price Book;6NP-BCMEC-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-BCMEC-OC,Evergreen Annual,3811,false
+Standard Price Book;6NP-BCMEC-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-BCMEC-OC,Term Annual,6852,false
+Standard Price Book;6NP-BTZ-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-BTZ-OC,One-Time,8951,false
+Standard Price Book;6NP-BTZ-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-BTZ-OC,Evergreen Annual,2686,false
+Standard Price Book;6NP-BTZ-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-BTZ-OC,Term Annual,4836,false
+Standard Price Book;6NP-DCZ-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-DCZ-OC,One-Time,5884,false
+Standard Price Book;6NP-DCZ-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-DCZ-OC,Evergreen Annual,1765,false
+Standard Price Book;6NP-DCZ-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-DCZ-OC,Term Annual,3156,false
+Standard Price Book;6NP-ELG-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-ELG-OC,One-Time,33470,false
+Standard Price Book;6NP-ELG-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-ELG-OC,Evergreen Annual,10040,false
+Standard Price Book;6NP-ELG-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-ELG-OC,Term Annual,18000,false
+Standard Price Book;6TB-GFC-M-OC;Term Annual;USD,USD,true,false,Standard Price Book,6TB-GFC-M-OC,Term Annual,588,false
+Standard Price Book;6NP-SGCML-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-SGCML-OC,One-Time,32220,false
+Standard Price Book;6NP-SGCML-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-SGCML-OC,Evergreen Annual,9664,false
+Standard Price Book;6NP-SGCML-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-SGCML-OC,Term Annual,17400,false
+Standard Price Book;6NP-CHG-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-CHG-OC,One-Time,1192,false
+Standard Price Book;6NP-CHG-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-CHG-OC,Evergreen Annual,357.7,false
+Standard Price Book;6NP-CHG-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-CHG-OC,Term Annual,636,false
+Standard Price Book;6NP-CSV-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-CSV-OC,One-Time,1285,false
+Standard Price Book;6NP-CSV-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-CSV-OC,Evergreen Annual,539.5,false
+Standard Price Book;6NP-CSV-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-CSV-OC,Term Annual,720,false
+Standard Price Book;6NP-DPM-OC;One-Time;USD,USD,true,false,Standard Price Book,6NP-DPM-OC,One-Time,1432,false
+Standard Price Book;6NP-DPM-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NP-DPM-OC,Evergreen Annual,429.6,false
+Standard Price Book;6NP-DPM-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NP-DPM-OC,Term Annual,792,false
+Standard Price Book;6KB-PCS-K-OC;One-Time;USD,USD,true,false,Standard Price Book,6KB-PCS-K-OC,One-Time,894.8,false
+Standard Price Book;6KB-PCS-K-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6KB-PCS-K-OC,Evergreen Annual,375.8,false
+Standard Price Book;6KB-PCS-K-OC;Term Annual;USD,USD,true,false,Standard Price Book,6KB-PCS-K-OC,Term Annual,624,false
+Standard Price Book;6NB-PCS-OC;One-Time;USD,USD,true,false,Standard Price Book,6NB-PCS-OC,One-Time,1797,false
+Standard Price Book;6NB-PCS-OC;Evergreen Annual;USD,USD,true,false,Standard Price Book,6NB-PCS-OC,Evergreen Annual,754.5,false
+Standard Price Book;6NB-PCS-OC;Term Annual;USD,USD,true,false,Standard Price Book,6NB-PCS-OC,Term Annual,1176,false

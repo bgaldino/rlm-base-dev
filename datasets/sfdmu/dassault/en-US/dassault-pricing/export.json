@@ -1,0 +1,81 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "useSeparatedCSVFiles": true,
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, Name, SellingModelType FROM ProductSellingModel WHERE Name IN ('One-Time', 'Evergreen Annual', 'Term Annual', 'Term Based - Quarterly') ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Id, StockKeepingUnit FROM Product2 WHERE StockKeepingUnit LIKE '5%' OR StockKeepingUnit LIKE '6%' ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit"
+        },
+        {
+          "query": "SELECT Description, Id, IsActive, IsStandard, Name FROM Pricebook2 WHERE Name IN ('Standard Price Book', 'EuroZone Price List', 'USA Price List') ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Id, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, UseStandardPrice, Pricebook2.Name, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Pricebook2.IsStandard = true AND (Product2.StockKeepingUnit LIKE '5%' OR Product2.StockKeepingUnit LIKE '6%') ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode ASC",
+          "operation": "Upsert",
+          "externalId": "Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode"
+        },
+        {
+          "query": "SELECT Code, Id FROM AttributeDefinition WHERE Code IN ('DS_LICENSE_COMMITMENT', 'DS_SUBSCRIPTION_COMMITMENT') ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code"
+        },
+        {
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, Id, IsActive, Name, Pricebook2Id, ScheduleType, Pricebook2.Name FROM PriceAdjustmentSchedule WHERE Name LIKE 'DS %' ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Id, Name FROM AttributeBasedAdjRule WHERE Name LIKE 'DS %' ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, Id, Name, Operator, ProductId, StringValue, AttributeBasedAdjRule.Name, AttributeDefinition.Code, Product.StockKeepingUnit FROM AttributeAdjustmentCondition WHERE AttributeBasedAdjRule.Name LIKE 'DS %' ORDER BY AttributeBasedAdjRule.Name ASC",
+          "operation": "Upsert",
+          "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit"
+        },
+        {
+          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeBasedAdjRuleId, CurrencyIsoCode, EffectiveFrom, Id, Name, PriceAdjustmentScheduleId, ProductId, ProductSellingModelId, AttributeBasedAdjRule.Name, PriceAdjustmentSchedule.Name, Product.StockKeepingUnit, ProductSellingModel.Name FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'DS %' ORDER BY AttributeBasedAdjRule.Name ASC, CurrencyIsoCode ASC",
+          "operation": "Upsert",
+          "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode"
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, Name, SellingModelType FROM ProductSellingModel WHERE Name IN ('One-Time', 'Evergreen Annual', 'Term Annual', 'Term Based - Quarterly') ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Id, StockKeepingUnit FROM Product2 WHERE StockKeepingUnit LIKE '5%' OR StockKeepingUnit LIKE '6%' ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit"
+        },
+        {
+          "query": "SELECT Id, IsStandard, Name FROM Pricebook2 WHERE Name IN ('Standard Price Book', 'EuroZone Price List', 'USA Price List') ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Id, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, UseStandardPrice, Pricebook2.Name, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Pricebook2.IsStandard = false AND Pricebook2.Name IN ('EuroZone Price List', 'USA Price List') AND (Product2.StockKeepingUnit LIKE '5%' OR Product2.StockKeepingUnit LIKE '6%') ORDER BY Pricebook2.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode ASC",
+          "operation": "Upsert",
+          "externalId": "Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

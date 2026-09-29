@@ -1,0 +1,8 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,ValueDescription
+DS_RELEASE,Picklist,,,Software release delivered to the customer. Printed on the quote and invoice.,DS_Release,true,false,Release,Release,DS Release,,
+DS_LICENSE_SCHEME,Picklist,,,"Usage right granted by the product number (Named User, Concurrent, Add-On, ...).",DS_License_Scheme,true,false,License Scheme,License Scheme,DS License Scheme,,
+DS_LICENSE_TYPE,Picklist,,,Technical implementation of the item; drives key/media behaviour.,DS_License_Type,true,false,License Type,License Type,DS License Type,,
+DS_DEPLOYMENT,Picklist,,,On Premise or Public Cloud delivery.,DS_Deployment,true,false,Deployment,Deployment,DS Deployment,,
+DS_REFERENCE_PORTFOLIO,Text,,,Reference portfolio of the item. Printed on the quote whatever catalog it was sold from.,DS_Reference_Portfolio,true,false,Reference Portfolio,Reference Portfolio,,,
+DS_LICENSE_COMMITMENT,Picklist,,,Term license commitment. 2 and 3 years apply the TBL2 / TBL3 price to the yearly license.,DS_License_Commitment,true,false,Commitment,Commitment (License),DS License Commitment,,
+DS_SUBSCRIPTION_COMMITMENT,Picklist,,,Cloud subscription commitment. 3 years applies the TSC3 price to the yearly subscription.,DS_Subscription_Commitment,true,false,Commitment,Commitment (Subscription),DS Subscription Commitment,,
