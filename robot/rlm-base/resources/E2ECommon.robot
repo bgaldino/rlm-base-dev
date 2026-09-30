@@ -1772,17 +1772,21 @@ Verify Renewal Opportunity Includes Product
     ...    The preceding run, whose order had no maintenance line, produced 4 (28,500 vs 33,900 —
     ...    a difference of exactly 5,400).
     ...
-    ...    Scoped to `Opportunity.Name = 'Renewal Forecast Opportunity'` — the constant
-    ...    `RLM_CreateUpdateRenewalOpportunities` sets on the Opportunity it creates (the only
-    ...    field the flow deterministically sets that this test can match on). Without this,
-    ...    the query would also match an OpportunityLineItem synced onto the SOURCE Opportunity
-    ...    from the Quote (standard Quote-Opportunity line sync), which would pass this
-    ...    assertion even if the renewal flow never fired — defeating the point of the check.
-    [Arguments]    ${account_id}    ${product_name}
+    ...    Scoped to `Opportunity.Type = 'Existing Business'` — the `RenewalOpportunityType`
+    ...    constant `RLM_CreateUpdateRenewalOpportunities` sets on the Opportunity it creates (its
+    ...    Name comes from a formula of account name and end date, so it isn't a fixed value to
+    ...    match) — and to Opportunities other than ${source_opportunity_id}, the one the Quote
+    ...    was created from. Without this, the query would also match an OpportunityLineItem
+    ...    synced onto the SOURCE Opportunity from the Quote (standard Quote-Opportunity line
+    ...    sync), which would pass this assertion even if the renewal flow never fired —
+    ...    defeating the point of the check. Callers reset the account first (Reset Test
+    ...    Account), so a renewal Opportunity left over from an earlier run can't satisfy it.
+    [Arguments]    ${account_id}    ${product_name}    ${source_opportunity_id}
     SalesforceAPI.Validate Salesforce Id    ${account_id}
+    SalesforceAPI.Validate Salesforce Id    ${source_opportunity_id}
     ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${product_id}
     ${line_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Name = 'Renewal Forecast Opportunity' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
     RETURN    ${line_id}
