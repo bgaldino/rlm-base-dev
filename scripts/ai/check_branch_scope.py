@@ -33,13 +33,17 @@ yet and each signal is blind to one of those cases:
    is not upstream, so both signals reported clean on the shape signal 2 exists for.
 
    **A shared join is symmetric, so it cannot by itself say who inherited from
-   whom**, and four exclusions keep the signal from reporting the wrong branch.
+   whom**, and five exclusions keep the signal from reporting the wrong branch.
    Every one was a false positive before it was a guard:
 
    - **Contained in the base.** The release integration PR (`264` -> `main`) has
      the base branch itself as its head, so without this every branch merely *up
      to date* with base was reported -- and being behind base read cleaner than
      being current with it.
+   - **A join contained in the other PR's base.** Those commits have merged
+     there, so they are not that PR's work. The sync PR (`main` merged into `264`,
+     #471) shares main's merged commits with every open PR cut from `main`, and
+     was reported as stacked on all of them.
    - **A fork's head.** Not in this checkout, and the `<remote>/<branch>` fallback
      would resolve a fork PR on a branch named `264` or `main` to *our* branch of
      that name.
@@ -77,7 +81,7 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (74 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (77 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
@@ -90,7 +94,7 @@ stubbed `gh`, which is what pins the exclusions above; an earlier version tested
 only `_is_ancestor` in isolation, and deleting the signal outright left the suite
 green. Each of these mutations now fails it: emptying the `others` loop,
 inverting the ancestor test at the call site or inside it, dropping `stacked`
-from the failure condition, disabling the containment or fork guard, and either
+from the failure condition, disabling the containment, other-base or fork guard, and either
 removing the fetch or letting it fail silently.
 
 Examples:
@@ -327,6 +331,17 @@ def _check(args, ap):
         bases = [b for b in _run(["git", "merge-base", "--all", ref, head],
                                  check=False).split() if b]
         outside = [b for b in bases if not _is_ancestor(b, base)]
+        # A join already inside the *other* PR's base is not that PR's work either:
+        # it has merged there, so it is upstream to them, and a branch carrying it
+        # is carrying merged work, not unmerged work of theirs. This is the sync PR
+        # (`main` merged into `264`): every open PR cut from `main` since then shares
+        # main's merged commits with it, and without this each one was reported. A
+        # branch cut from another PR's *unmerged* commits still joins outside both
+        # bases, so it is still caught.
+        other_base = (f"{remote}/{other['baseRefName']}"
+                      if other.get("baseRefName") else None)
+        if other_base and other_base != base and _resolves(other_base):
+            outside = [b for b in outside if not _is_ancestor(b, other_base)]
         if not outside:
             continue
         join = outside[0]

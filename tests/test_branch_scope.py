@@ -479,6 +479,42 @@ def test_stacked_on_unmerged(root):
     rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
     check("an unrelated open PR is not reported", rc == 0, f"rc={rc}\n{out}")
 
+    print("\n  ...and a SYNC PR shares only merged work with PRs cut from the other line")
+    # #471: `main` merged into `264`. Open PRs that target `main` were cut from it
+    # after its commits landed, so they join the sync branch at a commit `264` lacks
+    # -- but that commit is in *their* base, i.e. merged, not theirs to own.
+    git(cwd, "checkout", "--quiet", "-b", "other-line", "base")
+    commit(cwd, "line.txt", "line\n", "merged on the other line")
+    git(cwd, "update-ref", "refs/remotes/origin/other-line", "other-line")
+    git(cwd, "checkout", "--quiet", "-b", "cut-from-line", "other-line")
+    commit(cwd, "cut.txt", "cut\n", "a PR against the other line")
+    git(cwd, "checkout", "--quiet", "-b", "sync", "base")
+    git(cwd, "merge", "--quiet", "--no-ff", "-m", "sync other-line into base", "other-line")
+    sync_head = git(cwd, "rev-parse", "sync")
+    line_pr = {"number": 11, "baseRefName": "other-line", "headRefName": "cut-from-line",
+               "headRefOid": git(cwd, "rev-parse", "cut-from-line"),
+               "title": "a PR against the other line", "isCrossRepository": False}
+    sync_mine = dict(mine, headRefName="sync", headRefOid=sync_head)
+    bindir = stub_gh(cwd, sync_mine, [line_pr])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("a sync PR is not stacked on PRs cut from the line it syncs", rc == 0,
+          f"rc={rc}\n{out}")
+    check("and nothing is printed as stacked", "STACKED" not in out, out)
+
+    print("\n  ...but a branch cut from that PR's UNMERGED commit still is")
+    # The guard must key on the other PR's base, not merely skip PRs on other lines:
+    # a join beyond both bases is unmerged work of theirs and is still a finding.
+    git(cwd, "checkout", "--quiet", "-b", "sync-plus", "cut-from-line")
+    git(cwd, "merge", "--quiet", "--no-ff", "-m", "base into the cut", "base")
+    commit(cwd, "extra.txt", "extra\n", "my own change")
+    plus_mine = dict(mine, headRefName="sync-plus",
+                     headRefOid=git(cwd, "rev-parse", "sync-plus"))
+    bindir = stub_gh(cwd, plus_mine, [line_pr])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("unmerged work of a PR on another line is still reported",
+          rc == 1 and "STACKED  on open PR #11" in out, f"rc={rc}\n{out}")
+    git(cwd, "checkout", "--quiet", "feature")
+
 
 def test_fetch_before_comparing(root):
     """A stale base hides the finding, so the check must fetch first.
