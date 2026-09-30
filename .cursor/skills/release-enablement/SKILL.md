@@ -69,7 +69,13 @@ cci task run snapshot_revenue_release_notes_264              # captures docs/sal
 cci task run snapshot_revenue_release_notes_264 -o mode refresh
 ```
 
-For a new release, copy that task in `cumulusci.yml` and change `release_version` and `output_dir`. Options, output layout and refresh rules are in [`revenue-cloud-docs/SKILL.md`](../revenue-cloud-docs/SKILL.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the task existed.
+For a new release, copy that task in `cumulusci.yml` and:
+
+- rename the task key (`snapshot_revenue_release_notes_{version}`) and update its description;
+- change `release_version`, `release_name` (written into every article's frontmatter and the index) and `output_dir`;
+- re-check `expect_min_articles` against the new release's article count (264 captured 127 against a floor of 60), so a partial capture still fails.
+
+Then run `python scripts/ai/generate_cci_reference.py`. Options, output layout and refresh rules are in [`revenue-cloud-docs/SKILL.md`](../revenue-cloud-docs/SKILL.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the task existed.
 
 ## Workflow
 
