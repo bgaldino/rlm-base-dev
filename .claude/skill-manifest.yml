@@ -111,7 +111,7 @@ foundations:
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: manual extraction from per-release PDF
       caveats:
-        - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
+        - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections (references now at docs/api/) were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
         - "Skill self-describes as 'reference, not source of truth'"
 
     - id: ramped-quotes

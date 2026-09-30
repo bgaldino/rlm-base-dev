@@ -114,7 +114,7 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
-| The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). **Not** `postman/docs/transaction-management-apis-reference.md`: it is v66 (`/commerce/sales-transactions/...`), an incompatible contract |
+| The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
 | A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md` |
 
 ## The proven build sequence
@@ -504,8 +504,8 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
   prerequisite; null-`RampIdentifier` fix): `.cursor/skills/context-service/SKILL.md`.
 - **v68 Connect endpoint catalog** (place, clone, ramp-deal, amend/renew/cancel):
   `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide — `/connect/rev/...`).
-  Do **not** use `postman/docs/transaction-management-apis-reference.md`: it is v66
-  (`/commerce/sales-transactions/...`), the legacy contract this skill supersedes.
+  `docs/api/transaction-management-apis-reference.md` summarizes the same v68
+  routes; prefer the dev-guide page when the two disagree.
 - **Non-ramp quote→order→asset builder:** `scripts/build_quote_to_asset.py`;
   `.cursor/skills/txn-data-harness/SKILL.md`.
 - **RLM object/field model:** `.cursor/skills/revenue-cloud-data-model/SKILL.md`.
