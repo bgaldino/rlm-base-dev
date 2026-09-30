@@ -764,7 +764,7 @@ const DOMAINS = {
   },
   pricing: {
     title: 'Pricing',
-    subtitle: 'Core pricing engine, waterfall analysis, and procedure plans (19 endpoints)',
+    subtitle: 'Core pricing engine, waterfall analysis, and procedure plans (21 endpoints)',
     sections: [
       {
         id: 'price-core', title: 'Pricing Core APIs',
@@ -819,6 +819,17 @@ const DOMAINS = {
               {name:'pricingRecipeLookUpTableInputRepresentations',type:'Pricing Recipe LookUp Table Input[]',req:true,desc:'Input representation of the recipe mapping: lookupId (String, ID of the lookup table), pricingComponentType (String, component type e.g. CustomDiscount)'},
               {name:'pricingRecipeProcedureInputRepresentation',type:'Pricing Recipe Procedure Input Representation',req:true,desc:'Input representation of the procedure used in the pricing recipe: procedureId (String, ID of the procedure)'}
             ]},
+          { method:'POST', path:'/connect/core-pricing/revenue/pricing-recipe/clone', title:'Pricing Recipe Clone', version:'68.0',
+            desc:'Clone a pricing recipe with all its associated pricing recipe table mappings.',
+            fields:[
+              {name:'recordId',type:'String',req:true,desc:'ID of the source pricing recipe to clone'},
+              {name:'newPricingRecipeApiName',type:'String',req:true,desc:'API name of the cloned pricing recipe'},
+              {name:'newPricingRecipeName',type:'String',req:true,desc:'Name for the cloned pricing recipe'},
+              {name:'pricingUsageSubType',type:'String',req:false,desc:'Pricing usage subtype of the cloned pricing recipe. If unspecified, the value from the source pricing recipe is used'}
+            ]},
+          { method:'GET', path:'/connect/core-pricing/revenue/pricing-recipe/valid-elements', title:'Pricing Recipe Valid Elements', version:'68.0',
+            desc:'Get the list of valid pricing element type API names for a given Pricing Usage Sub Type.',
+            query:[{name:'pricingUsageSubType',desc:'Required. Pricing usage subtype to retrieve valid element types for. Must match an entry in the PricingUsageSubType picklist (e.g., RevenueCloud, Loyalty, LifeSciences, Commercial)'}]},
           { method:'POST', path:'/connect/core-pricing/versioned-revise-details', title:'Pricing Versioned Revision Details', version:'60.0',
             desc:'Create revisions of a pricing request with versions for adjustment entities.',
             fields:[
@@ -971,7 +982,7 @@ const DOMAINS = {
   },
   transaction: {
     title: 'Transaction Management',
-    subtitle: 'Sales transactions, asset lifecycle, ramp deals, and promotions (21 endpoints)',
+    subtitle: 'Sales transactions, asset lifecycle, ramp deals, and promotions (22 endpoints)',
     sections: [
       {
         id: 'txn-sales-transaction-actions', title: 'Sales Transaction Actions',
@@ -1033,6 +1044,11 @@ const DOMAINS = {
               {name:'relatedSalesTransactionId',type:'String',req:true,desc:'ID of the related/original sales transaction to supplement.'},
               {name:'pricingPref',type:'String',req:false,desc:'Force, Skip, or System. If Force or System, the supplemental order can differ in pricing from the original order.'},
               {name:'supplementalGraph',type:'Object Graph Input',req:false,desc:'sObject graph with the additional changes to ingest. The record attributes.method must be PATCH, and the record ID must be the ID of the original order/order item being supplemented.'}
+            ]},
+          { method:'POST', path:'/revenue/transaction-management/sales-transactions/actions/unlock-transaction', title:'Unlock Transaction', version:'68.0',
+            desc:'Unlock a quote or order whose calculation is stuck in a non-terminal status so you can retry the transaction — for example, after a Place Sales Transaction call gets stuck instead of settling into a terminal status. Sets the calculation status to the appropriate failure status (ConfigurationFailed or PriceCalculationFailed). Requires the userCanAccessRLMPlaceSalesTransaction or userCanAccessCoreCPQ permission. If the status is already terminal (CompletedWithPricing, CompletedWithoutPricing, CompletedWithTax, PriceCalculationFailed, ConfigurationFailed), the API returns an error and does not change the status.',
+            fields:[
+              {name:'salesTransactionIds',type:'String[]',req:true,desc:'List of record IDs (quote or order) whose calculation status is unlocked. This release supports only one record ID.'}
             ]}
         ]
       },
@@ -1213,7 +1229,7 @@ const DOMAINS = {
   },
   billing: {
     title: 'Billing',
-    subtitle: 'Credits, invoices, payments, schedules, tax, and billing arrangements (48 endpoints)',
+    subtitle: 'Credits, invoices, payments, schedules, tax, billing arrangements, checkout, collections, and credit memo refunds (51 endpoints)',
     sections: [
       {
         id: 'bill-credits', title: 'Credits',
@@ -1347,6 +1363,24 @@ const DOMAINS = {
         endpoints: [
           { method:'POST', path:'/commerce/payments/payment-schedulers/', title:'Create Payment Scheduler', version:'64.0', desc:'Create a payment scheduler to automate and process payment runs on a recurring basis.', fields:[{name:'schedulerName', type:'String', req:true, desc:'Name of the scheduler.'},{name:'startDate', type:'String', req:true, desc:'Start date of the scheduler.'},{name:'endDate', type:'String', req:false, desc:'Required if frequencyCadence is Monthly.'},{name:'preferredTime', type:'String', req:true, desc:'Preferred run time.'},{name:'frequencyCadence', type:'String', req:true, desc:'Valid values: Once, Daily, Weekly, Monthly.'},{name:'recursEveryMonthOnDay', type:'Number', req:false, desc:'Required if Monthly.'},{name:'criteriaMatchType', type:'String', req:false, desc:'Required if Monthly; valid values MatchAny/MatchNone.'},{name:'filterCriteria', type:'Payment Run Batch Filter Criteria Input[]', req:false, desc:'Required if Monthly; nested field detail not fully documented beyond its JSON example.'},{name:'status', type:'String', req:true, desc:'Valid values: Active, Canceled, Draft, Inactive.'}] },
           { method:'PATCH', path:'/commerce/payments/payment-schedulers/{billingBatchSchedulerId}', title:'Update Payment Scheduler', version:'64.0', desc:'Activate or deactivate a payment scheduler (Active, Canceled, Draft, or Inactive).', params:[{name:'billingBatchSchedulerId', desc:'URI parameter identifying the payment scheduler.'}], fields:[{name:'status', type:'String', req:true, desc:'Valid values: Active, Canceled, Draft, Inactive.'}] }
+        ]
+      },
+      {
+        id: 'bill-checkout', title: 'Billing Checkout',
+        endpoints: [
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/checkout', title:'Billing Checkout', version:'68.0', desc:'Create a unified checkout transaction that generates billing schedules, an invoice, and an optional payment in a single request. Requires the Billing Checkout access permission.', fields:[{name:'amount', type:'Double', req:false, desc:'Total amount to charge. Documented Required, but live 264 does not require it and rejects it together with paymentId; send it only when capturing a new payment.'},{name:'currencyIsoCode', type:'String', req:true, desc:'Currency code of the transaction amount.'},{name:'lineItems', type:'Billing Checkout Line Item Input[]', req:true, desc:'Products being purchased. Live 264 accepts only productId, quantity, unitPrice, netUnitPrice, lineTotal, productName, ramps and bundleProductDetails; the other documented line fields (sellingModelType, billingTerm, startDate, transactionId, …) fail as unrecognized.'},{name:'accountId', type:'String', req:false, desc:'Account placing the order. Use accountId or customerDetails.'},{name:'customerDetails', type:'Billing Checkout Customer Details Input', req:false, desc:'Creates a customer when accountId is not provided.'},{name:'billingAddress', type:'Address Input', req:false, desc:'Use billingAddress or billingProfileId.'},{name:'billingProfileId', type:'String', req:false, desc:'ID of an existing billing profile.'},{name:'billingContact', type:'Billing Contact Input', req:false, desc:'Billing contact when billingProfileId is not provided; created if it does not exist. Live 264: billingContact, billingAddress and shippingAddress are all required without billingProfileId.'},{name:'shippingAddress', type:'Address Input', req:false, desc:'Customer shipping address.'},{name:'paymentMethodId', type:'String', req:false, desc:'Saved payment method. Use paymentMethodId or paymentDetails.'},{name:'paymentDetails', type:'Billing Checkout Payment Details Input', req:false, desc:'Raw details to tokenize a new card or bank account. Not allowed in a preview request: the live 264 preview error names both payment ID and payment details.'},{name:'paymentId', type:'String', req:false, desc:'Existing payment record. Not allowed with shouldCapturePayment=true, together with amount, or in a preview request (live-verified).'},{name:'shouldCapturePayment', type:'Boolean', req:true, desc:'Capture the payment as part of the checkout. Documented Optional; live 264 requires it. Cannot be true together with previewInvoice.'},{name:'isPartialPaymentAllowed', type:'Boolean', req:false, desc:'Default false.'},{name:'previewInvoice', type:'Boolean', req:true, desc:'Return an invoice preview without committing the transaction. Documented Optional; live 264 requires it.'},{name:'invoiceDate', type:'String', req:false, desc:'Date on the generated invoice (YYYY-MM-DD).'},{name:'invoiceTargetDate', type:'String', req:false, desc:'End date of the billing period to include (YYYY-MM-DD).'}], note:'Live-verified on a fresh 264 scratch org: paymentId without amount works (invoice posted, payment applied); amount with paymentId is rejected at PRE_PROCESSOR_STEP, so the guide example that sends both is wrong. Every committed (previewInvoice false) request returned an AsyncOperationTracker and checkoutStatus InProgressAsyncPartStarted, even on failure. Some failures (billing-schedule dedupe, payment application) showed only on the tracker, with an empty errorsList, so read the tracker Status. Preview failures (NotStarted, no tracker) and unknown-field parser errors return synchronously. See billing-business-apis-reference.md for the full results.' }
+        ]
+      },
+      {
+        id: 'bill-collections', title: 'Collections',
+        endpoints: [
+          { method:'POST', path:'/connect/collections/composite-collection-plan', title:'Composite Collection Plan', version:'68.0', desc:'Create one or more collection plans, each with its nested collection plan items, in a single request. Each plan runs independently — a request can partially succeed across plans, but a failed item rolls back its parent plan. Requires collections to be set up and invoicing enabled.', fields:[{name:'collectionPlans', type:'Collection Plan Input[]', req:true, desc:'At least 1. Each plan: accountId (Required), usageType (Required; Billing), contactId, collectionPlanReasonId, dueDate (YYYY-MM-DD), initialDueAmount, collectionPlanSegment, overdueRiskIndicator (High/Low/Medium), collectionPlanItems[] — invoiceId (Required if items present; invoice must be Posted and not Settled; all invoices in a plan share a currency), collectionPlanId (defaults to the parent plan).'}] }
+        ]
+      },
+      {
+        id: 'bill-refund-credit-memo', title: 'Refund Credit Memo',
+        endpoints: [
+          { method:'POST', path:'/revenue/billing/refunds/unreferenced-refunds/actions/process', title:'Refund Credit Memo', version:'68.0', desc:'Initiate a refund against a credit memo. Locks the credit memo, calls the Commerce Refund API, and applies the refund inline (sync) or defers until the payment gateway event is received (async).', fields:[{name:'appliedToId', type:'String', req:true, desc:'ID of the credit memo the refund is applied to.'},{name:'refundAmount', type:'Double', req:true, desc:'Must be > 0 and not exceed the credit memo remaining balance.'},{name:'paymentMethodId', type:'String', req:true, desc:'Must reference a valid, active payment method.'},{name:'refundReason', type:'String', req:true, desc:'Reason for the refund.'},{name:'currencyIsoCode', type:'String', req:false, desc:'Required if multi-currency is enabled; must match the credit memo currency.'},{name:'refundNotes', type:'String', req:false, desc:'Notes for the refund.'}] }
         ]
       }
     ]
@@ -1524,7 +1558,7 @@ function renderOverview() {
     <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264, preview / pre-GA)</p>
 
     <div class="info-box">
-      <strong>This viewer</strong> documents 149 endpoints across 9 API domains. Of these, 137 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 12 are retained for continuity rather than fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide), five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), and one PCM entry (Product Related Records, v59.0) is a legacy route no longer present in the 264 snapshot. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
+      <strong>This viewer</strong> documents 155 endpoints across 9 API domains. Of these, 143 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 12 are retained for continuity rather than fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide), five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), and one PCM entry (Product Related Records, v59.0) is a legacy route no longer present in the 264 snapshot. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
     </div>
 
     <h2 class="section-heading">Collections</h2>
@@ -1532,7 +1566,7 @@ function renderOverview() {
       <div class="ov-card">
         <h3>Revenue Management APIs (v68.0)</h3>
         <ul>
-          <li>149 endpoints across 9 API domains</li>
+          <li>155 endpoints across 9 API domains</li>
           <li>Pre-configured runners: Quote-to-Cash, eCommerce, Billing</li>
           <li>Setup Runner auto-populates all environment variables</li>
           <li>OAuth 2.0 client credentials with auto-refresh</li>
