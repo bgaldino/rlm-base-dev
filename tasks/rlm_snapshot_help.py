@@ -381,7 +381,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "required": False,
         },
         "subtree_only": {
-            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files that are no longer under the root. Defaults to false.",
+            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files that the walk saw elsewhere in the sidebar, outside the root; records merely absent from the walk are kept. Defaults to false.",
             "required": False,
         },
     }
@@ -588,20 +588,22 @@ class SnapshotSalesforceHelp(BaseTask):
         manifest: Dict[str, Any],
         discovered: List[Dict[str, str]],
         articles_dir: Optional[Path] = None,
+        moved_out: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
         existing_by_id: Dict[str, Dict[str, Any]] = {
             a["article_id"]: a for a in manifest.get("articles", [])
         }
         current_area = self.options["area"]
-        # With subtree_only the validated walk is the complete scope, so an
-        # article that left the root's subtree (pre-GA release notes move
-        # between sections) must leave this area's snapshot too. Otherwise
-        # mode=refresh selects the stale record and recaptures it. Other
-        # areas' records sharing the manifest are untouched.
-        if self.options.get("subtree_only"):
-            in_scope = {d["id"] for d in discovered}
+        # With subtree_only, an article that left the root's subtree (pre-GA
+        # release notes move between sections) must leave this area's
+        # snapshot too, or mode=refresh selects the stale record and
+        # recaptures it. `moved_out` holds only IDs the walk positively saw
+        # outside the subtree: a record merely absent from the walk is kept,
+        # because a partial walk can stabilize above expect_min_articles.
+        # Other areas' records sharing the manifest are untouched.
+        if self.options.get("subtree_only") and moved_out:
             for article_id, record in list(existing_by_id.items()):
-                if article_id in in_scope:
+                if article_id not in moved_out:
                     continue
                 if record.get("area") and record.get("area") != current_area:
                     continue
@@ -711,7 +713,11 @@ class SnapshotSalesforceHelp(BaseTask):
                 self._last_discover_total = total_before_filter
                 self._save_manifest(manifest_path, manifest)
                 self._validate_discovery(len(kept), total_before_filter, stabilized)
-                manifest = self._merge_discovered(manifest, kept, articles_dir)
+                kept_ids = {d["id"] for d in kept}
+                moved_out = {d["id"] for d in discovered} - kept_ids
+                manifest = self._merge_discovered(
+                    manifest, kept, articles_dir, moved_out
+                )
                 self._save_manifest(manifest_path, manifest)
 
             # Phase 2: Capture
@@ -769,8 +775,7 @@ class SnapshotSalesforceHelp(BaseTask):
     ) -> None:
         """Fail loud on a thin or unstable walk instead of silently writing a partial manifest.
 
-        A 1-of-83 walk previously merged fine (add-only merge; `subtree_only`
-        now prunes, which makes a thin walk worse) and exited 0 —
+        A 1-of-83 walk previously merged fine (add-only merge) and exited 0 —
         the bug this guards against. No browser state needed, so this is a
         pure function of the counts/options plus `_discover_articles`'s
         `stabilized` flag; kept separate from `_discover_articles` so it's

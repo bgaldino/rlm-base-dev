@@ -273,35 +273,42 @@ def main():
           [d["id"] for d in t16._filter_discovered(tree)]
           == ["rn.rev_billing.htm", "rn.rev_billing_forecast.htm"])
 
-    # --- _merge_discovered subtree_only prune (PR #481 review) -------------
+    # --- _merge_discovered subtree_only prune (PR #481/#483 review) --------
     # A pre-GA note that moves out of the root subtree must leave this area's
-    # manifest and article files, or mode=refresh recaptures it. Another
-    # area's record in the shared manifest is kept.
+    # manifest and article files, or mode=refresh recaptures it. Only IDs the
+    # walk positively saw outside the subtree are pruned: a record merely
+    # absent from the walk stays, because a partial walk can stabilize above
+    # expect_min_articles. Another area's record in the shared manifest is kept.
     import pathlib
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         adir = pathlib.Path(tmp)
-        for aid in ("rn.rev_billing.htm", "rn.rev_moved.htm", "rn.legacy.htm", "rn.other.htm"):
+        for aid in ("rn.rev_billing.htm", "rn.rev_moved.htm", "rn.legacy_moved.htm",
+                    "rn.rev_unseen.htm", "rn.other.htm"):
             (adir / f"{aid}.md").write_text("x")
         manifest = {"articles": [
             {"article_id": "rn.rev_billing.htm", "status": "captured", "area": "revenue"},
             {"article_id": "rn.rev_moved.htm", "status": "captured", "area": "revenue"},
-            {"article_id": "rn.legacy.htm", "status": "captured"},
+            {"article_id": "rn.legacy_moved.htm", "status": "captured"},
+            {"article_id": "rn.rev_unseen.htm", "status": "captured", "area": "revenue"},
             {"article_id": "rn.other.htm", "status": "captured", "area": "sales"},
         ]}
         walk = [{"id": "rn.rev.htm", "title": "", "parent_id": None},
                 {"id": "rn.rev_billing.htm", "title": "", "parent_id": "rn.rev.htm"}]
+        moved = {"rn.rev_moved.htm", "rn.legacy_moved.htm", "rn.other.htm"}
         t17 = _task(area="revenue", subtree_only=True)
-        ids = [a["article_id"] for a in t17._merge_discovered(manifest, walk, adir)["articles"]]
-        check("subtree_only prunes current-area and untagged records outside the walk",
-              ids == ["rn.other.htm", "rn.rev.htm", "rn.rev_billing.htm"])
+        ids = [a["article_id"] for a in t17._merge_discovered(manifest, walk, adir, moved)["articles"]]
+        check("subtree_only prunes current-area and untagged records seen outside the subtree",
+              ids == ["rn.other.htm", "rn.rev.htm", "rn.rev_billing.htm", "rn.rev_unseen.htm"])
+        check("subtree_only keeps a record merely absent from a partial walk",
+              "rn.rev_unseen.htm" in ids)
         check("subtree_only prune deletes the pruned article files only",
               sorted(p.name for p in adir.iterdir())
-              == ["rn.other.htm.md", "rn.rev_billing.htm.md"])
+              == ["rn.other.htm.md", "rn.rev_billing.htm.md", "rn.rev_unseen.htm.md"])
         t18 = _task(area="revenue")
         keep = {"articles": [{"article_id": "rn.rev_moved.htm", "status": "captured", "area": "revenue"}]}
         check("without subtree_only the merge stays add-only",
-              [a["article_id"] for a in t18._merge_discovered(keep, walk)["articles"]]
+              [a["article_id"] for a in t18._merge_discovered(keep, walk, None, moved)["articles"]]
               == ["rn.rev.htm", "rn.rev_billing.htm", "rn.rev_moved.htm"])
 
     # --- _capture_one not-found-shell detection (PR #409 review) -----------
