@@ -325,7 +325,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Protect Sensitive Setup Data by Removing Elevated Permissions from Runtime Users](release-notes/articles/release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 | [Reduce Contract Risks by Analyzing Every Redline with AI](release-notes/articles/release-notes.rn_sf_contracts_risk_analysis.htm.md) | (Advanced or Salesforce Contracts) + Data 360 + Einstein Foundations | *not in index* |
 | [Track Recipient Signing Progress for Document Envelopes](release-notes/articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md) | Advanced or Salesforce Contracts | *not in index* |
-| [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts; Salesforce Contracts also needs Sales Cloud, Sales and Service Cloud, Lightning Platform Starter, or Lightning Platform Plus | *not in index* |
+| [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts; either way, users also need Sales Cloud, Sales and Service Cloud, Lightning Platform Starter, or Lightning Platform Plus | *not in index* |
 
 ### Salesforce Document Generation (3)
 
