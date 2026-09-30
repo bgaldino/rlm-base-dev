@@ -32,6 +32,22 @@
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineItem",
       "sObjectField": "RLM_Approval__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Approval_Level_Calc__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem",
+      "sObjectField": "RLM_Approval_Level_Calc__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Approval__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem",
+      "sObjectField": "RLM_Approval__c"
     }
   ],
   "contextTagsByName": [

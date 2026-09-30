@@ -1470,7 +1470,7 @@
 
 ### `apply_approval_flags_overlay`
 
-**Description:** Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice resets each quote line to level 0 / blank, then bands the line Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes RLM_Approval_Level_Calc__c and RLM_Approval__c.
+**Description:** Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice resets each quote or order line to level 0 / blank, then bands the line Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes RLM_Approval_Level_Calc__c and RLM_Approval__c.
 
 **Class:** `tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay`
 
@@ -1490,7 +1490,7 @@
 
 ### `apply_context_approvals`
 
-**Description:** Adds the quote-line approval flag attributes and QuoteLineItem mappings to RLM_SalesTransactionContext (RLM_Approval_Level_Calc__c and RLM_Approval__c) using an additive Context Service plan, so the approval-flags overlay on RLM_DefaultPricingProcedure can write them.
+**Description:** Adds the line approval flag attributes (RLM_Approval_Level_Calc__c and RLM_Approval__c) to RLM_SalesTransactionContext with QuoteLineItem mappings and matching OrderItem mappings in OrderEntitiesMapping, using an additive Context Service plan, so the approval-flags overlay on RLM_DefaultPricingProcedure can write them when pricing Quotes or Orders (Orders are priced by getRenewableAssetsSummary in the renewal flow).
 
 **Class:** `tasks.rlm_context_service.ManageContextDefinition`
 

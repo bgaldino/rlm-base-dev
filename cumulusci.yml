@@ -804,10 +804,12 @@ tasks:
   apply_context_approvals:
     group: Revenue Lifecycle Management
     description: >
-      Adds the quote-line approval flag attributes and QuoteLineItem mappings to
-      RLM_SalesTransactionContext (RLM_Approval_Level_Calc__c and RLM_Approval__c)
-      using an additive Context Service plan, so the approval-flags overlay on
-      RLM_DefaultPricingProcedure can write them.
+      Adds the line approval flag attributes (RLM_Approval_Level_Calc__c and
+      RLM_Approval__c) to RLM_SalesTransactionContext with QuoteLineItem mappings
+      and matching OrderItem mappings in OrderEntitiesMapping, using an additive
+      Context Service plan, so the approval-flags overlay on
+      RLM_DefaultPricingProcedure can write them when pricing Quotes or Orders
+      (Orders are priced by getRenewableAssetsSummary in the renewal flow).
     class_path: tasks.rlm_context_service.ManageContextDefinition
     options:
       developer_name: *sales_transaction_context_name
@@ -3207,8 +3209,8 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice
-      resets each quote line to level 0 / blank, then bands the line Discount into
-      Manager (15-<25), Director (25-<35) or VP (35-<100) and writes
+      resets each quote or order line to level 0 / blank, then bands the line
+      Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes
       RLM_Approval_Level_Calc__c and RLM_Approval__c.
     class_path: tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay
     options:

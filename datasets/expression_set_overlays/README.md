@@ -12,7 +12,7 @@ procedure plans (a different object, applied by `apply_procedure_plan_overlay`).
 
 | File | Target | What it adds | Runs |
 |------|--------|--------------|------|
-| `approval_flags.json` | `RLM_DefaultPricingProcedure_V1` | Per-line discount approval flags: resets every line to level 0 and a blank indicator, then sets level 1 Manager (15% to under 25%), 2 Director (25% to under 35%) or 3 VP (35% to under 100%) from `ItemDiscountPercentage`. Writes `QuoteLineItem.RLM_Approval_Level_Calc__c` and `RLM_Approval__c`. 12 steps, 8 constants. | **In the build.** `apply_approval_flags_overlay` in the `prepare_approvals_pricing` flow (part of `prepare_rlm_org`), when the `quantumbit` and `approvals` flags are both on. |
+| `approval_flags.json` | `RLM_DefaultPricingProcedure_V1` | Per-line discount approval flags: resets every line to level 0 and a blank indicator, then sets level 1 Manager (15% to under 25%), 2 Director (25% to under 35%) or 3 VP (35% to under 100%) from `ItemDiscountPercentage`. Writes `RLM_Approval_Level_Calc__c` and `RLM_Approval__c` on QuoteLineItem, or on OrderItem when an Order is priced. 12 steps, 8 constants. | **In the build.** `apply_approval_flags_overlay` in the `prepare_approvals_pricing` flow (part of `prepare_rlm_org`), when the `quantumbit` and `approvals` flags are both on. |
 | `discount_distribution.json` | `RLM_DefaultPricingProcedure_V1` | Header-discount block: amount-based and percentage-based header discount and header price override `ListGroup`s, then the `DiscountDistributionService` element that spreads the header discount to lines. 10 steps, 4 `Constant_DDS_*` constants. | **Manual only.** Worked example; its steps already ship in the `force-app` procedure. |
 | `map_line_item.json` | `RLM_DefaultPricingProcedure_V1` | The `MapLineItemtoDetailItem` step for Advanced Detail Line Pricing. 1 step. | **Manual only.** Worked example; the step already ships in the `force-app` procedure. |
 
@@ -35,8 +35,8 @@ fields, and before procedure plans are wired to the procedure:
    cascade through procedure plans.
 
 Repricing users need `RLM_Approvals`, which grants edit access to both stored
-quote-line approval outputs. Repricing resets and recalculates those values,
-including any manual edits.
+approval outputs on quote lines and order products. Repricing resets and
+recalculates those values, including any manual edits.
 
 ## Applying an overlay
 

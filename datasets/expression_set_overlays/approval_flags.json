@@ -1,13 +1,15 @@
 {
   "expressionSetApiName": "RLM_DefaultPricingProcedure",
   "versionApiName": "RLM_DefaultPricingProcedure_V1",
-  "description": "Discount approval flags: after line cost/margin (pre header discount), reset every line to level 0 / blank, then assign 1 Manager (15 to <25%), 2 Director (25 to <35%) or 3 VP (35 to <100%) from ItemDiscountPercentage. 100% or more stays 0 / blank. Writes QuoteLineItem.RLM_Approval_Level_Calc__c and RLM_Approval__c via the Approvals context plan; never touches ItemDescription.",
+  "description": "Discount approval flags: after line cost/margin (pre header discount), reset every line to level 0 / blank, then assign 1 Manager (15 to <25%), 2 Director (25 to <35%) or 3 VP (35 to <100%) from ItemDiscountPercentage. 100% or more stays 0 / blank. Writes RLM_Approval_Level_Calc__c and RLM_Approval__c on QuoteLineItem (or OrderItem when an Order is priced) via the Approvals context plan; never touches ItemDescription.",
   "externalDependencies": {
     "customFields": [
       "QuoteLineItem.RLM_Approval_Level_Calc__c (Number 18,0; tag RLM_Approval_Level_Calc__c on SalesTransactionItem)",
-      "QuoteLineItem.RLM_Approval__c (Text 255; tag RLM_Approval__c on SalesTransactionItem)"
+      "QuoteLineItem.RLM_Approval__c (Text 255; tag RLM_Approval__c on SalesTransactionItem)",
+      "OrderItem.RLM_Approval_Level_Calc__c (Number 18,0; same tag, OrderEntitiesMapping)",
+      "OrderItem.RLM_Approval__c (Text 255; same tag, OrderEntitiesMapping)"
     ],
-    "note": "Both fields ship in unpackaged/post_approvals and are mapped into RLM_SalesTransactionContext by datasets/context_plans/Approvals (apply_context_approvals) before this overlay is applied."
+    "note": "All four fields ship in unpackaged/post_approvals and are mapped into RLM_SalesTransactionContext by datasets/context_plans/Approvals (apply_context_approvals) before this overlay is applied."
   },
   "addVariables": [
     {
