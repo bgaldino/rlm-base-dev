@@ -1377,7 +1377,7 @@ const DOMAINS = {
       {
         id: 'ctx-node', title: 'Context Node APIs',
         endpoints: [
-          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Nodes', version:'59.0',
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context-nodes', title:'Create Context Nodes', version:'59.0',
             desc:'Add one or more nodes to a context definition. Each node represents a logical grouping of attributes within the context schema. Nodes can represent Salesforce objects (e.g., Account), custom data structures, or classification hierarchies. After creating nodes, use Create Context Mappings to bind them to Salesforce object fields.',
             params:[
               {name:'contextDefinitionId', desc:'Salesforce ID of the context definition to add nodes to. Use {{contextDefinitionId}}.'}
@@ -1390,7 +1390,7 @@ const DOMAINS = {
       {
         id: 'ctx-mapping', title: 'Context Mapping APIs',
         endpoints: [
-          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Mappings', version:'59.0',
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context-mappings', title:'Create Context Mappings', version:'59.0',
             desc:'Define field-to-context mappings for a context definition. Each mapping specifies which Salesforce object and field provides a value for a given context attribute. Mappings are evaluated at runtime to hydrate the context instance before pricing procedures execute.',
             params:[
               {name:'contextDefinitionId', desc:'Salesforce ID of the context definition to add mappings to. Use {{contextDefinitionId}}.'}
