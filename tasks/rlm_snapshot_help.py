@@ -769,7 +769,8 @@ class SnapshotSalesforceHelp(BaseTask):
     ) -> None:
         """Fail loud on a thin or unstable walk instead of silently writing a partial manifest.
 
-        A 1-of-83 walk previously merged fine (add-only merge) and exited 0 —
+        A 1-of-83 walk previously merged fine (add-only merge; `subtree_only`
+        now prunes, which makes a thin walk worse) and exited 0 —
         the bug this guards against. No browser state needed, so this is a
         pure function of the counts/options plus `_discover_articles`'s
         `stabilized` flag; kept separate from `_discover_articles` so it's
