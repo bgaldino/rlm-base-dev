@@ -314,6 +314,8 @@ Distinct from the existing "Invoice Scheduler" section (section 4) — this is a
 - `accountId` (String, Optional — use this or `customerDetails`), `customerDetails` (Billing Checkout Customer Details Input, Optional — used to create a customer when `accountId` isn't provided)
 - `billingAddress` (Address Input, Optional — use this or `billingProfileId`), `billingProfileId` (String, Optional), `billingContact` (Billing Contact Input, Optional), `shippingAddress` (Address Input, Optional)
 - `paymentMethodId` (String, Optional — use this or `paymentDetails`), `paymentDetails` (Billing Checkout Payment Details Input, Optional — raw details to tokenize a new card/bank account), `paymentId` (String, Optional — an existing payment record; not allowed with `shouldCapturePayment=true` or together with `amount`)
+
+> **Source ambiguity — `amount` with `paymentId`.** The 264 (v68.0) guide contradicts itself here: its field table marks `amount` Required and says `paymentId` is "not allowed together with `amount`", yet its own "Using an Existing Payment Record" JSON example sends both (`"amount": 60` with `"paymentId"`, `shouldCapturePayment: false`), in both `connect_resources_billing_checkout.htm.md` and `connect_requests_billing_checkout_input.htm.md`. Not yet resolved against a live 264 org — treat the existing-payment path as unverified and test both shapes (with and without `amount`) before relying on either.
 - `shouldCapturePayment` (Boolean, Optional), `isPartialPaymentAllowed` (Boolean, Optional, default `false`)
 - `previewInvoice` (Boolean, Optional — return an invoice preview without committing the transaction), `invoiceDate` (String, Optional), `invoiceTargetDate` (String, Optional)
 
