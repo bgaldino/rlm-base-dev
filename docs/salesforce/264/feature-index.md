@@ -205,7 +205,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 
 - **35 of the 88 feature notes map onto 27 index rows.** The other 53 have no index row, because the corpus diff did not surface them as a feature cluster. Examples are Large Transactions, Promotions, most of Salesforce Contracts and the billing-portal payment notes. Consider them first when the index is extended.
 - **Tier:** no note is labelled Beta or Pilot, so a note's presence is read as GA; confirm on a live org at GA. One note is a Release Update: opt-in now, enforced in Summer '27. Invoice Risk Scoring is Pilot by its Help titles and has no release note. Three other New rows (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) also have none and rest on Help alone.
-- The mapping was done by hand. The license column summarizes the licenses and prerequisites in the note's `Where:` line, with "Revenue Cloud" and "license" dropped. Shared prerequisites follow `+`, alternatives are parenthesized when a prerequisite applies to all of them (a comma separates an alternative that needs no prerequisite), and conditions from later sentences follow a semicolon. Edition and Lightning Experience limits are left out, so read each note for full eligibility.
+- The mapping was done by hand. The license column summarizes the licenses and prerequisites in the note's `Where:` line, with "Revenue Cloud" and "license" dropped. Shared prerequisites follow `+`, alternatives are parenthesized when a prerequisite applies to all of them (a comma separates an alternative that needs no prerequisite), and conditions or exclusions from later sentences (including `Who:` and `Note:` lines) follow a semicolon. Edition and Lightning Experience limits are left out, so read each note for full eligibility.
 
 ### Advanced Approvals (3)
 
@@ -325,7 +325,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Protect Sensitive Setup Data by Removing Elevated Permissions from Runtime Users](release-notes/articles/release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 | [Reduce Contract Risks by Analyzing Every Redline with AI](release-notes/articles/release-notes.rn_sf_contracts_risk_analysis.htm.md) | (Advanced or Salesforce Contracts) + Data 360 + Einstein Foundations | *not in index* |
 | [Track Recipient Signing Progress for Document Envelopes](release-notes/articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md) | Advanced or Salesforce Contracts | *not in index* |
-| [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts | *not in index* |
+| [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts; Salesforce Contracts also needs Sales Cloud, Sales and Service Cloud, Lightning Platform Starter, or Lightning Platform Plus | *not in index* |
 
 ### Salesforce Document Generation (3)
 
@@ -370,10 +370,10 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 
 | Release note | License or requirement | Index row |
 |---|---|---|
-| [Adapt Subscriptions When Customer Needs Change](release-notes/articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md) | Advanced | Usage-Based Asset Renewal |
+| [Adapt Subscriptions When Customer Needs Change](release-notes/articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md) | Advanced; not in orgs with both Advanced and Billing plus the Usage Management add-on | Usage-Based Asset Renewal |
 | [Prevent Usage Summary Failures by Updating Overridden Flows](release-notes/articles/release-notes.rn_um_update_overridden_flows_with_dpe_v4.htm.md) | Advanced | *not in index* |
 | [Respond to Growth with Early Ramp Renewal](release-notes/articles/release-notes.rn_um_renew_ramped_usage_assets_early.htm.md) | Advanced | Usage-Based Asset Renewal |
-| [Win Back Customers by Restoring Lapsed Subscriptions](release-notes/articles/release-notes.rn_um_renew_expired_usage_assets.htm.md) | Advanced | Usage-Based Asset Renewal |
+| [Win Back Customers by Restoring Lapsed Subscriptions](release-notes/articles/release-notes.rn_um_renew_expired_usage_assets.htm.md) | Advanced; not in orgs with both Advanced and Billing plus the Usage Management add-on | Usage-Based Asset Renewal |
 
 ### Reference notes (17)
 
