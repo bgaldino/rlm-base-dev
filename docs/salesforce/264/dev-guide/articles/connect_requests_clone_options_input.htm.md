@@ -7,25 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Clone Options Input
 
 Input representation of the options to clone a sales transaction.
 
     
+
+## JSON Example
+
       
-        
-          
+      
 
-**JSON example**
+This is a sample request to clone all line items in a ramped group within a sales transaction.
 
-          
-: This is a sample request to clone all line items in a ramped group within a sales
-            transaction.
+      
 
 ```
 {
@@ -37,71 +35,67 @@ Input representation of the options to clone a sales transaction.
 }
 ```
 
-        
-        
-          
+    
 
-**Properties**
+    
+
+## Properties
+
+      
+      
 
           
-: 
+          
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `recordTypeId` | String | ID of the record type related to the record to clone. | Optional | 65.0 |
-| `lineScope` | String | Specifies the scope for cloning a ramp segment. You can clone only the last ramp segment. This property determines which line items must be cloned and added to the cloned segment. Valid values are: `AllLines`—Specifies whether all line items in a ramped group must be cloned. `RampedLinesOnly`—Specifies whether only the ramped line items must be cloned. A segment identifier is created for the newly cloned line items, ensuring date continuity between the existing and cloned segment. | Optional | 65.0 |
+| `lineScope` | String | Specifies the scope for cloning a ramp segment. You can clone only the last ramp segment. This property determines which line items must be cloned and added to the cloned segment. Valid values are `AllLines`—Specifies whether all line items in a ramped group must be cloned or `RampedLinesOnly`—Specifies whether only the ramped line items must be cloned. A segment identifier is created for the newly cloned line items, ensuring date continuity between the existing and cloned segment. | Optional | 65.0 |

@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Sales Transaction
 
@@ -18,14 +16,10 @@ Output representation of the request to create a sales transaction.
 
     
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: 
-            
+      
+      
 
 ```
 {
@@ -45,12 +39,10 @@ Output representation of the request to create a sales transaction.
 }
 ```
 
-          
-
-        
-      
+    
 
     
+      
 
           
           
@@ -164,9 +156,6 @@ Output representation of the request to create a sales transaction.
 | `statusUrl` | String | URL to check the status of the operation. | Small, 63.0 | 63.0 |
 | `trackerId` | String | Unique identifier assigned to a specific operation or request that's used for tracking and referencing the operation. | Small, 63.0 | 63.0 |
 
-The **Calculation Status** field for a quote or an order shows
-        an intermediate status as `Saving` during the creation of
-        a sales transaction. If the pricing calculation fails, then the **Calculation
-          Status** field shows the `Pricing Calculation
-          Failed` status. See  [Quote standard object](https://developer.salesforce.com/docs/atlas.en-us.254.0.object_reference.meta/object_reference/sforce_api_objects_quote.htm) for a
-        list of applicable calculation status values.
+      
+
+The **Calculation Status** field for a quote or an order shows an intermediate status as `Saving` during the creation of a sales transaction. If the pricing calculation fails, then the **Calculation Status** field shows the `Pricing Calculation Failed` status. See [Quote standard object](https://developer.salesforce.com/docs/atlas.en-us.254.0.object_reference.meta/object_reference/sforce_api_objects_quote.htm) for a list of applicable calculation status values.

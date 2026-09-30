@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # ProductRecommendationRule Class
 
@@ -56,51 +54,107 @@ The `ProductRecommendationRule` class includes this
 
 Constructor to create a ProductRecommendationRule instance with the specified recommendation details.
 
+  
+
 ### ProductRecommendationRule(referenceId, productIds, message, recordType, target, scope)
 
+  
+  
+  
 Constructor to create a ProductRecommendationRule instance with the specified recommendation details.
+
+    
 
 #### Signature
 
+      
+      
+
 `public ProductRecommendationRule(String referenceId, List<String> productIds, String message, String recordType, String target, String scope)`
+
+      
+    
+
+    
 
 #### Parameters
 
+      
+      
+
 **referenceId**
 
-: Type: String
+      
 
-: The reference ID of the product recommendation rule.
+Type: String
+
+      
+
+The reference ID of the product recommendation rule.
+
+      
 
 **productIds**
 
-: Type: List<String>
+      
 
-: List of product IDs that are recommended.
+Type: List<String>
+
+      
+
+List of product IDs that are recommended.
+
+      
 
 **message**
 
-: Type: String
+      
 
-: The message to display with the product recommendation.
+Type: String
+
+      
+
+The message to display with the product recommendation.
+
+      
 
 **recordType**
 
-: Type: String
+      
 
-: The record type associated with the recommendation.
+Type: String
+
+      
+
+The record type associated with the recommendation.
+
+      
 
 **target**
 
-: Type: String
+      
 
-: The target of the recommendation rule.
+Type: String
+
+      
+
+The target of the recommendation rule.
+
+      
 
 **scope**
 
-: Type: String
+      
 
-: The scope of the recommendation rule.
+Type: String
+
+      
+
+The scope of the recommendation rule.
+
+    
+
+  
 
   
 

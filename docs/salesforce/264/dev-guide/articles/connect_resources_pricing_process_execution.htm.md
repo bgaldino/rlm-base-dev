@@ -7,193 +7,168 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Process Execution (GET)
 
-Get the execution details of a pricing process by using the
-      execution ID.
+Get the execution details of a pricing process by using the execution ID.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/core-pricing/pricing-process-execution/executionId
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pricing-process-execution/29646938297972
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
-
-          
-: 63.0
-
-        
-        
-          
-
-**HTTP methods**
-
-          
-: GET
-
-        
-      
+## Available Version
 
       
-        
-          
+      
 
-**Path parameter for GET**
+63.0
+
+    
+
+    
+
+## HTTP Methods
+
+      
+      
+
+GET
+
+    
+
+    
+
+## Path Parameter for GET
+
+      
+      
 
           
-: 
+          
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `executionId` | String | ID of the pricing process execution record. The ID is generated each time a pricing process is executed. | Required | 63.0 |
 
-          
+    
 
-        
+    
+
+## Query Parameter for GET
+
+      
       
 
-      
-        
           
-
-**Query parameter for GET**
-
           
-: 
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `executionType` | String | Type of execution that's defined internally within the pricing API.Valid values are: `API_Execution` `Discovery`—Discovery procedure `Discovery_Line`—Discovery procedure for the line items. `Pricing`—Pricing procedure `Pricing_Line`—Pricing procedure for the line items. If the `executionType` parameter isn't specified, the API retrieves records for all the execution types that are associated with the specified execution ID. | Optional | 63.0 |
+| `executionType` | String | Type of execution that's defined internally within the pricing API. Valid values are `API_Execution`, `Discovery`—Discovery procedure, `Discovery_Line`—Discovery procedure for the line items, `Pricing`—Pricing procedure, or `Pricing_Line`—Pricing procedure for the line items. If the `executionType` parameter isn't specified, the API retrieves records for all the execution types that are associated with the specified execution ID. | Optional | 63.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for GET**
+## Response Body for GET
 
-          
-: [Pricing Process
-              Execution Response](./connect_responses_pricing_process_execution_get_output.htm.md)
+      
+      
+
+[Pricing Process Execution Response](./connect_responses_pricing_process_execution_get_output.htm.md)

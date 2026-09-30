@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Waterfall Log Input
 
 Input representation of the request to create an explainability action log.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
 
@@ -31,6 +27,7 @@ Input representation of the request to create an explainability action log.
       "currencyCode": "USD",
       "executionEndTimestamp": "2023-07-31T20:11:29.625Z",
       "executionId": "executionId1",
+      "apiExecutionId": "apiExecutionId1",
       "executionStartTimestamp": null,
       "lineItemId": "item1",
       "output": {
@@ -109,14 +106,170 @@ Input representation of the request to create an explainability action log.
 
 ```
 
+    
+
+    
+
+## Properties
+
+      
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
           
 
         
-
-**Properties**
-
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `context​Definition​VersionId` | String | Context definition version ID of the pricing procedure. | Optional | 60.0 |
@@ -124,6 +277,7 @@ Input representation of the request to create an explainability action log.
 | `currency​Code` | String | Currency code such as, USD or INR. | Optional | 60.0 |
 | `executionEnd​Timestamp` | String | End timestamp of procedure execution. | Optional | 60.0 |
 | `execution​Id` | String | Execution ID for a particular execution of a pricing procedure. | Required | 60.0 |
+| `apiExecution​Id` | String | Identifies a pricing procedure execution in the Revenue Cloud Operations Console. | Required | 60.0 |
 | `execution​Start​Timestamp` | String | Start timestamp of procedure execution. | Optional | 60.0 |
 | `lineItem​Id` | String | Line item ID for which the price is being calculated. | Required | 60.0 |
 | `output` | Map<String, Object> | Output of the pricing procedure. | Optional | 60.0 |

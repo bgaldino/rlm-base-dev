@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_api_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Response Bodies
 
@@ -29,7 +27,7 @@ Output representation of the request to retrieve the configuration instance.
 - 
 **[Configuration Load Instance](./connect_responses_load_configuration_instance_output.htm.md)**  
 
-Output representation of the details of the context or session that are returned with a     load configuration request.
+Output representation of the details of the context or session that are returned with a load configuration request.
 
 - 
 **[Configuration Save Details](./connect_responses_favorite_output_represenation.htm.md)**  
@@ -54,7 +52,7 @@ Output representation of the response that’s returned with a save configuratio
 - 
 **[Configuration Set Instance](./connect_responses_set_configuration_instance_output.htm.md)**  
 
-Output representation of the details of the context or session that are returned with a     set configuration request.
+Output representation of the details of the context or session that are returned with a set configuration request.
 
 - 
 **[Configurator Add Nodes](./connect_responses_add_nodes_configurator_output.htm.md)**  
@@ -89,7 +87,7 @@ Output representation of the values of an attribute picklist in a product     co
 - 
 **[Configurator Delete Nodes](./connect_responses_delete_nodes_configurator_output.htm.md)**  
 
-Output representation of the details of the configuration request to delete     nodes.
+Output representation of the details of the configuration request to delete nodes.
 
 - 
 **[Configurator Message](./connect_responses_configurator_message_output.htm.md)**  
@@ -114,12 +112,12 @@ Output representation of the product catalog.
 - 
 **[Configurator Product Classification](./connect_responses_configurator_product_classification_output.htm.md)**  
 
-Output representation of the product classification in a product     configuration.
+Output representation of the product classification in a product configuration.
 
 - 
 **[Configurator Product Component Group](./connect_responses_configurator_product_component_group_output.htm.md)**  
 
-Output representation of the product component group in a product     classification.
+Output representation of the product component group in a product classification.
 
 - 
 **[Configurator Product Recommendations](./connect_responses_configurator_product_recommendation_output.htm.md)**  
@@ -129,17 +127,17 @@ Output representation of the details of the product recommendations.
 - 
 **[Configurator Product Related Component](./connect_responses_configurator_product_related_component_output.htm.md)**  
 
-Output representation of the product related component in a product     configuration.
+Output representation of the product related component in a product configuration.
 
 - 
 **[Configurator Product Selling Model](./connect_responses_configurator_product_selling_model_output.htm.md)**  
 
-Output representation of the product selling model in a product     configuration.
+Output representation of the product selling model in a product configuration.
 
 - 
 **[Configurator Product Selling Model Option](./connect_responses_configurator_product_selling_model_option_output.htm.md)**  
 
-Output representation of the product selling model option in a product     configuration.
+Output representation of the product selling model option in a product configuration.
 
 - 
 **[Configurator Qualification Context](./connect_responses_configurator_qualification_context_output.htm.md)**  
@@ -149,7 +147,7 @@ Output representation of the qualification context in a product     configuratio
 - 
 **[Configurator UI Treatment](./connect_responses_configurator_u_i_treatment_output.htm.md)**  
 
-Output representation of the details of the UI treatments of a product configurator. The     details include the product configuration rule actions to override the disable or hide behavior     in the UI for product options, product attributes, and attribute picklist values.
+Output representation of the details of the UI treatments of a product configurator. The details include the product configuration rule actions to override the disable or hide behavior in the UI for product options, product attributes, and attribute picklist values.
 
 - 
 **[Configurator Unit Of Measure](./connect_responses_configurator_unit_of_measure_output.htm.md)**  

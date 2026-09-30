@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # GuidedSelectionRepresentation Class
 
@@ -74,6 +72,11 @@ Get the list of categorie.
 **[childProducts](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childProducts)**  
 
 Get the list of childproduct.
+
+- 
+**[childVariationIds](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childVariationIds)**  
+
+Get the list of IDs of the child variations of the product.
 
 - 
 **[configureDuringSale](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_configureDuringSale)**  
@@ -151,6 +154,11 @@ Get the nodetype value.
 Get the list of price.
 
 - 
+**[productClass](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productClass)**  
+
+Get the class of the product.
+
+- 
 **[productClassification](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productClassification)**  
 
 Get the productclassification value.
@@ -201,6 +209,11 @@ Get the productspecificationtype value.
 Get the producttype value.
 
 - 
+**[productUnitOfMeasures](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productUnitOfMeasures)**  
+
+Get the list of units of measure for the product.
+
+- 
 **[qualificationContext](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_qualificationContext)**  
 
 Get the qualificationcontext value.
@@ -214,6 +227,16 @@ Get the status of the guidedselection.
 **[unitOfMeasure](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_unitOfMeasure)**  
 
 Get the unitofmeasure value.
+
+- 
+**[variationAttributeSet](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationAttributeSet)**  
+
+Get the variation attribute set of the product.
+
+- 
+**[variationsCount](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationsCount)**  
+
+Get the number of variations of the product.
 
 ### additionalFields
 
@@ -286,6 +309,18 @@ Get the list of childproduct.
 #### Property Value
 
 Type: List<[runtime_industries_cpq.ProductListRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductListRepresentation)>
+
+### childVariationIds
+
+Get the list of IDs of the child variations of the product.
+
+#### Signature
+
+`public List<String> childVariationIds {get; set;}`
+
+#### Property Value
+
+Type: List<String>
 
 ### configureDuringSale
 
@@ -467,6 +502,18 @@ Get the list of price.
 
 Type: List<[runtime_industries_cpq.ProductPricesOutputRepresentation](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation)>
 
+### productClass
+
+Get the class of the product.
+
+#### Signature
+
+`public String productClass {get; set;}`
+
+#### Property Value
+
+Type: String
+
 ### productClassification
 
 Get the productclassification value.
@@ -587,6 +634,18 @@ Get the producttype value.
 
 Type: String
 
+### productUnitOfMeasures
+
+Get the list of units of measure for the product.
+
+#### Signature
+
+`public List<runtime_industries_cpq.ProductUnitOfMeasureOutputRepresentation> productUnitOfMeasures {get; set;}`
+
+#### Property Value
+
+Type: List<[runtime_industries_cpq.ProductUnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation)>
+
 ### qualificationContext
 
 Get the qualificationcontext value.
@@ -622,3 +681,27 @@ Get the unitofmeasure value.
 #### Property Value
 
 Type: [runtime_industries_cpq.UnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation)
+
+### variationAttributeSet
+
+Get the variation attribute set of the product.
+
+#### Signature
+
+`public runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation variationAttributeSet {get; set;}`
+
+#### Property Value
+
+Type: [runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)
+
+### variationsCount
+
+Get the number of variations of the product.
+
+#### Signature
+
+`public Integer variationsCount {get; set;}`
+
+#### Property Value
+
+Type: Integer

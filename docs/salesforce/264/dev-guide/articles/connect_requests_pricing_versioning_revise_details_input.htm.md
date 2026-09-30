@@ -7,31 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Versioned Revision Details Input
 
 Input representation of the versioned revision details.
 
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
-This example shows the input for versioned revision details for attribute-based
-              adjustment.
+This example shows the input for versioned revision details for attribute-based adjustment.
 
-          
-
-          
-: 
-            
+      
 
 ```
 
@@ -52,20 +44,11 @@ This example shows the input for versioned revision details for attribute-based
 
 ```
 
-          
+      
 
-          
-: 
-            
+This example shows the input for versioned revision details for bundle-based adjustment.
 
-This example shows the input for versioned revision details for bundle-based
-              adjustment.
-
-          
-
-          
-: 
-            
+      
 
 ```
 
@@ -87,14 +70,170 @@ This example shows the input for versioned revision details for bundle-based
 
 ```
 
+    
+
+    
+
+## Properties
+
+      
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
           
 
         
-
-**Properties**
-
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `additional​Fields​ToValue​Map` | Map<String, String> | Map containing the additional fields specific to the entity. | Optional | 60.0 |

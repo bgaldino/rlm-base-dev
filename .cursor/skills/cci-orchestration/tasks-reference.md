@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**288 tasks** across **10 groups**.
+**289 tasks** across **10 groups**.
 
 ---
 
@@ -701,7 +701,7 @@
 
 ## Documentation
 
-*29 task(s)*
+*30 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -1097,6 +1097,26 @@
 - `article_id_prefix`: `ind.rm`
 - `mode`: `all`
 - `expect_min_articles`: `17`
+
+---
+
+### `snapshot_revenue_release_notes_264`
+
+**Description:** Snapshot the Revenue Management (Revenue Cloud) section of the Winter '27 (264) release notes into docs/salesforce/264/release-notes/. Every release-notes article shares the release-notes.rn_ prefix, so subtree_only keeps just the Revenue section under its root.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `264`
+- `release_name`: `Winter '27`
+- `area`: `revenue`
+- `root_article_id`: `release-notes.rn_revenue.htm`
+- `article_id_prefix`: `release-notes.rn_`
+- `subtree_only`: `True`
+- `output_dir`: `docs/salesforce/264/release-notes`
+- `mode`: `all`
+- `expect_min_articles`: `60`
 
 ---
 

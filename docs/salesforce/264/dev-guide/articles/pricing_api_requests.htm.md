@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Request Bodies
 
@@ -24,17 +22,22 @@ Input representation of the adjustment details.
 - 
 **[Configuration Override Input](./connect_requests_configuration_override_input.htm.md)**  
 
-Input representation of the details to override for a Pricing API     configuration.
+Input representation of the details to override for a Pricing API configuration.
 
 - 
 **[PBE Derived Pricing Input](./connect_requests_p_b_e_derived_pricing_input.htm.md)**  
 
-Input representation of the request to get the source product for the Price Book Entry     (PBE) derived pricing.
+Input representation of the request to get the source product for the Price Book Entry (PBE) derived pricing.
 
 - 
 **[Pricing Input](./connect_requests_core_pricing_input.htm.md)**  
 
 Input representation of the details of a Pricing API request.
+
+- 
+**[Pricing Recipe Clone Input](./connect_requests_pricing_recipe_clone_input.htm.md)**  
+
+Input representation to clone a pricing recipe.
 
 - 
 **[Pricing Recipe Input](./connect_requests_pricing_recipe_input.htm.md)**  
@@ -89,7 +92,7 @@ Input representation of the details of a procedure plan definition version.
 - 
 **[Procedure Plan Evaluation Input](./connect_requests_procedure_plan_evaluation_input.htm.md)**  
 
-Input representation of the details used to evaluate a procedure plan     definition.
+Input representation of the details used to evaluate a procedure plan definition.
 
 - 
 **[Procedure Plan Section Input](./connect_requests_procedure_plan_section_input.htm.md)**  

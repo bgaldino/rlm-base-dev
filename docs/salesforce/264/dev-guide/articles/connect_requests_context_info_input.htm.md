@@ -7,19 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Input
 
-Input representation of the context that's associated with a sales transaction for a
-    quote or an order.
+Input representation of the context that's associated with a sales transaction for a quote or an order.
 
-**JSON example**
+    
 
-: 
+## JSON Example
+
+      
+      
 
 ```
 {
@@ -29,10 +29,53 @@ Input representation of the context that's associated with a sales transaction f
 }
 ```
 
-**Properties**
+    
 
-: 
+    
 
+## Properties
+
+      
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `contextId` | String | ID of the context that represents the created session for the sales transaction. This property is supported only for a PATCH request.If the `contextId` property isn’t specified, the Place Sales Transaction API generates the context ID for the sales transaction. | Optional | 63.0 |
+| `contextId` | String | ID of the context that represents the created session for the sales transaction. This property is supported only for a PATCH request. If the `contextId` property isn’t specified, the Place Sales Transaction API generates the context ID for the sales transaction. | Optional | 63.0 |

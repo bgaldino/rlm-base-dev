@@ -57,33 +57,25 @@ Each release has up to four primary sources. Drop them into `docs/salesforce/{ve
 |---|---|---|
 | **Master Help compendium** | Full Help docs for the release as one PDF — definitive but huge (often 1,000+ pages). Use for detailed configuration steps. | `revenue-cloud-{release-name}-{date}.pdf` |
 | **Internal Solution Overview deck** | Per-feature Customer Need / Solution / Use Case / Impact — most digestible primary source for authoring. Marked CONFIDENTIAL. | `solution-overview-{release-name}.pdf` |
-| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. Live web (SPA — needs Chrome MCP) or PDF if available. | `release-notes-{area}.md` (curated) and/or `salesforce-release-notes-{release-name}-{date}.pdf` |
+| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. | 264+: per-article snapshot under `docs/salesforce/{version}/release-notes/`. 260/262: a hand-curated `release-notes-{area}.md` and/or `salesforce-release-notes-{release-name}-{date}.pdf` |
 | **Org access / screenshots** | For verifying configuration steps work, capturing visuals, sanity-checking what users actually see. | (live) |
 
 **Capturing release notes from Salesforce Help:**
 
-The Help portal is a Lightning Web Components SPA — `WebFetch` does not work because the initial response redirects without rendering article body. **Use Chrome MCP** (`mcp__Claude_in_Chrome__*`):
+Use the snapshot task, not a manual browser capture. `tasks/rlm_snapshot_help.py` renders the Help portal SPA with Playwright and walks the shadow DOM itself. With `subtree_only: true` it keeps only the release-notes root and its sidebar descendants:
 
-1. Navigate to the release-notes URL (pattern: `https://help.salesforce.com/s/articleView?id=release-notes.rn_{area}.htm&release={version}&type=5`).
-2. Wait 2–3 seconds for SPA render.
-3. Use `javascript_tool` with a recursive shadow-DOM walker to extract content. The article body is inside multiple shadow roots; standard `document.querySelector` returns nothing.
-4. Save extracted content as Markdown to `docs/salesforce/{version}/release-notes-{area}.md`.
-
-Recursive shadow walker template:
-
-```javascript
-function findAllInShadow(root, predicate, results = []) {
-  if (!root) return results;
-  const all = root.querySelectorAll ? root.querySelectorAll('*') : [];
-  all.forEach(el => {
-    if (predicate(el)) results.push(el);
-    if (el.shadowRoot) findAllInShadow(el.shadowRoot, predicate, results);
-  });
-  return results;
-}
-const h1s = findAllInShadow(document, el => el.tagName === 'H1' && el.innerText.includes('{HEADING}'));
-h1s[0].parentElement.innerText;
+```bash
+cci task run snapshot_revenue_release_notes_264              # captures docs/salesforce/264/release-notes/
+cci task run snapshot_revenue_release_notes_264 -o mode refresh
 ```
+
+For a new release, copy that task in `cumulusci.yml` and:
+
+- rename the task key (`snapshot_revenue_release_notes_{version}`) and update its description;
+- change `release_version`, `release_name` (written into every article's frontmatter and the index) and `output_dir`;
+- re-check `expect_min_articles` against the new release's article count (264 captured 127 against a floor of 60), so a partial capture still fails.
+
+Then run `python scripts/ai/generate_cci_reference.py`. Options, output layout and refresh rules are in [`revenue-cloud-docs/SKILL.md`](../revenue-cloud-docs/SKILL.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the task existed.
 
 ## Workflow
 
@@ -200,7 +192,7 @@ The auto-gen uses the H2 + H3 structure literally. Section headers must match th
 | 262 (Summer '26) | Prior GA reference | [`docs/salesforce/262/feature-index.md`](../../../docs/salesforce/262/feature-index.md) |
 | 264 (Winter '27) | Current — in development | [`docs/salesforce/264/feature-index.md`](../../../docs/salesforce/264/feature-index.md) |
 
-The feature index for each release is the **authoring input**. It contains a per-area table of new features with: name, tier (GA/Beta/Pilot), one-paragraph description, source page references, demo URL placeholders. Authoring an exercise means working through that area's row in the feature index and turning each row into a Feature N section in the area's `.md` file.
+The feature index for each release is the **authoring input**. It contains a per-area table of new features with: name, tier (GA/Beta/Pilot), one-paragraph description, source page references, demo URL placeholders. **Exception — 264:** its index is built from the Help corpus only (feature, area/status, description, article links, labelled New or Expanded). It has no tier or demo-URL columns. Its Release note column and **Release-Note Cross-Reference** section map it against the captured 264 Revenue release notes (`docs/salesforce/264/release-notes/`). The notes label no feature Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier; confirm every tier on a live org at GA before authoring. Authoring an exercise means working through that area's row in the feature index and turning each row into a Feature N section in the area's `.md` file.
 
 ## Auto-Gen (planned)
 
@@ -254,3 +246,4 @@ The project already establishes a two-workstation pattern (personal + Salesforce
 
 - **2026-05-06** — Skill created during 260 Salesforce Pricing pilot. Captured workflow, source inventory pattern, frontmatter schema, Chrome MCP shadow-walk for Help portal extraction.
 - **2026-05-06** — Restructured for Two-Tier Model after 260 catalog completion (10 area drafts done). Master exercises become source of truth at `docs/enablement/master/`; per-release extracts are filtered views. Added QB Scenario Reference as a required authoring input. Customer accounts canonicalized to `scratch_data` (Infinitech + Global Media). Pricing-feature mapping (Bundle/Attribute/Volume) onto QB-COMPLETE and constraint-engine semantics (Port/Type) for QB-QRack-750 documented in QB Scenario Reference.
+- **2026-09-30** — Release-note capture now uses the `snapshot_revenue_release_notes_{version}` CCI task (`subtree_only`) in place of the manual Chrome MCP shadow-walk; the 264 index is cross-referenced against `docs/salesforce/264/release-notes/` in its **Release-Note Cross-Reference** section.

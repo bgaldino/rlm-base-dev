@@ -7,80 +7,71 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configurator Add Nodes (POST)
 
-Add a node to the context through the runtime system without using
-      the Salesforce user interface.
+Add a node to the context through the runtime system without using the Salesforce user interface.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/cpq/configurator/actions/add-nodes
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/actions/add-nodes
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
+POST
 
-**JSON example**
+    
 
-: 
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -137,10 +128,89 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `added​Nodes` | [Configurator Added Node Input](./connect_requests_configurator_added_node_input.htm.md)[] | List of the nodes to be added. | Required | 60.0 |
@@ -148,14 +218,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 | `context​Id` | String | ID of the context object that’s being considered. | Required | 60.0 |
 | `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md) | Context details that are used for the qualification rules. | Optional | 60.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Configurator Add
-              Nodes](./connect_responses_add_nodes_configurator_output.htm.md)
+      
+      
+
+[Configurator Add Nodes](./connect_responses_add_nodes_configurator_output.htm.md)

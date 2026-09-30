@@ -7,83 +7,71 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configuration Set Instance (POST)
 
-Set a product configuration instance. This API is used in scenarios
-      where the configuration instance is available in a different database than Salesforce and the
-      product catalog management data is in Salesforce.
+Set a product configuration instance. This API is used in scenarios where the configuration instance is available in a different database than Salesforce and the product catalog management data is in Salesforce.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/cpq/configurator/actions/set-instance
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/actions/set-instance
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
+POST
 
-**JSON example**
+    
 
-          
-: 
-            
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -103,24 +91,89 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 }
 ```
 
-          
+      
 
 **Properties**
 
-: 
+      
 
-                    
+          
+          
+          
+          
+          
+          
+            
+              
 
-                    
+              
 
-                    
+              
 
-                    
+              
 
-                    
+              
 
-                  
+            
 
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md) | List of the configurator options to execute. | Optional | 60.0 |
@@ -128,14 +181,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 | `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md) | Context details that are used for the qualification rules. | Optional | 60.0 |
 | `transaction` | String | Transaction JSON payload representing an object in an external system that’s used to create a session. | Required | 60.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Configuration Set
-              Instance](./connect_responses_set_configuration_instance_output.htm.md)
+      
+      
+
+[Configuration Set Instance](./connect_responses_set_configuration_instance_output.htm.md)
