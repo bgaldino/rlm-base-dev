@@ -2,14 +2,14 @@
 
 **Per-area inventory of features in Winter '27 / Release 264, derived from the Salesforce Help portal snapshot.** Release 264 was promoted to `main` on 2026-09-16; Help snapshots captured 2026-09-04 through 2026-09-07 for ten functional areas (1,131 articles across configurator, transaction_mgmt, billing, pcm, dro, pricing, rating, usage, agents, and approvals). Collections area not captured — still serving 262 content as of 2026-09-07.
 
-> **Pre-GA status:** API v68.0 GA waves 2026-09-05 → 2026-10-10 are in progress as of 2026-09-29. This index derives from Help articles captured before/during early GA rollout, before official release notes. Feature inventory is Help-corpus-derived. A live 264 org remains the ground truth for behavioral verification.
+> **Pre-GA status:** API v68.0 GA waves 2026-09-05 → 2026-10-10 are in progress as of 2026-09-29. This index derives from Help articles captured during early GA rollout. The feature inventory comes from the Help corpus only; the 264 release notes have not been captured into this repo or cross-referenced yet. A live 264 org remains the ground truth for behavioral verification.
 
 ## Sources
 
 | File | Description |
 |---|---|
 | [`help/`](help/) | Salesforce Help snapshot — 1,131 articles captured 2026-09-04 through 2026-09-07 across 10 RC functional areas. Collections not captured — verified still serving 262 content. |
-| *(none yet)* | Official 264 release notes and Solution Overview decks — not yet published as of 2026-09-29. |
+| *(not captured)* | Winter '27 (264) release notes and Solution Overview decks are not captured in this repo yet, so tiers (GA/Beta/Pilot) and features without Help coverage are unverified. |
 
 ## Change Summary
 
@@ -38,10 +38,10 @@
 
 | Feature | Area | Description | Articles |
 |---|---|---|---|
-| **Billing Forecast** | Billing | Estimate upcoming invoice charges before invoices are created. Finance/sales review projected charges. Console uses Tableau Next. Does not apply to milestone or usage charges. | 8 articles: [`ind.billing_forecast.htm`](help/articles/ind.billing_forecast.htm.md), [`ind.billing_forecast_enable.htm`](help/articles/ind.billing_forecast_enable.htm.md), [`ind.billing_forecast_console.htm`](help/articles/ind.billing_forecast_console.htm.md), [`ind.billing_forecast_example.htm`](help/articles/ind.billing_forecast_example.htm.md) |
+| **Billing Forecast** | Billing | Estimate upcoming invoice charges before invoices are created. Finance/sales review projected charges. Console uses Tableau Next. Does not apply to milestone or usage charges. | 8 articles including [`ind.billing_forecast.htm`](help/articles/ind.billing_forecast.htm.md), [`ind.billing_forecast_enable.htm`](help/articles/ind.billing_forecast_enable.htm.md), [`ind.billing_forecast_console.htm`](help/articles/ind.billing_forecast_console.htm.md), [`ind.billing_forecast_example.htm`](help/articles/ind.billing_forecast_example.htm.md) |
 | **Invoice Risk Scoring (Pilot)** | Billing | Predict risk scores (likelihood of delayed/non-payment) using Data 360 + AI Accelerator. Scores categorized as Low/Medium/High. | 13 articles including [`ind.billing_invoice_risk_score.htm`](help/articles/ind.billing_invoice_risk_score.htm.md), [`ind.billing_invoice_risk_scoring.htm`](help/articles/ind.billing_invoice_risk_scoring.htm.md), [`ind.billing_invoice_risk_scoring_view_scores.htm`](help/articles/ind.billing_invoice_risk_scoring_view_scores.htm.md) |
 | **Payment Reconciliation** | Billing | Automate reconciliation of payment advice/proof with bank data using Document AI + vector search + Data 360. | 12 articles including [`ind.billing_payment_reconciliation.htm`](help/articles/ind.billing_payment_reconciliation.htm.md), [`ind.billing_payment_reconciliation_setup.htm`](help/articles/ind.billing_payment_reconciliation_setup.htm.md), [`ind.billing_payment_reconciliation_run.htm`](help/articles/ind.billing_payment_reconciliation_run.htm.md) |
-| **Approval Delegation** | Approvals | Delegate approval responsibilities — temporary coverage during vacation/absence. | 4 articles: [`ind.approvals_approval_delegation.htm`](help/articles/ind.approvals_approval_delegation.htm.md), [`ind.approvals_create_delegation_records.htm`](help/articles/ind.approvals_create_delegation_records.htm.md), [`ind.approvals_turn_on_delegation.htm`](help/articles/ind.approvals_turn_on_delegation.htm.md), [`ind.approvals_delegation_considerations.htm`](help/articles/ind.approvals_delegation_considerations.htm.md) |
+| **Approval Management Agent** | Agentforce | Conversational approval lifecycle — submit, track, summarize, approve/reject from Salesforce/Slack. AI-generated summaries. Three subagents. | 4 articles: [`ind.rev_agent_approval_agent.htm`](help/articles/ind.rev_agent_approval_agent.htm.md), [`ind.rev_agent_topic_approval_management.htm`](help/articles/ind.rev_agent_topic_approval_management.htm.md), [`ind.rev_agent_topic_search_approval_records.htm`](help/articles/ind.rev_agent_topic_search_approval_records.htm.md), [`ind.rev_agent_topic_summarize_multiple_approval_work_items.htm`](help/articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md) |
 | **Compound Price Uplifts for Ramps** | Transaction Mgmt | Create ramp deals with standard or compound price uplifts. | 2 articles: [`ind.qocal_ramp_deal_compound_uplift_sales_reps.htm`](help/articles/ind.qocal_ramp_deal_compound_uplift_sales_reps.htm.md), [`ind.qocal_ramp_deal_compound_uplift.htm`](help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md) |
 
 ---
@@ -50,9 +50,7 @@
 
 ### Agentforce for Revenue Management
 
-| Feature | Status | Description | Articles |
-|---|---|---|---|
-| Approval Management Agent | **Expanded** (1 → 6 articles) | Conversational approval lifecycle — submit, track, summarize, approve/reject from Salesforce/Slack. AI-generated summaries. Three subagents. | [`ind.rev_agent_approval_agent.htm`](help/articles/ind.rev_agent_approval_agent.htm.md), [`ind.rev_agent_topic_approval_management.htm`](help/articles/ind.rev_agent_topic_approval_management.htm.md), [`ind.rev_agent_topic_search_approval_records.htm`](help/articles/ind.rev_agent_topic_search_approval_records.htm.md), [`ind.rev_agent_topic_summarize_multiple_approval_work_items.htm`](help/articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md) |
+Approval Management Agent moved to **New Features in 264**: the 262 corpus has no approval-agent article, and 264 adds 4.
 
 ### Advanced Approvals
 
@@ -61,6 +59,7 @@
 | Slack Integration | **Expanded** | Post approval notifications to Slack. | [`ind.approvals_slack_channel_notifications.htm`](help/articles/ind.approvals_slack_channel_notifications.htm.md) |
 | Serial and Parallel Approvers | **Expanded** (1 → 4 articles) | Multi-stakeholder workflows. | [`ind.approvals_implement_serial_and_parallel_approvers.htm`](help/articles/ind.approvals_implement_serial_and_parallel_approvers.htm.md) |
 | Smart / Rule-Based Auto-Approvals | **Expanded** | Automated approval logic. | [`ind.approvals_smart_or_rule_based_approvals.htm`](help/articles/ind.approvals_smart_or_rule_based_approvals.htm.md) |
+| Approval Delegation | **Newly documented** (0 → 4 dedicated articles) | Delegate approval responsibilities for temporary coverage. 262 already referenced delegates (delegate notifications in `ind.approvals_email_templates.htm`; "Delegates don’t receive approval notifications in Slack"), so this is not counted as new. 264 adds dedicated setup articles. | 4 articles: [`ind.approvals_approval_delegation.htm`](help/articles/ind.approvals_approval_delegation.htm.md), [`ind.approvals_create_delegation_records.htm`](help/articles/ind.approvals_create_delegation_records.htm.md), [`ind.approvals_turn_on_delegation.htm`](help/articles/ind.approvals_turn_on_delegation.htm.md), [`ind.approvals_delegation_considerations.htm`](help/articles/ind.approvals_delegation_considerations.htm.md) |
 
 ### Billing (99 new articles, net +94)
 
@@ -187,7 +186,7 @@ All 97 Collections articles present in 262 are absent from 264 because the Colle
 
 ### How to re-check this index
 
-1. **When 264 release notes publish:** Cross-reference against official notes. Update tiers (GA/Beta/Pilot). Add features not covered by Help.
+1. **Capture the Winter '27 release notes** (as was done for 262) and cross-reference them. Update tiers (GA/Beta/Pilot). Add features not covered by Help.
 2. **When v68.0 Metadata Coverage Report publishes:** Verify object/field/API changes match the report.
 3. **Refresh Collections snapshot** once 264 content publishes:
    ```bash
