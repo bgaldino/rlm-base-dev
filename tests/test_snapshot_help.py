@@ -247,6 +247,32 @@ def main():
     except CommandException:
         check("validate_discovery rejects an unstabilized above-floor result", True)
 
+    # --- _filter_discovered subtree_only ------------------------------------
+    # Release notes share one `release-notes.rn_` prefix across every product,
+    # so the prefix alone kept all 1,596 sidebar IDs when only the Revenue
+    # subtree was wanted. subtree_only keeps the root and its descendants.
+    tree = [
+        {"id": "rn.root.htm", "title": "", "parent_id": None},
+        {"id": "rn.rev.htm", "title": "", "parent_id": "rn.root.htm"},
+        {"id": "rn.rev_billing.htm", "title": "", "parent_id": "rn.rev.htm"},
+        {"id": "rn.rev_billing_forecast.htm", "title": "", "parent_id": "rn.rev_billing.htm"},
+        {"id": "rn.sales.htm", "title": "", "parent_id": "rn.root.htm"},
+        {"id": "rn.sales_x.htm", "title": "", "parent_id": "rn.sales.htm"},
+        {"id": "rn.loop_a.htm", "title": "", "parent_id": "rn.loop_b.htm"},
+        {"id": "rn.loop_b.htm", "title": "", "parent_id": "rn.loop_a.htm"},
+    ]
+    t14 = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm")
+    check("without subtree_only the prefix alone keeps every ID",
+          len(t14._filter_discovered(tree)) == len(tree))
+    t15 = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm", subtree_only=True)
+    check("subtree_only keeps the root and all its descendants only",
+          [d["id"] for d in t15._filter_discovered(tree)]
+          == ["rn.rev.htm", "rn.rev_billing.htm", "rn.rev_billing_forecast.htm"])
+    t16 = _task(article_id_prefix="rn.rev_", root_article_id="rn.rev.htm", subtree_only=True)
+    check("subtree_only still applies the prefix filter",
+          [d["id"] for d in t16._filter_discovered(tree)]
+          == ["rn.rev_billing.htm", "rn.rev_billing_forecast.htm"])
+
     # --- _capture_one not-found-shell detection (PR #409 review) -----------
     # The Help portal renders a real H1 for a broken/retired article id
     # instead of a 404 status, so the generic "no H1 found" guard alone
