@@ -107,12 +107,13 @@ foundations:
 
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
-      purpose: "204 RC business API endpoints across 9 domains"
+      purpose: "155 RC business API endpoints across 9 domains (v68.0 / Release 264), per-domain Markdown under docs/api/"
       consumed_by_pmos: [spec, technical-review, prd]
-      provenance: manual extraction from per-release PDF
+      provenance: grounded re-extraction from the tracked 264 (v68.0) dev-guide snapshot (docs/salesforce/264/dev-guide/) — 143 grounded, 12 retained/external
       caveats:
-        - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections (references now at docs/api/) were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
-        - "Skill self-describes as 'reference, not source of truth'"
+        - "264 is pre-GA — treat a live 264 org as ground truth over the dev-guide-derived references"
+        - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
+        - "The docs/api/index.html viewer lags the Markdown (149 of 155 endpoints) until regenerated"
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

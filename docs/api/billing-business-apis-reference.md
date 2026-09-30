@@ -9,7 +9,7 @@
 ## Summary
 - **Total Endpoints**: 51 (as of RLM v264; grounded re-extraction from the 264/v68.0 dev-guide snapshot — up from 30 in the v260 extraction; sections 12-14 added by the post-corpus-refresh audit)
 - **Provenance split**: 45 of the 51 are grounded in the 264 (v68.0) RLM dev-guide snapshot. The remaining 6 (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only.
-- **API Versions Supported**: v60.0+ (individual resources carry their own "Available Version" from v62.0–v66.0; see per-endpoint notes below)
+- **API Versions Supported**: v60.0+ (individual resources carry their own "Available Version" from v62.0–v68.0; see per-endpoint notes below)
 - **HTTP Methods**: Primarily POST, with GET (Billing Arrangement), PUT (Batch Invoice Scheduler update), and PATCH (sequence policy updates, Payment Scheduler Update)
 - **Base Path Patterns**: `/commerce/`, `/revenue/`, `/connect/`
 
@@ -359,8 +359,8 @@ Sources: `connect_resources_refund_credit_memo.htm.md`, `connect_requests_refund
 ## API Version Information
 
 - **Reference target:** Revenue Cloud API v68.0 (Winter '27)
-- **Minimum availability varies per endpoint** — the earliest resources appear in Salesforce API v60.0, with others introduced through v62.0–v66.0. See each endpoint's **Available Version** for its own minimum; do not assume all 48 endpoints are available from v60.0.
-- 6 of the 48 endpoints (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs, not part of the 264 RLM dev-guide grounding source — see Section 9's own header for that caveat.
+- **Minimum availability varies per endpoint** — the earliest resources appear in Salesforce API v60.0, with others introduced through v62.0–v68.0. See each endpoint's **Available Version** for its own minimum; do not assume all 51 endpoints are available from v60.0.
+- 6 of the 51 endpoints (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs, not part of the 264 RLM dev-guide grounding source — see Section 9's own header for that caveat.
 - Supports REST protocol only
 
 ---

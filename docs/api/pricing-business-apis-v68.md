@@ -289,20 +289,30 @@ This document provides a comprehensive reference of all REST API endpoints for t
   - `procedurePlanSections` (Procedure Plan Section Input[], Required): Array of procedure plan sections
     - `isInherited` (Boolean, read-only): Whether the section is inherited
     - `procedurePlanOptions` (Procedure Plan Option Input[], Required): Options with:
-      - `saveContextMapping` (String)
-      - `expressionSetDefinition` (String): Reference to expression set
-      - `expressionSetLabel` (String)
-      - `expressionSetApiName` (String)
-      - `logic` (String): Logical operators (e.g., "1 AND 2 AND 3")
-      - `priority` (Integer)
-      - `procedurePlanCriterion` (Array): Criteria conditions
+      - `expressionSetApiName` (String, Optional): API name of the expression set
+      - `expressionSetDefinition` (String, Required): Expression set definition associated with the option
+      - `expressionSetLabel` (String, Optional): Label of the expression set
+      - `logic` (String, Optional): Computation logic for the option's conditions (e.g., "1 AND 2 AND 3"); must be blank if the resolution type is default
+      - `priority` (Integer, Required): Must be > 0 and unique within a procedure plan section
+      - `procedurePlanCriterion` (Procedure Plan Criterion Input[], Optional): Rule-based criteria, each with:
+        - `conditionSequence` (Integer, Required): Processing order; unique within the option
+        - `dataType` (String, Required): Data type of the field from the selected object
+        - `fieldObject` (String, Required): Object field used to resolve the option; must belong to the definition's primary object, at most two levels up
+        - `fieldPath` (String, Required): Path to the field; must end with the criterion's object field
+        - `literalValue` (String, Optional): Value compared to the sObject field value
+        - `operator` (String, Required): Operator used by the criterion
+        - `recordId` (String, Required): ID of the procedure plan criterion record
+      - `readContextMapping` (String, Optional): Mapping used to read from the mapped object and populate the context definition
+      - `recordId` (String, Required): ID of the procedure plan option record
+      - `saveContextMapping` (String, Optional): Mapping used to save data from the context definition and populate the mapped object
     - `recordId` (String, Required): ID of the procedure plan section record
     - `resolutionType` (String, Required): Type of resolution used to filter the procedure. Can't be edited if the section includes a procedure plan option record
     - `sectionType` (String, Required): Section type. Valid values: PricingProcedure, ProductDiscoveryProcedure, ProductQualificationProcedure, PricingDiscoveryProcedure, DiscountSpreadServiceProcedure, RatingProcedure, Custom, RatingDiscoveryProcedure
     - `sequence` (Integer, Required): Processing order; must be > 0 and unique within a procedure plan version
     - `subSectionType` (String, Required): Procedure subsection added to the procedure plan definition
   - `rank` (Integer, Required): Rank of the version
-  - `readContextMapping` (String, Optional): Context mapping for reading
+  - `readContextMapping` (String, Optional): Mapping used to read data from the mapped object and populate the context definition
+  - `recordId` (String, Required): ID of the procedure plan definition version record
   - `saveContextMapping` (String, Optional): Mapping used to save data from the context definition and populate the mapped object
   - `status` (String, Optional): Status of the procedure plan definition version record
 

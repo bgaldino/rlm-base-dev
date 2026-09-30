@@ -121,7 +121,7 @@ POST: 47 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (se
 
 ## Authentication and Standards
 
-OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimum API version v60.0; current v68.0 (individual resources carry their own Available Version from v62.0–v66.0 — see `billing-business-apis-reference.md`). Standard Salesforce API rate limits apply.
+OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimum API version v60.0; current v68.0 (individual resources carry their own Available Version from v62.0–v68.0 — see `billing-business-apis-reference.md`). Standard Salesforce API rate limits apply.
 
 ## Related Domains
 
