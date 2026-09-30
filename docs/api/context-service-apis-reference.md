@@ -105,7 +105,7 @@ The Setup Runner populates four context variable sets, each corresponding to a d
 | `cartContextDefinitionId` | Cart | eCommerce cart pricing |
 | `pdContextDefinitionId` | Product Discovery | Catalog context |
 
-Each has a paired `contextMappingId` and `pricingProcedureId` variable populated by the Setup Runner.
+Each has a paired context mapping ID (`contextMappingId`, `customContextMappingId`, `cartContextMappingId`, `pdContextMappingId`) and pricing procedure ID (`defaultPricingProcedureId`, `customPricingProcedureId`, `cartPricingProcedureId`, `pdPricingProcedureId`), populated by the Setup Runner.
 
 ---
 
@@ -142,7 +142,7 @@ For new context definitions (admin setup, not runtime):
 | `{{cartContextMappingId}}` | Cart context mapping ID | Setup Runner |
 | `{{pdContextDefinitionId}}` | Product Discovery context definition ID | Setup Runner |
 | `{{pdContextMappingId}}` | Product Discovery context mapping ID | Setup Runner |
-| `{{pricingProcedureId}}` | Default pricing procedure ID | Setup Runner |
+| `{{defaultPricingProcedureId}}` | Default pricing procedure ID | Setup Runner |
 
 ---
 

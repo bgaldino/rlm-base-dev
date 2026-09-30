@@ -107,7 +107,7 @@ The Setup Runner queries your org and populates all of the following:
 | Product Selling Models | `defaultOneTimePSMId`, `defaultEvergreenMonthlyPSMId`, `defaultEvergreenAnnualPSMId`, `defaultTermMonthlyPSMId`, `defaultTermDefinedAnnualPSMId` |
 | Pricebook | `standardPricebookId` |
 | Pricebook Entries (by type) | `defaultOneTimePBEId`, `defaultEvergreenMonthlyPBEId`, `defaultEvergreenAnnualPBEId`, `defaultTermMonthlyPBEId`, `defaultTermDefinedAnnualPBEId` |
-| Context (Default) | `contextDefinitionId`, `contextMappingId`, `pricingProcedureId` |
+| Context (Default) | `contextDefinitionId`, `contextMappingId`, `defaultPricingProcedureId` |
 | Context (Custom) | `customContextDefinitionId`, `customContextMappingId` |
 | Context (Cart) | `cartContextDefinitionId`, `cartContextMappingId` |
 | Context (Product Discovery) | `pdContextDefinitionId`, `pdContextMappingId` |
