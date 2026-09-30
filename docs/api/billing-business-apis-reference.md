@@ -7,9 +7,9 @@
 ---
 
 ## Summary
-- **Total Endpoints**: 48 (as of RLM v264; grounded re-extraction from the 264/v68.0 dev-guide snapshot — up from 30 in the v260 extraction)
-- **Provenance split**: 42 of the 48 are grounded in the 264 (v68.0) RLM dev-guide snapshot. The remaining 6 (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only.
-- **API Versions Supported**: v60.0+ (individual resources carry their own "Available Version" from v62.0–v66.0; see per-endpoint notes below)
+- **Total Endpoints**: 51 (as of RLM v264; grounded re-extraction from the 264/v68.0 dev-guide snapshot — up from 30 in the v260 extraction; sections 12-14 added by the post-corpus-refresh audit)
+- **Provenance split**: 45 of the 51 are grounded in the 264 (v68.0) RLM dev-guide snapshot. The remaining 6 (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only.
+- **API Versions Supported**: v60.0+ (individual resources carry their own "Available Version" from v62.0–v68.0; see per-endpoint notes below)
 - **HTTP Methods**: Primarily POST, with GET (Billing Arrangement), PUT (Batch Invoice Scheduler update), and PATCH (sequence policy updates, Payment Scheduler Update)
 - **Base Path Patterns**: `/commerce/`, `/revenue/`, `/connect/`
 
@@ -303,11 +303,64 @@ Distinct from the existing "Invoice Scheduler" section (section 4) — this is a
 
 ---
 
+### 12. BILLING CHECKOUT (1 Endpoint) — new section, added by the post-#460 corpus-refresh audit
+
+| # | HTTP Method | URI | Description | Available Version |
+|---|---|---|---|---|
+| 1 | POST | `/commerce/invoicing/invoices/collection/actions/checkout` | Create a unified checkout transaction that generates billing schedules, an invoice, and an optional payment in a single request. Requires the Billing Checkout access permission. | v68.0 |
+
+**Common Request Body Fields**:
+- `amount` (Double, Required), `currencyIsoCode` (String, Required), `lineItems` (Billing Checkout Line Item Input[], Required)
+- `accountId` (String, Optional — use this or `customerDetails`), `customerDetails` (Billing Checkout Customer Details Input, Optional — used to create a customer when `accountId` isn't provided)
+- `billingAddress` (Address Input, Optional — use this or `billingProfileId`), `billingProfileId` (String, Optional), `billingContact` (Billing Contact Input, Optional), `shippingAddress` (Address Input, Optional)
+- `paymentMethodId` (String, Optional — use this or `paymentDetails`), `paymentDetails` (Billing Checkout Payment Details Input, Optional — raw details to tokenize a new card/bank account), `paymentId` (String, Optional — an existing payment record; not allowed with `shouldCapturePayment=true` or together with `amount`)
+- `shouldCapturePayment` (Boolean, Optional), `isPartialPaymentAllowed` (Boolean, Optional, default `false`)
+- `previewInvoice` (Boolean, Optional — return an invoice preview without committing the transaction), `invoiceDate` (String, Optional), `invoiceTargetDate` (String, Optional)
+
+Sources: `connect_resources_billing_checkout.htm.md`, `connect_requests_billing_checkout_input.htm.md`, `connect_requests_billing_checkout_line_item_input.htm.md`, `connect_requests_billing_checkout_customer_details_input.htm.md`, `connect_requests_billing_checkout_billing_contact_input.htm.md`, `connect_requests_billing_checkout_payment_details_input.htm.md`, `connect_requests_billing_checkout_saved_payment_method_details_input.htm.md`, `connect_requests_billing_checkout_ramp_input.htm.md`, `connect_requests_billing_checkout_bundle_product_details_input.htm.md`, `connect_responses_billing_checkout_output.htm.md`, `connect_responses_billing_checkout_error.htm.md`.
+
+---
+
+### 13. COLLECTIONS (1 Endpoint) — new section, added by the post-#460 corpus-refresh audit
+
+| # | HTTP Method | URI | Description | Available Version |
+|---|---|---|---|---|
+| 1 | POST | `/connect/collections/composite-collection-plan` | Create one or more collection plans, each with its nested collection plan items, in a single request. Each plan runs independently — a request can partially succeed across plans, but a failed item rolls back its parent plan. Requires collections to be set up and invoicing enabled. | v68.0 |
+
+**Common Request Body Fields**:
+- `collectionPlans` (Collection Plan Input[], Required — specify at least 1)
+  - `accountId` (String, Required), `usageType` (String, Required; valid value `Billing`)
+  - `contactId`, `collectionPlanReasonId`, `dueDate` (`YYYY-MM-DD`) (String, Optional)
+  - `initialDueAmount` (Double, Optional), `collectionPlanSegment` (String, Optional — org-defined dynamic value), `overdueRiskIndicator` (String, Optional; valid values `High`/`Low`/`Medium`)
+  - `collectionPlanItems` (Collection Plan Item Input[], Optional): `invoiceId` (String, Required if `collectionPlanItems` is present — the invoice must be `Posted` and not `Settled`; all invoices in a plan must share a currency), `collectionPlanId` (String, Optional — defaults to the parent plan when nested)
+
+Sources: `connect_resources_collections_composite_collection_plan.htm.md`, `connect_requests_composite_collection_plan_input.htm.md`, `connect_requests_collection_plan_input.htm.md`, `connect_requests_collection_plan_item_input.htm.md`, `connect_responses_composite_collection_plan_output.htm.md`, `connect_responses_collection_plan_output.htm.md`, `connect_responses_collection_plan_error.htm.md`.
+
+---
+
+### 14. REFUND CREDIT MEMO (1 Endpoint) — new section, added by the post-#460 corpus-refresh audit
+
+| # | HTTP Method | URI | Description | Available Version |
+|---|---|---|---|---|
+| 1 | POST | `/revenue/billing/refunds/unreferenced-refunds/actions/process` | Initiate a refund against a credit memo. Locks the credit memo, calls the Commerce Refund API, and applies the refund inline (sync) or defers until the payment gateway event is received (async). | v68.0 |
+
+**Common Request Body Fields**:
+- `appliedToId` (String, Required — ID of the credit memo the refund is applied to)
+- `refundAmount` (Double, Required — must be > 0 and not exceed the credit memo's remaining balance)
+- `paymentMethodId` (String, Required — must reference a valid, active payment method)
+- `refundReason` (String, Required)
+- `currencyIsoCode` (String, Required if multi-currency is enabled — must match the credit memo's currency)
+- `refundNotes` (String, Optional)
+
+Sources: `connect_resources_refund_credit_memo.htm.md`, `connect_requests_refund_credit_memo_input.htm.md`, `connect_responses_refund_credit_memo_output.htm.md`, `connect_responses_refund_error_output.htm.md`, `connect_responses_refund_application_output.htm.md`.
+
+---
+
 ## API Version Information
 
 - **Reference target:** Revenue Cloud API v68.0 (Winter '27)
-- **Minimum availability varies per endpoint** — the earliest resources appear in Salesforce API v60.0, with others introduced through v62.0–v66.0. See each endpoint's **Available Version** for its own minimum; do not assume all 48 endpoints are available from v60.0.
-- 6 of the 48 endpoints (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs, not part of the 264 RLM dev-guide grounding source — see Section 9's own header for that caveat.
+- **Minimum availability varies per endpoint** — the earliest resources appear in Salesforce API v60.0, with others introduced through v62.0–v68.0. See each endpoint's **Available Version** for its own minimum; do not assume all 51 endpoints are available from v60.0.
+- 6 of the 51 endpoints (Section 9, Salesforce Commerce Payments) are external Commerce Payments APIs, not part of the 264 RLM dev-guide grounding source — see Section 9's own header for that caveat.
 - Supports REST protocol only
 
 ---

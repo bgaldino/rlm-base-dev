@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Business APIs
 
-API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postman/docs/` and the viewer at `docs/api/index.html` cover 149 endpoints across 9 domains — 137 re-extracted (grounded) from the 264 (v68.0) developer guide, plus 12 retained/external (six external Salesforce Commerce Payments Billing endpoints under `/commerce/payments/`, outside the 264 RLM guide; five v59-carryover Context Service endpoints, for which the 264 guide has no Business-API section; and one legacy PCM route — `/connect/pcm/products/{productId}/related-records` — with no 264 snapshot article). Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org.
+API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `docs/api/` cover 155 endpoints across 9 domains — 143 re-extracted (grounded) from the 264 (v68.0) developer guide, plus 12 retained/external (six external Salesforce Commerce Payments Billing endpoints under `/commerce/payments/`, outside the 264 RLM guide; five v59-carryover Context Service endpoints, for which the 264 guide has no Business-API section; and one legacy PCM route — `/connect/pcm/products/{productId}/related-records` — with no 264 snapshot article). Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org. The viewer at `docs/api/index.html` lags the Markdown: it still shows 149 endpoints and lacks the six v68 additions (Pricing Recipe Clone and Valid Elements, Unlock Transaction, Billing Checkout, Composite Collection Plan, Refund Credit Memo) until it is regenerated, so use the Markdown references for those.
 
 ## Quick Rules
 
@@ -18,7 +18,7 @@ API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postm
 2. Auth: Bearer token from `org_config.access_token`.
 3. Context Service: must activate context definition before use.
 4. Pricing API computes prices — never write PBE records directly via API.
-5. Load per-domain reference docs from `postman/docs/` for full endpoint details.
+5. Load per-domain reference docs from `docs/api/` for full endpoint details.
 
 ## API Domain Index
 
@@ -26,15 +26,15 @@ API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `postm
 
 | Domain | Base Path(s) | Key Operations | Reference Doc |
 |--------|-----------|---------------|---------------|
-| **PCM** | `/connect/pcm/`, `/revenue/product-catalog-management/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../postman/docs/pcm-business-apis-reference.md) |
-| **Product Discovery** | `/connect/cpq/`, `/revenue/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../postman/docs/product-discovery-apis-reference.md) |
-| **Product Configurator** | `/connect/cpq/`, `/revenue/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../postman/docs/product-configurator-apis-reference.md) |
-| **Pricing** | `/connect/core-pricing/`, `/connect/procedure-plan-definitions/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v68.md](../../../postman/docs/pricing-business-apis-v68.md) |
-| **Rate Management** | `/connect/core-rating/`, `/connect/core-pricing/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../postman/docs/rate-management-apis-reference.md) |
-| **Transaction Mgmt** | `/connect/rev/sales-transaction/` (current place/clone/supplemental), `/revenue/transaction-management/` & `/connect/revenue/transaction-management/` (read, place tracker, promotions, asset upgrade/downgrade/swap), `/connect/revenue-management/` (asset amend/cancel/renew, ramp deals), `/connect/advanced-approvals/`, `/industries/cpq/`, `/global-promotions-management/`, `/commerce/` (deprecated v63 place only) | Quotes, orders, assets, amendments, renewals, cancellations, ramp deals, approvals, promotions | [transaction-management-apis-reference.md](../../../postman/docs/transaction-management-apis-reference.md) |
-| **Usage Mgmt** | `/revenue/usage-management/`, `/asset-management/`, `/commerce/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../postman/docs/usage-management-apis-reference.md) |
-| **Billing** | `/commerce/` (billing, invoicing, payments, taxes), `/revenue/billing/`, `/connect/sequences/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../../postman/docs/billing-business-apis-reference.md) |
-| **Context Service** | `/connect/context-definitions/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../../postman/docs/context-service-apis-reference.md) |
+| **PCM** | `/connect/pcm/`, `/revenue/product-catalog-management/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../../docs/api/pcm-business-apis-reference.md) |
+| **Product Discovery** | `/connect/cpq/`, `/revenue/product-discovery/` | Context-aware product search with pricing, entitlements, guided selling | [product-discovery-apis-reference.md](../../../docs/api/product-discovery-apis-reference.md) |
+| **Product Configurator** | `/connect/cpq/`, `/revenue/product-configurator/` | Configuration flows, rule validation, attribute resolution | [product-configurator-apis-reference.md](../../../docs/api/product-configurator-apis-reference.md) |
+| **Pricing** | `/connect/core-pricing/`, `/connect/procedure-plan-definitions/` | Calculate prices, waterfalls, adjustments, promotion evaluation | [pricing-business-apis-v68.md](../../../docs/api/pricing-business-apis-v68.md) |
+| **Rate Management** | `/connect/core-rating/`, `/connect/core-pricing/` | Rate plans, rating waterfalls, usage pricing | [rate-management-apis-reference.md](../../../docs/api/rate-management-apis-reference.md) |
+| **Transaction Mgmt** | `/connect/rev/sales-transaction/` (current place/clone/supplemental), `/revenue/transaction-management/` & `/connect/revenue/transaction-management/` (read, place tracker, promotions, asset upgrade/downgrade/swap), `/connect/revenue-management/` (asset amend/cancel/renew, ramp deals), `/connect/advanced-approvals/`, `/industries/cpq/`, `/global-promotions-management/`, `/commerce/` (deprecated v63 place only) | Quotes, orders, assets, amendments, renewals, cancellations, ramp deals, approvals, promotions | [transaction-management-apis-reference.md](../../../docs/api/transaction-management-apis-reference.md) |
+| **Usage Mgmt** | `/revenue/usage-management/`, `/asset-management/`, `/commerce/` | Usage events, summaries, entitlements, grants | [usage-management-apis-reference.md](../../../docs/api/usage-management-apis-reference.md) |
+| **Billing** | `/commerce/` (billing, invoicing, payments, taxes), `/revenue/billing/`, `/connect/sequences/` | Invoice generation, credit memos, payments, billing schedules | [billing-business-apis-reference.md](../../../docs/api/billing-business-apis-reference.md) |
+| **Context Service** | `/connect/context-definitions/` | Context definitions, mappings, context CRUD | [context-service-apis-reference.md](../../../docs/api/context-service-apis-reference.md) |
 
 ## Common Patterns
 
@@ -76,9 +76,9 @@ Context definitions store session state and configuration across API calls. Used
 ## Reference
 
 The cross-domain API reference lives as per-area markdown under
-[`postman/docs/`](../../../postman/docs/) — 149 endpoints across 9 domains (PCM,
+[`docs/api/`](../../../docs/api/) — 155 endpoints across 9 domains (PCM,
 Product Discovery, Product Configurator, Pricing, Rate Management, Transaction
-Management, Usage Management, Billing, Context Service). Of these, 137 are
+Management, Usage Management, Billing, Context Service). Of these, 143 are
 re-extracted (grounded) from the Release 264 (Winter '27, v68.0) developer guide;
 12 are retained/external (six external Commerce Payments Billing endpoints under
 `/commerce/payments/`; five v59-carryover Context Service endpoints, for which
@@ -88,7 +88,7 @@ article). 264 is pre-GA, so treat a live 264 org as ground truth over the guide.
 
 ## Interactive Viewer
 
-Open `docs/api/index.html` in a browser for a searchable, collapsible API reference with dark/light theme toggle.
+Open `docs/api/index.html` in a browser for a searchable, collapsible API reference with dark/light theme toggle. It is pending regeneration (149 of the 155 endpoints); the per-domain Markdown in `docs/api/` is authoritative.
 
 ## Postman Collection
 

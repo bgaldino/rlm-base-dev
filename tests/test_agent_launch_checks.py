@@ -414,7 +414,7 @@ class LaunchChecks(unittest.TestCase):
     def test_target_only_change_selects_gate(self):
         spec = next(c for c in pr_gate.CHECKS if c["name"] == "agent_tooling")
         self.assertFalse(pr_gate.selects(spec, []))
-        for path in ("postman/docs/reference.md", "images/example.png", "NOTICE", ".claude/skills/example"):
+        for path in ("postman/reference.md", "images/example.png", "NOTICE", ".claude/skills/example"):
             self.assertTrue(pr_gate.selects(spec, [path]), path)
 
 

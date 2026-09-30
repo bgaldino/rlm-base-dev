@@ -1,6 +1,6 @@
 # Revenue Cloud Postman Collections
 
-API collections for Salesforce Revenue Cloud. The downloadable Postman collection JSON and environment file below are still the Spring '26 (Release 260, API v66.0) baseline and are being regenerated against a live 264 org. The per-domain reference guides under [`docs/`](docs/) have already been re-extracted for Release 264 (Winter '27, API v68.0) — see [Reference Guides](#reference-guides).
+API collections for Salesforce Revenue Cloud. The downloadable Postman collection JSON and environment file below are still the Spring '26 (Release 260, API v66.0) baseline and are being regenerated against a live 264 org. The per-domain reference guides under [`docs/`](../docs/api/) have already been re-extracted for Release 264 (Winter '27, API v68.0) — see [Reference Guides](#reference-guides).
 
 ---
 
@@ -30,18 +30,18 @@ API collections for Salesforce Revenue Cloud. The downloadable Postman collectio
 
 ## Reference Guides
 
-Per-domain endpoint references are in `docs/`. Each guide covers HTTP method, URI path, full URL, request body fields, and environment variables.
+Per-domain endpoint references are in [`docs/api/`](../docs/api/). Each guide covers HTTP method, URI path, full URL, request body fields, and environment variables.
 
-- [Product Catalog Management (PCM)](docs/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (22 endpoints)
-- [Product Discovery](docs/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (11 endpoints)
-- [Product Configurator](docs/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (14 endpoints)
-- [Pricing](docs/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (19 endpoints)
-- [Rate Management](docs/rate-management-apis-reference.md) — Rate plans and rating waterfall for usage-based billing (2 endpoints)
-- [Transaction Management](docs/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (21 endpoints)
-- [Usage Management](docs/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (7 endpoints)
-- [Billing (Quick Reference)](docs/billing-apis-quick-reference.md) — Billing quick reference cheat sheet
-- [Billing (Full Reference)](docs/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (48 endpoints)
-- [Context Service](docs/context-service-apis-reference.md) — Context definitions, nodes, and mappings that power pricing and entitlements (5 endpoints)
+- [Product Catalog Management (PCM)](../docs/api/pcm-business-apis-reference.md) — Catalogs, categories, products, index management, unit of measure (22 endpoints)
+- [Product Discovery](../docs/api/product-discovery-apis-reference.md) — Context-aware catalog access, global search, guided selection, qualification (11 endpoints)
+- [Product Configurator](../docs/api/product-configurator-apis-reference.md) — Configure bundles, manage saved configurations, node operations (14 endpoints)
+- [Pricing](../docs/api/pricing-business-apis-v68.md) — Core pricing engine, price contexts, waterfall, API execution logs (21 endpoints)
+- [Rate Management](../docs/api/rate-management-apis-reference.md) — Rate plans and rating waterfall for usage-based billing (2 endpoints)
+- [Transaction Management](../docs/api/transaction-management-apis-reference.md) — Sales transactions, instant pricing, asset lifecycle, ramp deals (22 endpoints)
+- [Usage Management](../docs/api/usage-management-apis-reference.md) — Asset/order/quote usage details, consumption traceability, usage product validation (7 endpoints)
+- [Billing (Quick Reference)](../docs/api/billing-apis-quick-reference.md) — Billing quick reference cheat sheet
+- [Billing (Full Reference)](../docs/api/billing-business-apis-reference.md) — Invoices, payments, credit memos, billing schedules, billing runs (51 endpoints)
+- [Context Service](../docs/api/context-service-apis-reference.md) — Context definitions, nodes, and mappings that power pricing and entitlements (5 endpoints)
 
 ---
 
@@ -107,7 +107,7 @@ The Setup Runner queries your org and populates all of the following:
 | Product Selling Models | `defaultOneTimePSMId`, `defaultEvergreenMonthlyPSMId`, `defaultEvergreenAnnualPSMId`, `defaultTermMonthlyPSMId`, `defaultTermDefinedAnnualPSMId` |
 | Pricebook | `standardPricebookId` |
 | Pricebook Entries (by type) | `defaultOneTimePBEId`, `defaultEvergreenMonthlyPBEId`, `defaultEvergreenAnnualPBEId`, `defaultTermMonthlyPBEId`, `defaultTermDefinedAnnualPBEId` |
-| Context (Default) | `contextDefinitionId`, `contextMappingId`, `pricingProcedureId` |
+| Context (Default) | `contextDefinitionId`, `contextMappingId`, `defaultPricingProcedureId` |
 | Context (Custom) | `customContextDefinitionId`, `customContextMappingId` |
 | Context (Cart) | `cartContextDefinitionId`, `cartContextMappingId` |
 | Context (Product Discovery) | `pdContextDefinitionId`, `pdContextMappingId` |

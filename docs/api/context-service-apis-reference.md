@@ -48,8 +48,8 @@ Context nodes define the hierarchical structure within a context definition — 
 
 ### 4. Create Context Nodes (POST)
 - **HTTP Method:** POST
-- **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context`
+- **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context-nodes`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context-nodes`
 - **Description:** Add one or more nodes to a context definition. Each node represents a logical grouping of attributes within the context schema. Nodes can represent Salesforce objects (e.g., Account), custom data structures, or classification hierarchies. After creating nodes, use Create Context Mappings to bind them to Salesforce object fields.
 - **Available Version:** 59.0
 - **Path Parameters:**
@@ -68,8 +68,8 @@ Context mappings define how Salesforce object field values are bound to context 
 
 ### 5. Create Context Mappings (POST)
 - **HTTP Method:** POST
-- **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context`
+- **URI Path:** `/connect/context-definitions/{contextDefinitionId}/context-mappings`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/{{contextDefinitionId}}/context-mappings`
 - **Description:** Define field-to-context mappings for a context definition. Each mapping specifies which Salesforce object and field provides a value for a given context attribute. Mappings are evaluated at runtime to hydrate the context instance before pricing procedures execute.
 - **Available Version:** 59.0
 - **Path Parameters:**
@@ -105,7 +105,7 @@ The Setup Runner populates four context variable sets, each corresponding to a d
 | `cartContextDefinitionId` | Cart | eCommerce cart pricing |
 | `pdContextDefinitionId` | Product Discovery | Catalog context |
 
-Each has a paired `contextMappingId` and `pricingProcedureId` variable populated by the Setup Runner.
+Each has a paired context mapping ID (`contextMappingId`, `customContextMappingId`, `cartContextMappingId`, `pdContextMappingId`) and pricing procedure ID (`defaultPricingProcedureId`, `customPricingProcedureId`, `cartPricingProcedureId`, `pdPricingProcedureId`), populated by the Setup Runner.
 
 ---
 
@@ -142,7 +142,7 @@ For new context definitions (admin setup, not runtime):
 | `{{cartContextMappingId}}` | Cart context mapping ID | Setup Runner |
 | `{{pdContextDefinitionId}}` | Product Discovery context definition ID | Setup Runner |
 | `{{pdContextMappingId}}` | Product Discovery context mapping ID | Setup Runner |
-| `{{pricingProcedureId}}` | Default pricing procedure ID | Setup Runner |
+| `{{defaultPricingProcedureId}}` | Default pricing procedure ID | Setup Runner |
 
 ---
 

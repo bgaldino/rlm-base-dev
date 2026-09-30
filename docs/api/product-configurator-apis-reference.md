@@ -36,7 +36,7 @@ Saved configurations allow reusable configuration templates — tied to a `refer
 ### 2. List Saved Configurations (GET)
 - **HTTP Method:** GET
 - **URI Path:** `/connect/cpq/configurator/saved-configuration`
-- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration?referenceRecordId={{defaultQuoteId}}`
+- **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration?referenceRecordId={{quoteId}}`
 - **Description:** Get a list of the saved configurations for a record.
 - **Available Version:** 63.0
 - **Request Parameters:**
@@ -235,7 +235,7 @@ Nodes represent individual components within a configuration — products, bundl
 |----------|-------------|--------|
 | `{{_endpoint}}` | Salesforce org base URL | Manual setup |
 | `{{version}}` | API version (e.g., `68.0`) | Manual setup |
-| `{{defaultQuoteId}}` | Default quote record ID | Setup Runner |
+| `{{quoteId}}` | Quote record ID (set by the Setup Runner only if it finds a quote; otherwise supply an existing record ID) | Setup Runner |
 
 ---
 

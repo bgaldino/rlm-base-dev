@@ -7,18 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configuration Save Instance Input
 
 Input representation of the request to save a product configuration instance.
 
-**JSON example**
+    
 
-: 
+## JSON Example
+
+      
+      
 
 ```
 
@@ -27,22 +28,53 @@ Input representation of the request to save a product configuration instance.
 }
 ```
 
-**Properties**
+    
 
-: 
+    
 
-                    
+## Properties
 
-                    
+      
+      
 
-                    
+          
+          
+          
+          
+          
+          
+            
+              
 
-                    
+              
 
-                    
+              
 
-                  
+              
 
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextId` | String | Transaction context ID of the product configuration instance that’s to be saved. | Required | 60.0 |

@@ -1,8 +1,8 @@
 # Revenue Cloud Billing Business APIs — Quick Reference
 
-**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 48 | **Source:** RLM Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
+**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 51 | **Source:** RLM Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
 
-**Provenance split**: 42 of the 48 endpoints below are grounded in the 264 (v68.0) RLM dev-guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
+**Provenance split**: 45 of the 51 endpoints below are grounded in the 264 (v68.0) RLM dev-guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
 
 ---
 
@@ -89,11 +89,23 @@
 - `POST /commerce/payments/payment-schedulers/` *(new — v64.0)*
 - `PATCH /commerce/payments/payment-schedulers/{billingBatchSchedulerId}` *(new — v64.0)*
 
+### 12. Billing Checkout (1 endpoint) — new section
+
+- `POST /commerce/invoicing/invoices/collection/actions/checkout` *(new — v68.0)*
+
+### 13. Composite Collection Plan (1 endpoint) — new section
+
+- `POST /connect/collections/composite-collection-plan` *(new — v68.0)*
+
+### 14. Refund Credit Memo (1 endpoint) — new section
+
+- `POST /revenue/billing/refunds/unreferenced-refunds/actions/process` *(new — v68.0)*
+
 ---
 
 ## HTTP Methods
 
-POST: 44 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (sequence policy updates, Payment Scheduler Update), PUT: 1 endpoint (Invoice Scheduler Update, Draft/Inactive only), GET: 1 endpoint (Billing Arrangement).
+POST: 47 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (sequence policy updates, Payment Scheduler Update), PUT: 1 endpoint (Invoice Scheduler Update, Draft/Inactive only), GET: 1 endpoint (Billing Arrangement).
 
 ## API Base Paths
 
@@ -103,12 +115,13 @@ POST: 44 endpoints (actions, creation, batch operations), PATCH: 2 endpoints (se
 | `/commerce/billing/` | Payment, refund, credit memo, and invoice batch docgen operations |
 | `/revenue/billing/` | Transaction, document, account statement, and billing arrangement operations |
 | `/connect/sequences/` | Invoice sequencing |
+| `/connect/collections/` | Collection plans |
 | `/commerce/payments/` | Payment processing and batch payment scheduler operations |
 | `/commerce/taxes/` | Tax calculations |
 
 ## Authentication and Standards
 
-OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimum API version v60.0; current v68.0 (individual resources carry their own Available Version from v62.0–v66.0 — see `billing-business-apis-reference.md`). Standard Salesforce API rate limits apply.
+OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimum API version v60.0; current v68.0 (individual resources carry their own Available Version from v62.0–v68.0 — see `billing-business-apis-reference.md`). Standard Salesforce API rate limits apply.
 
 ## Related Domains
 

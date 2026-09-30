@@ -7,18 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configuration Options Input
 
 Input representation for the configuration options.
 
-**JSON example**
+    
 
-: 
+## JSON Example
+
+      
+      
 
 ```
 {
@@ -31,10 +32,92 @@ Input representation for the configuration options.
 }
 ```
 
-**Properties**
+    
 
-: 
+    
 
+## Properties
+
+      
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `addDefault​Configuration` | Boolean | Indicates whether to automatically add default configurations to the order (`true`) or not (`false`). | Optional | 60.0 |

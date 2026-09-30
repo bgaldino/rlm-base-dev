@@ -7,24 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Invoice Line Preview
 
 Output representation of the invoice line preview result.
 
+    
+
+## JSON Example
+
       
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+      
 
 ```
   "invoiceLineDetailList": [
@@ -42,11 +37,140 @@ Output representation of the invoice line preview result.
       ]
 ```
 
+    
+
+    
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
           
 
         
-      
-
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `billing​Frequency` | String | The frequency at which the invoice line is created for the billing transaction. | Big, 63.0 | 63.0 |
