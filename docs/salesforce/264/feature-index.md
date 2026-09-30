@@ -349,7 +349,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 
 | Release note | License or requirement | Index row |
 |---|---|---|
-| [Configure Billing Features Faster](release-notes/articles/release-notes.rn_billing_features_with_salesforce_go.htm.md) | Advanced or Billing; Invoice Document Delivery needs Billing | *not in index* |
+| [Configure Billing Features Faster](release-notes/articles/release-notes.rn_billing_features_with_salesforce_go.htm.md) | Advanced or Billing; Invoice Document Delivery needs Billing, and Advanced includes only a few Accounting Sub-Ledger for Accounts Receivables features | *not in index* |
 | [Orchestrate High Tech Order Scenarios by Using a Prebuilt Template](release-notes/articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md) | Advanced or Billing | High Tech Order Orchestration Template |
 
 ### Transaction Management (9)
