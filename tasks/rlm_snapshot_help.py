@@ -591,35 +591,47 @@ class SnapshotSalesforceHelp(BaseTask):
             "total_captured_body_chars": total_chars,
         }
 
+    def _prune_moved_out(
+        self, manifest: Dict[str, Any], moved_out: Set[str]
+    ) -> List[str]:
+        """Drop this area's records that `_classify_subtree` placed outside the root.
+
+        With subtree_only, an article that left the root's subtree (pre-GA
+        release notes move between sections) must leave this area's snapshot
+        too, or mode=refresh selects the stale record and recaptures it.
+        `moved_out` holds only IDs placed conclusively outside the subtree: a
+        record merely absent from the walk, or one whose ancestry is
+        incomplete, is kept, because a partial walk can stabilize above
+        expect_min_articles. Other areas' records sharing the manifest are
+        untouched. Returns the pruned IDs; the caller deletes their files
+        only after the pruned manifest is saved, so an interrupted run leaves
+        an orphan file rather than a captured record with no file.
+        """
+        if not self.options.get("subtree_only") or not moved_out:
+            return []
+        current_area = self.options["area"]
+        kept_records, pruned = [], []
+        for record in manifest.get("articles", []):
+            article_id = record.get("article_id")
+            if article_id in moved_out and (
+                not record.get("area") or record.get("area") == current_area
+            ):
+                pruned.append(article_id)
+                self.logger.info(f"Pruned {article_id}: no longer under the root subtree")
+            else:
+                kept_records.append(record)
+        manifest["articles"] = kept_records
+        return pruned
+
     def _merge_discovered(
         self,
         manifest: Dict[str, Any],
         discovered: List[Dict[str, str]],
-        articles_dir: Optional[Path] = None,
-        moved_out: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
         existing_by_id: Dict[str, Dict[str, Any]] = {
             a["article_id"]: a for a in manifest.get("articles", [])
         }
         current_area = self.options["area"]
-        # With subtree_only, an article that left the root's subtree (pre-GA
-        # release notes move between sections) must leave this area's
-        # snapshot too, or mode=refresh selects the stale record and
-        # recaptures it. `moved_out` holds only IDs `_classify_subtree` places
-        # conclusively outside the subtree: a record merely absent from the
-        # walk, or one whose ancestry is incomplete, is kept, because a
-        # partial walk can stabilize above expect_min_articles.
-        # Other areas' records sharing the manifest are untouched.
-        if self.options.get("subtree_only") and moved_out:
-            for article_id, record in list(existing_by_id.items()):
-                if article_id not in moved_out:
-                    continue
-                if record.get("area") and record.get("area") != current_area:
-                    continue
-                del existing_by_id[article_id]
-                if articles_dir is not None:
-                    (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
-                self.logger.info(f"Pruned {article_id}: no longer under the root subtree")
         for d in discovered:
             article_id = d["id"]
             title = d.get("title", "")
@@ -727,10 +739,11 @@ class SnapshotSalesforceHelp(BaseTask):
                     for article_id, where in self._classify_subtree(discovered).items()
                     if where == "out"
                 } if self.options.get("subtree_only") else set()
-                manifest = self._merge_discovered(
-                    manifest, kept, articles_dir, moved_out
-                )
+                pruned = self._prune_moved_out(manifest, moved_out)
+                manifest = self._merge_discovered(manifest, kept)
                 self._save_manifest(manifest_path, manifest)
+                for article_id in pruned:
+                    (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
 
             # Phase 2: Capture
             if mode in ("capture", "all", "refresh"):
@@ -905,6 +918,7 @@ class SnapshotSalesforceHelp(BaseTask):
 
         discovered: List[Dict[str, str]] = []
         prev_kept = -1
+        prev_walk = None
         elapsed_ms = 0
         stabilized = False
         while True:
@@ -917,10 +931,21 @@ class SnapshotSalesforceHelp(BaseTask):
                 f"  ...read at {elapsed_ms}ms: {kept} matching articles "
                 f"({len(discovered)} total)"
             )
-            if kept > 0 and kept == prev_kept and (not expect_min or kept >= expect_min):
+            # subtree_only prunes from the whole walk, not just the kept
+            # subset, so the out-of-subtree branches must also have stopped
+            # hydrating: require the full (id, parent) set to repeat.
+            walk = (
+                frozenset((d["id"], d.get("parent_id")) for d in discovered)
+                if self.options.get("subtree_only") else None
+            )
+            if (
+                kept > 0 and kept == prev_kept and walk == prev_walk
+                and (not expect_min or kept >= expect_min)
+            ):
                 stabilized = True
                 break
             prev_kept = kept
+            prev_walk = walk
             if elapsed_ms >= timeout_ms:
                 break
         return discovered, stabilized
